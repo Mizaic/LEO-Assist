@@ -60,7 +60,12 @@ describe("VT-036-TC-012: Skip navigation link", () => {
 // -- VT-036-TC-013: Colour contrast meets AA --------------------------------
 
 describe("VT-036-TC-013: Colour contrast meets AA", () => {
-  const theme = readUISrc("theme.ts");
+  // Palette values live in the design-system colour tokens; the theme
+  // factory references them by name. Concatenate both so token assertions
+  // still resolve after the theme was ported into @leo/design-system.
+  const theme =
+    readSource("services/design-system/src/theme/index.ts") +
+    readSource("services/design-system/src/tokens/color.ts");
 
   function hexToRgb(hex: string): [number, number, number] {
     const h = hex.replace("#", "");

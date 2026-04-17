@@ -762,3 +762,13 @@ artefacts per the Three Learning Loops Production Plan v3.0.
 | Design Output | DO-LEO-AI-131 | draft | libs/analytics/cohorts.py helpers; audit.py, _audit_sections.py, dashboards.py, mission_control.py refactored to use canonical cohort |
 | Risk | R-LEO-AI-092 | mitigated | Divergent 'confirmed cancer' definitions gave 17 vs 91 on the same NCDA dashboard; consolidated to the NCDA publication cohort |
 | Verification Test | VT-LEO-AI-130 | passed | 14 pytest cases: cohort-helper unit tests, router-import enforcement, live 91 baseline pin for 2025 (passed 2026-04-17) |
+| Design Input | DI-LEO-AI-136 | draft | Episode builder two-pass referral matching with fallback-any-site claim + honest NULL referral_date for truly floating episodes |
+| Design Input | DI-LEO-AI-137 | draft | Evidence-wins duplicate-episode merger with IS_PART_OF edge migration via MOVE_LINKS_Q; NSS clusters participate |
+| Design Input | DI-LEO-AI-138 | draft | Broadened SPECIALTY_MARKERS['breast'] regex covering triple assessment / breast clinic / fibroadenoma / DCIS+LCIS surface forms |
+| Design Output | DO-LEO-AI-133 | draft | Episode builder _grouping/_auto_close/_cypher/_persistence changes implementing fallback-claim + evidence-wins merge; libs/episodes/duplicate_resolver.py |
+| Design Output | DO-LEO-AI-134 | draft | libs/clinical_scoping/specialty_markers.py broadened breast regex |
+| Risk | R-LEO-AI-096 | mitigated | NCDA 2WW referral under-counting (16 of 91, 17.6%) caused by strict same-site matching + tight breast regex + diagnosis-date back-fill |
+| Risk | R-LEO-AI-097 | analyzed | Over-aggressive duplicate-merge could collapse a genuine second-primary cancer; mitigated by evidence-wins rule + reversibility |
+| Verification Test | VT-LEO-AI-137 | draft | 7 pytest cases: two-pass referral match, honest NULL referral_date, referral_match_method audit field |
+| Verification Test | VT-LEO-AI-138 | draft | 8 pytest cases: evidence-wins merge, MOVE_LINKS_Q edge migration, idempotency, ambiguous-cluster skip |
+| Verification Test | VT-LEO-AI-139 | draft | 4 pytest cases: broadened breast regex coverage + specificity (>= 18/20 real-text corpus) |

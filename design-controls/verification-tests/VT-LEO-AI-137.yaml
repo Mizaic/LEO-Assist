@@ -1,0 +1,172 @@
+# -- VT-LEO-AI-137 -- Episode builder two-pass referral matching
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-137"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-136"]
+    risks: ["R-LEO-AI-096"]
+
+  metadata:
+    title: "Two-pass referral matching + honest referral_date semantics"
+    description: >
+      Verifies the episode builder's new two-pass referral-claim
+      algorithm. Pass 1 preserves existing strict same-site
+      behaviour; Pass 2 allows floating diagnoses to claim the
+      nearest unclaimed referral in the lookback window regardless
+      of site tag; truly-floating diagnoses persist
+      ep.referral_date=NULL rather than synthesising from the
+      diagnosis date. Each episode carries a non-null
+      ep.referral_match_method of 'strict_site', 'fallback_any_site',
+      or 'none'.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_episode_builder_fallback_claim.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-137-TC-001"
+      case_name: "Pass 1 strict same-site match unchanged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given a breast referral on day 0 and a breast diagnosis
+            on day 30, call _build_diagnosis_led_groups.
+          expected_result: >
+            Produces a single closed group with refs=[breast_ref],
+            diags=[breast_diag]. referral_match_method='strict_site'.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Closed group count == 1"
+        - "referral_match_method == 'strict_site'"
+
+    - case_id: "VT-137-TC-002"
+      case_name: "Pass 2 fallback claims unknown-site referral"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given an 'unknown'-site referral on day 0 and a
+            'breast' diagnosis on day 30 (Pass 1 currently rejects
+            this pairing), run the builder.
+          expected_result: >
+            Produces a single closed group with refs=[unknown_ref]
+            claimed by the breast diagnosis.
+            site_key=='breast' (diagnosis-derived).
+            referral_match_method=='fallback_any_site'.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Closed group count == 1"
+        - "site_key == 'breast'"
+        - "referral_match_method == 'fallback_any_site'"
+
+    - case_id: "VT-137-TC-003"
+      case_name: "Pass 2 does not claim within MIN_REFERRAL_TO_DIAG_DAYS"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given an 'unknown'-site referral on day 0 and a
+            'breast' diagnosis on day 1 (inside the gap floor),
+            run the builder.
+          expected_result: >
+            Neither Pass 1 nor Pass 2 claims the referral. The
+            diagnosis becomes a floating group with
+            referral_match_method='none', referral_date=None.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Closed group refs == []"
+        - "referral_match_method == 'none'"
+
+    - case_id: "VT-137-TC-004"
+      case_name: "Honest NULL referral_date for truly floating episode"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given no referral anchors and a single breast diagnosis,
+            run the builder.
+          expected_result: >
+            Episode produced with referral_date==None,
+            referral_inferred==False, referral_match_method='none'.
+            The diagnosis encounter date is NOT copied into
+            ep.referral_date.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "ep.referral_date is None"
+        - "ep.referral_inferred is False"
+
+    - case_id: "VT-137-TC-005"
+      case_name: "Pass 1 match precedence over Pass 2"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given BOTH a same-site breast referral on day 0 and a
+            separate 'unknown' referral on day 10, followed by a
+            breast diagnosis on day 45, run the builder.
+          expected_result: >
+            Pass 1 claims the breast referral; the 'unknown'
+            referral remains unclaimed and becomes its own open
+            episode (or is claimed by a later diagnosis).
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Closed ep claims the breast referral"
+        - "referral_match_method == 'strict_site'"
+
+    - case_id: "VT-137-TC-006"
+      case_name: "Fallback respects DIAG_LOOKBACK_DAYS upper bound"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given an 'unknown'-site referral on day 0 and a breast
+            diagnosis on day 200 (past the 180-day lookback), run
+            the builder.
+          expected_result: >
+            Pass 2 does NOT claim the out-of-window referral.
+            Diagnosis becomes a floating episode.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Closed ep refs == []"
+
+    - case_id: "VT-137-TC-007"
+      case_name: "Graph write carries referral_match_method property"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Run the builder end-to-end through _persistence and
+            MERGE_EPISODE against a stub Neo4j client; assert the
+            property dictionary includes referral_match_method.
+          expected_result: >
+            Every _write_episode call includes
+            referral_match_method in the parameter dict.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Persistence params always include referral_match_method"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-137/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

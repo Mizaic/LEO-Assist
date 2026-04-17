@@ -67,12 +67,12 @@
     method: "Test"
     phase: "OQ"
     acceptance: >
-      All VT-LEO-AI-134 cases pass: >= 18/20 positive match rate, 0
+      All VT-LEO-AI-139 cases pass: >= 18/20 positive match rate, 0
       negative matches, 12/12 legacy anchor preservation.
-    test_protocol: "VT-LEO-AI-134"
+    test_protocol: "VT-LEO-AI-139"
 
   safety_class: "B"
-  risks: ["R-LEO-AI-094"]
+  risks: ["R-LEO-AI-096"]
   tags:
     - "specialty-markers"
     - "breast"

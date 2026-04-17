@@ -52,20 +52,23 @@ def rpn_to_level(rpn: int) -> str:
     return "critical"
 
 
+# Atlas hazard_category enum:
+# software_defect | misuse | data_corruption | security_breach
+# | performance_degradation | integration_failure | infrastructure_failure
 DOMAIN_TO_CATEGORY = {
-    "NLP Core": "clinical_safety",
-    "Clinical Governance": "clinical_safety",
-    "Data Protection": "data_protection",
-    "Clinical Safety": "clinical_safety",
-    "Clinical Decision Support": "clinical_safety",
-    "Model Training": "clinical_safety",
-    "Model Deployment": "clinical_safety",
-    "Knowledge Base": "clinical_safety",
-    "Platform": "availability",
-    "Analytics": "clinical_safety",
-    "Developer Platform": "security",
-    "Security": "security",
-    "Interoperability": "clinical_safety",
+    "NLP Core": "software_defect",
+    "Clinical Governance": "misuse",
+    "Data Protection": "security_breach",
+    "Clinical Safety": "software_defect",
+    "Clinical Decision Support": "software_defect",
+    "Model Training": "data_corruption",
+    "Model Deployment": "performance_degradation",
+    "Knowledge Base": "data_corruption",
+    "Platform": "infrastructure_failure",
+    "Analytics": "performance_degradation",
+    "Developer Platform": "integration_failure",
+    "Security": "security_breach",
+    "Interoperability": "integration_failure",
 }
 
 
@@ -103,21 +106,37 @@ def build_payload(row: dict) -> dict:
             f"Cause: {row['Failure_Cause']}"
         ),
         "hazard_description": hazard_description,
-        "hazard_category": DOMAIN_TO_CATEGORY.get(row["Domain"], "clinical_safety"),
+        "hazard_category": DOMAIN_TO_CATEGORY.get(row["Domain"], "software_defect"),
         "hazardous_situation": row["Failure_Cause"],
         "harm_description": harm_description,
         "harm_severity": SEVERITY_MAP.get(s, "serious"),
-        "initial_severity": s,
-        "initial_probability": p,
+        # Atlas keeps initial_severity / initial_probability as string labels
+        "initial_severity": SEVERITY_MAP.get(s, "serious"),
+        "initial_probability": PROBABILITY_MAP.get(p, "possible"),
         "initial_detectability": d,
-        "safety_class": row["Safety_Class"],
+        "initial_rpn": rpn,
+        "mitigation_measures_detail": row["Notes_for_Workshop"],
+        "mitigation_control_type": "protective_measure",
+        "mitigation_effectiveness": "not_effective",
+        "monitoring_plan": (
+            f"Monitor via DQ dashboards and coding quality alerts. "
+            f"Review frequency: Quarterly."
+        ),
+        "monitoring_metrics": [
+            "False negative rate",
+            "Alert volume",
+            "RPN trend",
+        ],
+        "review_frequency": "Quarterly",
+        "identified_by": "FMEA-workshop-draft-2026-04-16",
+        "identified_date": "2026-04-16",
         "status": "identified",
+        "safety_class": row["Safety_Class"],
         "tags": [
             row["Domain"].lower().replace(" ", "_"),
             row["UN_Short_Title"].lower().replace(" ", "_"),
         ],
-        "identified_by": "FMEA-workshop-draft-2026-04-16",
-        "identified_date": "2026-04-16",
+        # -- internal metadata, stripped before firing --
         "_fmea_id": row["FMEA_ID"],
         "_rpn": rpn,
         "_risk_level": rpn_to_level(rpn),

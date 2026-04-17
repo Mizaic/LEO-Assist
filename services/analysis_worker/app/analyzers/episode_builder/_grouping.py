@@ -85,8 +85,19 @@ def _find_best_referral(
     diag_key: str,
     sorted_ref: list[dict[str, Any]],
     claimed: set[int],
+    *,
+    require_site_match: bool = True,
 ) -> tuple[int, date] | None:
-    """Return (index, ref_date) of the closest unclaimed same-site referral."""
+    """Return (index, ref_date) of the closest unclaimed referral.
+
+    DI-LEO-AI-136: when ``require_site_match`` is True (Pass 1 / strict),
+    the referral's site key must match the diagnosis (or be
+    ``non_site_specific`` / ``unknown``). When False (Pass 2 /
+    fallback), site match is not required: any unclaimed referral
+    inside the temporal window is eligible. Temporal rules
+    (``MIN_REFERRAL_TO_DIAG_DAYS`` and ``DIAG_LOOKBACK_DAYS``) are
+    enforced in both passes.
+    """
     best_idx: int | None = None
     best_gap = timedelta(days=cfg.DIAG_LOOKBACK_DAYS + 1)
     best_date: date | None = None
@@ -99,19 +110,16 @@ def _find_best_referral(
         gap = diag_date - r_date
         if gap < timedelta(0) or gap > timedelta(days=cfg.DIAG_LOOKBACK_DAYS):
             continue
-        # DI-LEO-AI-124: require a minimum plausible gap so diagnosis-
-        # encounter text containing fast-track language is not picked
-        # up as a fresh referral. Candidates inside the gap are
-        # skipped; diagnosis-led grouping then looks further back.
         if gap < timedelta(days=cfg.MIN_REFERRAL_TO_DIAG_DAYS):
             continue
-        ref_key = _extract_condition_key_from_anchor(ref)
-        if (
-            diag_key not in ("unknown",)
-            and ref_key != diag_key
-            and ref_key != "non_site_specific"
-        ):
-            continue
+        if require_site_match:
+            ref_key = _extract_condition_key_from_anchor(ref)
+            if (
+                diag_key not in ("unknown",)
+                and ref_key != diag_key
+                and ref_key != "non_site_specific"
+            ):
+                continue
         if gap < best_gap:
             best_gap = gap
             best_idx = idx
@@ -170,15 +178,118 @@ def _group_open_referrals(
     return groups
 
 
+def _claim_strict_pass(
+    sorted_diag: list[dict[str, Any]],
+    sorted_ref: list[dict[str, Any]],
+    claimed: set[int],
+) -> tuple[
+    dict[str, tuple[str, list[dict[str, Any]], list[dict[str, Any]], str]],
+    list[dict[str, Any]],
+]:
+    """Pass 1 -- strict same-site claim. Returns (ref_keyed, still_unmatched_diags)."""
+    ref_keyed: dict[
+        str, tuple[str, list[dict[str, Any]], list[dict[str, Any]], str]
+    ] = {}
+    unmatched: list[dict[str, Any]] = []
+    for diag in sorted_diag:
+        d_date = _parse_date(diag.get("encounter_date"))
+        if not d_date:
+            continue
+        diag_key = _extract_condition_key_from_anchor(diag)
+        match = _find_best_referral(
+            d_date, diag_key, sorted_ref, claimed, require_site_match=True
+        )
+        if not match:
+            unmatched.append(diag)
+            continue
+        primary_idx, _ = match
+        refs = _claim_window_referrals(
+            sorted_ref, claimed, diag_key, d_date, primary_idx
+        )
+        ref_key = _extract_condition_key_from_anchor(refs[0]) if refs else "unknown"
+        if diag_key not in ("unknown", "non_site_specific"):
+            site_key = diag_key
+        elif ref_key not in ("unknown",):
+            site_key = ref_key
+        else:
+            site_key = diag_key
+        ref_anchor_date = str(refs[0].get("encounter_date") or "")
+        group_key = f"{site_key}|{ref_anchor_date}"
+        if group_key in ref_keyed:
+            sk, existing_refs, existing_diags, method = ref_keyed[group_key]
+            ref_keyed[group_key] = (sk, existing_refs, existing_diags + [diag], method)
+        else:
+            ref_keyed[group_key] = (site_key, refs, [diag], "strict_site")
+    return ref_keyed, unmatched
+
+
+def _claim_fallback_pass(
+    unmatched_diags: list[dict[str, Any]],
+    sorted_ref: list[dict[str, Any]],
+    claimed: set[int],
+    ref_keyed: dict[str, tuple[str, list[dict[str, Any]], list[dict[str, Any]], str]],
+) -> list[dict[str, Any]]:
+    """Pass 2 -- DI-LEO-AI-136. Claim any unclaimed referral (ignore site)
+    within the same temporal window for diagnoses that did not match in
+    Pass 1. Returns the list of diagnoses that remain truly floating."""
+    still_floating: list[dict[str, Any]] = []
+    for diag in unmatched_diags:
+        d_date = _parse_date(diag.get("encounter_date"))
+        if not d_date:
+            continue
+        diag_key = _extract_condition_key_from_anchor(diag)
+        match = _find_best_referral(
+            d_date, diag_key, sorted_ref, claimed, require_site_match=False
+        )
+        if not match:
+            still_floating.append(diag)
+            continue
+        primary_idx, _ = match
+        refs = _claim_window_referrals(
+            sorted_ref, claimed, "unknown", d_date, primary_idx
+        )
+        site_key = (
+            diag_key
+            if diag_key not in ("unknown", "non_site_specific")
+            else _extract_condition_key_from_anchor(refs[0])
+            if refs
+            else diag_key
+        )
+        ref_anchor_date = str(refs[0].get("encounter_date") or "")
+        group_key = f"{site_key}|{ref_anchor_date}|fallback"
+        if group_key in ref_keyed:
+            sk, existing_refs, existing_diags, method = ref_keyed[group_key]
+            ref_keyed[group_key] = (
+                sk,
+                existing_refs,
+                existing_diags + [diag],
+                method,
+            )
+        else:
+            ref_keyed[group_key] = (site_key, refs, [diag], "fallback_any_site")
+    return still_floating
+
+
 def _build_diagnosis_led_groups(
     referral_anchors: list[dict[str, Any]],
     diagnosis_anchors: list[dict[str, Any]],
 ) -> tuple[
-    list[tuple[str, list[dict[str, Any]], list[dict[str, Any]]]],
+    list[tuple[str, list[dict[str, Any]], list[dict[str, Any]], str]],
     list[tuple[str, list[dict[str, Any]]]],
 ]:
-    """Diagnosis-first grouping: each diagnosis claims its nearest preceding
-    referral.  Returns (closed_groups, open_groups)."""
+    """Diagnosis-first grouping with two-pass claim.
+
+    DI-LEO-AI-136: Pass 1 is the legacy strict same-site match. Pass 2
+    is a fallback that tries to claim any unclaimed referral within
+    ``DIAG_LOOKBACK_DAYS`` regardless of site when Pass 1 left a
+    diagnosis unmatched; this covers cases where a 2WW referral is
+    recorded as ``unknown`` or a non-cancer coded entity. Remaining
+    diagnoses become truly-floating episodes with no referral claim
+    (match method ``none``).
+
+    Returns ``(closed_groups, open_groups)`` where ``closed_groups`` is
+    a list of ``(site_key, ref_anchors, diag_anchors, match_method)``.
+    """
     sorted_diag = sorted(
         diagnosis_anchors,
         key=lambda a: (
@@ -190,43 +301,21 @@ def _build_diagnosis_led_groups(
         referral_anchors, key=lambda a: str(a.get("encounter_date") or "")
     )
     claimed: set[int] = set()
-    ref_keyed: dict[str, tuple[str, list[dict[str, Any]], list[dict[str, Any]]]] = {}
-    floating: dict[str, list[dict[str, Any]]] = {}
 
-    for diag in sorted_diag:
-        d_date = _parse_date(diag.get("encounter_date"))
-        if not d_date:
-            continue
-        diag_key = _extract_condition_key_from_anchor(diag)
-        match = _find_best_referral(d_date, diag_key, sorted_ref, claimed)
-        if match:
-            primary_idx, _ = match
-            refs = _claim_window_referrals(
-                sorted_ref, claimed, diag_key, d_date, primary_idx
-            )
-            ref_key = _extract_condition_key_from_anchor(refs[0]) if refs else "unknown"
-            if diag_key not in ("unknown", "non_site_specific"):
-                site_key = diag_key
-            elif ref_key not in ("unknown",):
-                site_key = ref_key
-            else:
-                site_key = diag_key
+    ref_keyed, unmatched = _claim_strict_pass(sorted_diag, sorted_ref, claimed)
+    still_floating = _claim_fallback_pass(unmatched, sorted_ref, claimed, ref_keyed)
 
-            ref_anchor_date = str(refs[0].get("encounter_date") or "")
-            group_key = f"{site_key}|{ref_anchor_date}"
-            if group_key in ref_keyed:
-                sk, existing_refs, existing_diags = ref_keyed[group_key]
-                ref_keyed[group_key] = (sk, existing_refs, existing_diags + [diag])
-            else:
-                ref_keyed[group_key] = (site_key, refs, [diag])
-        else:
-            floating.setdefault(diag_key, []).append(diag)
-
-    floating_groups: list[tuple[str, list[dict[str, Any]], list[dict[str, Any]]]] = []
-    for site_key, diags in floating.items():
+    floating_groups: list[
+        tuple[str, list[dict[str, Any]], list[dict[str, Any]], str]
+    ] = []
+    floating_by_site: dict[str, list[dict[str, Any]]] = {}
+    for diag in still_floating:
+        key = _extract_condition_key_from_anchor(diag)
+        floating_by_site.setdefault(key, []).append(diag)
+    for site_key, diags in floating_by_site.items():
         diags.sort(key=lambda a: str(a.get("encounter_date") or ""))
         for time_group in _group_referrals_by_time(diags):
-            floating_groups.append((site_key, [], time_group))
+            floating_groups.append((site_key, [], time_group, "none"))
 
     closed_groups = list(ref_keyed.values()) + floating_groups
     unclaimed = [ref for idx, ref in enumerate(sorted_ref) if idx not in claimed]

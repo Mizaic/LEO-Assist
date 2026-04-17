@@ -14,7 +14,7 @@ import { typography } from "../tokens/typography";
  * --font-dm-sans / --font-jetbrains-mono CSS variables referenced
  * below.
  *
- * Design Controls: DI-LEO-AI-141, DO-LEO-AI-138, VT-LEO-AI-137.
+ * Design Controls: DI-LEO-AI-141, DO-LEO-AI-138, VT-LEO-AI-140.
  */
 
 const MUI_PRIMARY = "#1F3A8A";

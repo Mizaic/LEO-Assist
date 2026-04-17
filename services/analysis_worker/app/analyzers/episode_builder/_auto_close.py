@@ -6,6 +6,12 @@ import logging
 from datetime import date, timedelta
 from typing import Any
 
+from libs.episodes.duplicate_resolver import (
+    EpisodeRecord,
+    MergeDecision,
+    cluster_episodes,
+    pick_evidence_winner,
+)
 from libs.pipeline.outcome_inference import score_post_specialist_encounters
 
 from . import _config as cfg
@@ -16,9 +22,65 @@ from ._types import _parse_date
 logger = logging.getLogger(__name__)
 
 
-def _merge_same_site_duplicates(patient_id: str, patient_client: Any) -> None:
-    """Collapse same-site episodes whose referral_dates are within the
-    time window.  Earliest episode per site cluster is kept as primary."""
+def _row_to_record(row: dict) -> EpisodeRecord:
+    return EpisodeRecord(
+        episode_id=str(row.get("episode_id") or ""),
+        cancer_type=str(row.get("cancer_type") or ""),
+        referral_date=_parse_date(row.get("referral_date")),
+        end_date=_parse_date(row.get("end_date")),
+        status=str(row.get("status") or ""),
+        diagnosis_texts=[
+            str(t) for t in (row.get("diagnosis_texts") or []) if t
+        ],
+        treatment_count=int(row.get("treatment_count") or 0),
+        match_method=str(row.get("match_method") or "strict_site"),
+    )
+
+
+def _apply_merge_decision(
+    decision: MergeDecision,
+    patient_client: Any,
+) -> None:
+    """DI-LEO-AI-137: move IS_PART_OF edges onto the primary, then mark
+    duplicates as merged. Both Cypher calls are wrapped in retry and
+    failure of either aborts the remaining duplicates in the cluster
+    only -- other clusters are unaffected."""
+    for dup_id in decision.duplicates:
+        try:
+            _run_with_retry(
+                patient_client,
+                cypher.MOVE_LINKS_Q,
+                f"MOVE links {dup_id} -> {decision.primary_id}",
+                dup_id=dup_id,
+                primary_id=decision.primary_id,
+            )
+        except Exception:  # noqa: BLE001
+            logger.error(
+                "Failed to move IS_PART_OF edges from %s to %s; skipping merge",
+                dup_id,
+                decision.primary_id,
+            )
+            continue
+        try:
+            _run_with_retry(
+                patient_client,
+                cypher.MARK_MERGED_Q,
+                f"MERGE dup {dup_id}",
+                dup_id=dup_id,
+                primary_id=decision.primary_id,
+                reasoning=decision.reasoning,
+            )
+        except Exception:  # noqa: BLE001
+            logger.error("Failed to mark episode %s merged", dup_id)
+
+
+def _merge_duplicate_episodes(patient_id: str, patient_client: Any) -> None:
+    """Evidence-wins duplicate-episode merger (DI-LEO-AI-137).
+
+    Replaces the legacy same-site same-cancer_type merger which was
+    blind to NSS episodes and diagnosis-only floating episodes. See
+    ``libs.episodes.duplicate_resolver`` for algorithm details.
+    """
     try:
         rows = patient_client.run(
             cypher.FETCH_EPISODES_FOR_MERGE_Q, patient_id=patient_id
@@ -26,46 +88,13 @@ def _merge_same_site_duplicates(patient_id: str, patient_client: Any) -> None:
     except Exception:  # noqa: BLE001
         logger.error("Failed to fetch episodes for merge dedup, patient %s", patient_id)
         return
-
-    by_site: dict[str, list[dict]] = {}
-    for r in rows:
-        ctype = r.get("cancer_type") or ""
-        if ctype == "non_site_specific":
+    records = [_row_to_record(r) for r in rows]
+    clusters = cluster_episodes(records, cfg.SAME_EPISODE_DAYS)
+    for cluster in clusters:
+        decision = pick_evidence_winner(cluster)
+        if decision is None:
             continue
-        by_site.setdefault(ctype, []).append(r)
-
-    for ctype, eps in by_site.items():
-        if len(eps) < 2:
-            continue
-        eps_sorted = sorted(eps, key=lambda e: str(e.get("referral_date") or ""))
-        primary = eps_sorted[0]
-        primary_date = _parse_date(primary["referral_date"])
-        if not primary_date:
-            continue
-        for dup in eps_sorted[1:]:
-            dup_date = _parse_date(dup["referral_date"])
-            if not dup_date:
-                continue
-            gap = (dup_date - primary_date).days
-            if 0 <= gap <= cfg.SAME_EPISODE_DAYS:
-                try:
-                    _run_with_retry(
-                        patient_client,
-                        cypher.MARK_MERGED_Q,
-                        f"MERGE dup {dup['episode_id']}",
-                        dup_id=dup["episode_id"],
-                        primary_id=primary["episode_id"],
-                        reasoning=(
-                            f"Auto-merged: same cancer type ({ctype}) within "
-                            f"{gap} days of {primary['episode_id']}"
-                        ),
-                    )
-                except Exception:  # noqa: BLE001
-                    logger.error(
-                        "Failed to merge episode %s into %s",
-                        dup["episode_id"],
-                        primary["episode_id"],
-                    )
+        _apply_merge_decision(decision, patient_client)
 
 
 def _apply_auto_close_rules(
@@ -77,7 +106,7 @@ def _apply_auto_close_rules(
     if not episode_ids:
         return
 
-    _merge_same_site_duplicates(patient_id, patient_client)
+    _merge_duplicate_episodes(patient_id, patient_client)
 
     try:
         _run_with_retry(

@@ -58,6 +58,8 @@ MERGE_EPISODE = (
     "    ep.hitl_flag               = $hitl_flag, "
     "    ep.hitl_reason             = $hitl_reason, "
     "    ep.letter_inferred_benign  = $letter_inferred_benign, "
+    "    ep.referral_match_method   = $referral_match_method, "
+    "    ep.referral_inferred       = $referral_inferred, "
     "    ep.cancer_stage            = coalesce(ep.cancer_stage, 'unknown'), "
     "    ep.cancer_stage_raw        = coalesce(ep.cancer_stage_raw, ''), "
     "    ep.cancer_stage_group      = coalesce(ep.cancer_stage_group, ''), "
@@ -203,6 +205,8 @@ WHERE other.patient_id = $patient_id
   AND other.cancer_type <> 'non_site_specific'
   AND other.episode_id <> ep.episode_id
   AND NOT other.status IN ['merged', 'closed_phantom']
+  AND other.referral_date IS NOT NULL
+  AND ep.referral_date IS NOT NULL
   AND abs(duration.inDays(date(other.referral_date), date(ep.referral_date)).days) <= $window_days
 SET ep.status          = 'closed_related',
     ep.auto_closed     = true,
@@ -213,13 +217,45 @@ SET ep.status          = 'closed_related',
 """
 
 FETCH_EPISODES_FOR_MERGE_Q = (
+    # DI-LEO-AI-137: return ALL non-merged episodes (including
+    # floating/diagnosis-only episodes with NULL referral_date and NSS
+    # episodes). The evidence-wins merger clusters by date and
+    # re-extracts cancer_type from diagnosis encounter text, so the
+    # legacy WHERE clauses that filtered on cancer_type/referral_date
+    # being non-null are removed.
     "MATCH (ep:EpisodeOfCare {patient_id: $patient_id}) "
     "WHERE NOT ep.status IN ['merged', 'closed_phantom'] "
-    "  AND ep.cancer_type IS NOT NULL "
-    "  AND ep.referral_date IS NOT NULL "
-    "RETURN ep.episode_id AS episode_id, ep.cancer_type AS cancer_type, "
-    "       toString(ep.referral_date) AS referral_date, ep.status AS status"
+    "OPTIONAL MATCH (e:Encounter)-[link:IS_PART_OF]->(ep) "
+    "  WHERE link.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
+    "WITH ep, collect(DISTINCT coalesce(e.text, '')) AS diagnosis_texts "
+    "OPTIONAL MATCH (t:Encounter)-[tlink:IS_PART_OF]->(ep) "
+    "  WHERE tlink.milestone_type = 'treatment_started' "
+    "WITH ep, diagnosis_texts, count(t) AS treatment_count "
+    "RETURN ep.episode_id         AS episode_id, "
+    "       ep.cancer_type        AS cancer_type, "
+    "       toString(ep.referral_date) AS referral_date, "
+    "       toString(coalesce(ep.end_date, ep.referral_date)) AS end_date, "
+    "       ep.status             AS status, "
+    "       diagnosis_texts       AS diagnosis_texts, "
+    "       treatment_count       AS treatment_count, "
+    "       coalesce(ep.referral_match_method, 'strict_site') AS match_method"
 )
+
+# DI-LEO-AI-137: move all IS_PART_OF milestone links from a duplicate
+# episode onto its primary, de-duplicating by (encounter_id,
+# milestone_type) so we do not create redundant edges. The duplicate
+# is then marked merged in the same transaction via ``MARK_MERGED_Q``.
+MOVE_LINKS_Q = """
+MATCH (e:Encounter)-[old:IS_PART_OF]->(dup:EpisodeOfCare {episode_id: $dup_id})
+MATCH (primary:EpisodeOfCare {episode_id: $primary_id})
+WITH e, old, dup, primary, old.milestone_type AS mtype
+OPTIONAL MATCH (e)-[existing:IS_PART_OF {milestone_type: mtype}]->(primary)
+FOREACH (_ IN CASE WHEN existing IS NULL THEN [1] ELSE [] END |
+  MERGE (e)-[new:IS_PART_OF {milestone_type: mtype}]->(primary)
+  SET new.created_at = coalesce(old.created_at, datetime())
+)
+DELETE old
+"""
 
 MARK_MERGED_Q = (
     "MATCH (dup:EpisodeOfCare {episode_id: $dup_id}) "

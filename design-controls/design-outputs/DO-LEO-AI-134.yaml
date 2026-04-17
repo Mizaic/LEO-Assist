@@ -9,8 +9,8 @@
   traceability:
     design_inputs: ["DI-LEO-AI-138"]
     user_needs: ["UN-LEO-AI-019"]
-    risks_addressed: ["R-LEO-AI-094"]
-    verification_tests: ["VT-LEO-AI-134"]
+    risks_addressed: ["R-LEO-AI-096"]
+    verification_tests: ["VT-LEO-AI-139"]
 
   specification:
     title: "Broadened breast specialty marker"

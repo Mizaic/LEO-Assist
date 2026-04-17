@@ -79,6 +79,7 @@ from ._cypher import (  # noqa: E402
     INFERENCE_UPDATE_Q as _INFERENCE_UPDATE_Q,
     LINK_ENCOUNTERS as _LINK_ENCOUNTERS,
     MARK_MERGED_Q as _MARK_MERGED_Q,
+    MOVE_LINKS_Q as _MOVE_LINKS_Q,
     MERGE_EPISODE as _MERGE_EPISODE,
     REFERRAL_CONTEXT_TEXT_Q as _REFERRAL_CONTEXT_TEXT_Q,
     RELATED_CLOSE_Q as _RELATED_CLOSE_Q,
@@ -120,8 +121,10 @@ from ._first_presentation import (  # noqa: E402
 from ._auto_close import (  # noqa: E402
     _apply_auto_close_rules,
     _apply_outcome_inference,
-    _merge_same_site_duplicates,
+    _merge_duplicate_episodes,
 )
+
+_merge_same_site_duplicates = _merge_duplicate_episodes
 
 # -- Builder (public API) ---------------------------------------------------
 from ._builder import (  # noqa: E402

@@ -1,0 +1,98 @@
+# -- DI-LEO-AI-141 -- MUI theme factory lives in @leo/design-system
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-141"
+  type: "Interface"
+  derived_from: ["UN-LEO-AI-069"]
+  requirement: >
+    The MUI theme used by services/ui SHALL be produced by a factory
+    function (createLeoTheme) exported from @leo/design-system/theme,
+    not by a theme object defined inside services/ui. The factory
+    SHALL consume its palette, typography, and shape values from the
+    design-system tokens in services/design-system/src/tokens/* so that
+    a single change to a token propagates to every MUI component and
+    every role-first surface.
+  rationale: >
+    Wave D Phase 6 removed the NEXT_PUBLIC_ROLE_FIRST flag and the
+    duplicate ProgressiveReveal component. A parallel piece of tech
+    debt remained: the MUI theme was defined inside services/ui, so
+    any consumer of @leo/design-system would carry its own set of
+    colour and type decisions if it ever mounted MUI. Centralising
+    the theme in the design-system removes this split-brain and
+    guarantees that every future app (or story/playwright harness)
+    that depends on the design-system inherits the same visual
+    language.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          services/design-system/src/theme/index.ts exports a
+          function createLeoTheme(): Theme that returns a valid MUI
+          theme with palette.primary.main === tokens.color equivalent,
+          typography.fontFamily referencing FONT_BODY (DM Sans via
+          --font-dm-sans), and shape.borderRadius from tokens.radius.md.
+      - type: "functional"
+        spec: >
+          services/design-system/package.json exposes the theme path
+          via its "exports" map ("./theme": "./src/theme/index.ts")
+          so consumers can `import { createLeoTheme } from
+          "@leo/design-system/theme"`.
+      - type: "functional"
+        spec: >
+          services/ui/src/components/ThemeRegistry.tsx imports
+          createLeoTheme from @leo/design-system/theme and instantiates
+          it once at module scope; it does NOT import from
+          @/theme or define theme primitives inline.
+      - type: "functional"
+        spec: >
+          services/ui/src/theme.ts does not exist on disk. The repo
+          has no duplicate MUI theme definition.
+      - type: "functional"
+        spec: >
+          The MUI subtitle1 / subtitle2 variants use FONT_BODY (DM Sans)
+          and do NOT reference JetBrains Mono (FONT_MONO) so ordinary
+          UI labels keep the humanist proportional face.
+    constraints:
+      - type: "safety"
+        spec: >
+          Porting the theme MUST be semantics-preserving. Every
+          existing MUI consumer (Card, Chip, Button, TextField,
+          Dialog, Drawer, LinearProgress, ListItemButton, Skeleton,
+          Tooltip, TableCell, TableRow) MUST render with the same
+          dimensions, borders, and palette as before the port; no
+          regression in VT-LEO-AI-036 (colour-contrast) or
+          VT-LEO-AI-128 (font wiring).
+    dependencies: ["DI-LEO-AI-130", "DI-LEO-AI-131"]
+    downstream_impacts:
+      - "services/ui/src/components/ThemeRegistry.tsx"
+      - "services/ui/src/__tests__/theme-tokens.test.ts"
+      - "services/ui/src/__tests__/design-system-fonts.test.ts"
+      - "services/ui/src/__tests__/ui-safety-static.test.ts"
+    technical_details:
+      language: "TypeScript"
+      framework: "MUI v7 + Next.js workspace package"
+      file_structure:
+        - "services/design-system/src/theme/index.ts"
+        - "services/design-system/package.json"
+        - "services/ui/src/components/ThemeRegistry.tsx"
+      estimated_loc: 220
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-140 passes: createLeoTheme returns a Theme with the
+      expected tokens, ThemeRegistry imports from the design-system,
+      services/ui/src/theme.ts is absent, and the existing colour /
+      font static analysis tests continue to resolve once they look
+      at the new location.
+    test_protocol: "VT-LEO-AI-140"
+
+  safety_class: "A"
+  risks: []
+  tags:
+    - "role-first"
+    - "design-system"
+    - "theme"
+    - "no-tech-debt"

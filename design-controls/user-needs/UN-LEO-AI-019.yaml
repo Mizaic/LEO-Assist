@@ -98,7 +98,14 @@
     created_date: "2026-03-01"
     status: "implemented"
 
-  design_inputs: ["DI-LEO-AI-027", "DI-LEO-AI-028", "DI-LEO-AI-127", "DI-LEO-AI-134"]
+  design_inputs:
+    - "DI-LEO-AI-027"
+    - "DI-LEO-AI-028"
+    - "DI-LEO-AI-127"
+    - "DI-LEO-AI-134"
+    - "DI-LEO-AI-136"
+    - "DI-LEO-AI-137"
+    - "DI-LEO-AI-138"
   validation_tests: ["VAL-LEO-AI-004"]
 
   tags: ["dashboard", "analytics", "ui", "reporting"]

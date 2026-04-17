@@ -1,0 +1,179 @@
+# -- VT-LEO-AI-138 -- Evidence-wins duplicate-episode merge
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-138"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-137"]
+    risks: ["R-LEO-AI-096", "R-LEO-AI-097"]
+
+  metadata:
+    title: "Evidence-wins merge with IS_PART_OF edge migration"
+    description: >
+      Verifies the episode builder's new duplicate-cluster merge
+      algorithm. Clusters are formed per-patient by referral_date
+      within SAME_EPISODE_DAYS, including NSS episodes. For each
+      cluster the diagnosis_confirmed encounter text is checked
+      against libs.clinical_scoping specialty markers; the single
+      episode whose cancer_type appears in its own diagnosis text
+      wins. All IS_PART_OF edges are moved to the primary via
+      MOVE_LINKS_Q; duplicates are marked status='merged' with
+      merged_into and merge_reasoning; ambiguous clusters are
+      skipped with a warning.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_episode_duplicate_resolver.py"
+      - "tests/test_episode_builder_evidence_merge.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-138-TC-001"
+      case_name: "pick_evidence_winner selects text-corroborated cancer_type"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given three candidate episodes (breast, bladder, NSS)
+            with diagnosis text 'right breast invasive ductal
+            carcinoma', call pick_evidence_winner.
+          expected_result: "Returns the breast episode."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Winner == breast"
+
+    - case_id: "VT-138-TC-002"
+      case_name: "Ambiguous cluster returns None and is skipped"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given two episodes (breast and melanoma) with diagnosis
+            text mentioning BOTH 'invasive ductal carcinoma' AND
+            'malignant melanoma', call pick_evidence_winner.
+          expected_result: >
+            Returns None (both corroborated, no deterministic
+            winner). Merge skipped; logger.warning emitted.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Winner is None"
+        - "No graph writes issued"
+
+    - case_id: "VT-138-TC-003"
+      case_name: "Tie-break uses treatment_started milestone"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given two breast candidates, both text-corroborated;
+            one has a treatment_started milestone, the other does
+            not. Call pick_evidence_winner.
+          expected_result: >
+            Returns the episode with treatment_started.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Winner == treatment_started candidate"
+
+    - case_id: "VT-138-TC-004"
+      case_name: "Tie-break uses earliest first_date"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Given two breast candidates, both corroborated, both
+            without treatment_started; episode A first_date
+            earlier than B. Call pick_evidence_winner.
+          expected_result: "Returns A (earliest first_date)."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Winner == A"
+
+    - case_id: "VT-138-TC-005"
+      case_name: "NSS episode in cluster participates as merge candidate"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Cluster contains one breast episode (corroborated) and
+            one NSS shadow on the same referral date. Run
+            _merge_same_day_clusters.
+          expected_result: >
+            NSS episode is merged into the breast primary. Edges
+            migrated; NSS status='merged'.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "NSS status == 'merged'"
+        - "NSS merged_into == breast episode_id"
+
+    - case_id: "VT-138-TC-006"
+      case_name: "MOVE_LINKS_Q migrates all IS_PART_OF edges"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Seed a test graph: duplicate episode has 3 IS_PART_OF
+            edges (referral, diagnosis, treatment_started). Run
+            MOVE_LINKS_Q with that duplicate and a primary.
+          expected_result: >
+            After execution, duplicate has 0 IS_PART_OF edges;
+            primary has all 3 milestone_types present; every
+            migrated edge has linked_by='merge_duplicate'.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Duplicate has zero IS_PART_OF edges"
+        - "Primary has all 3 milestone_types"
+        - "All migrated edges tagged merge_duplicate"
+
+    - case_id: "VT-138-TC-007"
+      case_name: "Idempotency: second merge pass is a no-op"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Run _apply_auto_close_rules twice on the same patient.
+          expected_result: >
+            After the first run, clusters are merged; after the
+            second run, no further writes occur (no double
+            merge, no churn in status).
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Second run produces zero additional merge writes"
+
+    - case_id: "VT-138-TC-008"
+      case_name: "merge_reasoning records the evidence text"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            After a successful evidence-wins merge, read back the
+            duplicate's merge_reasoning property.
+          expected_result: >
+            merge_reasoning contains the primary's cancer_type, a
+            reference to the deciding text snippet, and the
+            primary episode_id.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "merge_reasoning is non-empty and mentions primary cancer_type"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-138/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

@@ -194,6 +194,7 @@ def _build_closed_episode(
     ref_anchors: list[dict[str, Any]],
     diag_anchors: list[dict[str, Any]],
     claim: _SpecialistClaim,
+    referral_match_method: str = "strict_site",
 ) -> None:
     """Write one diagnosis-led (completed) episode."""
     all_anchors = ref_anchors + diag_anchors
@@ -203,11 +204,19 @@ def _build_closed_episode(
         if a.get("encounter_date")
     ]
     earliest_str = min(all_dates_str) if all_dates_str else ""
-    referral_date = (
-        str(ref_anchors[0].get("encounter_date") or earliest_str)
+    # DI-LEO-AI-136: honest NULL semantics. When no referral anchor is
+    # claimed (truly floating diagnosis-only episode), ep.referral_date
+    # is persisted as NULL. The previous behaviour back-filled from the
+    # diagnosis encounter date, which falsely inflated the via-2WW
+    # metric because 75 of 91 confirmed-cancer episodes in 2025 had
+    # referral_date synthesised from the diagnosis date.
+    referral_date: str | None = (
+        str(ref_anchors[0].get("encounter_date") or "") or None
         if ref_anchors
-        else earliest_str
+        else None
     )
+    if not ref_anchors:
+        referral_match_method = "none"
 
     if site_key in ("unknown", "non_site_specific") and ctx.anchors:
         fp_and_ref = (ctx.anchors.first_presentation_anchors or []) + ref_anchors
@@ -286,6 +295,7 @@ def _build_closed_episode(
             place_of_presentation=place or "GP surgery",
             first_presentation_date=fp_date,
             presenting_complaint=complaint,
+            referral_match_method=referral_match_method,
         ),
         ctx.result,
         ctx.episode_ids,
@@ -453,7 +463,7 @@ async def build_episodes(
 
     specs: list[_EpisodeSpec] = [
         _closed_episode_spec(patient_id, site_key, ref_anchors, diag_anchors)
-        for site_key, ref_anchors, diag_anchors in closed_groups
+        for site_key, ref_anchors, diag_anchors, _method in closed_groups
     ] + [
         _open_episode_spec(patient_id, site_key, group)
         for site_key, group in open_groups
@@ -472,7 +482,7 @@ async def build_episodes(
         phantom_sites=phantom_sites,
     )
 
-    for site_key, ref_anchors, diag_anchors in closed_groups:
+    for site_key, ref_anchors, diag_anchors, match_method in closed_groups:
         ep_id = _episode_id(
             patient_id,
             site_key,
@@ -485,7 +495,14 @@ async def build_episodes(
                 default="",
             ),
         )
-        _build_closed_episode(ctx, site_key, ref_anchors, diag_anchors, claims[ep_id])
+        _build_closed_episode(
+            ctx,
+            site_key,
+            ref_anchors,
+            diag_anchors,
+            claims[ep_id],
+            match_method,
+        )
 
     for site_key, group in open_groups:
         ep_id = _episode_id(

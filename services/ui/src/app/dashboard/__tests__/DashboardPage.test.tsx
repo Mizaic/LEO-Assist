@@ -37,6 +37,9 @@ jest.mock("@/components/dashboard/SafetyNetAlertsSummary", () => function MockAl
 jest.mock("@/components/dashboard/LLMSpendPanel", () => function MockSpendPanel() {
   return <div data-testid="llm-spend-panel" />;
 });
+jest.mock("@/components/AreaIntro", () => function MockAreaIntro() {
+  return <div data-testid="area-intro" />;
+});
 
 const theme = createTheme();
 

@@ -9,8 +9,8 @@
   traceability:
     design_inputs: ["DI-LEO-AI-136", "DI-LEO-AI-137"]
     user_needs: ["UN-LEO-AI-006", "UN-LEO-AI-019"]
-    risks_addressed: ["R-LEO-AI-094", "R-LEO-AI-095"]
-    verification_tests: ["VT-LEO-AI-132", "VT-LEO-AI-133"]
+    risks_addressed: ["R-LEO-AI-096", "R-LEO-AI-097"]
+    verification_tests: ["VT-LEO-AI-137", "VT-LEO-AI-138"]
 
   specification:
     title: "Episode builder fallback referral-claim and evidence-wins merge"

@@ -89,6 +89,8 @@ def _write_episode(
             hitl_flag=params.hitl_flag,
             hitl_reason=params.hitl_reason,
             letter_inferred_benign=params.letter_inferred_benign,
+            referral_match_method=params.referral_match_method,
+            referral_inferred=params.referral_inferred,
         )
         episode_ids.append(params.ep_id)
     except Exception as exc:  # noqa: BLE001

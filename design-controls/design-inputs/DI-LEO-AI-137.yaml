@@ -110,7 +110,7 @@
     method: "Test"
     phase: "OQ"
     acceptance: >
-      All VT-LEO-AI-133 cases pass: synthetic patient with a breast
+      All VT-LEO-AI-138 cases pass: synthetic patient with a breast
       + bladder same-day cluster resolves to breast only, with the
       bladder episode marked 'merged'; all IS_PART_OF edges relocated
       to the breast primary; ambiguous-evidence cluster is skipped
@@ -118,10 +118,10 @@
       identical). After full rebuild on the 2025 dev-graph snapshot
       the canonical confirmed-cancer episode count falls to between
       60 and 75 (from baseline 91).
-    test_protocol: "VT-LEO-AI-133"
+    test_protocol: "VT-LEO-AI-138"
 
   safety_class: "B"
-  risks: ["R-LEO-AI-094", "R-LEO-AI-095"]
+  risks: ["R-LEO-AI-096", "R-LEO-AI-097"]
   tags:
     - "episode-builder"
     - "ncda"

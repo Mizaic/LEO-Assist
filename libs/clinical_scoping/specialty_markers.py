@@ -24,11 +24,25 @@ logger = logging.getLogger(__name__)
 # on an EpisodeOfCare.cancer_type but has no marker here the code must
 # gracefully fall back to unfiltered matching (see filter_rows_by_specialty).
 SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
+    # DI-LEO-AI-138: broaden breast marker. Derived from an audit of 60
+    # breast-episode encounter texts (see
+    # design-controls/audits/snapshots/2026-04-pre-fragmentation-fix.md).
+    # The extra anchors cover: endocrine therapy names (letrozole,
+    # anastrozole, tamoxifen, exemestane) which index-date many breast
+    # pathways; "infiltrating duct" phrasing that stops short of
+    # "ductal"; BRCA-mutation, triple-negative and axilla / sentinel
+    # node phrases that are almost exclusively breast-care. Kept
+    # greedy enough to catch clinician free-text but never generic
+    # enough to fire on unrelated domains.
     "breast": re.compile(
         r"\bbreast\b|\bnipple\b|mammogra|mastectom|lumpectom|oncoplas"
         r"|\bDCIS\b|\bLCIS\b|invasive\s+(?:ductal|lobular)"
         r"|\bHER2\b|oestrogen\s+receptor|\bER\s*[+\-/]\s*ve\b"
-        r"|\bPR\s*[+\-/]\s*ve\b|Ca\s+breast",
+        r"|\bPR\s*[+\-/]\s*ve\b|Ca\s+breast"
+        r"|\b(?:letrozole|anastrozole|exemestane|tamoxifen)\b"
+        r"|infiltrating\s+duct(?:al)?|triple[\s-]?negative"
+        r"|\bBRCA\s*[12]?\b|\baxilla(?:ry)?\b|sentinel\s+(?:node|lymph)"
+        r"|tumour\s+bed|fast\s+track\s+[^\n]*breast",
         re.I,
     ),
     "lung": re.compile(

@@ -1,0 +1,118 @@
+"use client";
+
+import { color } from "../tokens/color";
+import { radius } from "../tokens/spacing";
+import { typography } from "../tokens/typography";
+import { useMotion } from "../motion";
+
+export interface ProgressStripProps {
+  label: string;
+  value: number;
+  total: number;
+  // Optional right-hand side subtitle (e.g. "55% complete").
+  subtitle?: string;
+  tone?: "neutral" | "positive" | "warning" | "danger";
+}
+
+/**
+ * ProgressStrip -- labelled horizontal progress bar. Animates the fill
+ * on mount and on value change; collapses to an instant transition when
+ * reduced-motion is set.
+ *
+ * Design Controls: DI-LEO-AI-142, DO-LEO-AI-139, VT-LEO-AI-141.
+ */
+
+function toneFill(tone: ProgressStripProps["tone"]): string {
+  if (tone === "positive") return color.status.success;
+  if (tone === "warning") return color.status.warning;
+  if (tone === "danger") return color.status.danger;
+  return color.brand.primary;
+}
+
+function clampPct(value: number, total: number): number {
+  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((value / total) * 100)));
+}
+
+export function ProgressStrip({
+  label,
+  value,
+  total,
+  subtitle,
+  tone = "neutral",
+}: ProgressStripProps) {
+  const { reducedMotion } = useMotion();
+  const pct = clampPct(value, total);
+  const fill = toneFill(tone);
+  const transitionMs = reducedMotion ? 0 : 360;
+
+  return (
+    <section
+      aria-label={label}
+      data-testid="progress-strip"
+      style={{
+        background: color.surface.raised,
+        border: "1px solid " + color.surface.divider,
+        borderRadius: radius.md,
+        padding: "14px 16px",
+        fontFamily: typography.fontFamily.body,
+      }}
+    >
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 12,
+          marginBottom: 10,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: color.text.primary,
+          }}
+        >
+          {label}
+        </span>
+        <span
+          style={{
+            fontSize: 12,
+            color: color.text.caption,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {subtitle ?? pct + "% complete"}
+        </span>
+      </header>
+      <div
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        data-testid="progress-strip-track"
+        style={{
+          position: "relative",
+          height: 8,
+          borderRadius: radius.pill,
+          background: color.surface.alt,
+          overflow: "hidden",
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: pct + "%",
+            background: fill,
+            borderRadius: radius.pill,
+            transition:
+              "width " + transitionMs + "ms ease-out, background 180ms ease-out",
+          }}
+        />
+      </div>
+    </section>
+  );
+}

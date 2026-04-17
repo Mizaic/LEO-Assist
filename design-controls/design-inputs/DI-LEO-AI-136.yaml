@@ -92,16 +92,16 @@
     method: "Test"
     phase: "OQ"
     acceptance: >
-      All VT-LEO-AI-132 cases pass: strict-match unchanged, fallback
+      All VT-LEO-AI-137 cases pass: strict-match unchanged, fallback
       correctly claims previously-floating diagnoses, truly-floating
       diagnoses persist referral_date=NULL, referral_match_method
       tagged on every written episode. After rebuild on the 2025
       dev-graph snapshot the 'via_2ww' count rises to at least 40
       (from baseline 16).
-    test_protocol: "VT-LEO-AI-132"
+    test_protocol: "VT-LEO-AI-137"
 
   safety_class: "B"
-  risks: ["R-LEO-AI-094"]
+  risks: ["R-LEO-AI-096"]
   tags:
     - "episode-builder"
     - "ncda"

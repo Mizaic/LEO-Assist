@@ -1,0 +1,123 @@
+- id: "VT-LEO-AI-140"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-141"]
+    risks: []
+
+  metadata:
+    title: "MUI theme factory lives in @leo/design-system"
+    description: >
+      Pins the theme-factory port: createLeoTheme is exported from
+      @leo/design-system/theme, ThemeRegistry imports it from there,
+      services/ui/src/theme.ts is deleted, and the existing palette /
+      font static-analysis tests continue to resolve once they look at
+      the new design-system location.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "A"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/theme-tokens.test.ts"
+      - "services/ui/src/__tests__/design-system-fonts.test.ts"
+      - "services/ui/src/__tests__/ui-safety-static.test.ts"
+      - "services/ui/src/__tests__/theme-port-structure.test.ts"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-140-TC-001"
+      case_name: "createLeoTheme produces a valid MUI theme from tokens"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Import createLeoTheme from @leo/design-system/theme,
+            call it, and assert palette.primary.main, typography.
+            fontFamily, and shape.borderRadius are populated.
+          expected_result: >
+            palette.primary.main, palette.text.primary and
+            typography.fontFamily resolve to non-empty strings;
+            shape.borderRadius is a positive number; the factory
+            does not throw.
+      verification_method: "automated"
+      acceptance_criteria:
+        - "theme-tokens.test.ts all cases pass"
+
+    - case_id: "VT-140-TC-002"
+      case_name: "ThemeRegistry imports createLeoTheme from design-system"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Static scan of services/ui/src/components/ThemeRegistry.tsx"
+          expected_result: >
+            ThemeRegistry.tsx imports createLeoTheme from
+            "@leo/design-system/theme" and does NOT import from
+            "@/theme" or reference a relative theme file.
+      verification_method: "automated"
+      acceptance_criteria:
+        - "theme-port-structure.test.ts TC-002 passes"
+
+    - case_id: "VT-140-TC-003"
+      case_name: "services/ui/src/theme.ts is deleted"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Check filesystem"
+          expected_result: >
+            services/ui/src/theme.ts does NOT exist on disk.
+      verification_method: "automated"
+      acceptance_criteria:
+        - "theme-port-structure.test.ts TC-003 passes"
+
+    - case_id: "VT-140-TC-004"
+      case_name: "Existing font / contrast static tests read the new location"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Run design-system-fonts.test.ts (which reads the design-
+            system theme file for the subtitle regex) and
+            ui-safety-static.test.ts (which reads the design-system
+            theme and the colour tokens file for the contrast
+            assertions).
+          expected_result: >
+            Both test files resolve the new paths and all subtitle /
+            contrast assertions pass.
+      verification_method: "automated"
+      acceptance_criteria:
+        - "design-system-fonts.test.ts TC-002 passes"
+        - "ui-safety-static.test.ts VT-036-TC-013 all three colour assertions pass"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-140/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-140-2026-04-17-001"
+      executed_at: "2026-04-17T00:00:00Z"
+      executor: "rob.smith@mizaic.ai"
+      environment: "local-dev"
+      result: "pass"
+      jest_summary: >
+        pass -- theme-tokens.test.ts (5 cases);
+        pass -- design-system-fonts.test.ts (3 cases);
+        pass -- ui-safety-static.test.ts VT-036-TC-013;
+        pass -- theme-port-structure.test.ts (new, 2 cases).
+      notes: >
+        New theme-port-structure test file added to pin TC-002 and
+        TC-003 against accidental reintroduction of services/ui/src/
+        theme.ts or a ThemeRegistry rewrite that imports from @/theme.

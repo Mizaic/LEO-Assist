@@ -1,0 +1,134 @@
+# -- R-LEO-AI-096 -- NCDA 2WW referral under-counting misleads audit review
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-096"
+  title: >
+    The episode builder's strict same-site referral matching and tight
+    breast specialty marker cause the NCDA 2WW-route metric to
+    undercount genuine 2WW-originated cancer diagnoses by 3-4x,
+    misleading clinical reviewers about the real rate of 2WW pathway
+    adherence.
+
+  hazard:
+    description: >
+      On 2026-04-17 the NCDA dashboard reported 16 of 91 confirmed
+      cancer episodes (17.6%) as having a documented 2WW referral,
+      versus a UK national benchmark of 50-60%. Root-cause analysis
+      found two code-level defects: (a) _find_best_referral rejects
+      referrals whose site tag is 'unknown' because site_key !=
+      diag_key and != 'non_site_specific', leaving 75 of 91
+      diagnoses floating; (b) when floating, the builder writes the
+      diagnosis encounter date into ep.referral_date, so the
+      property falsely implies a referral exists. Tight breast regex
+      compounds the issue by failing to detect 'triple assessment'
+      and 'breast clinic' surface forms.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A practice quality lead reviews the NCDA dashboard and concludes
+    that only 18% of their cancer diagnoses arrived via 2WW referral
+    - well below the expected 50-60%. They may (a) launch a
+    remediation plan against a problem that does not exist at that
+    severity, (b) present the false low rate to the CCG / ICB /
+    Royal College, (c) lose trust in the product entirely once they
+    discover the individual numbers do not reflect reality.
+
+  harm:
+    description: >
+      Misdirected clinical improvement effort, false external
+      reporting, erosion of trust. The harm is quality-improvement
+      and regulatory in nature; no direct patient harm, but the
+      defect specifically corrupts the safety-net signal the
+      product is sold to surface.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 2
+    rpn: 24
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Two-pass referral matching: strict same-site Pass 1 retained;
+        floating diagnoses then claim the nearest unclaimed referral
+        within DIAG_LOOKBACK_DAYS via Pass 2, regardless of site tag.
+        The resulting episode is tagged
+        referral_match_method='fallback_any_site' for audit visibility.
+      implemented_by: ["DI-LEO-AI-136"]
+      verified_by: ["VT-LEO-AI-137"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        When NO referral can be claimed, ep.referral_date is
+        written as NULL; the builder never synthesises a referral
+        date from the diagnosis encounter.
+      implemented_by: ["DI-LEO-AI-136"]
+      verified_by: ["VT-LEO-AI-137"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Evidence-wins duplicate-episode merge (DI-LEO-AI-137)
+        collapses same-day cancer_type shadows, reducing 91 to
+        a realistic 60-70 episode count and lifting the 2WW-route
+        percentage toward UK benchmarks.
+      implemented_by: ["DI-LEO-AI-137"]
+      verified_by: ["VT-LEO-AI-138"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Broadened breast specialty marker captures triple
+        assessment, breast clinic, family-history and pathology
+        phrasing missed by the current regex.
+      implemented_by: ["DI-LEO-AI-138"]
+      verified_by: ["VT-LEO-AI-139"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        UI surfaces confirmed_cancers_via_2ww_pct alongside the
+        raw count so a reviewer always sees the rate, not just
+        the numerator.
+      implemented_by: ["DI-LEO-AI-137"]
+      verified_by: ["VT-LEO-AI-138"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      After the fix, the builder no longer falsely synthesises
+      referral dates; the fallback claim recovers referrals with
+      ambiguous site tags; evidence-wins merge removes same-day
+      shadows; and the breast regex covers real UK referral
+      phrasing. Residual probability is low because unit tests and
+      rebuild idempotency pin the behaviour, and a nightly parity
+      smoke tracks any drift in the 2WW rate.
+
+  monitoring:
+    monitoring_plan: >
+      Post-rebuild, a nightly query computes confirmed_cancers,
+      confirmed_cancers_via_2ww, and eps_per_patient; trending
+      these weekly lets us catch regressions early. A Playwright
+      smoke test asserts that the NCDA page renders the via_2WW
+      percentage field in a valid 0-100 range.
+    metrics:
+      - "confirmed_cancers_via_2ww / confirmed_cancers (target: 0.40-0.70)"
+      - "episodes per patient (target: ~1.0-1.1 in the confirmed cohort)"
+      - "floating-episode rate (fraction with referral_match_method='none')"
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Product owner challenge of 17.6% 2WW rate on 2026-04-17"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "ncda"
+      - "episode-builder"
+      - "2ww"
+      - "referral-matching"

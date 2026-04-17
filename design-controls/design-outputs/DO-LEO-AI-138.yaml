@@ -1,0 +1,90 @@
+# -- DO-LEO-AI-138 -- Centralised MUI theme factory in @leo/design-system
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-138"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-141"]
+    user_needs: ["UN-LEO-AI-069"]
+    risks_addressed: []
+    verification_tests: ["VT-LEO-AI-140"]
+
+  specification:
+    title: "createLeoTheme() factory in @leo/design-system consumed by services/ui ThemeRegistry"
+    description: |
+      The MUI theme moves out of services/ui into the shared
+      design-system workspace package. A single exported factory,
+      createLeoTheme, reads tokens from services/design-system/src/
+      tokens/color, /spacing, and /typography and returns a complete
+      MUI Theme. services/ui/src/components/ThemeRegistry.tsx imports
+      the factory from "@leo/design-system/theme" and instantiates it
+      once; the old services/ui/src/theme.ts file is removed. The
+      design-system package.json exposes the new path via its exports
+      map so consumers can import it without reaching into src/.
+      Static-analysis tests are updated to read the new location.
+    acceptance_criteria:
+      - criterion: "createLeoTheme exported from @leo/design-system/theme"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-140 TC-001 passes"
+      - criterion: "ThemeRegistry imports createLeoTheme from design-system"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-140 TC-002 passes"
+      - criterion: "services/ui/src/theme.ts removed"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-140 TC-003 passes"
+      - criterion: "Existing colour + font static tests resolve new path"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-140 TC-004 passes"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/design-system/src/theme/index.ts"
+        description: "createLeoTheme factory; imports tokens from ../tokens/*"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/design-system/package.json"
+        description: "exports map adds './theme'"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/ThemeRegistry.tsx"
+        description: "Imports createLeoTheme from @leo/design-system/theme"
+        storage_location: "git"
+      - artifact_type: "deletion"
+        location: "services/ui/src/theme.ts"
+        description: "Removed; functionality moved into design-system"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/__tests__/theme-tokens.test.ts"
+        description: "Asserts createLeoTheme palette + typography"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/__tests__/design-system-fonts.test.ts"
+        description: "Reads services/design-system/src/theme/index.ts for subtitle assertions"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/__tests__/ui-safety-static.test.ts"
+        description: "Reads design-system theme + color tokens for contrast assertions"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 220
+      key_functions:
+        - "createLeoTheme"
+
+  safety_characteristics:
+    safety_class: "A"
+    safety_critical_functions: []
+    risk_control_measures:
+      - "Static-source assertions pin the ThemeRegistry import and the absence of services/ui/src/theme.ts so a future contributor cannot silently re-introduce the split theme."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

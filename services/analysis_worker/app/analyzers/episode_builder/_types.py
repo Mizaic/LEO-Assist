@@ -27,6 +27,11 @@ class _EpisodeSpec:
     site_key: str
     ref_date: date | None
     window_end: date
+    # DI-LEO-AI-136: audit field tagging how the referral anchor was
+    # claimed. 'strict_site' (same-site Pass 1), 'fallback_any_site'
+    # (Pass 2 any-site within window), or 'none' (diagnosis-only
+    # floating episode or referral-only open episode with no claim).
+    referral_match_method: str = "strict_site"
 
 
 @dataclass
@@ -46,7 +51,11 @@ class WriteEpisodeParams:
     ep_id: str
     domain_id: str
     site_key: str
-    referral_date: str
+    # DI-LEO-AI-136: honest semantics -- ``None`` when no referral anchor
+    # exists. Previously a diagnosis-only floating episode was written
+    # with the diagnosis date as a synthesised referral_date, corrupting
+    # the 2WW-route NCDA metric. The builder no longer back-fills.
+    referral_date: str | None
     end_date: str | None
     claim: _SpecialistClaim
     status: str
@@ -57,6 +66,16 @@ class WriteEpisodeParams:
     letter_inferred_benign: bool = False
     first_presentation_date: str | None = None
     presenting_complaint: str | None = None
+    # DI-LEO-AI-136: how the referral was claimed. Persisted on the
+    # episode so analytics and audit UI can distinguish strict from
+    # fallback matches from truly-floating episodes.
+    referral_match_method: str = "strict_site"
+    # DI-LEO-AI-136: True when referral_date was inferred rather than
+    # taken from a genuine referral anchor. Always False in the current
+    # builder (honest-NULL semantics); reserved for future inference
+    # paths that may choose to supply a computed date with an explicit
+    # audit flag rather than persisting NULL.
+    referral_inferred: bool = False
 
 
 @dataclass

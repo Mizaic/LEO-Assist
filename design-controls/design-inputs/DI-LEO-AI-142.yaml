@@ -1,0 +1,123 @@
+# -- DI-LEO-AI-142 -- Wave E Phase 1 Knowledge primitives in @leo/design-system
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-142"
+  type: "Interface"
+  derived_from: ["UN-LEO-AI-071"]
+  requirement: >
+    Before any Knowledge tab body is rebuilt, the shared visual
+    building blocks SHALL be implemented once in
+    @leo/design-system and re-exported from the package root. The
+    new primitives are: MetricTile (single stat cell), ProgressStrip
+    (labelled horizontal progress bar), SegmentedTabs (pill-style
+    segmented control), FilterBar (search + chip cluster with
+    aria-pressed), ToolbarActions (right-aligned action row),
+    ReviewListCard (motion-aware list item card), and DataGridCard
+    (standard list shell for CRUD surfaces). Every primitive SHALL
+    consume tokens for colour, radius, density, and motion from the
+    existing token modules, SHALL honour prefers-reduced-motion, and
+    SHALL carry a data-testid for verification. MetricTile + StatHero
+    SHALL animate in with a framer-motion stagger (children fade +
+    lift) on first mount.
+  rationale: >
+    Wave D Phase 3 shipped IntroCard, StatHero, ProgressiveReveal and
+    KnowledgePageLayout but stopped short of the pieces that make up
+    the inside of a tab (stat tiles, lists, filters, toolbars). Every
+    subsequent Wave E phase depends on these pieces, so building them
+    once with proper motion, accessibility, and density rules
+    prevents eight copies of near-identical components appearing
+    inside the rebuilt tab bodies. The framer-motion stagger on mount
+    is the "context morphing" the product owner called out as missing
+    in Wave D.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          services/design-system/src/primitives/ exports
+          MetricTile, ProgressStrip, SegmentedTabs, FilterBar,
+          ToolbarActions, ReviewListCard, DataGridCard. Each file is
+          under 300 LOC.
+      - type: "functional"
+        spec: >
+          services/design-system/src/primitives/index.ts re-exports
+          every new primitive so consumers can `import { ... } from
+          "@leo/design-system"` without reaching into src/.
+      - type: "functional"
+        spec: >
+          StatHero wraps children in framer-motion's animated
+          container with stagger of 60 ms between tiles on mount.
+          The stagger collapses to 0 ms when prefers-reduced-motion
+          is set.
+      - type: "functional"
+        spec: >
+          SegmentedTabs renders as a role="tablist" with role="tab"
+          children, uses aria-selected for state, and supports
+          keyboard navigation (ArrowLeft / ArrowRight / Home / End).
+      - type: "functional"
+        spec: >
+          FilterBar renders a <form role="search"> with a text input
+          carrying aria-label="Search", and optional filter chips
+          that set aria-pressed to reflect active state.
+      - type: "functional"
+        spec: >
+          ReviewListCard accepts a list of items, renders each with
+          framer-motion enter/exit, and uses tokens.density.rowHeight
+          (comfortable vs compact) based on DensityContext, defaulting
+          to comfortable.
+      - type: "functional"
+        spec: >
+          Every primitive renders with useMotion() reduced-motion
+          fallback and does not crash when motion tokens are missing.
+    constraints:
+      - type: "safety"
+        spec: >
+          Primitives MUST NOT import from @mui/material. All colours,
+          spacing, density, and motion values MUST come from token
+          modules under services/design-system/src/tokens/.
+      - type: "performance"
+        spec: >
+          Motion effects MUST NOT cause layout thrash: only opacity
+          and transform are animated (no width/height/top/left).
+    dependencies: ["DI-LEO-AI-130", "DI-LEO-AI-131", "DI-LEO-AI-136"]
+    downstream_impacts:
+      - "services/design-system/src/primitives/MetricTile.tsx"
+      - "services/design-system/src/primitives/ProgressStrip.tsx"
+      - "services/design-system/src/primitives/SegmentedTabs.tsx"
+      - "services/design-system/src/primitives/FilterBar.tsx"
+      - "services/design-system/src/primitives/ToolbarActions.tsx"
+      - "services/design-system/src/primitives/ReviewListCard.tsx"
+      - "services/design-system/src/primitives/DataGridCard.tsx"
+      - "services/design-system/src/primitives/StatHero.tsx (framer-motion stagger)"
+      - "services/design-system/src/primitives/index.ts (re-exports)"
+    technical_details:
+      language: "TypeScript (React 18, framer-motion 11)"
+      framework: "@leo/design-system workspace package"
+      file_structure:
+        - "services/design-system/src/primitives/MetricTile.tsx"
+        - "services/design-system/src/primitives/ProgressStrip.tsx"
+        - "services/design-system/src/primitives/SegmentedTabs.tsx"
+        - "services/design-system/src/primitives/FilterBar.tsx"
+        - "services/design-system/src/primitives/ToolbarActions.tsx"
+        - "services/design-system/src/primitives/ReviewListCard.tsx"
+        - "services/design-system/src/primitives/DataGridCard.tsx"
+        - "services/design-system/src/primitives/StatHero.tsx"
+        - "services/design-system/src/primitives/index.ts"
+      estimated_loc: 900
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-141 passes: every primitive renders, exposes its
+      testid, respects reduced-motion, and is exported from the
+      design-system package root.
+    test_protocol: "VT-LEO-AI-141"
+
+  safety_class: "A"
+  risks: []
+  tags:
+    - "knowledge"
+    - "design-system"
+    - "primitives"
+    - "framer-motion"

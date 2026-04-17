@@ -801,11 +801,12 @@ Safety constraints enforced:
 | DI-LEO-AI-132 | next/font DM Sans + JetBrains Mono; un-monospace subtitles (DO-LEO-AI-129) - VT passed 2026-04-17 | R-LEO-AI-089 | VT-LEO-AI-128 |
 | DI-LEO-AI-133 | RoleGate + RolePicker + RoleSwitcher primitives with NEXT_PUBLIC_ROLE_FIRST flag (DO-LEO-AI-130) - VT passed 2026-04-17 | R-LEO-AI-089, R-LEO-AI-091 | VT-LEO-AI-129 |
 | DI-LEO-AI-135 | Merge /admin/clinical into /admin/knowledge, 301 redirects, nav consolidation (DO-LEO-AI-132) - VT passed 2026-04-17 | R-LEO-AI-093 | VT-LEO-AI-131 |
-| DI-LEO-AI-136 | Role-first Knowledge primitives in @leo/design-system: IntroCard + StatHero + ProgressiveReveal + KnowledgePageLayout (DO-LEO-AI-133) - VT passed 2026-04-17 | R-LEO-AI-094 | VT-LEO-AI-132 |
-| DI-LEO-AI-137 | Migrate every Knowledge tab onto KnowledgePageLayout with role-aware copy (DO-LEO-AI-134) - VT passed 2026-04-17 | R-LEO-AI-094 | VT-LEO-AI-133 |
-| DI-LEO-AI-138 | Unified /work task queue: Cypher UNION across CodingReview + SafetyNetAlert + TrainingCandidate, FastAPI /work/tasks + /work/counts, TaskQueue design-system primitive, /work Next.js page, AppShell nav promotion for staff (DO-LEO-AI-135) - VT passed 2026-04-17 | R-LEO-AI-095 | VT-LEO-AI-134 |
+| DI-LEO-AI-136 | Episode builder two-pass referral matching with fallback-any-site claim + honest NULL referral_date for truly floating episodes (DO-LEO-AI-133) - in progress | R-LEO-AI-096 | VT-LEO-AI-137 |
+| DI-LEO-AI-137 | Evidence-wins duplicate-episode merger with IS_PART_OF edge migration via MOVE_LINKS_Q, including NSS clusters (DO-LEO-AI-133) - in progress | R-LEO-AI-096, R-LEO-AI-097 | VT-LEO-AI-138 |
+| DI-LEO-AI-138 | Broadened SPECIALTY_MARKERS['breast'] regex covering triple assessment / breast clinic / fibroadenoma / DCIS+LCIS surface forms (DO-LEO-AI-134) - in progress | R-LEO-AI-096 | VT-LEO-AI-139 |
 | DI-LEO-AI-139 | Role-first intro copy across all nine landing pages (Care Overview, Operations, Pathway Explorer, Platform, Users, Portal, Support, Settings, Work); centralised AREA_INTRO_COPY map with default FK <=9 + role coverage; AreaIntro wrapper; NEXT_PUBLIC_ROLE_FIRST shipped enabled by default (DO-LEO-AI-136) - VT passed 2026-04-17 | R-LEO-AI-094 | VT-LEO-AI-135 |
 | DI-LEO-AI-140 | Phase 6 zero-tech-debt cleanup: NEXT_PUBLIC_ROLE_FIRST rollout flag deleted from next.config.mjs / RoleShellProvider / AppShell; duplicate services/ui/src/components/ui/ProgressiveReveal.tsx deleted and callers migrated to @leo/design-system; Google Fonts @import removed from globals.css (next/font handles fonts); eslint.config.mjs carries no-restricted-syntax rule flagging sx colour literals (DO-LEO-AI-137) - VT passed 2026-04-17 | (none) | VT-LEO-AI-136 |
+| DI-LEO-AI-141 | MUI theme factory relocated into @leo/design-system as createLeoTheme; services/ui/src/components/ThemeRegistry.tsx imports from @leo/design-system/theme; services/ui/src/theme.ts deleted; palette + typography + shape sourced from tokens so a single token change propagates to every MUI surface (DO-LEO-AI-138) - VT passed 2026-04-17 | (none) | VT-LEO-AI-140 |
 
 ---
 

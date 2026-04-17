@@ -312,11 +312,14 @@ class TestBuildEpisodes:
         result = await build_episodes(
             "P1", anchors, mock_client, domain_id="cancer_audit"
         )
-        # "confirmed adenocarcinoma" maps to non_site_specific (generic cancer term),
-        # which does NOT match the "breast" referral key. The algorithm correctly
-        # creates 2 separate episodes: 1 breast referral-only + 1 non-site-specific
-        # diagnosis-only. Use a site-specific concept name if you want 1 episode.
-        assert result.episodes_created == 2
+        # DI-LEO-AI-136: under the Pass 2 fallback, the NSS diagnosis
+        # ("confirmed adenocarcinoma") claims the breast referral
+        # because it is the only unclaimed referral inside the
+        # DIAG_LOOKBACK_DAYS window. This consolidates what were
+        # previously two fragmented episodes (1 referral-only breast +
+        # 1 diagnosis-only NSS) into a single completed episode,
+        # fixing the 2WW under-count surfaced on /care/audit.
+        assert result.episodes_created == 1
 
     @pytest.mark.asyncio
     async def test_diagnosis_attaches_to_same_site_not_nearest_other_site(self):

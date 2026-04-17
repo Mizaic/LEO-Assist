@@ -20,7 +20,16 @@ describe("VT-128 - next/font wiring + subtitle un-monospace", () => {
 
   test("TC-002 theme.ts subtitles do not reference JetBrains Mono", () => {
     const source = readFileSync(
-      join(__dirname, "..", "theme.ts"),
+      join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "design-system",
+        "src",
+        "theme",
+        "index.ts",
+      ),
       "utf-8",
     );
     const subtitleBlock = source.match(
