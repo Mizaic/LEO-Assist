@@ -131,6 +131,68 @@ def dq_high_risk_low_confidence_codes(min_confidence: float = 0.7, limit: int = 
     )
 
 
+def dq_letter_stub_unfilled(
+    days_threshold: int = 7,
+    max_chars: int = 200,
+    limit: int = 500,
+) -> dict:
+    """Surface incoming-letter Encounter stubs that never got a body.
+
+    A common DQ failure mode: GP system files an incoming hospital letter
+    by routing header only ("Breast Clinic to <surgery>") without
+    transcribing the actual outcome text. The episode then ages out as
+    stale_post_specialist even though the letter contained the diagnosis
+    or benign exclusion.
+
+    Returns Encounters that:
+      - are older than ``days_threshold`` days,
+      - have a short text body (< ``max_chars`` chars),
+      - look like a routing stub (contains "<X> to <surgery>" pattern),
+      - are linked to an EpisodeOfCare currently in stale_post_specialist
+        or stale_no_diagnosis status.
+
+    Design controls: DI-LEO-AI-160, R-LEO-AI-162.
+    """
+    rows = run_patient(
+        """
+        MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[:IS_PART_OF]->(ep:EpisodeOfCare)
+        WHERE ep.status IN ['stale_post_specialist', 'stale_no_diagnosis']
+          AND e.text IS NOT NULL
+          AND size(e.text) < $max_chars
+          AND date(e.date) < date() - duration({days: $days_threshold})
+          AND (
+            toLower(e.text) CONTAINS ' clinic to '
+            OR toLower(e.text) CONTAINS ' hospital to '
+            OR toLower(e.text) CONTAINS ' surgery to '
+            OR toLower(e.text) CONTAINS ' trust to '
+          )
+        RETURN toString(p.id)         AS patient_id,
+               toString(e.id)         AS encounter_id,
+               toString(e.date)       AS encounter_date,
+               size(e.text)           AS text_length,
+               substring(e.text, 0, 160) AS text_preview,
+               ep.episode_id          AS episode_id,
+               ep.cancer_type         AS cancer_type,
+               ep.status              AS episode_status,
+               duration.inDays(date(e.date), date()).days AS age_days
+        ORDER BY age_days DESC, patient_id
+        LIMIT $limit
+        """,
+        max_chars=max_chars,
+        days_threshold=days_threshold,
+        limit=limit,
+    )
+    return _result(
+        "dq_letter_stub_unfilled",
+        "safety",
+        (
+            f"Found {len(rows)} unfilled letter stubs older than "
+            f"{days_threshold} days on stale episodes."
+        ),
+        rows,
+    )
+
+
 def dq_stale_unactioned_safety_alerts(stale_days: int = 14, limit: int = 500) -> dict:
     rows = run_patient(
         """
@@ -192,6 +254,22 @@ TOOLS = [
             },
         },
         "fn": dq_high_risk_low_confidence_codes,
+    },
+    {
+        "name": "dq_letter_stub_unfilled",
+        "description": (
+            "Safety audit: incoming letter stubs filed without body text "
+            "on stale cancer episodes (DI-LEO-AI-160)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "days_threshold": {"type": "integer", "default": 7},
+                "max_chars": {"type": "integer", "default": 200},
+                "limit": {"type": "integer", "default": 500},
+            },
+        },
+        "fn": dq_letter_stub_unfilled,
     },
     {
         "name": "dq_stale_unactioned_safety_alerts",

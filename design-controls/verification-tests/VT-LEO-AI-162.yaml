@@ -1,0 +1,158 @@
+# -- VT-LEO-AI-162 -- Intelligence Console redesign chrome wiring (Phase 8a)
+# IEC 62304 / ISO 13485 Verification Test Protocol
+
+- id: "VT-LEO-AI-162"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-164"]
+    risks: ["R-LEO-AI-165"]
+
+  metadata:
+    title: "Intelligence Console -- KnowledgePageLayout / PipelineRail / NudgeStrip / ConsoleStagePanel wiring"
+    description: >
+      Static-source verification that /admin/console has been moved onto
+      the @leo/design-system spine: KnowledgePageLayout (width="wide",
+      screenId="admin-console") + StatHero + PipelineRail + NudgeStrip
+      + ConsoleStagePanel, with the legacy HealthBar / NudgeBanner
+      imports removed. Also pins the API contract of the new primitives
+      (role="tablist" + Enter/Space + reduced-motion for PipelineRail;
+      role="status" + aria-live + severity for NudgeStrip) and the
+      additive computeConsoleStats helper.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/console-chrome.test.ts"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-162-TC-001"
+      case_name: "Console page imports the design-system spine"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/src/app/admin/console/page.tsx and assert KnowledgePageLayout, StatHero, PipelineRail, NudgeStrip are imported from @leo/design-system."
+          expected_result: "All four named imports are present in a single import statement from @leo/design-system."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All four primitives are imported from @leo/design-system."
+
+    - case_id: "VT-162-TC-002"
+      case_name: "Legacy HealthBar / NudgeBanner imports are removed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert page.tsx does NOT import HealthBar or NudgeBanner."
+          expected_result: "Neither symbol appears in any import line of page.tsx."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No import statement in page.tsx mentions HealthBar."
+        - "No import statement in page.tsx mentions NudgeBanner."
+
+    - case_id: "VT-162-TC-003"
+      case_name: "KnowledgePageLayout is invoked with admin-console + wide"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert page.tsx renders KnowledgePageLayout with screenId=\"admin-console\" and width=\"wide\"."
+          expected_result: "Both attributes appear inside the KnowledgePageLayout opening tag."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Regex /<KnowledgePageLayout[\\s\\S]*?screenId=\"admin-console\"/ matches."
+        - "Regex /<KnowledgePageLayout[\\s\\S]*?width=\"wide\"/ matches."
+
+    - case_id: "VT-162-TC-004"
+      case_name: "computeConsoleStats helper is exported and returns >= 3 tiles"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/src/components/console/useConsoleState.ts."
+          expected_result: "An exported function computeConsoleStats(state) is present and returns at least three tile descriptors with id+label+value."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "useConsoleState.ts contains 'export function computeConsoleStats'."
+        - "computeConsoleStats body references at least three of: gold, candidate, latestJob, promotedVersion, runningJob."
+
+    - case_id: "VT-162-TC-005"
+      case_name: "PipelineRail primitive exposes the agreed contract"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/design-system/src/primitives/PipelineRail.tsx."
+          expected_result: >
+            File exports PipelineRail, sets role=\"tablist\", handles
+            event.key === \"Enter\" or \" \" for activation, and uses
+            useMotion to honour reduced-motion.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "PipelineRail.tsx contains 'export function PipelineRail'."
+        - "PipelineRail.tsx contains 'role=\"tablist\"'."
+        - "PipelineRail.tsx contains 'useMotion'."
+        - "PipelineRail.tsx handles Enter or Space activation."
+
+    - case_id: "VT-162-TC-006"
+      case_name: "NudgeStrip primitive exposes the agreed contract"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/design-system/src/primitives/NudgeStrip.tsx."
+          expected_result: >
+            File exports NudgeStrip, accepts a severity prop in
+            {info, warning, danger}, sets role=\"status\" with
+            aria-live=\"polite\", and references color.status.* tokens.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "NudgeStrip.tsx contains 'export function NudgeStrip'."
+        - "NudgeStrip.tsx contains 'role=\"status\"'."
+        - "NudgeStrip.tsx contains 'aria-live=\"polite\"'."
+        - "NudgeStrip.tsx references color.status."
+
+    - case_id: "VT-162-TC-007"
+      case_name: "ConsoleStagePanel preserves accent + action surface"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/src/components/console/ConsoleStagePanel.tsx."
+          expected_result: >
+            File exports ConsoleStagePanel and the props include title,
+            status, accentColor, actionLabel, onAction, defaultExpanded
+            and children.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "ConsoleStagePanel.tsx contains 'export function ConsoleStagePanel'."
+        - "ConsoleStagePanel.tsx props mention 'accentColor'."
+        - "ConsoleStagePanel.tsx props mention 'actionLabel'."
+
+    - case_id: "VT-162-TC-008"
+      case_name: "Design-system index re-exports the new primitives"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/design-system/src/primitives/index.ts."
+          expected_result: "PipelineRail and NudgeStrip are re-exported."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "index.ts contains 'PipelineRail'."
+        - "index.ts contains 'NudgeStrip'."
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-162/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

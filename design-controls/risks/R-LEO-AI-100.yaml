@@ -1,0 +1,123 @@
+# -- R-LEO-AI-100 -- CRUD Knowledge tabs lose a destructive control during chrome unification
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-100"
+  title: >
+    Unifying the four CRUD Knowledge tabs onto a single chrome
+    (StatHero + ToolbarActions) risks demoting a destructive or
+    safety-relevant control (Deactivate rule, Delete concept group,
+    Cancel sync, Create area) to a less reachable state, so a
+    knowledge editor cannot quickly retire a bad rule, remove a
+    duplicated alias, halt a runaway sync, or accidentally creates an
+    area without admin rights.
+
+  hazard:
+    description: >
+      Chrome unification is a usability win on the happy path, but
+      it forces every page through the same ToolbarActions slot and
+      a single primary action. If a destructive or admin-only
+      control is moved into a kebab menu or hidden behind a tab, a
+      QA lead under time pressure may either (a) skip the action and
+      leave bad data in the Knowledge graph, or (b) approve a bad
+      record to clear it from the queue, polluting downstream coding.
+      Conversely if the gating around Create area regresses, a
+      non-admin can create a Domain that nobody owns.
+    category: "usability"
+
+  hazardous_situation: >
+    A QA lead opens the Knowledge area to retire a context rule that
+    is producing false positives. They expect the Deactivate icon
+    they used yesterday, but the row chrome has changed -- the
+    action now lives inside a ReviewListCard action slot. Under
+    pressure, they instead leave the rule active, and the next
+    nightly run codes 30 more encounters incorrectly before the
+    rule is finally retired.
+
+  harm:
+    description: >
+      Delayed retirement of a malfunctioning Knowledge artefact
+      causes downstream coding errors, which in turn produce
+      incorrect cancer-pathway alerts, prevalence reports, or
+      alias suggestions until the artefact is finally retired.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Each CRUD tab keeps its destructive / write controls visible
+        in the chrome (ToolbarActions or the row action slot) rather
+        than hiding them in an overflow kebab. The single-primary
+        rule applies only to the contained-button promotion, not to
+        the visibility of the action itself.
+      implemented_by: ["DI-LEO-AI-147"]
+      verified_by: ["VT-LEO-AI-145"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Domains keeps its showCreateButton prop wired to
+        platform_admin so role gating is preserved across the
+        redesign; Terminology keeps cancelSync wired so streaming
+        syncs can always be stopped from the chrome; Context Rules
+        keeps handleDeactivate exposed in each ReviewListCard row
+        action slot.
+      implemented_by: ["DI-LEO-AI-147"]
+      verified_by: ["VT-LEO-AI-145"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        VT-LEO-AI-145 TC-003a..d statically asserts that every
+        legacy handler (loadRules, handleAdd, handleDeactivate,
+        exportContextRulesPdf, handleAuditDuplicates,
+        handleDeduplicate, handleSuggest, handleDeleteGroup,
+        handleAddAlias, loadDomains, createDomain, fetchStatus,
+        startSync, cancelSync, EventSource) is still wired in the
+        rebuilt page sources. CI runs jest on every push and blocks
+        merge if any handler regresses out of the rebuilt pages.
+      implemented_by: ["DI-LEO-AI-147"]
+      verified_by: ["VT-LEO-AI-145"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Because every legacy handler is asserted by VT-LEO-AI-145 and
+      the destructive controls were left visible in the chrome (not
+      moved to a kebab), the residual probability is low. The
+      detectability is slightly improved because every CRUD tab now
+      shares the same StatHero + ToolbarActions chrome -- a missing
+      action will be obviously inconsistent with its sibling tabs.
+
+  monitoring:
+    monitoring_plan: >
+      Track Knowledge-graph DQ metrics post-Wave-E: time-to-retire-
+      bad-context-rule, count of duplicate aliases that survived a
+      reviewer session, count of stuck terminology syncs. Compare
+      to the pre-redesign baseline at the next quarterly review.
+    metrics:
+      - "Median time from rule.flagged_bad to rule.deactivated"
+      - "Count of duplicate aliases surfaced by audit but not actioned in the same session"
+      - "Count of terminology syncs that ran > 30 minutes without a cancel attempt"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Wave E Phase 3 design review (chrome unification trade-off)"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "knowledge"
+      - "design-system"
+      - "wave-e"
+      - "phase-3"
+      - "crud-tabs"

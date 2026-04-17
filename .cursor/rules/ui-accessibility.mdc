@@ -1,0 +1,220 @@
+---
+description: Accessibility, safety, and destructive-action standards for the LEO AI Core UI
+globs: services/ui/src/**/*.tsx,services/design-system/src/**/*.tsx
+alwaysApply: false
+---
+
+# UI Accessibility + Safety Standards
+
+These rules are mandatory for every UI surface in this clinical
+decision-support application. They sit on top of
+`design-system-ui.mdc` (which covers visual conventions) and
+`ui-testing.mdc` (which covers how to verify them).
+
+## 1. Destructive actions are gated, always
+
+Every server-side destructive action (delete, retire, dismiss,
+reject, reset, finalise, publish, force-delete) MUST be behind an
+explicit confirmation dialog. Never fire a destructive API on a bare
+`onClick`, never use `window.confirm()` or `window.prompt()`.
+
+Two patterns are approved:
+
+### a. ConfirmDialog (single-step deletes)
+
+`services/ui/src/components/ConfirmDialog.tsx` for short, low-risk
+confirms.
+
+```tsx
+const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+<IconButton
+  aria-label={`Remove ${term}`}
+  onClick={() => setConfirmDelete(id)}
+>
+  <DeleteIcon />
+</IconButton>
+{confirmDelete && (
+  <ConfirmDialog
+    title="Remove clinical code?"
+    body={`This will permanently delete ${term} (${confirmDelete}).`}
+    confirmLabel="Remove"
+    variant="danger"
+    onConfirm={() => { handleRemove(confirmDelete); setConfirmDelete(null); }}
+    onCancel={() => setConfirmDelete(null)}
+  />
+)}
+```
+
+### b. Type-the-name confirm gate (irreversible / runtime-impact)
+
+For deletes that take a runtime asset offline (active pathways,
+active prompts, active workflows), the confirm button MUST stay
+disabled until the user types the asset name verbatim. The canonical
+implementation lives in
+`services/ui/src/app/admin/pathways/dialogs.tsx` ->
+`DeletePathwayDialog`.
+
+```tsx
+<Button
+  variant="contained"
+  color="error"
+  disabled={confirmName.trim() !== target.name}
+  onClick={onConfirm}
+>
+  Delete pathway
+</Button>
+```
+
+Use this pattern wherever the asset has a runtime side effect (Plan
+Definitions, prompt sets, model configs, workflow definitions).
+
+## 2. Single primary action per page
+
+`ToolbarActions` MUST contain at most one entry with `variant:
+"primary"`. Destructive actions (Delete, Retire, Reset) MUST never be
+the page-level primary -- demote them to per-row secondary actions.
+This pattern reduces accidental destructive clicks; it is also
+verified by static-source VTs.
+
+## 3. Keyboard discipline
+
+### Destructive keyboard shortcuts
+
+Reject / dismiss / delete shortcuts MUST guard against text-input
+focus AND show a confirmation dialog before executing. Do not use the
+`Delete` key alone -- always pair with a modifier (Cmd/Ctrl).
+
+```tsx
+function isTypingTarget(t: EventTarget | null): boolean {
+  if (!(t instanceof HTMLElement)) return false;
+  return (
+    t instanceof HTMLInputElement ||
+    t instanceof HTMLTextAreaElement ||
+    t instanceof HTMLSelectElement ||
+    t.isContentEditable ||
+    Boolean(t.closest('[role="combobox"]'))
+  );
+}
+```
+
+### Focus management
+
+- Every interactive element MUST be reachable by `Tab` and operable
+  by `Enter` / `Space`.
+- Open dialog -> trap focus; close dialog -> restore focus to the
+  trigger.
+- `Escape` closes any non-irreversible dialog. Type-the-name confirm
+  gates may stay open (so an accidental `Escape` doesn't reopen the
+  whole confirm flow).
+
+## 4. Semantic structure
+
+- Every page has exactly one `<h1>`. Use `Typography variant="h5"
+  component="h1"` if the visual hierarchy needs a smaller heading.
+  `StatHero` does NOT render an `<h1>` -- pages still need their own.
+- Heading variants only on real headings -- never on sidebar brand,
+  not on chips, not on labels.
+- Card titles are `<h2>` or `<h3>` depending on nesting. Use
+  `component="h2"` / `component="h3"` on the underlying Typography.
+- Lists of items use `<ul>` / `<ol>` semantics where appropriate
+  (MUI `List` does this for you).
+
+## 5. Labels
+
+Every input has a programmatic label.
+
+- `TextField`: `label` prop. For search fields, `aria-label="Search
+  ..."` plus a visible placeholder is acceptable.
+- `IconButton`: ALWAYS `aria-label`.
+- `CircularProgress`: ALWAYS `aria-label="Loading"` + `role="status"`.
+- `SegmentedTabs`: ALWAYS pass `aria-label="<context>"` so screen
+  readers can describe the filter group.
+- `ToolbarActions`: button labels come from `action.label` -- never
+  ship an icon-only `ToolbarAction`.
+
+## 6. Colour contrast
+
+All text on white must meet WCAG 2.1 AA (4.5:1 for body, 3:1 for
+large / bold text). Banned on white backgrounds:
+
+- `#94a3b8` (2.4:1)
+- `#e2e8f0` (1.2:1)
+- `rgba(0,0,0,0.38)` (2.7:1, MUI `text.disabled` on light theme)
+
+The minimum caption colour is `#6B7280`. Tone chips use the canonical
+knowledge palette (NICE blue `#1E40AF` on `#DBEAFE`; platform slate
+`#475569` on `#F1F5F9`; LEO domain green `#047857` on `#ECFDF5`) --
+all of which clear AA.
+
+When in doubt, use a token from `roles` rather than hardcoding hex.
+
+## 7. Empty / loading / no-match states
+
+Never `return null` when data is absent. Every page has three
+reachable states: loading, empty (no data at all), and no-match
+(filter returned nothing).
+
+```tsx
+if (loading) return <SkeletonList />;
+if (!plans.length) return (
+  <Alert severity="info">
+    No pathways configured yet. <Button onClick={onNew}>Create the first one</Button>
+  </Alert>
+);
+if (!visible.length) return (
+  <Alert severity="info">No pathways match this filter.</Alert>
+);
+```
+
+The copy strings MUST be the same as in the corresponding VT
+(`pathways-list-chrome.test.tsx` is the reference).
+
+## 8. Error handling
+
+Never swallow API errors. Every fetch surfaces failures to the user.
+
+```tsx
+// BAD
+const data = await fetchData().catch(() => []);
+
+// GOOD
+try {
+  setData(await fetchData());
+} catch (err) {
+  setSectionError(plainEnglishError(err, "Unable to load pathways. Please retry."));
+}
+```
+
+For raw `fetch()` calls, always check `res.ok` before treating as
+success. Surface 4xx / 5xx separately from network failures so the
+user knows whether to retry or whether something is wrong with the
+request.
+
+## 9. Native dialogs are banned
+
+Never use `alert()`, `window.confirm()`, or `window.prompt()`. Use
+MUI `Alert` / `Snackbar` for feedback and `ConfirmDialog` (or the
+type-the-name pattern) for confirmations.
+
+## 10. Reduced motion
+
+All framer-motion usage MUST honour `prefers-reduced-motion`. Use
+`useMotion()` from `@leo/design-system`, which collapses transition
+durations to 0ms when the user has reduced motion enabled. Never
+animate critical content (alerts, errors, confirmations) -- they
+must appear instantly.
+
+## 11. Density
+
+The compact density toggle (Phase 1 cont) reduces vertical padding;
+it MUST NOT reduce target sizes below WCAG 2.5.5 minimums (24px x
+24px AA, 44px x 44px AAA target). When implementing density support
+in a primitive, only adjust spacing -- never shrink interactive
+targets.
+
+## 12. Health literacy
+
+All patient- or non-specialist-facing text MUST follow
+`health-literacy.mdc` (reading age 9-11, plain English, short
+sentences, active voice). Internal admin / QA copy may use clinical
+terms but should still be unambiguous.

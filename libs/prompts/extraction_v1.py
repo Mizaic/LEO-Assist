@@ -31,6 +31,9 @@ If rules conflict, earlier rules win.
 4. Assign exactly one semantic_tag per output entry. Do not emit multiple entries for the same text span.
 5. Normalize to a concise lookup_term for SNOMED CT search.
 6. Do not infer diagnoses from observations or results.
+7. Do not assign assertion. Assertion (negation, family history, etc.)
+   is determined downstream by the post-processing pipeline (ConText and
+   scope guards). Always omit the assertion field from your output.
 
 ==================================================
 WHAT TO EXTRACT
@@ -312,7 +315,7 @@ lookup_term whenever they appear in or are clearly implied by sentence_subset:
      NOT "kidney injury"
 3. Certainty: suspected, probable, possible, provisional, query/?/working
    - "suspected mesothelioma" -> lookup_term: "suspected mesothelioma"
-     (also set semantic_tag: finding or situation, assertion: possible)
+     (set semantic_tag: finding or situation; do not assign assertion)
 4. Severity / grade / stage when stated: mild, moderate, severe, stage N
    - "severe anaemia" -> lookup_term: "severe anaemia"
 5. Laterality and site: left, right, bilateral, unilateral, distal, proximal,
@@ -335,39 +338,12 @@ sentence_subset), include it in lookup_term but keep text as the exact span
 from sentence_subset.
 
 ==================================================
-ASSERTION
+ASSERTION (DO NOT ASSIGN)
 
-Every entity MUST be labelled with exactly one assertion value. Use the
-strongest contextual signal available in sentence_subset and full_encounter_text.
-
-Allowed values:
-- present      -- asserted as currently true for this patient (default when
-                  no other signal applies)
-- absent       -- explicitly negated ("no chest pain", "denies cough",
-                  "no wheeze", "chest clear")
-- refuted      -- initially suspected but later overridden by investigation
-                  ("thought to be X, biopsy confirmed Y": X is refuted)
-- possible     -- hedged or provisional ("possible X", "? X", "query X",
-                  "suspected X", "cannot exclude X")
-- historical   -- past and resolved or clearly described in past tense
-                  ("h/o X", "history of X", "X in 2019", "resolved X")
-- planned      -- arranged but not yet performed ("for X next week",
-                  "referral to be sent", "awaiting X"); applies to
-                  procedures/investigations
-- hypothetical -- conditional or educational ("if X occurs", "X might
-                  require Y"); applies to recommendations / safety-netting
-- family       -- belongs to a family member not the patient ("FH of X",
-                  "brother has X", "mother died of X")
-- declined     -- patient refused ("declined flu vaccine", "refused referral")
-- cancelled   -- previously arranged but cancelled ("cancelled MRI", "stopped X")
-
-Rules:
-- Never leave assertion blank. If no signal applies, use present.
-- NAD and generic normal findings ("chest clear", "abdomen soft") remain
-  present (they are positive findings of absence-of-pathology).
-- "Denies X" / "no X" / "nil X" -> absent.
-- "Discussed X" / "counselled about X" does NOT make X historical.
-- Observable entities with a value are always present (the value is real).
+Do not output an assertion field. Assertion is determined exclusively by
+the downstream post-processing pipeline (ConText negation/family detection
+and scope guards). All entities you emit will be initialised to present
+and corrected by post-processing if a non-present signal is found.
 
 ==================================================
 CONFIDENCE
@@ -377,10 +353,10 @@ you are that the entity you extracted is correct clinical content and correctly
 tagged. This is NOT the SNOMED match confidence (that is computed later).
 
 Rubric:
-- 0.95-1.00: the entity is explicitly stated with no ambiguity, the semantic_tag
-             is unambiguous, and the assertion is clearly signalled.
-- 0.80-0.94: the entity is clearly stated but the semantic_tag OR assertion
-             required mild contextual judgement.
+- 0.95-1.00: the entity is explicitly stated with no ambiguity and the
+             semantic_tag is unambiguous.
+- 0.80-0.94: the entity is clearly stated but the semantic_tag required
+             mild contextual judgement.
 - 0.60-0.79: the entity required inference from context (e.g. resolving an
              ambiguous abbreviation, deciding between finding vs disorder).
 - 0.40-0.59: the entity or its classification is uncertain but you still
@@ -399,7 +375,6 @@ Schema:
       "text": "...",
       "lookup_term": "...",
       "semantic_tag": "...",
-      "assertion": "...",
       "confidence": 0.92,
       "value": "...",
       "unit": "...",
@@ -409,7 +384,8 @@ Schema:
 }
 
 Rules:
-- assertion and confidence are REQUIRED on every entity.
+- confidence is REQUIRED on every entity.
+- Do not output an assertion field; it is assigned downstream.
 - Include value, unit, reference_range only when applicable.
 - For non-observable entities, omit value/unit/reference_range unless needed for staging scale value.
 - If no codable entity is present, return:
@@ -424,8 +400,7 @@ Before returning each entity, check:
 3. Am I coding what is written, not a diagnosis inferred from a value?
 4. For procedures: if a body site appears in the sentence, does my text span include it?
 5. Did I preserve onset/chronicity/certainty/laterality qualifiers in lookup_term?
-6. Does assertion reflect the strongest contextual signal, not just "present" by habit?
-7. Is confidence a genuine self-assessment and not a constant 1.0?
+6. Is confidence a genuine self-assessment and not a constant 1.0?
 
 Return JSON only.
 """

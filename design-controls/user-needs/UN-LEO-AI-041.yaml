@@ -101,6 +101,6 @@
     status: "draft"
     evidence_source: "User interviews P09, P18 -- UR-LEO-AI-001"
 
-  design_inputs: []
+  design_inputs: ["DI-LEO-AI-182"]
   validation_tests: []
   tags: ["pathway-analytics", "segment-decomposition", "breach-analysis", "waiting-times", "quality-improvement"]

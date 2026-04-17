@@ -1,0 +1,89 @@
+
+=== 2024: 9 stale episodes ===
+
+  --- stale_post_specialist (5) ---
+  patient        episode                site                   ref         last_enc    days_idle  #enc milestones
+  4209455806     2946350b979fb818       melanoma               2024-03-14  2025-09-16        213    10 ['first_seen', 'referral']
+  4246627143     4141055116ebb405       breast                 2024-04-30  2025-06-16        305     7 ['first_seen', 'referral']
+  4644882798     022d9ccc43d07cb1       prostate               2024-01-16  2025-08-20        240     3 ['first_seen', 'referral']
+  4921442355     a644d1c1586405a6       non_site_specific      2024-02-20  2025-01-20        452     3 ['first_seen', 'referral']
+  6519337463     b4717c066ec99c13       breast                 2024-10-31  2025-01-20        452     8 ['first_seen', 'referral']
+
+  --- stale_no_diagnosis (4) ---
+  patient        episode                site                   ref         last_enc    days_idle  #enc milestones
+  4246870471     41a516519778c967       non_site_specific      2024-07-18  2025-08-01        259     6 ['first_seen', 'referral']
+  4866772573     9e978510e7414fd8       prostate               2024-01-09  2025-04-01        381     3 ['first_seen', 'referral']
+  4926885158     ebf8035928423907       bladder                2024-05-10  2024-05-10        707     1 ['referral']
+  4992507875     e65d7892855a0597       non_site_specific      2024-12-02  2024-12-02        501     1 ['referral']
+
+=== 2025: 13 stale episodes ===
+
+  --- stale_post_specialist (12) ---
+  patient        episode                site                   ref         last_enc    days_idle  #enc milestones
+  4185994966     93fc4a628aafb8d1       breast                 2025-03-26  2025-03-26        387     2 ['referral']
+  4220526579     2aee0142f291e800       breast                 2025-01-27  2025-07-21        270     5 ['first_seen', 'referral']
+  4983118659     eb5ca32b0bb23d6d       liver                  2025-01-20  2025-10-13        186     7 ['first_seen', 'referral']
+  4983118659     292881d74fd3e136       breast                 2025-07-31  2025-10-13        186     5 ['first_seen', 'referral']
+  4998540637     668870fdf76fbae3       lung                   2025-03-21  2025-04-08        374     7 ['first_seen', 'referral']
+  6012067550     9378ab28cd0d4768       breast                 2025-07-11  2025-08-20        240     4 ['first_seen', 'referral']
+  6263830379     cdde1f29ee66c3ea       gynaecological         2025-05-13  2025-07-24        267     8 ['first_seen', 'referral']
+  6264541699     c5510480ed7de5ee       prostate               2025-07-23  2025-09-24        205    10 ['first_seen', 'referral']
+  6268086643     e294edcb53f49081       breast                 2025-05-12  2025-06-25        296     4 ['first_seen', 'referral']
+  7028414914     88772f66fa397897       head_and_neck          2025-03-19  2025-06-10        311     4 ['first_seen', 'referral']
+  7326304955     2d74da76e7ab5fa4       breast                 2025-04-02  2025-06-13        308     4 ['referral']
+  7330683205     c6e5a430d4e23a88       upper_gi               2025-07-28  2025-09-26        203     6 ['first_seen', 'referral']
+
+  --- stale_no_diagnosis (1) ---
+  patient        episode                site                   ref         last_enc    days_idle  #enc milestones
+  4821512173     6ecde029ed4c9a79       non_site_specific      2025-04-01  2025-04-01        381     2 ['first_seen', 'referral']
+
+======================================================================
+WHY these patients are stale - milestone pattern counts
+======================================================================
+  2024  stale_no_diagnosis         n=2    milestones=['first_seen', 'referral']
+  2024  stale_no_diagnosis         n=2    milestones=['referral']
+  2024  stale_post_specialist      n=5    milestones=['first_seen', 'referral']
+  2025  stale_no_diagnosis         n=1    milestones=['first_seen', 'referral']
+  2025  stale_post_specialist      n=10   milestones=['first_seen', 'referral']
+  2025  stale_post_specialist      n=2    milestones=['referral']
+
+======================================================================
+How long since last encounter (idle days)
+======================================================================
+  2024: total=9
+        <=90: 0
+      91-180: 0
+     181-365: 4
+        >365: 5
+  2025: total=13
+        <=90: 0
+      91-180: 0
+     181-365: 10
+        >365: 3
+
+======================================================================
+Sample of last encounter text snippets
+======================================================================
+
+  -- 2024 / stale_post_specialist (sample 5 of 5) --
+  [4209455806] last=2025-09-16 (213d idle) :: 
+  [4246627143] last=2025-06-16 (305d idle) :: 
+  [4644882798] last=2025-08-20 (240d idle) :: 
+  [4921442355] last=2025-01-20 (452d idle) :: 
+  [6519337463] last=2025-01-20 (452d idle) :: 
+
+  -- 2024 / stale_no_diagnosis (sample 4 of 4) --
+  [4246870471] last=2025-08-01 (259d idle) :: 
+  [4866772573] last=2025-04-01 (381d idle) :: 
+  [4926885158] last=2024-05-10 (707d idle) :: 
+  [4992507875] last=2024-12-02 (501d idle) :: 
+
+  -- 2025 / stale_post_specialist (sample 5 of 12) --
+  [4185994966] last=2025-03-26 (387d idle) :: 
+  [4220526579] last=2025-07-21 (270d idle) :: 
+  [4983118659] last=2025-10-13 (186d idle) :: 
+  [4983118659] last=2025-10-13 (186d idle) :: 
+  [4998540637] last=2025-04-08 (374d idle) :: 
+
+  -- 2025 / stale_no_diagnosis (sample 1 of 1) --
+  [4821512173] last=2025-04-01 (381d idle) :: 

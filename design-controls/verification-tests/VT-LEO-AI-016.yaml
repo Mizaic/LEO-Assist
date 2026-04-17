@@ -152,7 +152,7 @@
         - step_number: 3
           action: "Search all SurfaceForm node and MAPS_TO relationship properties for email patterns"
           expected_result: "No email addresses or person names found in any Knowledge Graph property"
-          verification_method: "Assert regex [\w.]+@[\w.]+ returns zero matches across all SurfaceForm properties"
+          verification_method: 'Assert regex [\w.]+@[\w.]+ returns zero matches across all SurfaceForm properties'
       acceptance_criteria:
         - "No reviewer name or email stored in the Knowledge Graph"
         - "approved_by and created_by fields contain process-name source tags only"

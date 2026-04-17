@@ -3,7 +3,7 @@
 
 - id: "VT-LEO-AI-138"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-137"]
@@ -166,6 +166,98 @@
       acceptance_criteria:
         - "merge_reasoning is non-empty and mentions primary cancer_type"
 
+    - case_id: "VT-138-TC-009"
+      case_name: >
+        Multi-distinct-type guard: cluster of two recognised cancer
+        types with no diagnosis text is skipped (regression of the
+        alphabetical-tiebreak defect)
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Build a cluster of two episodes both referred on the same
+            day, one cancer_type='breast', the other
+            cancer_type='melanoma', neither carrying any
+            diagnosis_text. Call pick_evidence_winner.
+          expected_result: >
+            Returns None. Logger.warning emitted naming both episode
+            IDs and the distinct cancer_types. No graph writes.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Decision is None"
+        - "logger.warning fired with both episode_ids"
+
+    - case_id: "VT-138-TC-010"
+      case_name: >
+        Multi-distinct-type guard: alphabetical-first cancer_type
+        does not silently swallow the other (parameterised across
+        breast vs melanoma/cervical/colorectal/endometrial)
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            For each pair (breast, X) where X in {melanoma, cervical,
+            colorectal, endometrial}, build a 2-episode same-day
+            cluster with no diagnosis text. Call pick_evidence_winner.
+          expected_result: "All return None."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Every pair returns None"
+
+    - case_id: "VT-138-TC-011"
+      case_name: >
+        Multi-distinct-type guard: text uniquely names one cluster
+        member -- merge proceeds normally
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Build a 2-episode cluster (breast, melanoma) where ONLY
+            the breast episode carries 'mammogram, lumpectomy
+            completed' diagnosis text. Call pick_evidence_winner.
+          expected_result: >
+            Returns a MergeDecision with primary=breast and
+            evidence_cancer_type='breast'.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Decision.primary_id == breast episode_id"
+        - "Decision.evidence_cancer_type == 'breast'"
+
+    - case_id: "VT-138-TC-012"
+      case_name: >
+        Multi-distinct-type guard: text names a cancer_type NOT in
+        the cluster -- merge skipped (text not mappable to a winner)
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Build a 2-episode cluster (breast, melanoma) where the
+            breast episode carries 'bronchoscopy showed lung lesion'
+            diagnosis text (lung is not in the cluster). Call
+            pick_evidence_winner.
+          expected_result: "Returns None."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Decision is None"
+
+    - case_id: "VT-138-TC-013"
+      case_name: >
+        Regression: NSS shadow + single recognised cancer_type still
+        merges (multi-distinct guard must NOT regress NSS collapse)
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Cluster of breast primary + 2 NSS shadows on consecutive
+            days, no diagnosis text. Call pick_evidence_winner.
+          expected_result: >
+            Returns MergeDecision with primary=breast and both NSS
+            shadows in duplicates.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Decision.primary_id == breast episode_id"
+        - "Both NSS episodes in Decision.duplicates"
+
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
     blocking_on_failure: true
@@ -176,4 +268,55 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - execution_date: "2026-04-16"
+      executor: "automated pytest CI"
+      commit: "HEAD (episode-builder-fragmentation-fix branch)"
+      command: >
+        PYTHONPATH=. python -m pytest
+        tests/test_episode_duplicate_resolver.py
+        tests/test_episode_builder_evidence_merge.py
+      result: "pass"
+      cases_executed: 22
+      cases_passed: 22
+      cases_failed: 0
+      evidence_path: >
+        /evidence-bundles/LEO-AI/verification/VT-LEO-AI-138/
+        2026-04-16-pytest-evidence-wins-merge.log
+      notes: >
+        16 pure-logic cases (cluster_episodes, evidence_cancer_type,
+        pick_evidence_winner, ambiguous-cluster skip, treatment and
+        date tie-breakers) plus 6 integration cases exercising the
+        MOVE_LINKS_Q -> MARK_MERGED_Q sequence via a fake Neo4j
+        client. One pre-existing benign-qualifier test updated to
+        assert status != 'closed_benign_qualifier' (completed is now
+        the correct state after fallback referral claim). Rebuild
+        run on dev graph: 210 episodes consolidated via the
+        evidence-wins merger with IS_PART_OF edges migrated to the
+        primary - see post-fragmentation-fix snapshot.
+    - execution_date: "2026-04-17"
+      executor: "automated pytest CI"
+      commit: "HEAD (multi-distinct-type-merge-guard branch)"
+      command: >
+        PYTHONPATH=. python -m pytest
+        tests/test_episode_duplicate_resolver.py
+        tests/test_episode_builder_evidence_merge.py -v
+      result: "pass"
+      cases_executed: 30
+      cases_passed: 30
+      cases_failed: 0
+      evidence_path: >
+        /evidence-bundles/LEO-AI/verification/VT-LEO-AI-138/
+        2026-04-17-multi-distinct-type-guard.log
+      notes: >
+        Closes a defect in pick_evidence_winner where, with two or
+        more distinct known cancer_types in a cluster and no
+        diagnosis-text evidence, the resolver fell back to
+        alphabetical tie-break (sorted(known_types)[0]) and silently
+        merged genuine multi-pathway cases. New cases TC-009..TC-013
+        cover the pattern: same-day breast + melanoma referrals,
+        parameterised across other cancer-type pairs, text uniquely
+        identifying a winner (still merges), and the NSS-shadow
+        regression. R-LEO-AI-097 mitigation row updated. A backfill
+        script (scripts/backfill_unmerge_unsafe_episodes.py) reverts
+        existing wrong merges using the same logic path.

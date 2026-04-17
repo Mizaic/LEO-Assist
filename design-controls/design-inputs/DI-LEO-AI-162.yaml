@@ -1,0 +1,89 @@
+# -- DI-LEO-AI-162 -- DQ alert for unfilled letter stubs on stale episodes
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-162"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-054"]
+  requirement: >
+    The neo4j-mcp safety query pack SHALL expose a tool
+    dq_letter_stub_unfilled that returns Encounter records whose text
+    matches a routing-only letter-stub pattern (e.g. "Urology to
+    Greenfields Surgery"), whose body is shorter than a configurable
+    max_chars threshold (default 200), whose date is more than
+    days_threshold days (default 7) old, and whose patient has at least
+    one EpisodeOfCare currently classified as stale_post_specialist or
+    stale_no_diagnosis.
+  rationale: >
+    The 41-episode deep-read found that several "stale" patients actually
+    had specialist letters filed, but only as routing stubs ("Urology to
+    Anytown Surgery" with no body). The downstream coding worker had no
+    text to extract a diagnosis or benign-closure milestone from, so the
+    episode silently aged into stale_post_specialist. A DQ alert that
+    surfaces these stubs to the data-quality team closes that ingestion
+    gap before episodes are wrongly flagged as loss-to-follow-up.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          dq_letter_stub_unfilled accepts days_threshold (int, default 7),
+          max_chars (int, default 200), limit (int, default 500). It
+          returns the standard MCP shape with category="safety", a
+          summary string of the form
+          "Found N letter stubs (>X days old) on stale episodes." and
+          rows containing patient_id, encounter_id, date, char_count,
+          snippet, episode_id, episode_status, episode_referral_date,
+          episode_cancer_type.
+      - type: "functional"
+        spec: >
+          The Cypher selects encounters where text length is below
+          max_chars, the date is older than today - days_threshold, the
+          text matches a letter-stub regex pattern, and the encounter is
+          linked (via the patient) to an EpisodeOfCare with status in
+          {stale_post_specialist, stale_no_diagnosis}.
+      - type: "functional"
+        spec: >
+          The tool is registered in services/neo4j_mcp/tools/query_pack_safety.py
+          TOOLS list and discoverable through the existing dynamic-load
+          path in services/neo4j_mcp/server.py.
+    constraints:
+      - type: "safety"
+        spec: >
+          The tool is read-only: no MERGE, SET, DELETE, or CREATE in the
+          Cypher. It MUST NOT expose patient names, NHS numbers, or any
+          identifier beyond the patient_id surrogate already used in the
+          existing safety pack.
+      - type: "safety"
+        spec: >
+          Snippet output is truncated to <= 200 characters and any
+          returned text is the encounter body verbatim; no LLM or
+          generative step is involved.
+    dependencies: ["DI-LEO-AI-161"]
+    downstream_impacts:
+      - "DQ team can triage letter-stub backlog"
+      - "Stale episodes traceable to root cause (missing letter body)"
+      - "Atlas safety dashboard gains a new actionable alert"
+    technical_details:
+      language: "Python"
+      framework: "neo4j_mcp"
+      file_structure:
+        - "services/neo4j_mcp/tools/query_pack_safety.py"
+      estimated_loc: 90
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      tests/test_stale_detector_fixes.py::TestLetterStubDQ passes:
+      the tool function returns the expected MCP-shaped envelope and is
+      registered in the TOOLS list; looks_like_letter_stub correctly
+      identifies routing-only stubs and rejects non-stub text.
+    test_protocol: "VT-LEO-AI-161"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-164"]
+  tags:
+    - "data-quality"
+    - "mcp-tool"
+    - "letter-ingestion"
+    - "stale-detector"

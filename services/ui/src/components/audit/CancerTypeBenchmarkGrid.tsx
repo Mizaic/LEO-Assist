@@ -128,8 +128,14 @@ function MiniBarChart({
   showNational2018: boolean;
 }) {
   const fmt = (v: unknown) => (v != null ? `${v}` : "");
-  const tipFmt = (v: number | string | undefined, name: string | undefined) =>
-    [`${v ?? ""}${unit}`, name ?? ""] as [string, string];
+  // Recharts Tooltip Formatter signature widened in v3: value/name are
+  // typed `ValueType`/`NameType` (which include arrays). Cast to the
+  // expected scalar shape since our data series only emit numbers/strings.
+  const tipFmt = (v: unknown, name: unknown) =>
+    [`${(v as string | number | undefined) ?? ""}${unit}`, `${name ?? ""}`] as [
+      string,
+      string,
+    ];
 
   return (
     <ResponsiveContainer width="100%" height={200}>

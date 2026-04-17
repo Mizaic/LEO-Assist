@@ -1,0 +1,431 @@
+======================================================================
+PATIENT      : 4300102074
+EPISODE      : 579bb5eaf6bccd3a
+CANCER_TYPE  : breast
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-07-01
+WINDOW       : 2025-06-17 .. 2025-09-29 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-07-01  referral                enc=9a85516b-801f-4494-8ca6-34bbcf61a4ab
+  2025-07-01  referral                enc=040be254-057a-43cf-adff-f5978e04db39
+  2025-08-09  first_seen              enc=ef7a4d56-b94a-4641-b107-ebd7d9e04736
+  2025-08-12  first_seen              enc=c7c9f2b9-f38e-4476-ac72-6de27b2d27ae
+
+Encounters in window (n=43):
+
+--- 01 2025-06-20 [other] milestones=[] eid=20c6af4f-1bc4-48be-b877-1cc332ccc6ed ---
+14:29 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 02 2025-06-20 [other] milestones=[] eid=3dbbe88b-0b29-443f-be13-15cdd886f23a ---
+14:29 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Patient telephone number (9159.) - +447526136523
+Short message service text message sent to patient (XaMiI)
+
+Dear Jean,
+
+Our car park will be closing at the end of day on Friday 4th July 2025 for the foreseeable future.
+This is due to health and safety concerns while demolition work is taking place at the site next door. Please find alternative parking when attending the surgery after this date. 
+
+Thank you
+Woodbrook Medical Centre
+SMS sent on 20/06/2025 13:02:21
+
+--- 03 2025-06-26 [other] milestones=[] eid=c1cf4c35-7b9b-4315-84a9-8707f4b5090f ---
+09:00 - Sent online by Mrs Jean Wooldridge  
+Request for 'Amlodipine 5mg tablets' by patient
+Request for 'Donepezil 10mg tablets' by patient
+Request for 'Memantine 20mg tablets' by patient
+
+--- 04 2025-06-26 [other] milestones=[] eid=c024cdb6-cee6-4e11-bb5f-8169e6d2ff2b ---
+09:00 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Memantine 20mg tablets - 28 tablet - take one daily for dementia
+(R) Donepezil 10mg tablets - 28 tablet - take one tablet daily at night
+(R) Amlodipine 5mg tablets - 28 tablet - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 05 2025-06-30 [other] milestones=[] eid=904541ec-3f4b-4a7b-8083-eae67d37ae61 ---
+14:07 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+Problem: Breast lump (K3171)
+History: Duty Dr  
+Rang preferred contact  - son answered the call 
+ID confirmed 
+
+lump noted by pt  - noted a week ago  
+c/o pain  where lump is 
+
+
+pt lives alone - carers twice a day 
+family visits  
+son not aware of any injuries  
+no fever 
+no N&V - 
+no lumps anywhere else that he is aware of 
+no weightloss reported 
+daughter had breast cancer  - now recovered  
+
+asked if I could speak to pt directly - he says not with her currently and also with her dementia might be challenging 
+
+
+
+mobile within house  - no walking aids  
+carers help with food  
+able to dress herself  
+family does shopping 
+Plan: discussed lumps could be anything from infection / trauma related / cysts or sinister cause like cancer - if we were to imagine theh worst case scenario is she someone who would be fit for surgery  and invasive interventions chemo / radio etc ? Son says it is something that we cannnot leave as is  
+- reassured we will assess first for any other possible cause but have to ask these anticipatory questions  
+ -discuss in debrief then call son back with a plan re review
+Breast lump (K3171)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Breast lump (K3171)
+
+--- 06 2025-06-30 [other] milestones=[] eid=57e200ed-b40f-484e-8de8-11aae9ff50b1 ---
+14:49 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+Plan: spoke wth pt's son (Robert) after discussing with KA  
+to bring in tomorrow for a f2f - 
+will task reception to book in with me
+
+--- 07 2025-06-30 [other] milestones=[] eid=1c043c19-a861-4fc4-a7f5-1c43a2e8947c ---
+15:08 - MCDOWELL, Giselle  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 08 2025-06-30 [other] milestones=[] eid=4ecb0883-1d87-445a-8653-7411602cbe05 ---
+15:13 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 09 2025-06-30 [other] milestones=[] eid=4d1b1ed4-b909-4593-9f94-ef04de9f0db5 ---
+Dear Jean Wooldridge
+
+Your appointment has been booked for 01 Jul 2025 14:10 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 10 2025-07-01 [other] milestones=[] eid=ebb6fdaa-4afb-442c-b281-e3408ed0d883 ---
+Dear Jean Wooldridge
+
+Your appointment has been booked for 01 Jul 2025 14:50 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 11 2025-07-01 [other] milestones=[] eid=01600255-b15e-4e42-bf23-ad551fa54ac9 ---
+11:31 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role)
+
+--- 12 2025-07-01 [other] milestones=[] eid=ebf9cbc3-1b36-422f-95ce-520e22b0b3e4 ---
+11:34 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role) 
+Patient telephone number (9159.) - +447526136523
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Wooldridge,
+
+Due to unforeseen circumstances, your appointment with Dr Saleem today has been moved to 2.50pm.
+Sorry for any inconvenience caused at this short notice.
+Thank you
+Woodbrook Medical Centre
+Sent on 01/07/2025 at 11:34
+
+--- 13 2025-07-01 [other] milestones=[] eid=fd386e0e-cf21-43f1-93f8-306160d3548e ---
+11:35 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role) 
+Patient telephone number (9159.) - +447301218446
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Wooldridge,
+Due to unforeseen circumstances, your appointment with Dr Saleem today has been moved to 2.50pm.
+Sorry for any inconvenience caused at this short notice.
+
+Thank you
+Woodbrook Medical Centre
+Sent on 01/07/2025 at 11:35
+
+--- 14 2025-07-01 [IN-EP] milestones=['referral'] eid=9a85516b-801f-4494-8ca6-34bbcf61a4ab ---
+14:41 - GP Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+Problem: Breast lump (K3171)
+History: Pt attended with daughter 
+
+noted 1 week ago  - lump on L side breast
+no significant weight loss reported 
+ex-smoker  
+history of previous malignancies 
+
+lives alone in bunglow 
+carers x2 a day  
+sister comes weekends  
+brother and other  sister come 2 days each  - family takes her out for shopping  
+family and pt keen to investigate as they don't want to sit on cancer would rather know and discuss steps after 
+is still for CPR  
+Examination: daughter present during examination  - pt consented to this - daughter helped with clothes as pt needs prompts  (known dementia)  
+L breast obvious dimpling - nipple has retracted downwards with hard mass on top of where the dimpling starts- (daughter says she has had this for long - not sure how long ) 
+irregular lump on outer quadrant of L breast - slightly tender 
+Plan: - 2ww breast clinic
+- PRISM 2WW Breast Female -  questionnaire started - (finalised: 01 Jul 2025 14:41)
+Fast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)
+ - PRISM 2WW Breast Female Drawing
+    
+ Common GP examination values
+   Values
+      Weight: 60 Kg  (? 9 st 6 lb)
+      BMI: 24.34 Kg/m²
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 01 Jul 2025 14:41)
+O/E - weight (22A..) 60 Kg (? 9 st 6 lb)
+Body mass index - observation (22K..) 24.34 Kg/m²
+
+--- 15 2025-07-01 [IN-EP] milestones=['referral'] eid=040be254-057a-43cf-adff-f5978e04db39 ---
+17:28 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected breast cancer (XaMeC)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww breast
+Hospital Fast track referral for suspected breast cancer
+2WW Breast Female PRISM to Unknown 
+Hospital Fast track referral for suspected breast cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww breast
+
+--- 16 2025-07-09 [other] milestones=[] eid=72576365-bb03-4111-bc38-fff74ce91b18 ---
+14:29 - Surgery: CORNELIUS, Helen (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre
+Status Update for  Referral In: Discharged From Care, Status changed: 09 Jul 2025 14:29
+
+--- 17 2025-07-18 [other] milestones=[] eid=0cc13293-1ac2-4dcd-b64f-f2030f86789a ---
+13:35 - Sent online by Mrs Jean Wooldridge  
+Request for 'Donepezil 10mg tablets' by patient
+Request for 'Amlodipine 5mg tablets' by patient
+Request for 'Propranolol 40mg tablets' by patient
+Request for 'Memantine 20mg tablets' by patient
+
+--- 18 2025-07-18 [other] milestones=[] eid=272e6e1f-9144-42af-a1e3-9c9936dca299 ---
+13:43 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Memantine 20mg tablets - 28 tablet - take one daily for dementia
+(R) Propranolol 40mg tablets - 56 tablet - take half or one tablet (20-40mg) three times a day.
+(R) Amlodipine 5mg tablets - 28 tablet - take one daily
+(R) Donepezil 10mg tablets - 28 tablet - take one tablet daily at night
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 19 2025-07-31 [other] milestones=[] eid=e8d56098-6109-4f8d-83d3-72398586a779 ---
+09:10 - O'CONNELL, Charlotte (Ms)  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Contact trigger : Other (Y3eaa)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 20 2025-08-01 [other] milestones=[] eid=2212c828-a8e1-4899-8b15-97ddd48db6a5 ---
+13:44 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Influenza vaccination invitation short message service text message sent (Y3f85)
+Patient telephone number (9159.) - +447526136523
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Wooldridge,
+Our records show you are eligible for a flu vaccination. 
+Our clinics start in October and appointments are being booked now! Please use the link provided below to book your appointment or to let us know if you do not want the flu vaccine. Alternatively, please call reception on 01509 239166. 
+Appointments are limited so we would advise booking as soon as possible.
+
+Thank you
+
+To respond: https://accurx.nhs.uk/c/p-5vszvgjzmd
+(Expires in 7 days)
+
+Woodbrook Medical Centre
+SMS sent on 01/08/2025 13:00:19
+
+--- 21 2025-08-01 [other] milestones=[] eid=5b45620d-2e47-4ed3-93ec-e3557095bdef ---
+13:44 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 22 2025-08-04 [other] milestones=[] eid=efea3bc1-f11e-4899-a8a4-34d544db4b72 ---
+09:51 - Sent online by Mrs Jean Wooldridge  
+Request for 'Atorvastatin 10mg tablets' by patient
+
+--- 23 2025-08-04 [other] milestones=[] eid=f85ee191-eb6f-42da-b2ff-2d537df0a020 ---
+09:55 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Atorvastatin 10mg tablets - 56 tablet - Every Night
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 24 2025-08-09 [other] milestones=[] eid=d3ef4381-3350-4556-a95b-436fda90ff35 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Breast to Woodbrook Medical Centre
+
+--- 25 2025-08-09 [IN-EP] milestones=['first_seen'] eid=ef7a4d56-b94a-4641-b107-ebd7d9e04736 ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected breast cancer clinic (XaPyQ)
+
+--- 26 2025-08-09 [other] milestones=[] eid=4af06d0d-6cae-480f-95fd-21aed8dd52d5 ---
+Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role)
+
+--- 27 2025-08-09 [other] milestones=[] eid=80165903-7492-42da-a33b-c1745da29600 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role)
+Ultrasound scan (X70lf) - L axilla - normal looking LNs (New Episode)
+Minor: Breast lump (K3171) - breast mass L (New Episode)
+Punch biopsy - action (XM0In) - L breast (New Episode)
+Mammogram (537..) - b/l - features of tethered malignant L inner breast mass with associated microcalcifications (New Episode)
+Breast lump (K3171) - breast mass L
+
+--- 28 2025-08-12 [IN-EP] milestones=['first_seen'] eid=c7c9f2b9-f38e-4476-ac72-6de27b2d27ae ---
+10:17 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 09 Aug 2025
+
+--- 29 2025-08-13 [other] milestones=[] eid=e4bb68d2-4dd6-4e8e-8a06-1a4ab77165e4 ---
+11:12 - Sent online by Mrs Jean Wooldridge  
+Request for 'Amlodipine 5mg tablets' by patient
+Request for 'Donepezil 10mg tablets' by patient
+Request for 'Memantine 20mg tablets' by patient
+
+--- 30 2025-08-13 [other] milestones=[] eid=ee89a1a7-f192-41d1-9e8c-26be43d149c9 ---
+11:57 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Memantine 20mg tablets - 28 tablet - take one daily for dementia
+(R) Donepezil 10mg tablets - 28 tablet - take one tablet daily at night
+(R) Amlodipine 5mg tablets - 28 tablet - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 Nurse Independent Prescriber FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 31 2025-08-14 [other] milestones=[] eid=82e1e4ce-6d05-4094-8d6d-8efc41348763 ---
+11:06 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Comment note (XaIg6)
+SMS sent to 07526 136523 via Abtrace tool. Message: Dear Jean Wooldridge,
+Your medication monitoring blood tests are overdue.
+Your medication is an effective treatment, but tests are required to prevent potentially serious side effects occurring. It is therefore essential that these tests are done regularly. 
+If you have your monitoring tests done at hospital or elsewhere, please let us know so we can update our records. 
+
+For your safety, if these tests are not done, we may have to remove these medications from your repeat prescription. 
+
+Please book an appointment using the link provided below.
+abtr.co/4qZbd
+Woodbrook Medical Centre
+Blood test due (41B1.)
+
+--- 32 2025-08-14 [other] milestones=[] eid=45c66b24-fd62-41d9-a96f-43cf7bcbd66e ---
+11:06 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 33 2025-08-18 [other] milestones=[] eid=8f4d3bb2-b0b5-4c67-97ed-58e3ff47f77e ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Breast Clinic to Dr Medical Woodbrook
+
+--- 34 2025-08-28 [other] milestones=[] eid=681b4295-5702-4522-92ba-e9c7d974ec4b ---
+11:04 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Comment note (XaIg6)
+SMS sent to 07526 136523 via Abtrace tool. Message: Dear Jean Wooldridge,
+Your medication monitoring blood tests are overdue.
+Your medication is an effective treatment, but tests are required to prevent potentially serious side effects occurring. It is therefore essential that these tests are done regularly. 
+If you have your monitoring tests done at hospital or elsewhere, please let us know so we can update our records. 
+
+For your safety, if these tests are not done, we may have to remove these medications from your repeat prescription. 
+
+Please book an appointment using the link provided below.
+abtr.co/4qZbd
+Woodbrook Medical Centre
+Blood test due (41B1.)
+
+--- 35 2025-08-28 [other] milestones=[] eid=b376d86a-ab66-4b8e-80c2-2fc914777c5f ---
+11:04 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 36 2025-09-01 [other] milestones=[] eid=cf581963-4c34-43a1-8bfc-3460fb5eeae0 ---
+10:11 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Contact trigger : Other (Y3eaa)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 37 2025-09-01 [other] milestones=[] eid=7a990280-7370-496c-b659-b120e82edebe ---
+12:45 - Surgery: SUTHAR, Jaiman (Mr) (Pharmacist) 
+(R) Letrozole 2.5mg tablets - 28 tablet - take one once daily
+(R) Evacal D3 1500mg/400unit chewable tablets (Teva UK Ltd) - 56 tablet - take one twice daily
+ Clinical Pharmacist
+   Clinical Pharmacist
+      Encounter: Administration note (XaIg4) ledger task
+ Drug Review
+   Reconciliation
+      Reconcilliation source:  Breast clinic letter 18/08/25
+      New repeat medication:  letrozole, adcal
+      Comments:  evacal issued as formulary choice instead of adcal
+Evacal D3 1500mg/400unit chewable tablets (Teva UK Ltd) - 56 tablet - take one twice daily
+Letrozole 2.5mg tablets - 28 tablet - take one once daily
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Medication reconciliation (XaXfG) - Breast clinic letter 18/08/25
+Medication commenced (XE0hk) - letrozole, adcal
+Comment note (XaIg6) - evacal issued as formulary choice instead of adcal
+Administration note (XaIg4) - ledger task
+
+--- 38 2025-09-15 [other] milestones=[] eid=620ffb14-b0b6-41e5-8744-4dbbeb1c7358 ---
+12:06 - Sent online by Mrs Jean Wooldridge  
+Request for 'Donepezil 10mg tablets' by patient
+Request for 'Amlodipine 5mg tablets' by patient
+Request for 'Propranolol 40mg tablets' by patient
+Request for 'Memantine 20mg tablets' by patient
+
+--- 39 2025-09-15 [other] milestones=[] eid=22d8b4c9-0af6-4ee8-a4cf-9ee93fd058b8 ---
+12:12 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+(R) Memantine 20mg tablets - 28 tablet - take one daily for dementia
+(R) Propranolol 40mg tablets - 56 tablet - take half or one tablet (20-40mg) three times a day.
+(R) Amlodipine 5mg tablets - 28 tablet - take one daily
+(R) Donepezil 10mg tablets - 28 tablet - take one tablet daily at night
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 40 2025-09-16 [other] milestones=[] eid=8e89d7ee-75f3-4aca-9bd4-51f57d69378f ---
+10:25 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 41 2025-09-16 [other] milestones=[] eid=ce4264ec-16f0-4402-8010-9860c38a85c7 ---
+10:25 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Patient telephone number (9159.) - +447526136523
+Short message service text message sent to patient (XaMiI)
+
+Dear Jean,
+Please be advised that the car park remains closed to patients and visitors. It is for use by authorised staff only until further notice. At times, the entrance chain may be up or down to allow access to the building, but please note the car park remains closed to patients and visitors at all times.
+We kindly ask all patients to make alternative travel and parking arrangements when attending appointments.
+Thank you for your understanding and cooperation
+
+Woodbrook Medical Centre
+SMS sent on 15/09/2025 12:20:03
+
+--- 42 2025-09-22 [other] milestones=[] eid=5e6d14be-9bc1-4092-b564-d43538fd9586 ---
+17:20 - Sent online by Mrs Jean Wooldridge  
+Request for 'Atorvastatin 10mg tablets' by patient
+Request for 'Evacal D3 1500mg/400unit chewable tablets (Teva UK Ltd)' by patient
+Request for 'Letrozole 2.5mg tablets' by patient
+
+--- 43 2025-09-22 [other] milestones=[] eid=55a84172-9ce0-4b7a-a4e2-8eca06b0688c ---
+17:24 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Letrozole 2.5mg tablets - 28 tablet - take one once daily
+(R) Evacal D3 1500mg/400unit chewable tablets (Teva UK Ltd) - 56 tablet - take one twice daily
+(R) Atorvastatin 10mg tablets - 56 tablet - Every Night
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+

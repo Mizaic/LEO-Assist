@@ -1,12 +1,12 @@
 /**
- * Shared relation-summary row used by CandidateCard and GoldLabelRow.
+ * Shared relation-summary row used by CandidateReviewList and
+ * GoldLabelReviewList.
  *
  * Renders compact source -> [rel type] -> target triplets from entity
  * relations, plus a "No links" warning when linkable entity pairs exist
  * but no relation has been set.
  */
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -170,20 +170,27 @@ export default function RelationRow({ triplets, missing }: Props) {
       )}
       {missing && (
         <Tooltip title="One or more terms could be linked (body site, observable, procedure, or another finding) but have no relation set">
-          <Chip
-            size="small"
-            icon={<LinkOffIcon sx={{ fontSize: "13px !important" }} />}
-            label="No links"
+          <Box
+            component="span"
             sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "3px",
               height: 20,
-              fontSize: "0.68rem",
-              bgcolor: "#fff3e0",
-              color: "#e65100",
-              border: "1px solid #ffcc80",
-              "& .MuiChip-icon": { color: "#e65100" },
-              "& .MuiChip-label": { px: 0.75 },
+              px: 0.6,
+              fontSize: "0.66rem",
+              fontWeight: 500,
+              color: "text.disabled",
+              border: "1px dashed",
+              borderColor: "divider",
+              borderRadius: 1,
+              bgcolor: "transparent",
+              cursor: "help",
             }}
-          />
+          >
+            <LinkOffIcon sx={{ fontSize: 12, color: "text.disabled" }} />
+            no links
+          </Box>
         </Tooltip>
       )}
     </Stack>

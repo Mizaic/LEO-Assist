@@ -74,18 +74,49 @@ def _label_for_tag(tag: str) -> str:
     return _LABEL_BY_TAG.get(normalised, "SnomedConcept")
 
 
-def _build_upsert_query(label: str, rel_type: str) -> str:
+_VALID_SOURCE_LABELS: frozenset[str] = frozenset({"Encounter", "Chunk"})
+
+
+def _build_upsert_query(
+    label: str,
+    rel_type: str,
+    *,
+    source_label: str = "Encounter",
+) -> str:
     """Return a Cypher query that:
     1. MERGEs the concept node with the given label.
-    2. MERGEs (Encounter)-[:DOCUMENTS]->(concept).
+    2. MERGEs (source)-[:DOCUMENTS]->(concept) where source is Encounter or Chunk.
     3. MERGEs (Patient)-[:<rel_type>]->(concept) as a patient-level shortcut.
+
+    The source can be an :Encounter (existing pattern) or a :Chunk (new in
+    DI-LEO-AI-185, used when DocumentReference text is split into sentences
+    that each carry their own SNOMED codes). When source_label is ``Chunk``
+    the patient is reached via the parent DocumentReference.
 
     Provenance fields (model_name, model_version, contract_version, run_id) are
     stamped on the :DOCUMENTS relationship so every persisted link can be traced
     back to the extractor that produced it.
     """
+    if source_label not in _VALID_SOURCE_LABELS:
+        raise ValueError(
+            f"Unsupported source_label {source_label!r}. "
+            f"Allowed: {sorted(_VALID_SOURCE_LABELS)}"
+        )
+
+    if source_label == "Encounter":
+        match_clause = (
+            "MATCH (src:Encounter {id: $source_id})"
+            "<-[:HAS_ENCOUNTER]-(p:Patient)"
+        )
+    else:
+        match_clause = (
+            "MATCH (src:Chunk {id: $source_id})"
+            "<-[:HAS_CHUNK]-(:DocumentReference)"
+            "<-[:HAS_DOCUMENT_REFERENCE]-(p:Patient)"
+        )
+
     return f"""
-MATCH (e:Encounter {{id: $encounter_id}})<-[:HAS_ENCOUNTER]-(p:Patient)
+{match_clause}
 MERGE (s:{label} {{conceptId: $concept_id}})
 SET s.semanticTag  = $semantic_tag,
     s.name         = $name,
@@ -93,7 +124,7 @@ SET s.semanticTag  = $semantic_tag,
     s.source       = $source,
     s.updated_at   = datetime(),
     s.created_at   = coalesce(s.created_at, datetime())
-MERGE (e)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
+MERGE (src)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
 SET r.coded_at         = datetime(),
     r.evidence         = $evidence,
     r.confidence       = $confidence,
@@ -210,6 +241,7 @@ def write_documents_from_sentences_payload(
     model_version: str = "",
     contract_version: str = "",
     run_id: str = "",
+    source_label: str = "Encounter",
 ) -> int:
     """Write :DOCUMENTS and :HAS_<tag> links from a sentences_payload list.
 
@@ -290,7 +322,9 @@ def write_documents_from_sentences_payload(
 
             label = _label_for_tag(semantic_tag)
             rel_type = _REL_BY_LABEL.get(label, "HAS_CONCEPT")
-            query = _build_upsert_query(label, rel_type)
+            query = _build_upsert_query(
+                label, rel_type, source_label=source_label
+            )
 
             modifiers = term.get("modifiers") or {}
             span_text = term.get("text") or ""
@@ -320,7 +354,7 @@ def write_documents_from_sentences_payload(
                     term_source = coding.get("source") or source
                     session.run(
                         query,
-                        encounter_id=encounter_id,
+                        source_id=encounter_id,
                         concept_id=str(concept_id),
                         semantic_tag=semantic_tag,
                         name=coding.get("snomed_term") or span_text,

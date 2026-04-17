@@ -29,6 +29,8 @@ export interface OrgInfo {
   type?: string;
 }
 
+export type DensityPreference = "compact" | "comfortable" | "spacious";
+
 export interface Session {
   user: { email?: string; name?: string; image?: string };
   isPlatformAdmin: boolean;
@@ -36,6 +38,7 @@ export interface Session {
   idleTimeoutMinutes: number;
   selectedRole: string | null;
   allowedRoles: string[];
+  densityPreference: DensityPreference | null;
 }
 
 interface AuthContextValue {
@@ -59,6 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await fetch(`/auth/session`, { credentials: "include" });
       const data = res.ok ? await res.json() : null;
       if (data?.user != null) {
+        const rawDensity = data.density_preference;
+        const density: DensityPreference | null =
+          rawDensity === "compact" ||
+          rawDensity === "comfortable" ||
+          rawDensity === "spacious"
+            ? rawDensity
+            : null;
         setSession({
           user: data.user,
           isPlatformAdmin: data.isPlatformAdmin ?? false,
@@ -68,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           allowedRoles: Array.isArray(data.allowed_roles)
             ? data.allowed_roles
             : [],
+          densityPreference: density,
         });
         setStatus("authenticated");
       } else {

@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 from services.terminology_api.app.services.guideline_compiler import (
@@ -92,6 +94,153 @@ def evaluate_patient(req: EvaluateRequest) -> dict:
         scope_id=req.scope_id,
         ruleset_version=req.ruleset_version,
     )
+
+
+class DiagnoseRequest(BaseModel):
+    """Request body for per-rule diagnostic evaluation."""
+
+    rule_id: str
+    patient_codes: list[str]
+    patient_age: float | None = None
+    patient_sex: str | None = None
+    scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = (
+        "global"
+    )
+    scope_id: str = "default"
+    ruleset_version: str | None = None
+
+
+@router.post("/guidelines/diagnose")
+def diagnose_patient(req: DiagnoseRequest) -> dict:
+    """Return per-node match diagnostics for ONE rule against a patient.
+
+    Uses the same bitmap operations as ``/evaluate`` so the diagnostic
+    verdict is guaranteed to agree with the production firing decision.
+    The annotated tree is returned in the same shape as the compiled
+    ``logic_tree`` so callers can render it hierarchically.
+
+    Returns 404 with a structured ``detail`` dict when no ruleset is
+    compiled or the rule_id is missing. The dict carries
+    ``not_compiled``, ``rule_found``, ``recompile_hint``, and ``scope_*``
+    so the UI can render a one-click "Compile now" banner instead of
+    silently showing zero diagnostic information.
+    """
+    evaluator = GuidelineEvaluator()
+    result = evaluator.diagnose(
+        req.rule_id,
+        req.patient_codes,
+        patient_age=req.patient_age,
+        patient_sex=req.patient_sex,
+        scope_type=req.scope_type,
+        scope_id=req.scope_id,
+        ruleset_version=req.ruleset_version,
+    )
+    if result is None or result.get("rule_found") is False:
+        raise HTTPException(
+            status_code=404,
+            detail=result
+            or {
+                "not_compiled": True,
+                "rule_found": False,
+                "message": "No active ruleset compiled yet.",
+                "scope_type": req.scope_type,
+                "scope_id": req.scope_id,
+            },
+        )
+    return result
+
+
+class CompileDraftRequest(BaseModel):
+    """Compile a hand-built list of v2 rules into a sandbox ruleset.
+
+    The reviewer's "Test against library" flow uses this so they can
+    replay saved test patients against an UNSAVED draft of a rule,
+    without round-tripping through Neo4j. The draft is written to a
+    custom-scoped key (e.g. ``ruleset:custom:draft-<uuid>``) and the
+    caller is responsible for deleting it via
+    ``DELETE /terminology/guidelines/scopes/{scope_type}/{scope_id}``
+    once the replay completes.
+
+    SAFETY: ``scope_type`` is forced to ``custom``; the endpoint refuses
+    to write to global, guideline, domain, or subdomain scopes so a
+    sandbox compile cannot collide with the production ruleset.
+    """
+
+    rules: list[dict] = Field(default_factory=list)
+    scope_id: str
+    policy_mode: Literal["advisory", "strict"] = "advisory"
+    distance_child_override: int | None = None
+    distance_parent_override: int | None = None
+    ttl_seconds: int = 1800  # auto-expire abandoned sandboxes after 30 min
+
+
+@router.post("/guidelines/bitmap/compile-draft", status_code=200)
+async def compile_draft_bitmap(body: CompileDraftRequest) -> dict:
+    """Compile UNSAVED draft rules into a sandbox bitmap ruleset.
+
+    Synchronous: rule-editor flows want the result inline. The compile
+    is small (typically a single rule) so the latency cost is dominated
+    by SNOMED closure expansion against Neo4j.
+
+    Returns the version + scope so the caller can immediately POST to
+    ``/guidelines/evaluate`` (or to the core API's
+    ``/guidance/test-patients/sandbox-replay``) using the same
+    scope_type=custom, scope_id=<sandbox>.
+    """
+    if not body.rules:
+        raise HTTPException(
+            status_code=400, detail="compile-draft requires at least one rule"
+        )
+    if not body.scope_id:
+        raise HTTPException(
+            status_code=400, detail="compile-draft requires a scope_id"
+        )
+    scope = CompileScope.from_values("custom", body.scope_id)
+    if scope.scope_type != "custom":
+        raise HTTPException(
+            status_code=400,
+            detail="compile-draft only writes to scope_type='custom'",
+        )
+    version = f"draft-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    compiler = GuidelineCompiler()
+    try:
+        summary = await compiler.compile_drafts(
+            version,
+            body.rules,
+            scope=scope,
+            policy_mode=body.policy_mode,
+            distance_child_override=body.distance_child_override,
+            distance_parent_override=body.distance_parent_override,
+            ttl_seconds=body.ttl_seconds,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return summary
+
+
+@router.delete("/guidelines/scopes/{scope_type}/{scope_id}")
+def delete_scope(scope_type: str, scope_id: str) -> dict:
+    """Drop every Redis key for a sandbox scope.
+
+    Used by the rule-editor sandbox flow to clean up after a draft
+    replay. Refuses to delete the global scope so an accidental call
+    cannot wipe production rules.
+    """
+    if scope_type.strip().lower() == "global":
+        raise HTTPException(
+            status_code=400,
+            detail="Refusing to delete the global production scope.",
+        )
+    store = BitmapStore()
+    try:
+        deleted = store.delete_scope(scope_type, scope_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {
+        "scope_type": scope_type,
+        "scope_id": scope_id,
+        "keys_deleted": deleted,
+    }
 
 
 @router.post("/guidelines/bitmap/compile", status_code=202)
@@ -296,6 +445,7 @@ async def _run_compile(job_id: str, version: str, request_body: dict) -> None:
                 **summary,
             }
         )
+        await _trigger_test_patient_replay(version, scope)
     except Exception as exc:
         logger.exception("Bitmap compile failed for version %s", version)
         _compile_jobs[job_id].update(
@@ -304,3 +454,42 @@ async def _run_compile(job_id: str, version: str, request_body: dict) -> None:
                 "error": str(exc),
             }
         )
+
+
+CORE_API_URL = os.getenv("CORE_API_URL", "http://localhost:8000").rstrip("/")
+_REPLAY_TIMEOUT_S = float(os.getenv("TEST_PATIENT_REPLAY_TIMEOUT", "60"))
+
+
+async def _trigger_test_patient_replay(version: str, scope: CompileScope) -> None:
+    """POST to the core API to replay saved test patients post-compile.
+
+    Failures are logged but never block the compile; the deploy already
+    succeeded.  The reviewer sees regressions in the admin UI.
+    """
+    if os.getenv("DISABLE_TEST_PATIENT_REPLAY") in ("1", "true"):
+        return
+    body = {
+        "scope_type": scope.scope_type,
+        "scope_id": scope.scope_id,
+        "ruleset_version": version,
+        "guideline_id": (
+            scope.scope_id if scope.scope_type == "guideline" else None
+        ),
+        "persist_report": True,
+    }
+    url = f"{CORE_API_URL}/guidance/test-patients/replay"
+    try:
+        async with httpx.AsyncClient(timeout=_REPLAY_TIMEOUT_S) as client:
+            resp = await client.post(
+                url,
+                json=body,
+                headers={"X-Requested-With": "XMLHttpRequest"},
+            )
+        if resp.status_code >= 400:
+            logger.warning(
+                "Test patient replay returned %s: %s",
+                resp.status_code,
+                resp.text[:200],
+            )
+    except Exception as exc:
+        logger.warning("Test patient replay POST failed: %s", exc)

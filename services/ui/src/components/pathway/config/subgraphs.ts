@@ -24,6 +24,9 @@ const SUBGRAPH_OPTIONS_RAW = [
   { id: "rest_connector",    label: "Call REST API",          color: "#607D8B", category: "Integration",     description: "Send runtime state to an external REST API and map the response back into the pipeline." },
   { id: "queue_publish",     label: "Publish Queue Message",  color: "#455A64", category: "Integration",     description: "Publish a message to the configured queue or topic for asynchronous downstream work." },
   { id: "guidance_rule_extraction", label: "Extract Guidance Rule", color: "#6A1B9A", category: "Clinical AI", description: "Turn a guideline recommendation into a structured logic tree and a coded action." },
+  { id: "staging_enrichment",      label: "Enrich Cancer Stage",    color: "#5E35B1", category: "Clinical AI",     description: "After episodes are built, derive cancer stage and TNM values from coded evidence and free text." },
+  { id: "human_review_gate",       label: "Wait for Human Review",  color: "#F57C00", category: "HITL",            description: "Pause the pipeline and mark the run as awaiting a clinician's decision before downstream steps run." },
+  { id: "encounter_coding_agent",  label: "Code with AI Agent",     color: "#1E88E5", category: "Clinical AI",     description: "Run the SNOMED tool-calling agent in code or audit mode against the encounter text and coded entities." },
 ] as const;
 
 /** Step types shown alphabetically by label in the pathway builder. */
@@ -132,6 +135,19 @@ export const SUBGRAPH_IO: Record<string, {
     reads: ["recommendation", "guideline_id"],
     writes: ["coded_criteria", "errors"],
   },
+  staging_enrichment: {
+    reads: ["episode_ids"],
+    writes: ["errors"],
+  },
+  human_review_gate: {
+    reads: ["coded_criteria"],
+    writes: ["needs_human_review", "review_status", "errors"],
+  },
+  encounter_coding_agent: {
+    reads: ["encounter_id", "encounter_text", "coded_entities"],
+    writes: ["verdict", "messages", "errors"],
+    requiredFields: { coded_entities: ["text", "concept_id", "semantic_tag"] },
+  },
 };
 
 export type SubgraphCategory = "llm" | "persist" | "post_process" | "terminology" | "tier_classify" | "generic";
@@ -160,6 +176,9 @@ export const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
   hitl_coding_queue: "generic",
   rest_connector: "generic",
   queue_publish: "generic",
+  staging_enrichment: "generic",
+  human_review_gate: "generic",
+  encounter_coding_agent: "llm",
 };
 
 export const WIZARD_STEPS_LLM    = ["Step type", "Data connections", "Settings", "AI & outputs", "Review"];
@@ -180,10 +199,13 @@ export function inferDataType(key: string): PortDefinition["dataType"] {
     "recommendations",
     "relation_changes",
     "llm_check_changes",
+    "coded_entities",
+    "episode_ids",
+    "messages",
   ]);
   if (arrayKeys.has(key)) return "object[]";
-  if (key === "is_verified") return "boolean";
-  if (["verification_result", "sbar_report", "compliance_result", "connector_response", "coded_criteria", "anchor_result"].includes(key)) return "object";
+  if (key === "is_verified" || key === "needs_human_review") return "boolean";
+  if (["verification_result", "sbar_report", "compliance_result", "connector_response", "coded_criteria", "anchor_result", "verdict"].includes(key)) return "object";
   return "string";
 }
 

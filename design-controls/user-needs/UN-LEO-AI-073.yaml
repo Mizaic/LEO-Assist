@@ -1,0 +1,66 @@
+# -- UN-LEO-AI-073 -- Lab observation triples must always be recovered
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-073"
+  title: "When a clinical document contains a lab result line with a value, unit and reference range, LEO must always extract the procedure (test name), the observation (test name + value + unit + range), and the finding (interpretation), regardless of whether the NER model or the LLM extractor produces the long span itself"
+  description: |
+    UK primary-care lab results follow a stable grammar:
+
+      Reticulocyte count - observation (42X..) 96 10^9/L [20 - 80] - Outside reference range
+
+    The annotation guideline (rules 4 and 9 in
+    libs/prompts/annotation_guidelines_v1.py) requires three nested
+    overlapping spans on every such line:
+
+      - procedure: the test name
+      - observable_entity: test name + value + unit + reference range
+      - finding: above + the interpretation phrase
+
+    In production today none of these spans are reliably produced for
+    longer lab lines. The spancat suggester is capped at 10 tokens, so
+    candidate spans of ~20 tokens are never even proposed. The LLM
+    extractor by design emits the parameter name only with structured
+    value/unit/range fields. The downstream observable normaliser only
+    enriches existing observable_entity entities, so when none exist
+    nothing happens. The result is silent loss of clinical signal:
+    abnormal lab results are not coded, no Coding Review queue entry
+    is created, and the safety-net dashboard does not flag the patient.
+
+    The user need is that LEO must close this gap deterministically,
+    so that NEW lab observation triples are always recovered even when
+    the model and LLM both miss them, and so that future model retraining
+    can learn the long-span pattern natively (gold-data + suggester cap).
+
+  stakeholder: "Clinical staff, QA/RA lead, clinical safety officer"
+
+  priority: "high"
+
+  rationale: >
+    Missing an abnormal lab result is a Class B clinical-safety event
+    under IEC 62304 and DCB0129. Reticulocyte, MCH, eGFR, vitamin D and
+    similar values feed differential diagnosis, urgent referral
+    decisions and safety-netting alerts. A silent extraction gap on
+    standard lab grammar would let abnormal results pass through
+    unreviewed, with no audit trail of the omission.
+
+  acceptance_criteria:
+    - "For every line in a clinical document that follows the lab grammar (test name + value + unit + optional range + optional interpretation), the post-processing pipeline produces at least the procedure and observable_entity entities, plus a finding entity when an interpretation phrase is present."
+    - "Recovery is purely additive: existing entities are never modified, deleted, or duplicated."
+    - "Recovery runs identically in the training verification path (label_verifier) and the runtime coding path (pipeline_service), with parity asserted in tests/test_pipeline_parity.py."
+    - "False-positive rate on non-lab prose is zero on the test corpus (paragraphs, drug-prescription lines, bare numeric tokens)."
+    - "The spancat span suggester max_size is large enough (>= 24 tokens) that the model can learn the long observable / finding span natively after the next retrain."
+
+  design_inputs:
+    - "DI-LEO-AI-157"
+    - "DI-LEO-AI-158"
+
+  metadata:
+    identified_by: "Rob Smith - production defect report 2026-04-17, Reticulocyte observation line"
+    identified_date: "2026-04-17"
+    status: "approved"
+    tags:
+      - "ner"
+      - "lab-results"
+      - "post-processing"
+      - "clinical-safety"
+      - "train-serve-parity"

@@ -1,0 +1,347 @@
+======================================================================
+PATIENT      : 4202339649
+EPISODE      : 9b6aac53426e42c2
+CANCER_TYPE  : breast
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-07-23
+WINDOW       : 2025-07-09 .. 2025-10-21 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-07-23  referral                enc=aacdf5b8-58c3-4757-8ecb-fc603858d015
+  2025-07-23  referral                enc=aa9b8b55-756f-412f-a80a-3c47a1209d5d
+  2025-08-20  first_seen              enc=ef6544e5-75b2-4cdf-90a5-a9c90efaafc1
+  2025-09-16  first_seen              enc=8395c6e6-22e0-42d2-8b98-5f465c99061e
+  2025-09-22  referral                enc=8c9ef15d-d095-4b14-bd53-1ab0f25b7e4a
+
+Encounters in window (n=31):
+
+--- 01 2025-07-23 [other] milestones=[] eid=6ed7dba2-6205-4aeb-8c87-18870d138f23 ---
+08:46 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) 
+Problem: Breast lump symptom (1A8..)
+History: Planned review
+Can still feel lump but no change in size, no new symptoms
+Examination: With consent, chaperone declined - both breast examined, R normal and L - still pea sized lump upper inner medial quadrant small lump palpable, non sinister feeling but due to implants tricky to be sure
+Plan: As persistent, advise refer to breast clinic for definiteive diagnosis - understands
+Happy with plan
+To contact us if not heard in next 4w
+
+--- 02 2025-07-23 [IN-EP] milestones=['referral'] eid=aacdf5b8-58c3-4757-8ecb-fc603858d015 ---
+08:54 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) 
+- PRISM 2WW Breast Female -  questionnaire started - (finalised: 23 Jul 2025 08:54)
+Fast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)
+ - PRISM 2WW Breast Female Drawing
+    
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+      2WW Breast Female Referral Pathway/Breast Clinic accessed
+      Outbound referral (XaY59)
+       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 23 Jul 2025 08:54)
+       2WW Breast Female PRISM to Unknown 
+2WW Breast Female PRISM to Unknown 
+Outbound referral (XaY59)
+2WW Breast Female Referral Pathway/Breast Clinic accessed
+
+--- 03 2025-07-23 [IN-EP] milestones=['referral'] eid=aa9b8b55-756f-412f-a80a-3c47a1209d5d ---
+09:46 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected breast cancer (XaMeC)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww breast
+Hospital Fast track referral for suspected breast cancer
+Hospital Fast track referral for suspected breast cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww breast
+
+--- 04 2025-08-20 [IN-EP] milestones=['first_seen'] eid=ef6544e5-75b2-4cdf-90a5-a9c90efaafc1 ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected breast cancer clinic (XaPyQ)
+
+--- 05 2025-08-20 [other] milestones=[] eid=0ffa2ab6-6f38-4d17-9fe4-06e7f3dcdf77 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Breast Clinic to Woodbrook Medical Centre
+
+--- 06 2025-08-20 [other] milestones=[] eid=a10e06a2-44ad-48a2-9339-f0d037fec53e ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Current Home Address: 31 Darwin Crescent, Loughborough LE11 5SA
+Amendment via PDS
+
+--- 07 2025-08-20 [other] milestones=[] eid=f42b8772-49f2-4436-922b-34f67df33cae ---
+Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) 
+US scan of breast (585C.) (New Episode)
+
+--- 08 2025-08-20 [other] milestones=[] eid=7b0528f7-e3cc-45b5-b226-a231b01be23e ---
+14:44 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Address Changed From: '5 Cumbrian Way, Shepshed, Loughborough LE12 9BP'
+
+--- 09 2025-08-20 [other] milestones=[] eid=ad8ab32a-946a-479b-8275-dc7498ebafb8 ---
+14:45 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Patient telephone number (9159.) - +447969362358
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Smith,
+
+We have been informed of your change of address which has been updated today.  Are there any other family members that have moved to this address?
+
+
+
+TO RESPOND, please follow this link: https://accurx.nhs.uk/c/p-pjggj76ten
+
+Regards, Karen Silk-Moore
+Woodbrook Medical Centre
+Sent on 20/08/2025 at 14:45
+
+--- 10 2025-08-20 [other] milestones=[] eid=41c427b6-24a5-4afa-a94c-851f9d71345b ---
+14:56 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)
+
+--- 11 2025-08-20 [other] milestones=[] eid=0425f11f-00cc-43fe-a498-a807fdc22484 ---
+14:56 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Online questionnaire completed by patient
+Dear Mrs Smith,
+
+We have been informed of your change of address which has been updated today.  Are there any other family members that have moved to this address?
+
+Regards, Karen Silk-Moore
+Woodbrook Medical Centre
+
+Response:
+Hi there I have two children registered with you . 
+Archie Norman Smith 09/11/2009
+Oscar Eric Smith 14/04/2013
+If you could please update there address aswell please . 
+Many thanks 
+Received on: 20/08/2025 at 14:55
+
+--- 12 2025-08-20 [other] milestones=[] eid=71fdf3e7-590d-47a5-88b3-aca0a49e2945 ---
+14:56 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Patient telephone number (9159.) - +447969362358
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Smith,
+
+Will do :)
+
+Regards, Karen Silk-Moore
+Woodbrook Medical Centre
+Sent on 20/08/2025 at 14:56
+
+--- 13 2025-09-08 [other] milestones=[] eid=2a37d9b3-2492-46c9-a74c-1a3d7a5aded0 ---
+11:27 - MCDOWELL, Giselle  
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To book LTC review /Smear /Other monitoring (Y41d0)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Repeats List: Printed On Mon 08 Sep 2025 11:27 By Giselle McDowell
+Presenting to non-clinical team with: To book LTC review /Smear /Other monitoring (Y41d0)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 14 2025-09-08 [other] milestones=[] eid=797e6cd5-d3b1-4c50-a57a-15f42f3d0d86 ---
+Dear Lyndsay Smith
+
+Your appointment has been booked for 15 Sep 2025 09:15 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 15 2025-09-15 [other] milestones=[] eid=74fe882f-5a17-4b08-9887-2bbf48cc1a3b ---
+09:13 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role) 
+105 / 75
+Problem: Oral contraception (614..)
+Examination: Attended for pill check.
+Prescribed Desogestrel.
+Has f2f review in March with Dr Horne, then on 3rd month of pop.
+Was then experiencing irregular periods secondary to desogestrel.
+Was advised rv if any changes.
+Smoker.
+Smears up to date, last test Jan 2024 negative. 
+
+Today reports regular heavier monthly bleed lasting 4-7 days.
+Flow is variable from light to heavy.
+No unusual discharge reported.
+Lower abdo cramps prior and during bleed.
+Was started for contraception. 
+Reports sexual health screening was negative. 
+
+Fed up with bleeding on pop and would therefore like to try an alternative form of contraception.
+Briefly discussed options re. implant, depo and ius. 
+Appointment made with NP SR to discuss further on Friday.
+States has 1 week supply of pop left.
+ Contraception - POP
+   Entries from previous template version
+      Smoker (137R.)
+ Contraception
+   Consultation
+ Vitals & Lifestyle
+   Recordings
+      HR: 78 bpm
+      BP (Right Arm): 105 / 75 (Right)
+      Weight: 52.5 Kg  (? 8 st 4 lb)
+      BMI: 19.52 Kg/mï¿½
+Pulse rate (X773s) 78 bpm
+O/E - weight (22A..) 52.5 Kg (? 8 st 4 lb)
+Body mass index - observation (22K..) 19.52 Kg/mï¿½
+Smoker (137R.)
+
+--- 16 2025-09-15 [other] milestones=[] eid=c5a7483b-8c48-4646-b219-29f24e3fccba ---
+Dear Lyndsay Smith
+
+Your appointment has been booked for 19 Sep 2025 09:15 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 17 2025-09-16 [IN-EP] milestones=['first_seen'] eid=8395c6e6-22e0-42d2-8b98-5f465c99061e ---
+09:44 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 20 Aug 2025
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 18 2025-09-16 [other] milestones=[] eid=818447f0-4f9f-4720-b050-1e27fb7b9793 ---
+10:12 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 19 2025-09-16 [other] milestones=[] eid=92fd92ee-0937-413b-9a38-10c2d40221f0 ---
+10:12 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Lyndsay,
+Please be advised that the car park remains closed to patients and visitors. It is for use by authorised staff only until further notice. At times, the entrance chain may be up or down to allow access to the building, but please note the car park remains closed to patients and visitors at all times.
+We kindly ask all patients to make alternative travel and parking arrangements when attending appointments.
+Thank you for your understanding and cooperation
+
+Woodbrook Medical Centre
+NHS app message sent on 15/09/2025 12:14:05
+
+--- 20 2025-09-19 [other] milestones=[] eid=5f855a38-8fca-4f3a-885d-c8efedbcebe0 ---
+09:23 - GP Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) 
+Norethisterone 350microgram tablets - 84 tablet - take one daily
+ Contraception - POP
+   Review
+      POP review 'pill check': Yes Started POP desogestrel a few months ago.
+Periods all over the place.
+Not getting on with this pill.
+Wanted to discuss other options.
+Good pill taker.
+Took COC for many years . Had no problems with this.
+Age 36 and smoker so CI now.
+No PCB.
+No unusual PV discharge.
+Last smear normal Jan 2024.
+Discussed options such as coil/ implant/ injection. Would prefer a pill.
+3 month trial of Noriday then review. Aware of 3 hour window.
+
+ Contraception
+   Consultation
+ETP2 Nurse Independent Prescriber FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Pill check (Xa9ws)
+Started POP desogestrel a few months ago.
+Periods all over the place.
+Not getting on with this pill.
+Wanted to discuss other options.
+Good pill taker.
+Took COC for many years . Had no problems with this.
+Age 36 and smoker so CI now.
+No PCB.
+No unusual PV discharge.
+Last smear normal Jan 2024.
+Discussed options such as coil/ implant/ injection. Would prefer a pill.
+3 month trial of Noriday then review. Aware of 3 hour window.
+
+--- 21 2025-09-19 [other] milestones=[] eid=e123b42f-62ae-4e09-a4b2-55f06db697e1 ---
+10:33 - Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) 
+Patient telephone number (9159.) - +447969362358
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Smith,
+I have sent your new pill to your pharmacy.
+Lets review this again when you are closer to the end of the prescription.
+Kind regards
+Suzanne
+
+
+ Suzanne Rathbone
+Woodbrook Medical Centre
+Sent on 19/09/2025 at 10:33
+
+--- 22 2025-09-19 [other] milestones=[] eid=cae76e58-93d7-45ff-8552-7dc213a3fd17 ---
+10:34 - Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) 
+Scheduled Task Creation (Completed) - Miscellaneous task (review pop in 12 w) to be sent to RATHBONE, Suzanne (Mrs) on 27 Nov 2025.
+
+--- 23 2025-09-22 [IN-EP] milestones=['referral'] eid=8c9ef15d-d095-4b14-bd53-1ab0f25b7e4a ---
+13:21 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) 
+History: F2F review. issues with POP.
+
+Has been having unscheduled bleeding on desogrestrel since start of this year.
+Was having period-like bleeds every 2 weeks + spotting in between. No PCB.
+
+Now having 2 weeks of PV bleeding. Heavier then period.
+Sister has endometriosis.
+Mum had to have endometrial ablation. Unsure exactly why.
+Associated lower abdo cramps. Taking pcm and ibuprofen.
+
+Normal sexual health screen.
+Swapped to norethisterone last week. If this not helping then plans to trial depo.
+Examination: Looks well. Alert and oriented.
+Diagnosis: Dysmenorrhoea (XE0ek)
+Plan: USS pelvis.
+Continue norethisterone and can trial depo inb.
+Trial of TXA for heavy bleeding. Warned re SEs. Avoid ibuprofen.
+Review if worsening / new Sx.
+- PRISM Diagnostic World Ultrasound (Non-UHL) -  questionnaire started - (finalised: 22 Sep 2025 13:21)
+Referral to medical service (XaAcN) - (Added from Questionnaire)
+Tranexamic acid 500mg tablets - 30 tablet - Take 2 tablets up to 3 times daily for up to 4 days for heavy bleeding.
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 24 2025-09-30 [other] milestones=[] eid=a7ffae86-8c34-430f-ab07-e8d796a5cea7 ---
+Dear Lyndsay Smith
+
+Your appointment has been booked for 30 Sep 2025 12:05 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 25 2025-09-30 [other] milestones=[] eid=fb60fa3a-261c-4ef2-881f-2601823a375f ---
+10:11 - MCDOWELL, Giselle  
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+   Type of encounter: Telephone encounter (9N31.)
+ N+S Care Navigation & Signposting
+   Care Navigation 
+      Reason for the appointment:  contraception issues. ongoing with SR
+      *Outcome: Signposting to minor illness clinic (XagPA)
+Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+Telephone encounter (9N31.)
+Triage (Ua1SN) - contraception issues. ongoing with SR
+Signposting to minor illness clinic (XagPA)
+
+--- 26 2025-09-30 [other] milestones=[] eid=fcec0b7b-2e05-43a3-87c4-565691e6dd84 ---
+12:23 - Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) 
+History: Telephone call to Lyndsay.
+Has stopped Norethisterone issued on 19/9 as it was making her PV bleeding worse.
+Dr JH issied some tranexemic acid and bleeding has now stopped.
+Would like to try Depo provera.
+Going on holiday 15-22 October so would prefer to start after this.
+Plan: Appointment given for 24/10
+
+--- 27 2025-09-30 [other] milestones=[] eid=0307d84d-4f5c-40bd-aa6f-f2093fa81a3c ---
+Dear Lyndsay Smith
+
+Your appointment has been booked for 24 Oct 2025 11:15 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 28 2025-10-07 [other] milestones=[] eid=b2f35075-beb0-4b05-bb69-5337a0e84f88 ---
+11:02 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ WMC Referrals
+   Patient has been referred for an Ultrasound today, referral sent via email. The service provider will contact the patient directly with an appointment.
+   Refer for ultrasound investign (8HQ2.)
+NHSmail to Ultrasound 
+Ultrasound (non UHL) PRISM - Diagnostic World to Unknown 
+Refer for ultrasound investign (8HQ2.)
+Patient has been referred for an Ultrasound today, referral sent via email. The service provider will contact the patient directly with an appointment.
+
+--- 29 2025-10-21 [other] milestones=[] eid=cec168db-682a-42d9-9815-9998757da1ab ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Email to Woodbrook Medical Centre
+
+--- 30 2025-10-21 [other] milestones=[] eid=c41bb689-8c53-4c38-b21c-f8b657cafd74 ---
+Surgery: REJAIE, Layla (Admin/Clinical Support Access Role) , Entered By: EDWARDES, Paula (Ms) (Receptionist Access Role)
+Failed encounter (9N4..) (New Episode)
+
+--- 31 2025-10-21 [other] milestones=[] eid=22768aca-f1c7-4331-b5d3-397437b2eb75 ---
+Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role)
+

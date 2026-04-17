@@ -10,21 +10,18 @@ import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
-import Drawer from "@mui/material/Drawer";
-import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import CloseIcon from "@mui/icons-material/Close";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import EditRuleDialog from "./EditRuleDialog";
 import { compareIsoDateTimeAsc } from "@/lib/dateSort";
 
 interface Criterion {
@@ -53,6 +50,13 @@ interface LogicTreeNode {
   unit?: string | null;
 }
 
+interface ActionConcept {
+  snomed_concept_id: string | null;
+  preferred_term: string;
+  semantic_tag?: string;
+  term?: string;
+}
+
 interface Rule {
   rule_id: string;
   name: string;
@@ -68,6 +72,7 @@ interface Rule {
   absent_criteria: Criterion[];
   logic_tree?: LogicTreeNode | null;
   criteria_concepts?: CriterionResult[];
+  action?: ActionConcept | null;
   has_predecessor: boolean;
   predecessor_id?: string;
 }
@@ -634,9 +639,9 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [expandedRules, setExpandedRules] = useState<Record<string, boolean>>({});
 
-  // Edit drawer
+  // Edit dialog
   const [editRule, setEditRule] = useState<Rule | null>(null);
-  const [editReason, setEditReason] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   // Promoted rules
   const [promoteConfirmRule, setPromoteConfirmRule] = useState<Rule | null>(null);
@@ -686,6 +691,70 @@ export default function RuleReviewSection({ refreshKey }: Props) {
       }
     },
     []
+  );
+
+  const handleSaveEdit = useCallback(
+    async (payload: {
+      name: string;
+      strength: string;
+      logic_tree: Record<string, unknown>;
+      reason: string;
+      action?: {
+        snomed_concept_id: string;
+        preferred_term: string;
+        semantic_tag?: string;
+        term?: string;
+      };
+    }) => {
+      if (!editRule) return;
+      setEditSaving(true);
+      setActionError(null);
+      try {
+        const resp = await fetch(
+          `/api/guidance/rules/review/${editRule.rule_id}/decision`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "edit",
+              reviewer: "admin",
+              reason: payload.reason,
+              updates: {
+                name: payload.name,
+                strength: payload.strength,
+                logic_tree: payload.logic_tree,
+                ...(payload.action ? { action: payload.action } : {}),
+              },
+            }),
+          }
+        );
+        if (!resp.ok) {
+          const detail = await resp.json().catch(() => ({ detail: resp.statusText }));
+          throw new Error(detail.detail || resp.statusText);
+        }
+        const body = await resp.json().catch(() => ({}));
+        const newRuleId = (body && body.rule_id) || editRule.rule_id;
+        setSessionApproved((prev) => [
+          ...prev.filter((r) => r.rule_id !== editRule.rule_id),
+          {
+            ...editRule,
+            rule_id: newRuleId,
+            status: "active",
+            name: payload.name || editRule.name,
+            strength: payload.strength || editRule.strength,
+          },
+        ]);
+        setEditRule(null);
+        setInternalKey((n) => n + 1);
+      } catch (err) {
+        setActionError(
+          err instanceof Error ? err.message : "Could not save the edited rule."
+        );
+      } finally {
+        setEditSaving(false);
+      }
+    },
+    [editRule]
   );
 
   const handleApproveAll = useCallback(async () => {
@@ -748,78 +817,16 @@ export default function RuleReviewSection({ refreshKey }: Props) {
 
   return (
     <Box>
-      {/* ---- Edit drawer (edit-flow only) ---- */}
-      <Drawer
-        anchor="right"
+      <EditRuleDialog
+        rule={editRule}
         open={!!editRule}
-        onClose={() => { setEditRule(null); setEditReason(""); }}
-        PaperProps={{
-          sx: { width: { xs: "100vw", sm: 480 }, display: "flex", flexDirection: "column" },
+        saving={editSaving}
+        onClose={() => {
+          if (editSaving) return;
+          setEditRule(null);
         }}
-      >
-        <Box
-          sx={{
-            px: 2.5,
-            py: 1.5,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            bgcolor: "background.paper",
-          }}
-        >
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <Typography variant="subtitle2" sx={{ flex: 1 }}>
-              Edit rule
-            </Typography>
-            <IconButton
-              onClick={() => { setEditRule(null); setEditReason(""); }}
-              size="small"
-              aria-label="Close edit panel"
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          </Stack>
-          {editRule?.chapter_title && (
-            <Typography variant="caption" color="text.secondary">
-              {editRule.chapter_title}
-            </Typography>
-          )}
-        </Box>
-        <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
-          {editRule?.recommendation_text && (
-            <Box sx={{ p: 1.5, bgcolor: "grey.50", borderRadius: 1, border: "1px solid", borderColor: "grey.200", mb: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
-                NICE recommendation
-              </Typography>
-              <Typography variant="body2" sx={{ lineHeight: 1.7, fontStyle: "italic" }}>
-                &ldquo;{editRule.recommendation_text}&rdquo;
-              </Typography>
-            </Box>
-          )}
-          {editRule && <RuleDetailPanel rule={editRule} />}
-        </Box>
-        <Box sx={{ px: 2.5, py: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
-          <TextField
-            fullWidth
-            size="small"
-            label="Reason for edit"
-            value={editReason}
-            onChange={(e) => setEditReason(e.target.value)}
-            sx={{ mb: 1 }}
-            inputProps={{ "aria-label": "Reason for editing this rule" }}
-            autoFocus
-          />
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="contained"
-              disabled={busy === editRule?.rule_id || !editReason.trim()}
-              onClick={() => editRule && decide(editRule, "edit", editReason)}
-            >
-              Save edit
-            </Button>
-            <Button onClick={() => { setEditRule(null); setEditReason(""); }}>Cancel</Button>
-          </Stack>
-        </Box>
-      </Drawer>
+        onSave={handleSaveEdit}
+      />
 
       {/* ---- Alerts ---- */}
       {actionError && (
@@ -853,7 +860,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
                     <Chip label="Approved" size="small" color="success" />
                   </Stack>
                   <Typography variant="body2" sx={{ mb: 1, color: "text.secondary", fontSize: "0.82rem" }}>
-                    {rule.plain_english}
+                    {rule.recommendation_text || rule.name || rule.rule_id}
                   </Typography>
                   {promotedRules[rule.rule_id] ? (
                     <Alert severity="success" sx={{ py: 0.5 }}>
@@ -913,7 +920,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
                 busy={busy}
                 onToggle={() => toggleExpanded(rule.rule_id)}
                 onApprove={() => decide(rule, "approve")}
-                onEdit={() => { setEditRule(rule); setEditReason(""); }}
+                onEdit={() => setEditRule(rule)}
                 onReject={() => decide(rule, "reject", "Rejected by reviewer")}
               />
             ))}

@@ -1,0 +1,1169 @@
+======================================================================
+PATIENT      : 6264541699
+EPISODE      : c5510480ed7de5ee
+CANCER_TYPE  : prostate
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-07-23
+WINDOW       : 2025-07-09 .. 2025-10-21 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-07-23  referral                enc=0bf2e17a-8a5f-4f7e-9683-0976bf08e256
+  2025-07-24  referral                enc=e8fa2273-513f-4598-af61-71d006dc407c
+  2025-07-24  referral                enc=54bb8d42-0301-4a63-b6f2-34f099abd5c7
+  2025-07-25  referral                enc=432a3043-450e-46ae-bc12-46942c071cc0
+  2025-08-11  first_seen              enc=ee35afac-721a-458e-a60e-143f1e514ef9
+  2025-08-11  referral                enc=85c215af-48c0-4001-b98b-519474153cfa
+  2025-08-12  first_seen              enc=8d781160-4b86-4487-b483-cd9e58f4a31a
+  2025-08-13  referral                enc=88c1aa88-fb30-41e9-a917-dc36846093ae
+  2025-09-03  referral                enc=d860ceca-aff0-48f1-bb47-dad14e4bed7b
+  2025-09-24  referral                enc=6200d1e5-b090-48d4-9a07-c206a3d747ec
+
+Encounters in window (n=114):
+
+--- 01 2025-07-09 [other] milestones=[] eid=1f62f29f-c17f-4ddc-98e9-eab6d86ba3b6 ---
+00:55 - Sent online by Mr Mohammed Abdul Mazid  
+Request for 'Fenofibrate micronised 160mg tablets' by patient
+Request for 'Bisoprolol 1.25mg tablets' by patient
+Request for 'Aspirin 75mg dispersible tablets' by patient
+Request for 'Rosuvastatin 20mg tablets' by patient
+Request for 'Nustendi 180mg/10mg tablets (Daiichi Sankyo UK Ltd)' by patient
+Request for 'Hydrocortisone 1% cream' by patient
+
+--- 02 2025-07-09 [other] milestones=[] eid=5f7531c1-e4af-4421-be5c-ef0edb7a73c1 ---
+07:33 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Nustendi 180mg/10mg tablets (Daiichi Sankyo UK Ltd) - 56 tablet - take one daily
+(R) Rosuvastatin 20mg tablets - 56 tablet - One To Be Taken Each Day
+(R) Aspirin 75mg dispersible tablets - 56 tablet - One To Be Taken Each Day
+(R) Bisoprolol 1.25mg tablets - 56 tablet - One To Be Taken Each Day
+(R) Fenofibrate micronised 160mg tablets - 56 tablet - take one daily
+(R) Hydrocortisone 1% cream - 15 gram - Apply Thinly Twice A Day for 2 weeks, then 3x weekly
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 Nurse Independent Prescriber FP10: Not Yet Printed - Signed
+ETP2 Nurse Independent Prescriber FP10: Not Yet Printed - Signed
+Summary Care Record Update
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 03 2025-07-09 [other] milestones=[] eid=af6d1090-68fa-4648-819b-c81924128ebe ---
+10:23 - Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa)
+Telephone encounter (9N31.)
+
+--- 04 2025-07-09 [other] milestones=[] eid=47679f8c-e525-4406-8b63-36fee7d04698 ---
+Dear Mohammed Mazid
+
+Your appointment has been booked for 23 Jul 2025 08:40 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 05 2025-07-09 [other] milestones=[] eid=4ce6b75d-dfd2-437f-ac82-3e54a4221639 ---
+Dear Mohammed Mazid
+
+Your appointment has been booked for 21 Jul 2025 08:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 06 2025-07-21 [other] milestones=[] eid=0784d865-a522-4b22-86c5-663f773a6e5b ---
+08:28 - GP Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) 
+History: told was prediabetic last year has not made any lifestyle changes since dx
+known to have IHD
+would like to get checked
+has been feelng tired 
+normal sleep
+works as solictor
+has been under a lot of stress lately- related to issues in home conutry in Bangladesh , now sorted
+sometimes has low mood and anergia,
+no anhedonia
+has had fleeting episodes of suicidal ideation
+not currently sucidal would not act on it
+has had depressions
+complaning of 'sexual problems'
+normal libido
+complaining erectile dysfucntion for 6 months
+no premature ejaculation
+no weight loss
+denies polyuria , polyphagia
+reports polydipsia
+denies numbness n hands and feet
+lives with wife at home
+erectile dysfucniton has not affceted relationship with wfe she has been very understanding
+no smoking or alcohol
+no illicit substances
+Diagnosis: Erectile dysfunction (E2273)multifactorial- vasculopath,low mood, preDM hx
+Plan: bloods inc hba1c
+explained low mood may be core problem offered cbt and safety netted any self harm thoughts- happy t try this
+sildenafil in interim
+explained that if need to use GTN(which he has not used ever) should not use sildenafil and alert us
+Sildenafil 50mg tablets - 4 tablet - take one tabler 1 hour before sexual activity maximum one per day
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+
+--- 07 2025-07-21 [other] milestones=[] eid=11d4adf5-f931-41db-82a8-c53229f527ea ---
+08:48 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To book tests requested by practice (Y41cc)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Presenting to non-clinical team with: To book tests requested by practice (Y41cc)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 08 2025-07-21 [other] milestones=[] eid=e0cafd3c-d261-4b1a-9ad2-6c966d8e3911 ---
+08:54 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) 
+Patient telephone number (9159.) - +447915665724
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Mazid,
+
+This is the self referral counselling link:
+https://www.vitahealthgroup.co.uk/make-a-referral/self-referral/nhs-mental-health-self-referral/leicester-leicestershire-rutland-nhs-mental-health-self-referral/
+Please also note the number for Samaritans for 24hr help 
+116 123
+Thanks, Dr. Takunda Joseph Denga
+Woodbrook Medical Centre
+Sent on 21/07/2025 at 08:54
+
+--- 09 2025-07-21 [other] milestones=[] eid=21ed1264-8d76-4a5e-ab81-54cf289ec4cb ---
+12:04 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) 
+Pathology Request (Complete):
+HbA1c (Requested), Bone Profile (Requested), Vitamin B12 (Requested), Full Blood Count (Requested), Ferritin (Requested), Folate (Requested), Gamma GT (Requested), Liver Function Test (Requested), Lipids (Requested), Prostate Specific Antigen (Requested), Testosterone (Requested), Urea & electrolytes (Requested), Vitamin D (Requested)
+
+--- 10 2025-07-21 [other] milestones=[] eid=52c1fc32-7b3e-49ca-89d3-cf7c49973ee7 ---
+12:41 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role)
+
+--- 11 2025-07-23 [other] milestones=[] eid=e4fdea8c-fa96-4511-b348-6622e2aa9520 ---
+08:40 - Surgery: MEE, Sara (Healthcare Assistant) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Informed consent given for treatment (XaXHK)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 12 2025-07-23 [other] milestones=[] eid=0e898423-c66d-4982-ba88-c3023989bed6 ---
+08:41 - Surgery: Auto-filed  
+Serum gamma-glutamyl transferase level (XaES3) 30 iu/L [< 73]
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Serum gamma-glutamyl transferase level Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 13 2025-07-23 [other] milestones=[] eid=0c601f68-6ce2-48b4-a516-f4861850e83d ---
+08:41 - Surgery: Auto-filed  
+Serum total protein level (XE2e9) 72 g/L [57 - 82]
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Serum total protein level Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 14 2025-07-23 [other] milestones=[] eid=00cb8efd-0542-4870-b09d-9387ff460a0c ---
+08:41 - Surgery: Auto-filed  
+Serum testosterone level (XE2dr) 20.4 nmol/L [9 - 34.7]
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Serum testosterone level Report,ï¿½Normal,ï¿½No Further Action. Review done by HORNE, Jonathan (Dr) - 25 Jul 2025 08:28
+
+--- 15 2025-07-23 [other] milestones=[] eid=9f1ec516-e6a4-4987-95da-0291d2496ab1 ---
+08:41 - Surgery: Auto-filed  
+Serum vitamin D level (XE2e7) 40 nmol/L
+Less than 25 nmol/L deficiency
+25-50 nmol/L may be inadequate in some people
+>50 nmol/L sufficient for almost the whole population
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Serum vitamin D level Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 16 2025-07-23 [other] milestones=[] eid=587c6550-25e9-443d-9306-29f69769e546 ---
+08:41 - Surgery: Auto-filed  
+Urea and electrolytes (X77Wi)
+Serum sodium level (XE2q0) 138 mmol/L [133 - 146]
+Serum potassium level (XE2pz) 3.6 mmol/L [3.5 - 5.3]
+Serum urea level (XM0lt) 8.9 mmol/L [2.5 - 7.8] - Outside reference range
+Serum creatinine level (XE2q5) 109 umol/L [60 - 120]
+eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 65 mL/min
+Urine ACR should be checked on at least an annual basis
+for all individuals with CKD.  NICE recommends the
+Kidney failure Risk Equation www.kfre.co.uk to
+predict the risk of endstage kidney disease in CKD
+stages 3a to 5.  KFRE is not valid in the presence
+of acute kidney injury.
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Urea and electrolytes Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 17 2025-07-23 [other] milestones=[] eid=d335a16d-f51f-49a5-a761-7c47e6d1b7eb ---
+08:41 - Surgery: Auto-filed  
+Serum triglyceride levels (XE2q9) 3.23 mmol/L [0 - 1.7] - Outside reference range
+Serum HDL cholesterol level (44P5.) 0.47 mmol/L [0.9 - 2.2] - Outside reference range
+Serum LDL cholesterol level (44P6.) 2 mmol/L
+Non-fasting LDL is acceptable for screening patients
+and escalating oral lipid treatment. Fasting LDL should
+be used when considering starting treatment with PCSK9
+inhibitors.
+Total cholesterol:HDL ratio (44PF.) 8.3 
+Serum non high density lipoprotein cholesterol level (XabE1) 3.4 mmol/L
+Serum lipid levels (XE2q7)
+Serum cholesterol level (XE2eD) 3.9 mmol/L
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Serum lipid levels Report,ï¿½Abnormal, but expected,ï¿½No Further Action: pt on rosuvastatin 20mg - give diet and lifestyle advice. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:37
+
+--- 18 2025-07-23 [other] milestones=[] eid=96f3a0c7-fd73-4bb2-91bc-86280abfba33 ---
+08:41 - Surgery: Auto-filed  
+Serum alanine aminotransferase level (XaLJx) 48 iu/L [10 - 49]
+Serum bilirubin level (44E..) 5 umol/L [< 21]
+Liver function tests (X77WP)
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Liver function tests Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 19 2025-07-23 [other] milestones=[] eid=cd3a5b22-8b80-42bc-9fbe-012c19dfbbd5 ---
+08:41 - Surgery: Auto-filed  
+Monocyte count - observation (42N..) 0.55 10^9/L [0.2 - 0.8]
+Eosinophil count - observation (42K..) 0.21 10^9/L [0.04 - 0.4]
+Basophil count (42L..) 0.06 10^9/L [0.02 - 0.1]
+Lymphocyte count (42M..) 3.44 10^9/L [1 - 4]
+Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]
+For further investigation of abnormal Full Blood Count
+please see Haematology Referral Guidelines:
+https://www.leicestershospitals.nhs.uk/aboutus/
+(click Departments & Services > Haematology >
+Haematology Referral
+Guidelines).
+If clinically urgent contact the Haematologist On Call.
+Haematocrit (X76tb) 0.434  [0.4 - 0.54]
+Mean cell volume (42A..) 85 fL [80 - 99]
+Mean cell haemoglobin level (XE2pb) 28.3 pg [27 - 32]
+Platelet count - observation (42P..) 239 10^9/L [140 - 400]
+Neutrophil count (42J..) 5.06 10^9/L [1.5 - 7.5]
+Full blood count (424..)
+Total white blood count (XaIdY) 9.3 10^9/L [4 - 11]
+Red blood cell count (426..) 5.13 10^12/L [3.9 - 6.5]
+Haemoglobin concentration (Xa96v) 145 g/L [130 - 180]
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Full blood count Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 20 2025-07-23 [other] milestones=[] eid=6f702817-a591-4e32-a50d-24cfe98a920d ---
+08:41 - Surgery: Auto-filed  
+Serum albumin level (XE2eA) 45 g/L [35 - 50]
+Serum calcium level (XE2q3) 2.33 mmol/L
+Serum adjusted calcium concentration (Xabpk) 2.23 mmol/L [2.12 - 2.51]
+Reference range amended to account for calibration
+difference in the SIEMENS assay.  Ann Clin Biochem
+2020 Sep 57(5):373-381
+Serum inorganic phosphate level (XE2q4) 1.14 mmol/L [0.8 - 1.5]
+Serum alkaline phosphatase level (XE2px) 52 iu/L [30 - 130]
+Bone profile (44Z2.)
+Calculated Globulin: 27 g/L; Globulins may be raised in myeloma and decreased in
+some cases of myeloma or immune deficiency states.
+Please correlate clinically. Suggest checking serum
+immunoglobulins if Glb >40 g/L in patients >40 years of
+age. Check serum immunoglobulins and free light chain
+assay if Glb <18 g/L.
+Minor abnormalities of Globulins outside of the above
+are unlikely to represent myeloma and would not
+normally require further action or repeat testing.
+Elevation of Globulin levels is common in
+infection / inflammation.
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Bone profile Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 21 2025-07-23 [IN-EP] milestones=['referral'] eid=0bf2e17a-8a5f-4f7e-9683-0976bf08e256 ---
+08:41 - Surgery: Auto-filed  
+Prostate-specific antigen level (XE25C) 5.3 ng/ml [0 - 3.5]
+Outside reference range; PSA values are typically elevated following UTI:
+Please perform repeat PSA testing approximately
+4-6 weeks after treatment. If the PSA value remains
+elevated above the age specific threshold, refer as a
+2WW (Please note that referrals made at the time of UTI
+will be rejected).
+For men taking 5-alpha reductase inhibitors
+e.g. finasteride, dutasteride: The blood PSA value
+should be doubled to give an approximation of the true
+serum PSA value.
+In men with significant co-morbidities, performance
+status >3 or life expectancy <10 years: Please involve
+patient & family/carers in discussion regarding the
+appropriateness of referral.
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Prostate-specific antigen level Report,ï¿½Abnormal,ï¿½Need to speak to doctor: added to duty - will speak with pt to discuss nesxt steps - given raised PSA , ED and tiredness (Patient Informed). Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:36
+
+--- 22 2025-07-23 [other] milestones=[] eid=0718da14-cac3-45c2-b2e7-57112bf3bc7c ---
+08:41 - Surgery: Auto-filed  
+Serum ferritin level (XE24r) 178 ng/ml [22 - 322]
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Serum ferritin level Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 23 2025-07-23 [other] milestones=[] eid=bd31a17c-7f99-47fc-b14b-09b880ac2acb ---
+08:41 - Surgery: Auto-filed  
+Serum folate level (42U5.) 5.4 ng/ml
+Deficient: 0.35 - 3.37 ug/L
+Indeterminate: 3.38 - 5.38 ug/L
+Normal: >5.38 ug/L
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Serum folate level Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 24 2025-07-23 [other] milestones=[] eid=a47a560e-b0c5-479c-89dd-6a2b49a42d24 ---
+08:41 - Surgery: Auto-filed  
+Haemoglobin A1c level - IFCC standardised (XaPbt) 37 mmol/mol [20 - 41]
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Haemoglobin A1c level - IFCC standardised Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by HORNE, Jonathan (Dr) - 25 Jul 2025 08:28
+
+--- 25 2025-07-23 [other] milestones=[] eid=0e5fd6ae-767b-4a1d-a576-a6cfafe98035 ---
+08:41 - Surgery: Auto-filed  
+Haemoglobin A1c level (X772q) 5.5 % [4 - 5.9]
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Haemoglobin A1c level Report,ï¿½Normal,ï¿½No Further Action. Review done by HORNE, Jonathan (Dr) - 25 Jul 2025 08:28
+
+--- 26 2025-07-23 [other] milestones=[] eid=993be277-ab0e-4d21-ae28-7f04f4bc3906 ---
+08:41 - Surgery: Auto-filed  
+Acute Kidney Injury Staging: 0; No AKI
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Acute Kidney Injury Staging Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 27 2025-07-23 [other] milestones=[] eid=8a0898e0-118f-48c1-a4df-8c114970316b ---
+08:41 - Surgery: Auto-filed  
+Serum vitamin B12 level (XE2pf) 211 ng/L [211 - 911]
+Patients with symptoms suggestive of B12 deficiency may
+benefit from improving their levels to above 350 ng/L.
+Additional tests are available to evaluate B12
+deficiency in patients with levels in the low-normal
+range (211-350 ng/L).
+Consult the Duty Biochemist for further tests if there
+are clinical concerns.
+Clinical Information: Reasons for Request:      erectile dysfuction , prev preDM , IHD hx.
+Serum vitamin B12 level Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by SALEEM, Mariam (Dr) - 24 Jul 2025 08:38
+
+--- 28 2025-07-23 [other] milestones=[] eid=81124e8e-bd57-4e77-956c-5273a408d6f5 ---
+08:44 - Surgery: Auto-filed  
+Serum total protein level (XE2e9) 72 g/L [57 - 82]
+Clinical Information: Reasons for Request:      mild LFT change post nustendi start - rpt pls.
+Serum total protein level Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by BROCKHURST, Nikki (Dr) - 24 Jul 2025 08:22
+
+--- 29 2025-07-23 [other] milestones=[] eid=05efc0ec-33fa-4ff5-806b-a68afcaa848d ---
+08:44 - Surgery: Auto-filed  
+Serum gamma-glutamyl transferase level (XaES3) 30 iu/L [< 73]
+Clinical Information: Reasons for Request:      mild LFT change post nustendi start - rpt pls.
+Serum gamma-glutamyl transferase level Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by BROCKHURST, Nikki (Dr) - 24 Jul 2025 08:22
+
+--- 30 2025-07-23 [other] milestones=[] eid=11302718-212e-4e16-80b8-5f2761f394ab ---
+08:44 - Surgery: Auto-filed  
+Serum albumin level (XE2eA) 44 g/L [35 - 50]
+Serum calcium level (XE2q3) 2.29 mmol/L
+Serum adjusted calcium concentration (Xabpk) 2.21 mmol/L [2.12 - 2.51]
+Reference range amended to account for calibration
+difference in the SIEMENS assay.  Ann Clin Biochem
+2020 Sep 57(5):373-381
+Serum inorganic phosphate level (XE2q4) 1.13 mmol/L [0.8 - 1.5]
+Serum alkaline phosphatase level (XE2px) 49 iu/L [30 - 130]
+Bone profile (44Z2.)
+Calculated Globulin: 28 g/L; Globulins may be raised in myeloma and decreased in
+some cases of myeloma or immune deficiency states.
+Please correlate clinically. Suggest checking serum
+immunoglobulins if Glb >40 g/L in patients >40 years of
+age. Check serum immunoglobulins and free light chain
+assay if Glb <18 g/L.
+Minor abnormalities of Globulins outside of the above
+are unlikely to represent myeloma and would not
+normally require further action or repeat testing.
+Elevation of Globulin levels is common in
+infection / inflammation.
+Clinical Information: Reasons for Request:      mild LFT change post nustendi start - rpt pls.
+Bone profile Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by BROCKHURST, Nikki (Dr) - 24 Jul 2025 08:22
+
+--- 31 2025-07-23 [other] milestones=[] eid=dc37c958-ea0a-40c0-bb41-328348d13a09 ---
+08:44 - Surgery: Auto-filed  
+Serum amylase level (XM14L) 76 iu/L [30 - 118]
+Clinical Information: Reasons for Request:      mild LFT change post nustendi start - rpt pls.
+Serum amylase level Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by BROCKHURST, Nikki (Dr) - 24 Jul 2025 08:22
+
+--- 32 2025-07-23 [other] milestones=[] eid=83566fef-273f-4396-abb9-96e2d9e6587c ---
+08:44 - Surgery: Auto-filed  
+Serum triglyceride levels (XE2q9) 3.24 mmol/L [0 - 1.7] - Outside reference range
+Serum HDL cholesterol level (44P5.) 0.46 mmol/L [0.9 - 2.2] - Outside reference range
+Serum LDL cholesterol level (44P6.) 2.1 mmol/L
+Non-fasting LDL is acceptable for screening patients
+and escalating oral lipid treatment. Fasting LDL should
+be used when considering starting treatment with PCSK9
+inhibitors.
+Total cholesterol:HDL ratio (44PF.) 8.7 
+Serum non high density lipoprotein cholesterol level (XabE1) 3.5 mmol/L
+Serum lipid levels (XE2q7)
+Serum cholesterol level (XE2eD) 4 mmol/L
+Clinical Information: Reasons for Request:      mild LFT change post nustendi start - rpt pls.
+Serum lipid levels Report,ï¿½Abnormal,ï¿½Need to repeat test: pls rpt lipids fasting. Review done by BROCKHURST, Nikki (Dr) - 24 Jul 2025 08:22
+
+--- 33 2025-07-23 [other] milestones=[] eid=91d6905a-0381-4893-9f3c-53f0d14ca3a6 ---
+08:44 - Surgery: Auto-filed  
+Clinical Information: Reasons for Request:      mild LFT change post nustendi start - rpt pls.
+Acute Kidney Injury Staging: 0; No AKI
+Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action. Review done by BROCKHURST, Nikki (Dr) - 24 Jul 2025 08:22
+
+--- 34 2025-07-23 [other] milestones=[] eid=6012128d-7ce9-4ed8-82a8-e721e5a4a298 ---
+08:44 - Surgery: Auto-filed  
+Liver function tests (X77WP)
+Serum alanine aminotransferase level (XaLJx) 49 iu/L [10 - 49]
+Serum bilirubin level (44E..) 6 umol/L [< 21]
+Clinical Information: Reasons for Request:      mild LFT change post nustendi start - rpt pls.
+Liver function tests Report,ï¿½Normal,ï¿½No Further Action. Review done by BROCKHURST, Nikki (Dr) - 24 Jul 2025 08:22
+
+--- 35 2025-07-23 [other] milestones=[] eid=f372a39d-4183-4e65-9f26-1e0b345067f9 ---
+08:44 - Surgery: Auto-filed  
+Urea and electrolytes (X77Wi)
+Serum sodium level (XE2q0) 138 mmol/L [133 - 146]
+Serum potassium level (XE2pz) 3.7 mmol/L [3.5 - 5.3]
+Serum urea level (XM0lt) 8.9 mmol/L [2.5 - 7.8] - Outside reference range
+Serum creatinine level (XE2q5) 109 umol/L [60 - 120]
+eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 65 mL/min
+Urine ACR should be checked on at least an annual basis
+for all individuals with CKD.  NICE recommends the
+Kidney failure Risk Equation www.kfre.co.uk to
+predict the risk of endstage kidney disease in CKD
+stages 3a to 5.  KFRE is not valid in the presence
+of acute kidney injury.
+Clinical Information: Reasons for Request:      mild LFT change post nustendi start - rpt pls.
+Urea and electrolytes Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by BROCKHURST, Nikki (Dr) - 24 Jul 2025 08:22
+
+--- 36 2025-07-24 [other] milestones=[] eid=199d591e-fcff-4a5c-bece-7140ad6720eb ---
+08:19 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role)
+
+--- 37 2025-07-24 [other] milestones=[] eid=a8b1c3f2-4610-4c75-acaa-60dd3045de8b ---
+08:22 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 38 2025-07-24 [other] milestones=[] eid=54f866a9-599a-466d-8761-675aa8c22c81 ---
+08:23 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 39 2025-07-24 [other] milestones=[] eid=763f9fa8-7eda-475f-a59f-fdea2a387a93 ---
+09:50 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 40 2025-07-24 [other] milestones=[] eid=a69a9afb-dac0-4c6b-935a-8ef715902740 ---
+09:51 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+Blood test due (41B1.)
+Patient telephone number (9159.) - +447915665724
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Mazid,
+
+Our records indicate that you are now due a fasting blood test. Could you please contact the surgery or use the link below to arrange a suitable appointment for this to be carried out.
+
+If you already have an appointment booked, please ignore this message.
+  
+
+To book: https://accurx.nhs.uk/c/p-fjc5tpuqcu
+(Expires in 7 days)
+
+Thanks
+Woodbrook Medical Centre
+Sent on 24/07/2025 at 09:51
+
+--- 41 2025-07-24 [other] milestones=[] eid=3e5368aa-07d2-4d14-bb16-92c4bc504ae9 ---
+09:57 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+Plan: pt driving when called - asked to call in 15 mins - tried and going to Vm now 
+will try again later
+
+--- 42 2025-07-24 [other] milestones=[] eid=d58f149d-f08d-468c-8ea6-637ff997e2df ---
+10:23 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa)
+Telephone encounter (9N31.)
+
+--- 43 2025-07-24 [other] milestones=[] eid=1f634cb5-d500-4ad5-b4bb-76a5ac22791d ---
+10:26 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+History: Quite disrupted and difficult communication over the phone  
+delay adn broken voice - unable to get any useful history  
+did inform pt of the blood test - he does not understand what prostate is - tried to explain but again quite difficult with poor connection 
+able to convey that I need to ask more questions and examine his back passage before moving forward - he is in leicester today but agrees to come for this at 15.20 slot 
+Plan: arrange chaperone prrior to pt 's appt
+
+--- 44 2025-07-24 [other] milestones=[] eid=f690912d-df47-4050-8d1b-0ae8df2a64b0 ---
+10:39 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role)
+
+--- 45 2025-07-24 [other] milestones=[] eid=9f907055-2f11-45df-878a-1c1b39f58a36 ---
+10:41 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+Patient telephone number (9159.) - +447915665724
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Mazid,
+
+Please also bring a sample of urine with you in a sterile container - or you can get this when at surgery from reception and collect a sample prior to your appointment at 3.20pm today 
+
+Thanks,  Mariam Saleem
+Woodbrook Medical Centre
+Sent on 24/07/2025 at 10:41
+
+--- 46 2025-07-24 [IN-EP] milestones=['referral'] eid=e8fa2273-513f-4598-af61-71d006dc407c ---
+15:13 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+History: Duty Dr 
+rasied PSA 5.3
+tired for last over 7 months or longer  
+achy  at times 
+appetitie is reduced last 3 months but getting better   
+no weight loss  
+urgency  of urine  
+has had some episodes of incontinence  very occasional 
+can have slow start of stream of urine   
+h/o erectile dysfunction last 6 months  
+Examination: Wife present as chaperone - pt happy to have her as chaperone  
+Plan: - discussed could likley be benigh enlargement of the gland  
+- but important to rule out cancer hence 2ww
+- PRISM 2WW Urology -  questionnaire started - (finalised: 24 Jul 2025 16:58)
+ Urinalysis GP
+   Urinalysis
+      Urinalysis - No Abnormailty: Yes
+      MSU sent for MC & S: Yes
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+       - PRISM 2WW Urology -  questionnaire started - (finalised: 24 Jul 2025 16:58)
+ Common GP examination values
+   Values
+      Weight: 89 Kg  (? 14 st)
+      BMI: 31.53 Kg/mï¿½
+      Current smoking status: Never smoked tobacco (XE0oh)
+Pathology Request (Complete):
+Urine for Microscopy and Culture (Requested)
+Summary Care Record Update
+O/E - weight (22A..) 89 Kg (? 14 st)
+Body mass index - observation (22K..) 31.53 Kg/mï¿½
+Never smoked tobacco (XE0oh)
+Urinalysis = no abnormality (4613.)
+MSU sent for MC & S (Y1203)
+
+--- 47 2025-07-24 [other] milestones=[] eid=44be5060-e7fe-4394-b996-f40b0ee06c78 ---
+15:39 - Surgery: Auto-filed  
+Clinical Information: Reasons for Request:      urine MC
+UAS Urine Microscopy: RESULT; White blood cell count - Normal
+Epithelial cell count - HIGH
+Culture not performed. Automated analysis for white
+cells and bacteria indicates no evidence of urinary
+tract infection.
+UAS Urine Microscopy Report,ï¿½Normal,ï¿½No Further Action. Review done by NOBLE, Ben (Dr) - 27 Jul 2025 08:26
+
+--- 48 2025-07-24 [IN-EP] milestones=['referral'] eid=54bb8d42-0301-4a63-b6f2-34f099abd5c7 ---
+16:58 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+Fast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)
+'- PRISM 2WW Urology' - questionnaire amended
+
+--- 49 2025-07-24 [other] milestones=[] eid=de0d0abb-7730-4bda-a26c-75cf1dfe0f3c ---
+17:15 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+ Clinical Supervision
+   Discussed with supervisor: Yes
+   Clinical supervisor name:  NB
+   Supervised clinician name:  MS
+   Patient present: No (Y0428)
+   Notes:  Consultation reviewed with clinical supervisor after consultation
+Clinical supervisor agrees with plan
+Discussed with clinical supervisor (XaXMv)
+Discussed with clinical supervisor (XaXMv) - NB
+Discussed with clinical supervisor (XaXMv) - MS
+No (Y0428)
+Overview Notes (Y0028)
+Consultation reviewed with clinical supervisor after consultation
+Clinical supervisor agrees with plan
+
+--- 50 2025-07-25 [other] milestones=[] eid=49b532f8-9e24-4093-9f3c-3a57a681b2e2 ---
+08:28 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
+
+--- 51 2025-07-25 [IN-EP] milestones=['referral'] eid=432a3043-450e-46ae-bc12-46942c071cc0 ---
+12:57 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected urological cancer (XaMeF)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww Urology
+Hospital Fast track referral for suspected urological cancer
+2WW Urology PRISM to Unknown 
+Hospital Fast track referral for suspected urological cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww Urology
+
+--- 52 2025-07-27 [other] milestones=[] eid=c2cd915e-2c10-4b27-af96-31c260b70ee6 ---
+08:25 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role)
+
+--- 53 2025-07-29 [other] milestones=[] eid=df53604c-0d3a-4d6e-92af-93d5c75ef3ff ---
+09:34 - Surgery: BAILEY, Cleopatra (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa)
+Telephone encounter (9N31.)
+
+--- 54 2025-07-29 [other] milestones=[] eid=9e554ed8-ec6d-44f4-be96-f695c95dec01 ---
+Dear Mohammed Mazid
+
+Your appointment has been booked for 11 Aug 2025 08:50 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 55 2025-08-11 [IN-EP] milestones=['first_seen'] eid=ee35afac-721a-458e-a60e-143f1e514ef9 ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected urological cancer clinic (XaPyk)
+
+--- 56 2025-08-11 [IN-EP] milestones=['referral'] eid=85c215af-48c0-4001-b98b-519474153cfa ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Problem - whole event: Prostate-specific antigen monitoring (XaIqh) - if PSA >= 7ng/ml refer via 2WW prostate pathway
+Urology to Woodbrook Medical Centre
+
+--- 57 2025-08-11 [other] milestones=[] eid=3746ffcd-bcb1-4857-92ec-cb77803956c0 ---
+Surgery: MCDOWELL, Giselle (Receptionist Access Role)
+
+--- 58 2025-08-11 [other] milestones=[] eid=3f14e5c3-21df-4cdb-8633-0a19a68d9fca ---
+08:25 - Surgery: MEE, Sara (Healthcare Assistant) 
+Pathology Request (Request Sent):
+Lipids (Requested)
+
+--- 59 2025-08-11 [other] milestones=[] eid=e47c1b58-fcf6-49ac-9013-fb2e66542d87 ---
+08:50 - Surgery: MEE, Sara (Healthcare Assistant) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Phlebotomy generated from secondary care done by practice (XaK2I)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Informed consent given for treatment (XaXHK)
+Phlebotomy generated from secondary care done by practice (XaK2I)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 60 2025-08-11 [other] milestones=[] eid=1ff116a3-f4d3-407e-9c0b-79bedb101b06 ---
+08:52 - Surgery: Auto-filed  
+Total cholesterol:HDL ratio (44PF.) 4.9 
+Serum non high density lipoprotein cholesterol level (XabE1) 1.8 mmol/L
+Serum lipid levels (XE2q7) - Fasting
+Serum cholesterol level (XE2eD) 2.2 mmol/L
+Serum triglyceride levels (XE2q9) 2.32 mmol/L [0 - 1.7] - Outside reference range
+Serum HDL cholesterol level (44P5.) 0.45 mmol/L [0.9 - 2.2] - Outside reference range
+Serum LDL cholesterol level (44P6.) 0.7 mmol/L
+Non-fasting LDL is acceptable for screening patients
+and escalating oral lipid treatment. Fasting LDL should
+be used when considering starting treatment with PCSK9
+inhibitors.
+Clinical Information: Reasons for Request:      fasting lipids.
+Serum lipid levels Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by KETHEESWARAN, Arthika (Dr) - 12 Aug 2025 18:59
+
+--- 61 2025-08-11 [other] milestones=[] eid=d1cdd1d8-f057-4076-b836-cdcdc0ac47ff ---
+08:56 - Surgery: MEE, Sara (Admin/Clinical Support Access Role) 
+Comment note (XaIg6) - Lipid / Cholesterol
+
+--- 62 2025-08-11 [other] milestones=[] eid=98dcd5cf-98f4-412f-af6b-32f6235303b6 ---
+08:57 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 63 2025-08-12 [IN-EP] milestones=['first_seen'] eid=8d781160-4b86-4487-b483-cd9e58f4a31a ---
+11:25 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk) 11 Aug 2025
+
+--- 64 2025-08-12 [other] milestones=[] eid=79ee52ca-2aa8-4c4b-b24a-2b57ad62b712 ---
+18:53 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role)
+
+--- 65 2025-08-13 [other] milestones=[] eid=0b24d71f-e3f2-466e-8921-9b0d4604dedd ---
+** Care started at Carillon PCN (Remotely Registered) **
+
+--- 66 2025-08-13 [other] milestones=[] eid=21b78e29-5a6f-4804-b27a-d1b9e3fd9385 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+NHS 111 Service to Woodbrook Medical Centre
+
+--- 67 2025-08-13 [other] milestones=[] eid=b88de820-1622-4d0e-843d-d0ac57b03ea2 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+NHS 111 report received (Xaafq)
+
+--- 68 2025-08-13 [other] milestones=[] eid=0b1b34c2-681e-42ae-b94f-3ca2a9ff2a43 ---
+08:46 - INGLE, Kirsty  
+ N+S Care Navigation & Signposting
+   Care Navigation 
+      *Outcome: Signposting to general practice extended hours service (XagRK)
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+Telephone encounter (9N31.)
+Signposting to general practice extended hours service (XagRK)
+
+--- 69 2025-08-13 [other] milestones=[] eid=9a682ad1-c8a6-4b9e-adb1-675abf8af47f ---
+08:48 - Surgery: Unknown Staff Member  Entered at: Carillon PCN
+Registered remotely through GP Connect - Woodbrook Medical Centre
+
+--- 70 2025-08-13 [IN-EP] milestones=['referral'] eid=88c1aa88-fb30-41e9-a917-dc36846093ae ---
+09:46 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role) 
+History: See 111 report  'felt dizzy/shaly, had 3 episodes yesterday, had a sweet and felt better' 
+Advised to contact GP within 6 hours 
+Notes reviewed recent HbA1c normal, nil anaemia 
+Just been referred in 2ww Urology, for regular PSA monitoring
+ Consultation
+   General
+ DNA Adult
+   Failed call: Failed encounter (9N4..) Attempted to call no answer
+Failed encounter (9N4..) - Attempted to call no answer (New Episode)
+
+--- 71 2025-08-13 [other] milestones=[] eid=b9c48a7d-8d2d-4ec9-b8a4-672bb4cd0750 ---
+11:38 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role) 
+ Consultation
+ AI Scribe
+   Summary checked by clinician before saving: Yes
+   AI consultation summary:  Duty-poor phone line see 111 report
+Subjective:
+- C/O dizzy episodes, with three occurrences in the last 3/12.
+- The most recent episode occurred yesterday while driving to London. After a 20-minute drive following a coffee at a service station, he suddenly felt very unwell.
+- Describes the sensation as feeling like he would collapse, with associated blurry vision.
+- The symptoms were alleviated after consuming a sweet item provided by a colleague. It took approximately 5-10 minutes for the symptoms to resolve, after which he had some breakfast and felt normal.
+- Denies any chest pain or breathlessness associated with the episodes.
+- Reports significant ongoing stress, both physical and mental. Describes neck pain over the last 2-3/52. He notes that nervousness and stress seem to trigger these kinds of physical symptoms.
+
+Past Medical History:
+- Pre-diabetic in the past, but recent blood tests have been normal. No symptoms of diabetes noted.
+- Takes bisoprolol.
+- PMH of depression in 1999, but reports he is managing this himself and trying to avoid a recurrence.
+- SHx: Works as a solicitor/lawyer.
+- FHx: Son is a GP.
+
+Objective:
+- Recent bloods satisfactory 
+- Vitamin D level is 40.
+
+Assessment:
+- Dizzy episodes, likely stress-related. Postural hypotension secondary to bisoprolol is a possible contributing factor. Hypoglycaemia is considered unlikely given no history of DM.
+
+Plan:
+- F/U for a face-to-face appointment on Friday at 8:45 AM for further assessment and examination.
+- Consider OTC vitamin D supplementation, to be discussed at the review.
+- Advised to contact 111 if symptoms worsen in the interim.
+   Entries from previous template version
+      Consent obtained (Y001d)
+Consent obtained (Y001d)
+Medical records review (XaE42)
+Clinical history and observations (X76sV)
+Duty-poor phone line see 111 report
+Subjective:
+- C/O dizzy episodes, with three occurrences in the last 3/12.
+- The most recent episode occurred yesterday while driving to London. After a 20-minute drive following a coffee at a service station, he suddenly felt very unwell.
+- Describes the sensation as feeling like he would collapse, with associated blurry vision.
+- The symptoms were alleviated after consuming a sweet item provided by a colleague. It took approximately 5-10 minutes for the symptoms to resolve, after which he had some breakfast and felt normal.
+- Denies any chest pain or breathlessness associated with the episodes.
+- Reports significant ongoing stress, both physical and mental. Describes neck pain over the last 2-3/52. He notes that nervousness and stress seem to trigger these kinds of physical symptoms.
+
+Past Medical History:
+- Pre-diabetic in the past, but recent blood tests have been normal. No symptoms of diabetes noted.
+- Takes bisoprolol.
+- PMH of depression in 1999, but reports he is managing this himself and trying to avoid a recurrence.
+- SHx: Works as a solicitor/lawyer.
+- FHx: Son is a GP.
+
+Objective:
+- Recent bloods satisfactory 
+- Vitamin D level is 40.
+
+Assessment:
+- Dizzy episodes, likely stress-related. Postural hypotension secondary to bisoprolol is a possible contributing factor. Hypoglycaemia is considered unlikely given no history of DM.
+
+Plan:
+- F/U for a face-to-face appointment on Friday at 8:45 AM for further assessment and examination.
+- Consider OTC vitamin D supplementation, to be discussed at the review.
+- Advised to contact 111 if symptoms worsen in the interim.
+
+--- 72 2025-08-13 [other] milestones=[] eid=98ae4832-4fcf-4423-be41-5714890065f9 ---
+Dear Mohammed Mazid
+
+Your appointment has been booked for 15 Aug 2025 08:45 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 73 2025-08-15 [other] milestones=[] eid=cae87e94-1131-43dd-ac0a-9af3f5ee5d90 ---
+08:50 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role) 
+127 / 81
+ Consultation
+   General
+      Encounter: Consultation (Xa1qL)
+      H:  See duty call from 13/08/25
+Subjective:
+- C/O an episode of blurred vision, feeling of losing control, and breathlessness whilst driving. This occurred approximately 15 minutes after having a coffee. Reports feeling better after taking some sugar.
+- Concerned this could be related to hypoglycaemia, as has been warned of being pre-diabetic.
+- Also reports significant stress over the past 2-3/52, associated with back pain radiating up to the neck. The pain is worse with tension. Reports this week has been slightly better.
+-  Denies missing meals prior to the episode.
+- Nil chest pain, nil syncope, nil palpitations 
+- Nil fever, nil weight loss, nil night sweats 
+
+Past Medical History:
+- Pre-diabetic-last HbA1c normal
+- Past Hx of depression. Reports being able to manage stress levels due to this history.
+
+Objective:
+- BP: 127/81 mmHg.
+- CVS examination: Heart sounds WNL.
+- Investigations: Recent bloods reviewed. Cholesterol is normal. Liver function and kidney function satisfactory Vitamin D level is borderline low.
+
+
+      E:  Alert and orientated 
+Looks well
+      BP: 127 / 81
+      P:  Assessment:
+- The episode of blurred vision and breathlessness is possibly related to anxiety/stress 
+
+Plan:
+- Investigations planned: ECG to be booked to investigate the episode.
+- Treatment planned: Advised to commence an over-the-counter Vitamin D supplement, 1000 IU daily, to be taken all year round. A text message with this information will be sent.
+- Relevant other actions: Counselled on stress and anxiety management. Advised to reduce caffeine intake as it can exacerbate anxiety symptoms. Recommended engaging in regular exercise, such as a brisk walk, to help manage stress. Suggested activities like mindfulness to help relax the body and mind. Will accompany to reception to book the ECG.
+- Review if any further episodes/concerns 
+- If any collapse/breathlessness/chest pain must call 999
+   CVS
+      E:  Normal chest, no wheeze or crepitations, good air entry bilaterally, normal percussion
+Normal heart sounds, no cyanosis, no ankle/leg swelling
+      HR: 74 bpm
+      Sats: 99 %
+      Pulse: Pulse regular (XM02J)
+Consultation (Xa1qL)
+Clinical history and observations (X76sV)
+See duty call from 13/08/25
+Subjective:
+- C/O an episode of blurred vision, feeling of losing control, and breathlessness whilst driving. This occurred approximately 15 minutes after having a coffee. Reports feeling better after taking some sugar.
+- Concerned this could be related to hypoglycaemia, as has been warned of being pre-diabetic.
+- Also reports significant stress over the past 2-3/52, associated with back pain radiating up to the neck. The pain is worse with tension. Reports this week has been slightly better.
+-  Denies missing meals prior to the episode.
+- Nil chest pain, nil syncope, nil palpitations 
+- Nil fever, nil weight loss, nil night sweats 
+
+Past Medical History:
+- Pre-diabetic-last HbA1c normal
+- Past Hx of depression. Reports being able to manage stress levels due to this history.
+
+Objective:
+- BP: 127/81 mmHg.
+- CVS examination: Heart sounds WNL.
+- Investigations: Recent bloods reviewed. Cholesterol is normal. Liver function and kidney function satisfactory Vitamin D level is borderline low.
+
+
+Clinical examination (XB001)
+Alert and orientated 
+Looks well
+Plan (XaIVg)
+Assessment:
+- The episode of blurred vision and breathlessness is possibly related to anxiety/stress 
+
+Plan:
+- Investigations planned: ECG to be booked to investigate the episode.
+- Treatment planned: Advised to commence an over-the-counter Vitamin D supplement, 1000 IU daily, to be taken all year round. A text message with this information will be sent.
+- Relevant other actions: Counselled on stress and anxiety management. Advised to reduce caffeine intake as it can exacerbate anxiety symptoms. Recommended engaging in regular exercise, such as a brisk walk, to help manage stress. Suggested activities like mindfulness to help relax the body and mind. Will accompany to reception to book the ECG.
+- Review if any further episodes/concerns 
+- If any collapse/breathlessness/chest pain must call 999
+Examination of cardiovascular system (XE1hJ)
+Normal chest, no wheeze or crepitations, good air entry bilaterally, normal percussion
+Normal heart sounds, no cyanosis, no ankle/leg swelling
+Pulse rate (X773s) 74 bpm
+Oxygen saturation at periphery (X770D) 99 %
+Pulse regular (XM02J)
+
+--- 74 2025-08-15 [other] milestones=[] eid=294fd51e-e202-494e-ae41-4a8244581ae6 ---
+08:59 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role) 
+Patient telephone number (9159.) - +447915665724
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Mazid,
+
+Your blood test shows low vitamin D. Low levels can cause tiredness, aches, and weaken bones.
+
+We recommend vitamin D supplements (1000 IU/25mcg daily) and getting sunlight exposure.
+More info: https://www.nhs.uk/conditions/vitamins-and-minerals/vitamin-d/
+Thanks, Mrs Kathryn Wilcock
+Woodbrook Medical Centre
+Sent on 15/08/2025 at 08:59
+
+--- 75 2025-08-15 [other] milestones=[] eid=4337896b-7050-4898-a560-314024d1b1ef ---
+09:04 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role) 
+127 / 81
+
+--- 76 2025-08-15 [other] milestones=[] eid=03a377d2-38e4-4235-a497-0d027e975eff ---
+09:04 - INGLE, Kirsty  
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To book LTC review /Smear /Other monitoring (Y41d0)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Presenting to non-clinical team with: To book LTC review /Smear /Other monitoring (Y41d0)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 77 2025-08-15 [other] milestones=[] eid=3f540320-b404-4f4b-b148-b14bd34f82fd ---
+Dear Mohammed Mazid
+
+Your appointment has been booked for 15 Aug 2025 14:45 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 78 2025-08-15 [other] milestones=[] eid=1f132f6d-2d55-4812-9876-c3080e91dbb9 ---
+14:45 - Surgery: MEE, Sara  
+Did not attend for Session appointment with Sara Mee.
+Did not attend (Xa1kG)
+
+--- 79 2025-08-15 [other] milestones=[] eid=3b1ef87f-956f-4189-a640-64d47e04709c ---
+You did not attend your appointment on 15 Aug 2025 14:45 at Woodbrook Medical Centre. Please notify the service on 01509 239166 if unable to attend.
+
+--- 80 2025-08-15 [other] milestones=[] eid=80f39120-8ec2-455f-9577-703df8627e4f ---
+14:55 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+   Marked as arrived for appt.
+Contact trigger : Other (Y3eaa)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Marked as arrived for appt.
+
+--- 81 2025-08-15 [other] milestones=[] eid=7287e853-66cc-4077-a51e-dcaf0737a0e0 ---
+Dear Mohammed Mazid
+
+Your appointment has been booked for 03 Sep 2025 08:50 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 82 2025-08-16 [other] milestones=[] eid=9fb1e1da-ffd6-493a-a535-cdabba66c4f3 ---
+08:49 - Primary Care Network (PCN): SREERAMA, Shashank (Doctor) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared
+
+--- 83 2025-08-16 [other] milestones=[] eid=a9b85b7b-aa5b-482d-824a-b4eb24033749 ---
+08:49 - Primary Care Network (PCN): SREERAMA, Shashank (Doctor) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+ Telephone Consultation
+   Triage: Yes
+   Identity + contact details verified: Yes
+   Request: Test request (XaIjk)
+   Notes:  S: Requesting sooner appointment for ECG. 
+
+Patient reports he saw GP yesterday for his problem - see entry on S1. 
+
+Says problem has already been reviewed by the GP - advised for an ECG. 
+
+Pt wants to expedite ECG request - currently booked for 3/9/25 but feels this is a long wait, would like earlier appt.
+   Plan:  - agreed to task GP Surgery - consider requesting ECG on ice or look for any cancellations at the surgery, 
+pt agreed w plan 
+- meanwhile if any worsening symptoms/ ie further visual sx/ SOB - see GP/ 111 ooh/ ucc
+   Advice if worsens, no better or concerns: Yes
+Telephone triage encounter (XaIvd)
+Patient identity verified (XaXmW)
+Test request (XaIjk)
+Telephone consultation (XaIge)
+S: Requesting sooner appointment for ECG. 
+
+Patient reports he saw GP yesterday for his problem - see entry on S1. 
+
+Says problem has already been reviewed by the GP - advised for an ECG. 
+
+Pt wants to expedite ECG request - currently booked for 3/9/25 but feels this is a long wait, would like earlier appt.
+Plan (XaIVg)
+- agreed to task GP Surgery - consider requesting ECG on ice or look for any cancellations at the surgery, 
+pt agreed w plan 
+- meanwhile if any worsening symptoms/ ie further visual sx/ SOB - see GP/ 111 ooh/ ucc
+Patient given advice (8CA..)
+
+--- 84 2025-08-16 [other] milestones=[] eid=43f51946-bc8b-4763-a538-174b787fac3a ---
+08:50 - Primary Care Network (PCN): SREERAMA, Shashank (Doctor) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared
+
+--- 85 2025-08-16 [other] milestones=[] eid=3caca33b-eede-40d5-878b-3dd010a1bfac ---
+08:50 - Primary Care Network (PCN): SREERAMA, Shashank (Doctor) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+
+--- 86 2025-08-18 [other] milestones=[] eid=a9160706-92fd-4a76-8086-974dfa83d65f ---
+Dear patient, with regards to your recent out of hours GP appointment, we would like to know your satisfaction with this service. Please complete the following questionnaire using this link: https: https://forms.office.com/e/SnXEdYHUpu
+Thank you
+
+--- 87 2025-08-18 [other] milestones=[] eid=790f93ea-65f4-4b56-9e35-2565df50a487 ---
+10:13 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa) dna
+   Type of encounter: Administration (9....)
+Contact trigger : Other (Y3eaa) - dna
+Administration (9....)
+
+--- 88 2025-08-18 [other] milestones=[] eid=532e37d4-26f3-4f8e-9beb-77a3e4ec4d3d ---
+10:49 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 89 2025-08-18 [other] milestones=[] eid=d71dc95d-23b8-4193-a7b8-2eba06635132 ---
+12:25 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Mohammed,
+Our records show you are eligible for a flu vaccination.
+Clinics start in October and appointments are being booked now! Use the link provided below to book.
+Appointments are limited.
+Thank you
+
+To respond: https://accurx.nhs.uk/c/p-mhm6r9fx2t
+(Expires in 7 days)
+
+Woodbrook Medical Centre
+NHS app message sent on 18/08/2025 11:49:03
+Influenza vaccination invitation short message service text message sent (Y3f85)
+
+--- 90 2025-08-18 [other] milestones=[] eid=cfe12a54-2fef-4cd5-bffc-8edae2919366 ---
+12:25 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 91 2025-08-28 [other] milestones=[] eid=2158c236-6135-4d7c-8302-8c1564ad4fd4 ---
+13:22 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 92 2025-08-28 [other] milestones=[] eid=3a16340f-af77-4d33-b539-cc7b24adb3c8 ---
+13:22 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Mr Mazid,
+Please find attached a patient information document for Topical Steroids. If you have any questions or concerns, please contact the surgery or speak to your pharmacist.
+Thank you
+
+To view your attachment, please follow this link: https://accurx.nhs.uk/c/p-n5qp3qjdzq
+
+Woodbrook Medical Centre
+NHS app message sent on 28/08/2025 13:21:03
+
+--- 93 2025-08-28 [other] milestones=[] eid=dec6bdb4-9294-4679-bc58-b65f7e4c7e33 ---
+21:29 - Sent online by Mr Mohammed Abdul Mazid  
+Request for 'Epimax isomol gel (Aspire Pharma Ltd)' by patient
+Request for 'Bisoprolol 1.25mg tablets' by patient
+Request for 'Aspirin 75mg dispersible tablets' by patient
+Request for 'Rosuvastatin 20mg tablets' by patient
+Request for 'Nustendi 180mg/10mg tablets (Daiichi Sankyo UK Ltd)' by patient
+Request for 'Fenofibrate micronised 160mg tablets' by patient
+
+--- 94 2025-08-29 [other] milestones=[] eid=2463a52e-c890-4c9b-b784-055bc878bee9 ---
+07:51 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Fenofibrate micronised 160mg tablets - 56 tablet - take one daily
+(R) Nustendi 180mg/10mg tablets (Daiichi Sankyo UK Ltd) - 56 tablet - take one daily
+(R) Rosuvastatin 20mg tablets - 56 tablet - One To Be Taken Each Day
+(R) Aspirin 75mg dispersible tablets - 56 tablet - One To Be Taken Each Day
+(R) Bisoprolol 1.25mg tablets - 56 tablet - One To Be Taken Each Day
+(R) Epimax isomol gel (Aspire Pharma Ltd) - 1000 gram - apply often and liberally
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 95 2025-09-03 [other] milestones=[] eid=4aaa7d9f-1ec3-49c0-ac4a-74db504f7131 ---
+00:00 - Surgery: ATKIN, Sharon (Admin/Clinical Support Access Role) 
+12 lead ECG (XE1PZ) - ECG done as requested by Kat. Copy taken for scanning and original shown to Dr Ghayath who will discuss with Dr Patel
+
+--- 96 2025-09-03 [other] milestones=[] eid=11f93b7a-d464-4ed3-96ee-ddd48969e998 ---
+Surgery: MEREDITH, Fay (Miss) (Administrator) 
+ECG to Woodbrook Medical Centre
+
+--- 97 2025-09-03 [other] milestones=[] eid=648188be-e5db-41ef-a284-5a458d90a0ef ---
+08:51 - Surgery: ATKIN, Sharon (Healthcare Assistant) 
+Diagnostic assessment (3871.)
+ PCN Diagnostics (new)
+   ECG done and intepretation of results: 12 lead ECG (XE1PZ) ECG done as requested by Kat. Copy taken for scanning and original shown to Dr Ghayath who will discuss with Dr Patel 03 Sep 2025
+
+--- 98 2025-09-03 [IN-EP] milestones=['referral'] eid=d860ceca-aff0-48f1-bb47-dad14e4bed7b ---
+09:49 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) 
+- PRISM Rapid Access Chest Pain Nurse Led -  questionnaire started - (finalised: 03 Sep 2025 12:15)
+ PRISM Pathway & Referral Impl SysteM V3
+   Content
+       - PRISM Rapid Access Chest Pain Nurse Led -  questionnaire started - (finalised: 03 Sep 2025 12:15)
+
+--- 99 2025-09-03 [other] milestones=[] eid=6d3d892a-f6f6-463f-ab23-ad9b95961103 ---
+10:01 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+History: ECG sinus. 
+Compared to old ECG from 2016, there are some T wave changes, nil acute.
+However given the SOB episodes radiating to neck, needs further cardiac work up.
+On secondary prevention. LDL 0.7 127/81 bp.
+refer to RACPC.
+
+--- 100 2025-09-03 [other] milestones=[] eid=22ae22d2-7e9d-4549-8599-1ada56d77ca8 ---
+10:10 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role)
+
+--- 101 2025-09-03 [other] milestones=[] eid=3d08dbd0-3a6b-4ca0-87f0-e548d4a05af6 ---
+10:39 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) 
+History: telephone  
+id confirmed   
+
+history noted - ECG reviewed  - explained finding   
+Plan: agreed and consent for RACP  
+safety netting as chest pain worsening // unwell / heart racing / shortness of breath / dizzy / unsteady / concern to get helo from GP/111/LUCC as appropriate
+
+--- 102 2025-09-03 [other] milestones=[] eid=0d034ae3-b09e-436b-8820-7b4323f46a47 ---
+12:15 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Referral to rapid access chest pain clinic (XaFs5)
+Choice and booking enhanced services administration (XaMJa)
+ WMC Medical Secretary Template
+ WMC Referrals
+   Patient has been referred to the RACP clinic at Glenfield Hospital. The hospital will contact the patient directly with details of an appointment.
+Hospital Referral to rapid access chest pain clinic
+Rapid Access Chest Pain Nurse Led PRISM to Unknown 
+Hospital Referral to rapid access chest pain clinic updated: Waiting For Information
+Patient has been referred to the RACP clinic at Glenfield Hospital. The hospital will contact the patient directly with details of an appointment.
+
+--- 103 2025-09-16 [other] milestones=[] eid=76000c4f-f81c-41a2-892d-3a3ca5be4b99 ---
+08:29 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Mohammed,
+Please be advised that the car park remains closed to patients and visitors. It is for use by authorised staff only until further notice. At times, the entrance chain may be up or down to allow access to the building, but please note the car park remains closed to patients and visitors at all times.
+We kindly ask all patients to make alternative travel and parking arrangements when attending appointments.
+Thank you for your understanding and cooperation
+
+Woodbrook Medical Centre
+NHS app message sent on 15/09/2025 12:07:08
+
+--- 104 2025-09-16 [other] milestones=[] eid=3c79dad3-0ef2-4059-82af-3a12cca43c34 ---
+08:29 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 105 2025-09-24 [other] milestones=[] eid=d3019bf8-ba67-4f0d-8faa-2e381b74a932 ---
+** Care ended at Carillon PCN (Remotely Registered) **
+
+--- 106 2025-09-24 [other] milestones=[] eid=b81ed1c6-34c7-4106-aae9-62bad276b543 ---
+10:46 - MCDOWELL, Giselle  
+ N+S Encounter type
+   *Reason for contact / Entering record: Incoming mail processing (XE2NQ)
+   Type of encounter: Administration (9....)
+Incoming mail processing (XE2NQ)
+Administration (9....)
+
+--- 107 2025-09-24 [IN-EP] milestones=['referral'] eid=6200d1e5-b090-48d4-9a07-c206a3d747ec ---
+18:07 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role) 
+Problem - whole event: Prostate-specific antigen monitoring (XaIqh) - if PSA >= 7ng/ml refer via 2WW prostate pathway
+PSA check - 6 months after last test so next in Dec 2025. 
+recall to be added for "Annual PSA check as per letter 11/08/2025 (until he reaches 79 years of age) and to refer if >=7 ng/ml" 
+
+asked admin team to kindly check with patient if he has any Family history, even 2nd or 3rd degree relatives with prostate ca - if he does then the above will need to change to 6 monthly monitoring. 
+thanks 
+
+Prostate-specific antigen monitoring (XaIqh) - if PSA >= 7ng/ml refer via 2WW prostate pathway
+Summary Care Record Update
+Prostate-specific antigen monitoring (XaIqh) - if PSA >= 7ng/ml refer via 2WW prostate pathway
+
+--- 108 2025-09-25 [other] milestones=[] eid=71f99e81-4312-45e3-9800-7f3511b4a481 ---
+10:52 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Recall: Blood Test Due (01 Dec 2025) Annual PSA check as per letter 11/08/2025 (until he reaches 79 years of age) and to refer if >=7 ng/ml" 
+
+rpt 6 monthly
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 109 2025-09-26 [other] milestones=[] eid=4dae546e-e7ec-48ee-85cd-b3444be76339 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Rapid Access to Woodbrook Medical Centre
+
+--- 110 2025-09-26 [other] milestones=[] eid=3651a700-62e0-4e22-9b0e-e8d0d4c6ef82 ---
+Surgery: O'NEILL, Anna-Louise (Admin/Clinical Support Access Role) , Entered By: DOLLIVE, Lauren
+ECG sinus rhythm (XaLqo) (New Episode)
+
+--- 111 2025-09-26 [other] milestones=[] eid=4982f6f4-57ba-4890-8d6f-a34eab9c515c ---
+Surgery: DOLLIVE, Lauren (Admin/Clinical Support Access Role)
+
+--- 112 2025-09-26 [other] milestones=[] eid=c391d44b-b00f-4b4f-a653-6d48653bee90 ---
+12:04 - Surgery: O'NEILL, Anna-Louise (Admin/Clinical Support Access Role) 
+107 / 67
+ Consultation
+   General
+      BP: 107 / 67
+      HR: 72 bpm
+Pulse rate (X773s) 72 bpm
+
+--- 113 2025-10-11 [other] milestones=[] eid=d6378b1b-3b4f-47ce-8cae-ef28adaf060a ---
+00:00 - Pharmacy First: rizvana kausar  
+Seasonal influenza vaccination given by pharmacist (XaZfY)
+Clinic Letter to Woodbrook Medical Centre 
+Vaxigrip Trivalent Flu/Vac/Split inj 0.5ml pfs (Sanofi) 1 1dose - See communication for further details.
+
+--- 114 2025-10-13 [other] milestones=[] eid=8849c598-0601-425d-9c54-f04a015adc6c ---
+08:08 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Summary Care Record Update
+

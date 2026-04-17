@@ -1,0 +1,124 @@
+# -- DI-LEO-AI-172 -- Adjuvant cancer-therapy diagnosis inference
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-172"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-005", "UN-LEO-AI-055"]
+  requirement: >
+    The episode-building text path SHALL recognise pathognomonic
+    anti-cancer drug names in encounter free text (letrozole,
+    anastrozole, exemestane, tamoxifen, fulvestrant, bicalutamide,
+    flutamide, enzalutamide, abiraterone, goserelin, leuprorelin,
+    triptorelin, degarelix, capecitabine, imatinib, dasatinib,
+    erlotinib, gefitinib, trastuzumab, rituximab, plus their common
+    brand names) using the curated ADJUVANT_THERAPY_DRUG_PATTERNS
+    inventory. A drug match SHALL be promoted to a diagnosis_confirmed
+    anchor with diagnosis_source="adjuvant_therapy_drug",
+    confidence=0.75, hitl_required=True, and site_key from the drug's
+    canonical indication WHEN AND ONLY WHEN at least one of the
+    following co-conditions holds in the same encounter text:
+    (a) an issue marker is present
+    (ADJUVANT_THERAPY_ISSUE_MARKERS: "newly issued", "first issue",
+    "first prescription", "initiated", "commenced", "started on",
+    "new prescription", "new repeat prescription", "acute issue",
+    "drug issued today");
+    (b) an active-cancer-care Read code from ACTIVE_CANCER_CARE_CODES;
+    (c) a malignancy term on a problem-list line; or
+    (d) a malignancy Read code from MALIGNANCY_READ_CODES.
+    A bare repeat-prescription review with no co-condition MUST NOT
+    fire a diagnosis anchor.
+  rationale: >
+    Three of the six missed cancers in the 2025 closed_benign audit
+    were patients who had been started on adjuvant hormone therapy
+    after a 2WW referral but no diagnosis code was ever written into
+    primary care: episode 1ecfb55618c2a6d2 had a newly-issued
+    letrozole prescription after a breast 2WW; episode d6ed56efd3bc6fcf
+    had tamoxifen initiated after a breast 2WW; episode
+    a6c093d2702d379f had triptorelin started after a urology 2WW.
+    These drugs are essentially diagnostic of cancer treatment - their
+    non-cancer indications are vanishingly rare in primary care.
+    However, requiring a co-condition prevents the rule from firing
+    on every annual review of a long-term tamoxifen patient (which
+    would falsely promote breast-cancer survivors to fresh diagnoses).
+    HITL is mandatory because the drug evidences the OUTCOME, not the
+    diagnosis date - a clinic letter with the actual diagnosis date
+    may still arrive, and the drug's site indication may not match the
+    referral site (off-label uses, prophylaxis).
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          libs/domains/code_inventories.py exposes
+          ADJUVANT_THERAPY_DRUG_PATTERNS (list of (regex, site_key,
+          indication_string)), ADJUVANT_THERAPY_ISSUE_MARKERS (regex),
+          and helpers find_adjuvant_therapy_drug,
+          adjuvant_therapy_is_newly_issued.
+      - type: "safety"
+        spec: >
+          A drug pattern hit alone MUST NOT fire a diagnosis anchor.
+          The detector verifies at least one co-condition (issue marker,
+          active-care code, malignancy term, or malignancy code) before
+          promoting the drug to diagnosis_confirmed.
+      - type: "safety"
+        spec: >
+          When text_contains_history_of_cancer returns True for the
+          encounter text, the adjuvant-therapy path MUST be skipped
+          (history-of-cancer guard from DI-LEO-AI-171 takes precedence).
+      - type: "functional"
+        spec: >
+          Site mapping: aromatase inhibitors and SERMs map to "breast";
+          anti-androgens, LHRH agonists, and GnRH antagonists map to
+          "prostate" (with HITL noting goserelin can also be breast);
+          imatinib/dasatinib map to "haematological"; erlotinib/
+          gefitinib map to "lung"; trastuzumab maps to "breast";
+          rituximab maps to "lymphoma"; capecitabine maps to
+          "non_site_specific" (HITL must specify GI vs breast).
+      - type: "performance"
+        spec: >
+          The adjuvant-therapy rule SHALL contribute at least 3 of the
+          previously-missed 6 cancers in the 2025 closed_benign audit
+          to the corrected confirmed-cancer cohort, identified by their
+          diagnosis_source="adjuvant_therapy_drug" provenance.
+    constraints:
+      - type: "safety"
+        spec: >
+          The ADJUVANT_THERAPY_DRUG_PATTERNS list MUST be conservative;
+          drugs with significant non-cancer use cases (methotrexate,
+          ciclosporin, etc.) are EXCLUDED. Only drugs whose primary
+          care use is overwhelmingly cancer-related are listed.
+      - type: "safety"
+        spec: >
+          Every diagnosis anchor produced by the adjuvant path carries
+          hitl_required=True and confidence <= 0.75 so the episode
+          builder always queues these for human review.
+    dependencies: ["DI-LEO-AI-171"]
+    downstream_impacts:
+      - "Confirmed-cancer cohort grows by ~3 patients per year"
+      - "HITL queue gains adjuvant-therapy-only cases for review"
+      - "Site-classification HITL increases for off-label drug use"
+    technical_details:
+      language: "Python"
+      framework: "analysis_worker + libs"
+      file_structure:
+        - "libs/domains/code_inventories.py"
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+      estimated_loc: 110
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All test cases in tests/test_stale_detector_fixes.py class
+      TestAdjuvantTherapyInference pass, plus the
+      test_letrozole_newly_issued_after_breast_2ww regression case.
+    test_protocol: "VT-LEO-AI-170"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-171"]
+  tags:
+    - "episode-building"
+    - "missed-cancer"
+    - "adjuvant-therapy"
+    - "drug-inference"
+    - "outcome-inference"

@@ -1,0 +1,132 @@
+# -- R-LEO-AI-103 -- Diagnosis-aware open-episode rescue mis-pairs diagnosis with wrong referral
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-103"
+  title: >
+    The diagnosis-aware open-episode rescue may pair a confirmed cancer
+    diagnosis text anchor with the wrong referral when the diagnosis
+    site key is 'unknown' or 'non_site_specific' and multiple open
+    episodes are eligible, producing a misattributed diagnosis_confirmed
+    milestone and an incorrectly 'completed' episode.
+
+  hazard:
+    description: >
+      _build_open_episode is called once per open referral group. When
+      the rescue helper finds an unknown / NSS diagnosis anchor in a
+      window that overlaps multiple open episodes, the SAME diagnosis
+      could in principle be claimed as a 'completed' rescue for more
+      than one episode (each call sees the anchor in its own window).
+      In the worst case, an unknown-site diagnosis legitimately
+      belonging to a third pathway is filed against an unrelated open
+      referral, inflating the confirmed-cancer count for the wrong
+      cancer type.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinical reviewer opens the patient pathway view and sees a
+    'completed' breast referral with a diagnosis_confirmed milestone
+    that actually belongs to a separate skin-cancer pathway. They
+    confirm the breast referral as completed without questioning the
+    diagnosis attribution, hiding the fact that the breast pathway is
+    still open and the actual confirmed cancer is on the skin pathway.
+
+  harm:
+    description: >
+      Patient-level: a missed confirmed cancer pathway delays
+      reviewer escalation. Bounded by the hitl_flag=true reviewer
+      check before any NCDA submission and by the patient pathway
+      view which always shows ALL episodes side-by-side, so a
+      reviewer comparing the two episodes will see the duplicated
+      diagnosis date and challenge it.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The rescue helper applies _site_keys_compatible. Specific-site
+        diagnoses (e.g. 'invasive ductal carcinoma' -> breast) ONLY
+        match referrals of the same site key. Unknown / NSS diagnoses
+        match any site, but the upstream _build_diagnosis_led_groups
+        already preferentially pairs unknown diagnoses with referrals
+        before the open-episode pass runs, so the rescue only fires on
+        diagnoses that the strict + fallback pairing both failed to
+        claim.
+      implemented_by: ["DI-LEO-AI-150"]
+      verified_by: ["VT-LEO-AI-148"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Anchors with assertion='possible' or
+        is_pathway_completion=True do not trigger the rescue. This
+        keeps benign-closure markers and non-confirmed diagnoses out
+        of the rescue path.
+      implemented_by: ["DI-LEO-AI-150"]
+      verified_by: ["VT-LEO-AI-148"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        Episodes promoted by the rescue path always carry
+        hitl_flag=true and a hitl_reason starting with
+        'Auto-completed: confirmed cancer diagnosis text in episode
+        window.' Reviewers see this in the operations queue and the
+        patient pathway view and must verify the cancer site and
+        pathway outcome before the episode is treated as confirmed.
+      implemented_by: ["DI-LEO-AI-150"]
+      verified_by: ["VT-LEO-AI-148"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Daily DQ alert (existing) flags patients with multiple
+        episodes that share the same diagnosis encounter id. The
+        rescue path links via IS_PART_OF
+        {milestone_type:'diagnosis_confirmed'} so any over-claim is
+        immediately visible in the alert query.
+      implemented_by: ["DI-LEO-AI-150"]
+      verified_by: ["VT-LEO-AI-148"]
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the site-key guard, the assertion / pathway-completion
+      filters, the hitl_flag review gate, and the daily DQ over-claim
+      alert all in place, the residual risk of a mis-attributed
+      diagnosis_confirmed milestone surviving to NCDA submission is
+      very low. Detectability is high because every rescued episode
+      goes through the operations review queue.
+
+  monitoring:
+    monitoring_plan: >
+      Weekly: count rescued episodes (hitl_reason starts with
+      'Auto-completed: confirmed cancer diagnosis text'). Track the
+      reviewer disposition (confirmed / overridden) over a 30-day
+      window to estimate per-month false-pair rate.
+      Quarterly: 50-episode gold-label sample for cancer_type
+      attribution accuracy on rescued episodes.
+    metrics:
+      - "Weekly rescued-episode count"
+      - "Reviewer override rate on rescued episodes"
+      - "Cancer_type attribution precision (gold sample, quarterly)"
+      - "Daily count of episodes sharing a diagnosis encounter_id"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Auto-closed episode investigation -- April 2026 cohort (79 episodes, scripts/investigate_auto_closed.py)"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "episode-builder"
+      - "diagnosis-rescue"
+      - "ncda"

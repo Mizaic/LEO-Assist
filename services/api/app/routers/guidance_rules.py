@@ -28,6 +28,12 @@ from pydantic import BaseModel, Field
 
 from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
+from app.services.guidance_rule_edit import (
+    EditNotApplicable,
+    LogicTreeValidationError,
+    RuleUpdates,
+    apply_rule_edit,
+)
 from libs.auth.org_scope import CallerScope
 from libs.auth.service_auth import get_service_auth_header
 
@@ -266,6 +272,10 @@ class RuleDecisionRequest(BaseModel):
     reviewer: str = Field(min_length=2)
     reason: str = Field(min_length=3)
     edited_name: str | None = None
+    # Populated only for action == "edit" when the reviewer changed the rule
+    # content. When absent on an edit, the call falls back to the legacy
+    # "approve with note" behaviour for backward compatibility.
+    updates: RuleUpdates | None = None
 
 
 def _kg_client() -> CodingGraphClient:
@@ -632,10 +642,21 @@ def decide_rule(
 ) -> dict:
     """Approve, edit, or reject a generated rule.
 
-    Approving sets the rule to ``active`` so it will be included in the
-    next bitmap compilation. Rejecting removes it from the review queue.
+    - ``approve`` sets the rule to ``active`` so it will be included in the
+      next bitmap compilation.
+    - ``reject`` removes the rule from the review queue.
+    - ``edit`` with no ``updates`` payload behaves like approve-with-note
+      (kept for backward compatibility).
+    - ``edit`` with an ``updates`` payload writes a NEW versioned rule
+      carrying the reviewer's changes, supersedes the original, and links
+      them via ``[:SUPERSEDES]``. Both the original and the new rule retain
+      their audit events. See ``guidance_rule_edit.apply_rule_edit``.
+
     All decisions are recorded in an immutable audit trail.
     """
+    if body.action == "edit" and body.updates is not None:
+        return _decide_rule_with_edits(rule_id, body)
+
     client = _kg_client()
     try:
         new_status = "active" if body.action in ("approve", "edit") else "rejected"
@@ -651,6 +672,31 @@ def decide_rule(
         if not records:
             raise HTTPException(status_code=404, detail="Rule not found")
         return {"rule_id": rule_id, "status": new_status}
+    finally:
+        client.close()
+
+
+def _decide_rule_with_edits(rule_id: str, body: RuleDecisionRequest) -> dict:
+    """Persist a reviewer-edited rule version via the edit service."""
+    client = _kg_client()
+    try:
+        try:
+            result = apply_rule_edit(
+                client,
+                predecessor_rule_id=rule_id,
+                updates=body.updates,  # type: ignore[arg-type]
+                reviewer=body.reviewer,
+                reason=body.reason,
+            )
+        except LogicTreeValidationError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        except EditNotApplicable as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        return {
+            "rule_id": result["rule_id"],
+            "predecessor_id": result["predecessor_id"],
+            "status": "active",
+        }
     finally:
         client.close()
 
@@ -838,10 +884,40 @@ def _format_rule(r: dict) -> dict:
         "present_criteria": present,
         "absent_criteria": absent,
         "logic_tree": logic_tree,
+        "action": _parse_action_json(r.get("action_json")),
         "criteria_concepts": logic_concepts,
         "created_at": str(r.get("created_at", "")),
         "has_predecessor": bool(r.get("has_predecessor")),
         "predecessor_id": r.get("predecessor_id"),
+    }
+
+
+def _parse_action_json(raw: object) -> dict | None:
+    """Parse the stored actionJson into the structured ``action`` field.
+
+    Surfacing this lets the EditRuleDialog show -- and let reviewers
+    correct -- the SNOMED-coded recommended procedure that fires when
+    the rule matches a patient (DI-LEO-AI-170).
+
+    Returns ``None`` when the rule has no action coded; otherwise a
+    dict with ``snomed_concept_id``, ``preferred_term``, ``semantic_tag``,
+    and ``term`` keys.
+    """
+    if not raw:
+        return None
+    try:
+        payload = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    snomed_id = payload.get("snomed_concept_id")
+    preferred = payload.get("preferred_term") or payload.get("term") or ""
+    return {
+        "snomed_concept_id": str(snomed_id) if snomed_id else None,
+        "preferred_term": str(preferred),
+        "semantic_tag": str(payload.get("semantic_tag") or ""),
+        "term": str(payload.get("term") or preferred),
     }
 
 

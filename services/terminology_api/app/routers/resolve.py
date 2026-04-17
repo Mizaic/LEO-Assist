@@ -50,6 +50,23 @@ class CandidateResponse(BaseModel):
     read_code: str | None
     score: float
     source: str
+    # Raw retrieval signals exposed for downstream consumers that need
+    # to apply branch-specific thresholds (e.g. "accept exact-branch
+    # hits regardless of surface match"). The `score` field above is
+    # already a CALIBRATED ABSOLUTE confidence in [0.0, 1.0] derived
+    # from these signals plus tag matching:
+    #   had_exact_match -- True iff this candidate was hit by the
+    #     exact branch (Term.normalized_form or SurfaceForm.normalized
+    #     equality), the strongest possible lexical signal.
+    #   lexical_raw   -- max raw lexical score across the exact +
+    #     fulltext branches. Exact = 1.0/1.2; fulltext = Lucene BM25
+    #     (typically 0-15).
+    #   vector_raw    -- cosine similarity from the embedding branch
+    #     (0.0 - 1.0). >= 0.85 indicates strong semantic match even
+    #     when surface token overlap is low.
+    had_exact_match: bool = False
+    lexical_raw: float = 0.0
+    vector_raw: float = 0.0
 
 
 class ResolveResponse(BaseModel):
@@ -113,6 +130,9 @@ def resolve_terms(body: ResolveRequest):
                 read_code=c.read_code,
                 score=c.score,
                 source=c.source,
+                had_exact_match=c.had_exact_match,
+                lexical_raw=c.lexical_raw,
+                vector_raw=c.vector_raw,
             )
             for c in candidates
         ]

@@ -142,12 +142,218 @@ class GuidelineCompiler:
     :meth:`BitmapStore.set_current_version`.
     """
 
+    _DEFAULT_COMPILE_STATS: dict[str, int] = {
+        "rules_seen": 0,
+        "rules_included": 0,
+        "rules_excluded": 0,
+        "policy_violations": 0,
+        "out_of_scope_concepts": 0,
+        "out_of_scope_actions": 0,
+    }
+
     def __init__(self, store: BitmapStore | None = None) -> None:
         self._store = store or BitmapStore()
         # Cache closure results so each (concept_id, d_child, d_parent) triple
         # is only queried once per compilation run.
         self._closure_cache: dict[tuple, list[str]] = {}
-        self._compile_stats: dict[str, Any] = {}
+        # Always initialise with the full counter shape so callers that invoke
+        # _build_ruleset directly (e.g. tests, ad-hoc tooling) don't trip over
+        # KeyError when policy filters reject a concept.
+        self._compile_stats: dict[str, Any] = dict(self._DEFAULT_COMPILE_STATS)
+
+    async def compile_drafts(
+        self,
+        version: str,
+        rules: list[dict[str, Any]],
+        *,
+        scope: CompileScope,
+        policy_mode: Literal["advisory", "strict"] = "advisory",
+        distance_child_override: int | None = None,
+        distance_parent_override: int | None = None,
+        ttl_seconds: int | None = None,
+    ) -> dict:
+        """Compile a hand-built list of v2 rules into a sandbox ruleset.
+
+        Used by the rule editor's "Test against library" flow so a reviewer
+        can replay saved test patients against an UNSAVED draft of a rule
+        without round-tripping through Neo4j.
+
+        SAFETY: Refuses to write to ``scope.scope_type == "global"`` so a
+        draft compile can never overwrite the production ruleset. Use a
+        ``custom`` scope (e.g. ``CompileScope("custom", "draft-<uuid>")``).
+        Caller is responsible for cleaning up the sandbox via
+        :meth:`BitmapStore.delete_scope` once the replay completes.
+
+        Each entry in ``rules`` must be a schema v2 rule dict with at
+        least ``rule_id``, ``name``, ``strength``, ``guideline_id``,
+        ``guideline_title``, ``recommendation_verbatim``, and either a
+        parsed ``logic_tree`` dict (the EditableLogicNode payload sent
+        from the UI) or a ``logic_json`` string. ``action`` and
+        ``applies_to`` are optional.
+        """
+        if scope.scope_type == "global":
+            raise ValueError(
+                "compile_drafts refuses to write to the global scope; "
+                "use a custom scope so the draft cannot affect production."
+            )
+        self._closure_cache.clear()
+        self._compile_stats = dict(self._DEFAULT_COMPILE_STATS)
+        ruleset = await asyncio.to_thread(
+            self._compile_drafts_sync,
+            rules,
+            policy_mode,
+            distance_child_override,
+            distance_parent_override,
+        )
+        ruleset["version"] = version
+        ruleset["compile_timestamp"] = datetime.now(timezone.utc).isoformat()
+        ruleset["scope_type"] = scope.scope_type
+        ruleset["scope_id"] = scope.scope_id
+        ruleset["policy_mode"] = policy_mode
+        ruleset["compile_stats"] = dict(self._compile_stats)
+        ruleset["draft"] = True
+
+        self._store.write_ruleset(
+            version,
+            ruleset,
+            scope_type=scope.scope_type,
+            scope_id=scope.scope_id,
+        )
+        self._store.set_current_version(
+            version,
+            scope_type=scope.scope_type,
+            scope_id=scope.scope_id,
+        )
+        if ttl_seconds and ttl_seconds > 0:
+            try:
+                self._store.set_scope_ttl(
+                    scope.scope_type, scope.scope_id, ttl_seconds=ttl_seconds
+                )
+            except Exception as exc:
+                logger.warning(
+                    "compile_drafts: could not set TTL on sandbox scope %s/%s: %s",
+                    scope.scope_type,
+                    scope.scope_id,
+                    exc,
+                )
+        logger.info(
+            "Compiled DRAFT ruleset %s scope=%s/%s: %d/%d rules",
+            version,
+            scope.scope_type,
+            scope.scope_id,
+            len(ruleset.get("rules", [])),
+            len(rules),
+        )
+        return {
+            "version": version,
+            "rule_count": len(ruleset.get("rules", [])),
+            "draft_input_count": len(rules),
+            "compile_timestamp": ruleset["compile_timestamp"],
+            "scope_type": scope.scope_type,
+            "scope_id": scope.scope_id,
+            "policy_mode": policy_mode,
+            "compile_stats": dict(self._compile_stats),
+            "draft": True,
+        }
+
+    def _compile_drafts_sync(
+        self,
+        rules: list[dict[str, Any]],
+        policy_mode: Literal["advisory", "strict"],
+        distance_child_override: int | None,
+        distance_parent_override: int | None,
+    ) -> dict:
+        """CPU-bound sandbox compile -- runs in thread pool.
+
+        Opens its own Neo4j session because the SNOMED IS_A closure
+        expansion (see ``_closure_ids``) reads from the knowledge graph.
+        Without descendant expansion the bitmap would not match the same
+        codes the production evaluator does, so the parity guarantee
+        would break.
+        """
+        policy = CompilePolicy(mode=policy_mode)
+        self._compile_stats["rules_seen"] = len(rules)
+        compiled_rules: list[dict[str, Any]] = []
+        driver = _kg_driver()
+        try:
+            with driver.session() as session:
+                for rule_in in rules:
+                    rule_data = self._normalise_draft_rule(rule_in)
+                    if rule_data is None:
+                        continue
+                    compiled = self._compile_schema_v2_rule(
+                        rule_data,
+                        session,
+                        policy=policy,
+                        distance_child_override=distance_child_override,
+                        distance_parent_override=distance_parent_override,
+                    )
+                    if compiled is None:
+                        continue
+                    compiled_rules.append(compiled)
+        finally:
+            driver.close()
+        self._compile_stats["rules_included"] = len(compiled_rules)
+        self._compile_stats["rules_excluded"] = max(
+            0, len(rules) - len(compiled_rules)
+        )
+        return {"rules": compiled_rules}
+
+    @staticmethod
+    def _normalise_draft_rule(rule_in: dict[str, Any]) -> dict[str, Any] | None:
+        """Coerce a UI-side draft rule dict into _compile_schema_v2_rule shape."""
+        if not isinstance(rule_in, dict):
+            logger.warning("compile_drafts: ignoring non-dict rule entry")
+            return None
+        rule_id = rule_in.get("rule_id") or rule_in.get("id")
+        if not rule_id:
+            logger.warning("compile_drafts: ignoring rule with no rule_id")
+            return None
+        logic_tree = rule_in.get("logic_tree") or rule_in.get("logicJson")
+        if isinstance(logic_tree, str):
+            logic_json = logic_tree
+        else:
+            logic_json = json.dumps(logic_tree) if logic_tree else None
+        if not logic_json:
+            logger.warning(
+                "compile_drafts: rule %s has no logic_tree/logicJson", rule_id
+            )
+            return None
+        action = rule_in.get("action") or {}
+        action_concept_id = (
+            rule_in.get("action_concept_id")
+            or action.get("snomed_concept_id")
+            or action.get("concept_id")
+        )
+        action_name = (
+            rule_in.get("action_name")
+            or action.get("preferred_term")
+            or action.get("term")
+            or action.get("name")
+        )
+        return {
+            "rule_id": str(rule_id),
+            "name": rule_in.get("name") or "",
+            "strength": rule_in.get("strength") or "unspecified",
+            "schema_version": 2,
+            "logic_json": logic_json,
+            "guideline_id": rule_in.get("guideline_id") or "",
+            "guideline_title": rule_in.get("guideline_title") or "",
+            "guideline_domain_id": rule_in.get("guideline_domain_id"),
+            "chapter_title": rule_in.get("chapter_title"),
+            "recommendation_verbatim": rule_in.get("recommendation_verbatim")
+            or rule_in.get("recommendation_text")
+            or "",
+            "action_concept_id": action_concept_id,
+            "action_name": action_name,
+            "action_priority": rule_in.get("action_priority")
+            or action.get("priority")
+            or "routine",
+            "action_due_days": rule_in.get("action_due_days")
+            or action.get("due_days"),
+            "action_json": rule_in.get("action_json"),
+            "applies_to": list(rule_in.get("applies_to") or []),
+        }
 
     async def compile_and_store(
         self,
@@ -177,14 +383,7 @@ class GuidelineCompiler:
         scope = scope or CompileScope()
         statuses = include_rule_statuses or ["active"]
         self._closure_cache.clear()
-        self._compile_stats = {
-            "rules_seen": 0,
-            "rules_included": 0,
-            "rules_excluded": 0,
-            "policy_violations": 0,
-            "out_of_scope_concepts": 0,
-            "out_of_scope_actions": 0,
-        }
+        self._compile_stats = dict(self._DEFAULT_COMPILE_STATS)
 
         ruleset = await asyncio.to_thread(
             self._compile_ruleset,

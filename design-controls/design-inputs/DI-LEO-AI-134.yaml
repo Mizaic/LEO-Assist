@@ -13,10 +13,23 @@
     canonical cohort definition sourced from libs.analytics.cohorts.
     The canonical definition is:
 
-      ep.status = 'completed'
+      NOT ep.status IN ['merged','closed_phantom','closed_related',
+                        'closed_benign']
       AND coalesce(ep.letter_inferred_benign, false) = false
       AND EXISTS a linked Encounter with [:IS_PART_OF {milestone_type:
           IN ['diagnosis','diagnosis_confirmed']}]
+
+    The diagnosis_confirmed milestone is reserved for cancer outcomes,
+    so any non-administrative, non-benign episode that carries this
+    milestone is a confirmed cancer regardless of whether treatment has
+    started. This means in_progress episodes with a recorded diagnosis
+    ARE counted (a patient who has been told they have cancer but is
+    not yet in treatment is still a confirmed cancer for audit
+    purposes). Episodes resolved as benign (status = 'closed_benign'
+    or letter_inferred_benign = true) are explicitly excluded -- a
+    benign closure means the current 2WW pathway has been clinically
+    resolved as not-cancer, even if encounter text mentions a historic
+    unrelated malignancy.
 
     No endpoint SHALL inline its own status / benign / milestone filter
     set. A second, distinct helper suspected_cancer_referral_where()
@@ -52,8 +65,24 @@
           Every analytics router function that filters episodes by
           'confirmed cancer' status imports and uses
           confirmed_cancer_where(); no router file retains its own
-          ep.status = 'completed' AND letter_inferred_benign inline
-          filter.
+          inline status / letter_inferred_benign / dx-milestone
+          filter set.
+      - type: "functional"
+        spec: >
+          An episode with status 'in_progress' that carries a
+          diagnosis_confirmed milestone IS counted as a confirmed
+          cancer (treatment-started is not a precondition for the
+          confirmed-cancer label).
+      - type: "safety"
+        spec: >
+          An episode with status 'closed_benign' that carries a
+          diagnosis_confirmed milestone (legacy data-quality artefact
+          from historic cancer mentions in encounter text) is NEVER
+          counted as a confirmed cancer. The benign closure is the
+          authoritative outcome of the current 2WW pathway. The
+          reverse case is tracked in
+          design-controls/audits/improvements-backlog.md as an
+          episode-builder cleanup item.
       - type: "functional"
         spec: >
           The /audit/summary endpoint's confirmed_cancers field equals
@@ -109,6 +138,9 @@
       filter window; a regression test pins the 2025 baseline count to
       the diagnosis-milestone definition.
     test_protocol: "VT-LEO-AI-130"
+
+  related_verification:
+    - "VT-LEO-AI-163"  # in_progress / closed_benign cohort regression
 
   safety_class: "B"
   risks: ["R-LEO-AI-092"]

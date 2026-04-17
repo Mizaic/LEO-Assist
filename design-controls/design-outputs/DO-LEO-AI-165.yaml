@@ -1,0 +1,121 @@
+# -- DO-LEO-AI-165 -- Test patient generator + dry-run UI
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-165"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-166"]
+    user_needs: ["UN-LEO-AI-076"]
+    risks_addressed: ["R-LEO-AI-166"]
+    verification_tests: ["VT-LEO-AI-165"]
+
+  specification:
+    title: "Synthetic test-patient generator with dry-run preview"
+    description: |
+      Implements the generator and the reviewer-facing dry-run gate.
+
+      1. services/api/app/services/test_patient_generator.py
+         - Proposal dataclass carrying patient payload, rule_id,
+           rule_name, guideline_id, kind in {happy, fail, branch,
+           boundary} and a rationale string.
+         - generate(scope_type, depth, exclude_existing, ...) is the
+           single entry point used by the FastAPI router.
+         - _proposals_for_rule(): emits happy + fail at minimal_pair
+           depth, plus per-OR-branch and per-age-DEMOGRAPHIC boundary
+           proposals at boundary_plus_pairs depth.
+         - _collect_satisfying() walks AND / OR / AT_LEAST / NOT
+           subtrees collecting just enough CONCEPT codes to satisfy
+           the parent.
+         - _collect_demographic() emits age + sex consistent with
+           every DEMOGRAPHIC node in the tree.
+         - _dedup() drops proposals whose content_hash already exists
+           under the same guideline (via find_existing).
+
+      2. services/ui/src/app/admin/guidance/test-patients/BuildPatientDialog.tsx
+         - Reuses ConceptSearchPanel for SNOMED lookup.
+         - Save button is disabled until dry-run succeeds and the
+           reviewer ticks at least one expectation.
+         - Per-rule expectation toggles surface matched branch nodes
+           in plain English.
+
+      3. services/ui/src/app/admin/guidance/test-patients/GeneratePatientsDialog.tsx
+         - Calls /guidance/test-patients/generate, lets the reviewer
+           pick which proposals to keep, then bulk-saves with
+           skip_if_exists=True.
+
+    acceptance_criteria:
+      - criterion: "Happy and fail emitted for simple AND rule"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          For an AND of two CONCEPTs the generator emits exactly one
+          happy proposal containing both code ids and one fail
+          proposal containing one code id.
+      - criterion: "Boundary depth emits at-boundary and just-below-boundary"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          For an age >= 65 DEMOGRAPHIC at boundary_plus_pairs depth,
+          generator emits boundary patients with age = 65 and age = 64.
+      - criterion: "Branch depth emits one happy per OR child"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          For an AND containing an OR(a, b) at boundary_plus_pairs
+          depth, generator emits two branch proposals (one for a, one
+          for b) in addition to the happy / fail / boundary set.
+      - criterion: "Dry-run gate"
+        type: "safety"
+        measurement: "Inspection"
+        target: >
+          BuildPatientDialog.tsx renders the Save button disabled
+          until dryRunResult is non-null, and confirm_and_save
+          rejects requests with empty expectations from the UI.
+      - criterion: "Dedup at generation"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          When find_existing returns a hash for every proposal, the
+          generator returns proposals=[] (exclude_existing=True).
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/test_patient_generator.py"
+        description: "Proposal dataclass + scope-aware generator"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/BuildPatientDialog.tsx"
+        description: "Reviewer dialog for hand-building one patient with dry-run gate"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/GeneratePatientsDialog.tsx"
+        description: "Bulk proposal review + save dialog"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/api.ts"
+        description: "Thin client for /api/guidance/test-patients endpoints"
+    storage_location: "git"
+    technical_details:
+      language: "Python, TypeScript"
+      loc: 850
+      key_functions:
+        - "generate"
+        - "_proposals_for_rule"
+        - "_collect_satisfying"
+        - "_boundary_proposals"
+        - "BuildPatientDialog"
+        - "GeneratePatientsDialog"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Dry-run gate prevents reviewers from persisting an EXPECTED_RESULT snapshot taken from a wrong assumption."
+      - "Sex / age constraints in _collect_demographic prevent the generator from emitting demographics that violate the rule's DEMOGRAPHIC nodes."
+    risk_control_measures:
+      - "exclude_existing=True default avoids cohort drift when generators are re-run after rule edits."
+      - "Plain-English rationales on every proposal let the reviewer reject mis-generated patients before save."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

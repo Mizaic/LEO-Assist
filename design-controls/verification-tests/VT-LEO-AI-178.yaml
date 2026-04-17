@@ -1,0 +1,329 @@
+# -- VT-LEO-AI-178 -- SNOMED proposal validator with tiered acceptance ladder
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-178"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-184"]
+    risks: ["R-LEO-AI-177", "R-LEO-AI-178"]
+
+  metadata:
+    title: "Validator accepts via EXACT/SEMANTIC/SURFACE branch and rejects polarity / shared-token / lexical-coincidence false positives"
+    description: >
+      Pins the three-branch acceptance ladder
+      (EXACT / SEMANTIC / SURFACE) implemented in
+      validate_proposal, including the polarity guard, the
+      shared-token floor, the lexicon-gap admission via the
+      SEMANTIC branch (vector_raw>=0.92 AND
+      surface_match>=0.66), and the explicit refusal to accept
+      a proposal solely on the basis of the resolver's fused
+      score. Includes regression cases for the documented
+      false-positive set surfaced during the 950-proposal
+      backfill audit.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_gold_label_snomed_check.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-178-TC-001"
+      case_name: "Surface match score is containment, not Jaccard"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Compute surface_match for surface vs candidate term."
+          expected_result: "Returns shared_meaningful_tokens / surface_meaningful_tokens"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "matches the documented containment formula"
+
+    - case_id: "VT-178-TC-002"
+      case_name: "Top match accepted on EXACT branch with matching tag"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "validate_proposal('CKD', 'finding') with had_exact_match=True candidate."
+          expected_result: "accepted=True, branch='exact'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is True"
+        - "concept_id is the exact-branch hit"
+
+    - case_id: "VT-178-TC-003"
+      case_name: "Skip top-1 wrong tag and pick substance candidate"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Top-1 has wrong semantic_tag; rank-2 is tag-compatible."
+          expected_result: "accepted=True with rank-2 concept; reason notes tag selection."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is True"
+        - "concept_id matches the substance candidate"
+
+    - case_id: "VT-178-TC-004"
+      case_name: "Reject raw lab value (qualifier value tag)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "validate_proposal on a raw lab value resolving only to a qualifier_value candidate."
+          expected_result: "accepted=False with reason indicating qualifier rejection."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is False"
+
+    - case_id: "VT-178-TC-005"
+      case_name: "Reject qualifier with wrong domain tag"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Candidate qualifier_value when finding is expected."
+          expected_result: "accepted=False, reason='tag_mismatch_all'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is False"
+        - "reason == 'tag_mismatch_all'"
+
+    - case_id: "VT-178-TC-006"
+      case_name: "Reject drifted top-1 with low surface overlap"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Top-1 has high resolver score but surface_match below threshold."
+          expected_result: "accepted=False, reason='low_surface_match'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is False"
+        - "reason == 'low_surface_match'"
+
+    - case_id: "VT-178-TC-007"
+      case_name: "Accept known UK/US spelling via normalisation"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Surface 'haematuria' against candidate 'Hematuria'."
+          expected_result: "accepted=True via normalised surface containment."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is True"
+
+    - case_id: "VT-178-TC-008"
+      case_name: "No candidates returns no_candidates reason"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Resolver returns empty candidate list for the surface."
+          expected_result: "accepted=False, reason='no_candidates'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "reason == 'no_candidates'"
+
+    - case_id: "VT-178-TC-009"
+      case_name: "Empty input short-circuits to false"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "validate_proposal('', 'finding')"
+          expected_result: "accepted=False without resolver call"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is False"
+
+    - case_id: "VT-178-TC-010"
+      case_name: "Batch resolves unique pairs only"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "validate_proposals_batch with duplicate (surface, label) entries."
+          expected_result: "Resolver called once per unique pair; results fanned out by index."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "resolver call count == number of unique pairs"
+
+    - case_id: "VT-178-TC-011"
+      case_name: "Synonym tag match flagged for review"
+      priority: "medium"
+      test_steps:
+        - step_number: 1
+          action: "Candidate matches via synonym tag mapping."
+          expected_result: "accepted=True with review_reason='synonym_tag_match'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is True"
+
+    - case_id: "VT-178-TC-012"
+      case_name: "Reject surface sharing only one stopword-like token (cancer free family)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "validate_proposal('cancer free', 'finding') against 'Seizure free' candidate."
+          expected_result: "accepted=False, reason='shared_token_floor'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is False"
+        - "reason == 'shared_token_floor'"
+
+    - case_id: "VT-178-TC-013"
+      case_name: "Single-token surface still acceptable under token floor"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "validate_proposal('CKD', 'finding') with single-token surface."
+          expected_result: "accepted=True via EXACT branch (token floor does not apply to single-token surfaces)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is True"
+
+    - case_id: "VT-178-TC-014"
+      case_name: "SEMANTIC branch accepts lexicon gap with high vector_raw"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            validate_proposal('primary lung mass', 'finding')
+            with vector_raw=0.94 and surface_match~=0.66.
+          expected_result: "accepted=True via SEMANTIC branch"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is True"
+        - "branch == 'semantic'"
+
+    - case_id: "VT-178-TC-015"
+      case_name: "SEMANTIC branch rejected when surface match too low"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            High vector_raw (0.95) but surface_match=0.5 (below
+            semantic_min_surface=0.66).
+          expected_result: "accepted=False, reason='low_surface_match'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is False"
+
+    - case_id: "VT-178-TC-016"
+      case_name: "SEMANTIC branch rejected when vector_raw too low"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            surface_match=0.7 but vector_raw=0.85 (below
+            semantic_vector_floor=0.92).
+          expected_result: "accepted=True via SURFACE branch only if surface check passes; otherwise rejected"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "branch != 'semantic'"
+
+    - case_id: "VT-178-TC-017"
+      case_name: "EXACT branch accepts regardless of surface match"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            had_exact_match=True with low surface_match (0.3).
+          expected_result: "accepted=True via EXACT branch"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is True"
+        - "branch == 'exact'"
+
+    - case_id: "VT-178-TC-018"
+      case_name: "Misleading fused score alone does not accept"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            High fused score=1.3 but had_exact_match=False,
+            vector_raw=0.5, surface_match=0.4.
+          expected_result: "accepted=False; validator does not consume fused score as primary signal"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is False"
+
+    - case_id: "VT-178-TC-019"
+      case_name: "Polarity guard: reject 'no hydrocephalus' against 'Hydrocephalus'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            validate_proposal('no hydrocephalus', 'finding')
+            against non-negated 'Hydrocephalus' candidate.
+          expected_result: "accepted=False, reason='polarity_mismatch'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is False"
+        - "reason == 'polarity_mismatch'"
+
+    - case_id: "VT-178-TC-020"
+      case_name: "Accept negation when SNOMED term also negates"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            validate_proposal('no hydrocephalus', 'finding')
+            against 'Hydrocephalus absent' candidate.
+          expected_result: "accepted=True (polarities aligned)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "accepted is True"
+
+    - case_id: "VT-178-TC-021"
+      case_name: "Picks higher-surface candidate when multiple pass"
+      priority: "medium"
+      test_steps:
+        - step_number: 1
+          action: >
+            Two candidates both pass acceptance; one has
+            higher surface_match.
+          expected_result: "Higher-surface candidate selected"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "concept_id matches the higher-surface candidate"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run", "end_to_end_audit_summary"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-178/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_date: "2026-04-17"
+      executor: "automated pytest CI"
+      commit: "HEAD (calibrated-snomed-scoring branch)"
+      command: >
+        PYTHONPATH=. python -m pytest
+        tests/test_gold_label_snomed_check.py -v --no-cov
+      result: "pass"
+      cases_executed: 21
+      cases_passed: 21
+      cases_failed: 0
+      evidence_path: >
+        /evidence-bundles/LEO-AI/verification/VT-LEO-AI-178/
+        2026-04-17-pytest-validator.log
+      notes: >
+        Full validator suite green. Companion end-to-end run of
+        scripts/validate_backfill_snomed.py against the 950
+        HITL-completed backfill (data/backfill/
+        gold_label_proposals_20260417T130126Z.jsonl) produced
+        240 kept additions with resolver_score in
+        [0.873, 1.000] (mean 0.989). All four documented
+        false positives (nipple inversion on the right breast,
+        worsened over the last six months, pain from
+        back/buttocks to toes, surgery in jan to remove cyst
+        in left kidney) appeared in the rejected set.

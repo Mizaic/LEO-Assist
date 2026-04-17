@@ -1,0 +1,219 @@
+======================================================================
+PATIENT      : 7322946243
+EPISODE      : 1f6bf62b7ed39f5a
+CANCER_TYPE  : breast
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-02-05
+WINDOW       : 2025-01-22 .. 2025-05-06 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-02-05  referral                enc=17743cd1-d46b-40fc-b5e3-78d122a8bf0d
+  2025-02-05  referral                enc=0175e7f5-f733-40bc-bc6b-b8772a51ed3d
+  2025-02-06  referral                enc=d1962054-4964-410a-9e40-d0e91f906b23
+  2025-02-10  referral                enc=0006b6e9-cafe-4e72-a9cf-d5e975fb88c7
+  2025-03-06  first_seen              enc=15dcc9f3-d254-4635-9be4-a87ac442ffe3
+  2025-03-17  first_seen              enc=2dcb7f2a-add2-40e1-be65-38321832b902
+
+Encounters in window (n=23):
+
+--- 01 2025-02-04 [other] milestones=[] eid=10bb5953-a5a8-473f-b2b6-868f18ef1507 ---
+10:20 - Surgery: MCDOWELL, Giselle (Receptionist Access Role)
+
+--- 02 2025-02-04 [other] milestones=[] eid=fa2cd443-9023-4b52-84d0-ad578daeeb26 ---
+13:09 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) 
+History: Tel triage duty list.
+
+Lump on right nipple. Present for 3 years.
+Increasing size daily.
+Painful.
+Some discharge which is staining clothes.
+Well in self. No fever.
+Examination: Sounds well phone.
+Plan: Invited for examination today. Declined, tells me not able to get here.
+Booked for tomorrow at 10:30 with Dr AS (thank you).
+SOS if fever, rigors, SOB etc in the meantime.
+
+--- 03 2025-02-04 [other] milestones=[] eid=005243dd-9a38-419b-a344-7ef720f713c3 ---
+Dear Ifeoluwa Adeparusi
+
+Your appointment has been booked for 05 Feb 2025 10:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 04 2025-02-05 [other] milestones=[] eid=c08980a9-a245-42cd-b092-9d35bf5efac3 ---
+10:29 - Surgery: MCDOWELL, Giselle (Receptionist Access Role)
+
+--- 05 2025-02-05 [IN-EP] milestones=['referral'] eid=17743cd1-d46b-40fc-b5e3-78d122a8bf0d ---
+10:37 - Surgery: SELVAMOGAN, Arrane (Dr) (Clinical Practitioner Access Role) 
+Problem: Lesion of breast (Xa4ib)
+History: 32F with 2 years superficial skin tag on right breast with 1 day hx of it rapidly increasing in size. 
+
+The superficial skin tag was intially 0.1cm in size and yesterday it rapidly grew and was 5cm in size.
+No mass underneath skin. 
+No nipple discharge
+
+Associated with pain. 
+When she had a hot shower, a part of the skin tag peeled off and started oozing pus and blood. 
+1 episode of fever yesterday. 
+
+No rigors, no headaches, no nausea or vomiting. 
+Otherwise feels well in herself. 
+
+Has hx of keloids and skin tags. 
+
+No children 
+No hx of breastfeeding 
+No fam hx of breast cancer   
+Examination: RIght breast skin tag 9 o clock position on areola. 
+Now pink skin tag 0.5cm in size with pus oozing around. 
+No mass under superficial skin lesion. 
+
+Pain on palpation of skin lesion. 
+No surrounding erythyma of skin lesion. No hardness of skin around skin lesion. 
+Breast tissue soft. 
+
+No lymph nodes palpated in infraclavicular and axilla region. 
+
+
+Left breast normal examination. 
+Diagnosis: Superficial skin tag infection 
+Plan: 1. Flucloxacillin 7 days. 
+2. Breast clinic 2ww 
+3. Advised px to go to A&E if she sees red flags of sepsis-  significantly unwell with fevers, rigors, myalgia, nausea or vomiting, headaches
+Lesion of breast (Xa4ib)
+Flucloxacillin 500mg capsules - 56 capsule - take two 4 times/day
+ETP2 FP10: Not Yet Printed - Signed
+Community Pharmacy changed. Previous data: Was previously unset
+Lesion of breast (Xa4ib)
+
+--- 06 2025-02-05 [other] milestones=[] eid=4eca2644-294d-4a9f-b877-70d8166d2747 ---
+10:46 - Surgery: SELVAMOGAN, Arrane (Dr) (Clinical Practitioner Access Role) 
+Patient telephone number (9159.) - 07988 568895
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Adeparusi,
+Please can you send in a picture for our  record
+TO RESPOND, please follow this link: (link will autogenerate here)
+Thanks, Arrane Selvamogan
+Woodbrook Medical Centre
+
+--- 07 2025-02-05 [other] milestones=[] eid=82cc2a09-b963-40da-aa1b-fde7f3fe39f0 ---
+10:49 - Surgery: SELVAMOGAN, Arrane (Dr) (Clinical Practitioner Access Role) 
+Online questionnaire completed by patient
+Dear Mrs Adeparusi,
+
+Please can you send in a picture for our  record
+
+Thanks, Arrane Selvamogan
+Woodbrook Medical Centre
+
+Response:
+
+Patient attached photo or document
+Patient uploaded 1 attachment
+Received on: 05/02/2025 at 10:48
+URL: https://web.accurx.com/api/conversation/patientupload/5542/69366566/4vsmta69zz - Photo submitted by patient
+JPEG Image: kzysb3yk.jpg - Photo submitted by patient
+
+--- 08 2025-02-05 [IN-EP] milestones=['referral'] eid=0175e7f5-f733-40bc-bc6b-b8772a51ed3d ---
+10:55 - Surgery: SELVAMOGAN, Arrane (Dr) (Clinical Practitioner Access Role) 
+- PRISM 2WW Breast Female -  questionnaire started - (finalised: 05 Feb 2025 10:55)
+Referral to breast surgery service (XaAdt) - (Added from Questionnaire)
+ - PRISM 2WW Breast Female Drawing
+    
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+      2WW Breast Female Referral Pathway/Breast Clinic accessed
+      Outbound referral (XaY59)
+       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 05 Feb 2025 10:55)
+Outbound referral (XaY59)
+Template Entry Marked in Error: Wrong data entered
+
+Letter Marked in Error: Wrong data entered
+Recipient
+Attachment Marked in Error: Wrong data entered
+05 Feb 2025 10:55, Word Letter
+2WW Breast Female Referral Pathway/Breast Clinic accessed
+
+--- 09 2025-02-06 [IN-EP] milestones=['referral'] eid=d1962054-4964-410a-9e40-d0e91f906b23 ---
+10:34 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+2WW Breast Female PRISM to Unknown
+
+--- 10 2025-02-10 [IN-EP] milestones=['referral'] eid=0006b6e9-cafe-4e72-a9cf-d5e975fb88c7 ---
+08:31 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected breast cancer (XaMeC)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww breast
+Hospital Fast track referral for suspected breast cancer
+Hospital Fast track referral for suspected breast cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww breast
+
+--- 11 2025-02-10 [other] milestones=[] eid=ebd02846-0af8-4470-9dcd-e0a7b3cb122f ---
+08:33 - Automatically updated from PAS interface: Unknown Staff Member  Entered at: University Hospitals of Leicester NHS Trust - EPR
+Hospital Number: S3405878 (Primary PAS ID) at University Hospitals of Leicester NHS Trust
+SystmOne Incoming Record Sharing consent changed to: Not asked - Record shared - Automatically generated by SystmOne
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared - Automatically generated by SystmOne
+
+--- 12 2025-02-10 [other] milestones=[] eid=8480d31b-d3b0-4de0-930d-7981b5736c9e ---
+11:46 - Automatically updated from PAS interface: Unknown Staff Member  Entered at: University Hospitals of Leicester NHS Trust - EPR
+Mobile telephone number: 07988 568895
+
+--- 13 2025-02-19 [other] milestones=[] eid=69bba59c-ed86-42e3-b21f-76ff6b9c7a4f ---
+11:57 - Surgery: DODDS, Portia  
+Excepted from cervical screening quality indicators - no response to three invitations (finding) (Y1f96) - Added in bulk
+
+--- 14 2025-02-28 [other] milestones=[] eid=20659180-7228-4d09-87c5-60e27efb5496 ---
+08:55 - Surgery: SUMNER, Emily (Miss)  
+Did not attend for Session appointment with Miss Emily Sumner.
+Did not attend (Xa1kG)
+
+--- 15 2025-02-28 [other] milestones=[] eid=a7e34fd4-7620-4b9d-875f-6983c10c408d ---
+You did not attend your appointment on 28 Feb 2025 08:55 at Woodbrook Medical Centre. Please notify the service on 01509 239166 if unable to attend.
+
+--- 16 2025-03-06 [IN-EP] milestones=['first_seen'] eid=15dcc9f3-d254-4635-9be4-a87ac442ffe3 ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected breast cancer clinic (XaPyQ)
+
+--- 17 2025-03-06 [other] milestones=[] eid=8d88de63-0295-4eb9-a408-db7561a2bf2d ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Breast Clinic to Woodbrook Medical Centre
+
+--- 18 2025-03-06 [other] milestones=[] eid=02c7c068-99a4-42db-bc74-d2b621d75500 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+Minor: Other viral warts (XE0Tg) - R breast (New Episode)
+Other viral warts (XE0Tg) - R breast
+
+--- 19 2025-03-06 [other] milestones=[] eid=5b64fd5c-9761-4dd9-a127-fb7105c0898d ---
+14:00 - Automatically updated from PAS interface: Unknown Staff Member  Entered at: University Hospitals of Leicester NHS Trust - EPR
+
+--- 20 2025-03-06 [other] milestones=[] eid=b49a87fa-dba7-4d81-9432-912d51c30202 ---
+14:01 - Automatically updated from PAS interface: Unknown Staff Member  Entered at: University Hospitals of Leicester NHS Trust - EPR
+
+--- 21 2025-03-06 [other] milestones=[] eid=b07e247f-0311-48c2-af75-678ac42ce003 ---
+14:49 - DOUGHTY, Lauren  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Administration (9....)
+Contact trigger : Other (Y3eaa)
+Administration (9....)
+
+--- 22 2025-03-06 [other] milestones=[] eid=21eceee7-cb82-495c-be7f-1d7341871826 ---
+14:50 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+Appointment administration (XaBEY)
+Patient telephone number (9159.) - 07988 568895
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Adeparusi,
+You did not attend your appointment on the 28th of Feb. 
+Please note that a continuous pattern of missing appointments could result in your deduction from the practice. 
+If you need to cancel an appointment, let us know by calling 01509 239166 or by cancelling online. 
+Thank you
+Woodbrook Medical Centre
+
+--- 23 2025-03-17 [IN-EP] milestones=['first_seen'] eid=2dcb7f2a-add2-40e1-be65-38321832b902 ---
+14:31 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 06 Mar 2025
+

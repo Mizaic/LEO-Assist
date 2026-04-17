@@ -1,0 +1,196 @@
+---
+description: Role-first @leo/design-system conventions for the LEO AI Core UI (Wave D / Wave E baseline)
+globs: services/ui/src/**/*.tsx,services/ui/src/**/*.ts,services/design-system/src/**/*.tsx,services/design-system/src/**/*.ts
+alwaysApply: false
+---
+
+# Design System UI Conventions
+
+Wave D + Wave E established a single, role-first design system at
+`services/design-system/` (npm workspace `@leo/design-system`). All new
+UI MUST consume that system. Direct `@mui/material` imports inside
+`services/ui/src/app/admin/knowledge/**` are a regression and will be
+blocked by ESLint in Phase 7.
+
+## 1. Source of truth
+
+- **Workspace package:** `@leo/design-system`. Imported as
+  `import { StatHero, ToolbarActions, ... } from "@leo/design-system";`.
+- **Index:** `services/design-system/src/index.ts` re-exports
+  `tokens`, `motion`, `fonts`, `roles`, `copy`, `primitives`.
+- **Primitives:** live in `services/design-system/src/primitives/`.
+  At time of writing: `KnowledgePageLayout`, `IntroCard`, `StatHero`,
+  `MetricTile`, `ProgressStrip`, `SegmentedTabs`, `FilterBar`,
+  `ToolbarActions`, `ReviewListCard`, `DataGridCard`, `TaskQueue`,
+  `ProgressiveReveal`. Do not duplicate any of these in `services/ui`.
+
+## 2. Pick the right primitive
+
+| Surface                                | Primitive(s)                                 |
+| -------------------------------------- | -------------------------------------------- |
+| Page chrome (intro + tabs)             | `KnowledgePageLayout` + `IntroCard`          |
+| Top-of-page stats                      | `StatHero` (4 tiles), or `MetricTile` grid   |
+| Page-level primary action              | `ToolbarActions` (single `variant: "primary"`) |
+| Status / category filter               | `SegmentedTabs` (with `tabs` / `value` / `aria-label`) |
+| Free-text search + facet chips         | `FilterBar`                                  |
+| Long row of editable items             | `ReviewListCard`                             |
+| Tabular data with sort / select        | `DataGridCard`                               |
+| Inline progressive disclosure          | `ProgressiveReveal`                          |
+| Multi-step workflow card               | Local `StepCard` pattern (see Clinical Guidelines) |
+| Multi-stage progress                   | `ProgressStrip`                              |
+
+If the surface needs something the primitives do not yet cover, raise
+a new primitive in `@leo/design-system` rather than re-implementing it
+inside `services/ui/src`.
+
+## 3. Tokens, never magic numbers
+
+- **Spacing:** 8pt grid via `tokens/spacing` (`xxs:4 / xs:8 / sm:12 /
+  md:16 / lg:24 / xl:32 / xxl:48`). Values in `sx` should map to these.
+- **Radius:** `tokens/spacing.radius` (`xs:4 / sm:8 / md:12 / lg:16 /
+  pill:999`). Cards default to `md` (12).
+- **Elevation:** `tokens/spacing.elevation.card / .popover / .modal`.
+- **Motion:** `tokens/motion` (`default` 180ms easeOut, `route` spring,
+  `hover` 120ms easeOut, `instant`). Always wrap with `useMotion()` so
+  reduced-motion users collapse to 0ms automatically.
+- **Roles:** `roles` exports the role-first IA (Clinical Lead, QA / RA
+  Lead, Solutions Architect, Operator). Use `useRole()` to gate
+  features, never hardcode role strings.
+
+## 4. Canonical card pattern
+
+The card pattern shipped through Wave E (DomainCard, PackageCard,
+PathwayCard, StepCard, ReviewListCard) is the visual baseline. New
+cards MUST match it:
+
+- `borderRadius: 12` (number) or `"12px"` (string) -- both accepted.
+- `padding: 18` or `p: "18px"`.
+- `border: "1px solid #E2E8F0"` (or `borderColor: "divider"`).
+- 3px-wide left accent strip, tone-coded by status:
+  ```tsx
+  <span
+    aria-hidden="true"
+    style={{
+      position: "absolute",
+      left: 0,
+      top: 14,
+      bottom: 14,
+      width: 3,
+      borderRadius: 2,
+      background: accent,
+    }}
+  />
+  ```
+- `minHeight: 168` for grid cards (so the grid stays tidy on the wide
+  layout).
+- Stagger entry via framer-motion `delay = Math.min(index, 12) * 0.04`
+  (see `PathwayCard.tsx`).
+
+## 5. Knowledge tab width parity
+
+`services/ui/src/app/admin/knowledge/page.tsx` owns the `TAB_WIDTH`
+map. All eight Knowledge tabs render at `"wide"` (1600px). Reading-
+oriented surfaces stay on `"reading"` (1280px). Do not split a tab
+into a third width without raising a DI; users complained loudly when
+widths drifted.
+
+## 6. Adaptive density
+
+Density is read from `useDensity()` (Phase 1 cont, in flight). Until
+the context provider lands, primitives accept a `density?: "airy" |
+"compact"` prop with `"airy"` as the default. New components MUST
+accept density as a prop and respect it for vertical padding.
+
+## 7. Framer Motion is the only animation library
+
+- Import as `import { motion as fm } from "framer-motion";`.
+- Use `fm.div`, `fm.section`, `fm.button`. Never animate via raw CSS
+  transitions for new components.
+- Stagger lists with `delay = Math.min(index, MAX) * STEP` (typical
+  values: `MAX=12`, `STEP=0.04`).
+- For a hover lift, prefer `whileHover={{ boxShadow: ... }}` over
+  changing `y` so it stays accessible to keyboard-focus users.
+- Always honour reduced-motion: when `useMotion()` returns
+  `prefersReducedMotion`, fall through to `motion.instant` so the
+  duration is 0ms.
+
+## 8. MUI is allowed -- but as an internal renderer
+
+Outside `@leo/design-system`, `@mui/material` is permitted only for
+low-level renderers (`Box`, `Stack`, `Typography`, `Button`, `Chip`,
+`Dialog`, `TextField`, `Tooltip`, `IconButton`, `Skeleton`, `Alert`).
+Do not introduce a new MUI surface that the design system already
+covers. If you find yourself rebuilding `Tabs`, `Card`, `CardContent`,
+or `LinearProgress`-based stat tiles, use the design-system primitive
+instead.
+
+- Import from specific paths: `import Box from "@mui/material/Box";`
+  (never barrel imports). This keeps Turbopack incremental builds fast.
+- Never use raw `style={{ ... }}` on MUI components -- use `sx`. The
+  one allowed exception is the framer-motion `style` prop on
+  `motion.div` etc., where `sx` is not available.
+
+## 9. Page structure checklist
+
+Every Knowledge / Admin page should follow the same skeleton:
+
+```tsx
+import {
+  StatHero,
+  SegmentedTabs,
+  ToolbarActions,
+  type StatTile,
+  type ToolbarAction,
+} from "@leo/design-system";
+
+export default function MyPage() {
+  // ... data + state
+  const stats: StatTile[] = useMemo(() => /* ... */, [data]);
+  const toolbarActions: ToolbarAction[] = [
+    {
+      id: "primary-action",
+      label: "Do the thing",
+      icon: <AddIcon fontSize="small" />,
+      variant: "primary",  // exactly one primary per page
+      onClick: () => /* ... */,
+    },
+  ];
+
+  return (
+    <Box>
+      <StatHero stats={stats} />
+      {/* error alert */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 2, mb: 2 }}>
+        <SegmentedTabs tabs={...} value={...} onChange={...} aria-label="..." />
+        <ToolbarActions actions={toolbarActions} />
+      </Box>
+      {/* loading / empty / no-match / data */}
+    </Box>
+  );
+}
+```
+
+## 10. Copy + role-first tone
+
+All UI text MUST go through `services/design-system/src/copy/` so the
+role-first IA can reuse it. Patient- or non-specialist-facing copy
+also follows `health-literacy.mdc` (reading age 9-11, plain English,
+short sentences, active voice).
+
+## 11. ASCII only
+
+All source files (TSX, TS, comments, copy strings) MUST be ASCII --
+no em-dashes, curly quotes, arrows, or box-drawing characters. See
+`ascii-only.mdc`. PowerShell on Windows breaks otherwise.
+
+## 12. File-size discipline
+
+UI files follow the project-wide limits in `code-quality.mdc`:
+
+- Target <=300 LOC, hard limit 500 LOC.
+- When a page approaches 500 LOC, split it into sibling modules in the
+  same directory: e.g. `pathways/{page.tsx, PathwayCard.tsx,
+  dialogs.tsx, templates.ts, types.ts}`. The `page.tsx` keeps state +
+  handlers; sibling modules are presentational.
+- Dialog clusters live in a sibling `dialogs.tsx` (or
+  `<Feature>Dialog/` folder for >2 sub-components).

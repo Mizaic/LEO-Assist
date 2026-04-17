@@ -169,4 +169,27 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - execution_date: "2026-04-16"
+      executor: "automated pytest CI"
+      commit: "HEAD (episode-builder-fragmentation-fix branch)"
+      command: >
+        PYTHONPATH=. python -m pytest
+        tests/test_episode_builder_fallback_claim.py
+      result: "pass"
+      cases_executed: 9
+      cases_passed: 9
+      cases_failed: 0
+      evidence_path: >
+        /evidence-bundles/LEO-AI/verification/VT-LEO-AI-137/
+        2026-04-16-pytest-fallback-claim.log
+      notes: >
+        All 9 VT cases pass. Includes strict same-site match (Pass 1),
+        fallback any-site match (Pass 2), MIN_REFERRAL_TO_DIAG_DAYS
+        gate, DIAG_LOOKBACK_DAYS gate, honest NULL referral_date for
+        truly-floating diagnoses, strict precedence over fallback,
+        referral_match_method graph persistence, and idempotency on
+        second invocation. One pre-existing episode-builder test
+        updated (test_links_diagnosis_encounters: 2 -> 1 episode as
+        Pass 2 correctly merges breast referral with NSS diagnosis;
+        rationale recorded in tests/test_episode_builder.py).

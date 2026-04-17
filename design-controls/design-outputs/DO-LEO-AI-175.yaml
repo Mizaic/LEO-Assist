@@ -1,0 +1,68 @@
+# -- DO-LEO-AI-175 -- Knowledge tabs ESLint guard + e2e a11y baseline (Wave E Phase 7)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-175"
+  version: "1.0.0"
+  type: "Configuration"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-176"]
+    user_needs: ["UN-LEO-AI-061"]
+    risks_addressed: []
+    verification_tests: ["VT-LEO-AI-171"]
+
+  specification:
+    title: "Knowledge tabs ESLint + Playwright/axe baseline"
+    description: |
+      Adds two complementary guards around the eight Knowledge tabs:
+      (1) a flat-config ESLint rule (services/ui/eslint.config.mjs)
+      that warns when raw @mui/* packages are imported under
+      services/ui/src/app/admin/knowledge/**, nudging contributors
+      toward @leo/design-system primitives; and (2) a Playwright spec
+      (services/ui/e2e/knowledge-tabs.spec.ts) that loads each of the
+      eight tab keys (training-data, surface-forms, context-rules,
+      ai-instructions, clinical-guidelines, pathways, domains,
+      terminology) and runs @axe-core/playwright against the page,
+      failing the test if any critical or serious WCAG 2.0/2.1 AA
+      violation is found.
+    acceptance_criteria:
+      - criterion: "ESLint guard present"
+        type: "functional"
+        measurement: "Inspection"
+        target: >
+          eslint.config.mjs contains a no-restricted-imports rule
+          scoped to src/app/admin/knowledge/**/*.{ts,tsx} that warns
+          on @mui/* imports.
+      - criterion: "Playwright spec covers eight tabs"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          knowledge-tabs.spec.ts contains a KNOWLEDGE_TABS array with
+          all eight tab keys and a paired loads + axe block per tab.
+
+  implementation:
+    artifacts:
+      - artifact_type: "configuration"
+        location: "services/ui/eslint.config.mjs"
+        description: "Flat ESLint config with admin/knowledge guard"
+      - artifact_type: "source_code"
+        location: "services/ui/e2e/knowledge-tabs.spec.ts"
+        description: "Playwright + axe-core baseline for the eight tabs"
+      storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 80
+      key_functions:
+        - "test.describe(knowledge tabs (VT-LEO-AI-171))"
+
+  safety_characteristics:
+    safety_class: "A"
+    safety_critical_functions: []
+    risk_control_measures:
+      - "Static guard prevents raw MUI re-introduction"
+      - "Automated WCAG AA sweep per tab"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

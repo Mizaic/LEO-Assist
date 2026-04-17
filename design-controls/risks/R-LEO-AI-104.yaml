@@ -1,0 +1,120 @@
+# -- R-LEO-AI-104 -- Clinical Guidelines redesign breaks step-to-step refresh chain
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-104"
+  title: >
+    The Wave E Phase 5 redesign of the Clinical Guidelines
+    orchestrator could silently break the loadedRefreshKey /
+    ruleRefreshKey bridges, leaving the QA reviewer staring at
+    stale Loaded-guidelines / Rule-review panes after they have
+    just loaded a new NICE guideline or generated new rules.
+
+  hazard:
+    description: >
+      The legacy guidance/page.tsx exposed two state bridges --
+      loadedRefreshKey and ruleRefreshKey -- that are bumped by
+      child sections to force their downstream peers to refetch.
+      A chrome rebuild that wraps the four sections in a new
+      StepCard hierarchy could omit, rename or mis-wire those
+      props, so a freshly-loaded guideline never appears in the
+      Loaded-guidelines pane and freshly-generated rules never
+      appear in the Rule-review pane.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A QA reviewer loads a new NICE guideline, then jumps to step 2
+    expecting to see the new entry. The pane shows the previous
+    list (because LoadedGuidelinesPanel was not refreshed). The
+    reviewer assumes the load failed and reloads the page, losing
+    the in-progress filter / sort selection they had built up. In
+    the worst case they re-trigger the load, doubling the loaded
+    record and creating duplicate guideline entries that need
+    cleanup before the next compile.
+
+  harm:
+    description: >
+      Reviewer wastes time on stale data and may create duplicate
+      guideline records. Bounded by the fact that nothing is
+      written to the patient graph from this surface -- duplicate
+      guidelines are caught by the next compile step, which is
+      itself behind a deliberate operator confirmation. No
+      patient-data corruption pathway exists.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        StepCards mount the same four child sections with the
+        same prop contract as the legacy SectionBox layout --
+        NiceLoaderSection.onGuidelineLoaded,
+        LoadedGuidelinesPanel.refreshKey + onRulesGenerated,
+        RuleReviewSection.refreshKey, BitmapLifecycleSection
+        (no props). The only orchestrator state remains
+        loadedRefreshKey + ruleRefreshKey.
+      implemented_by: ["DI-LEO-AI-152"]
+      verified_by: ["VT-LEO-AI-150"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: >
+        VT-LEO-AI-150 TC-006 statically scans the page source for
+        every refresh-key bump pattern (setLoadedRefreshKey((n) =>
+        n + 1), refreshKey={loadedRefreshKey},
+        setRuleRefreshKey, refreshKey={ruleRefreshKey}). A future
+        regression that drops or renames a bridge fails CI before
+        it can ship.
+      implemented_by: ["DI-LEO-AI-152"]
+      verified_by: ["VT-LEO-AI-150"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        The sticky workflow jump strip (load / review / compile)
+        keeps all three steps in scrollable view at the same
+        time. If a reviewer suspects stale data they can scroll
+        the relevant pane back into view rather than reloading
+        the whole page.
+      implemented_by: ["DI-LEO-AI-152"]
+      verified_by: ["VT-LEO-AI-150"]
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 1
+    rpn: 2
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the prop contract preserved verbatim, the static
+      verification gate in VT-LEO-AI-150 TC-006, and the always-
+      visible sticky jump strip, the residual probability of a
+      bridge regression slipping into production is very low. No
+      patient data is written from this surface, so even a
+      regression has no path to clinical harm.
+
+  monitoring:
+    monitoring_plan: >
+      Each release: re-run VT-LEO-AI-150 in CI; manual smoke test
+      that loading a NICE guideline updates the Loaded-guidelines
+      pane and that generating rules updates the Rule-review
+      pane.
+    metrics:
+      - "VT-LEO-AI-150 pass rate (must remain 100%)"
+      - "Reviewer-reported stale-pane reports per quarter (target: 0)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Wave E Phase 5 design review (Clinical Guidelines redesign)"
+    identified_date: "2026-04-16"
+    status: "mitigated"
+    tags:
+      - "knowledge"
+      - "clinical-guidelines"
+      - "wave-e"
+      - "phase-5"

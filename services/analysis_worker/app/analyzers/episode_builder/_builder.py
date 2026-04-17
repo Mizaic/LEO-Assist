@@ -116,6 +116,79 @@ def _treatment_started_link_anchors(
     return []
 
 
+# DI-LEO-AI-171: silent-closure provenance fix. When the episode builder
+# resolves an open episode to status='closed_benign' (whether via a
+# benign_closure anchor, a benign-qualifier closure, or a letter-inferred
+# benign), we MUST persist a benign_closure IS_PART_OF edge so the
+# downstream traceability matrix and the canonical confirmed-cancer
+# cohort query can distinguish 'no diagnosis recorded' from 'clinically
+# resolved as not-cancer'. The earlier behaviour wrote the status
+# silently and left no audit trail, producing the 77 closed_benign
+# episodes with zero benign_closure milestones discovered in the
+# 2026-04-17 audit.
+def _benign_closure_link_anchors(
+    benign_closure_anchors: list[dict[str, Any]],
+    benign_date: date | None,
+    ref_date: date | None,
+) -> list[dict[str, Any]]:
+    """Return a single earliest in-window encounter for benign_closure."""
+    if not benign_closure_anchors or not benign_date:
+        return []
+    window_start = ref_date or date.min
+    in_window: list[dict[str, Any]] = []
+    for anchor in benign_closure_anchors:
+        encounter_id = str(anchor.get("encounter_id") or "")
+        if not encounter_id:
+            continue
+        a_date = _parse_date(str(anchor.get("encounter_date") or ""))
+        if a_date is None:
+            continue
+        if window_start <= a_date <= benign_date:
+            in_window.append(anchor)
+    if not in_window:
+        return []
+    in_window.sort(key=lambda a: str(a.get("encounter_date") or ""))
+    return [in_window[0]]
+
+
+def _first_seen_link_anchors(
+    first_seen_anchors: list[dict[str, Any]],
+    ref_date: date | None,
+    end_date: str | None,
+) -> tuple[list[dict[str, Any]], str | None]:
+    """DI-LEO-AI-145: Claim first_seen anchors within episode window.
+
+    Returns (anchors_to_link, first_seen_date_str).  An anchor is
+    claimed when its date falls on or after ref_date (or any date when
+    no referral) and on or before end_date + 90 days.
+    """
+    if not first_seen_anchors:
+        return [], None
+    window_start = ref_date or date.min
+    try:
+        window_end = (
+            _parse_date(end_date) + timedelta(days=90)
+            if end_date
+            else date.max
+        )
+    except Exception:  # noqa: BLE001
+        window_end = date.max
+    claimed = [
+        a for a in first_seen_anchors
+        if _parse_date(str(a.get("encounter_date") or ""))
+        and window_start
+        <= _parse_date(str(a.get("encounter_date") or ""))  # type: ignore[operator]
+        <= window_end
+        and str(a.get("encounter_id") or "")
+    ]
+    if not claimed:
+        return [], None
+    first_date = min(
+        str(a.get("encounter_date") or "")[:10] for a in claimed
+    )
+    return claimed, first_date
+
+
 def _has_competing_confirmed_diagnosis(
     ref_date: date | None,
     diagnosis_anchors: list[dict[str, Any]],
@@ -135,6 +208,54 @@ def _has_competing_confirmed_diagnosis(
             continue
         return True
     return False
+
+
+def _rescue_diagnosis_for_open_episode(
+    diagnosis_anchors: list[dict[str, Any]],
+    site_key: str,
+    ref_date: date | None,
+) -> tuple[date, list[dict[str, Any]]] | None:
+    """DI-LEO-AI-150: find unmatched diagnosis anchors in the open-episode
+    window so the episode can be promoted to 'completed' instead of being
+    auto-closed as stale.
+
+    Returns ``(earliest_diag_date, anchors_on_that_date)`` when at least
+    one site-compatible confirmed diagnosis anchor falls in
+    ``[ref_date, ref_date + STALE_HARD_DAYS]``; ``None`` otherwise.
+
+    Site compatibility uses the same _site_keys_compatible helper as the
+    rest of the builder, so an unknown / non_site_specific diagnosis is
+    eligible for any site, and a specific-site diagnosis must match the
+    referral's site key.
+    """
+    if not diagnosis_anchors or ref_date is None:
+        return None
+    window_end = ref_date + timedelta(days=cfg.STALE_HARD_DAYS)
+
+    eligible: list[tuple[date, dict[str, Any]]] = []
+    for anchor in diagnosis_anchors:
+        if anchor.get("is_pathway_completion"):
+            continue
+        assertion = str(anchor.get("assertion", "present") or "present")
+        if assertion not in ("present", ""):
+            continue
+        d = _parse_date(anchor.get("encounter_date"))
+        if d is None or d < ref_date or d > window_end:
+            continue
+        anchor_key = _extract_condition_key_from_anchor(anchor)
+        # 'unknown' / 'non_site_specific' diagnoses match any site --
+        # they may legitimately belong to this referral and the upstream
+        # _build_diagnosis_led_groups already failed to pair them.
+        if anchor_key not in ("unknown", "non_site_specific"):
+            if not _site_keys_compatible(site_key, anchor_key):
+                continue
+        eligible.append((d, anchor))
+
+    if not eligible:
+        return None
+    earliest = min(d for d, _ in eligible)
+    same_day = [a for d, a in eligible if d == earliest and a.get("encounter_id")]
+    return earliest, same_day
 
 
 def _closed_episode_spec(
@@ -226,6 +347,35 @@ def _build_closed_episode(
                 site_key = candidate
                 break
 
+    # DI-LEO-AI-173: site reconciliation. When a diagnosis anchor
+    # carries an unambiguous explicit site signal (Read code or
+    # malignancy term on a problem-list line) that conflicts with the
+    # referral-derived site_key, prefer the diagnosis site and flag
+    # the episode HITL. Surface-form heuristics on referral text are
+    # unreliable; explicit problem-list codes are not.
+    site_reconciliation_hitl: str | None = None
+    _explicit_diag_sources = {
+        "explicit_2ww_code",
+        "explicit_malignancy_code",
+        "malignancy_term_problem_line",
+    }
+    for diag_anchor in diag_anchors:
+        diag_source = str(diag_anchor.get("site_source") or "")
+        diag_site = str(diag_anchor.get("site_key") or "")
+        if (
+            diag_source in _explicit_diag_sources
+            and diag_site
+            and diag_site not in ("unknown", "non_site_specific")
+            and diag_site != site_key
+        ):
+            site_reconciliation_hitl = (
+                f"Site reconciled: referral suggested '{site_key}' but "
+                f"diagnosis carries explicit site '{diag_site}' "
+                f"(source: {diag_source}). Confirm cancer site."
+            )
+            site_key = diag_site
+            break
+
     ep_id = _episode_id(ctx.patient_id, site_key, earliest_str)
     ctx.result.episode_ids.append(ep_id)
     ctx.result.episodes_created += 1
@@ -275,8 +425,23 @@ def _build_closed_episode(
             "Confirm cancer site from records."
         )
 
+    # DI-LEO-AI-173: surface site-reconciliation HITL on the episode.
+    if site_reconciliation_hitl:
+        hitl_flag = True
+        hitl_reason = (
+            f"{hitl_reason} | {site_reconciliation_hitl}"
+            if hitl_reason
+            else site_reconciliation_hitl
+        )
+
     end_date = max(all_dates_str) if all_dates_str else None
     ref_concept = str(ref_anchors[0].get("concept_name") or "") if ref_anchors else ""
+
+    # DI-LEO-AI-145: claim first_seen anchors before writing episode so
+    # first_seen_date can be persisted on the node in the same MERGE call.
+    fs_raw = ctx.anchors.first_seen_anchors if ctx.anchors else []
+    ref_d = _parse_date(referral_date)
+    fs_link_anchors, fs_date = _first_seen_link_anchors(fs_raw, ref_d, end_date)
 
     _write_episode(
         ctx.patient_client,
@@ -296,6 +461,7 @@ def _build_closed_episode(
             first_presentation_date=fp_date,
             presenting_complaint=complaint,
             referral_match_method=referral_match_method,
+            first_seen_date=fs_date,
         ),
         ctx.result,
         ctx.episode_ids,
@@ -315,6 +481,7 @@ def _build_closed_episode(
             (diag_anchors, diag_milestone),
             (treatment_link_anchors, "treatment_started"),
             (fp_link_anchors, "first_presentation"),
+            (fs_link_anchors, "first_seen"),
         ],
     )
 
@@ -405,6 +572,43 @@ def _build_open_episode(
             end_date = None
 
     ref_concept = str(group[0].get("concept_name") or "") if group else ""
+
+    # DI-LEO-AI-145 (defect fix): claim first_seen anchors BEFORE
+    # _write_episode so first_seen_date is persisted on the EpisodeOfCare
+    # node. The previous ordering computed _fs_date AFTER the MERGE call
+    # and discarded it, leaving first_seen_date NULL on 68/79 (86%) of
+    # auto-closed open episodes even though the IS_PART_OF first_seen
+    # edge was still being written.
+    fs_raw = ctx.anchors.first_seen_anchors if ctx.anchors else []
+    fs_link_anchors, fs_date = _first_seen_link_anchors(
+        fs_raw, _parse_date(earliest_str), end_date
+    )
+
+    # DI-LEO-AI-150: rescue diagnosis-aware completion. If the episode
+    # would otherwise stay 'in_progress' AND a confirmed cancer diagnosis
+    # anchor exists in the window, promote it to 'completed' with
+    # end_date = diagnosis date instead of leaving it for the stale
+    # auto-close pass to file as stale_post_specialist or
+    # stale_no_diagnosis. Diagnosis text is stronger evidence than 'no
+    # update for 90 days', so it must beat the stale rule.
+    diag_link_anchors: list[dict[str, Any]] = []
+    diag_milestone_open = "diagnosis_confirmed"
+    if status == "in_progress":
+        diag_rescue = _rescue_diagnosis_for_open_episode(
+            ctx.anchors.diagnosis_anchors if ctx.anchors else [],
+            site_key,
+            _parse_date(earliest_str),
+        )
+        if diag_rescue is not None:
+            rescue_date, rescue_anchors = diag_rescue
+            status, hitl_flag = "completed", True
+            hitl_reason = (
+                "Auto-completed: confirmed cancer diagnosis text in episode "
+                "window. Verify cancer site and pathway outcome."
+            )
+            end_date = rescue_date.isoformat()
+            diag_link_anchors = rescue_anchors
+
     _write_episode(
         ctx.patient_client,
         WriteEpisodeParams(
@@ -423,6 +627,7 @@ def _build_open_episode(
             letter_inferred_benign=letter_inferred_benign,
             first_presentation_date=fp_date,
             presenting_complaint=complaint,
+            first_seen_date=fs_date,
         ),
         ctx.result,
         ctx.episode_ids,
@@ -430,13 +635,26 @@ def _build_open_episode(
 
     fp_anchors = ctx.anchors.first_presentation_anchors if ctx.anchors else []
     fp_link_anchors = _first_presentation_link_anchors(fp_anchors, fp_date)
+    link_groups: list[tuple[list[dict[str, Any]], str]] = [
+        (group, "referral"),
+        (fp_link_anchors, "first_presentation"),
+        (fs_link_anchors, "first_seen"),
+    ]
+    if diag_link_anchors:
+        link_groups.append((diag_link_anchors, diag_milestone_open))
+    if status == "closed_benign":
+        bc_anchors = (
+            ctx.anchors.benign_closure_anchors if ctx.anchors else []
+        )
+        bc_link_anchors = _benign_closure_link_anchors(
+            bc_anchors, benign_date or benign_qualifier_date, ref_date
+        )
+        if bc_link_anchors:
+            link_groups.append((bc_link_anchors, "benign_closure"))
     _link_encounters_to_episode(
         ctx.patient_client,
         ep_id,
-        [
-            (group, "referral"),
-            (fp_link_anchors, "first_presentation"),
-        ],
+        link_groups,
     )
 
 

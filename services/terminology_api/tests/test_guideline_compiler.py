@@ -377,7 +377,9 @@ async def test_compile_and_store_writes_version_and_sets_current(compiler, store
 
     assert summary["version"] == "v20260308"
     store.write_ruleset.assert_called_once()
-    store.set_current_version.assert_called_once_with("v20260308")
+    store.set_current_version.assert_called_once_with(
+        "v20260308", scope_type="global", scope_id="default"
+    )
 
 
 @pytest.mark.asyncio

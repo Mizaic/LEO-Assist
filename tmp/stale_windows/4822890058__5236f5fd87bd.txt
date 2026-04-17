@@ -1,0 +1,692 @@
+======================================================================
+PATIENT      : 4822890058
+EPISODE      : 5236f5fd87bd4128
+CANCER_TYPE  : head_and_neck
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-01-22
+WINDOW       : 2025-01-08 .. 2025-04-22 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-01-21  referral                enc=44b0d0b9-8233-4894-b931-5494a6701a9c
+  2025-01-22  referral                enc=48c95918-92aa-4137-b501-ca4a1d25c003
+  2025-01-22  referral                enc=176bd9af-8bb7-41b0-9379-3b0b0637d853
+  2025-02-10  first_seen              enc=0f8f8f96-2b5a-4a0d-a997-d27427d2fe99
+  2025-02-28  first_seen              enc=74cc4453-9b42-46d4-8dd2-50461ba5eb6e
+
+Encounters in window (n=68):
+
+--- 01 2025-01-08 [other] milestones=[] eid=3e32bd2f-d4cb-44f2-acdb-3605b2e04162 ---
+14:17 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 02 2025-01-14 [other] milestones=[] eid=74f59c6d-2752-4043-b866-17c78aecdf1f ---
+10:49 - INGLE, Kirsty  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 03 2025-01-14 [other] milestones=[] eid=fcb33ba5-775b-45da-991b-b725e22ea8a7 ---
+10:54 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)
+
+--- 04 2025-01-14 [other] milestones=[] eid=8b4892bf-9f38-4530-9b03-a793108dad8a ---
+Dear Carol Waller
+
+Your appointment has been booked for 22 Jan 2025 14:45 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 05 2025-01-16 [other] milestones=[] eid=6f3e9caa-648f-4102-bf68-1294f939cd59 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Diabetes & Endocrine to Woodbrook Medical Centre
+
+--- 06 2025-01-16 [other] milestones=[] eid=ae602edb-8db7-4ea0-b8be-adeddb1b5ee8 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role)
+
+--- 07 2025-01-16 [other] milestones=[] eid=ed735960-fb2f-4d49-9e50-e92d0fb3b8c8 ---
+11:22 - Surgery: ATKIN, Sharon (Healthcare Assistant) 
+138 / 74
+NHS Health Check programme (XaR6f)
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      Blood test type: Routine (X78uI)
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+ LLR NHS Health Check V3
+   Home / Ethnicity / FH
+      .: White:Eng/Welsh/Scot/NI/Brit - England and Wales 2011 census (XactH)
+      No significant family history of cardiovascular disease: Yes
+      FH: Diabetes mellitus: Yes
+      Migraine History: H/O: migraine (1474.)
+   Observations
+      O/E - Diastolic BP reading: 74 mmHg
+      O/E - Systolic BP reading: 138 mmHg
+      Pulse rate: 86 bpm
+      Smoking status: Ex-smoker (Ub1na)
+      Exercise: Less than 150 min moderte intensity physic activity per week (XacSy)
+      Alcohol intake: 0 Units/Week
+      Weight: 82 Kg  (? 12 st 13 lb)
+      Height: 1.81 m  (? 5 ' 11 ")
+      BMI: 25.03 Kg/mï¿½
+ Urinalysis.
+   Urine dropped off: Yes
+   Urine dipstick test: Yes
+   Urinalysis normal: Yes
+   Sample: Mid-stream urine sample (X7ADc)
+Informed consent given for treatment (XaXHK)
+Routine (X78uI)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+White:Eng/Welsh/Scot/NI/Brit - England and Wales 2011 census (XactH)
+No significant family history of cardiovascular disease (11541)
+FH: Diabetes mellitus (1252.)
+H/O: migraine (1474.)
+Pulse rate (X773s) 86 bpm
+Ex-smoker (Ub1na)
+Less than 150 min moderte intensity physic activity per week (XacSy)
+Alcohol intake (136..) 0 Units/Week
+O/E - weight (22A..) 82 Kg (? 12 st 13 lb)
+O/E - height (229..) 1.81 m (? 5 ' 11 ")
+Body mass index - observation (22K..) 25.03 Kg/mï¿½
+Collection of urine specimen (Ua1J4)
+Urine dipstick test (4618.)
+Urinalysis = no abnormality (4613.)
+Mid-stream urine sample (X7ADc)
+
+--- 08 2025-01-16 [other] milestones=[] eid=c2ba675b-27f3-4ee8-8e53-c1455eebab22 ---
+11:23 - Surgery: Auto-filed  
+Urea and electrolytes (X77Wi)
+Serum sodium level (XE2q0) 141 mmol/L [133 - 146]
+Serum potassium level (XE2pz) 4 mmol/L [3.5 - 5.3]
+Serum urea level (XM0lt) 4 mmol/L [2.5 - 7.8]
+Serum creatinine level (XE2q5) 41 umol/L [60 - 120] - Outside reference range
+eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) > 90 mL/min
+Urine ACR should be checked on at least an annual basis
+for all individuals with CKD.  NICE recommends the
+Kidney failure Risk Equation www.kfre.co.uk to
+predict the risk of endstage kidney disease in CKD
+stages 3a to 5.  KFRE is not valid in the presence
+of acute kidney injury.
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Urea and electrolytes Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 18 Jan 2025 07:37
+
+--- 09 2025-01-16 [other] milestones=[] eid=c33fd807-9242-40d4-9b33-e07a9295e2d8 ---
+11:23 - Surgery: Auto-filed  
+Serum alkaline phosphatase level (XE2px) 61 iu/L [30 - 130]
+Bone profile (44Z2.)
+Serum albumin level (XE2eA) 43 g/L [35 - 50]
+Serum calcium level (XE2q3) 2.38 mmol/L
+Serum adjusted calcium concentration (Xabpk) 2.32 mmol/L [2.12 - 2.51]
+Reference range amended to account for calibration
+difference in the SIEMENS assay.  Ann Clin Biochem
+2020 Sep 57(5):373-381
+Serum inorganic phosphate level (XE2q4) 1.12 mmol/L [0.8 - 1.5]
+Calculated Globulin: 25 g/L; Globulins may be raised in myeloma and decreased in
+some cases of myeloma or immune deficiency states.
+Please correlate clinically. Suggest checking serum
+immunoglobulins if Glb >40 g/L in patients >40 years of
+age. Check serum immunoglobulins and free light chain
+assay if Glb <18 g/L.
+Minor abnormalities of Globulins outside of the above
+are unlikely to represent myeloma and would not
+normally require further action or repeat testing.
+Elevation of Globulin levels is common in
+infection / inflammation.
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Bone profile Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 18 Jan 2025 07:37
+
+--- 10 2025-01-16 [other] milestones=[] eid=899fecde-edd5-4f99-ac92-42bff498657e ---
+11:23 - Surgery: Auto-filed  
+Liver function tests (X77WP)
+Serum alanine aminotransferase level (XaLJx) 15 iu/L [10 - 49]
+Serum bilirubin level (44E..) 8 umol/L [< 21]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Liver function tests Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 18 Jan 2025 07:37
+
+--- 11 2025-01-16 [other] milestones=[] eid=8723d7f9-0d39-445c-8928-7155411ec2a9 ---
+11:23 - Surgery: Auto-filed  
+Serum lipid levels (XE2q7)
+Serum cholesterol level (XE2eD) 5.9 mmol/L
+Serum triglyceride levels (XE2q9) 1.2 mmol/L [0 - 1.7]
+Serum HDL cholesterol level (44P5.) 1.81 mmol/L [0.9 - 2.2]
+Serum LDL cholesterol level (44P6.) 3.5 mmol/L
+Non-fasting LDL is acceptable for screening patients
+and escalating oral lipid treatment. Fasting LDL should
+be used when considering starting treatment with PCSK9
+inhibitors.
+Total cholesterol:HDL ratio (44PF.) 3.3 
+Serum non high density lipoprotein cholesterol level (XabE1) 4.1 mmol/L
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Serum lipid levels Report,ï¿½Abnormal,ï¿½Communicate Patient: LDL > 3, please give lifestyle advice and repeat fasting lipid profile in 4 months (Patient Informed). Review done by NOBLE, Ben (Dr) - 18 Jan 2025 07:37
+
+--- 12 2025-01-16 [other] milestones=[] eid=9db50992-9806-49a8-96ad-0c539c9d3023 ---
+11:23 - Surgery: Auto-filed  
+Serum total protein level (XE2e9) 68 g/L [57 - 82]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Serum total protein level Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 18 Jan 2025 07:37
+
+--- 13 2025-01-16 [other] milestones=[] eid=a2ada759-43f7-4042-b474-832c31ea6b1d ---
+11:23 - Surgery: Auto-filed  
+Acute Kidney Injury Staging: Not Applicable; AKI Stage NA - Flag Low Alert
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 18 Jan 2025 07:37
+
+--- 14 2025-01-16 [other] milestones=[] eid=3b97fa1e-2fde-4888-9699-84bb36ca638f ---
+11:23 - Surgery: Auto-filed  
+Haemoglobin A1c level - IFCC standardised (XaPbt) 35 mmol/mol [20 - 41] - Please note changes in HbA1c reporting from 27/09/21
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Haemoglobin A1c level - IFCC standardised Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 20 Jan 2025 18:24
+
+--- 15 2025-01-16 [other] milestones=[] eid=27544d29-c0fa-4c21-95ac-fd06a2bb48bb ---
+11:23 - Surgery: Auto-filed  
+Haemoglobin A1c level (X772q) 5.3 % [4 - 5.9]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Haemoglobin A1c level Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 20 Jan 2025 18:24
+
+--- 16 2025-01-16 [other] milestones=[] eid=6de52939-4304-4d54-97d6-c32c91895004 ---
+11:23 - Surgery: Auto-filed  
+Serum TSH level (XaELV) - <0.05; T3 led hyperthyroidism.
+Serum free triiodothyronine level (XaERq) 9.1 pmol/L [3.5 - 6.5] - Outside reference range
+Thyroid function test (X77Wg)
+Serum free T4 level (XaERr) 19.8 pmol/L [9.7 - 24.7]
+99% reference range was  applied for adults after
+review with Endocrinology.
+..
+Please note change to method-specific reference range
+from 18th Novemeber 2024
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Thyroid function test Report,ï¿½Abnormal,ï¿½Other: seen KA contact - has been referred sec care-  also has NB f/u 22/1 (Patient Informed). Review done by BROCKHURST, Nikki (Dr) - 22 Jan 2025 08:16
+
+--- 17 2025-01-16 [other] milestones=[] eid=94a1f9fc-450a-45f8-9152-7670860cac6d ---
+11:23 - Surgery: Auto-filed  
+Full blood count (424..)
+Total white blood count (XaIdY) 6 10^9/L [4 - 11]
+Red blood cell count (426..) 4.43 10^12/L [3.9 - 5.6]
+Haemoglobin concentration (Xa96v) 133 g/L [115 - 165]
+Haematocrit (X76tb) 0.389  [0.37 - 0.47]
+Mean cell volume (42A..) 88 fL [80 - 99]
+Mean cell haemoglobin level (XE2pb) 30.1 pg [27 - 32]
+Platelet count - observation (42P..) 195 10^9/L [140 - 400]
+Neutrophil count (42J..) 4.02 10^9/L [1.5 - 7.5]
+Monocyte count - observation (42N..) 0.36 10^9/L [0.2 - 0.8]
+Eosinophil count - observation (42K..) 0.03 10^9/L [0.04 - 0.4] - Outside reference range
+Basophil count (42L..) 0.02 10^9/L [0.02 - 0.1]
+Lymphocyte count (42M..) 1.51 10^9/L [1 - 4]
+Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]
+For further investigation of abnormal Full Blood Count
+please see Haematology Referral Guidelines:
+https://www.leicestershospitals.nhs.uk/aboutus/
+(click Departments & Services > Haematology >
+Haematology Referral
+Guidelines).
+If clinically urgent contact the Haematologist On Call.
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      LUTS  - micro haem on urine dip.
+Full blood count Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by KETHEESWARAN, Arthika (Dr) - 17 Jan 2025 10:22
+
+--- 18 2025-01-17 [other] milestones=[] eid=588f0d28-3228-4847-a57a-73b3ce2adc3c ---
+10:22 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role)
+
+--- 19 2025-01-18 [other] milestones=[] eid=f74bcc18-6f72-4640-81cf-ce8cdbcc9f3c ---
+07:35 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role)
+
+--- 20 2025-01-20 [other] milestones=[] eid=62d4f2de-316b-4308-94cd-72eae2acfd6b ---
+18:24 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role)
+
+--- 21 2025-01-21 [other] milestones=[] eid=a21eb1d3-4366-407b-9124-0bfde83dad27 ---
+13:32 - Surgery: SUTHAR, Jaiman (Mr) (Pharmacist) 
+QRISK2 cardiovascular disease 10 year risk score (XaQVY) 8.17 %
+Estimated creatinine clearance calculated using actual body weight Cockcroft-Gault formula (Y200c) 157.4 mL/min
+ Clinical Pharmacist
+   Entries from previous template version
+      Short message service text message sent to patient (XaMiI)
+      Overview Notes (Y0028)
+-as per task from GP 
+-LDL 3.5, low QRISK 
+-diet/lifestyle info sent 
+-repeat LFTs and lipids in 3-4 months
+Recall: Blood Test Due (14 Apr 2025) diet/lifestyle - repeat LFTs and lipids
+Short message service text message sent to patient (XaMiI)
+Overview Notes (Y0028)
+-as per task from GP 
+-LDL 3.5, low QRISK 
+-diet/lifestyle info sent 
+-repeat LFTs and lipids in 3-4 months
+
+--- 22 2025-01-21 [other] milestones=[] eid=432150e2-9a79-4c9a-b8d3-38852c7417f1 ---
+13:40 - Surgery: SUTHAR, Jaiman (Mr) (Pharmacist) 
+Patient advised about low cholesterol diet (8CA47)
+Patient telephone number (9159.) - 07711 624398
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Waller,
+Your recent blood test results shows you have high cholesterol. High cholesterol can increase the risk of cardiovascular disease.
+Please follow the advice in the links below to lower your cholesterol through diet and lifestyle:
+https://www.bhf.org.uk/informationsupport/support/reducing-your-high-cholesterol
+https://www.heartuk.org.uk/low-cholesterol-foods/choose-low-cholesterol-foods
+We will repeat your blood test again in 3 months to monitor your progress. If you have any queries please contact the surgery
+Regards, Jaiman (Clinical Pharmacist)
+Woodbrook Medical Centre
+
+--- 23 2025-01-21 [other] milestones=[] eid=75ddd992-4974-4dbb-a948-3ba5114c5f14 ---
+13:47 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+ Blood Results
+   Entries from previous template version
+      Serum T3 level (4424.) 9.1 nmol/L
+      Serum free T4 level (XaERr) 19.8 pmol/L
+      Serum TSH level (XaELV) < 0.05 miu/L
+Serum T3 level (4424.) 9.1 nmol/L
+Serum free T4 level (XaERr) 19.8 pmol/L
+Serum TSH level (XaELV) < 0.05 miu/L
+
+--- 24 2025-01-21 [IN-EP] milestones=['referral'] eid=44b0d0b9-8233-4894-b931-5494a6701a9c ---
+14:29 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) 
+History: Duty doctor.
+Lab called with TSH <0.05, T4 19.8, T3 9.1.
+Telephone call to patient...
+Discussed results - primary hyperthyroidism.
+Patient confirms having palpitations now and then, states not daily.
+Noticed tremors recently and dropped cup of tea.
+Stools have been looser than normal past few weeks.
+No pain or sore eyes. No anxiety. Weight steady.
+Not noticed bulging of eyes or neck swelling.
+Discussed medication such as propanolol/carbimazole, patient not keen at present.
+Reports not feeling unwell in self at present.
+Discussed referral, patient ok for this.
+Examination: Sounds well.
+Speaking in full sentences.
+Does not sound in distress.
+Plan: Refer for hyperthyroidism.
+Advised to call surgery back if becomes unwell or worsening symptoms or keen to start medication to help manage this until seen by seconday care.
+Discussed thyroid storm and if develop symtoms of this or becomes very unwell then to dial 999/attend A&E.
+- PRISM Thyrotoxicosis/Hyperthyroidism in Adults -  questionnaire started - (finalised: 21 Jan 2025 14:29)
+Biomedical equipment (Xa9aE) - (Added from Questionnaire)
+Thyrotoxicosis/Hyperthyroidism in Adults PRISM to Mrs Carol Waller
+
+--- 25 2025-01-22 [other] milestones=[] eid=43d97554-f8ee-4349-833f-1d6ab4cbc300 ---
+08:14 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 26 2025-01-22 [other] milestones=[] eid=7f340714-5f4a-457a-ae3a-cd7125344a3c ---
+11:22 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Referral to endocrinology service (XaAcY)
+Choice and booking enhanced services administration (XaMJa)
+ WMC Referrals
+   Patient has been referred to endocrinology today. The service will contact the patient directly with details of an appointment. Letter sent to patient.
+ WMC Medical Secretary Template
+Hospital Referral to endocrinology service
+Hospital Referral to endocrinology service updated: Waiting For Information
+Patient has been referred to endocrinology today. The service will contact the patient directly with details of an appointment. Letter sent to patient.
+
+--- 27 2025-01-22 [other] milestones=[] eid=18221a2b-52a9-49f3-abaf-32e3f0f06e58 ---
+14:35 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+QRISK2 cardiovascular disease 10 year risk score (XaQVY) 8.17 %
+NHS Health Check programme (XaR6f)
+ LLR NHS Health Check V3
+   Part 1 - Claim
+      NHS Health Check completed: Yes
+Letter to Patients to Mrs Carol Waller 
+Recall: Blood Test Due (22 May 2025) diet/lifestyle - repeat LFTs and lipids FORM On
+NHS Health Check completed (XaRBQ)
+
+--- 28 2025-01-22 [IN-EP] milestones=['referral'] eid=48c95918-92aa-4137-b501-ca4a1d25c003 ---
+14:37 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+History: see above - hyperthyroid  
+noted over last 3/12 difficulty swallow - has to jaw-thrust to swallow - upper level  
+no weight loss  
+Tiredness symptom (XE0qj)
+no Fhx of note
+Examination: R side fullness to thyroid ? nodule    
+no asso cervical adenopathy palp
+Plan: discussed - agreed 2ww - dysphagia and thyroid lump
+Problem: Serum LDL cholesterol level (44P6.)
+History: had message re: lipids  
+ex smoker  
+BP ok  
+LDL raised 3.5 despite good lifestyle  
+would like to start statin  
+ses and benefits discussed  
+bloods in 3/12 pls
+History: rpt urine dip NAD as above  
+no ongoing LUTS  post abx  but note MSU NAD
+agreed rpt dip in 3/12 to confirm ongoing clear, so NB review sooner if sxs return
+Outbound referral (XaY59)
+Diagnosis: 2WW Head & Neck Pathway accessed
+- PRISM 2WW Head and Neck -  questionnaire started - (finalised: 22 Jan 2025 14:37)
+QRISK2 cardiovascular disease 10 year risk score (XaQVY) 8.17 %
+Serum LDL cholesterol level (44P6.)
+Fast track referral for suspected head and neck cancer (XaMkD) - (Added from Questionnaire)
+Serum LDL cholesterol level (44P6.)
+(R) Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+2WW Head and Neck PRISM to Mrs Carol Waller 
+Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+ Ended 18 Jul 2025 Re-Authorised by AKHTAR, Mohammed (Mr)
+ETP2 FP10: Printed On Wed 22 Jan 2025 15:01 By Felicity Olsberg - Signed
+Pathology Request (Complete):
+Gamma GT (Requested), Liver Function Test (Requested), Lipids (Requested), Thyroid Stimulating Hormone (Requested)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Serum LDL cholesterol level (44P6.)
+
+--- 29 2025-01-22 [other] milestones=[] eid=6de76a96-e11b-4ede-b0c9-cfe8d7ad24d2 ---
+15:00 - Surgery: OLSBERG, Felicity (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting with: Medication query (reason for contact) (YciwV)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Presenting with: Medication query (reason for contact) (YciwV)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 30 2025-01-22 [IN-EP] milestones=['referral'] eid=176bd9af-8bb7-41b0-9379-3b0b0637d853 ---
+15:05 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected head and neck cancer (XaMkD)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww head and neck
+Hospital Fast track referral for suspected head and neck cancer
+Hospital Fast track referral for suspected head and neck cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww head and neck
+
+--- 31 2025-02-10 [other] milestones=[] eid=0bc9b6ce-48b7-49c9-b075-19829af99d83 ---
+Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+ENT to Woodbrook Medical Centre
+
+--- 32 2025-02-10 [IN-EP] milestones=['first_seen'] eid=0f8f8f96-2b5a-4a0d-a997-d27427d2fe99 ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected head and neck cancer clinic (XaPya)
+
+--- 33 2025-02-10 [other] milestones=[] eid=f3fd7627-2914-435b-871a-fa399f9741cb ---
+Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) 
+Major: Thyrotoxicosis (XE104) (New Episode)
+Minor: Thyroid nodule (X40Gg) (New Episode)
+Flexible endoscope (X79iD) (New Episode)
+Thyroid nodule (X40Gg)
+Thyrotoxicosis (XE104)
+
+--- 34 2025-02-10 [other] milestones=[] eid=ab8f0a2c-dd5a-4bc8-b59f-97d18bb5a642 ---
+14:05 - Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) 
+ Consultation.
+   General
+ Vitals & Lifestyle
+   Recordings
+      Alcohol: Teetotaller (1361.)
+Teetotaller (1361.)
+
+--- 35 2025-02-11 [other] milestones=[] eid=6a816bb4-0f5a-4498-89cb-36458d1814a3 ---
+13:40 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting with: Medication query (reason for contact) (YciwV)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting with: Medication query (reason for contact) (YciwV)
+Telephone encounter (9N31.)
+
+--- 36 2025-02-11 [other] milestones=[] eid=77e11f56-4fbd-4562-8101-64a67e3b2e74 ---
+Dear Carol Waller
+
+Your appointment has been booked for 13 Mar 2025 14:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 37 2025-02-11 [other] milestones=[] eid=8a23b11d-a557-4574-80ae-499355598d6d ---
+17:58 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) 
+History: Duty admin...
+
+'Please see Diabetes and Endocrine letter on home screen dated 5/2/25 - could you please issue carbimazole as pt needs to take this for a month before her blood test which is on 13/3. Thank'.
+
+Letter noted, to commence on 20mg carbimazole.
+Plan: Acute script issued.
+Carbimazole 20mg tablets - 28 tablet - To take once daily
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 38 2025-02-13 [other] milestones=[] eid=f555a96a-4e49-4314-a772-cfc2cf284e26 ---
+17:52 - Sent online by Mrs Carol Ann Waller  
+Request for 'Atorvastatin 20mg tablets' by patient
+Request for 'Risedronate sodium 35mg tablets' by patient
+
+--- 39 2025-02-14 [other] milestones=[] eid=84739393-6c27-45b9-ac43-f88b3ee90b81 ---
+08:21 - INGLE, Kirsty  
+(R) Risedronate sodium 35mg tablets - 8 tablet - take one weekly
+(R) Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ N+S Medication Queries
+   *Advice given / Outcome:  online request
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+Administration note (XaIg4) - online request
+
+--- 40 2025-02-28 [IN-EP] milestones=['first_seen'] eid=74cc4453-9b42-46d4-8dd2-50461ba5eb6e ---
+14:44 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected head and neck cancer clinic (XaPya) 10 Feb 2025
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 41 2025-03-12 [other] milestones=[] eid=c57f1271-8707-41c5-92a5-36626e55bad5 ---
+08:33 - Sent online by Mrs Carol Ann Waller  
+Request for 'Atorvastatin 20mg tablets' by patient
+
+--- 42 2025-03-12 [other] milestones=[] eid=b225590d-8d06-4f25-bf0d-3e9c65485c88 ---
+08:35 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 Nurse Independent Prescriber FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 43 2025-03-13 [other] milestones=[] eid=ab675720-bdad-4143-a47c-b24f313805b3 ---
+14:21 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Phlebotomy generated from secondary care done by practice (XaK2I)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Request for 'Carbimazole 20mg tablets' by patient
+Informed consent given for treatment (XaXHK)
+Phlebotomy generated from secondary care done by practice (XaK2I)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 44 2025-03-13 [other] milestones=[] eid=8877d3a9-17a6-4138-91be-31423bf3b110 ---
+14:25 - Surgery: Auto-filed  
+Thyroid function test (X77Wg)
+Serum free T4 level (XaERr) 10 pmol/L [9.7 - 24.7]
+99% reference range was  applied for adults after
+review with Endocrinology.
+..
+Please note change to method-specific reference range
+from 18th Novemeber 2024
+Serum TSH level (XaELV) - <0.05
+Serum free triiodothyronine level (XaERq) 4.1 pmol/L [3.5 - 6.5]
+Thyroid function test Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by HORNE, Jonathan (Dr) - 17 Mar 2025 12:09
+
+--- 45 2025-03-13 [other] milestones=[] eid=027dfef0-fd94-4fe5-b6f3-deceecaab39a ---
+14:29 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To book tests requested by practice (Y41cc)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Presenting to non-clinical team with: To book tests requested by practice (Y41cc)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 46 2025-03-13 [other] milestones=[] eid=a3893fa3-f308-44c3-8711-aa546faf2a44 ---
+14:46 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role) 
+Carbimazole 20mg tablets - 28 tablet - To take once daily
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 47 2025-03-13 [other] milestones=[] eid=fbbc9028-0c74-40c8-946f-57e6051cb17b ---
+17:02 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting with: Medication query (reason for contact) (YciwV)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting with: Medication query (reason for contact) (YciwV)
+Telephone encounter (9N31.)
+
+--- 48 2025-03-14 [other] milestones=[] eid=6590efdc-3d06-4889-8800-3cfcb11d5e77 ---
+09:34 - BAILEY, Cleopatra  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Contact trigger : Other (Y3eaa)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 49 2025-03-14 [other] milestones=[] eid=491cf69c-4215-4615-b3dd-63de80ccc0a8 ---
+10:06 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+ Urinalysis.
+   Urine dipstick test: Yes
+   Urinalysis normal: Yes
+Urine dipstick test (4618.)
+Urinalysis = no abnormality (4613.)
+
+--- 50 2025-03-17 [other] milestones=[] eid=f4733f6d-7169-4642-9efb-59ac89f8f024 ---
+12:07 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
+
+--- 51 2025-03-18 [other] milestones=[] eid=e82e5797-ab7f-41df-8317-987fec7c46bb ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Diabetes & Endocrine to Woodbrook Medical Centre
+
+--- 52 2025-03-18 [other] milestones=[] eid=a60fba10-8b0f-44bf-976d-748776a86cf6 ---
+Surgery: DOLLIVE, Lauren (Admin/Clinical Support Access Role)
+
+--- 53 2025-03-24 [other] milestones=[] eid=8baf2dd7-6b97-42e5-9e4e-960680c1380a ---
+09:13 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa) check if we have received hospital letter
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa) - check if we have received hospital letter
+Telephone encounter (9N31.)
+
+--- 54 2025-03-24 [other] milestones=[] eid=0d6bb16f-7395-4827-abbe-bd4cb0f32def ---
+13:04 - Surgery: SUTHAR, Jaiman (Mr) (Pharmacist) 
+ Drug Review
+   Reconciliation
+      Reconcilliation source:  Diabetes & Endocrine letter 18/03/25
+      Medication decreased:  carbimazole dose reduced to 10mg daily
+      Comments:  prescribed as 2x5mg as per optimiseRx message
+ Clinical Pharmacist
+   Entries from previous template version
+      Administration note (XaIg4) - as per ledger task - see endocrine letter
+Carbimazole 5mg tablets - 56 tablet - take ONE tablets daily
+ Ended 18 Jul 2025 Re-Authorised by AKHTAR, Mohammed (Mr)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Administration note (XaIg4) - as per ledger task - see endocrine letter
+Medication reconciliation (XaXfG) - Diabetes & Endocrine letter 18/03/25
+Medication decreased (8B3A2) - carbimazole dose reduced to 10mg daily
+Comment note (XaIg6) - prescribed as 2x5mg as per optimiseRx message
+
+--- 55 2025-03-24 [other] milestones=[] eid=24f6522e-fdc6-4d29-8fbf-f8303fc56056 ---
+16:47 - Sent online by Mrs Carol Ann Waller  
+Request for 'Carbimazole 5mg tablets' by patient
+
+--- 56 2025-03-24 [other] milestones=[] eid=295444cd-184d-4b5d-8015-41be915bc0c7 ---
+16:55 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+(R) Carbimazole 5mg tablets - 112 tablet - take TWO tablets daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 57 2025-03-27 [other] milestones=[] eid=f80815de-c58d-4de7-bb3e-b328633c89f0 ---
+12:55 - INGLE, Kirsty  
+ N+S Encounter type
+   *Reason for contact / Entering record: Blood Sample Requested By Hospital (Y2212)
+   Type of encounter: Telephone encounter (9N31.)
+Blood Sample Requested By Hospital (Y2212)
+Telephone encounter (9N31.)
+
+--- 58 2025-03-27 [other] milestones=[] eid=10f92e70-3858-4e9a-873e-84d0d139879d ---
+Dear Carol Waller
+
+Your appointment has been booked for 11 Apr 2025 10:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 59 2025-03-27 [other] milestones=[] eid=111cc386-4c09-4161-92c1-2342f4e6ae26 ---
+15:25 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 60 2025-03-27 [other] milestones=[] eid=231ecf7f-43f1-47cb-b07a-ce86b90b2ad0 ---
+15:26 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+
+Dear Carol,
+Please join our research study on stomach bugs. This involves a weekly check-in & testing your poo in a lab if you catch a bug. See link for more info.
+
+To register, please use:
+â¢ Sign up code or research code: IID3
+â¢ Your NHS number â there is a link to find out your NHS number if you do not have it to hand
+â¢ Your GP Location: C82070
+
+https://iid3.peoplewith.com/?sid=iid3&ods=C82070
+Woodbrook Medical Centre
+NHS app message sent on 14/03/2025 11:31:05
+
+--- 61 2025-04-02 [other] milestones=[] eid=2faa05dd-f8e1-4b2a-ad86-638582790891 ---
+14:48 - Sent online by Mrs Carol Ann Waller  
+Request for 'Atorvastatin 20mg tablets' by patient
+
+--- 62 2025-04-02 [other] milestones=[] eid=579ea471-e5ed-4b7b-840a-ed6a34ca133f ---
+14:53 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+(R) Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 63 2025-04-06 [other] milestones=[] eid=7017cdf0-28c3-4f5d-9189-627eb9c455cc ---
+20:38 - Sent online by Mrs Carol Ann Waller  
+Request for 'Risedronate sodium 35mg tablets' by patient
+
+--- 64 2025-04-07 [other] milestones=[] eid=4d731e4b-61d0-4a1d-8c27-3821175a7b4e ---
+07:51 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+(R) Risedronate sodium 35mg tablets - 8 tablet - take one weekly
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 65 2025-04-11 [other] milestones=[] eid=853be1cb-b8da-49ff-a69e-d1d862d3a3fc ---
+10:35 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      Blood test type: Routine (X78uI)
+      ^Referral source (CBS claim): Phlebotomy generated from secondary care done by practice (XaK2I)
+      ^Blood sample taken (CBS claim): Yes
+      Consultation comment:  rt arm
+      ^Seen by practice phlebotomist: Yes
+Informed consent given for treatment (XaXHK)
+Routine (X78uI)
+Phlebotomy generated from secondary care done by practice (XaK2I)
+Blood sample taken (XaEJK)
+Consultation (Xa1qL) - rt arm
+Seen by practice phlebotomist (9N2S.)
+
+--- 66 2025-04-11 [other] milestones=[] eid=dae2c3eb-c477-4e23-9647-45dd3ab5e4f4 ---
+Dear Carol Waller
+
+Your appointment has been booked for 12 May 2025 09:45 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 67 2025-04-15 [other] milestones=[] eid=491ffb2e-6462-4fd6-a236-81836c6d8f34 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Diabetes & Endocrine to Woodbrook Medical Centre
+
+--- 68 2025-04-15 [other] milestones=[] eid=cb0eb827-50b7-46c0-afa9-feeaf0584b24 ---
+Surgery: BROWN, Nicola (Admin/Clinical Support Access Role)
+

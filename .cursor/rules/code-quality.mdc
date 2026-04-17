@@ -59,11 +59,56 @@ do_thing()
 
 ## Testing
 
+### Python (services/api, services/coding_worker, libs/, scripts/)
+
 - **pytest** with **pytest-asyncio** for async tests.
 - Minimum **80% code coverage** target.
-- Test files in `tests/` directory.
-- Gold-standard labelled dataset for SNOMED coding accuracy (precision/recall/F1).
+- Test files in `tests/` directory at the repo root, mirroring the
+  `services/` and `libs/` structure.
+- Gold-standard labelled dataset for SNOMED coding accuracy
+  (precision / recall / F1).
 - Regression tests block deploys if accuracy drops below baseline.
+
+### TypeScript / React (services/ui, services/design-system)
+
+- **jest 30** with `ts-jest` for unit + static-source VTs.
+  Test files live in `services/ui/src/__tests__/` and
+  `services/design-system/src/__tests__/`. Naming pattern:
+  `<feature>-<surface>.test.tsx` (e.g. `pathways-list-chrome.test.tsx`).
+- **`@testing-library/react`** (NOT enzyme) for live-render tests of
+  isolated primitives. Use `user-event`, never `fireEvent`.
+- **Static-source VTs** are the default for any page that hits the
+  network on mount. Read the source as a string and assert on
+  structural invariants. See `ui-testing.mdc` for the canonical
+  pattern.
+- **Snapshot tests are banned.** Write targeted assertions on the
+  specific invariant that matters.
+- **Playwright** (`@playwright/test`) for end-to-end user journeys.
+  Specs live in `services/ui/e2e/`. Every designed user journey MUST
+  have a spec.
+- **`@axe-core/playwright`** runs against every shipped page in
+  `a11y-baseline.spec.ts`. WCAG 2.1 AA is the bar -- ZERO critical or
+  serious violations.
+- CLI: use `npx jest --testPathPatterns "<pattern>"` (plural -- the
+  singular `--testPathPattern` is deprecated). Always pass
+  `--no-coverage` for fast iteration; full coverage runs in CI.
+
+### Definition of done
+
+A test is done when:
+
+1. The test file exists at the path listed in
+   `verification-tests/VT-LEO-AI-<N>.yaml::metadata.test_file_paths`.
+2. The test names match the VT YAML `test_cases[].case_name`
+   one-for-one.
+3. The full local test command is green (jest for UI work, pytest
+   for backend) with `--no-coverage`.
+4. The VT YAML `execution_history` records the run with
+   `result: "pass"` and `status: "passed"`.
+5. The corresponding row in the traceability matrices
+   (`DC-TM-001-traceability-matrix.md`,
+   `DC-TM-002-traceability-matrix.csv`) and `design-controls/README.md`
+   is updated.
 
 ## Commits
 

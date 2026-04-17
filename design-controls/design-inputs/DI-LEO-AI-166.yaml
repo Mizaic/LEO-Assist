@@ -1,0 +1,69 @@
+# -- DI-LEO-AI-166 -- Test patient generator + dry-run preview
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-166"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-076"]
+  requirement: >
+    The system SHALL synthesise minimal test patient proposals from
+    AppropriatenessRule logic trees at scope rule, branch, guideline
+    or all, covering happy path, fail path, OR-branch and age boundary
+    cases, with deduplication against patients already saved under the
+    same guideline. Reviewers SHALL be able to dry-run any proposed or
+    hand-built patient against the live ruleset and see which rules
+    fire and which branch node ids are satisfied, before persisting.
+  rationale: >
+    Hand-authoring 30+ test patients per guideline is prohibitive and
+    error-prone. Generating proposals directly from the rule logic
+    means a brand-new guideline can be regression-tested on day one,
+    and a logic edit immediately surfaces the branches that need new
+    coverage. A dry-run gate forces the reviewer to confirm the
+    expected outcome before persistence, so an EXPECTED_RESULT
+    snapshot is never accidentally taken from a wrong assumption.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "test_patient_generator.generate(scope_type='rule'|'branch'|'guideline'|'all', depth='minimal_pair'|'boundary_plus_pairs') returns a list of proposals each carrying patient payload, rule_id, rule_name, guideline_id, kind in {happy, fail, branch, boundary} and a rationale string."
+      - type: "functional"
+        spec: "Happy proposals satisfy the rule's logic tree (CONCEPT collected, AT_LEAST_min met, OR-branch chosen, NOT-branches respected); fail proposals minimally violate it by removing one required code; boundary proposals emit at-boundary and just-below-boundary patients per age DEMOGRAPHIC node."
+      - type: "functional"
+        spec: "When exclude_existing=True, any proposal whose content_hash already exists in find_existing(client, guideline_id=., content_hash=.) is dropped before return."
+      - type: "functional"
+        spec: "POST /guidance/test-patients/dry-run returns {matched_rules, branch_paths, ruleset_version} where branch_paths[rule_id] is the list of node_ids the patient currently satisfies in that rule's logic tree."
+      - type: "safety"
+        spec: "dry-run failures from the terminology API surface as HTTP 502 with a friendly message, not a stack trace, so reviewers always know save is gated until the dry-run succeeds."
+    constraints:
+      - type: "safety"
+        spec: "Generated patient sex / age is constrained to whatever the DEMOGRAPHIC nodes require; no random demographics are emitted."
+    dependencies:
+      - "DI-LEO-AI-165"
+    downstream_impacts:
+      - "Reviewer time to seed regression tests for a new guideline"
+      - "Coverage of OR-branch and age-boundary corners of the logic tree"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI, neo4j 5.x driver, httpx"
+      file_structure:
+        - "services/api/app/services/test_patient_generator.py"
+        - "services/api/app/services/test_patient_service.py"
+        - "services/ui/src/app/admin/guidance/test-patients/BuildPatientDialog.tsx"
+        - "services/ui/src/app/admin/guidance/test-patients/GeneratePatientsDialog.tsx"
+      estimated_loc: 850
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-165 covers happy/fail emission, branch + boundary depth,
+      dedup-by-hash and the dry-run router contract.
+    test_protocol: "VT-LEO-AI-165"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-166"
+  tags:
+    - "test-patients"
+    - "generator"
+    - "dry-run"
+    - "appropriateness-rules"

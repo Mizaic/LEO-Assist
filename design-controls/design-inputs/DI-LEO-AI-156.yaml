@@ -1,0 +1,81 @@
+# -- DI-LEO-AI-156 -- Pathway editor chrome decomposition (Phase 6b-ii)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-156"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-072"]
+  requirement: >
+    The pathway editor chrome (top toolbar, sticky save bar, publish
+    confirmation, delete-pathway confirmation, and edge-disconnect
+    confirmation) MUST live in dedicated sibling modules under
+    services/ui/src/app/admin/pathways/[id]/editor/, not inline
+    inside the orchestrator page.tsx. Each module MUST be prop-
+    driven (no internal useState / useEffect coupling to the
+    orchestrator's state model), expose a typed Props interface,
+    apply ASCII-only copy, and respect the file-size discipline
+    (< 500 LOC per file, < 220 LOC for dialog components).
+  rationale: >
+    Today the editor is a 5,960-LOC monolith - 12x the 500 LOC
+    hard limit. Decomposing the chrome first (Phase 6b-ii) is a
+    low-risk slice: it touches no node logic, no React Flow state,
+    and no save semantics. It gives reviewers immediate visual
+    parity with the rest of the role-first product and unblocks
+    the harder phases (BaseNode shell, configurator side panel,
+    edge popover) by establishing the module layout and the prop-
+    driven extraction pattern.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "services/ui/src/app/admin/pathways/[id]/editor/PathwayToolbar.tsx exists and renders the back button, name field, lifecycle chip, save / publish / retire actions, add-source / add-output / add-step menus, auto-layout, test-run / run-all / batch dry-run, history, and delete entry points"
+      - type: "functional"
+        spec: "services/ui/src/app/admin/pathways/[id]/editor/PathwaySaveBar.tsx exists and exposes a SaveBarState union of idle | dirty | saving | saved | error, with role=status and aria-live=polite"
+      - type: "functional"
+        spec: "services/ui/src/app/admin/pathways/[id]/editor/dialogs/PublishDialog.tsx, DeletePathwayDialog.tsx, and EdgeDeleteConfirm.tsx exist as prop-driven sibling components"
+      - type: "functional"
+        spec: "DeletePathwayDialog enforces a type-the-name confirm gate (canDelete only when confirmText.trim() === pathwayName)"
+      - type: "functional"
+        spec: "page.tsx imports the new modules and removes the inline toolbar / dialog markup it replaced; 'Add a data source...' and 'onClick={handlePublish}' do not appear in page.tsx body"
+      - type: "functional"
+        spec: "Icon-only buttons in PathwayToolbar and dialogs carry an aria-label (back, auto-layout, version history, publish, delete)"
+    constraints:
+      - type: "safety"
+        spec: "Behaviour MUST be byte-for-byte equivalent to the previous toolbar / dialogs - no save semantics, no validation rules, no node logic changed in this phase"
+      - type: "safety"
+        spec: "ASCII-only copy across all extracted files (no em-dash, ellipsis, or non-ASCII glyphs)"
+    dependencies: ["DI-LEO-AI-141"]
+    downstream_impacts:
+      - "Pathway editor (services/ui/src/app/admin/pathways/[id])"
+      - "Knowledge -> Pathways tab"
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js / React"
+      file_structure:
+        - "services/ui/src/app/admin/pathways/[id]/editor/PathwayToolbar.tsx"
+        - "services/ui/src/app/admin/pathways/[id]/editor/PathwaySaveBar.tsx"
+        - "services/ui/src/app/admin/pathways/[id]/editor/utils.ts"
+        - "services/ui/src/app/admin/pathways/[id]/editor/dialogs/EdgeDeleteConfirm.tsx"
+        - "services/ui/src/app/admin/pathways/[id]/editor/dialogs/PublishDialog.tsx"
+        - "services/ui/src/app/admin/pathways/[id]/editor/dialogs/DeletePathwayDialog.tsx"
+        - "services/ui/src/app/admin/pathways/[id]/page.tsx"
+      estimated_loc: 1100
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-154 static-source verification - 13 cases covering:
+      file existence, import wiring, JSX usage in page.tsx, removal
+      of legacy inline markup, prop-driven shape (no useState in
+      extracted modules), full handler set on PathwayToolbar,
+      aria-labels on icon-only controls, type-the-name confirm
+      on DeletePathwayDialog, SaveBarState union shape, and file-
+      size discipline.
+    test_protocol: "VT-LEO-AI-154"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-108"]
+  tags:
+    - "pathways"
+    - "knowledge"
+    - "design-system"

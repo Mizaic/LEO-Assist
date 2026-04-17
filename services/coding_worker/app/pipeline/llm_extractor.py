@@ -167,7 +167,6 @@ Full schema when entities exist:
       "text": "<exact span as written in the sentence>",
       "lookup_term": "<standard clinical term for SNOMED lookup; preserve onset/chronicity/certainty/laterality qualifiers>",
       "semantic_tag": "<disorder|finding|procedure|substance|product|observable entity|situation|regime/therapy|staging scale>",
-      "assertion": "<present|absent|refuted|possible|historical|planned|hypothetical|family|declined|cancelled>",
       "confidence": 0.92,
       "numeric_value": "<numeric value if observable entity, else empty string>",
       "unit": "<unit if observable entity, else empty string>",
@@ -177,8 +176,8 @@ Full schema when entities exist:
   ]
 }
 
-assertion and confidence are REQUIRED on every entity. confidence is a
-self-assessment in [0.0, 1.0]; do not hard-code 1.0 for every entity.
+confidence is REQUIRED on every entity and is a self-assessment in
+[0.0, 1.0]; do not hard-code 1.0 for every entity.
 
 Never replace the JSON object with prose (for example "No codable entities").
 """
@@ -418,7 +417,11 @@ class LLMExtractor:
             text = str(term.get("text") or "").strip()
             if not text:
                 continue
-            assertion = _parse_assertion(term.get("assertion"))
+            # DI-LEO-AI-103: LLM extractor MUST NOT assign assertion. All
+            # entities are initialised to "present" so that ConText and the
+            # post-processing scope guards are the sole authority for
+            # non-present assertions.
+            assertion = "present"
             dedup_key = (text.lower(), str(term.get("semantic_tag") or ""), assertion)
             if dedup_key in seen:
                 continue

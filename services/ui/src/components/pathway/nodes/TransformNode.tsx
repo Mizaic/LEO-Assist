@@ -1,28 +1,68 @@
 "use client";
 
 import { memo } from "react";
-import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import Typography from "@mui/material/Typography";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
+
+import { BaseNode, NodeHandle, NodeHeader } from "./_base";
+
+const TRANSFORM_ACCENT = "#43A047";
+
+interface TransformOperation {
+  op: string;
+}
+
+interface TransformNodeData {
+  operations?: TransformOperation[];
+  onConfigure?: () => void;
+}
+
+function summariseOperations(operations: TransformOperation[]): string {
+  if (operations.length === 0) return "No operations - click to configure";
+  const opNames = Array.from(new Set(operations.map((o) => o.op)));
+  const noun = operations.length === 1 ? "op" : "ops";
+  return `${operations.length} ${noun}: ${opNames.join(", ")}`;
+}
 
 function TransformNodeComponent({ data, selected }: NodeProps) {
-  const operations = (data as any).operations ?? [];
-  const opSummary = operations.length === 0
-    ? "No operations — click to configure"
-    : `${operations.length} op${operations.length > 1 ? "s" : ""}: ${[...new Set(operations.map((o: any) => o.op))].join(", ")}`;
+  const d = data as TransformNodeData;
+  const operations = d.operations ?? [];
+  const opSummary = summariseOperations(operations);
+
   return (
-    <Box
-      sx={{ px: 2, py: 1.5, minWidth: 200, borderRadius: 2, border: "2px solid", borderColor: selected ? "primary.main" : "#43A047", bgcolor: "background.paper", cursor: "pointer" }}
-      onClick={(data as any).onConfigure}
+    <BaseNode
+      accentColor={TRANSFORM_ACCENT}
+      selected={selected}
+      minWidth={200}
+      ariaLabel={`Transform node, ${opSummary}`}
+      onActivate={d.onConfigure}
     >
-      <Handle id="input" type="target" position={Position.Left} />
-      <Typography variant="body2" fontWeight={700}>Transform</Typography>
-      <Chip size="small" label={opSummary} sx={{ mt: 0.5, bgcolor: "#43A047", color: "#fff", fontSize: "0.62rem", height: 18 }} />
-      <Handle id="output" type="source" position={Position.Right} />
-    </Box>
+      <NodeHandle
+        id="input"
+        type="target"
+        color={TRANSFORM_ACCENT}
+        tooltip="Input - data to transform"
+      />
+      <NodeHeader title="Transform" />
+      <Chip
+        size="small"
+        label={opSummary}
+        sx={{
+          mt: 0.5,
+          bgcolor: TRANSFORM_ACCENT,
+          color: "#fff",
+          fontSize: "0.62rem",
+          height: 20,
+        }}
+      />
+      <NodeHandle
+        id="output"
+        type="source"
+        color={TRANSFORM_ACCENT}
+        tooltip="Output - transformed data"
+      />
+    </BaseNode>
   );
 }
 
 export const TransformNode = memo(TransformNodeComponent);
-

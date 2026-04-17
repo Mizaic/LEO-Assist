@@ -269,6 +269,70 @@ class BitmapStore:
             ]
         return sorted(versions)
 
+    def delete_scope(
+        self,
+        scope_type: str,
+        scope_id: str,
+    ) -> int:
+        """Delete every Redis key belonging to a sandbox scope.
+
+        Drops both the active-version pointer and every compiled
+        ``ruleset:{scope}:*`` payload. Refuses to delete the production
+        global scope so a stray call cannot wipe live rules.
+
+        Returns:
+            Number of Redis keys removed.
+        """
+        st, sid = _normalise_scope(scope_type, scope_id)
+        if st == "global":
+            raise ValueError(
+                "delete_scope refuses to drop the global scope; "
+                "production rulesets are off-limits."
+            )
+        client = self._client()
+        token = _scope_token(st, sid)
+        prefix = f"{_RULESET_PREFIX}{token}:"
+        keys = list(client.keys(f"{prefix}*"))
+        current_key = _scoped_current_key(st, sid)
+        keys.append(current_key)
+        if not keys:
+            return 0
+        return int(client.delete(*keys) or 0)
+
+    def set_scope_ttl(
+        self,
+        scope_type: str,
+        scope_id: str,
+        *,
+        ttl_seconds: int,
+    ) -> int:
+        """Apply a TTL to every Redis key in a sandbox scope.
+
+        Acts as a safety net so abandoned sandbox compiles eventually
+        expire even if the ``DELETE /scopes`` cleanup call is missed.
+        Refuses to TTL the global scope.
+
+        Returns:
+            Number of keys an EXPIRE was set on.
+        """
+        st, sid = _normalise_scope(scope_type, scope_id)
+        if st == "global":
+            raise ValueError(
+                "set_scope_ttl refuses to expire the global scope."
+            )
+        if ttl_seconds <= 0:
+            return 0
+        client = self._client()
+        token = _scope_token(st, sid)
+        prefix = f"{_RULESET_PREFIX}{token}:"
+        keys = list(client.keys(f"{prefix}*"))
+        keys.append(_scoped_current_key(st, sid))
+        applied = 0
+        for k in keys:
+            if client.expire(k, ttl_seconds):
+                applied += 1
+        return applied
+
     def get_current_version_name(
         self,
         *,

@@ -1,0 +1,418 @@
+======================================================================
+PATIENT      : 7343840665
+EPISODE      : c9059b016491d341
+CANCER_TYPE  : non_site_specific
+STATUS       : stale_post_specialist
+REFERRAL     : 2024-09-16
+WINDOW       : 2024-09-02 .. 2024-12-15 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2024-09-16  referral                enc=1688d95b-d64f-47a7-9557-7d63239e3815
+  2024-09-16  referral                enc=46fb8a51-2b10-43aa-a162-537a249b7472
+  2024-09-25  first_seen              enc=9eccfc93-83a3-4c0e-aecd-f494316a7f35
+  2024-09-25  first_seen              enc=ca494464-aab9-458b-8fd9-f5f6323d970c
+  2024-09-30  referral                enc=9dc65759-dfbe-4a64-8b8b-e7b639d62557
+  2024-10-15  first_seen              enc=149eb207-0079-41bb-bd47-c473fa669137
+  2024-11-20  referral                enc=a7f53292-a83c-4ef2-9c30-21542aa8892c
+
+Encounters in window (n=50):
+
+--- 01 2024-09-02 [other] milestones=[] eid=894fd463-1622-49ee-a559-e9cec25dbfa2 ---
+10:22 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Title Changed From 'Mstr', 
+Patient name amendment via PDS
+
+--- 02 2024-09-02 [other] milestones=[] eid=7e03f407-aa6d-4865-bdb9-ab5cd75f023a ---
+10:43 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role)
+
+--- 03 2024-09-02 [other] milestones=[] eid=bdddceeb-03ad-4890-8333-60f912719861 ---
+10:44 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role) 
+Patient telephone number (9159.) - 07440 709907
+Short message service text message sent to patient (XaMiI)
+
+Hi Hoang,
+The nurse will not be able to administer any outstanding immunisations before your vaccination documents have been reviewed, therefore we would recommend you provide these and cancel your appointment today to give the nurse time to review what is required. 
+TO RESPOND, please follow this link: (link will autogenerate here)
+Thanks,
+Woodbrook Medical Centre
+
+--- 04 2024-09-02 [other] milestones=[] eid=21f73017-6cd8-4da7-9a90-62b06564fc13 ---
+14:30 - Surgery: SUMNER, Emily (Miss)  
+Did not attend for Session appointment with Miss Emily Sumner.
+Did not attend (Xa1kG)
+
+--- 05 2024-09-02 [other] milestones=[] eid=058c06c7-eb02-4a7e-ad02-a786da56f96b ---
+You did not attend your appointment on 02 Sep 2024 14:30 at Woodbrook Medical Centre. Please notify the service on 01509 239166 if unable to attend.
+
+--- 06 2024-09-02 [other] milestones=[] eid=4ab778c3-51aa-420f-8e6c-0a1ef60c911d ---
+14:37 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role)
+
+--- 07 2024-09-02 [other] milestones=[] eid=c7df5ca2-55d7-4797-9ce6-a48782168d03 ---
+14:37 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role) 
+Patient telephone number (9159.) - 07440 709907
+Short message service text message sent to patient (XaMiI)
+
+Hi Hoang,
+You have missed your appointment for Immunisations at 14.30 today.  Please contact the Surgery on 01509-239166 to book another appointment.
+Thanks, 
+Woodbrook Medical Centre
+
+--- 08 2024-09-02 [other] milestones=[] eid=6a345ef5-48bd-4175-a7c0-d08abbbdacb6 ---
+14:52 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role) 
+Examination: Attended for immunisations.
+Mum translating as Hoang speaks little English. 
+States no previous imm's before in Vietnam.
+Has BCG scar on left arm.
+As no vacc history offered 1st MMR and Revaxis today.
+Nimenrix out of stock so apt made for 4 weeks time for Men A,C,W,Y, 2nd MMR and 2nd Revaxis followed by 3rd Revaxis 4 weeks later.
+Advised of possible side effects, well on leaving.
+ Child DNA / Missed Appointment
+   Late for appointment: Yes
+ Reception & Administration
+Revaxis 1 0.5 ml
+MMRvaxPRO 1 0.5 ml
+Vaccination Consent: MUMPS
+Vaccination Consent: MEASLES
+Vaccination Consent: TETANUS
+Vaccination Consent: POLIO
+Vaccination Consent: DIPHTHERIA
+Vaccination Consent: RUBELLA
+Summary Care Record Update
+Late for appointment (XaIvr)
+
+--- 09 2024-09-02 [other] milestones=[] eid=a0b7a40e-18d5-4c99-a9e6-37fecf449016 ---
+Dear HoangTrieu
+
+Your appointment has been booked for 30 Sep 2024 14:15 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 10 2024-09-06 [other] milestones=[] eid=9af8ded5-bb82-4059-a63c-6cf21f473230 ---
+Dear HoangTrieu
+
+Your appointment has been booked for 06 Sep 2024 09:15 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 11 2024-09-06 [other] milestones=[] eid=95bd1c7e-bdc7-44de-a1af-7a67af382905 ---
+09:14 - Surgery: OLSBERG, Felicity (Receptionist Access Role)
+
+--- 12 2024-09-06 [other] milestones=[] eid=24fd7ebb-5c9e-4c03-9886-e3b181c999a7 ---
+09:17 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role) 
+History: f2f appt 
+
+came in due to infection on tip of nose, 
+ongoing for about 7 weeks, initially just a scratch - mildly red,. cat scratch, 3 weeks ago older sister - says he was cuddling her too tight and gripping her playfully she bit him to wrestle out and this caused the nose to get more infected and was bleeding. 
+says both siblings are always constantly being "childish / playful" as per mum 
+Examination: 1 cm lesion on tip of left nose, redness infected, some golden crustiness. 
+mum concerned about neck lump - submandibular growing bigger in the last week. and adjacent LN as well  
+Plan: advised oral antibiotics and if not settled in 1 week and if LN not receding needs urgent scan / bloods. 
+has bloods booked already
+stressed on importance of f/u in 1 week if not settling
+Flucloxacillin 500mg capsules - 28 capsule - take one 4 times/day
+ETP2 FP10: Not Yet Printed - Signed
+Community Pharmacy changed. Previous data: Was previously unset
+Summary Care Record Update
+
+--- 13 2024-09-09 [other] milestones=[] eid=9251ed6c-b08e-47bd-aa9f-3428e159577e ---
+09:11 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      Consultation comment:  patient felt unwell after blood taking - laid down for 5 mins and felt better. 
+colour returned to face, some water given. 
+taken a seat in reception for a further 5 mins before leaving. 
+had not had anything to eat or drink before blood test - advised needs to ensure has something to eat or drink if needs another unless the GP specifies not to.
+      ^Seen by practice phlebotomist: Yes
+Informed consent given for treatment (XaXHK)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+Consultation (Xa1qL)
+patient felt unwell after blood taking - laid down for 5 mins and felt better. 
+colour returned to face, some water given. 
+taken a seat in reception for a further 5 mins before leaving. 
+had not had anything to eat or drink before blood test - advised needs to ensure has something to eat or drink if needs another unless the GP specifies not to.
+
+--- 14 2024-09-09 [other] milestones=[] eid=ffaaa9c4-408e-4f34-998d-5eff049b766c ---
+09:16 - Surgery: Auto-filed  
+Infectious mononucleosis test (XE250) - Negative
+Infectious mononucleosis test Report, Normal, No Further Action. Review done by KETHEESWARAN, Arthika (Dr) - 11 Sep 2024 13:46
+
+--- 15 2024-09-09 [other] milestones=[] eid=9ea26cd4-545f-455f-8bd5-221d36cb9617 ---
+09:16 - Surgery: Auto-filed  
+Plasma C-reactive protein level (XE2dy) < 5 mg/L [< 10]
+Plasma C-reactive protein level Report, Normal, No Further Action. Review done by KETHEESWARAN, Arthika (Dr) - 10 Sep 2024 13:46
+
+--- 16 2024-09-09 [other] milestones=[] eid=0df43d0e-3913-42b5-aa68-e8f6ac6e7f7d ---
+09:16 - Surgery: Auto-filed  
+Eosinophil count - observation (42K..) 0.21 10^9/L [0.04 - 0.4]
+Basophil count (42L..) 0.04 10^9/L [0.02 - 0.1]
+Lymphocyte count (42M..) 3.09 10^9/L [1.5 - 6]
+Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]
+For further investigation of abnormal Full Blood Count
+please see Haematology Referral Guidelines:
+https://www.leicestershospitals.nhs.uk/aboutus/
+(click Departments & Services > Haematology >
+Haematology Referral
+Guidelines).
+If clinically urgent contact the Haematologist On Call.
+Red blood cell count (426..) 5.54 10^12/L [3.9 - 6.5]
+Haemoglobin concentration (Xa96v) 159 g/L [130 - 180]
+Haematocrit (X76tb) 0.484  [0.4 - 0.54]
+Mean cell volume (42A..) 87 fL [80 - 99]
+Mean cell haemoglobin level (XE2pb) 28.7 pg [27 - 32]
+Platelet count - observation (42P..) 277 10^9/L [140 - 400]
+Neutrophil count (42J..) 3.84 10^9/L [1.8 - 8]
+Monocyte count - observation (42N..) 0.39 10^9/L [0.2 - 0.8]
+Full blood count (424..)
+Total white blood count (XaIdY) 7.6 10^9/L [4.5 - 13]
+Full blood count Report, Normal, No Further Action. Review done by KETHEESWARAN, Arthika (Dr) - 10 Sep 2024 13:46
+
+--- 17 2024-09-09 [other] milestones=[] eid=c919681b-59c5-48a9-b339-5516d2d99c67 ---
+09:17 - Surgery: Auto-filed  
+Sample serology (43L..)
+HIV screening test (XaIon) - Not detected by EIA
+CMV IgM antibody level (XaERU) - Not detected by EIA
+Epstein-Barr virus antibody titre (X76zb) - Not detected by EIA
+Toxoplasma IgG: Not detected by EIA
+EBV VCA IgG: DETECTED by EIA; No evidence of recent EBV infection
+Evidence of past EBV infection
+Sample serology Report, Abnormal, Make an appointment to see doctor. Review done by KETHEESWARAN, Arthika (Dr) - 11 Sep 2024 18:41
+
+--- 18 2024-09-10 [other] milestones=[] eid=007be643-221f-44a5-9a6b-289af8c73199 ---
+13:45 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role)
+
+--- 19 2024-09-11 [other] milestones=[] eid=b66e41cc-e65f-467f-bf13-8419372b35a6 ---
+13:46 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role)
+
+--- 20 2024-09-11 [other] milestones=[] eid=698cfb1d-fe43-4150-b986-73a9d8ef31ee ---
+18:39 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role)
+
+--- 21 2024-09-16 [other] milestones=[] eid=0905cf2b-6f34-4e04-b1fc-529de74fedb7 ---
+Dear Hoang Trieu
+
+Your appointment has been booked for 16 Sep 2024 10:00 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 22 2024-09-16 [IN-EP] milestones=['referral'] eid=1688d95b-d64f-47a7-9557-7d63239e3815 ---
+10:16 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+- PRISM 2WW Children and Young People -  questionnaire started - (finalised: 16 Sep 2024 10:16)
+Fast track cancer referral (XaL1F) - (Added from Questionnaire)
+ Paediatric Consultation
+   General
+      Encounter: Consultation (Xa1qL)
+      Seen with:  mum
+      H:  fu on lump in neck, has gotten bigger since last review, was about 1cm, now it is 2.5cm on examination, non tender, fixed in submandibular region. 
+no weight loss or night sweats.
+recent cat scratch, leson on the nose, this has improved but scabbed over still compared to 2w ago.  had 1w with fluclox.
+      E:  2.5cm soft tissue swelling in the submanibular region, just to the right of the centre. 
+no lumps in floor of mouth.  no pharyngeal masses to see.
+no other neck nodes.
+abdo snt, no palpable masses.
+cranial nerves grossly normal.
+      RR: 16 breath/min
+      Sats: 99 %
+      CRT: <2 Seconds
+      HR: 98 bpm
+      Pulse: Pulse regular (XM02J)
+      P:  2ww children pathway ?cause of sx.
+Consultation (Xa1qL)
+Patient accompanied at encounter (XaX4c) - mum
+Clinical history and observations (X76sV)
+fu on lump in neck, has gotten bigger since last review, was about 1cm, now it is 2.5cm on examination, non tender, fixed in submandibular region. 
+no weight loss or night sweats.
+recent cat scratch, leson on the nose, this has improved but scabbed over still compared to 2w ago.  had 1w with fluclox.
+Clinical examination (XB001)
+2.5cm soft tissue swelling in the submanibular region, just to the right of the centre. 
+no lumps in floor of mouth.  no pharyngeal masses to see.
+no other neck nodes.
+abdo snt, no palpable masses.
+cranial nerves grossly normal.
+Respiratory rate (X774f) 16 breath/min
+Oxygen saturation at periphery (X770D) 99 %
+Capillary refill time (XSFup) < 2 Seconds
+Pulse rate (X773s) 98 bpm
+Pulse regular (XM02J)
+Plan (XaIVg) - 2ww children pathway ?cause of sx.
+
+--- 23 2024-09-16 [IN-EP] milestones=['referral'] eid=46fb8a51-2b10-43aa-a162-537a249b7472 ---
+10:30 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected childrens tumour (XaMeD)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww Childrens
+Hospital Fast track referral for suspected childrens tumour
+2WW Children and Young People PRISM to Unknown 
+Hospital Fast track referral for suspected childrens tumour updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww Childrens
+
+--- 24 2024-09-16 [other] milestones=[] eid=4b81aba9-a8d3-49aa-8a00-581e397ff8b7 ---
+10:33 - Automatically updated from PAS interface: Unknown Staff Member  Entered at: University Hospitals of Leicester NHS Trust - EPR
+Title Changed From 'Master'
+
+--- 25 2024-09-17 [other] milestones=[] eid=9a67844d-6ce7-4813-bddf-685f6befaa81 ---
+** Care started at: LLR Health Visitor & School Nurse Charnwood **
+
+--- 26 2024-09-17 [other] milestones=[] eid=2bbe8d21-ebc0-4397-8daa-016f2cb32a40 ---
+13:25 - Child Health: DANN, James (Health Records Manager Access Role) Entered at: Leicester, Leicestershire & Rutland CHIS - NHS South Central and West CSU
+Referral to service (XaAeO)
+Community Referral for School Nursing Service
+Community Referral for School Nursing Service updated: Waiting For Information
+
+--- 27 2024-09-17 [other] milestones=[] eid=1df7438d-cac5-49ee-a647-1dfdc7ee8163 ---
+13:27 - Surgery: Unknown Staff Member  Entered at: LLR Health Visitor & School Nurse Charnwood
+SystmOne Incoming Record Sharing consent changed to: Not asked - Record shared
+
+--- 28 2024-09-17 [other] milestones=[] eid=c51b743b-b277-4b8f-80c8-8aa2b3fcf161 ---
+13:27 - Surgery: Unknown Staff Member  Entered at: LLR Health Visitor & School Nurse Charnwood
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared
+
+--- 29 2024-09-18 [other] milestones=[] eid=d36b859e-a4ed-4529-b085-33b5975af1f7 ---
+** Care ended at LLR Health Visitor & School Nurse Charnwood **
+
+--- 30 2024-09-18 [other] milestones=[] eid=6163a3d9-a712-4139-a6b1-2f8682622457 ---
+10:16 - Office Base: PARKER, Sandra (Mrs) (Health Professional Access Role) Entered at: LLR Health Visitor & School Nurse Charnwood
+
+--- 31 2024-09-19 [other] milestones=[] eid=8550a2d1-c3a8-4d43-aed4-673eac10e6da ---
+12:58 - Child Health: DANN, James (Health Records Manager Access Role) Entered at: Leicester, Leicestershire & Rutland CHIS - NHS South Central and West CSU
+
+--- 32 2024-09-25 [IN-EP] milestones=['first_seen'] eid=9eccfc93-83a3-4c0e-aecd-f494316a7f35 ---
+00:00 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Seen in fast track suspected childrens tumour clinic (XaPyS)
+
+--- 33 2024-09-25 [IN-EP] milestones=['first_seen'] eid=ca494464-aab9-458b-8fd9-f5f6323d970c ---
+Surgery: BAILEY, Christopher (Receptionist Access Role) 
+2WW Clinic Letter to Woodbrook Medical Centre
+
+--- 34 2024-09-25 [other] milestones=[] eid=d802c529-756f-4643-9ac6-3ce399ccdf8a ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Oncology to Dr Medical Woodbrook
+
+--- 35 2024-09-25 [other] milestones=[] eid=299fb2a4-e086-42df-9036-0aa2f8365bf2 ---
+Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role) 
+Minor: Lymphadenopathy (Xa0Vr) (New Episode)
+Lymphadenopathy (Xa0Vr)
+
+--- 36 2024-09-25 [other] milestones=[] eid=69ea8959-ee8c-487e-8e4c-5a7473c1d04e ---
+Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)
+
+--- 37 2024-09-25 [other] milestones=[] eid=b35d62e0-9d97-46ac-a4e6-db8e3673fe23 ---
+09:18 - Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role) 
+ Paediatric Consultation
+   General
+      Weight: 51 Kg  (? 8 st)
+ Vitals & Lifestyle
+   Recordings
+      Height: 1.68 m  (? 5 ' 6 ")
+O/E - height (229..) 1.68 m (? 5 ' 6 ")
+O/E - weight (22A..) 51 Kg (? 8 st)
+
+--- 38 2024-09-30 [IN-EP] milestones=['referral'] eid=9dc65759-dfbe-4a64-8b8b-e7b639d62557 ---
+14:08 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role) 
+Examination: Attended with mum who translated as speaks poor English for unscheduled imm's- 2nd mmr, 2nd revaxis and men acwy.
+However 2ww letter noted and awaiting investigations.
+Has USS tomorrow. 
+Therefore 2nd mmr not administered today as it is a live vaccine. 
+Will review when attends for 3rd revaxis in 4 weeks. 
+Plan: Apt made for 3rd revaxis and ? 2nd mmr in 4 weeks.
+Nimenrix 1 0.5 ml
+Revaxis 2 0.5 ml
+Vaccination Consent: TETANUS
+Vaccination Consent: POLIO
+Vaccination Consent: DIPHTHERIA
+Vaccination Consent: MENINGOCOCCAL A
+Vaccination Consent: MENINGOCOCCAL Y
+Vaccination Consent: MENINGOCOCCAL W135
+Vaccination Consent: MENINGOCOCCAL C
+Mobile telephone number: 07466 836522
+mum's number
+Summary Care Record Update
+
+--- 39 2024-09-30 [other] milestones=[] eid=8220097a-a53d-4fed-9808-c2ee34c7cac7 ---
+Dear Hoang Trieu
+
+Your appointment has been booked for 28 Oct 2024 14:10 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 40 2024-10-15 [IN-EP] milestones=['first_seen'] eid=149eb207-0079-41bb-bd47-c473fa669137 ---
+12:57 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected childrens tumour clinic (XaPyS) 25 Sep 2024
+Summary Care Record Update
+
+--- 41 2024-10-22 [other] milestones=[] eid=04a95431-c077-456c-84bd-84ab902ee2bf ---
+11:40 - Surgery: OLSBERG, Felicity (Receptionist Access Role)
+
+--- 42 2024-10-22 [other] milestones=[] eid=0863b489-53b3-43e9-8d7f-7c24d01f2f36 ---
+Dear Hoang Trieu
+
+Your appointment has been booked for 20 Nov 2024 16:10 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 43 2024-11-20 [other] milestones=[] eid=2d0e8821-a310-4658-8e12-17bdac320535 ---
+16:10 - Surgery: SUMNER, Emily (Miss)  
+Did not attend for Session appointment with Miss Emily Sumner.
+Did not attend (Xa1kG)
+
+--- 44 2024-11-20 [other] milestones=[] eid=5074d037-f9e5-4540-bdea-bca27dd32599 ---
+You did not attend your appointment on 20 Nov 2024 16:10 at Woodbrook Medical Centre. Please notify the service on 01509 239166 if unable to attend.
+
+--- 45 2024-11-20 [IN-EP] milestones=['referral'] eid=a7f53292-a83c-4ef2-9c30-21542aa8892c ---
+16:25 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role) 
+Examination: Attended for 2nd MMR and 3rd Revaxis vaccines.
+Was seen on 2WW, nad so safe to administer live vaccine.
+ Child DNA / Missed Appointment
+   Late for appointment: Yes
+ Reception & Administration
+Revaxis 3 0.5 ml
+MMRvaxPRO 1st Scheduled Booster 0.5 ml
+Vaccination Consent: MUMPS
+Vaccination Consent: MEASLES
+Vaccination Consent: TETANUS
+Vaccination Consent: POLIO
+Vaccination Consent: DIPHTHERIA
+Vaccination Consent: RUBELLA
+Summary Care Record Update
+Late for appointment (XaIvr)
+
+--- 46 2024-11-22 [other] milestones=[] eid=4e61db9c-a95c-4f79-afb6-244748ce7916 ---
+** Care started at: LLR School Aged Immunisation Service **
+
+--- 47 2024-11-22 [other] milestones=[] eid=6040f9e8-d00f-4b63-bb44-46142abfac4a ---
+10:41 - Surgery: WINSPEAR, Kim (Clerical Access Role) Entered at: LLR School Aged Immunisation Service
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared
+
+--- 48 2024-11-22 [other] milestones=[] eid=8d4d154c-226d-4149-be7e-123069855cf6 ---
+10:41 - Surgery: WINSPEAR, Kim (Clerical Access Role) Entered at: LLR School Aged Immunisation Service
+SystmOne Incoming Record Sharing consent changed to: Not asked - Record shared
+
+--- 49 2024-11-22 [other] milestones=[] eid=05eb80e5-bce9-4d9b-81ae-4dacea983557 ---
+10:41 - Office Base: WINSPEAR, Kim (Clerical Access Role) Entered at: LLR School Aged Immunisation Service
+
+--- 50 2024-11-22 [other] milestones=[] eid=05b24fd1-e7ba-4363-a837-d2e6360ead01 ---
+10:41 - Office Base: WINSPEAR, Kim (Clerical Access Role) Entered at: LLR School Aged Immunisation Service
+ Communication Template
+   Communication Template
+      Comment note:  Record check during process of checking flu vaccine consent form on Cinnamon.
+Forename mismatch between form and S1 due to accent over letter on name on form. 
+All other details match so form amended to match S1 by removing accent.
+School updated using data provided by parent on Cinnamon consent form.
+Mother of child's details added to Groups and Relationships from details provided on consent form.
+
+
+Mother: Lien Trieu 
+School: Humphrey Perkins School, LE12 8JU [22 Nov 2024 - ] 
+Comment note (XaIg6)
+Record check during process of checking flu vaccine consent form on Cinnamon.
+Forename mismatch between form and S1 due to accent over letter on name on form. 
+All other details match so form amended to match S1 by removing accent.
+School updated using data provided by parent on Cinnamon consent form.
+Mother of child's details added to Groups and Relationships from details provided on consent form.
+

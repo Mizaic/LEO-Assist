@@ -428,22 +428,43 @@ def test_gap010_callback_rejects_missing_nonce():
 # ---------------------------------------------------------------------------
 
 
-def test_gap011_save_session_raises_503_when_redis_unavailable():
+def test_gap011_save_session_raises_503_when_redis_unavailable(monkeypatch):
     """save_session must raise HTTPException(503) when Redis is not configured."""
+    import importlib
+    import importlib.util
+
     sys.path.insert(
         0, str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api")
     )
     from fastapi import HTTPException
 
-    with patch.dict(os.environ, {}, clear=False):
-        os.environ.pop("REDIS_URL", None)
-        os.environ["DISABLE_REDIS"] = "false"
-        # Reset the module-level _redis_client so it re-initialises
-        import app.services.session_store as ss
+    # secrets/.env* is auto-loaded by some sibling scripts and re-instates
+    # REDIS_URL even when the test's local pop removes it. Force the
+    # disabled state with monkeypatch so dotenv-loaded values cannot
+    # leak through.
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    monkeypatch.setenv("DISABLE_REDIS", "true")
 
-        ss._redis_client = None
-        with pytest.raises(HTTPException) as exc_info:
-            ss.save_session("sid", {"email": "test@example.com"})
+    # Some other test in the suite may have re-bound the top-level
+    # ``app`` namespace (for example by importing
+    # ``services.fhir_api.app``); always load the session-store module
+    # straight from its file path so this test sees the real module.
+    spec = importlib.util.spec_from_file_location(
+        "app_services_session_store_isolated",
+        str(
+            __import__("pathlib").Path(__file__).parent.parent
+            / "services"
+            / "api"
+            / "app"
+            / "services"
+            / "session_store.py"
+        ),
+    )
+    ss = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ss)
+    ss._redis_client = None
+    with pytest.raises(HTTPException) as exc_info:
+        ss.save_session("sid", {"email": "test@example.com"})
     assert exc_info.value.status_code == 503
 
 

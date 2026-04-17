@@ -1,0 +1,93 @@
+# -- DO-LEO-AI-152 -- Pathway editor chrome modules
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-152"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-156"]
+    user_needs: ["UN-LEO-AI-072"]
+    risks_addressed: ["R-LEO-AI-108"]
+    verification_tests: ["VT-LEO-AI-154"]
+
+  specification:
+    title: "Pathway editor chrome (toolbar, save bar, publish / delete / edge-confirm dialogs)"
+    description: |
+      Five sibling modules under
+      services/ui/src/app/admin/pathways/[id]/editor/ that own the
+      visible chrome of the pathway editor. Each module is purely
+      presentational (no useState / useEffect, no API calls); the
+      orchestrator page.tsx supplies state and handlers as props.
+
+      Modules:
+        - PathwayToolbar.tsx (top action bar)
+        - PathwaySaveBar.tsx (sticky bottom bar, dirty / saving / saved / error)
+        - utils.ts (formatSaveTime, lifecycleLabel, lifecycleColor, PlanLifecycleStatus)
+        - dialogs/EdgeDeleteConfirm.tsx
+        - dialogs/PublishDialog.tsx
+        - dialogs/DeletePathwayDialog.tsx (type-the-name confirm gate)
+    acceptance_criteria:
+      - criterion: "Files exist under editor/"
+        type: "functional"
+        measurement: "Test"
+        target: "All six files exist on disk"
+      - criterion: "Page.tsx wires the new modules"
+        type: "functional"
+        measurement: "Test"
+        target: "page.tsx imports PathwayToolbar, PublishDialog, DeletePathwayDialog, EdgeDeleteConfirm"
+      - criterion: "Inline legacy markup is removed"
+        type: "functional"
+        measurement: "Test"
+        target: "Strings such as 'Add a data source...' and onClick={handlePublish} do not appear in page.tsx body"
+      - criterion: "Prop-driven decomposition"
+        type: "functional"
+        measurement: "Test"
+        target: "Extracted modules contain no useState / useEffect"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/[id]/editor/PathwayToolbar.tsx"
+        description: "Top action bar; canonical handler set including onSaveDraft, onPublish, onRetire, onAddSourceNode, onAddOutputNode, onAddViewerNode, onAddAction, onAutoLayout, onClearTestTrace, onOpenTestRun, onRunAllSteps, onOpenBatchPanel, onOpenHistory, onOpenDelete, onBack, onClearSaveError"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/[id]/editor/PathwaySaveBar.tsx"
+        description: "Sticky save bar with SaveBarState union and role=status / aria-live=polite for screen-reader announcement"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/[id]/editor/dialogs/PublishDialog.tsx"
+        description: "Publish confirmation; shows pipeline step count, validation summary, version notes field"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/[id]/editor/dialogs/DeletePathwayDialog.tsx"
+        description: "Permanent delete with type-the-name confirm gate"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/[id]/editor/dialogs/EdgeDeleteConfirm.tsx"
+        description: "Single-purpose dialog confirming edge disconnection"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/[id]/editor/utils.ts"
+        description: "Pure helpers: formatSaveTime, lifecycleLabel, lifecycleColor, PlanLifecycleStatus type"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 1100
+      key_functions:
+        - "PathwayToolbar"
+        - "PathwaySaveBar"
+        - "PublishDialog"
+        - "DeletePathwayDialog"
+        - "EdgeDeleteConfirm"
+        - "formatSaveTime"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Type-the-name confirm gate on permanent pathway delete (use error -> patient harm if a live pathway is deleted by accident)"
+      - "Aria-labels on icon-only controls (preserves keyboard / SR access for QA leads)"
+    risk_control_measures:
+      - "Type-the-name confirm gate is enforced inside DeletePathwayDialog (canDelete only when confirmText.trim() === pathwayName) so neither the parent nor a tester can bypass it"
+      - "Save action is rendered consistently on both the toolbar (Save draft) and the save bar (Save now); state is supplied by parent so users see one source of truth"
+      - "Behaviour parity preserved: no save semantics or validation rules changed in this phase"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

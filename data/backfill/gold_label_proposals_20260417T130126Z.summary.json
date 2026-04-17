@@ -1,0 +1,23 @@
+{
+  "labels_seen": 950,
+  "labels_with_additions": 384,
+  "labels_with_extensions": 223,
+  "additions_total": 635,
+  "extensions_total": 281,
+  "applied": 0,
+  "errors": 0,
+  "elapsed_sec": 420.75,
+  "additions_by_label": {
+    "procedure": 94,
+    "finding": 265,
+    "disorder": 61,
+    "situation": 50,
+    "substance": 31,
+    "observable_entity": 28,
+    "qualifier_value": 101,
+    "body_structure": 5
+  },
+  "mode": "with_llm",
+  "dry_run": true,
+  "workers": 4
+}

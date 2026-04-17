@@ -1,0 +1,260 @@
+======================================================================
+PATIENT      : 6507904570
+EPISODE      : c8ec45c8d3510581
+CANCER_TYPE  : gynaecological
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-05-30
+WINDOW       : 2025-05-16 .. 2025-08-28 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-05-30  referral                enc=0f1d01ac-9f7c-40a1-aeec-b58ecdb2756e
+  2025-05-30  referral                enc=63a9b9f9-552c-4159-abf9-fae4d31a0c21
+  2025-05-30  referral                enc=bc5e308b-2cda-4e98-ba1a-1af6ab36ec36
+
+Encounters in window (n=13):
+
+--- 01 2025-05-19 [other] milestones=[] eid=7a65eb90-88b6-459d-a970-b1ea17b86360 ---
+09:22 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Pathology Request (Request Sent):
+Thyroid Stimulating Hormone (Requested)
+Informed consent given for treatment (XaXHK)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 02 2025-05-19 [other] milestones=[] eid=b5d099c4-7e61-4865-9b64-d35ece7e9cf4 ---
+09:26 - Surgery: Auto-filed  
+Thyroid function test (X77Wg)
+Serum free T4 level (XaERr) 15 pmol/L [9.7 - 24.7]
+99% reference range was  applied for adults after
+review with Endocrinology.
+Serum TSH level (XaELV) 0.09 miu/L [0.55 - 4.78] - Outside reference range; Probably adequate replacement but aim for normal TSH
+Clinical Information: Clinical Details:     On thyroxine. Reasons for Request:      rpt.
+Thyroid function test Report,ï¿½Abnormal,ï¿½Need to speak to doctor: Levo dose titrating.
+Has appt next week with Dr NB re thyroid (Patient Informed). Review done by HORNE, Jonathan (Dr) - 23 May 2025 17:18
+
+--- 03 2025-05-21 [other] milestones=[] eid=8324d39a-91d4-4a7e-a3e7-e497f390af27 ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Letter from Patient to Dr Ben Noble
+
+--- 04 2025-05-23 [other] milestones=[] eid=c59beabc-9613-4f3b-b91f-ce954ff7e92c ---
+12:53 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Email sent to Orthopaedics as per Dr Noble's letter.
+
+--- 05 2025-05-23 [other] milestones=[] eid=f3308477-9da4-4720-8a7f-101b553ec934 ---
+17:16 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
+
+--- 06 2025-05-29 [other] milestones=[] eid=e8a57f1c-d5ca-48c2-ac72-edf8daf69c26 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Orthopaedics to Woodbrook Medical Centre
+
+--- 07 2025-05-29 [other] milestones=[] eid=66322a3e-c602-4fb1-a3b8-2ebc0707a634 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+Removal of internal fixation (XM0oY) (Ongoing Episode)
+
+--- 08 2025-05-29 [other] milestones=[] eid=d826a804-4926-450a-889d-63768d9ecd0c ---
+15:25 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+Problem: Hypothyroidism NOS (XE10A)
+History: calling to review TFts 
+2023 on 100mcg od  
+then inc to 125mcg nov 23  
+march 2025 inc to 150mcg (T4 12.6, TSH 5.5)  
+rpt TFts T4 15 and TSH 0.09  
+called to review    
+"12/12 sxs, but not paid much attention - in morning - dry throat and hoarseness - sense that something stuck in throat, freq throat clearing, dry cough"  
+intermittent difficulties swallowing - sense of food getting stuck if not chewed well   - neck level  
+drinking helps  
+can get discomfort on swallowing throat  
+deliberate weight loss - 10kg - now 79kg  
+intermittent sweats   
+aware recent TFts suggest now oevr-replaced - good concordance
+Plan: needs exam given swallow sxs and dysphagia  
+app released mane  - check thyroid also
+ Common GP Values and Examination Codes  GP
+   Values
+      Weight: 79 Kg  (? 12 st 6 lb)
+      BMI: 30.1 Kg/mï¿½
+O/E - weight (22A..) 79 Kg (? 12 st 6 lb)
+Body mass index - observation (22K..) 30.1 Kg/mï¿½
+
+--- 09 2025-05-29 [other] milestones=[] eid=83e2169d-0395-40ad-a13c-c54b60bcf03d ---
+Dear Ewa Palyska
+
+Your appointment has been booked for 30 May 2025 10:00 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 10 2025-05-30 [other] milestones=[] eid=32edb6a3-93cc-4d08-93c5-f77ddf28a81f ---
+Repeat stopped - see entry on 28 Mar 2025 14:17
+Levothyroxine sodium 50microgram tablets - 56 tablet - take one daily (150mcg Every Day in total)
+ Ended 30 May 2025 Clinical grounds by BROCKHURST, Nikki (Dr)
+
+--- 11 2025-05-30 [IN-EP] milestones=['referral'] eid=0f1d01ac-9f7c-40a1-aeec-b58ecdb2756e ---
+10:02 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+Problem: [D]Dysphagia (R072.)
+History: as above  
+indicating the swallowing issue (sense of something stuck) and dysphagia at thyroid level  
+no dyspepsia  
+intermittent hoarseness  
+has prev imaging in Poland "100yrs ago" - multinodular thyroid - also reports had biopsy ? which side - benign histology  
+discussed the TFts today (TSH low on 150mcg)  
+no recent inx sxs   / URTI  ongoing 
+5-8/8/25 poland, then 8/7/25 turkey for 7/7
+Examination: anterior triangle - bilaterally couple of subcentimetre nodes  
+goitre - feels nodular  
+no Retrosternal extension apparent on percussion  
+abdo soft, non tender, no organomegaly, no masses
+Plan: discussed - in light of hoarseness and thyroid mass with dysphagia refer ENT 2ww - happy with plan 
+levothyroxine to 125mcg - rpt TFts 8/52
+[D]Dysphagia (R072.)
+(R) Levothyroxine sodium 25microgram tablets - 56 tablet - take one daily (125mcg in total)
+Levothyroxine sodium 25microgram tablets - 56 tablet - take one daily (125mcg in total)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+[D]Dysphagia (R072.)
+
+--- 12 2025-05-30 [IN-EP] milestones=['referral'] eid=63a9b9f9-552c-4159-abf9-fae4d31a0c21 ---
+13:10 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+2WW Head & Neck Pathway accessed
+- PRISM 2WW Head and Neck -  questionnaire started - (finalised: 30 May 2025 13:10)
+Fast track referral for suspected head and neck cancer (XaMkD) - (Added from Questionnaire)
+Outbound referral (XaY59)
+2WW Head and Neck PRISM to Mrs Ewa Palyska
+
+--- 13 2025-05-30 [IN-EP] milestones=['referral'] eid=bc5e308b-2cda-4e98-ba1a-1af6ab36ec36 ---
+14:56 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected head and neck cancer (XaMkD)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww head and neck
+Hospital Fast track referral for suspected head and neck cancer
+Hospital Fast track referral for suspected head and neck cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww head and neck
+15:46 - Surgery: FOX, Lauren (Mrs) (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre
+Status Update for  Referral In: Discharged From Care, Status changed: 03 Jun 2025 15:46
+16:38 - O'CONNELL, Charlotte (Ms)  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa)
+Telephone encounter (9N31.)
+16:43 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+Patient telephone number (9159.) - +447712568501
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Palyska,
+
+2 week wait referral office - 0116 2502543
+
+Thanks
+Woodbrook Medical Centre
+Sent on 12/06/2025 at 16:43
+10:09 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: General practice online consultation system encounter (Ya1CH)
+Contact trigger : Other (Y3eaa)
+General practice online consultation system encounter (Ya1CH)
+10:10 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+Name: PALYSKA, EWA
+DOB: 14-10-1972
+Postcode: Le11 1sp
+Phone number: 07712568501
+Describe the problem: I'm 52 and postmenopausal. Over the past few days I've had persistent pain in my groin area, including the sides and lower back. The pain feels deep and at times seems to come from where my ovaries would be. It's been uncomfortable and worrying, and Iâd like to request an appointment to discuss this. On one occasions,  after intercourse I spot small bleeding on my underwear. Im in constant pain
+Attach a photo: No file attached
+How long has it been going on for? Is it getting better or worse?: 2 weeks
+Have you tried anything to help?: Painkillers 
+Is there anything you're particularly worried about?: Cervical cyst
+Expectations: 1-urine check
+2- gynecological examination 
+3- scan
+Contact method preference: Phone call
+Preferred clinician to contact them: Female doctor
+Received on: 13/06/2025 at 08:50
+eConsultation via online application (Y1f3b) - Patient request: Medical - Medical request
+10:12 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+Patient telephone number (9159.) - +447712568501
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Palyska,
+
+
+Please be aware this method of contact is not for urgent medical requests.
+We have made you a face to face appointment with our Advanced Clinical Practitioner, Kat on 18.06.25 at 08:30am.
+If you need to be seen before this please telephone the surgery or call 111.
+Please respond via the link with NO if you are unable to attend.
+A further medical request will need to be submitted if you cannot attend the appointment offered.
+
+TO RESPOND, please follow this link: https://accurx.nhs.uk/c/p-x63g6sws6y
+
+Thanks
+Woodbrook Medical Centre
+Sent on 13/06/2025 at 10:12
+08:36 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role) 
+- PRISM 2WW Gynaecology -  questionnaire started - (finalised: 18 Jun 2025 08:36)
+Fast track referral for suspected gynaecological cancer (XaMeB) - (Added from Questionnaire)
+Estradiol 10microgram pessaries - 24 pessary - ONE to be inserted into the vagina DAILY for the first two weeks, then use TWICE a week
+ Vaginal Examination
+   No chaperone: Chaperone refused (XaEis)
+   Examination notes:  Bimanual examination normal. Mild vaginal atrophy, nil bleeding noted 
+Normal  cervix, no masses, no discharge
+Consented to exam. Chaperone declined
+ Urinalysis.
+   Urine dipstick test: Yes
+   Urinalysis normal: Yes
+   Sample: Mid-stream urine sample (X7ADc)
+   Urine: Urine: looks clear (4626.)
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+       - PRISM 2WW Gynaecology -  questionnaire started - (finalised: 18 Jun 2025 08:36)
+ Menopause
+   Symptoms
+      Pain on intercourse: Yes
+      Dysuria: Yes
+      Urinary frequency: Yes
+      Urinary urgency: Yes
+      Vulvovaginal discomfort: Yes
+   Consultation
+ Menopause & HRT Formulary
+   GSM treatment
+      Estradiol 10microgram pessaries - 24 pessary - ONE to be inserted into the vagina DAILY for the first two weeks, then use TWICE a week
+ Consultation.
+   General
+      Encounter: Consultation (Xa1qL)
+      H:  Seen alone 
+52 year old female with 2/12 history of pain to lower abdo/hips/back 
+ Over the past few days  persistent pain in my groin area, including the sides and lower back. 
+Describes as 'deep' and feels like located to ovaries
+Has been taking regular analgesia -nil effect 
+LUTS urgency/frequency and vaginal soreness -note seen last year and referral on LUTS pathway 
+Episode of PCB x 1 approx 1 months ago 
+Note menopausal NOT on HRT 
+Concerned what is causing the pain 
+E&D but some loss of appetite-has been worried as states referred for suspected 'thyroid cancer' 
+Nil bloating , nil early satiety 
+Nil weight loss nil night sweats 
+Nil fever 
+Nil significant family history 
+Cervical screening up to date 
+LMP in 2017 Nil chance of STI
+      E:  Alert and orientated 
+Looks well
+   Gastrointestinal
+      E:  Abdomen SNT nil guarding nil mass nil organomegaly
+   Genitourinary
+      E:  No loin/flank tenderness
+No suprapubic tenderness
+      P:  Discussed symptoms advised for referral on 2ww gyane due to PMB/PCB and not on HRT, may be due to vaginal atrophy but need to rule out other causes particularly as getting pain. 
+Discussed 2ww pathway.
+For urgent bloods in next 1/52. 
+Start vaginal oestrogen and then review in approx 4 weeks
+Seek review sooner if worsening s
+  ... [truncated, 4000 chars more]
+

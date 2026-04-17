@@ -1,0 +1,95 @@
+# -- DO-LEO-AI-171 -- Adjuvant cancer-therapy diagnosis inference
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-171"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-172"]
+    user_needs: ["UN-LEO-AI-005", "UN-LEO-AI-055"]
+    risks_addressed: ["R-LEO-AI-171"]
+    verification_tests: ["VT-LEO-AI-170"]
+
+  specification:
+    title: "Pathognomonic anti-cancer drug detection with co-condition guard"
+    description: |
+      Implements DI-LEO-AI-172. Adds a defence-in-depth diagnosis path
+      that infers a confirmed cancer when a curated anti-cancer drug
+      appears in encounter text alongside an "issue" marker or another
+      cancer signal, while suppressing false positives from routine
+      repeat-prescription reviews.
+
+      1. ADJUVANT_THERAPY_DRUG_PATTERNS lists 18 drug families (with
+         brand-name aliases) mapped to their canonical NCDA site:
+         hormone therapy (breast/prostate), targeted therapy (lung/
+         haematological/breast/lymphoma), and capecitabine (non-
+         site-specific, requires HITL).
+      2. ADJUVANT_THERAPY_ISSUE_MARKERS regex captures the 9 phrases
+         that distinguish a NEW prescription from a routine repeat
+         ("newly issued", "first issue", "first prescription",
+         "initiated", "commenced", "started on", "new prescription",
+         "new repeat prescription", "acute issue", "drug issued today").
+      3. find_adjuvant_therapy_drug returns (drug, site_key,
+         indication_string) for the first match.
+      4. adjuvant_therapy_is_newly_issued returns the boolean co-
+         condition.
+      5. anchor_detector._classify_text_encounters fires the diagnosis
+         anchor (diagnosis_source="adjuvant_therapy_drug",
+         confidence=0.75, hitl_required=True) ONLY when one of:
+         (a) issue marker present, (b) active-care code present,
+         (c) malignancy term present, or (d) malignancy code present.
+
+    acceptance_criteria:
+      - criterion: "Drug + issue-marker fires diagnosis"
+        type: "functional"
+        measurement: "Test"
+        target: "Encounter 'Initiated tamoxifen 20mg OD today' emits diagnosis_source=adjuvant_therapy_drug with site=breast and hitl_required=True."
+      - criterion: "Drug alone does NOT fire"
+        type: "safety"
+        measurement: "Test"
+        target: "Encounter 'Repeat prescription review: letrozole continues' emits no diagnosis anchor."
+      - criterion: "History-of-cancer guard suppresses drug path"
+        type: "safety"
+        measurement: "Test"
+        target: "Encounter with H/O cancer marker plus letrozole emits no diagnosis anchor."
+      - criterion: "Drug + active-care code fires"
+        type: "functional"
+        measurement: "Test"
+        target: "Encounter with XaIyc + letrozole emits a diagnosis anchor."
+      - criterion: "Live-corpus impact"
+        type: "performance"
+        measurement: "Live rebuild"
+        target: "At least 3 of the 6 known-missed cancers in the 2025 closed_benign audit are recovered via diagnosis_source=adjuvant_therapy_drug."
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/domains/code_inventories.py"
+        description: "ADJUVANT_THERAPY_DRUG_PATTERNS, ADJUVANT_THERAPY_ISSUE_MARKERS, find_adjuvant_therapy_drug, adjuvant_therapy_is_newly_issued."
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/anchor_detector.py"
+        description: "_classify_text_encounters adjuvant-therapy branch with co-condition guard."
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 110
+      key_functions:
+        - "find_adjuvant_therapy_drug"
+        - "adjuvant_therapy_is_newly_issued"
+        - "_classify_text_encounters"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Cancer cohort identification via drug evidence"
+    risk_control_measures:
+      - "Co-condition guard prevents firing on routine repeat reviews"
+      - "Hitl_required=True on every drug-derived anchor"
+      - "Drug list curated to overwhelmingly-cancer indications only"
+      - "History-of-cancer guard suppresses drug path for survivors"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

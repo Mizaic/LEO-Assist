@@ -1,0 +1,144 @@
+# -- R-LEO-AI-105 -- Pathways list redesign weakens destructive-action confirmation
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-105"
+  title: >
+    The Wave E Phase 6 redesign of the Pathways admin list could
+    accidentally weaken the destructive-action confirmation gates
+    around publish, retire, reactivate and delete, allowing an
+    operator to retire or delete an active runtime pathway with a
+    single misclick and silently halt downstream extraction
+    processing.
+
+  hazard:
+    description: >
+      Pathways drive runtime LangGraph orchestration. Retiring or
+      deleting an 'active' pathway stops the corresponding workflow
+      from accepting new encounter messages. The legacy list page
+      protected destructive actions with (a) a Publish dialog
+      requiring an explicit confirm + optional version notes,
+      (b) a Retire / Reactivate path that issued a single api.put
+      with status patch, and (c) a Delete dialog that required the
+      user to type the exact pathway name verbatim. A redesign
+      that lifts those guards in pursuit of a 'cleaner' card
+      layout would create an irreversible operator-error
+      footgun.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A Solutions Architect viewing the Pathways list spots a
+    duplicate-looking card and clicks Delete from an inline button
+    intending to clean it up. If the type-the-name confirm gate is
+    missing, the API call fires immediately and the active pathway
+    is removed. Encounter messages stop being processed by that
+    pathway. The reviewer notices only when the next runtime QA
+    sweep flags missing extractions for the next batch of
+    encounters.
+
+  harm:
+    description: >
+      Operational outage of the affected pathway until it is
+      restored from FHIR history. No direct patient-data
+      corruption (deleted PlanDefinition is recoverable from
+      git-tracked seeds + the FHIR audit log) but a short window
+      of missed extractions for live encounters.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DeletePathwayDialog still requires the user to type the
+        pathway name verbatim before the confirm button arms.
+        The confirm button stays disabled while
+        confirmName.trim() !== target.name. Cancel is the
+        default keyboard action.
+      implemented_by: ["DI-LEO-AI-153"]
+      verified_by: ["VT-LEO-AI-151"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        PublishDialog stays behind an explicit confirmation step
+        with optional version notes. Publish is never auto-fired
+        by clicking the per-card Publish button alone -- the
+        button only opens the dialog.
+      implemented_by: ["DI-LEO-AI-153"]
+      verified_by: ["VT-LEO-AI-151"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        ToolbarActions exposes exactly one variant: 'primary'
+        action ('New pathway'). Retire / Delete / Reactivate are
+        only reachable from inside the per-card secondary action
+        row, not from the page-level toolbar, reducing the
+        chance of a primary-button misclick on a destructive
+        action.
+      implemented_by: ["DI-LEO-AI-153"]
+      verified_by: ["VT-LEO-AI-151"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        PathwayCard disables its destructive actions whenever the
+        pathway is busy (during an in-flight publish / delete /
+        retire) and whenever the pathway is seeded (meta.seeded
+        or source 'seed:'), so seeded baseline pathways cannot be
+        deleted from the UI at all.
+      implemented_by: ["DI-LEO-AI-153"]
+      verified_by: ["VT-LEO-AI-151"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: >
+        VT-LEO-AI-151 TC-008 + TC-009 statically verify the
+        confirm-name gate, the per-card action surface, and the
+        single-primary-action invariant. A future regression
+        that lifts a guard fails CI before it can ship.
+      implemented_by: ["DI-LEO-AI-153"]
+      verified_by: ["VT-LEO-AI-151"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the type-the-name delete gate, the explicit publish
+      dialog, the seeded-pathway block, the busy-state disable,
+      the single-primary-action invariant on the toolbar, and
+      the static CI gate in VT-LEO-AI-151, the residual
+      probability of an operator deleting an active pathway
+      without intending to is very low. Detectability remains
+      high because the FHIR audit log records every status
+      change and delete, and the daily DQ sweep would flag the
+      gap on the next run.
+
+  monitoring:
+    monitoring_plan: >
+      Each release: re-run VT-LEO-AI-151 in CI; manual smoke test
+      that the Delete confirm button stays disabled until the
+      pathway name is typed verbatim. Quarterly: count
+      operator-driven pathway deletions vs intended deletions
+      from the FHIR audit log (target: parity).
+    metrics:
+      - "VT-LEO-AI-151 pass rate (must remain 100%)"
+      - "Quarterly count of operator pathway deletions vs intended (target: parity)"
+      - "Operator-reported accidental delete reports per quarter (target: 0)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Wave E Phase 6 design review (Pathways list redesign)"
+    identified_date: "2026-04-16"
+    status: "mitigated"
+    tags:
+      - "knowledge"
+      - "pathways"
+      - "wave-e"
+      - "phase-6"

@@ -1,0 +1,107 @@
+# -- DO-LEO-AI-179 -- Bitmap-backed per-rule diagnose service and dialog
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-179"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-180"]
+    user_needs: ["UN-LEO-AI-076"]
+    risks_addressed: ["R-LEO-AI-175"]
+    verification_tests: ["VT-LEO-AI-174"]
+
+  specification:
+    title: "Per-rule diagnose endpoint and Replay Results hierarchical tree view"
+    description: |
+      Adds a single source-of-truth diagnostic for the test-patient
+      regression workflow.
+
+      Backend (services/terminology_api):
+        - GuidelineEvaluator.diagnose() walks the rule's compiled
+          logic_tree and annotates every node with .matched using the
+          SAME roaring-bitmap operations as evaluate_patient (subset
+          for ALL, intersection for ANY/CONCEPT, AT_LEAST counting,
+          age/sex demographic gates).
+        - POST /terminology/guidelines/diagnose exposes it.
+
+      Backend (services/api):
+        - test_patient_service.diagnose_rule_against_patient proxies
+          to the terminology API endpoint so the api layer never
+          implements its own evaluator.
+        - POST /guidance/test-patients/diagnose is the admin-scoped
+          surface the UI calls.
+
+      Frontend (services/ui):
+        - The legacy client-side evaluateLogicTree.ts has been
+          DELETED. The dialog now fetches /diagnose on demand for
+          each regression and renders the returned annotated tree
+          hierarchically (preserving AND / OR / NOT / AT_LEAST
+          grouping, AT_LEAST counts and the bitmap match count for
+          CONCEPT leaves).
+    acceptance_criteria:
+      - criterion: "Diagnostic agrees with production firing decision"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          For every (rule, patient) tuple covered by VT-174,
+          diagnose().fires == evaluate_patient() match for the same
+          rule.
+      - criterion: "Hierarchical render preserves group structure"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          The Replay Results dialog renders AND / OR / NOT / AT_LEAST
+          nodes as parents of their leaves; AT_LEAST nodes show
+          'M of N satisfied (need K)'.
+      - criterion: "Single source of truth"
+        type: "safety"
+        measurement: "Inspection"
+        target: >
+          No duplicate evaluator exists in the UI or test_patient
+          service layer; both delegate to GuidelineEvaluator.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/guideline_evaluator.py"
+        description: "GuidelineEvaluator.diagnose / _annotate_logic_tree / _annotate_rule"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/routers/guidelines.py"
+        description: "DiagnoseRequest model + POST /guidelines/diagnose route"
+      - artifact_type: "source_code"
+        location: "services/api/app/services/test_patient_service.py"
+        description: "diagnose_rule_against_patient"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/test_patients.py"
+        description: "DiagnoseRequest body + POST /test-patients/diagnose"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/api.ts"
+        description: "diagnose() client function"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/ReplayResultsDialog.tsx"
+        description: "RegressionDetail + DiagnoseNodeRow hierarchical render"
+    storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript"
+      loc: 450
+      key_functions:
+        - "GuidelineEvaluator.diagnose"
+        - "GuidelineEvaluator._annotate_logic_tree"
+        - "test_patient_service.diagnose_rule_against_patient"
+        - "ReplayResultsDialog.RegressionDetail"
+        - "ReplayResultsDialog.DiagnoseNodeRow"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Per-rule firing diagnostic for QA review of regressions"
+    risk_control_measures:
+      - "Single bitmap evaluator for both production firing and reviewer diagnostics"
+      - "Removal of duplicate naive walker (evaluateLogicTree.ts deleted)"
+      - "Recompile hint surfaced when bitmap is missing instead of silent false-negative"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

@@ -104,8 +104,10 @@ class TestNegationDetection:
         item = _item("chest pain", assertion="present")
         assert item.assertion == "present"
 
-    def test_parse_terms_correctly_sets_negation_context(self):
-        """LLMExtractor._parse_terms maps absent→negated=True in context dict."""
+    def test_parse_terms_ignores_llm_supplied_assertion(self):
+        """DI-LEO-AI-103: LLM extractor MUST NOT honour LLM-assigned
+        assertion. All entities are initialised to "present" (negated=False);
+        downstream ConText + scope guards are the sole authority."""
         from services.coding_worker.app.pipeline.llm_extractor import LLMExtractor
 
         with patch.object(LLMExtractor, "_init_client", return_value=MagicMock()):
@@ -125,10 +127,13 @@ class TestNegationDetection:
         }
         terms = ext._parse_terms(payload, sentences)
         assert len(terms) == 1
-        assert terms[0].context["negated"] is True
+        assert terms[0].assertion == "present"
+        assert terms[0].context["negated"] is False
 
-    def test_affirmed_and_negated_entities_in_same_text(self):
-        """Affirmed entities have negated=False, negated entities have negated=True."""
+    def test_parse_terms_initialises_all_entities_as_present(self):
+        """DI-LEO-AI-103: every entity from `_parse_terms` starts at
+        assertion="present" regardless of any LLM-supplied assertion
+        value. ConText runs downstream and is the sole authority."""
         from services.coding_worker.app.pipeline.llm_extractor import LLMExtractor
 
         with patch.object(LLMExtractor, "_init_client", return_value=MagicMock()):
@@ -154,8 +159,10 @@ class TestNegationDetection:
             ]
         }
         terms = ext._parse_terms(payload, sentences)
+        assert terms[0].assertion == "present"
         assert terms[0].context["negated"] is False
-        assert terms[1].context["negated"] is True
+        assert terms[1].assertion == "present"
+        assert terms[1].context["negated"] is False
 
 
 # ---------------------------------------------------------------------------

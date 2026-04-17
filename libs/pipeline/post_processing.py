@@ -12,6 +12,8 @@ Layer order
 2. Lab-Value Guard        -- suppress disorders inferred from lab results
 3. Scope Guard            -- reclassify assertions in safety-netting /
                              recommendation / hedged-diagnosis text
+3b. Lab Triple Recovery   -- add missing procedure / observable / finding
+                             spans on lab-shaped lines the model missed
 4. Observable Norm.       -- clean observable spans, attach value/unit/ref
 5. Entity-Type Norm.      -- deterministic label corrections
 6. Value-Unit Linking     -- attach numeric values to nearby observables
@@ -32,6 +34,7 @@ from typing import Any
 from libs.llm_client.disorder_verifier import DisorderVerdict, verify_disorder
 from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 from libs.ner.context_detector import normalize_situation_lookup
+from libs.ner.lab_triple_recovery import recover_lab_triples
 from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import PostProcessorRule, apply_rules_to_entities
@@ -1094,6 +1097,21 @@ def run_post_processing_with_trace(
         lambda current: (_apply_scope_guard_to_dicts(encounter_text, current), current)[
             1
         ],
+    )
+
+    # Layer 3b: Lab Triple Recovery
+    # Deterministically add missing procedure / observable_entity / finding
+    # spans on UK primary-care lab-result lines (e.g. "Reticulocyte count
+    # (42X..) 96 10^9/L [20 - 80] - Outside reference range"). The spancat
+    # suggester is capped at 10 tokens which is shorter than the typical
+    # observable span, and the LLM extractor by design emits the parameter
+    # name only -- so without this layer the long observable / finding
+    # entities never reach Layer 4 to be enriched. Idempotent: never
+    # duplicates an existing span with the same (label, start, end).
+    _run_layer(
+        "layer_3b",
+        "Lab Triple Recovery",
+        lambda current: recover_lab_triples(encounter_text, current),
     )
 
     # Layer 4: Observable Normalisation

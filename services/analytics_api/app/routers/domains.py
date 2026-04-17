@@ -225,7 +225,13 @@ def _batch_child_counts(concept_ids: List[str], depth: int = 3) -> Dict[str, int
     kg = KnowledgeGraphClient()
     try:
         rows = kg.run(cypher, ids=concept_ids)
-        return {r["concept_id"]: r["child_count"] for r in (rows or [])}
+        out: Dict[str, int] = {}
+        for r in rows or []:
+            cid = r.get("concept_id")
+            if cid is None:
+                continue
+            out[cid] = r.get("child_count", 0)
+        return out
     finally:
         kg.close()
 

@@ -1,0 +1,162 @@
+# -- DI-LEO-AI-184 -- SNOMED proposal validator with tiered acceptance ladder
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-184"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-078"]
+  requirement: >
+    The system SHALL provide a SNOMED proposal validator that, for
+    every entity proposed by the LLM-driven gold-label backfill,
+    re-resolves the surface text against the production
+    terminology service and accepts or rejects the proposal using
+    an explicit three-branch acceptance ladder
+    (EXACT / SEMANTIC / SURFACE) keyed off the resolver's absolute
+    confidence signals (had_exact_match, vector_raw, surface
+    containment) -- never on the previous fused relative score --
+    so that LLM-generated additions cannot enter the gold training
+    set with a clinically wrong concept attached.
+
+  rationale: >
+    The LLM-driven gold-label backfill (DI for the backfill tool
+    is tracked separately) re-extracts entities from
+    HITL-completed GoldLabel texts using the full production
+    pipeline plus an LLM judge. It is intentionally over-eager so
+    that no observable, finding, or procedure is missed. The cost
+    of that recall is that a non-trivial fraction of proposals
+    have surface text that does not map cleanly to a SNOMED
+    concept ("worsened over the last six months",
+    "right sided sciatica - feels pain from back/buttocks to
+    toes"). Without a second-line check these would be applied
+    unconditionally and the next NER training cycle would learn
+    to emit spans the runtime coder cannot represent. The
+    validator is the gate that stops this drift, and the
+    acceptance ladder makes the trade-off between recall (catch
+    real lexicon gaps like prostate cancer -> Malignant neoplasm
+    of prostate) and safety (reject embedding-only hallucinations
+    like nipple inversion on the right breast -> Pendulous right
+    breast) explicit and auditable.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          For every (surface_text, proposed_label) pair the
+          validator resolves via the production
+          libs.terminology.client.TerminologyClient and walks the
+          ranked candidate list applying three acceptance branches
+          in order of safety: EXACT branch (had_exact_match=True
+          on a candidate whose semantic_tag matches the proposed
+          label or a documented synonym), then SEMANTIC branch
+          (vector_raw >= semantic_vector_floor AND surface_match
+          >= semantic_min_surface), then SURFACE branch
+          (surface_match >= min_surface_match AND shared-token
+          floor satisfied AND polarity guard passed).
+      - type: "safety"
+        spec: >
+          Default thresholds are min_surface_match=0.7,
+          semantic_vector_floor=0.92, semantic_min_surface=0.66
+          (i.e. >= two-thirds of meaningful surface tokens shared
+          with the SNOMED preferred term). These defaults were
+          tuned against the 950 HITL-completed backfill proposals
+          such that all four documented false positives
+          (nipple inversion on the right breast, worsened over
+          the last six months, pain from back/buttocks to toes,
+          surgery in jan to remove cyst in left kidney) are
+          rejected.
+      - type: "safety"
+        spec: >
+          The validator MUST reject a proposal when the surface
+          text carries a negation cue (no, without, absent,
+          denies, free of, ruled out) but the SNOMED candidate
+          term does NOT carry a corresponding negation. The
+          rejection reason is recorded as polarity_mismatch.
+      - type: "safety"
+        spec: >
+          The validator MUST reject a proposal when the surface
+          text has 2 or more meaningful tokens but fewer than 2
+          tokens are shared with the SNOMED preferred term. The
+          rejection reason is recorded as shared_token_floor.
+          This rule blocks the cancer-free / Seizure-free family
+          of failures where a single common token (e.g. "free")
+          inflates surface_match.
+      - type: "functional"
+        spec: >
+          Every accepted proposal carries the resolver's
+          calibrated score (now in [0, 1] via DI-183), the SNOMED
+          concept_id, preferred term, semantic_tag, and the
+          surface_match score, recorded on the JSONL output for
+          downstream auditing.
+      - type: "functional"
+        spec: >
+          Every rejected proposal carries a structured reason
+          (low_surface_match, tag_mismatch_all, no_candidates,
+          polarity_mismatch, shared_token_floor) AND the closest
+          rank-1 candidate (concept_id, term, semantic_tag,
+          resolver_score, surface_match) so a human reviewer can
+          adjudicate.
+      - type: "functional"
+        spec: >
+          The validator is exposed both as a library function
+          (validate_proposal / validate_proposals_batch in
+          scripts/lib/gold_label_snomed_check.py) and as a CLI
+          tool (scripts/validate_backfill_snomed.py) that
+          consumes a JSONL of backfill proposals and writes a
+          *.validated.jsonl plus a *.validated.summary.json with
+          aggregate counts.
+      - type: "functional"
+        spec: >
+          The CLI tool exposes the three acceptance thresholds
+          (--min-surface, --semantic-vector-floor,
+          --semantic-min-surface) as command-line arguments so
+          QA reviewers can re-run the validation under tighter
+          or looser thresholds without code changes.
+    constraints:
+      - type: "safety"
+        spec: >
+          The validator MUST NOT consume the resolver's fused
+          score as the primary acceptance signal. Acceptance is
+          driven by had_exact_match, vector_raw, and
+          surface_match. The fused score is permitted only as a
+          tie-break for ranking among otherwise equivalent
+          candidates.
+      - type: "safety"
+        spec: >
+          The validator's defaults MUST keep the four documented
+          false positives in the rejected set. Any future
+          loosening of thresholds requires a new test case
+          covering the false positive that would otherwise
+          re-enter.
+    dependencies: ["DI-LEO-AI-183"]
+    downstream_impacts:
+      - "Gold-label training data quality (validated proposals are merged into GoldLabel.entities)"
+      - "Audit dashboards showing kept/dropped counts per source and per semantic_tag"
+    technical_details:
+      language: "Python"
+      framework: "stdlib + libs.terminology"
+      file_structure:
+        - "scripts/lib/gold_label_snomed_check.py"
+        - "scripts/validate_backfill_snomed.py"
+      estimated_loc: 360
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All 21 test cases in tests/test_gold_label_snomed_check.py
+      pass on automated CI, AND end-to-end re-validation of the
+      950 HITL-completed backfill (data/backfill/
+      gold_label_proposals_20260417T130126Z.jsonl) shows zero
+      previously-bad cases in the kept set and a calibrated score
+      distribution bounded in [0.85, 1.0] across all kept
+      additions.
+    test_protocol: "VT-LEO-AI-178"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-177", "R-LEO-AI-178"]
+  tags:
+    - "terminology"
+    - "snomed"
+    - "training-data-quality"
+    - "validator"
+    - "ner-pipeline"
+    - "gold-labels"

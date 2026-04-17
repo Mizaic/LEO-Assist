@@ -1,0 +1,94 @@
+# -- DI-LEO-AI-170 -- Editable SNOMED procedure (action) on a pending rule
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-170"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-028"]
+  requirement: >
+    The system SHALL show the SNOMED-coded procedure (the recommended action
+    that fires when the rule matches a patient) inside the rule edit dialog,
+    and SHALL allow an authorised reviewer to swap that procedure for a
+    different SNOMED concept via the existing concept search panel before
+    approving the rule.
+  rationale: >
+    DI-LEO-AI-154 closed the gap of editing the patient-criteria tree, but
+    the actual recommendation the system suggests when a rule fires (e.g.
+    "Plain chest X-ray", "2-week-wait gastroenterology referral") is held
+    in `actionJson` and was never surfaced in the dialog. Reviewers could
+    therefore approve a rule whose criteria they had read carefully without
+    ever seeing or being able to correct what the system would tell the
+    clinician to do. That is the highest-impact wording on the screen --
+    a wrong procedure leads to the wrong test or referral. Adding visible,
+    editable SNOMED action coding closes the loop.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          GET /guidance/rules/review returns each pending rule with an
+          `action` object containing snomed_concept_id, preferred_term,
+          semantic_tag, and a free-text term, parsed from the stored
+          actionJson; null when the rule has no action coded.
+      - type: "functional"
+        spec: >
+          The EditRuleDialog renders an "Action / Recommended procedure"
+          card showing the current action term and SNOMED code as a chip,
+          and clicking the chip targets the existing right-hand concept
+          search panel for swap.
+      - type: "functional"
+        spec: >
+          POST /guidance/rules/review/{id}/decision with action="edit" and
+          updates.action populated SHALL persist the new action SNOMED
+          concept on the new versioned :AppropriatenessRule node
+          (`actionJson`), preserving every other field from the
+          predecessor.
+      - type: "safety"
+        spec: >
+          Server-side validation rejects an updates.action whose
+          snomed_concept_id is missing from the knowledge graph
+          (HTTP 400, error message lists the unknown concept id).
+      - type: "safety"
+        spec: >
+          When updates.action is omitted, the new versioned rule SHALL
+          inherit the predecessor's actionJson unchanged. There SHALL
+          be no path that silently nulls out a previously coded action.
+    constraints:
+      - type: "safety"
+        spec: >
+          updates.action SHALL only be persisted if the reviewer has
+          confirmed the change with a non-empty Reason for edit (>= 3
+          chars), reusing the existing edit gating from DI-LEO-AI-154.
+    dependencies: ["DI-LEO-AI-154"]
+    downstream_impacts:
+      - "Guidance rule review workflow"
+      - "Patient-facing recommendations rendered by inference pipeline"
+      - "Audit trail / GuidanceAuditEvent retention"
+    technical_details:
+      language: "Python and TypeScript"
+      framework: "FastAPI + Next.js / MUI"
+      file_structure:
+        - "services/api/app/services/guidance_rule_edit.py"
+        - "services/api/app/routers/guidance_rules.py"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/index.tsx"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/ActionPanel.tsx"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/types.ts"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-168 passes: pytest cases covering action validation +
+      persistence, plus jest cases covering dialog render + save flow
+      with an action swap. Every acceptance criterion above is exercised
+      by at least one named test case.
+    test_protocol: "VT-LEO-AI-168"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-169"]
+  tags:
+    - "guidance-rules"
+    - "hitl-review"
+    - "snomed"
+    - "admin-ui"
+    - "action-editing"

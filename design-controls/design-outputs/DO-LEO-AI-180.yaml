@@ -1,0 +1,186 @@
+# -- DO-LEO-AI-180 -- Sandbox draft compile + replay and "no ruleset" signalling
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-180"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-181"]
+    user_needs: ["UN-LEO-AI-076"]
+    risks_addressed: ["R-LEO-AI-176"]
+    verification_tests: ["VT-LEO-AI-175"]
+
+  specification:
+    title: "Sandbox draft-rule replay and explicit not_compiled signalling"
+    description: |
+      Adds a sandboxed compile + replay path for unsaved draft
+      appropriateness rules and makes "no compiled ruleset" a loud,
+      first-class state across every bitmap-backed surface.
+
+      Backend (services/terminology_api):
+        - GuidelineCompiler.compile_drafts() compiles a list of
+          schema-v2 rule dicts (the UI's draft state) into a custom
+          scope using the SAME compiler that production uses; it
+          refuses ``global`` scope and applies a TTL so abandoned
+          sandboxes are reaped.
+        - BitmapStore.delete_scope() / set_scope_ttl() let the
+          orchestrator clean up the sandbox or extend its lease.
+          Both refuse to touch the ``global`` scope.
+        - GuidelineEvaluator.evaluate_patient() now returns
+          ``not_compiled: True`` (with a plain-English message and
+          recompile_hint) instead of an empty match list when no
+          active ruleset is found; successful responses include
+          ``not_compiled: False``.
+        - GuidelineEvaluator.diagnose() returns a structured payload
+          (``not_compiled`` + ``rule_found`` + recompile_hint)
+          instead of None when no ruleset is loaded or the rule is
+          not in the active ruleset, so the API route forwards a
+          structured 404 detail body.
+        - POST /guidelines/bitmap/compile-draft and DELETE
+          /guidelines/scopes/{scope_type}/{scope_id} expose the
+          sandbox lifecycle.
+
+      Backend (services/api):
+        - test_patient_service.compile_draft_ruleset(),
+          delete_sandbox_scope() and sandbox_replay() orchestrate
+          the compile -> replay -> cleanup flow. Cleanup runs in
+          finally so the sandbox is removed even if the replay
+          raises.
+        - test_patient_service.diagnose_rule_against_patient now
+          forwards the structured ``not_compiled`` 404 payload
+          unchanged, instead of converting it to a generic
+          RuntimeError -- the UI relies on the flag.
+        - POST /api/guidance/test-patients/sandbox-replay is the
+          admin-scoped surface the rule editor calls.
+
+      Frontend (services/ui):
+        - api.sandboxReplay(), api.getBitmapStatus() and
+          api.compileProductionBitmap() wrap the new endpoints.
+        - RulesetNotCompiledBanner.tsx is a reusable warning that
+          offers a "Compile now" button for production scopes and
+          an explanation for sandbox scopes.
+        - TestPatientsPanel adds a "Test draft" button visible only
+          when an unsaved draft is held in state, runs
+          sandbox_replay, and renders the banner whenever the
+          backend reports zero compiled rules.
+        - ReplayResultsDialog renders the banner at the report
+          level (when every patient hit the same "no active
+          ruleset" error) and at the per-rule diagnostic level
+          (when /diagnose returns ``not_compiled``).
+        - sandbox_replay() pre-bakes a per-regression diagnostic
+          (annotated logic tree) into the report WHILE the sandbox
+          bitmap is still alive, then tears the bitmap down. The
+          dialog uses the embedded payload directly instead of
+          calling /diagnose against the deleted scope (which would
+          404). Live (non-sandbox) replays still defer to /diagnose
+          against the production scope.
+    acceptance_criteria:
+      - criterion: "Sandbox compile cannot overwrite production"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          GuidelineCompiler.compile_drafts(scope=global) raises
+          ValueError before any Redis write. BitmapStore.delete_scope
+          and set_scope_ttl refuse the global scope.
+      - criterion: "Sandbox compile + replay + cleanup is atomic"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          test_patient_service.sandbox_replay calls delete_sandbox_scope
+          in a finally block; the sandbox is removed even when the
+          replay raises.
+      - criterion: "Not-compiled state is observable end-to-end"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          evaluate_patient and diagnose return ``not_compiled: True``
+          + ``recompile_hint`` when no ruleset exists; the UI banner
+          renders the recompile call to action.
+      - criterion: "Reviewer can test unsaved drafts"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          The Test Patients panel shows a "Test draft" button when
+          a draft is held, calls /sandbox-replay, and opens the
+          Replay Results dialog with the returned report.
+      - criterion: "Sandbox diagnostics survive bitmap teardown"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          sandbox_replay attaches a per-regression diagnostic to
+          each row of the returned report, computed against the
+          live sandbox scope before delete_sandbox_scope runs. The
+          dialog renders the embedded annotated tree without
+          calling /diagnose against the deleted scope.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/guideline_compiler.py"
+        description: "GuidelineCompiler.compile_drafts + _compile_drafts_sync + _normalise_draft_rule"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/bitmap_store.py"
+        description: "BitmapStore.delete_scope and set_scope_ttl"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/guideline_evaluator.py"
+        description: "evaluate_patient + diagnose not_compiled / rule_found responses"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/routers/guidelines.py"
+        description: "POST /guidelines/bitmap/compile-draft, DELETE /guidelines/scopes/{scope_type}/{scope_id}, structured 404 forwarding from /diagnose"
+      - artifact_type: "source_code"
+        location: "services/api/app/services/test_patient_service.py"
+        description: "compile_draft_ruleset / delete_sandbox_scope / sandbox_replay; structured not_compiled passthrough in diagnose_rule_against_patient"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/test_patients.py"
+        description: "POST /test-patients/sandbox-replay"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/api.ts"
+        description: "sandboxReplay, getBitmapStatus, compileProductionBitmap"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/types.ts"
+        description: "BitmapStatus, SandboxCompileSummary, SandboxReplayResponse, DiagnoseResponse not_compiled fields"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/RulesetNotCompiledBanner.tsx"
+        description: "Reusable warning + Compile now button"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/ReplayResultsDialog.tsx"
+        description: "Banner integration at report and per-rule diagnostic level"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/TestPatientsPanel.tsx"
+        description: "Test draft button + runSandboxReplay + checkCompiledStatus + banner integration"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/index.tsx"
+        description: "Pass current draft snapshot to TestPatientsPanel"
+    storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript"
+      loc: 700
+      key_functions:
+        - "GuidelineCompiler.compile_drafts"
+        - "GuidelineCompiler._compile_drafts_sync"
+        - "BitmapStore.delete_scope"
+        - "BitmapStore.set_scope_ttl"
+        - "GuidelineEvaluator.evaluate_patient"
+        - "GuidelineEvaluator.diagnose"
+        - "test_patient_service.sandbox_replay"
+        - "TestPatientsPanel.runSandboxReplay"
+        - "RulesetNotCompiledBanner"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Pre-save sandbox replay of unsaved appropriateness rules"
+      - "Explicit signalling of empty / missing compiled ruleset"
+    risk_control_measures:
+      - "Single bitmap compiler for production AND sandbox"
+      - "Hard refusal of global scope from sandbox compile/delete/TTL paths"
+      - "TTL on every sandbox compile so abandoned sandboxes are reaped"
+      - "try/finally cleanup of sandbox scope around replay"
+      - "Structured not_compiled + recompile_hint payload across evaluate, diagnose and replay"
+      - "Loud RulesetNotCompiledBanner with one-click compile (production) or explanation (sandbox)"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

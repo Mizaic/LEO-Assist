@@ -1,0 +1,190 @@
+# -- R-LEO-AI-177 -- Misleading per-term-relative resolver score causes silent over-coding
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-177"
+  title: "Per-term-relative + multiplicatively-tag-boosted resolver score made weak partial matches indistinguishable from curated exact matches, causing silent over-coding"
+
+  hazard:
+    description: >
+      The /terminology/resolve endpoint previously emitted a
+      `score` field that was normalised against the per-term
+      maximum and then multiplied by 1.3 if the candidate's
+      semantic_tag matched the LLM-expected tag. The top-1
+      candidate for any search therefore reported a score in
+      the 1.0-1.3 range regardless of the underlying retrieval
+      evidence -- a curated SurfaceForm exact match and a
+      single-token Lucene partial match were both reported at
+      ~1.3 when the tag aligned. Downstream consumers (the
+      runtime coder gate, surface-form validator, the gold-label
+      backfill validator) treated `score >= 0.7` as "this
+      mapping is strong" and accepted the result.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    The NER model emits a free-text span ("rising PSA",
+    "cancer free", "nipple inversion on the right breast") that
+    has no curated SurfaceForm and no clean Term-level exact
+    match. The fulltext branch returns one or two weak partial
+    candidates, none of which are clinically correct. The fused
+    relative score normalises the strongest of those weak
+    candidates to ~1.0, the LLM-expected tag aligns, the
+    multiplicative 1.3x boost fires, and the candidate now
+    reports score=1.3. Every downstream consumer treats this as
+    a strong match. The runtime coder applies the wrong concept
+    to the EHR; the gold-label backfill applies the wrong
+    concept to the GoldLabel that the next NER training cycle
+    will learn from.
+
+  harm:
+    description: >
+      Three concrete harm paths have been observed in the
+      backfill audit and at least one has a credible runtime
+      analogue:
+
+        1. Wrong SNOMED code applied to a coded encounter -- e.g.
+           "cancer free" coded as "Seizure free" (Concept
+           160242002), "rising PSA" coded as "Slow rising
+           pulse" (Concept 866102003), "no hydrocephalus" coded
+           as "Hydrocephalus" with the negation lost. A
+           clinical reviewer reading the coded view sees the
+           wrong clinical concept attached to the patient and
+           may make an onward decision (refer / not refer,
+           safety-net / close) that does not match the actual
+           narrative.
+
+        2. Gold training data contamination -- the same wrong
+           concept enters the GoldLabel for that patient. The
+           next NER training cycle learns to emit spans that
+           map to the wrong concept. Subsequent generations of
+           the model degrade silently.
+
+        3. Audit dashboard distortion -- coded counts of
+           clinical conditions used in breach analysis,
+           prevalence calculations, and pathway analytics
+           include the wrong concept, distorting governance
+           decisions about service capacity and priority.
+
+      Severity is rated 'serious' on the basis of the runtime
+      analogue: a wrong code attached to a 2WW pathway encounter
+      could plausibly cause a delayed diagnosis or an
+      inappropriate safety-net closure.
+    severity: "serious"
+
+  hazardous_situation_likelihood: "occasional"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 5
+    rpn: 60
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        HybridCodingResolver._fuse_and_rank rewritten to compute
+        a calibrated absolute confidence in [0, 1]. Lexical
+        signal is 1.0 only on had_exact_match=True; otherwise
+        bm25/(bm25+1). Vector signal is cosine. Combined via
+        max + 0.10 * min capped at 1.0. Tag adjustment is
+        additive (+0.10) for exact match and multiplicative
+        (*0.5) for cross-group mismatch -- never multiplicative
+        boost greater than 1.0. Non-clinical tags are capped at
+        0.4 or hard-blocked when an expected clinical tag is
+        present.
+      implemented_by: ["DI-LEO-AI-183"]
+      verified_by: ["VT-LEO-AI-177"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        CodingCandidate exposes the raw retrieval signals
+        (had_exact_match, lexical_raw, vector_raw) alongside the
+        calibrated score. The /terminology/resolve API mirrors
+        all four fields. Downstream consumers that need
+        branch-specific gating can apply it without rerunning
+        the resolver and without trusting the fused score
+        blindly.
+      implemented_by: ["DI-LEO-AI-183"]
+      verified_by: ["VT-LEO-AI-177"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Downstream gates retuned to match the calibrated score
+        magnitude: terminology._DEFAULT_MIN_SCORE 0.70 -> 0.55,
+        surface_form_validation_threshold 0.9 -> 0.7. The
+        terminology client cache prefix is incremented v2 -> v3
+        so any cached responses produced under the previous
+        contract are discarded on first read.
+      implemented_by: ["DI-LEO-AI-183"]
+      verified_by: ["VT-LEO-AI-177"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: >
+        SNOMED proposal validator (DO-183) re-checks every
+        LLM-proposed entity against the calibrated resolver
+        before it is merged into a GoldLabel. The validator
+        does NOT consume the fused score as the primary
+        acceptance signal; it walks the EXACT / SEMANTIC /
+        SURFACE acceptance ladder using had_exact_match,
+        vector_raw, and surface_match. Rejected proposals are
+        recorded with structured reasons.
+      implemented_by: ["DI-LEO-AI-184"]
+      verified_by: ["VT-LEO-AI-178"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the calibrated score the residual exposure is:
+      (a) a candidate that scores genuinely high under the new
+      contract (e.g. exact match on a wrong but
+      surface-overlapping concept) could still pass the
+      runtime coder gate; (b) a SEMANTIC-branch acceptance
+      could still produce a wrong code if both vector_raw and
+      surface_match are simultaneously fooled. Path (a) is
+      controlled by the surface-form validator at the next
+      stage; path (b) is controlled by the SEMANTIC branch's
+      semantic_min_surface=0.66 floor and the polarity guard.
+      End-to-end re-validation of the 950-proposal backfill
+      shows zero clinically-wrong codes in the kept set and a
+      score distribution bounded in [0.873, 1.000] with mean
+      0.989, demonstrating the calibration holds in practice.
+      Detectability drops from 5 (silent over-coding indistin-
+      guishable from a strong match) to 2 (raw signals are
+      surfaced on every API response so any suspicious
+      acceptance can be reproduced from logs).
+
+  monitoring:
+    monitoring_plan: >
+      Pytest VT-LEO-AI-177 (TestCalibratedScoring) runs in CI on
+      every PR touching coding_resolver.py or the
+      /terminology/resolve route. VT-LEO-AI-178 runs on every
+      PR touching the proposal validator. Production logs
+      already record /terminology/resolve calls; once the
+      runtime coder consumes the new score we will alert on
+      sudden drops in the calibrated-score distribution
+      (median or p95) which would indicate either a regression
+      to the old contract or an upstream NER quality drop.
+    metrics:
+      - "Median calibrated resolver score across all /terminology/resolve calls per hour (target: >= 0.85 in steady state)"
+      - "Number of accepted SNOMED proposals during gold-label backfill that fall back to the SEMANTIC branch (target: < 5% of accepted)"
+      - "Number of accepted proposals where the SNOMED preferred term shares only one token with the surface (target: 0 -- shared-token floor)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Rob Smith - 2026-04-17 user feedback: 'are you 100% sure these are correct' followed by 'can you fix the resolve scoring and reassess'"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "terminology"
+      - "snomed"
+      - "scoring"
+      - "calibration"
+      - "over-coding"
+      - "training-data-quality"
+      - "clinical-safety"

@@ -33,6 +33,11 @@ from libs.audit.security_log import (
     emit_token_rejected,
 )
 from libs.auth.practitioner_org_context import fetch_practitioner_org_context
+from libs.auth.density_state import (
+    DensityNotAllowedError,
+    fetch_density,
+    set_density,
+)
 from libs.auth.role_state import (
     RoleNotAllowedError,
     fetch_role_state,
@@ -460,6 +465,7 @@ def _unauth_session_payload() -> dict:
         "organizations": [],
         "selected_role": None,
         "allowed_roles": [],
+        "density_preference": None,
     }
 
 
@@ -476,6 +482,7 @@ def get_session(request: Request):
         return _unauth_session_payload()
     email = (data.get("email") or "").lower().strip()
     role_state = fetch_role_state(email) if email else None
+    density_pref = fetch_density(email) if email else None
     return {
         "user": {
             "email": data.get("email"),
@@ -486,6 +493,7 @@ def get_session(request: Request):
         "idleTimeoutMinutes": data.get("idle_timeout_minutes", 30),
         "selected_role": role_state.selected_role if role_state else None,
         "allowed_roles": list(role_state.allowed_roles) if role_state else [],
+        "density_preference": density_pref,
     }
 
 
@@ -522,3 +530,37 @@ async def patch_session_role(request: Request):
         "selected_role": new_state.selected_role,
         "allowed_roles": list(new_state.allowed_roles),
     }
+
+
+@router.patch("/session/density")
+async def patch_session_density(request: Request):
+    """Set the current practitioner's preferred UI density.
+
+    Body: ``{"density": "compact" | "comfortable" | "spacious"}``. Persists
+    ``Practitioner.density_preference`` and returns the stored value. Patient
+    reachable routes still force ``spacious`` in the UI regardless of this
+    preference. See DI-LEO-AI-169 / VT-LEO-AI-168.
+    """
+    session_id = request.cookies.get(COOKIE_NAME)
+    if not session_id:
+        raise HTTPException(status_code=401, detail="not_authenticated")
+    data = load_session(session_id)
+    if not data:
+        raise HTTPException(status_code=401, detail="session_expired")
+    email = (data.get("email") or "").lower().strip()
+    if not email:
+        raise HTTPException(status_code=401, detail="no_email")
+    payload = await request.json()
+    density = (payload or {}).get("density")
+    if not isinstance(density, str) or not density:
+        raise HTTPException(status_code=400, detail="missing_density")
+    try:
+        stored = set_density(email, density)
+    except DensityNotAllowedError:
+        raise HTTPException(status_code=400, detail="invalid_density")
+    except LookupError:
+        raise HTTPException(status_code=404, detail="practitioner_not_found")
+    except Exception as exc:
+        logger.warning("density.set_failed email=%s err=%s", email, exc)
+        raise HTTPException(status_code=500, detail="density_set_failed")
+    return {"density_preference": stored}

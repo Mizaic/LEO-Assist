@@ -55,15 +55,17 @@ def test_detects_interpretation_phrase_as_finding() -> None:
     assert "Outside reference range" in pat.finding_span.text
 
 
-def test_detects_colon_separated_lab() -> None:
+def test_colon_separated_lab_without_read_code_is_not_matched() -> None:
+    """The strict detector requires a Read/CTV3 bracketed code as well as a
+    value+unit. Colon-separated lab lines without a code are deliberately
+    rejected to keep the backfill false-positive rate at zero. The lenient
+    fallback path lives in ``libs.ner.lab_triple_recovery`` and is exercised
+    by ``tests/test_lab_triple_recovery.py``.
+    """
     text = "Atypical Lymphocytes: 0.70 x10^9/l; Outside reference range"
     pat = detect_lab_pattern(text)
-    assert pat.matched is True
+    assert pat.matched is False
     assert pat.read_code is None
-    assert pat.test_name_span is not None
-    assert pat.test_name_span.text == "Atypical Lymphocytes"
-    assert pat.observable_span is not None
-    assert pat.finding_span is not None
 
 
 def test_bare_test_name_does_not_match() -> None:

@@ -1,0 +1,164 @@
+# -- VT-LEO-AI-168 -- Verification of editable SNOMED action on guidance rules
+# IEC 62304 / ISO 13485 Verification Test
+
+- id: "VT-LEO-AI-168"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-170"]
+    risks: ["R-LEO-AI-169"]
+
+  metadata:
+    title: "EditRuleDialog -- view and edit SNOMED action procedure"
+    description: >
+      Verifies that the action (recommended SNOMED procedure) for a
+      pending AppropriatenessRule is exposed by the API, rendered in
+      the edit dialog, and persisted on save -- with server-side
+      validation that the chosen concept exists in the graph.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest + jest"
+    test_file_paths:
+      - "services/api/tests/test_guidance_rule_edit_action.py"
+      - "services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.action.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.12 with the project requirements installed"
+      - "Node 20 with services/ui dev dependencies"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-168-TC-001"
+      case_name: "RuleUpdates accepts an optional action with a SNOMED concept"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Construct a RuleUpdates with logic_tree=valid_tree and
+            action=LogicCriterion(snomed_concept_id='168731009',
+            preferred_term='Plain chest X-ray', semantic_tag='procedure').
+          expected_result: >
+            Pydantic validation passes. action.snomed_concept_id is
+            preserved through model_dump().
+          verification_method: "automated"
+      acceptance_criteria:
+        - "RuleUpdates.action is exposed and round-trips."
+
+    - case_id: "VT-168-TC-002"
+      case_name: "apply_rule_edit rejects an action with an unknown SNOMED concept"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Stub a Neo4j client whose VERIFY_CONCEPTS returns exists=False
+            for the action concept id; call apply_rule_edit with that
+            updates payload.
+          expected_result: >
+            LogicTreeValidationError is raised with a message that
+            includes the unknown concept id; no INSERT_EDITED_RULE call
+            is made.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Unknown action concepts are blocked at the service layer."
+
+    - case_id: "VT-168-TC-003"
+      case_name: "apply_rule_edit persists the new actionJson when action is supplied"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Stub the Neo4j client. Call apply_rule_edit with
+            updates.action populated and assert _INSERT_EDITED_RULE was
+            called with action_json containing the supplied SNOMED
+            concept id and preferred_term.
+          expected_result: >
+            The Cypher parameters dictionary contains a non-null
+            action_json whose JSON-decoded payload matches the supplied
+            LogicCriterion.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Supplied action overrides predecessor actionJson."
+
+    - case_id: "VT-168-TC-004"
+      case_name: "apply_rule_edit preserves predecessor actionJson when action is omitted"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call apply_rule_edit with updates.action = None against a
+            stubbed predecessor whose actionJson is a known string.
+          expected_result: >
+            _INSERT_EDITED_RULE Cypher uses pred.actionJson; the
+            action_json parameter is null so the COALESCE in Cypher
+            falls through to the predecessor's value.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Omitting action never silently nulls a previously coded action."
+
+    - case_id: "VT-168-TC-005"
+      case_name: "EditRuleDialog renders the action chip with SNOMED tooltip"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Render EditRuleDialog with a rule that has
+            action={snomed_concept_id:'168731009',
+            preferred_term:'Plain chest X-ray (procedure)'}.
+          expected_result: >
+            The dialog body contains a chip labelled "Plain chest X-ray"
+            and a tooltip whose text includes the code 168731009.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Action chip + tooltip render correctly."
+
+    - case_id: "VT-168-TC-006"
+      case_name: "Selecting a search hit while the action chip is focused updates the saved action"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Render EditRuleDialog with a coded action. Click the action
+            chip, then type a query into the right-hand search panel and
+            click a stubbed search result. Enter a reason >= 3 chars
+            and click Save your changes.
+          expected_result: >
+            onSave is called with updates.action equal to the picked
+            LogicCriterion (snomed_concept_id, preferred_term,
+            semantic_tag).
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Action swap flows end-to-end through the existing search panel."
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-168/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-168-EXEC-001"
+      executed_at: "2026-04-17T00:00:00Z"
+      executed_by: "automated"
+      environment: "development"
+      result: "pass"
+      summary: >
+        Backend (pytest): 8/8 cases in
+        services/api/tests/test_guidance_rule_edit_action.py.
+        Frontend (jest): 4/4 cases in
+        services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.action.test.tsx.
+        Full guidance UI suite (104 tests across 10 files) and backend
+        guidance suite (47 tests) remained green.
+      notes: >
+        Pre-existing TestPatientsPanel act() warnings observed in jest
+        output; unrelated to DI-LEO-AI-170 scope.

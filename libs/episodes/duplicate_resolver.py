@@ -158,10 +158,21 @@ def _rank_key(record: EpisodeRecord, evidence_type: str) -> tuple:
 def pick_evidence_winner(cluster: list[EpisodeRecord]) -> MergeDecision | None:
     """Return the merge decision for a cluster, or None if no merge.
 
-    Clusters of size 1 are skipped. Clusters where the evidence cancer
-    type is ``'unknown'`` AND no episode has a recognised cancer_type
-    are also skipped -- there is no signal to pick a primary and
-    collapsing them would risk merging genuine multi-primary cases.
+    Clusters of size 1 are skipped. Clusters are also skipped when:
+
+    * The evidence cancer_type is ``'unknown'`` AND no episode has a
+      recognised cancer_type -- there is no signal to pick a primary
+      and collapsing would risk merging genuine multi-primary cases.
+
+    * The cluster contains two or more distinct, non-NSS cancer_types
+      (e.g. ``breast`` + ``melanoma``) AND the diagnosis text does not
+      uniquely corroborate one of them. Per DI-LEO-AI-137 acceptance
+      criterion ("When no deterministic winner exists, the merge is
+      skipped; logger.warning records the patient_id and cluster
+      members for human review; no destructive write occurs"), we must
+      not fall back to alphabetical or any other arbitrary ordering --
+      a same-day breast and skin 2WW pair are two real pathways, not a
+      duplicate. (R-LEO-AI-097 covers this safety branch.)
     """
     if len(cluster) < 2:
         return None
@@ -180,8 +191,27 @@ def pick_evidence_winner(cluster: list[EpisodeRecord]) -> MergeDecision | None:
             len(cluster),
         )
         return None
+    # DI-LEO-AI-137 / R-LEO-AI-097 -- multi-distinct-type guard.
+    # If two or more episodes carry distinct, recognised cancer types,
+    # only proceed when the diagnosis text uniquely names one of them.
+    # Otherwise the cluster is preserved for human review.
+    if len(known_types) >= 2 and (
+        evidence_type == "unknown" or evidence_type not in known_types
+    ):
+        logger.warning(
+            "Skipping merge: cluster has %d distinct known cancer_types %s "
+            "with no deterministic text evidence (evidence_type=%r). "
+            "Episode IDs: %s",
+            len(known_types),
+            sorted(known_types),
+            evidence_type,
+            [r.episode_id for r in cluster],
+        )
+        return None
     if evidence_type == "unknown" and known_types:
-        evidence_type = sorted(known_types)[0]
+        # Single known type and no text evidence -- safe to keep the
+        # NSS/unknown shadows merging into the only known primary.
+        evidence_type = next(iter(known_types))
     ranked = sorted(cluster, key=lambda r: _rank_key(r, evidence_type))
     primary = ranked[0]
     duplicates = [r.episode_id for r in ranked[1:]]

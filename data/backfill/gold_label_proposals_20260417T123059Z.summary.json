@@ -1,0 +1,13 @@
+{
+  "labels_seen": 5,
+  "labels_with_additions": 0,
+  "labels_with_extensions": 0,
+  "additions_total": 0,
+  "extensions_total": 0,
+  "applied": 0,
+  "errors": 0,
+  "elapsed_sec": 1.41,
+  "additions_by_label": {},
+  "mode": "recover_only",
+  "dry_run": true
+}

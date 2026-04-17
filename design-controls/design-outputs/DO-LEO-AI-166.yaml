@@ -1,0 +1,138 @@
+# -- DO-LEO-AI-166 -- Replay engine, post-compile gate and Clinical Guidelines surfacing
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-166"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-167"]
+    user_needs: ["UN-LEO-AI-076"]
+    risks_addressed: ["R-LEO-AI-166"]
+    verification_tests: ["VT-LEO-AI-166"]
+
+  specification:
+    title: "Test patient replay, automatic post-compile trigger and Clinical Guidelines surfacing"
+    description: |
+      Closes the regression loop between rule edits, ruleset compiles
+      and saved test patients.
+
+      1. services/api/app/services/test_patient_service.py
+         - replay_one(): re-evaluates a saved patient against the
+           live ruleset and returns its diff_replay() bucket.
+         - replay_scope(): replays all patients in scope, aggregates
+           regressions / passes / drift counts, persists the report
+           if persist_report=True.
+         - _persist_replay_report(): writes a :RulesetReplay node
+           tagged with ruleset_version + scope.
+
+      2. services/terminology_api/app/routers/guidelines.py
+         - _trigger_test_patient_replay(version, scope): POSTs the
+           new ruleset_version to /guidance/test-patients/replay on
+           the core API after a successful compile.
+         - Errors are logged at WARNING; the compile job's success
+           is unaffected (replay is the gate, not the compile).
+
+      3. services/ui/src/app/admin/guidance/test-patients/page.tsx
+         - Library page: scope filter, summary chips, build / generate /
+           replay buttons, table of saved patients, ReplayResultsDialog
+           wired to the replay POST.
+
+      4. services/ui/src/app/admin/guidance/test-patients/ReplayResultsDialog.tsx
+         - Splits results into pass / regression / drift / unexpected.
+
+      5. services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx
+         - Reads the latest :RulesetReplay for the active scope and
+           renders a coloured banner with regressions / passes /
+           patient counts and a link to the test-patient library.
+
+      6. services/ui/src/app/admin/guidance/EditRuleDialog/TestPatientsPanel.tsx
+         - Re-runs replay scoped to the rule whenever the rule's
+           logic-tree signature changes; renders a regression banner
+           with affected rule names in plain English.
+
+    acceptance_criteria:
+      - criterion: "diff_replay buckets correctly"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          For expectations [{r1: True}, {r2: False}, {r3: True}] and
+          current matches [{r1}, {r2}, {r4}], diff_replay returns
+          passes=[r1], regressions=[r2, r3] and unexpected_matches=[r4].
+      - criterion: "Replay persists a :RulesetReplay node"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          replay_scope(persist_report=True) returns a report with
+          'id' starting 'rv_' and writes a :RulesetReplay row whose
+          regressions_count, passes_count, drift_count, total_count
+          and report_json match the response.
+      - criterion: "Post-compile trigger fires"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          A successful _run_compile invokes _trigger_test_patient_replay
+          exactly once with the new version; an HTTP error from the
+          core API is logged at WARNING and the compile reports success.
+      - criterion: "BitmapLifecycleSection surfaces last replay"
+        type: "functional"
+        measurement: "Inspection"
+        target: >
+          When latestReplay.regressions_count > 0 the banner uses an
+          error-coloured background, names the ruleset_version and
+          links to /admin/guidance/test-patients.
+      - criterion: "EditRuleDialog auto-replay banner"
+        type: "functional"
+        measurement: "Inspection"
+        target: >
+          TestPatientsPanel re-issues a rule-scoped replay on every
+          change of ruleSignature and renders a banner naming each
+          regressing rule until the reviewer addresses or accepts the
+          drift.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/test_patient_service.py"
+        description: "replay_one, replay_scope, diff_replay, _persist_replay_report"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/routers/guidelines.py"
+        description: "_trigger_test_patient_replay hook on _run_compile"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/page.tsx"
+        description: "Test patient library page (Build / Generate / Replay)"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/test-patients/ReplayResultsDialog.tsx"
+        description: "Replay results dialog (passes / regressions / drift / unexpected)"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx"
+        description: "Latest replay banner on the Clinical Guidelines page"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/TestPatientsPanel.tsx"
+        description: "Per-rule auto-replay panel inside EditRuleDialog"
+    storage_location: "git"
+    technical_details:
+      language: "Python, TypeScript"
+      loc: 950
+      key_functions:
+        - "diff_replay"
+        - "replay_scope"
+        - "_persist_replay_report"
+        - "_trigger_test_patient_replay"
+        - "TestPatientLibraryPage"
+        - "ReplayResultsDialog"
+        - "TestPatientsPanel"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Auto-replay-on-compile is the primary control surface that catches silent regressions before deploy."
+      - "Per-edit replay inside EditRuleDialog is the secondary control surface that catches regressions before save."
+    risk_control_measures:
+      - "Latest replay banner on BitmapLifecycleSection makes regression status visible to anyone landing on the Clinical Guidelines page (no separate dashboard to remember)."
+      - "Replay failures are non-blocking on the compile path so a transient network issue does not freeze deploys; the missing report is itself a visible signal on the next page load."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

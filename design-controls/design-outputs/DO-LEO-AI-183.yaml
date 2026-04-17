@@ -1,0 +1,147 @@
+# -- DO-LEO-AI-183 -- SNOMED proposal validator with tiered acceptance ladder
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-183"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-184"]
+    user_needs: ["UN-LEO-AI-078"]
+    risks_addressed: ["R-LEO-AI-177", "R-LEO-AI-178"]
+    verification_tests: ["VT-LEO-AI-178"]
+
+  specification:
+    title: "SNOMED proposal validator + backfill CLI"
+    description: |
+      Library + CLI that validate every entity addition proposed
+      by the LLM-driven gold-label backfill before it is merged
+      into a GoldLabel. Built on top of the calibrated resolver
+      (DO-182) but does not consume the fused score as the
+      primary acceptance signal.
+
+      Acceptance ladder (in order of safety):
+
+        1. EXACT branch
+           accepted when the resolver returns at least one
+           candidate with had_exact_match=True and a
+           tag-compatible semantic_tag.
+
+        2. SEMANTIC branch
+           accepted when vector_raw >= semantic_vector_floor
+           (default 0.92) AND surface_match >= semantic_min_surface
+           (default 0.66, i.e. >= two-thirds of meaningful surface
+           tokens shared with the SNOMED preferred term). Designed
+           to admit lexicon gaps where the surface uses
+           lay/synonym wording that differs from the SNOMED
+           preferred term but the embedding agrees.
+
+        3. SURFACE branch
+           accepted when surface_match >= min_surface_match
+           (default 0.7) AND _meets_shared_token_floor passes AND
+           polarity_guard passes.
+
+      Rejections are recorded with a structured reason and the
+      closest rank-1 candidate so a human reviewer can adjudicate.
+
+      The CLI (scripts/validate_backfill_snomed.py) consumes a
+      backfill JSONL and writes a *.validated.jsonl plus
+      *.validated.summary.json. Thresholds are exposed as CLI
+      arguments so QA reviewers can re-run under tighter or
+      looser thresholds without code changes.
+    acceptance_criteria:
+      - criterion: "Three-branch acceptance"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          validate_proposal returns accepted=True via EXACT,
+          SEMANTIC, or SURFACE branch with the matching reason
+          recorded; falls through to the next branch when the
+          previous fails.
+      - criterion: "Polarity guard"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          A negated surface ("no hydrocephalus") that resolves to
+          a SNOMED concept without negation is rejected with
+          reason='polarity_mismatch'.
+      - criterion: "Shared token floor"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          A two-token surface ("cancer free") that shares only
+          one token with the SNOMED candidate ("Seizure free")
+          is rejected with reason='shared_token_floor' even when
+          surface_match is high.
+      - criterion: "Documented false positives stay rejected"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Re-validation of the 950 HITL-completed backfill
+          rejects all four documented false-positive surfaces:
+          "nipple inversion on the right breast",
+          "worsened over the last six months",
+          "right sided sciatica - feels pain from
+          back/buttocks to toes",
+          "surgery in jan to remove cyst in left kidney".
+      - criterion: "Calibrated score distribution"
+        type: "performance"
+        measurement: "Inspection"
+        target: >
+          End-to-end re-validation kept-set summary.json reports
+          all kept additions with resolver_score in [0.85, 1.0]
+          and mean >= 0.95.
+      - criterion: "Structured rejection reasons"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Every rejected addition has reason in
+          {low_surface_match, tag_mismatch_all, no_candidates,
+          polarity_mismatch, shared_token_floor} and a
+          closest_candidate object with concept_id, term,
+          semantic_tag, resolver_score, surface_match.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "scripts/lib/gold_label_snomed_check.py"
+        description: >
+          validate_proposal, validate_proposals_batch,
+          _meets_shared_token_floor, polarity_guard,
+          _surface_overlap, plus the ProposalValidationConfig
+          dataclass with default thresholds (min_surface_match=
+          0.7, semantic_vector_floor=0.92, semantic_min_surface=
+          0.66).
+      - artifact_type: "source_code"
+        location: "scripts/validate_backfill_snomed.py"
+        description: >
+          CLI entry point. Argparse exposes --min-surface,
+          --semantic-vector-floor, --semantic-min-surface,
+          --workers, --max. Streams proposals from JSONL,
+          fan-out validates via TerminologyClient, writes
+          *.validated.jsonl + *.validated.summary.json.
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 360
+      key_functions:
+        - "validate_proposal"
+        - "validate_proposals_batch"
+        - "_meets_shared_token_floor"
+        - "polarity_guard"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Block clinically wrong concepts from entering the gold training set"
+      - "Surface polarity mismatches that would teach the NER model to drop negation"
+      - "Surface lexical-coincidence false positives via shared-token floor"
+    risk_control_measures:
+      - "Acceptance ladder is documented and tested per branch (21 tests)"
+      - "Defaults pinned to the values that reject the documented false-positive set; loosening requires a new failing test first"
+      - "End-to-end audit script re-runs the full 950-proposal backfill and asserts the kept-score distribution stays in [0.85, 1.0]"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

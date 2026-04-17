@@ -44,6 +44,19 @@
       implemented_by: ["DI-LEO-AI-005"]
       verified_by: ["VT-LEO-AI-002"]
       effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Hand-authored gold-seed dataset (4 cancer-positive + 17 benign /
+        excluded / normal control sentences from real GP encounters)
+        teaches the spancat / ConText pipeline the cancer-vs-benign and
+        present-vs-refuted boundary on UK primary-care phrasing
+        (for example "Cancer excluded - discharge to GP",
+        "FOBT Normal - negative result", "nil concerns raised about
+        malignancy"). Re-applied at every training run via the seeder
+        script.
+      implemented_by: ["DI-LEO-AI-163"]
+      verified_by: ["VT-LEO-AI-160"]
+      effectiveness: "effective"
 
   residual_risk_estimate:
     severity: 2

@@ -1,0 +1,333 @@
+# -- VT-LEO-AI-175 -- Sandbox draft replay and not_compiled signalling
+# IEC 62304 / ISO 13485 Verification Test Protocol
+
+- id: "VT-LEO-AI-175"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-181"]
+    risks: ["R-LEO-AI-176"]
+
+  metadata:
+    title: "Sandbox compile + replay + cleanup AND explicit not_compiled signalling end-to-end"
+    description: >
+      Verifies the sandbox draft-replay flow and the explicit
+      not_compiled signal across the bitmap evaluator, the diagnose
+      route, the test_patient_service replay orchestrator and the
+      Test Patients / Replay Results UI surfaces.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest + jest"
+    test_file_paths:
+      - "services/terminology_api/tests/test_compile_drafts.py"
+      - "services/terminology_api/tests/test_guideline_evaluator_diagnose.py"
+      - "services/api/tests/test_sandbox_replay.py"
+      - "services/ui/src/app/admin/guidance/test-patients/__tests__/RulesetNotCompiledBanner.test.tsx"
+      - "services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/TestPatientsPanel.sandbox.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "pyroaring installed in the terminology_api venv"
+      - "services/api venv with httpx + fastapi.testclient"
+      - "services/ui jest setup with @leo/design-system path mapping"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-175-TC-001"
+      case_name: "compile_drafts refuses the global scope"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call GuidelineCompiler.compile_drafts(scope=CompileScope(
+            scope_type='global', scope_id='default'), rules=[...]).
+          expected_result: >
+            ValueError is raised before any Redis write occurs;
+            BitmapStore.write_ruleset is never called.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "compile_drafts MUST refuse global scope so the sandbox cannot overwrite production."
+
+    - case_id: "VT-175-TC-002"
+      case_name: "compile_drafts compiles a draft into a custom scope and applies a TTL"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call compile_drafts with scope=custom/draft-abc and a
+            single schema-v2 rule, ttl_seconds=3600.
+          expected_result: >
+            BitmapStore.write_ruleset and set_current_version are
+            called for the custom scope and set_scope_ttl is invoked
+            with 3600s. The returned summary carries
+            ``draft: True``, ``scope_type: 'custom'`` and the rule
+            count.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Sandbox compile reuses the production compiler with TTL applied."
+
+    - case_id: "VT-175-TC-003"
+      case_name: "evaluate_patient signals not_compiled when no ruleset exists"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Configure BitmapStore.get_current_ruleset to return None;
+            call GuidelineEvaluator.evaluate_patient.
+          expected_result: >
+            The response includes ``not_compiled: True``, a plain
+            English ``message`` and a ``recompile_hint`` URL; no
+            silent zero-match list.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Empty ruleset surfaces an explicit not_compiled flag."
+
+    - case_id: "VT-175-TC-004"
+      case_name: "diagnose returns structured not_compiled / rule_found payload"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            (a) Call diagnose with no active ruleset; (b) call
+            diagnose for a rule_id that is not in the active ruleset.
+          expected_result: >
+            (a) returns dict with ``not_compiled: True``,
+            ``rule_found: False`` and a recompile_hint;
+            (b) returns dict with ``not_compiled: False``,
+            ``rule_found: False`` and a message naming the missing
+            rule. Neither path returns None.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "diagnose never returns None for these error states; the dialog can render the banner."
+
+    - case_id: "VT-175-TC-005"
+      case_name: "BitmapStore.delete_scope removes every key for a custom scope"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Pre-seed Redis keys ruleset:custom:draft-abc:* and the
+            current pointer; call BitmapStore.delete_scope('custom',
+            'draft-abc').
+          expected_result: >
+            Every seeded key is deleted, including the 'current'
+            pointer; no other scope's keys are touched.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Sandbox cleanup removes the bitmap, ruleset and current pointer for that scope."
+
+    - case_id: "VT-175-TC-006"
+      case_name: "BitmapStore.delete_scope refuses the global scope"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call delete_scope('global', 'default')."
+          expected_result: "ValueError; no Redis key is deleted."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Production scope cannot be wiped through the sandbox cleanup path."
+
+    - case_id: "VT-175-TC-007"
+      case_name: "sandbox_replay compiles -> replays -> deletes (happy path)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Stub the terminology proxy to return a compile summary
+            and the replay endpoint to return a passing report;
+            call test_patient_service.sandbox_replay.
+          expected_result: >
+            The compile, replay AND delete_scope endpoints are each
+            called in order; the returned payload bundles the
+            compile summary and the replay report; the sandbox is
+            removed.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Sandbox replay orchestrates compile, replay and cleanup."
+
+    - case_id: "VT-175-TC-008"
+      case_name: "sandbox_replay still deletes the scope when the replay raises"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Stub the replay endpoint to raise; call sandbox_replay.
+          expected_result: >
+            The exception propagates AND delete_scope is still
+            called; no orphan sandbox is left in Redis.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Cleanup runs in finally so abandoned sandboxes are reaped."
+
+    - case_id: "VT-175-TC-009"
+      case_name: "diagnose_rule_against_patient forwards the structured not_compiled payload"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Stub the terminology /diagnose to return a 404 with a
+            structured detail body containing not_compiled=True;
+            call test_patient_service.diagnose_rule_against_patient.
+          expected_result: >
+            The returned dict carries ``not_compiled: True`` and the
+            recompile_hint unchanged; no RuntimeError is raised so
+            the UI can render the banner instead of an error toast.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "API layer must not flatten the structured payload into a generic error."
+
+    - case_id: "VT-175-TC-010"
+      case_name: "RulesetNotCompiledBanner shows Compile now for production scope"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Render <RulesetNotCompiledBanner scopeType='global'
+            scopeId='default'/>, click 'Compile now', stub fetch to
+            return job_id + version.
+          expected_result: >
+            fetch is called against
+            /api/terminology/guidelines/bitmap/compile;
+            onCompileRequested fires with the job_id and version;
+            the banner renders the Alert with role='status' and the
+            'No active bitmap ruleset' aria-label.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "One-click recompile is wired to the production compile endpoint."
+
+    - case_id: "VT-175-TC-011"
+      case_name: "RulesetNotCompiledBanner suppresses Compile now in sandbox mode"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Render <RulesetNotCompiledBanner sandbox/>; assert no
+            'Compile now' button is present and the sandbox
+            explanation is rendered.
+          expected_result: >
+            'Draft sandbox could not be compiled' title is rendered;
+            no compile button exists (clicking the production
+            recompile would not fix the empty sandbox).
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Sandbox banner explains the right recovery path instead of misleading the reviewer."
+
+    - case_id: "VT-175-TC-012"
+      case_name: "TestPatientsPanel 'Test draft' triggers sandbox replay and opens the report"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Render TestPatientsPanel with one saved patient and a
+            draftRule prop; stub /api/guidance/test-patients?,
+            /api/terminology/guidelines/bitmap/status and
+            /api/guidance/test-patients/sandbox-replay; click
+            'Test draft'.
+          expected_result: >
+            sandbox-replay is called with the draft rule and the
+            saved patient_id; the Replay Results dialog opens
+            showing the returned ruleset_version chip.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "The reviewer sees a regression report against their unsaved edit before saving."
+
+    - case_id: "VT-175-TC-013"
+      case_name: "TestPatientsPanel renders the sandbox banner when the draft compiles to zero rules"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Stub sandbox-replay to return a summary with rule_count=0
+            and a per-patient 'No active ruleset compiled yet.'
+            error; click 'Test draft'.
+          expected_result: >
+            The sandbox-variant RulesetNotCompiledBanner is rendered
+            ('Draft sandbox could not be compiled').
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Empty sandbox is never confused with a clean pass."
+
+    - case_id: "VT-175-TC-014"
+      case_name: "sandbox_replay bakes per-regression diagnostics before the sandbox is torn down"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Stub replay_scope to return one regression and stub
+            diagnose_rule_against_patient to return an annotated
+            tree; call sandbox_replay.
+          expected_result: >
+            diagnose_rule_against_patient is called with
+            scope_type='custom' and scope_id matching the sandbox
+            id (NOT global/default), and its return value is
+            embedded under report.results[0].regressions[0]
+            ['diagnostic']. delete_sandbox_scope still runs in
+            finally.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Sandbox diagnostics MUST be computed against the live sandbox scope, not global, and MUST be embedded in the report so the dialog never has to call /diagnose against a deleted scope."
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-175/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-175-EXEC-2026-04-17-001"
+      executed_by: "Rob Smith (CI)"
+      executed_at: "2026-04-17T17:05:00Z"
+      ruleset_version: "n/a"
+      result: "pass"
+      summary: >
+        10 backend pytest cases (compile_drafts global refusal +
+        custom-scope happy path; delete_scope happy path + global
+        refusal; evaluator + diagnose not_compiled; sandbox_replay
+        compile + replay + cleanup happy and failure paths;
+        diagnose passthrough) plus 5 jest cases for the banner +
+        sandbox replay flow all passed. The full guidance UI suite
+        (93 tests across 11 files) also passed.
+      commands:
+        - "python -m pytest services/terminology_api/tests/test_compile_drafts.py services/terminology_api/tests/test_guideline_evaluator_diagnose.py -v"
+        - "python -m pytest services/api/tests/test_sandbox_replay.py -v"
+        - "npx jest --no-coverage --testPathPatterns 'RulesetNotCompiledBanner|TestPatientsPanel.sandbox'"
+        - "npx jest --no-coverage --testPathPatterns 'EditRuleDialog|test-patients'"
+      notes: >
+        Sandbox compile cannot overwrite production (TC-001 / TC-006).
+        Cleanup runs in finally so abandoned sandboxes are reaped
+        (TC-008). Empty ruleset is no longer indistinguishable from
+        a clean pass -- the banner renders in every consumer (TC-010
+        / TC-011 / TC-013).
+    - run_id: "VT-175-EXEC-2026-04-17-002"
+      executed_by: "Rob Smith"
+      executed_at: "2026-04-17T18:30:00Z"
+      ruleset_version: "n/a"
+      result: "pass"
+      summary: >
+        Added TC-014: sandbox_replay now embeds per-regression
+        diagnostics in the report (computed against the live
+        sandbox scope before delete_sandbox_scope runs) so
+        ReplayResultsDialog renders the annotated tree without
+        calling /diagnose against a deleted scope. 6 pytest cases
+        in test_sandbox_replay.py + 17 jest cases across
+        test-patients / TestPatientsPanel / ReplayResultsDialog
+        suites all passed.
+      commands:
+        - "python -m pytest services/api/tests/test_sandbox_replay.py -v"
+        - "npx jest --no-coverage --testPathPatterns 'ReplayResultsDialog|test-patients|TestPatientsPanel'"
+      notes: >
+        Resolves the post-replay 404 storm on /diagnose: previously
+        every regression triggered one /diagnose call after the
+        sandbox bitmap had already been torn down (and against
+        global/default by default), so all of them 404'd with
+        not_compiled and the dialog showed an unhelpful banner.

@@ -348,18 +348,26 @@ class TestNotCodeableAction:
     def test_ask_leo_smart_router_returns_assertion_warning_for_not_codeable(self):
         import pathlib
 
-        src = pathlib.Path("services/api/app/routers/training.py").read_text(
-            encoding="utf-8"
-        )
+        # Ask-LEO Smart routing was extracted into a sibling module to keep
+        # the main training router under the file-length limit. Concatenate
+        # both modules so the test still proves the contract holds somewhere
+        # in the training router surface.
+        src = pathlib.Path(
+            "services/api/app/routers/training.py"
+        ).read_text(encoding="utf-8") + pathlib.Path(
+            "services/api/app/routers/_training_askleo.py"
+        ).read_text(encoding="utf-8")
         assert "assertion_warning" in src
         assert "not_codeable" in src
 
     def test_ask_leo_smart_response_includes_assertion_warning_field(self):
         import pathlib
 
-        src = pathlib.Path("services/api/app/routers/training.py").read_text(
-            encoding="utf-8"
-        )
+        src = pathlib.Path(
+            "services/api/app/routers/training.py"
+        ).read_text(encoding="utf-8") + pathlib.Path(
+            "services/api/app/routers/_training_askleo.py"
+        ).read_text(encoding="utf-8")
         assert '"assertion_warning"' in src or "'assertion_warning'" in src
 
 

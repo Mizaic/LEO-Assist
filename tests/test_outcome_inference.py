@@ -450,23 +450,39 @@ class TestBenignENTAndRespiratorySignals:
 
 class TestSiteMapFixes:
     def test_thyroid_maps_to_head_and_neck(self):
+        """Thyroid / pharyngeal / laryngeal cancers must map to specific
+        keys that belong to the head_and_neck pathway group."""
         from services.analysis_worker.app.analyzers.episode_builder import (
             _extract_condition_key,
         )
+        from services.analysis_worker.app.analyzers.episode_builder._site_resolution import (
+            _PATHWAY_TO_SPECIFIC,
+        )
 
-        assert _extract_condition_key("Thyroid cancer (disorder)") == "head_and_neck"
-        assert _extract_condition_key("Goitre") == "head_and_neck"
-        assert _extract_condition_key("Carcinoma of pharynx") == "head_and_neck"
-        assert _extract_condition_key("Laryngeal carcinoma") == "head_and_neck"
+        head_and_neck = _PATHWAY_TO_SPECIFIC["head_and_neck"]
+        assert _extract_condition_key("Thyroid cancer (disorder)") in head_and_neck
+        assert _extract_condition_key("Goitre") in head_and_neck
+        assert _extract_condition_key("Carcinoma of pharynx") in head_and_neck
+        assert _extract_condition_key("Laryngeal carcinoma") in head_and_neck
 
     def test_myelofibrosis_maps_to_haematological(self):
+        """Myelofibrosis / myeloproliferative / thrombocythaemia must map to
+        specific keys that belong to the haematological pathway group."""
         from services.analysis_worker.app.analyzers.episode_builder import (
             _extract_condition_key,
         )
+        from services.analysis_worker.app.analyzers.episode_builder._site_resolution import (
+            _PATHWAY_TO_SPECIFIC,
+        )
 
-        assert _extract_condition_key("Primary myelofibrosis") == "haematological"
-        assert _extract_condition_key("Myeloproliferative disorder") == "haematological"
-        assert _extract_condition_key("Essential thrombocythaemia") == "haematological"
+        haematological = _PATHWAY_TO_SPECIFIC["haematological"]
+        assert _extract_condition_key("Primary myelofibrosis") in haematological
+        assert (
+            _extract_condition_key("Myeloproliferative disorder") in haematological
+        )
+        assert (
+            _extract_condition_key("Essential thrombocythaemia") in haematological
+        )
 
     def test_generic_cancer_maps_to_non_site_specific_not_unknown(self):
         from services.analysis_worker.app.analyzers.episode_builder import (

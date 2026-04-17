@@ -1,0 +1,204 @@
+# -- VT-LEO-AI-177 -- Calibrated absolute confidence scoring in the SNOMED resolver
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-177"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-183"]
+    risks: ["R-LEO-AI-177"]
+
+  metadata:
+    title: "Resolver returns calibrated absolute confidence in [0, 1]"
+    description: >
+      Pins every per-branch path through
+      HybridCodingResolver._fuse_and_rank +
+      _calibrate_confidence + _apply_tag_adjustment so that the
+      score returned by /terminology/resolve is interpretable as
+      P(correct mapping) and is monotone in retrieval strength.
+      Also pins the regression that the previous test
+      test_expected_tag_underscore_not_penalized continues to
+      pass under the new contract by including
+      had_exact_match=True in the mock data.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_coding_resolver.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-177-TC-001"
+      case_name: "Exact branch hit scores 1.0"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call _fuse_and_rank on a single candidate with
+            had_exact_match=True, expected_tag matching
+            candidate semantic_tag.
+          expected_result: >
+            Returned candidate.score == 1.0 (capped).
+          verification_method: "automated"
+      acceptance_criteria:
+        - "candidates[0].score == 1.0"
+
+    - case_id: "VT-177-TC-002"
+      case_name: "Weak fulltext-only does not score above 0.5"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Single fulltext-only candidate with BM25 = 1.0,
+            no exact match, no vector signal, no expected_tag.
+          expected_result: >
+            score <= 0.5 + epsilon (saturating curve
+            bm25/(bm25+1) yields 0.5).
+          verification_method: "automated"
+      acceptance_criteria:
+        - "0.49 <= candidates[0].score <= 0.51"
+
+    - case_id: "VT-177-TC-003"
+      case_name: "Strong fulltext BM25=5 scores around 0.83"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Fulltext-only candidate with BM25 = 5.0, no exact,
+            no vector.
+          expected_result: "score in [0.82, 0.85]"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "abs(candidates[0].score - 5.0/6.0) < 0.01"
+
+    - case_id: "VT-177-TC-004"
+      case_name: "High vector-only scores at cosine"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Vector-only candidate with cosine = 0.9, no
+            lexical signal.
+          expected_result: "score == 0.9 (modulo tag adjustment)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "abs(candidates[0].score - 0.9) < 0.01"
+
+    - case_id: "VT-177-TC-005"
+      case_name: "Lex + vector agreement earns small bonus capped at 1.0"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Candidate with had_exact_match=True (lex_signal=
+            1.0) and vector_raw=0.9. Combined =
+            max(1.0, 0.9) + 0.10 * min(1.0, 0.9) capped at 1.0.
+          expected_result: "score == 1.0"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "candidates[0].score == 1.0"
+
+    - case_id: "VT-177-TC-006"
+      case_name: "Cross-group tag penalty halves the score"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Exact-branch candidate (lex_signal=1.0) whose
+            semantic_tag is in a different TAG_GROUPS group
+            from expected_tag.
+          expected_result: "score == 0.5 (1.0 * 0.5)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "abs(candidates[0].score - 0.5) < 0.01"
+
+    - case_id: "VT-177-TC-007"
+      case_name: "Tag match adds small additive boost not multiplicative inflation"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Two candidates: A vector_raw=0.5 with matching
+            tag, B vector_raw=0.55 with different group.
+          expected_result: >
+            A scored ~0.6 (0.5 + 0.10), B scored ~0.275
+            (0.55 * 0.5). Tag match adds, never multiplies
+            >1.0.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "candidates[0].score < 1.0"
+        - "candidates[0].score - candidates[-1].score >= 0.05"
+
+    - case_id: "VT-177-TC-008"
+      case_name: "Tag-matching candidate wins tie via additive boost"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Two candidates with identical lex_signal /
+            vec_signal; one has matching tag, the other does
+            not.
+          expected_result: >
+            Tag-matching candidate ranks first; its score is
+            exactly 0.10 higher than the other (capped at 1.0).
+          verification_method: "automated"
+      acceptance_criteria:
+        - "candidates[0].semantic_tag == expected_tag"
+
+    - case_id: "VT-177-TC-009"
+      case_name: "Regression: existing exact match still passes under new contract"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Re-run test_expected_tag_underscore_not_penalized
+            with mock data updated to include
+            had_exact_match=True (correct exact-branch
+            simulation under new contract).
+          expected_result: "candidates[0].score == 1.0"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "candidates[0].score == 1.0"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-177/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_date: "2026-04-17"
+      executor: "automated pytest CI"
+      commit: "HEAD (calibrated-snomed-scoring branch)"
+      command: >
+        PYTHONPATH=. python -m pytest tests/test_coding_resolver.py
+        -v --no-cov
+      result: "pass"
+      cases_executed: 9
+      cases_passed: 9
+      cases_failed: 0
+      evidence_path: >
+        /evidence-bundles/LEO-AI/verification/VT-LEO-AI-177/
+        2026-04-17-pytest-calibrated-scoring.log
+      notes: >
+        9 critical/high cases pinned in the new
+        TestCalibratedScoring class plus the regression
+        test_expected_tag_underscore_not_penalized updated to
+        carry had_exact_match=True. Full
+        tests/test_coding_resolver.py (40+ tests) and the wider
+        terminology / coder / surface-form / abbreviation /
+        double-negation suites (259 total) ran green
+        confirming no regression to neighbouring contracts.

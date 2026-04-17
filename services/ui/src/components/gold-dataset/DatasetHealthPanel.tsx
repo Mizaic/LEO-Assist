@@ -403,12 +403,19 @@ export default function DatasetHealthPanel({
                   width={150}
                 />
                 <RTooltip
-                  formatter={(v: number, _name, props) => {
-                    const label = (props.payload as { label?: string })?.label ?? "";
+                  formatter={(v: unknown, _name: unknown, props: unknown) => {
+                    const value = Number(v ?? 0);
+                    const payload = (props as { payload?: { label?: string } })
+                      ?.payload;
+                    const label = payload?.label ?? "";
                     const isActive = activeLabel === label;
-                    const below = (v as number) < MIN_SPANS_PER_LABEL;
-                    const suffix = isActive ? " (filtered)" : below ? " — below minimum" : "";
-                    return [`${v} spans${suffix}`, "Count"];
+                    const below = value < MIN_SPANS_PER_LABEL;
+                    const suffix = isActive
+                      ? " (filtered)"
+                      : below
+                        ? " - below minimum"
+                        : "";
+                    return [`${value} spans${suffix}`, "Count"];
                   }}
                   cursor={{ fill: "rgba(0,0,0,0.04)" }}
                 />
@@ -431,10 +438,15 @@ export default function DatasetHealthPanel({
                   cursor={onLabelFilter ? "pointer" : "default"}
                   onClick={
                     onLabelFilter
-                      ? (data: { label?: string }) => {
-                          const clicked = data.label ?? "";
-                          onLabelFilter(activeLabel === clicked ? null : clicked);
-                        }
+                      ? ((data: unknown) => {
+                          const clicked =
+                            (data as { label?: string })?.label ?? "";
+                          onLabelFilter(
+                            activeLabel === clicked ? null : clicked,
+                          );
+                          // Recharts BarMouseEvent expects (data, index, event)
+                          // but we only need the label; cast at the boundary.
+                        }) as never
                       : undefined
                   }
                 >

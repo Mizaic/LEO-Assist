@@ -1,56 +1,76 @@
 "use client";
 
 import { memo } from "react";
-import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import Typography from "@mui/material/Typography";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
+
+import { BaseNode, NodeHandle, NodeHeader } from "./_base";
+
+const QUEUE_ACCENT = "#795548";
+const REST_ACCENT = "#3F51B5";
+const INPUT_PORT_COLOR = "#90A4AE";
+const OUTPUT_PORT_COLOR = "#26A69A";
+
+interface ConnectorNodeData {
+  label?: string;
+  connectorType?: "rest_connector" | "queue_publish";
+  inputPorts?: string[];
+  outputPorts?: string[];
+  onConfigure?: () => void;
+}
 
 function ConnectorNodeComponent({ data, selected }: NodeProps) {
-  const connectorType = (data as any).connectorType ?? "rest_connector";
-  const label = (data as any).label || (connectorType === "queue_publish" ? "Queue Publish" : "REST API Call");
-  const inputs = (data as any).inputPorts ?? ["input"];
-  const outputs = connectorType === "queue_publish" ? [] : ((data as any).outputPorts ?? ["connector_response"]);
-  const color = connectorType === "queue_publish" ? "#795548" : "#3F51B5";
+  const d = data as ConnectorNodeData;
+  const connectorType = d.connectorType ?? "rest_connector";
+  const isQueue = connectorType === "queue_publish";
+  const accent = isQueue ? QUEUE_ACCENT : REST_ACCENT;
+  const label = d.label || (isQueue ? "Queue Publish" : "REST API Call");
+  const inputs = d.inputPorts ?? ["input"];
+  const outputs = isQueue ? [] : (d.outputPorts ?? ["connector_response"]);
 
   return (
-    <Box
-      sx={{
-        px: 2,
-        py: 1.5,
-        minWidth: 200,
-        borderRadius: 2,
-        border: "2px dashed",
-        borderColor: selected ? "primary.main" : color,
-        bgcolor: "background.paper",
-        position: "relative",
-        cursor: "pointer",
-      }}
-      onClick={(data as any).onConfigure}
+    <BaseNode
+      accentColor={accent}
+      selected={selected}
+      borderStyle="dashed"
+      minWidth={200}
+      ariaLabel={`${label} connector node`}
+      onActivate={d.onConfigure}
     >
-      {inputs.map((name: string, i: number) => (
-        <Handle
+      {inputs.map((name, i) => (
+        <NodeHandle
           key={`in-${name}`}
           id={name}
           type="target"
-          position={Position.Left}
-          style={{ width: 12, height: 12, top: `${((i + 1) / (inputs.length + 1)) * 100}%`, background: "#90A4AE", border: "2px solid #fff" }}
+          color={INPUT_PORT_COLOR}
+          top={`${((i + 1) / (inputs.length + 1)) * 100}%`}
+          tooltip={`Input ${name}`}
         />
       ))}
-      {outputs.map((name: string, i: number) => (
-        <Handle
+      {outputs.map((name, i) => (
+        <NodeHandle
           key={`out-${name}`}
           id={name}
           type="source"
-          position={Position.Right}
-          style={{ width: 12, height: 12, top: `${((i + 1) / (outputs.length + 1)) * 100}%`, background: "#26A69A", border: "2px solid #fff" }}
+          color={OUTPUT_PORT_COLOR}
+          top={`${((i + 1) / (outputs.length + 1)) * 100}%`}
+          tooltip={`Output ${name}`}
         />
       ))}
-      <Typography variant="body2" fontWeight={700}>{label}</Typography>
-      <Chip size="small" label={connectorType} sx={{ mt: 0.5, bgcolor: color, color: "#fff" }} />
-    </Box>
+      <NodeHeader title={label} />
+      <Chip
+        size="small"
+        label={connectorType}
+        sx={{
+          mt: 0.5,
+          bgcolor: accent,
+          color: "#fff",
+          fontSize: "0.62rem",
+          height: 20,
+        }}
+      />
+    </BaseNode>
   );
 }
 
 export const ConnectorNode = memo(ConnectorNodeComponent);
-

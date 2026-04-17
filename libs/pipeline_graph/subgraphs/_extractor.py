@@ -367,10 +367,10 @@ class LLMExtractorAdapter:
                     span_start=span_start,
                     span_end=span_end,
                     semantic_tag=t.get("semantic_tag", "finding"),
-                    # Assertion comes from the extractor when it provides one;
-                    # final assertion is still re-checked by post-processing
-                    # (ConText + scope guard) which can override.
-                    assertion=_normalise_assertion(t.get("assertion")),
+                    # DI-LEO-AI-103: LLM extractor MUST NOT assign assertion;
+                    # all entities start at "present" and the post-processing
+                    # ConText + scope guard layers are the sole authority.
+                    assertion="present",
                     confidence=_normalise_confidence(t.get("confidence")),
                     normalized=t.get("lookup_term", text_val),
                     numeric_value=t.get("value") or "",

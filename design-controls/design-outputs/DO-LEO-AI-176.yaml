@@ -1,0 +1,77 @@
+# -- DO-LEO-AI-176 -- Cancer follow-up template recogniser
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-176"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-177"]
+    user_needs: ["UN-LEO-AI-005", "UN-LEO-AI-006"]
+    risks_addressed: ["R-LEO-AI-172"]
+    verification_tests: ["VT-LEO-AI-172"]
+
+  specification:
+    title: "Cancer follow-up template recogniser"
+    description: |
+      Implements DI-LEO-AI-177. Adds:
+
+      1. CANCER_FOLLOW_UP_PHRASES (list of (regex, site_key)) covering
+         skin / melanoma / breast / prostate / colorectal / lung /
+         haematology surveillance template names plus a generic
+         "cancer follow up clinic" / "oncology surveillance" pattern.
+      2. find_cancer_follow_up_phrase(text) -> (phrase, site_key) | None
+         helper.
+      3. anchor_detector._classify_text_encounters integrates the new
+         helper. When (a) the helper returns a hit AND (b) the
+         history-of-cancer guard does not fire, the detector emits a
+         diagnosis_confirmed anchor with diagnosis_source=
+         "cancer_follow_up_template", confidence=0.8, hitl_required=True.
+
+    acceptance_criteria:
+      - criterion: "Helper recognises template names"
+        type: "functional"
+        measurement: "Test"
+        target: "find_cancer_follow_up_phrase('Skin Cancer Follow Up') == ('skin cancer follow up','melanoma'); 'Breast Cancer Follow Up' returns ('breast cancer follow up','breast')."
+      - criterion: "Detector wiring"
+        type: "functional"
+        measurement: "Test"
+        target: "Encounter text containing 'Skin Cancer Follow Up' template emits diagnosis_confirmed with diagnosis_source='cancer_follow_up_template'."
+      - criterion: "History guard wins"
+        type: "safety"
+        measurement: "Test"
+        target: "An encounter with both a follow-up template AND a 'H/O cancer of breast' problem line emits NO diagnosis anchor."
+      - criterion: "Patient regression"
+        type: "performance"
+        measurement: "Live rebuild"
+        target: "Patient 4921442355 episode 42b722eb6082a4b7 receives a diagnosis_confirmed anchor on 2025-06-25 via cancer_follow_up_template path."
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/domains/code_inventories.py"
+        description: "CANCER_FOLLOW_UP_PHRASES + find_cancer_follow_up_phrase helper."
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/anchor_detector.py"
+        description: "_classify_text_encounters integrates follow-up template path under the history guard."
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 90
+      key_functions:
+        - "find_cancer_follow_up_phrase"
+        - "_classify_text_encounters"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Confirmed-cancer cohort identification (surveillance-only patients)"
+    risk_control_measures:
+      - "History-of-cancer guard precedes the follow-up template path"
+      - "All template anchors carry hitl_required=True"
+      - "Phrase regexes anchor on the literal word 'follow' near a cancer term"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

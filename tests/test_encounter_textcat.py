@@ -498,6 +498,42 @@ class TestAnchorDetector:
         client.run.side_effect = _run
         return client
 
+    def _make_registry(self):
+        from unittest.mock import MagicMock
+        from libs.domains.ncda_concept_sets import (
+            FAST_TRACK_REFERRAL_IDS,
+            CANCER_TYPE_IDS,
+            TREATMENT_IDS,
+            SEEN_BY_SPECIALIST_IDS,
+        )
+
+        configs = {
+            "fast_track_referrals": MagicMock(
+                milestone_type="referral", assertion_filter=[]
+            ),
+            "cancer_types": MagicMock(
+                milestone_type="diagnosis", assertion_filter=[]
+            ),
+            "treatments": MagicMock(
+                milestone_type="treatment_start", assertion_filter=[]
+            ),
+            "specialist_visits": MagicMock(
+                milestone_type="specialist_visit", assertion_filter=[]
+            ),
+        }
+
+        concept_map = {
+            "fast_track_referrals": list(FAST_TRACK_REFERRAL_IDS),
+            "cancer_types": list(CANCER_TYPE_IDS),
+            "treatments": list(TREATMENT_IDS),
+            "specialist_visits": list(SEEN_BY_SPECIALIST_IDS),
+        }
+
+        reg = MagicMock()
+        reg.get_milestone_domains.return_value = configs
+        reg.get_concept_ids.side_effect = lambda name: concept_map.get(name, [])
+        return reg
+
     def test_referral_anchor_detected_from_fast_track_concept(self):
         from services.analysis_worker.app.analyzers.anchor_detector import (
             detect_anchors,
@@ -517,11 +553,14 @@ class TestAnchorDetector:
             }
         ]
         client = self._make_client(coded_rows=coded)
-        result = detect_anchors("pat-001", "2024-01-01", "2024-12-31", client)
+        registry = self._make_registry()
+        result = detect_anchors(
+            "pat-001", "2024-01-01", "2024-12-31", client, registry
+        )
 
         assert len(result.referral_anchors) == 1
         assert result.referral_anchors[0]["encounter_id"] == "enc-001"
-        assert result.detection_method == "concept"
+        assert result.detection_method in {"concept", "concept+text"}
 
     def test_no_anchors_when_no_coded_encounters(self):
         from services.analysis_worker.app.analyzers.anchor_detector import (
@@ -529,7 +568,10 @@ class TestAnchorDetector:
         )
 
         client = self._make_client(coded_rows=[])
-        result = detect_anchors("pat-002", "2024-01-01", "2024-12-31", client)
+        registry = self._make_registry()
+        result = detect_anchors(
+            "pat-002", "2024-01-01", "2024-12-31", client, registry
+        )
 
         assert result.referral_anchors == []
         assert result.diagnosis_anchors == []
@@ -556,7 +598,10 @@ class TestAnchorDetector:
             }
         ]
         client = self._make_client(coded_rows=coded)
-        result = detect_anchors("pat-003", "2024-01-01", "2024-12-31", client)
+        registry = self._make_registry()
+        result = detect_anchors(
+            "pat-003", "2024-01-01", "2024-12-31", client, registry
+        )
 
         assert len(result.diagnosis_anchors) == 1
         assert result.diagnosis_anchors[0]["concept_id"] == cancer_id
@@ -590,7 +635,10 @@ class TestAnchorDetector:
             },
         ]
         client = self._make_client(coded_rows=coded)
-        result = detect_anchors("pat-004", "2024-01-01", "2024-12-31", client)
+        registry = self._make_registry()
+        result = detect_anchors(
+            "pat-004", "2024-01-01", "2024-12-31", client, registry
+        )
 
         assert (
             len(result.referral_anchors) == 1
@@ -616,8 +664,14 @@ class TestAnchorDetector:
             }
         ]
         client = self._make_client(coded_rows=coded, expanded_rows=[])
+        registry = self._make_registry()
         result = detect_anchors(
-            "pat-005", "2024-01-01", "2024-12-31", client, expand_months=3
+            "pat-005",
+            "2024-01-01",
+            "2024-12-31",
+            client,
+            registry,
+            expand_months=3,
         )
 
         assert result.expanded_start is not None

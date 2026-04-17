@@ -78,14 +78,22 @@ class GuidelineEvaluator:
             )
         if not ruleset:
             logger.warning(
-                "GuidelineEvaluator: no active ruleset found in Redis — "
-                "ALL patient evaluations will return zero matches. "
-                "Run POST /compile to rebuild the ruleset."
+                "GuidelineEvaluator: no active ruleset found in Redis "
+                "(scope=%s/%s) -- ALL patient evaluations will return zero "
+                "matches. Run POST /guidelines/bitmap/compile to rebuild.",
+                scope_type or "global",
+                scope_id or "default",
             )
             return {
                 "matched_rules": [],
                 "active_version": None,
+                "not_compiled": True,
                 "message": "No active ruleset compiled yet.",
+                "recompile_hint": (
+                    "POST /terminology/guidelines/bitmap/compile "
+                    f"with scope_type={scope_type or 'global'} "
+                    f"scope_id={scope_id or 'default'}"
+                ),
                 "scope_type": scope_type or "global",
                 "scope_id": scope_id or "default",
             }
@@ -110,10 +118,253 @@ class GuidelineEvaluator:
         return {
             "matched_rules": matches,
             "active_version": ruleset.get("version"),
+            "not_compiled": False,
             "compile_timestamp": ruleset.get("compile_timestamp"),
             "scope_type": ruleset.get("scope_type") or scope_type or "global",
             "scope_id": ruleset.get("scope_id") or scope_id or "default",
         }
+
+    def diagnose(
+        self,
+        rule_id: str,
+        patient_codes: list[str],
+        patient_age: float | None = None,
+        patient_sex: str | None = None,
+        *,
+        scope_type: str | None = None,
+        scope_id: str | None = None,
+        ruleset_version: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Return per-node match diagnostics for ONE rule.
+
+        Uses the same bitmap operations as ``evaluate_patient`` so the
+        diagnostic verdict is guaranteed to agree with the production
+        firing decision. The annotated tree is returned in the same shape
+        as the compiled ``logic_tree`` so the UI can render it
+        hierarchically (preserving AND / OR / NOT / AT_LEAST semantics).
+        """
+        if ruleset_version:
+            ruleset = self._store.get_ruleset(
+                ruleset_version,
+                scope_type=scope_type,
+                scope_id=scope_id,
+            )
+        else:
+            ruleset = self._store.get_current_ruleset(
+                scope_type=scope_type,
+                scope_id=scope_id,
+            )
+        if not ruleset:
+            return {
+                "rule_id": rule_id,
+                "fires": False,
+                "annotated_tree": None,
+                "not_compiled": True,
+                "rule_found": False,
+                "message": "No active ruleset compiled yet.",
+                "recompile_hint": (
+                    "POST /terminology/guidelines/bitmap/compile "
+                    f"with scope_type={scope_type or 'global'} "
+                    f"scope_id={scope_id or 'default'}"
+                ),
+                "scope_type": scope_type or "global",
+                "scope_id": scope_id or "default",
+            }
+
+        rule = next(
+            (r for r in ruleset.get("rules", []) if r.get("rule_id") == rule_id),
+            None,
+        )
+        if not rule:
+            return {
+                "rule_id": rule_id,
+                "fires": False,
+                "annotated_tree": None,
+                "not_compiled": False,
+                "rule_found": False,
+                "message": (
+                    f"Rule {rule_id} not present in the active ruleset "
+                    f"(version={ruleset.get('version')!r}). It may need "
+                    "recompilation."
+                ),
+                "active_version": ruleset.get("version"),
+                "scope_type": ruleset.get("scope_type") or scope_type or "global",
+                "scope_id": ruleset.get("scope_id") or scope_id or "default",
+            }
+
+        effective_codes = list(patient_codes)
+        if patient_sex:
+            sex_code = _SEX_CODE.get(patient_sex.lower().strip())
+            if sex_code and sex_code not in effective_codes:
+                effective_codes.append(sex_code)
+        patient_bm = self._build_patient_bitmap(effective_codes)
+
+        annotated, fires = self._annotate_rule(
+            rule, patient_bm, patient_age, patient_sex
+        )
+
+        resolved_count = sum(
+            1 for c in effective_codes if self._store.get_int_id(c) is not None
+        )
+        return {
+            "rule_id": rule_id,
+            "rule_name": rule.get("name"),
+            "guideline_id": rule.get("guideline_id"),
+            "schema_version": int(rule.get("schema_version") or 1),
+            "fires": fires,
+            "annotated_tree": annotated,
+            "not_compiled": False,
+            "rule_found": True,
+            "patient": {
+                "codes_provided": len(patient_codes),
+                "codes_resolved": resolved_count,
+                "age": patient_age,
+                "sex": patient_sex,
+            },
+            "active_version": ruleset.get("version"),
+            "scope_type": ruleset.get("scope_type") or scope_type or "global",
+            "scope_id": ruleset.get("scope_id") or scope_id or "default",
+        }
+
+    def _annotate_rule(
+        self,
+        rule: dict,
+        patient_bm: BitMap,
+        patient_age: float | None,
+        patient_sex: str | None,
+    ) -> tuple[dict[str, Any] | None, bool]:
+        """Return (annotated_tree, overall_fires) for any rule schema."""
+        if int(rule.get("schema_version") or 1) == 2:
+            tree = rule.get("logic_tree")
+            annotated = self._annotate_logic_tree(
+                tree, patient_bm, patient_age, patient_sex
+            )
+            fires = bool(annotated and annotated.get("matched"))
+            return annotated, fires
+
+        # Schema v1 -- synthesise a simple AND-of-groups tree so the UI
+        # can render it the same way.
+        applies_to = rule.get("applies_to") or []
+        groups = rule.get("criteria_groups") or []
+        children: list[dict[str, Any]] = []
+        for idx, constraint in enumerate(applies_to):
+            ok = _check_applies_to([constraint], patient_age)
+            children.append(
+                {
+                    "kind": "DEMOGRAPHIC",
+                    "node_id": f"applies_to_{idx}",
+                    "field": "age",
+                    "operator": constraint.get("operator"),
+                    "value": constraint.get("value"),
+                    "matched": ok,
+                }
+            )
+        for idx, group in enumerate(groups):
+            mode = str(group.get("mode", "ALL")).upper()
+            bitmap_id = group.get("bitmap_id")
+            bm = self._store.get_bitmap(bitmap_id) if bitmap_id else None
+            if bm is None:
+                ok = False
+            elif mode == "ALL":
+                ok = bm.issubset(patient_bm)
+            elif mode == "ANY":
+                ok = len(bm & patient_bm) > 0
+            elif mode == "NOT":
+                ok = len(bm & patient_bm) == 0
+            else:
+                ok = False
+            children.append(
+                {
+                    "kind": "CONCEPT_GROUP",
+                    "node_id": f"group_{idx}",
+                    "mode": mode,
+                    "matched": ok,
+                }
+            )
+        if not children:
+            return None, False
+        overall = all(c.get("matched") for c in children)
+        return (
+            {
+                "kind": "AND",
+                "node_id": "v1_root",
+                "children": children,
+                "matched": overall,
+            },
+            overall,
+        )
+
+    def _annotate_logic_tree(
+        self,
+        node: dict[str, Any] | None,
+        patient_bm: BitMap,
+        patient_age: float | None,
+        patient_sex: str | None,
+    ) -> dict[str, Any] | None:
+        if not node:
+            return None
+        kind = str(node.get("kind") or "").upper()
+        node_id = node.get("node_id")
+        if kind == "CONCEPT":
+            bitmap_id = node.get("bitmap_id")
+            bm = self._store.get_bitmap(bitmap_id) if bitmap_id else None
+            criterion = dict(node.get("criterion") or {})
+            if bm is None:
+                matched = False
+                missing_bitmap = True
+                match_count = 0
+            else:
+                missing_bitmap = False
+                match_count = len(bm & patient_bm)
+                matched = match_count > 0
+            return {
+                "kind": "CONCEPT",
+                "node_id": node_id,
+                "criterion": criterion,
+                "matched": matched,
+                "match_count": match_count,
+                "missing_bitmap": missing_bitmap,
+            }
+        if kind == "DEMOGRAPHIC":
+            matched = _check_demographic_node(node, patient_age, patient_sex)
+            return {
+                "kind": "DEMOGRAPHIC",
+                "node_id": node_id,
+                "field": node.get("field"),
+                "operator": node.get("operator"),
+                "value": node.get("value"),
+                "unit": node.get("unit"),
+                "matched": matched,
+            }
+        children_in = list(node.get("children") or [])
+        children_out = [
+            self._annotate_logic_tree(c, patient_bm, patient_age, patient_sex)
+            for c in children_in
+        ]
+        children_out = [c for c in children_out if c is not None]
+        true_count = sum(1 for c in children_out if c.get("matched"))
+        if kind == "AND":
+            matched = bool(children_out) and true_count == len(children_out)
+        elif kind == "OR":
+            matched = true_count > 0
+        elif kind == "NOT":
+            matched = len(children_out) == 1 and not children_out[0].get("matched")
+        elif kind == "AT_LEAST":
+            threshold = int(node.get("min") or 1)
+            matched = true_count >= threshold
+        else:
+            matched = False
+        out: dict[str, Any] = {
+            "kind": kind,
+            "node_id": node_id,
+            "children": children_out,
+            "matched": matched,
+            "matched_count": true_count,
+            "total_count": len(children_out),
+        }
+        if kind == "AT_LEAST":
+            out["min"] = int(node.get("min") or 1)
+        return out
 
     def _build_patient_bitmap(self, concept_ids: list[str]) -> BitMap:
         """Map patient concept IDs to integer IDs and build a BitMap.

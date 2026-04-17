@@ -28,7 +28,7 @@ export default function MissionCardGrid({
       <Box sx={{ px: 3, py: 2 }}>
         <Grid container spacing={2}>
           {Array.from({ length: 9 }).map((_, i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
               <Skeleton variant="rounded" height={160} />
             </Grid>
           ))}
@@ -98,7 +98,7 @@ export default function MissionCardGrid({
           </Typography>
           <Grid container spacing={2}>
             {group.missions.map((m) => (
-              <Grid item xs={12} sm={6} md={4} key={m.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={m.id}>
                 <MissionCard mission={m} lens={lens} onSelect={onSelect} />
               </Grid>
             ))}

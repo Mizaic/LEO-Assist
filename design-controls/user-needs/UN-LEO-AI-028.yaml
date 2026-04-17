@@ -113,5 +113,7 @@
     - "DI-LEO-AI-064"
     - "DI-LEO-AI-065"
     - "DI-LEO-AI-066"
+    - "DI-LEO-AI-154"
+    - "DI-LEO-AI-170"
   validation_tests: []
   tags: ["nice", "guidelines", "bitmap", "hitl", "admin-ui", "rule-authoring", "syndication-api"]

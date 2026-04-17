@@ -86,7 +86,13 @@
     created_date: "2026-03-01"
     status: "implemented"
 
-  design_inputs: ["DI-LEO-AI-009"]
+  design_inputs:
+    - "DI-LEO-AI-009"
+    - "DI-LEO-AI-171"
+    - "DI-LEO-AI-172"
+    - "DI-LEO-AI-173"
+    - "DI-LEO-AI-175"
+    - "DI-LEO-AI-177"
   validation_tests: ["VAL-LEO-AI-001"]
 
   tags: ["anchor-detection", "milestone", "core-capability", "pipeline", "episode-building"]

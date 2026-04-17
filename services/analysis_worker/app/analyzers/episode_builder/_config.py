@@ -25,9 +25,11 @@ DIAG_LOOKBACK_DAYS = int(os.getenv("EPISODE_DIAG_LOOKBACK_DAYS", "180"))
 
 # DI-LEO-AI-124: minimum days between a referral anchor and a diagnosis
 # anchor for the referral to be considered the trigger for that diagnosis.
-# Prevents diagnosis-encounter text from being mis-classified as a fresh
-# referral and overshadowing the earlier authoritative PRISM anchor.
-MIN_REFERRAL_TO_DIAG_DAYS = int(os.getenv("EPISODE_MIN_REFERRAL_TO_DIAG_DAYS", "3"))
+# DI-LEO-AI-145: reduced to 0 to allow same-day PRISM-pathway referrals
+# (one-stop breast/dermatology clinics where the GP completes the PRISM
+# questionnaire and the suspected-cancer SNOMED code is entered in the
+# same calendar day as the diagnosis letter is filed).
+MIN_REFERRAL_TO_DIAG_DAYS = int(os.getenv("EPISODE_MIN_REFERRAL_TO_DIAG_DAYS", "0"))
 
 # Auto-close thresholds (days)
 STALE_HARD_DAYS = int(os.getenv("EPISODE_STALE_HARD_DAYS", "365"))

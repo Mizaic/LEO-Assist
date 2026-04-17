@@ -1,0 +1,414 @@
+# -- VT-LEO-AI-170 -- Missed-cancer fixes (term + active-care + adjuvant + reconciliation + silent-closure)
+# IEC 62304 / ISO 13485 Verification Test Protocol
+
+- id: "VT-LEO-AI-170"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-171", "DI-LEO-AI-172", "DI-LEO-AI-173"]
+    risks: ["R-LEO-AI-170", "R-LEO-AI-171"]
+
+  metadata:
+    title: "Missed-cancer fixes verification (problem-list term, active-care code, adjuvant therapy, site reconciliation, silent-closure provenance)"
+    description: >
+      Verifies the five coordinated changes that recover the 6 known-
+      missed cancers in the 2025 closed_benign audit and resolve the
+      silent-closure provenance gap discovered during live verification:
+      (1) free-text malignancy term recognition on problem-list lines,
+      (2) active-cancer-care Read code recognition,
+      (3) history-of-cancer guard,
+      (4) adjuvant cancer-therapy diagnosis inference with co-condition
+          guard,
+      (5) site reconciliation in the episode builder when a diagnosis
+          anchor's explicit site disagrees with the referral site,
+      (6) MALIGNANCY_READ_CODES extension and B5/B57 mapping bug fix,
+      (7) benign_closure milestone is now persisted on every
+          closed_benign episode (silent-closure provenance fix).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_stale_detector_fixes.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-170-TC-001"
+      case_name: "Active cancer-care code XaIph emits diagnosis_confirmed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on encounter text 'Cancer confirmed (XaIph) on MDT review'."
+          expected_result: "diagnosis anchor with diagnosis_source=active_cancer_care_code, diagnosis_code=XaIph, hitl_required=True."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Anchor emitted with the expected provenance fields."
+
+    - case_id: "VT-170-TC-002"
+      case_name: "MDT meeting code XaN5C also emits diagnosis"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Discussed at multidisciplinary team meeting (XaN5C)'."
+          expected_result: "diagnosis anchor with diagnosis_code=XaN5C."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "MDT code recognised."
+
+    - case_id: "VT-170-TC-003"
+      case_name: "History-of-cancer Read code prefix recognised"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call is_history_of_cancer_code('B934.') and ('ZV10.')."
+          expected_result: "Both return True."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Prefix lookup correct."
+
+    - case_id: "VT-170-TC-004"
+      case_name: "History-of-cancer marker blocks diagnosis emission"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Major: H/O carcinoma of breast (B934.)'."
+          expected_result: "No diagnosis or benign anchor emitted."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "History guard short-circuits the diagnosis path."
+
+    - case_id: "VT-170-TC-005"
+      case_name: "History-of-cancer free-text marker also blocks"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Personal history of malignant neoplasm of prostate'."
+          expected_result: "No diagnosis or benign anchor emitted."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Free-text history marker recognised by text_contains_history_of_cancer."
+
+    - case_id: "VT-170-TC-006"
+      case_name: "Carcinoma of prostate on a problem-list line emits prostate diagnosis"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run find_malignancy_term_in_problem_line on 'Major: Carcinoma of prostate (Xxxxx) - awaiting MDT'."
+          expected_result: "Returns (matched_term, 'prostate')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Term and site both correct."
+
+    - case_id: "VT-170-TC-007"
+      case_name: "Invasive carcinoma of breast on problem-list line"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run find_malignancy_term_in_problem_line on 'Problem: Invasive carcinoma of breast - on tamoxifen'."
+          expected_result: "Returns (term, 'breast')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Breast site mapped."
+
+    - case_id: "VT-170-TC-008"
+      case_name: "Term in free prose without problem-list prefix does not fire"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run find_malignancy_term_in_problem_line on 'Patient asked about carcinoma of prostate during consultation'."
+          expected_result: "Returns None."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Free-prose mention is correctly ignored."
+
+    - case_id: "VT-170-TC-009"
+      case_name: "B5 mapping bug fix - B5... NOT in inventory"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert 'B5...' not in MALIGNANCY_READ_CODES."
+          expected_result: "Assertion holds."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Buggy mapping removed."
+
+    - case_id: "VT-170-TC-010"
+      case_name: "B57.. -> brain mapping retained"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert MALIGNANCY_READ_CODES['B57..'] == 'brain'."
+          expected_result: "Assertion holds."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Brain sub-prefix preserved."
+
+    - case_id: "VT-170-TC-011"
+      case_name: "X78Y6 -> prostate (corpus-confirmed)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run find_malignancy_code on 'Major: Carcinoma of prostate (X78Y6)'."
+          expected_result: "Returns ('X78Y6', 'prostate')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Audit-discovered code is now in the inventory."
+
+    - case_id: "VT-170-TC-012"
+      case_name: "Ya0ln -> breast (corpus-confirmed)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run find_malignancy_code on 'Major: Invasive carcinoma of breast (Ya0ln)'."
+          expected_result: "Returns ('Ya0ln', 'breast')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Audit-discovered code is now in the inventory."
+
+    - case_id: "VT-170-TC-013"
+      case_name: "Adjuvant drug alone does NOT fire diagnosis"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Repeat prescription review: letrozole 2.5mg OD continues'."
+          expected_result: "No diagnosis anchor emitted."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Co-condition guard prevents firing on routine repeats."
+
+    - case_id: "VT-170-TC-014"
+      case_name: "Adjuvant drug + newly-issued marker fires diagnosis"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Newly issued: tamoxifen 20mg OD initiated today'."
+          expected_result: "diagnosis anchor with diagnosis_source=adjuvant_therapy_drug, site_key=breast, hitl_required=True."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Issue marker satisfies the co-condition guard."
+
+    - case_id: "VT-170-TC-015"
+      case_name: "Adjuvant drug + active-care code fires diagnosis"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Cancer review (XaIyc). On letrozole 2.5mg daily.'."
+          expected_result: "At least one diagnosis anchor emitted with diagnosis_source in {active_cancer_care_code, adjuvant_therapy_drug}."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Active-care code satisfies the co-condition guard."
+
+    - case_id: "VT-170-TC-016"
+      case_name: "Adjuvant drug + history-of-cancer suppresses fire"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'H/O cancer of breast (B934.). Routine letrozole repeat continues.'."
+          expected_result: "No diagnosis anchor emitted."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "History guard wins against the adjuvant path."
+
+    - case_id: "VT-170-TC-017"
+      case_name: "Triptorelin maps to prostate"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run find_adjuvant_therapy_drug on 'Started on triptorelin (Decapeptyl) 11.25mg'."
+          expected_result: "Returns (drug, 'prostate', indication)."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "LHRH agonist mapping correct."
+
+    - case_id: "VT-170-TC-018"
+      case_name: "Newly-issued helper recognises issue markers"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call adjuvant_therapy_is_newly_issued on 'Newly issued: anastrozole 1mg OD' and 'Initiated on tamoxifen' and 'On long-term tamoxifen review'."
+          expected_result: "True, True, False respectively."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Issue-marker regex distinguishes new from routine."
+
+    - case_id: "VT-170-TC-019"
+      case_name: "Site reconciliation: explicit_malignancy_code site wins"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build a diag anchor with site_source=explicit_malignancy_code, site_key=prostate; pass to _extract_condition_key_from_anchor."
+          expected_result: "Returns 'prostate'."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Resolver short-circuit honours the explicit code."
+
+    - case_id: "VT-170-TC-020"
+      case_name: "Site reconciliation: malignancy_term_problem_line resolved"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Build a diag anchor with site_source=malignancy_term_problem_line, site_key=breast; pass to _extract_condition_key_from_anchor."
+          expected_result: "Returns 'breast'."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Resolver picks the term-derived site."
+
+    - case_id: "VT-170-TC-021"
+      case_name: "Regression: episode 1ecfb55618c2a6d2 (invasive breast Ya0ln)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Major: Invasive carcinoma of breast (Ya0ln)'."
+          expected_result: "Exactly one diagnosis anchor with site_key=breast."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "The audit-discovered missed cancer is now caught."
+
+    - case_id: "VT-170-TC-022"
+      case_name: "Regression: episodes a6c093d2702d379f / e7c8b99ad0ae77ab (prostate X78Y6)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Major: Carcinoma of prostate (X78Y6)'."
+          expected_result: "Exactly one diagnosis anchor with site_key=prostate."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Two audit-discovered missed prostate cancers caught."
+
+    - case_id: "VT-170-TC-023"
+      case_name: "Regression: letrozole newly issued after breast 2WW"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Initiated letrozole 2.5mg OD per oncology recommendation. First prescription issued today.'."
+          expected_result: "diagnosis anchor with site_key=breast and hitl_required=True."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Adjuvant-only missed cancer is now caught."
+
+    - case_id: "VT-170-TC-024"
+      case_name: "Inventory sanity: ACTIVE_CANCER_CARE_CODES contains XaIph"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Assert 'XaIph' in ACTIVE_CANCER_CARE_CODES."
+          expected_result: "Assertion holds."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Corpus-confirmed active-care code present."
+
+    - case_id: "VT-170-TC-025"
+      case_name: "Inventory sanity: HISTORY_OF_CANCER_CODE_PREFIXES contains ZV10"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Assert 'ZV10' in HISTORY_OF_CANCER_CODE_PREFIXES."
+          expected_result: "Assertion holds."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Canonical history prefix present."
+
+    - case_id: "VT-170-TC-026"
+      case_name: "MALIGNANCY_TERM_PATTERNS and ADJUVANT_THERAPY_DRUG_PATTERNS compile"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Iterate both lists and assert isinstance(rx, re.Pattern) and the site_key is a non-empty string."
+          expected_result: "All entries are valid compiled regexes with non-empty site keys."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Module loads with valid inventories."
+
+    - case_id: "VT-170-TC-027"
+      case_name: "Silent-closure: _benign_closure_link_anchors returns earliest in window"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Pass three anchors (A:2025-03-01, B:2025-03-15, C:2025-04-20) with benign_date=2025-04-01, ref_date=2025-01-01."
+          expected_result: "Returns one anchor with encounter_id='A'."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Earliest in-window anchor is selected for the milestone link."
+
+    - case_id: "VT-170-TC-028"
+      case_name: "Silent-closure: anchors outside window are dropped"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Pass anchors before ref_date and after benign_date; expect empty result."
+          expected_result: "Returns []."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Window guard excludes out-of-range anchors."
+
+    - case_id: "VT-170-TC-029"
+      case_name: "Silent-closure: live-corpus closed_benign episodes all carry a benign_closure milestone"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "After scripts/_wipe_episodes_and_rebuild.py, run MATCH (ep:EpisodeOfCare {status:'closed_benign'}) WITH ep, EXISTS{ MATCH (:Encounter)-[r:IS_PART_OF]->(ep) WHERE r.milestone_type='benign_closure' } AS has_bc RETURN has_bc, count(*)."
+          expected_result: "100% of closed_benign episodes have has_bc=True."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No silent closures remain."
+
+    - case_id: "VT-170-TC-030"
+      case_name: "Live rebuild: 2025 confirmed-cancer count rises"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run scripts/_wipe_episodes_and_rebuild.py against the live patient corpus and capture the 2025 confirmed-cancer count via the canonical libs/analytics/cohorts.confirmed_cancer_where fragment."
+          expected_result: "2025 count rises from 24 (pre-fix baseline) to >= 27."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Live-corpus impact target met."
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-170/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-170-EXEC-001"
+      executed_by: "automated_pytest"
+      executed_date: "2026-04-17"
+      result: "pass"
+      command: "python -m pytest tests/test_stale_detector_fixes.py -v"
+      total_cases: 63
+      passed: 63
+      failed: 0
+      notes: >
+        63/63 tests pass (60 originally + 3 silent-closure tests added
+        for VT-170-TC-027/028). Live-corpus wipe-and-rebuild was
+        executed twice on 2026-04-17:
+          (a) first rebuild: total EpisodeOfCare 360 -> 368;
+              2025 canonical confirmed cancers 24 -> 27 (+3);
+              2024 canonical confirmed cancers 23 -> 26 (+3);
+              closed_benign with benign_closure milestone: 0 -> 0
+              (silent-closure bug exposed but not yet fixed).
+          (b) second rebuild after silent-closure fix lands:
+              closed_benign with benign_closure milestone: 0 -> 77 (100%);
+              all other counts stable;
+              HITL-flagged episodes: 7 -> 6 (one rebuilt with stronger
+              site evidence, no longer needs HITL).
+        Eight legacy closed_benign episodes still carry a stale
+        diagnosis_confirmed milestone; tracked in
+        design-controls/audits/improvements-backlog.md and out of scope
+        for VT-170 (the canonical cohort already excludes closed_benign
+        so they cannot inflate the cancer headline). The 2025 unknown-
+        year bucket (35 episodes lacking diagnosis_date / referral_date /
+        start_date) is also tracked in the backlog as a separate DQ
+        improvement.

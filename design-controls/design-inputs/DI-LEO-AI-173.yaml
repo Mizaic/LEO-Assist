@@ -1,0 +1,95 @@
+# -- DI-LEO-AI-173 -- Site reconciliation in episode build
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-173"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-006"]
+  requirement: >
+    During _build_closed_episode in
+    services/analysis_worker/app/analyzers/episode_builder/_builder.py,
+    when any diagnosis anchor in the diagnosis-led group carries an
+    explicit site signal (site_source in {"explicit_2ww_code",
+    "explicit_malignancy_code", "malignancy_term_problem_line"}) AND
+    that site_key is well-defined (not in {"unknown", "non_site_specific"})
+    AND it disagrees with the episode's referral-derived site_key, the
+    episode builder SHALL adopt the diagnosis anchor's site_key as the
+    canonical EpisodeOfCare.cancer_type, set hitl_flag=True, and append
+    a structured reason to hitl_reason in the form:
+    "Site reconciled: referral suggested '<old>' but diagnosis carries
+    explicit site '<new>' (source: <source>). Confirm cancer site."
+  rationale: >
+    The 2025 closed_benign audit found one episode (a6c093d2702d379f)
+    where a prostate cancer diagnosis had been silently filed under
+    "liver" because the surface-form match on the referral letter
+    picked up a stray "hepatic" mention. Surface-form heuristics on
+    referral text are unreliable; explicit problem-list codes and
+    malignancy terms are not. When the two disagree, trusting the
+    diagnosis source is clinically and statistically safer (the
+    diagnosis is later in time and reflects the actual confirmed
+    finding). HITL is mandatory because the disagreement may also
+    reflect a coding error in the diagnosis (e.g. a wrong-patient
+    paste), and a human reviewer must adjudicate.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          _build_closed_episode iterates over diag_anchors after the
+          unknown/non_site_specific fallback block. For each anchor with
+          site_source in the explicit set and a non-trivial site_key,
+          if the site_key differs from the working site_key, it
+          REPLACES the working site_key with the diagnosis anchor's
+          value and sets a site_reconciliation_hitl reason string.
+        - It MUST take the FIRST conflicting anchor only (deterministic
+          order from diag_anchors); subsequent conflicts do not chain.
+      - type: "safety"
+        spec: >
+          When a site reconciliation occurs, hitl_flag is forced to
+          True and hitl_reason is composed by appending the
+          reconciliation reason to any existing reason via " | ".
+      - type: "functional"
+        spec: >
+          When no diagnosis anchor carries an explicit site signal,
+          OR all explicit site signals match the referral site, the
+          episode_builder behaviour is UNCHANGED (zero-impact path).
+    constraints:
+      - type: "safety"
+        spec: >
+          The reconciliation MUST NOT downgrade a specific site_key
+          (e.g. "breast") to "unknown" or "non_site_specific". The
+          guard "diag_site not in (unknown, non_site_specific)" is
+          enforced before any reassignment.
+      - type: "safety"
+        spec: >
+          Open (in_progress) episodes are NOT subject to this rule -
+          their site_key is locked to the referral; only diagnosis-led
+          (closed/completed) episodes can have their site reconciled.
+    dependencies: ["DI-LEO-AI-159", "DI-LEO-AI-161", "DI-LEO-AI-171"]
+    downstream_impacts:
+      - "Cancer-type accuracy improves on closed episodes"
+      - "HITL queue gains site-reconciliation cases for QA"
+      - "NCDA cancer-by-site dashboards become more accurate"
+    technical_details:
+      language: "Python"
+      framework: "analysis_worker"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+      estimated_loc: 35
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All test cases in tests/test_stale_detector_fixes.py class
+      TestSiteReconciliationInBuilder pass. Live-corpus rebuild
+      confirms episode a6c093d2702d379f flips from cancer_type=
+      "liver" to cancer_type="prostate" with HITL flag set.
+    test_protocol: "VT-LEO-AI-170"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-170"]
+  tags:
+    - "episode-building"
+    - "site-classification"
+    - "site-reconciliation"
+    - "hitl"

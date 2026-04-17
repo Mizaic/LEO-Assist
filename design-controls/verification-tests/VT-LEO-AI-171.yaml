@@ -1,0 +1,89 @@
+# -- VT-LEO-AI-171 -- Knowledge tabs ESLint + Playwright/axe baseline (Wave E Phase 7)
+
+- id: "VT-LEO-AI-171"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-176"]
+    risks: []
+
+  metadata:
+    title: "Knowledge tabs guards - static source sweep"
+    description: >
+      Verifies the Wave E Phase 7 cleanup is in place: the ESLint flat
+      config carries a no-restricted-imports rule scoped to
+      src/app/admin/knowledge/** that warns on @mui/* imports, and the
+      Playwright spec at e2e/knowledge-tabs.spec.ts iterates all eight
+      Knowledge tab keys with paired smoke + axe-core blocks.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "A"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/knowledge-tabs-guards.test.ts"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "static_source"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-171-TC-001"
+      case_name: "ESLint flat config carries the admin/knowledge guard"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/eslint.config.mjs"
+          expected_result: >
+            Contains a flat-config block scoped to
+            src/app/admin/knowledge/**/*.{ts,tsx} with a
+            no-restricted-imports rule warning on @mui/* imports.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Guard present at the path scope"
+
+    - case_id: "VT-171-TC-002"
+      case_name: "Playwright spec iterates the eight Knowledge tabs"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/e2e/knowledge-tabs.spec.ts"
+          expected_result: >
+            Contains a KNOWLEDGE_TABS array of eight tab keys
+            (training-data, surface-forms, context-rules,
+            ai-instructions, clinical-guidelines, pathways, domains,
+            terminology) and at least one test case using AxeBuilder
+            with WCAG 2.0/2.1 AA tags.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All eight tab keys referenced"
+        - "AxeBuilder + WCAG AA tags present"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-171/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-171-EXEC-001"
+      run_at: "2026-04-16"
+      executor: "wave-e-phase-7-agent"
+      result: "pass"
+      cases_executed: 2
+      cases_passed: 2
+      notes: >
+        npx jest knowledge-tabs-guards --no-coverage in services/ui:
+        2/2 test cases passed. ESLint flat config carries the
+        admin/knowledge guard scope and the no-restricted-imports
+        @mui/* pattern; e2e/knowledge-tabs.spec.ts iterates the eight
+        Knowledge tab keys with paired smoke + axe-core blocks tagged
+        wcag2a/wcag2aa/wcag21a/wcag21aa.

@@ -1,0 +1,149 @@
+# -- DI-LEO-AI-183 -- Calibrated absolute confidence scoring in the SNOMED resolver
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-183"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-078"]
+  requirement: >
+    The terminology resolver SHALL emit a calibrated absolute
+    confidence score in the closed range [0.0, 1.0] for every
+    candidate returned by /terminology/resolve, computed
+    deterministically from the underlying retrieval signals
+    (had_exact_match, lexical_raw Lucene BM25, vector_raw cosine
+    similarity) and a small tag-match adjustment, such that the
+    score is interpretable as P(correct mapping) and does NOT
+    depend on the per-term local maximum or include any
+    multiplicative tag boost greater than 1.0.
+
+  rationale: >
+    The previous _fuse_and_rank divided lexical_raw and vector_raw
+    by the per-term maximum (so the top candidate of any search
+    always normalised to ~1.0) and then multiplied by 1.3 when the
+    candidate's tag matched the LLM-expected tag. This made every
+    top-1 candidate score 1.0-1.3 regardless of whether the
+    underlying retrieval evidence was a curated SurfaceForm exact
+    match (truly strong) or a single-token Lucene partial match
+    (truly weak). Downstream consumers (the runtime coder gate,
+    surface-form validator, gold-label backfill validator) had no
+    way to tell a strong match from a weak one and could not raise
+    their thresholds without losing real exact matches. The
+    calibrated absolute score restores the contract that "score
+    >= 0.55" means "the resolver has at least 55% confidence this
+    mapping is correct on the basis of independent retrieval
+    evidence", which is the precondition every downstream gate
+    relies on.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          For a candidate with had_exact_match=True (Term or
+          SurfaceForm exact branch hit), _calibrate_confidence
+          returns lex_signal=1.0; combined with no vector signal
+          and no tag adjustment, _fuse_and_rank emits score == 1.0.
+      - type: "functional"
+        spec: >
+          For a candidate with had_exact_match=False and
+          lexical_raw=BM25 from the fulltext branch,
+          _calibrate_confidence returns lex_signal = bm25/(bm25+1).
+          BM25=1 -> 0.5; BM25=5 -> 0.833; BM25=10 -> 0.909.
+      - type: "functional"
+        spec: >
+          For a candidate with vector_raw=cosine in [0, 1] and no
+          lexical signal, _calibrate_confidence returns vec_signal
+          == cosine. Vector cosine outside [0, 1] is clamped.
+      - type: "functional"
+        spec: >
+          When BOTH lex_signal and vec_signal are positive,
+          _calibrate_confidence returns max(lex, vec) +
+          0.10 * min(lex, vec), capped at 1.0. The agreement bonus
+          rewards two independent retrieval branches both firing.
+      - type: "functional"
+        spec: >
+          Tag adjustment in _apply_tag_adjustment is additive
+          (+0.10 capped at 1.0) when the candidate tag equals the
+          expected tag, neutral when the candidate tag is in the
+          same TAG_GROUPS group as the expected tag, and
+          multiplicative (*0.5) when the candidate tag is in a
+          different group. There is NO multiplicative boost
+          greater than 1.0 anywhere in the pipeline.
+      - type: "safety"
+        spec: >
+          Non-clinical tags (qualifier value, attribute, staging
+          scale, occupation, etc) are capped at score 0.4 when no
+          expected_tag is provided, AND hard-blocked when the
+          expected_tag belongs to a clinical group, preserving the
+          previous safety floor.
+      - type: "functional"
+        spec: >
+          Candidates whose final calibrated score is below
+          _MIN_SCORE (0.15) are dropped from the result list. This
+          is a hard cull on candidate noise.
+      - type: "functional"
+        spec: >
+          Ranking order: candidates are sorted by calibrated score
+          descending. Tag-matching candidates win ties through the
+          additive +0.10 boost rather than a separate priority
+          tier, so a strong-evidence wrong-tag candidate can still
+          beat a weak-evidence right-tag candidate (preserving
+          retrieval honesty).
+      - type: "functional"
+        spec: >
+          The CodingCandidate dataclass exposes the raw retrieval
+          signals (had_exact_match, lexical_raw, vector_raw)
+          alongside the calibrated score, and the
+          /terminology/resolve API surfaces all four fields in the
+          CandidateResponse so downstream consumers can apply
+          branch-specific gates without rerunning the resolver.
+      - type: "functional"
+        spec: >
+          The terminology client cache prefix is incremented (v2
+          -> v3) so any cached responses from the previous
+          relative-score implementation are discarded on first
+          read after deployment.
+    constraints:
+      - type: "safety"
+        spec: >
+          The calibrated score MUST monotonically reflect retrieval
+          strength: a strictly stronger lex+vec+tag combination
+          MUST never score lower than a strictly weaker one for
+          the same expected tag. Negative tests in
+          tests/test_coding_resolver.py::TestCalibratedScoring
+          enforce this invariant for the documented edge cases.
+    dependencies: []
+    downstream_impacts:
+      - "libs/pipeline_graph/subgraphs/terminology.py (_DEFAULT_MIN_SCORE retuned 0.70 -> 0.55)"
+      - "libs/pipeline_graph/subgraphs/surface_form_validation.py (default threshold 0.9 -> 0.7)"
+      - "libs/terminology/client.py (cache prefix v2 -> v3 to flush stale responses)"
+      - "services/terminology_api/app/routers/resolve.py (CandidateResponse exposes had_exact_match, lexical_raw, vector_raw)"
+      - "scripts/lib/gold_label_snomed_check.py (validator now uses absolute signals via DI-184)"
+    technical_details:
+      language: "Python"
+      framework: "fastapi (terminology_api)"
+      file_structure:
+        - "services/terminology_api/app/services/coding_resolver.py"
+        - "services/terminology_api/app/routers/resolve.py"
+        - "libs/terminology/client.py"
+        - "libs/pipeline_graph/subgraphs/terminology.py"
+        - "libs/pipeline_graph/subgraphs/surface_form_validation.py"
+      estimated_loc: 180
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All 8 test cases in
+      tests/test_coding_resolver.py::TestCalibratedScoring pass on
+      automated CI, AND the existing 251 terminology / coder /
+      surface-form / abbreviation / double-negation tests remain
+      green.
+    test_protocol: "VT-LEO-AI-177"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-177"]
+  tags:
+    - "terminology"
+    - "snomed"
+    - "calibrated-confidence"
+    - "scoring"
+    - "ner-pipeline"

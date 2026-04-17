@@ -1,0 +1,98 @@
+# -- R-LEO-AI-168 -- Density preference may stale or apply to wrong practitioner
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-168"
+  title: "A clinician's density preference may stick to a shared device or apply to the wrong practitioner, causing touch-target regressions or misread layouts"
+
+  hazard:
+    description: >
+      The UI density preference can be stored in two places (server-side
+      Practitioner.density_preference and per-device localStorage). If the
+      preference is fetched for the wrong account or persists after
+      sign-out on a shared workstation, a junior staff member can land on
+      a "compact" layout that drops touch targets below the 44px target.
+      Conversely, a server write that is mis-routed could change the
+      preference for another clinician and degrade their UX.
+    category: "usability"
+
+  hazardous_situation: >
+    A practitioner signs in on a shared workstation that previously stored
+    "compact" in localStorage; or a server-side bug routes a PATCH /auth/
+    session/density to a different Practitioner; or a clinical demo on a
+    patient-facing tablet leaves the user staring at a sub-44px layout.
+
+  harm:
+    description: >
+      Fat-finger errors when a clinician taps a small button next to a
+      destructive control (delete pathway, finalise coding) on a touch
+      device, leading to mis-codes or accidental deletes; or a misread
+      compact table during a busy clinic causing a missed escalation.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Server preference always wins over localStorage on staff routes
+        and the API rejects unknown tiers (400 invalid_density), so a
+        stale local value cannot promote a junior user into a compact
+        layout the moment they sign in.
+      implemented_by: ["DI-LEO-AI-169"]
+      verified_by: ["VT-LEO-AI-168"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Patient reachable routes (per isPatientReachableRoute) force the
+        spacious tier regardless of preference, guaranteeing >= 44px
+        touch targets for any patient-visible interaction.
+      implemented_by: ["DI-LEO-AI-169"]
+      verified_by: ["VT-LEO-AI-168"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        PATCH /auth/session/density is gated on the authenticated session
+        cookie and writes only to the Practitioner referenced by the
+        cookie's email claim, so a malicious or buggy client cannot
+        change another user's preference.
+      implemented_by: ["DI-LEO-AI-169"]
+      verified_by: ["VT-LEO-AI-168"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Server-preference precedence and patient-route override eliminate
+      the cross-user and patient-facing failure modes; localStorage acts
+      as a graceful fallback only for unauthenticated browsing. Residual
+      risk is the small case where a user explicitly chooses compact on a
+      personal device, which is by design.
+
+  monitoring:
+    monitoring_plan: >
+      Track PATCH /auth/session/density 4xx response counts and the
+      proportion of sessions reporting density_preference != null per
+      week to catch any regression in the storage path.
+    metrics:
+      - "PATCH /auth/session/density 400 count per day"
+      - "Share of authenticated sessions with non-null density_preference"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Wave E Phase 1 design review"
+    identified_date: "2026-04-17"
+    status: "analyzed"
+    tags:
+      - "knowledge"
+      - "inclusive-design"
+      - "wave-e-phase-1"

@@ -23,11 +23,18 @@ export interface ReviewListItem {
   selected?: boolean;
 }
 
+// Density for the list. "comfortable" is the airy default; "compact"
+// tightens vertical padding for power-users clearing dense review
+// queues. Consumers typically read this from useDensity() so the
+// setting flows from the user's Settings toggle.
+export type ReviewListDensity = "comfortable" | "compact";
+
 export interface ReviewListCardProps {
   items: ReviewListItem[];
   emptyState?: ReactNode;
   // How many ms between items animating in (default 40 ms, 0 if reduced-motion).
   staggerMs?: number;
+  density?: ReviewListDensity;
 }
 
 /**
@@ -45,22 +52,46 @@ function toneToAccent(tone: ReviewListItem["tone"]): string {
   return color.surface.divider;
 }
 
-function row(item: ReviewListItem, reducedMotion: boolean, idx: number, step: number) {
+function row(
+  item: ReviewListItem,
+  reducedMotion: boolean,
+  idx: number,
+  step: number,
+  density: ReviewListDensity,
+) {
   const accent = toneToAccent(item.tone);
   const isInteractive = typeof item.onSelect === "function";
-  const Tag = isInteractive ? fm.button : fm.div;
   const initial = reducedMotion ? false : { opacity: 0, y: 6 };
   const animate = { opacity: 1, y: 0 };
   const exit = reducedMotion ? undefined : { opacity: 0, y: -6 };
   const delay = reducedMotion ? 0 : (step * idx) / 1000;
+  const rowPadding =
+    density === "compact" ? "8px 12px 8px 16px" : "14px 16px 14px 20px";
+  const rowGap = density === "compact" ? 12 : 16;
+
+  // The row uses a div with role="button" rather than a real <button>
+  // element so that nested action buttons in the `actions` slot
+  // (e.g. "Mark gold" + a kebab menu) remain valid HTML. Keyboard
+  // activation is wired up through onKeyDown.
+  const onKeyDown = isInteractive
+    ? (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          item.onSelect?.();
+        }
+      }
+    : undefined;
 
   return (
-    <Tag
+    <fm.div
       key={item.id}
-      type={isInteractive ? "button" : undefined}
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
       onClick={item.onSelect}
+      onKeyDown={onKeyDown}
       data-testid={"review-list-item-" + item.id}
-      layout
+      data-density={density}
+      layoutId={"review-list-item-layout-" + item.id}
       initial={initial}
       animate={animate}
       exit={exit}
@@ -69,17 +100,18 @@ function row(item: ReviewListItem, reducedMotion: boolean, idx: number, step: nu
         position: "relative",
         display: "grid",
         gridTemplateColumns: "1fr auto",
-        gap: 16,
+        gap: rowGap,
         alignItems: "center",
         width: "100%",
         textAlign: "left",
         font: "inherit",
         fontFamily: typography.fontFamily.body,
-        padding: "14px 16px 14px 20px",
+        padding: rowPadding,
         background: item.selected ? color.surface.alt : color.surface.raised,
         border: "1px solid " + color.surface.divider,
         borderRadius: radius.md,
         cursor: isInteractive ? "pointer" : "default",
+        outlineOffset: 2,
       }}
     >
       <span
@@ -135,7 +167,7 @@ function row(item: ReviewListItem, reducedMotion: boolean, idx: number, step: nu
           {item.actions}
         </div>
       ) : null}
-    </Tag>
+    </fm.div>
   );
 }
 
@@ -143,9 +175,11 @@ export function ReviewListCard({
   items,
   emptyState,
   staggerMs = 40,
+  density = "comfortable",
 }: ReviewListCardProps) {
   const { reducedMotion } = useMotion();
   const step = reducedMotion ? 0 : staggerMs;
+  const listGap = density === "compact" ? 6 : 8;
 
   if (items.length === 0 && emptyState) {
     return (
@@ -169,10 +203,11 @@ export function ReviewListCard({
   return (
     <div
       data-testid="review-list-card"
-      style={{ display: "flex", flexDirection: "column", gap: 8 }}
+      data-density={density}
+      style={{ display: "flex", flexDirection: "column", gap: listGap }}
     >
       <AnimatePresence initial={!reducedMotion}>
-        {items.map((item, idx) => row(item, reducedMotion, idx, step))}
+        {items.map((item, idx) => row(item, reducedMotion, idx, step, density))}
       </AnimatePresence>
     </div>
   );

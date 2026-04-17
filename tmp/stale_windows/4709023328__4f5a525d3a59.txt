@@ -1,0 +1,402 @@
+======================================================================
+PATIENT      : 4709023328
+EPISODE      : 4f5a525d3a59ba91
+CANCER_TYPE  : breast
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-07-11
+WINDOW       : 2025-06-27 .. 2025-10-09 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-02-03  diagnosis_confirmed     enc=b65d1923-a08a-40b1-8510-f313a770652b
+  2025-07-11  referral                enc=8d562417-7be2-494b-a99a-c50297a63658
+  2025-07-11  referral                enc=ef4648f8-6430-41b0-8f23-4da6c077ab4b
+  2025-07-11  referral                enc=2d7385c6-14ba-4264-9be7-78af6d944a49
+  2025-09-05  referral                enc=a40cf282-af20-400b-9388-8c60d9799173
+
+Encounters in window (n=45):
+
+--- 01 2025-07-10 [other] milestones=[] eid=fdf1fe99-9802-4098-b97e-9641bfc5fcf5 ---
+10:48 - Surgery: FOX, Lauren (Mrs) (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre
+Status Update for  Referral In: Discharged From Care, Status changed: 10 Jul 2025 10:48
+
+--- 02 2025-07-11 [other] milestones=[] eid=8a12b0dc-f785-4061-94b4-f33583352b78 ---
+Dear Mem Martin-Jones
+
+Your appointment has been booked for 11 Jul 2025 10:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 03 2025-07-11 [other] milestones=[] eid=630441f7-fd86-4889-8c00-30d3781edce6 ---
+08:13 - MCDOWELL, Giselle  
+ N+S Care Navigation & Signposting
+   Care Navigation 
+      Reason for the appointment:  found a lump on breast
+      *Outcome: Contact Outcome: Booked for same day face to face review (Y3ebf)
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+Telephone encounter (9N31.) (New Episode)
+Triage (Ua1SN) - found a lump on breast
+Contact Outcome: Booked for same day face to face review (Y3ebf)
+
+--- 04 2025-07-11 [IN-EP] milestones=['referral'] eid=8d562417-7be2-494b-a99a-c50297a63658 ---
+10:34 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+History: 2 issues  
+L breast lump noted  
+not changed with periods (monthly cycle present)  
+no nipple d/c  
+not on hormones  
+no FHx of note  
+normal BMI
+away 5-17/7
+Examination: area of concern for Mem is the LEFT side at 5 oclock position - discrete and firm fullness in breast edge noted  
+no asso adenopathy  
+also on R side similar position (smaller) noted fullness but not hard
+Plan: agreed 2ww breast
+Problem: Varicose vein observation (XM02a)
+History: R leg VV's - present for yrs since birth of son  
+ache / throb  
+no bleeding / ulceration  
+keen for review with vasc surgeons  
+Examination: R leg - typical VV (no active thrombophlebitis) great and small saphenous distribution - mild area of pigmentation ? early haemosiderin but no eczema at distal end
+Plan: i will confirm eligibility criteria
+Varicose vein observation (XM02a)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Varicose vein observation (XM02a)
+
+--- 05 2025-07-11 [IN-EP] milestones=['referral'] eid=ef4648f8-6430-41b0-8f23-4da6c077ab4b ---
+13:23 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+2WW Breast Female Referral Pathway/Breast Clinic accessed
+- PRISM 2WW Breast Female -  questionnaire started - (finalised: 11 Jul 2025 13:23)
+Fast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)
+Outbound referral (XaY59)
+ - PRISM 2WW Breast Female Drawing
+    
+2WW Breast Female PRISM to Unknown
+
+--- 06 2025-07-11 [other] milestones=[] eid=a9a778cd-7188-43e8-9865-e774c1f540b4 ---
+13:26 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 07 2025-07-11 [other] milestones=[] eid=f034b46a-00dc-47a3-a87b-ff8d20044e51 ---
+13:32 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+Patient telephone number (9159.) - +447885693881
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Martin-Jones,
+I've checked the NHS criteria:
+"Treatment of varicose veins only when one, or more, of clinical criteria are met).
+Mandatory Requirements:	-Criteria:
+	- Varicose eczema
+	- Lipodermatoscelorosis or a varicose ulcer
+	- At least 2 episodes of documented superficial thrombophlebitis
+	- A major episode of bleeding from varicosity
+Referral Exclusion: - Painful varicose veins
+			- Mid limb swelling
+			- Cosmesis
+Unfortunately, I do not think you are NHS-eligible
+Happy to discuss further if required, thanks Dr BROCKHURST
+Woodbrook Medical Centre
+Sent on 11/07/2025 at 13:32
+
+--- 08 2025-07-11 [IN-EP] milestones=['referral'] eid=2d7385c6-14ba-4264-9be7-78af6d944a49 ---
+15:21 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected breast cancer (XaMeC)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww breast
+Hospital Fast track referral for suspected breast cancer
+Hospital Fast track referral for suspected breast cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww breast
+
+--- 09 2025-08-17 [other] milestones=[] eid=6a4ce9f9-2067-4068-8e34-2d17fe28d19f ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Breast to Woodbrook Medical Centre
+
+--- 10 2025-08-17 [other] milestones=[] eid=619906e5-6c7f-4437-b8b2-162e2d0c10a1 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role)
+Mammography abnormal (5373.) - suspicious lesion, M4 (New Episode)
+
+--- 11 2025-08-17 [other] milestones=[] eid=52054279-7d11-4f28-927c-3d2ef317c944 ---
+Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role)
+
+--- 12 2025-09-04 [other] milestones=[] eid=086ef872-9c16-4f3a-8520-c31c857fcaca ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Breast Clinic to Woodbrook Medical Centre
+
+--- 13 2025-09-04 [other] milestones=[] eid=c014789a-a5aa-4051-9bd1-999c48968dec ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: BROCKHURST, Nikki (Dr)
+Biopsy of breast (7135.) (New Episode)
+Mammography abnormal (5373.) (Ongoing Episode)
+
+--- 14 2025-09-04 [other] milestones=[] eid=c23da53e-021f-400a-b7b7-fa516fa9bf3b ---
+Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 15 2025-09-05 [other] milestones=[] eid=dca0dbd4-e02a-4976-bda4-ae4d7a5c3e92 ---
+08:04 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+Telephone encounter (9N31.)
+
+--- 16 2025-09-05 [other] milestones=[] eid=c88c31f7-802d-4aa0-a72a-000a1d0233c0 ---
+Dear Mem Martin-Jones
+
+Your appointment has been booked for 05 Sep 2025 10:00 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 17 2025-09-05 [other] milestones=[] eid=ca003772-fa0d-4934-aa2e-9fd2701e65ce ---
+09:51 - MCDOWELL, Giselle  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Contact trigger : Other (Y3eaa)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 18 2025-09-05 [IN-EP] milestones=['referral'] eid=a40cf282-af20-400b-9388-8c60d9799173 ---
+09:56 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+History: ca breast confirmed by breast team yesterday following my 2ww referral july 25  
+supportive chat
+Mem's main concern is her claustrophobia with MRI scanners - prev unable to tolerate a head MRI as couldn't be strapped still  
+would like something to calm her  
+doesn't drink  
+discussed options  
+diazepam last had in 2011
+discussed not to drive and avoid alcohol  
+I am happy to continue supporting as needed following care 
+Examination: L breast - inferior aspect at biopsy site - bruising noted and small haematoma but not tense and no tissue loss
+Malignant tumour of breast (X78WM) (New Episode)
+Diazepam 2mg tablets - 4 tablet - take 20mins before scan
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Malignant tumour of breast (X78WM)
+
+--- 19 2025-09-08 [other] milestones=[] eid=192ba6ae-9cfb-47de-9d7c-8450f205e331 ---
+15:01 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Home telephone number: 07860 464405
+Amendment via PDS
+
+--- 20 2025-09-10 [other] milestones=[] eid=2410dc66-5641-4c54-bddf-f2d1c2dbdd93 ---
+14:00 - Surgery: MILNER, Jordan (Miss)  
+NHS Health Check invitation (XaRBR) - Added in bulk
+
+--- 21 2025-09-10 [other] milestones=[] eid=418be590-9a7d-48f2-bf3a-66a8fc514d16 ---
+14:03 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Comment note (XaIg6)
+SMS sent to 07885 693881 via Abtrace tool. Message: Dear Mem Martin-Jones,
+You are eligible for an NHS Health Check.
+You can find more information about the Health Check at: https://www.nhs.uk/conditions/nhs-health-check/
+
+Please use the link below to book your appointment.
+abtr.co/4qz4W
+Woodbrook Medical Centre
+
+--- 22 2025-09-10 [other] milestones=[] eid=db9e014f-82e1-457f-bd36-a70c3b423f59 ---
+14:03 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 23 2025-09-10 [other] milestones=[] eid=3ada0561-9d38-4f66-a9ce-68fdb29c20a8 ---
+Dear Mem Martin-Jones
+
+Your appointment has been booked for 18 Sep 2025 14:00 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 24 2025-09-11 [other] milestones=[] eid=b4e495a6-79f1-4084-a034-d5510784edcd ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Breast to Woodbrook Medical Centre
+
+--- 25 2025-09-11 [other] milestones=[] eid=da30cd8c-6814-48c3-b138-eb69805e44ff ---
+Surgery: SHILLITO, Amanda (Admin/Clinical Support Access Role) 
+MRI of breast (X70ob) (New Episode)
+
+--- 26 2025-09-16 [other] milestones=[] eid=1d71c9c5-862c-4eae-9c52-afd4097b05fb ---
+08:33 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 27 2025-09-16 [other] milestones=[] eid=c1510c49-e52b-48b9-83b4-2e56f06228be ---
+08:33 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Mem,
+Please be advised that the car park remains closed to patients and visitors. It is for use by authorised staff only until further notice. At times, the entrance chain may be up or down to allow access to the building, but please note the car park remains closed to patients and visitors at all times.
+We kindly ask all patients to make alternative travel and parking arrangements when attending appointments.
+Thank you for your understanding and cooperation
+
+Woodbrook Medical Centre
+NHS app message sent on 15/09/2025 12:07:04
+
+--- 28 2025-09-16 [other] milestones=[] eid=cf4fb3e6-c74a-4bcf-9268-4a292b6dbcc1 ---
+10:38 - Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 29 2025-09-18 [other] milestones=[] eid=c9ceb9f6-8f53-487e-b465-2cd1ed114a9c ---
+08:14 - Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role) 
+Pathology Request (Complete):
+HbA1c (Requested), Liver Function Test (Requested), Lipids (Requested), Urea & electrolytes (Requested)
+
+--- 30 2025-09-18 [other] milestones=[] eid=e3a0c848-6918-49fe-bd2a-9874b4ae745c ---
+08:19 - Surgery: Auto-filed  
+Haemoglobin A1c level - IFCC standardised (XaPbt) 35 mmol/mol [20 - 41]
+Clinical Information: Reasons for Request:      nhs health check.
+Haemoglobin A1c level - IFCC standardised Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 21 Sep 2025 09:07
+
+--- 31 2025-09-18 [other] milestones=[] eid=0abfadd0-a3bc-44e8-8c3c-232a68dfaea6 ---
+08:19 - Surgery: Auto-filed  
+Haemoglobin A1c level (X772q) 5.4 % [4 - 5.9]
+Clinical Information: Reasons for Request:      nhs health check.
+Haemoglobin A1c level Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 21 Sep 2025 09:07
+
+--- 32 2025-09-18 [other] milestones=[] eid=ade07bd8-3d10-44b3-a341-36fbb42dd509 ---
+08:19 - Surgery: Auto-filed  
+Liver function tests (X77WP)
+Serum albumin level (XE2eA) 45 g/L [35 - 50]
+Serum alkaline phosphatase level (XE2px) 65 iu/L [30 - 130]
+Serum alanine aminotransferase level (XaLJx) 8 iu/L [10 - 49] - Outside reference range
+Serum bilirubin level (44E..) 9 umol/L [< 21]
+Calculated Globulin: 23 g/L; Globulins may be raised in myeloma and decreased in
+some cases of myeloma or immune deficiency states.
+Please correlate clinically. Suggest checking serum
+immunoglobulins if Glb >40 g/L in patients >40 years of
+age. Check serum immunoglobulins and free light chain
+assay if Glb <18 g/L.
+Minor abnormalities of Globulins outside of the above
+are unlikely to represent myeloma and would not
+normally require further action or repeat testing.
+Elevation of Globulin levels is common in
+infection / inflammation.
+Clinical Information: Reasons for Request:      nhs health check.
+Liver function tests Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 21 Sep 2025 09:07
+
+--- 33 2025-09-18 [other] milestones=[] eid=22b70cbf-28a5-4f8b-8b2c-2ba9adf06f38 ---
+08:19 - Surgery: Auto-filed  
+Serum total protein level (XE2e9) 68 g/L [57 - 82]
+Clinical Information: Reasons for Request:      nhs health check.
+Serum total protein level Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 21 Sep 2025 09:07
+
+--- 34 2025-09-18 [other] milestones=[] eid=38b3ab99-f4b7-454c-be41-24dd0bd42958 ---
+08:19 - Surgery: Auto-filed  
+Urea and electrolytes (X77Wi)
+Serum sodium level (XE2q0) 143 mmol/L [133 - 146]
+Serum potassium level (XE2pz) 3.9 mmol/L [3.5 - 5.3]
+Serum urea level (XM0lt) 3.7 mmol/L [2.5 - 7.8]
+Serum creatinine level (XE2q5) 47 umol/L [60 - 120] - Outside reference range
+eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) > 90 mL/min
+Urine ACR should be checked on at least an annual basis
+for all individuals with CKD.  NICE recommends the
+Kidney failure Risk Equation www.kfre.co.uk to
+predict the risk of endstage kidney disease in CKD
+stages 3a to 5.  KFRE is not valid in the presence
+of acute kidney injury.
+Clinical Information: Reasons for Request:      nhs health check.
+Urea and electrolytes Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 21 Sep 2025 09:07
+
+--- 35 2025-09-18 [other] milestones=[] eid=098693c6-e017-40e2-af2c-4ca3b9e21246 ---
+08:19 - Surgery: Auto-filed  
+Clinical Information: Reasons for Request:      nhs health check.
+Acute Kidney Injury Staging: 0; No AKI
+Acute Kidney Injury Staging Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 21 Sep 2025 09:07
+
+--- 36 2025-09-18 [other] milestones=[] eid=84949b87-0dd1-4b30-bb5c-0a773bf19d19 ---
+08:19 - Surgery: Auto-filed  
+Serum cholesterol level (XE2eD) 4.3 mmol/L
+Serum triglyceride levels (XE2q9) 0.96 mmol/L [0 - 1.7]
+Serum HDL cholesterol level (44P5.) 1.57 mmol/L [0.9 - 2.2]
+Serum LDL cholesterol level (44P6.) 2.3 mmol/L
+Non-fasting LDL is acceptable for screening patients
+and escalating oral lipid treatment. Fasting LDL should
+be used when considering starting treatment with PCSK9
+inhibitors.
+Total cholesterol:HDL ratio (44PF.) 2.7 
+Serum non high density lipoprotein cholesterol level (XabE1) 2.7 mmol/L
+Serum lipid levels (XE2q7)
+Clinical Information: Reasons for Request:      nhs health check.
+Serum lipid levels Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 21 Sep 2025 09:07
+
+--- 37 2025-09-18 [other] milestones=[] eid=85096f19-2e41-4e93-a4bf-9ed8016a06d2 ---
+08:26 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa) blood form
+   Type of encounter: Administration (9....)
+Contact trigger : Other (Y3eaa) - blood form
+Administration (9....)
+
+--- 38 2025-09-18 [other] milestones=[] eid=50d61229-1cfb-4a9f-a515-c0bbecea114e ---
+13:49 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 39 2025-09-18 [other] milestones=[] eid=6d42eae1-9663-4710-8f37-64501c7eeb91 ---
+14:12 - Surgery: MEE, Sara (Healthcare Assistant) 
+114 / 75
+NHS Health Check programme (XaR6f)
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+ LLR NHS Health Check V3
+   Home / Ethnicity / FH
+      .: White: Irish - England and Wales ethnic category 2011 census (XactI)
+      FH: Diabetes mellitus: Yes
+      Migraine History: H/O: migraine (1474.)
+   Observations
+      O/E - Diastolic BP reading: 75 mmHg
+      O/E - Systolic BP reading: 114 mmHg
+      Pulse rate: 74 bpm
+      Smoking status: Never smoked tobacco (XE0oh)
+      Exercise: At least 150 min moderte intensity physicl activity per week (XacSx)
+      Alcohol intake: 6 Units/Week
+      Alcohol use disorder identificatn test consumptn questionnre: 5
+      Weight: 56 Kg  (? 8 st 11 lb)
+      Height: 1.5 m  (? 4 ' 11 ")
+      BMI: 24.89 Kg/mï¿½
+White: Irish - England and Wales ethnic category 2011 census (XactI)
+FH: Diabetes mellitus (1252.)
+H/O: migraine (1474.)
+Pulse rate (X773s) 74 bpm
+Never smoked tobacco (XE0oh)
+At least 150 min moderte intensity physicl activity per week (XacSx)
+Alcohol intake (136..) 6 Units/Week
+Alcohol use disorder identificatn test consumptn questionnre (XaORP) 5  - 
+1)  How often to you have a drink containing alcohol?: 2-3 times per week
+2)  How many units of alcohol do you drink on a typical day when you are drinking?: 5-6
+3)  How often have you had 6 or more units if female, or 8 or more if male, on a single occassion in the last year?: N/A
+O/E - weight (22A..) 56 Kg (? 8 st 11 lb)
+O/E - height (229..) 1.5 m (? 4 ' 11 ")
+Body mass index - observation (22K..) 24.89 Kg/mï¿½
+Informed consent given for treatment (XaXHK)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 40 2025-09-18 [other] milestones=[] eid=798b8550-6028-410f-9eb7-3e37f58c1e52 ---
+14:13 - Surgery: MEE, Sara (Healthcare Assistant) 
+NHS Health Check completed (XaRBQ)
+
+--- 41 2025-09-18 [other] milestones=[] eid=4fc572a2-4b60-453e-bc69-7cf866c56036 ---
+16:43 - Sent online by Mrs Mem Elizabeth Martin-Jones  
+Request for 'Sumatriptan 50mg tablets' by patient
+
+--- 42 2025-09-18 [other] milestones=[] eid=e4629ba3-0d33-4373-80e1-3bd4a12db628 ---
+16:46 - MCDOWELL, Giselle  
+(R) Sumatriptan 50mg tablets - 6 tablet - Take One Tablet and Repeat Two Hours Later as Required
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ N+S Medication Queries
+   *Advice given / Outcome:  md rq
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+Administration note (XaIg4) - md rq
+
+--- 43 2025-09-21 [other] milestones=[] eid=76ab540d-1e2f-4224-909a-42b6723902b8 ---
+09:07 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role)
+
+--- 44 2025-10-09 [other] milestones=[] eid=bc18dc97-484f-4093-8774-33df270edbee ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Breast Surgeon to Dr Medical Woodbrook
+
+--- 45 2025-10-09 [other] milestones=[] eid=cf9c5411-03f4-4114-9cc5-fd5e65928a23 ---
+Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role)
+

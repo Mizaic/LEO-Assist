@@ -1,0 +1,165 @@
+# -- DI-LEO-AI-153 -- Wave E Phase 6: Pathways list on @leo/design-system
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-153"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-071"]
+  requirement: >
+    The Pathways admin list page
+    (services/ui/src/app/admin/pathways/page.tsx) SHALL be rebuilt
+    onto the shared @leo/design-system chrome:
+
+      - StatHero with four canonical tiles (Pathways, Live, Drafts,
+        Retired).
+      - SegmentedTabs status filter (All / Live / Drafts / Retired)
+        with counts.
+      - ToolbarActions with a single primary action ("New pathway",
+        variant: primary).
+      - PathwayCard restyled to the canonical 12px-radius / 18px-
+        padding / 3px-tone-coded-accent-strip / framer-motion
+        stagger pattern shared with DomainCard, PackageCard and
+        ReviewListCard.
+
+    The page MUST split into sibling modules so the orchestrator
+    stays readable: templates.ts (PATHWAY_TEMPLATES + types),
+    PathwayCard.tsx, dialogs.tsx (NewPathwayDialog + PublishDialog
+    + DeletePathwayDialog), types.ts (PlanDefinition shape).
+
+    All pre-existing data + routing handlers MUST be preserved
+    without behaviour change: api.get('/fhir/PlanDefinition'),
+    api.post for new pathway and duplicate, api.put for status
+    patch and publish, api.delete for permanent removal,
+    router.push to /admin/pathways/:id for edit. All four starter
+    templates (blank, extraction-only, extraction-verify-persist,
+    training-audit) MUST still ship in the New Pathway dialog so
+    the menu does not regress.
+
+    The detail-page rebuild
+    (services/ui/src/app/admin/pathways/[id]/page.tsx, ~5960 LOC
+    canvas editor) is explicitly out of scope for this DI and is
+    deferred to a dedicated session.
+  rationale: >
+    Wave E user feedback: "Pathways doesn't look touched at all" --
+    the page was still on the legacy custom h5 header, hand-rolled
+    Stack of cards with thick mixed-tone accent bars, raw chip
+    filters, and 815 LOC stuffed into a single file. That broke
+    UN-LEO-AI-071 AC-001 and the file-size hard limit (500 LOC).
+    Decomposing into sibling modules brings every file inside the
+    soft target, while ReviewListCard-style chrome makes the page
+    feel like the rest of the role-first product.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          AC-001: page.tsx imports StatHero, SegmentedTabs and
+          ToolbarActions from @leo/design-system, and the sibling
+          modules ./PathwayCard, ./dialogs, ./types and ./templates.
+      - type: "functional"
+        spec: >
+          AC-002: The legacy custom h5 page header is removed in
+          favour of <StatHero stats={stats} />.
+      - type: "functional"
+        spec: >
+          AC-003: All FHIR + routing handlers stay wired:
+          api.get<{ entry }>(/fhir/PlanDefinition);
+          api.put(/fhir/PlanDefinition/<id>);
+          api.post<{ id }>(/fhir/PlanDefinition);
+          api.delete(/fhir/PlanDefinition/<id>);
+          router.push(/admin/pathways/<id>).
+      - type: "functional"
+        spec: >
+          AC-004: SegmentedTabs uses the design-system API
+          (tabs / value / onChange / aria-label="Filter pathways
+          by status") with four tabs (id: all / active / draft /
+          retired) and per-tab counts.
+      - type: "functional"
+        spec: >
+          AC-005: Exactly one ToolbarAction has variant "primary"
+          (id: 'new-pathway', label: 'New pathway').
+      - type: "functional"
+        spec: >
+          AC-006: StatHero shows four canonical tiles -- total /
+          live / draft / retired -- so reviewers see workflow
+          health at a glance.
+      - type: "functional"
+        spec: >
+          AC-007: PathwayCard uses borderRadius: 12, padding: 18,
+          a 3px-wide left accent strip, and motion stagger (delay
+          = min(index, 12) * 0.04s).
+      - type: "functional"
+        spec: >
+          AC-008: PathwayCard preserves the full action surface --
+          Edit (always), Publish (drafts), New draft / Duplicate
+          (active), Reactivate (retired), Retire (non-retired),
+          Delete (gated by isSeeded), with busy-state + isSeeded
+          disabling.
+      - type: "functional"
+        spec: >
+          AC-009: dialogs.tsx exports NewPathwayDialog,
+          PublishDialog and DeletePathwayDialog. The Delete dialog
+          requires the user to type the pathway name verbatim
+          before the confirm button arms.
+      - type: "functional"
+        spec: >
+          AC-010: templates.ts ships all four starter templates
+          (blank, extraction-only, extraction-verify-persist,
+          training-audit), preserving the encounter-created and
+          training-candidate-ready triggers.
+      - type: "functional"
+        spec: >
+          AC-011: Loading, empty (no pathways at all), and
+          no-match (filter returns no rows) states are reachable
+          and copy-checked.
+    constraints:
+      - type: "safety"
+        spec: >
+          The Delete dialog MUST keep the type-the-name confirmation
+          gate, since deleting an active pathway can stop runtime
+          processing. Removing or weakening this gate would create
+          an irreversible operator-error footgun.
+      - type: "safety"
+        spec: >
+          The Publish dialog MUST stay behind an explicit
+          confirmation step with optional version notes; auto-
+          publishing on a single click would regress the existing
+          ISO 13485 change-control behaviour.
+    dependencies: ["DI-LEO-AI-142", "DI-LEO-AI-147"]
+    downstream_impacts:
+      - "services/ui/src/app/admin/pathways/page.tsx"
+      - "services/ui/src/app/admin/pathways/PathwayCard.tsx"
+      - "services/ui/src/app/admin/pathways/dialogs.tsx"
+      - "services/ui/src/app/admin/pathways/templates.ts"
+      - "services/ui/src/app/admin/pathways/types.ts"
+      - "services/ui/src/app/admin/knowledge/page.tsx (consumer)"
+    technical_details:
+      language: "TypeScript"
+      framework: "React + Next.js + MUI + Framer Motion + @leo/design-system"
+      file_structure:
+        - "services/ui/src/app/admin/pathways/page.tsx"
+        - "services/ui/src/app/admin/pathways/PathwayCard.tsx"
+        - "services/ui/src/app/admin/pathways/dialogs.tsx"
+        - "services/ui/src/app/admin/pathways/templates.ts"
+        - "services/ui/src/app/admin/pathways/types.ts"
+      estimated_loc: 1280
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-151 passes: 11 test cases covering imports,
+      legacy-header removal, FHIR + routing handler preservation,
+      SegmentedTabs API correctness, single primary action,
+      StatHero tile semantics, PathwayCard token alignment, full
+      action surface, dialog exports + delete-name-gate, template
+      catalogue completeness, and reachable async states.
+    test_protocol: "VT-LEO-AI-151"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-105"]
+  tags:
+    - "knowledge"
+    - "design-system"
+    - "wave-e"
+    - "phase-6"
+    - "pathways"

@@ -1,0 +1,253 @@
+======================================================================
+PATIENT      : 4866803525
+EPISODE      : 2431b5cca4a1561a
+CANCER_TYPE  : head_and_neck
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-02-18
+WINDOW       : 2025-02-04 .. 2025-05-19 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-02-18  referral                enc=1fe3c051-5b5c-4b1c-9943-9aa0620749ba
+  2025-02-18  referral                enc=ec780101-965b-4d27-9dfd-206f5cc4da0d
+  2025-03-13  first_seen              enc=927a248c-8b91-4257-907a-bea92767481b
+  2025-04-01  first_seen              enc=54339b31-3f6c-42ca-8028-53a136058bd3
+
+Encounters in window (n=26):
+
+--- 01 2025-02-18 [IN-EP] milestones=['referral'] eid=1fe3c051-5b5c-4b1c-9943-9aa0620749ba ---
+14:26 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role) 
+Problem: Asymmetrical hearing loss (Y0f33)
+History: f2f appt 
+
+had flu like sx in dec - and since then feels her right ear has been blocked and couldnt hear properly at all. 
+seemed to improve a little but "still cant hear very well" 
+says prior to december hearing was normal
+left side has always been a bit poor in hearing- usually L>R (see prev notes from 2021 WB ) but now in  the last 2 months says R has been worse. 
+no discharge or bleeding from the ears, 
+no temp sx, 
+no pain in the right ear
+Outbound referral (XaY59)
+Diagnosis: 2WW Head & Neck Pathway accessed
+Plan: sudden onset asymmetrical hearing loss, with normal examination. 
+referred to ENT urgently to r/o any underlying causes. 
+r/v as needed after referral appts.
+- PRISM 2WW Head and Neck -  questionnaire started - (finalised: 18 Feb 2025 14:26)
+Fast track referral for suspected head and neck cancer (XaMkD) - (Added from Questionnaire)
+Asymmetrical hearing loss (Y0f33)
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+       2WW Head and Neck PRISM to Mrs Annette Barker 
+       - PRISM 2WW Head and Neck -  questionnaire started - (finalised: 18 Feb 2025 14:26)
+2WW Head and Neck PRISM to Mrs Annette Barker 
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Asymmetrical hearing loss (Y0f33)
+
+--- 02 2025-02-18 [IN-EP] milestones=['referral'] eid=ec780101-965b-4d27-9dfd-206f5cc4da0d ---
+15:28 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected head and neck cancer (XaMkD)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww head and neck
+Hospital Fast track referral for suspected head and neck cancer
+Hospital Fast track referral for suspected head and neck cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww head and neck
+
+--- 03 2025-02-28 [other] milestones=[] eid=a3d93433-8ea5-4996-8f9d-a5137e49a1cd ---
+15:16 - Surgery: SHANNON, Benjamin (Health Professional Access Role) 
+History: consent gained. previous entries noted. 
+
+L Foot pains for 10 month
+
+Thinks has plantar fascitiis. no trigger or moi. on feel alot as caretaker and so walks alot during the day. not seen anyone for this as yet. had it in R foot a few years ago but this went after 3 months. currently been trying insoles, but these arent helping. tried rolling foot on ball. not helping. has to stretch foot in morning before getting up due to being painful. during the day pain increases and feels foot stiffens up. 
+
+no P&N or numbness present. takes paracetemol, cannot take ibruprofen. 
+
+pain mostly during WB. but can be sore at the end of the day. 
+feels systemically well. 
+Examination: nil neuro. 
+obs - NAD.
+FAROM L ankle.
+
+TA - NAD. 
+palpaiton - tender on plantar insertion at heel. 
+Winlass +ve
+
+SL stand uncomfortable.
+Heel raise uncomfortable.
+Diagnosis: Plantar fasciitis (N2179)L foot
+Plan: impression explained. safety netted for worsening and new sxs.
+discussed tissue healing times
+advise on ice/heat therapy.
+advice on low dye taping. sent to pt.
+self referral link to LLR podiatry sent to pt. 
+Advise on physical activity and ROM exercises.
+if no improvement then return in 6/52. ?Xray for CSI. pt happy with plan
+
+--- 04 2025-02-28 [other] milestones=[] eid=0aed4add-1342-45a8-8b18-c9a7514b355f ---
+15:24 - Surgery: SHANNON, Benjamin (Health Professional Access Role) 
+Patient telephone number (9159.) - 07842 275790
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Barker,
+https://www.youtube.com/watch?v=ZwMZ90BdYhw
+https://www.amazon.co.uk/zinc-oxide-tape/s?k=zinc+oxide+tape
+Thanks, Benjamin Shannon
+Woodbrook Medical Centre
+
+--- 05 2025-02-28 [other] milestones=[] eid=b587b4f1-1e74-4502-8ddb-af54eba1bf7e ---
+15:28 - Surgery: SHANNON, Benjamin (Health Professional Access Role) 
+Patient telephone number (9159.) - 07842 275790
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Barker,
+https://www.leicspart.nhs.uk/service/podiatry/
+Thanks, Benjamin Shannon
+Woodbrook Medical Centre
+
+--- 06 2025-02-28 [other] milestones=[] eid=a27d5b54-c218-45b0-a9c2-efa1416bc853 ---
+15:31 - Surgery: SHANNON, Benjamin (Health Professional Access Role) 
+Patient telephone number (9159.) - 07842 275790
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Barker,
+https://www.youtube.com/watch?v=Bb7HyNJHh5k
+Thanks, Benjamin Shannon
+Woodbrook Medical Centre
+
+--- 07 2025-03-04 [other] milestones=[] eid=3c01a5f5-8c6a-47e9-8b0f-c8d55c157ede ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Gynaecology to Dr Medical Woodbrook
+
+--- 08 2025-03-04 [other] milestones=[] eid=daa487d0-0539-40e2-8752-70bace568c92 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+Minor: Overactive bladder (Ya17A) (New Episode)
+Minor: Genital prolapse (K51..) (New Episode)
+Overactive bladder (Ya17A)
+Genital prolapse (K51..)
+
+--- 09 2025-03-08 [other] milestones=[] eid=c82b7bce-d143-4ea2-8327-bca8cb14dc82 ---
+08:48 - Sent online by Mrs Annette Martina Jane Barker  
+Request for 'Fexofenadine 180mg tablets' by patient
+
+--- 10 2025-03-10 [other] milestones=[] eid=b380753b-8e54-4a6f-8604-c95faf7092f5 ---
+07:47 - INGLE, Kirsty  
+(R) Fexofenadine 180mg tablets - 60 tablet - 1-3 daily asd by UHL Allergy Clinic
+ N+S Medication Queries
+   *Advice given / Outcome:  online request
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+Administration note (XaIg4) - online request
+
+--- 11 2025-03-13 [other] milestones=[] eid=e33a6105-dd07-40f3-928d-5458d05d56bf ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Otolaryngologist to Woodbrook Medical Centre
+
+--- 12 2025-03-13 [IN-EP] milestones=['first_seen'] eid=927a248c-8b91-4257-907a-bea92767481b ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected head and neck cancer clinic (XaPya)
+
+--- 13 2025-03-13 [other] milestones=[] eid=6912c5bc-dd53-460d-a7a1-b6fb35cc077d ---
+Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) 
+Diagnostic nasendoscopy (X00pE) (New Episode)
+Audiometry (Xa0N4) (New Episode)
+Minor: Presbyacusis (F5801) (New Episode)
+Presbyacusis (F5801)
+
+--- 14 2025-03-17 [other] milestones=[] eid=c7771b57-eabb-469f-8301-26ca9b9707ce ---
+05:29 - Sent online by Mrs Annette Martina Jane Barker  
+Request for 'Evorel Conti patches (Theramex HQ UK Ltd)' by patient
+
+--- 15 2025-03-17 [other] milestones=[] eid=3df8f959-2d04-400b-9239-3bb956372383 ---
+10:00 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Evorel Conti patches (Theramex HQ UK Ltd) - 24 patch - apply one twice weekly
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 16 2025-03-19 [other] milestones=[] eid=79a7d2cd-fc61-44c9-8070-c91fc1811cc0 ---
+16:05 - Surgery: AZIZ, Rao (Mr) (Pharmacist) 
+History: teleconsult: spoke to pt confirmed dob verified id: annual meds rv: pt is doing fine with her hrt on continuous combined regimen has not had a bleed whilst on the patches, non-hysterectomised, no unusual bleed or irregular bleeding on the hrt, no lumps or bumps or SE's of note.    pt also takes the fluoxeinte for her mood finds it does help her, no SI or SH.  happy to ctn wiht meds, advised pt to check her bp with pharmacy who can submit to us.
+Medication review done (XaF8d)
+(R) Fluoxetine 20mg capsules - 60 capsule - take one daily
+Evorel Conti patches (Theramex HQ UK Ltd) - 24 patch - apply one twice weekly
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 17 2025-03-20 [other] milestones=[] eid=8d108130-eb0d-4289-911d-96d7cecabdea ---
+05:30 - Sent online by Mrs Annette Martina Jane Barker  
+Request for 'Fluticasone furoate 27.5micrograms/dose nasal spray' by patient
+
+--- 18 2025-03-20 [other] milestones=[] eid=5b0d7768-3b16-45af-81f8-a47e0c2fb6c2 ---
+07:38 - O'CONNELL, Charlotte (Ms)  
+(R) Fluticasone furoate 27.5micrograms/dose nasal spray - 120 dose - 2 sprays into each nostril once daily (total 55mcg)
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 19 2025-03-25 [other] milestones=[] eid=c93549d9-6d1a-4cc5-987c-6528526a875e ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+BP to Woodbrook Medical Centre
+
+--- 20 2025-03-25 [other] milestones=[] eid=87fba1c5-daa6-4797-9708-3bb684a83265 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role)
+
+--- 21 2025-03-25 [other] milestones=[] eid=08f82fa6-2ed5-48c6-8d84-43575c8f2a14 ---
+07:52 - Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+108 / 66
+ Consultation.
+   General
+      BP: 108 / 66
+      HR: 66 bpm
+Pulse rate (X773s) 66 bpm
+
+--- 22 2025-04-01 [IN-EP] milestones=['first_seen'] eid=54339b31-3f6c-42ca-8028-53a136058bd3 ---
+11:19 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected head and neck cancer clinic (XaPya) 13 Mar 2025
+
+--- 23 2025-05-08 [other] milestones=[] eid=b7b3e184-302a-4fe4-96bd-8cce8e699566 ---
+07:50 - Sent online by Mrs Annette Martina Jane Barker  
+Request for 'Fexofenadine 180mg tablets' by patient
+Request for 'Fluticasone furoate 27.5micrograms/dose nasal spray' by patient
+
+--- 24 2025-05-08 [other] milestones=[] eid=c0fc3b00-ceb3-42e8-898b-36a2c4474a9e ---
+11:15 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+(R) Fexofenadine 180mg tablets - 60 tablet - 1-3 daily asd by UHL Allergy Clinic
+(R) Fluticasone furoate 27.5micrograms/dose nasal spray - 120 dose - 2 sprays into each nostril once daily (total 55mcg)
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 25 2025-05-19 [other] milestones=[] eid=663c9274-50a9-4ccb-be31-3ae1aedb0c88 ---
+11:04 - Sent online by Mrs Annette Martina Jane Barker  
+Request for 'Fluoxetine 20mg capsules' by patient
+
+--- 26 2025-05-19 [other] milestones=[] eid=074dc0c5-26eb-477f-b0d5-d9b03231b3b3 ---
+11:12 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Fluoxetine 20mg capsules - 60 capsule - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+

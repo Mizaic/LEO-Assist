@@ -60,6 +60,7 @@ MERGE_EPISODE = (
     "    ep.letter_inferred_benign  = $letter_inferred_benign, "
     "    ep.referral_match_method   = $referral_match_method, "
     "    ep.referral_inferred       = $referral_inferred, "
+    "    ep.first_seen_date         = $first_seen_date, "
     "    ep.cancer_stage            = coalesce(ep.cancer_stage, 'unknown'), "
     "    ep.cancer_stage_raw        = coalesce(ep.cancer_stage_raw, ''), "
     "    ep.cancer_stage_group      = coalesce(ep.cancer_stage_group, ''), "
@@ -84,6 +85,7 @@ LINK_ENCOUNTERS = (
     "WITH ep, enc, e WHERE enc IS NOT NULL "
     "MERGE (enc)-[r:IS_PART_OF]->(ep) "
     "SET r.milestone_type = e.milestone_type, "
+    "    r.referral_subtype = e.referral_subtype, "
     "    r.linked_by = 'episode_builder', "
     "    r.linked_at = datetime() "
 )
@@ -109,7 +111,20 @@ WITH ep, ref_date, today,
             AND trim(toString(ep.specialist_visit_date)) <> ''
          THEN date(ep.specialist_visit_date)
        ELSE ref_date
-     END AS spec_date
+     END AS spec_date,
+     EXISTS {
+       MATCH (:Encounter)-[r:IS_PART_OF]->(ep)
+       WHERE r.milestone_type IN ['diagnosis_confirmed', 'diagnosis']
+     } AS has_dx,
+     EXISTS {
+       MATCH (:Encounter)-[r:IS_PART_OF]->(ep)
+       WHERE r.milestone_type IN ['benign_closure', 'treatment_started']
+     } AS has_benign_or_treatment
+// DI-LEO-AI-159: never mark an episode stale if a diagnosis-confirmed,
+// benign-closure, or treatment-started milestone is linked. Such episodes
+// reflect a real clinical outcome that should not be auto-closed as
+// "lost to follow-up".
+WHERE NOT (has_dx OR has_benign_or_treatment)
 SET ep.status = CASE
       WHEN ep.specialist_seen = true
            AND spec_date IS NOT NULL

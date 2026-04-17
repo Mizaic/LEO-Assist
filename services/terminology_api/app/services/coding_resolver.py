@@ -85,13 +85,35 @@ TAG_GROUPS: dict[str, str] = {
     "environment": "social",
 }
 
-_TAG_BOOST = 1.3
-_TAG_COMPAT_BOOST = 1.1
+# Tag adjustment constants.
+#
+# Why additive boost (not multiplicative)?
+# ----------------------------------------
+# The previous implementation used a multiplicative boost (`fused *= 1.3`)
+# which inflated weak fused scores. Combined with per-term local
+# normalisation (top candidate always normalised to ~1.0), this produced
+# misleading absolute scores: a term whose only candidate was a weak
+# Lucene partial match could end up reporting score=1.3, looking
+# indistinguishable from a curated SurfaceForm exact match.
+#
+# The additive boost preserves tag-matching as a tie-breaker (a candidate
+# whose tag matches the LLM's expected tag wins over a same-confidence
+# candidate whose tag does not), but does NOT distort the absolute
+# confidence the score is meant to convey.
+_TAG_EXACT_BOOST = 0.10
 _TAG_PENALTY = 0.5
 
-# Minimum fused score to include a candidate in results.
-# Candidates below this are almost certainly spurious fulltext token matches.
+# Minimum calibrated score to include a candidate in results.
+# This is a hard cull -- candidates below this confidence are almost
+# certainly spurious fulltext token matches (e.g. one shared word out
+# of a long phrase).
 _MIN_SCORE = 0.15
+
+# When both lexical and vector signals fire, the smaller signal earns a
+# bonus on top of the larger signal. Keeps absolute interpretation
+# (score is roughly P(correct mapping)) while rewarding agreement
+# between two independent retrieval branches.
+_AGREEMENT_BONUS = 0.10
 
 # Tags that are never clinically meaningful as a primary coding result.
 # These are hard-blocked when an expected clinical tag is provided,
@@ -173,7 +195,15 @@ def _build_fulltext_queries(mention: str) -> list[str]:
 
 
 def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -> None:
-    """Merge one Neo4j result row into the per-term accumulator dict."""
+    """Merge one Neo4j result row into the per-term accumulator dict.
+
+    Exact-branch hits are flagged via ``had_exact_match``: the exact
+    queries assign a fixed score of 1.0 (Term) or 1.2 (SurfaceForm),
+    so any lexical hit with score >= 1.0 came from the exact branch
+    (fulltext Lucene scores below 1.0 are common; exact never returns
+    less). Downstream consumers can use this flag to distinguish a
+    rock-solid normalised-text match from a weak fulltext token hit.
+    """
     cid = rec.get("concept_id")
     if not cid:
         return
@@ -187,6 +217,7 @@ def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -
             "read_codes": sorted(set(rec.get("read_codes") or [])),
             "lexical_raw": 0.0,
             "vector_raw": 0.0,
+            "had_exact_match": False,
             "surface_form_status": "",
         },
     )
@@ -196,6 +227,9 @@ def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -
     score = float(rec.get("score", 0.0))
     if branch == "lexical":
         base["lexical_raw"] = max(base["lexical_raw"], score)
+    elif branch == "lexical_exact":
+        base["lexical_raw"] = max(base["lexical_raw"], score)
+        base["had_exact_match"] = True
     elif branch == "vector":
         base["vector_raw"] = max(base["vector_raw"], score)
 
@@ -266,10 +300,87 @@ class CodingCandidate:
     score: float
     source: str
     surface_form_status: str = ""
+    # Absolute confidence signals (raw retrieval evidence).
+    #
+    # ``score`` above is now a CALIBRATED absolute confidence in
+    # [0.0, 1.0] derived from these raw signals plus tag matching --
+    # see ``_fuse_and_rank`` and ``_calibrate_confidence`` for the
+    # exact mapping. Downstream consumers can use ``score`` directly
+    # as a probability-like threshold. The raw signals are also
+    # exposed so consumers that need to apply branch-specific
+    # thresholds (e.g. "accept exact-match candidates only") can do
+    # so without re-running the resolver.
+    #
+    #   had_exact_match -- True iff hit by the exact branch (Term or
+    #     SurfaceForm). Strongest possible lexical signal short of a
+    #     hand-curated mapping.
+    #   lexical_raw    -- max raw lexical score across exact + fulltext
+    #     branches. Exact = 1.0/1.2; fulltext = Lucene BM25-style
+    #     (typically 0-15).
+    #   vector_raw     -- cosine similarity from the embedding branch
+    #     (0.0 - 1.0). >= 0.85 typically indicates strong semantic
+    #     match even when token overlap is low.
+    had_exact_match: bool = False
+    lexical_raw: float = 0.0
+    vector_raw: float = 0.0
     # For lab-domain concepts: family members discovered via SNOMED ontology edges
     # (INTERPRETS, HAS_COMPONENT, HAS_ASSOCIATED_FINDING).
     # Each entry: {"id", "fsn", "semantic_tag", "rel"}
     related_concepts: list[dict[str, str]] = field(default_factory=list)
+
+
+def _calibrate_confidence(c: dict[str, Any]) -> float:
+    """Compute calibrated absolute confidence in [0.0, 1.0] for one candidate.
+
+    See ``CodingResolver._fuse_and_rank`` docstring for the full design
+    rationale. Pulled out as a free function so tests and downstream
+    consumers can replicate the calibration logic without instantiating
+    a resolver.
+    """
+    if c.get("had_exact_match"):
+        lex_signal = 1.0
+    else:
+        lex_raw = float(c.get("lexical_raw", 0.0) or 0.0)
+        lex_signal = lex_raw / (lex_raw + 1.0) if lex_raw > 0 else 0.0
+    vec_signal = float(c.get("vector_raw", 0.0) or 0.0)
+    if vec_signal < 0.0:
+        vec_signal = 0.0
+    if vec_signal > 1.0:
+        vec_signal = 1.0
+
+    if lex_signal > 0.0 and vec_signal > 0.0:
+        confidence = max(lex_signal, vec_signal) + (
+            _AGREEMENT_BONUS * min(lex_signal, vec_signal)
+        )
+    else:
+        confidence = max(lex_signal, vec_signal)
+    return min(1.0, confidence)
+
+
+def _apply_tag_adjustment(
+    confidence: float,
+    *,
+    candidate_tag: str,
+    expected_tag: str,
+    expected_group: str,
+) -> float:
+    """Adjust calibrated confidence by tag match/mismatch.
+
+    Exact tag match earns a small additive boost (+0.10, capped at 1.0)
+    so tag-matching candidates win ties without inflating absolute
+    confidence. Compatible group is neutral. Cross-group earns a
+    multiplicative penalty (*0.5).
+    """
+    if not expected_tag:
+        return confidence
+    candidate_group = TAG_GROUPS.get(candidate_tag, "")
+    if candidate_tag == expected_tag:
+        return min(1.0, confidence + _TAG_EXACT_BOOST)
+    if candidate_group and candidate_group == expected_group:
+        return confidence
+    if candidate_group and candidate_group != expected_group:
+        return confidence * _TAG_PENALTY
+    return confidence
 
 
 class CodingResolver:
@@ -546,7 +657,7 @@ class CodingResolver:
                 for hit in hits:
                     hit = dict(hit)
                     for orig_term in norm_to_terms.get(norm, []):
-                        _push(merged_all[orig_term], hit, "lexical")
+                        _push(merged_all[orig_term], hit, "lexical_exact")
                         hit_terms.add(orig_term)
         except Exception:
             logger.debug(
@@ -562,13 +673,13 @@ class CodingResolver:
                     for rec in session.run(
                         EXACT_QUERY, normalized=norm, k=self.k_exact
                     ):
-                        _push(merged_all[term], dict(rec), "lexical")
+                        _push(merged_all[term], dict(rec), "lexical_exact")
                         hit_terms.add(term)
                     if self._surface_form_exact_ok:
                         for rec in session.run(
                             EXACT_SURFACE_FORM_QUERY, normalized=norm, k=self.k_exact
                         ):
-                            _push(merged_all[term], dict(rec), "lexical")
+                            _push(merged_all[term], dict(rec), "lexical_exact")
                             hit_terms.add(term)
                 except Exception:
                     pass
@@ -661,59 +772,77 @@ class CodingResolver:
         merged: dict[str, dict[str, Any]],
         expected_tag: str | None = None,
     ) -> list[CodingCandidate]:
-        """Score-fuse and rank merged candidates for one term."""
+        """Score-fuse and rank merged candidates for one term.
+
+        Returns candidates sorted by ``score`` descending, where ``score``
+        is a CALIBRATED ABSOLUTE confidence in [0.0, 1.0].
+
+        Calibrated absolute scoring (replaces per-term local normalisation)
+        --------------------------------------------------------------------
+        The previous implementation normalised lexical/vector raw scores
+        against the per-term maximum, then multiplied by a 1.3 tag boost.
+        This made the top candidate always score ~1.0-1.3 regardless of
+        how strong the underlying retrieval evidence was -- a one-token
+        partial Lucene match scored the same as a curated SurfaceForm
+        exact hit, both reaching ~1.3 if the tag aligned. Downstream
+        consumers (coder gates, surface-form validators, the SNOMED
+        proposal validator) could not tell strong from weak matches.
+
+        The new scheme produces a calibrated absolute confidence:
+
+          1. Lexical signal in [0, 1]:
+             - Exact branch (Term/SurfaceForm) -> 1.0  (strongest possible)
+             - Fulltext (Lucene BM25) -> bm25 / (bm25 + 1)
+               Saturating curve: BM25 of 1 -> 0.5, 5 -> 0.83, 10 -> 0.91.
+          2. Vector signal in [0, 1]: cosine similarity (already absolute).
+          3. Combine: max(lex, vec) + 0.10 * min(lex, vec), capped at 1.0.
+             Strongest single branch wins; agreement between branches
+             earns a small bonus.
+          4. Tag adjustment:
+             - exact tag match     -> +0.10 (additive boost, capped at 1.0)
+             - compatible group    -> no change
+             - cross-group         -> *0.5 (penalty)
+             - non-clinical no-tag -> capped at 0.4
+          5. Hard cull: scores below ``_MIN_SCORE`` (0.15) are dropped.
+
+        Sort order: confidence DESC. Tag-matching wins ties via the +0.10
+        additive boost (no implicit "tag always wins" tier).
+        """
         if not merged:
             return []
 
-        max_lex_raw = max(v["lexical_raw"] for v in merged.values())
-        max_vec_raw = max(v["vector_raw"] for v in merged.values())
-        max_lex = max_lex_raw or 1.0
-        max_vec = max_vec_raw or 1.0
         normalised_expected_tag = _normalise_semantic_tag(expected_tag)
         expected_group = (
             TAG_GROUPS.get(normalised_expected_tag, "")
             if normalised_expected_tag
             else ""
         )
-
-        scored: list[tuple[float, dict[str, Any]]] = []
         hard_block_non_clinical = bool(
             normalised_expected_tag and _CLINICAL_GROUPS.intersection({expected_group})
         )
 
+        scored: list[tuple[float, dict[str, Any]]] = []
         for c in merged.values():
             candidate_tag = _normalise_semantic_tag(c.get("semantic_tag") or "")
 
-            # Hard-block non-clinical tags when the caller expects a clinical result.
             if hard_block_non_clinical and candidate_tag in _NON_CLINICAL_TAGS:
                 continue
 
-            lex_norm = c["lexical_raw"] / max_lex if max_lex else 0.0
-            vec_norm = c["vector_raw"] / max_vec if max_vec else 0.0
-            if max_vec_raw <= 0:
-                fused = lex_norm
-            elif max_lex_raw <= 0:
-                fused = vec_norm
-            else:
-                fused = (self.w_lexical * lex_norm) + (self.w_vector * vec_norm)
+            confidence = _calibrate_confidence(c)
+            confidence = _apply_tag_adjustment(
+                confidence,
+                candidate_tag=candidate_tag,
+                expected_tag=normalised_expected_tag,
+                expected_group=expected_group,
+            )
 
-            if normalised_expected_tag:
-                candidate_group = TAG_GROUPS.get(candidate_tag, "")
-                if candidate_tag == normalised_expected_tag:
-                    fused *= _TAG_BOOST
-                elif candidate_group and candidate_group == expected_group:
-                    fused *= _TAG_COMPAT_BOOST
-                elif candidate_group and candidate_group != expected_group:
-                    fused *= _TAG_PENALTY
+            if candidate_tag in _NON_CLINICAL_TAGS and not normalised_expected_tag:
+                confidence = min(confidence, 0.4)
 
-            # Apply a higher floor for non-clinical tags even without expected_tag.
-            if candidate_tag in _NON_CLINICAL_TAGS:
-                fused = min(fused, 0.4)
-
-            if fused < _MIN_SCORE:
+            if confidence < _MIN_SCORE:
                 continue
 
-            scored.append((fused, c))
+            scored.append((confidence, c))
 
         scored.sort(key=lambda x: x[0], reverse=True)
         return [
@@ -722,11 +851,14 @@ class CodingResolver:
                 snomed_term=c.get("fsn"),
                 semantic_tag=c.get("semantic_tag"),
                 read_code=(c.get("read_codes") or [None])[0],
-                score=round(fused, 4),
+                score=round(confidence, 4),
                 source="hybrid",
                 surface_form_status=c.get("surface_form_status", ""),
+                had_exact_match=bool(c.get("had_exact_match", False)),
+                lexical_raw=round(float(c.get("lexical_raw", 0.0)), 4),
+                vector_raw=round(float(c.get("vector_raw", 0.0)), 4),
             )
-            for fused, c in scored
+            for confidence, c in scored
         ]
 
     def _embed(self, texts: Sequence[str]) -> list[list[float]] | None:
@@ -760,7 +892,7 @@ class CodingResolver:
         # Branch 1: exact
         if normalized:
             for rec in session.run(EXACT_QUERY, normalized=normalized, k=self.k_exact):
-                _push(merged, dict(rec), "lexical")
+                _push(merged, dict(rec), "lexical_exact")
             if self._surface_form_exact_ok is not False:
                 try:
                     if self._surface_form_exact_ok is None:
@@ -778,7 +910,7 @@ class CodingResolver:
                             normalized=normalized,
                             k=self.k_exact,
                         ):
-                            _push(merged, dict(rec), "lexical")
+                            _push(merged, dict(rec), "lexical_exact")
                 except Exception:
                     self._surface_form_exact_ok = False
 

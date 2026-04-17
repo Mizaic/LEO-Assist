@@ -1,0 +1,139 @@
+======================================================================
+PATIENT      : 4802241127
+EPISODE      : fa65e5ad1c97ef2f
+CANCER_TYPE  : non_site_specific
+STATUS       : stale_no_diagnosis
+REFERRAL     : 2024-01-04
+WINDOW       : 2023-12-21 .. 2024-04-03 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2024-01-04  referral                enc=9cb787a8-ffa6-42aa-8a6b-a8aaf1138286
+  2024-01-09  first_seen              enc=62842933-c2d5-4ff5-95c1-e50b5e5595c5
+  2024-01-30  first_seen              enc=daba8c6c-aaca-42b4-a9cc-f234864e9829
+  2025-02-13  first_seen              enc=70530975-b9f9-4a94-86ab-675ecf7a5d4b
+  2025-03-05  first_seen              enc=f85bc466-e76f-485a-b79a-79fab2d2c873
+
+Encounters in window (n=22):
+
+--- 01 2024-01-02 [other] milestones=[] eid=a9cb5c53-df43-4766-a16c-8008e41702f0 ---
+11:25 - Surgery: AKTHAR, Mumina (Dr) (Clinical Practitioner Access Role)
+
+--- 02 2024-01-04 [IN-EP] milestones=['referral'] eid=9cb787a8-ffa6-42aa-8a6b-a8aaf1138286 ---
+09:43 - Surgery: BAKER, Dawn (Mrs) (Medical Secretary Access Role) 
+ 2WW
+   Date of First outpatient appointment: 09 Jan 2024 OPA 09/01/24
+   Entries from previous template version
+      Scheduled Task Creation (Completed) - 2WW Check for appt task (check seen OPA 09/01/24) to be sent to BAKER, Dawn (Mrs) on 30 Jan 2024.
+Scheduled Task Creation (Completed) - 2WW Check for appt task (check seen OPA 09/01/24) to be sent to BAKER, Dawn (Mrs) on 30 Jan 2024.
+
+--- 03 2024-01-04 [other] milestones=[] eid=ee89d5ab-ac90-4237-acb4-2c2bcbacc373 ---
+13:06 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 04 2024-01-09 [other] milestones=[] eid=a7c6790f-fdc2-4cd8-a2a2-5f5aa37d02aa ---
+Surgery: BAKER, Dawn (Mrs) (Medical Secretary Access Role) 
+First outpatient appointment date (XaKHc) - OPA 09/01/24
+
+--- 05 2024-01-09 [other] milestones=[] eid=acb02104-5a22-41fe-ab8c-73b487a7d329 ---
+Surgery: REJAIE, Layla (Admin/Clinical Support Access Role) 
+US scan of breast (585C.) - Left (New Episode)
+
+--- 06 2024-01-09 [IN-EP] milestones=['first_seen'] eid=62842933-c2d5-4ff5-95c1-e50b5e5595c5 ---
+00:00 - Surgery: BAKER, Dawn (Mrs) (Medical Secretary Access Role) 
+Seen in fast track suspected breast cancer clinic (XaPyQ)
+
+--- 07 2024-01-09 [other] milestones=[] eid=21b6eb9a-34fe-4b7d-8be3-1a5c2e9c463f ---
+Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Breast to Woodbrook Medical Centre
+
+--- 08 2024-01-09 [other] milestones=[] eid=78dee64b-6020-42da-bf88-f650d190ed16 ---
+Surgery: REJAIE, Layla (Admin/Clinical Support Access Role)
+
+--- 09 2024-01-15 [other] milestones=[] eid=3a1edae5-10b3-4a4e-8941-c7ba5b306efa ---
+13:55 - Surgery: DARWENT, Laura (Receptionist Access Role) 
+ Reception & Administration
+   Entries from previous template version
+      Administration note (XaIg4) - Patient checking blood test result. LD
+Administration note (XaIg4) - Patient checking blood test result. LD
+
+--- 10 2024-01-23 [other] milestones=[] eid=cdd21bdf-6b40-47b7-b6a8-03b637d5eeb2 ---
+09:35 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role) 
+
+Dear Mrs Tyson,
+*IMPORTANT INFORMATION* From 1st February 2024 you will no longer be able to make a same day appointment by attending the practice to book at the front desk. 
+You will still be able to book a same day appointment by telephoning the practice or booking online. 
+Woodbrook Medical Centre
+NHS app message sent on 22/01/2024 18:00:08
+
+--- 11 2024-01-23 [other] milestones=[] eid=a502f91e-63c0-4c35-9af5-a9c1f6971063 ---
+09:35 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role)
+
+--- 12 2024-01-30 [IN-EP] milestones=['first_seen'] eid=daba8c6c-aaca-42b4-a9cc-f234864e9829 ---
+10:23 - Surgery: BAKER, Dawn (Mrs) (Medical Secretary Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 09 Jan 2024
+Summary Care Record Update
+
+--- 13 2024-01-31 [other] milestones=[] eid=dc81eff5-6b23-4e29-9ff7-42829068312b ---
+13:42 - Surgery: MILNER, Jordan (Miss)  
+Enhanced review not indicated before granting access to own health record (Y2fff)
+
+--- 14 2024-01-31 [other] milestones=[] eid=6c990c02-0660-49d9-98a7-98e146364fcc ---
+15:15 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 15 2024-02-01 [other] milestones=[] eid=8f48447e-8546-452d-b589-e7b8ff19f16a ---
+14:09 - Surgery: DOUGHTY, Lauren (Receptionist Access Role)
+
+--- 16 2024-02-05 [other] milestones=['treatment_started'] eid=8b83a138-cf44-425d-8a42-db84e11efbf8 ---
+17:20 - Surgery: AZIZ, Rao (Mr) (Pharmacist) 
+Problem: Hypothyroidism (X40IQ)
+History: telecosult: spoke to pt confirmed dob verified id: annual meds rv:  discussed her TSH levels whihc are below normal range may need dose adjusting on the levo currenlty compliant wiht the levo dose,  no palpitaions, no wt loss, no inc sweating or heat intolerance, no loose bowel motions. will be having a fu with the hospital on the tamoxifen.  she is happy with her meds at present no SE's or cocnersn but did discuss recent TSH and potential to alter dose fo levo have taske KB snd will get back to pt about this.
+Tamoxifen 20mg tablets - 90 tablet - One To Be Taken Each Day (until 2024)
+ Ended 13 Jan 2025 Clinical grounds (as per letter june 2024) by SUTHAR, Jaiman (Mr)
+Levothyroxine sodium 25microgram tablets - 56 tablet - take one each morning (125mcg total)
+Levothyroxine sodium 100microgram tablets - 56 tablet - ONE DAILY
+Levothyroxine sodium 25microgram tablets - 56 tablet - take one each morning (125mcg total)
+ Ended 05 Feb 2024 Re-Authorised by AZIZ, Rao (Mr)
+Tamoxifen 20mg tablets - 90 tablet - One To Be Taken Each Day (until 2024)
+ Ended 05 Feb 2024 Re-Authorised by AZIZ, Rao (Mr)
+Levothyroxine sodium 100microgram tablets - 56 tablet - ONE DAILY
+ Ended 05 Feb 2024 Re-Authorised by AZIZ, Rao (Mr)
+Cetraben cream (Thornton & Ross Ltd) - 500 gram - Apply When Required
+Cetraben cream (Thornton & Ross Ltd) - 500 gram - Apply When Required
+ Ended 05 Feb 2024 Re-Authorised by AZIZ, Rao (Mr)
+Summary Care Record Update
+
+--- 17 2024-02-07 [other] milestones=[] eid=5120b052-fda4-431e-84e7-0fd88a2a0902 ---
+07:57 - Sent online by Mrs Yvonne Tyson  
+Request for 'Levothyroxine sodium 100microgram tablets' by patient
+Request for 'Levothyroxine sodium 25microgram tablets' by patient
+
+--- 18 2024-02-07 [other] milestones=[] eid=6e9bceb7-9f26-48db-af17-1e45e2af351c ---
+10:32 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+(R) Levothyroxine sodium 25microgram tablets - 56 tablet - take one each morning (125mcg total)
+(R) Levothyroxine sodium 100microgram tablets - 56 tablet - ONE DAILY
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+
+--- 19 2024-03-11 [other] milestones=[] eid=94f6ab2c-9d4d-4f85-98ee-2b5c82b0840f ---
+16:16 - Sent online by Mrs Yvonne Tyson  
+Request for 'Tamoxifen 20mg tablets' by patient
+
+--- 20 2024-03-12 [other] milestones=[] eid=1207d6c3-1743-45f3-8fe8-d055fb64c6b7 ---
+07:51 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+(R) Tamoxifen 20mg tablets - 90 tablet - One To Be Taken Each Day (until 2024)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+
+--- 21 2024-04-03 [other] milestones=[] eid=fe4051eb-ae1b-4cc4-a325-9e71cd17c517 ---
+17:39 - Sent online by Mrs Yvonne Tyson  
+Request for 'Levothyroxine sodium 100microgram tablets' by patient
+Request for 'Levothyroxine sodium 25microgram tablets' by patient
+
+--- 22 2024-04-03 [other] milestones=[] eid=71f67356-c1cc-431d-95f1-addcd04c3191 ---
+18:04 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+(R) Levothyroxine sodium 25microgram tablets - 56 tablet - take one each morning (125mcg total)
+(R) Levothyroxine sodium 100microgram tablets - 56 tablet - ONE DAILY
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+

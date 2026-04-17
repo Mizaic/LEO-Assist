@@ -1,0 +1,168 @@
+# -- R-LEO-AI-178 -- Validator over-rejection drops legitimate lexicon-gap matches
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-178"
+  title: "SNOMED proposal validator rejects clinically correct lexicon-gap matches when the surface uses lay/synonym wording, suppressing real findings from the gold training set"
+
+  hazard:
+    description: >
+      The SNOMED proposal validator's safety design biases
+      towards rejection: any proposal that fails the EXACT and
+      SEMANTIC branches falls back to the SURFACE branch, and
+      the SURFACE branch demands surface_match >= 0.7 plus
+      shared-token floor plus polarity guard. Surfaces that
+      use lay/synonym wording for a clinically real concept
+      ("rising PSA", "primary lung mass", "right kidney cyst")
+      can fail the SURFACE branch because the SNOMED preferred
+      term uses different wording, even though the embedding
+      and semantic tag agree. If the validator is too strict,
+      legitimate lexicon-gap proposals are dropped from the
+      gold training set, the next NER training cycle never
+      learns that surface, and the runtime model continues to
+      miss it.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A HITL-completed GoldLabel contains the surface "rising
+    PSA" annotated as an Observable. The LLM-driven backfill
+    re-extracts and proposes the same surface. The resolver
+    returns "Prostate specific antigen rising" (Concept
+    166970009) with had_exact_match=False but vector_raw=0.91
+    and surface_match=0.5. Under a strict validator
+    configuration this falls below the SEMANTIC branch's
+    surface floor and below the SURFACE branch's surface_match
+    threshold; the proposal is rejected. Multiple such
+    rejections accumulate across the 950-proposal backfill.
+    The next NER training cycle is trained on a thinner gold
+    set that does not include "rising PSA" as a coded
+    Observable; the runtime model misses it on subsequent
+    encounters; clinically meaningful lab trends are not
+    surfaced to the safety-net dashboard.
+
+  harm:
+    description: >
+      Reduced sensitivity of the runtime NER model on lay/
+      synonym surfaces. Specifically: surfaces that the runtime
+      coder COULD represent (the SNOMED concept exists, the
+      embedding agrees, the semantic tag aligns) are dropped
+      from training because the validator's surface-overlap
+      check is too strict. The downstream effect is missed
+      clinical signal -- a rising PSA trend, a primary lung
+      mass mentioned in lay terms in a referral letter, a
+      hydronephrosis described in plain English -- not
+      surfaced on dashboards or alerts that depend on coded
+      Observables and Findings.
+    severity: "minor"
+
+  hazardous_situation_likelihood: "occasional"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 4
+    rpn: 24
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The SEMANTIC branch admits surfaces with strong
+        embedding agreement and partial surface overlap:
+        vector_raw >= 0.92 AND surface_match >= 0.66 (i.e.
+        >= two-thirds of meaningful surface tokens shared
+        with the SNOMED preferred term). This is the
+        designated lane for legitimate lexicon-gap matches
+        like "prostate cancer" -> Malignant neoplasm of
+        prostate.
+      implemented_by: ["DI-LEO-AI-184"]
+      verified_by: ["VT-LEO-AI-178"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Defaults are tuned against the actual 950-proposal
+        backfill. Tightening of the SEMANTIC branch's
+        semantic_min_surface to 0.66 (down from the initial
+        0.5 baseline) was driven by audit evidence and
+        accompanied by a reduction from 244 to 240 kept
+        additions -- only 4 marginal cases were lost, all of
+        which were the documented false positives. Recall on
+        legitimate lexicon-gap surfaces was preserved.
+      implemented_by: ["DI-LEO-AI-184"]
+      verified_by: ["VT-LEO-AI-178"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Every rejection is recorded with a structured reason
+        (low_surface_match, tag_mismatch_all, no_candidates,
+        polarity_mismatch, shared_token_floor) and the closest
+        rank-1 candidate, written to *.validated.jsonl. A QA
+        reviewer can audit rejections, identify systematic
+        false negatives, and either (a) add a curated
+        SurfaceForm entry for the missing lay term so the
+        EXACT branch fires next time, or (b) propose a
+        threshold change with a new failing test.
+      implemented_by: ["DI-LEO-AI-184"]
+      verified_by: ["VT-LEO-AI-178"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        The CLI exposes thresholds as command-line arguments
+        so a QA reviewer can re-run the validation under
+        looser thresholds for an ad-hoc audit without
+        modifying source. Production defaults are governed by
+        the test suite -- a loosening that re-introduces a
+        documented false positive will fail VT-178 in CI.
+      implemented_by: ["DI-LEO-AI-184"]
+      verified_by: ["VT-LEO-AI-178"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The residual exposure is the small set of legitimate
+      surfaces that fail the SEMANTIC branch because either
+      vector_raw is between 0.85 and 0.92 (just below the
+      embedding floor) or surface_match is between 0.33 and
+      0.66 (just below the overlap floor). These cases
+      surface as low_surface_match rejections in the audit
+      log and are routed to QA review for either curated
+      SurfaceForm seeding or threshold revision. The
+      end-to-end re-validation showed only a 4-proposal net
+      reduction (244 -> 240) when the SEMANTIC branch was
+      tightened, which the audit confirmed was entirely
+      attributable to removing the documented false
+      positives. Detectability drops to 2 because every
+      rejection writes a structured record and the kept-set
+      summary tracks counts per reason.
+
+  monitoring:
+    monitoring_plan: >
+      Quarterly review of the *.validated.jsonl rejection log
+      from each backfill run. If low_surface_match rejections
+      rise materially without a corresponding rise in true
+      false positives, raise a CR to add curated
+      SurfaceForms for the missed surfaces or to relax the
+      SEMANTIC threshold (with a new test pinning the
+      relaxation against the documented false-positive set).
+    metrics:
+      - "Number of SEMANTIC-branch acceptances per backfill (target: >= 5% of accepted, demonstrating the lexicon-gap lane is in use)"
+      - "Number of low_surface_match rejections per backfill (track quarterly; investigate if rising trend without false-positive justification)"
+      - "Rate of curated SurfaceForms added in response to validator rejections (track quarterly; healthy mitigation indicator)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Rob Smith - 2026-04-17 SNOMED proposal validator threshold workshop following calibrated-score audit"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "terminology"
+      - "snomed"
+      - "validator"
+      - "lexicon-gap"
+      - "training-data-quality"
+      - "ner-pipeline"

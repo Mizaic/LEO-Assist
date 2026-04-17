@@ -1,0 +1,181 @@
+/**
+ * Render a rule logic tree into a human-readable summary.
+ *
+ * The summary is shown above the editor so a clinician with average
+ * reading age (UK 9-11) can understand what the rule means without
+ * walking the tree. The renderer is fully deterministic and pure so it
+ * can be tested in isolation; an LLM-backed alternative lives in
+ * Phase 4 / DI-LEO-AI-155.
+ *
+ * Returns a structured ``RuleSummary`` so the SummaryCard can render
+ * a lead sentence followed by an optional bullet list of pathways.
+ */
+
+import { friendlyTerm } from "./copy";
+import type { EditableLogicNode } from "./types";
+
+export interface PathwaySummary {
+  /** Connector word ("" for the first pathway, "or" thereafter). */
+  connector: string;
+  /** Short headline for this pathway. */
+  headline: string;
+  /** Each condition as a sub-sentence ("has cough", "is a smoker"). */
+  conditions: string[];
+}
+
+export interface RuleSummary {
+  /** Primary sentence shown in the summary card. */
+  lead: string;
+  /** Optional alternative routes when the tree has an OR branch. */
+  pathways?: PathwaySummary[];
+  /** Whether the renderer recognised the tree shape; false means we
+   * fell back to a generic flat join. */
+  isWellShaped: boolean;
+}
+
+const AGE_OPERATORS: Record<string, (v: string, unit: string) => string> = {
+  ">=": (v, u) => `${v} ${u} or older`,
+  "<=": (v, u) => `${v} ${u} or younger`,
+  ">": (v, u) => `over ${v} ${u}`,
+  "<": (v, u) => `under ${v} ${u}`,
+  "=": (v, u) => `exactly ${v} ${u}`,
+};
+
+const SEX_VALUES: Record<string, string> = {
+  male: "male",
+  female: "female",
+  m: "male",
+  f: "female",
+};
+
+function demographicToText(node: EditableLogicNode): string {
+  const field = node.field ?? "age";
+  const op = node.operator ?? "=";
+  const value = String(node.value ?? "");
+  const unit = node.unit ?? "";
+  if (!value) return "is a patient with an unfilled detail";
+  if (field === "age") {
+    const fmt = AGE_OPERATORS[op] ?? ((v: string, u: string) => `${op} ${v} ${u}`);
+    return `is ${fmt(value, unit || "years")}`;
+  }
+  if (field === "sex") {
+    return `is ${SEX_VALUES[value.toLowerCase()] ?? value}`;
+  }
+  return `has ${field} ${op} ${value} ${unit}`.trim();
+}
+
+function conceptText(node: EditableLogicNode): string {
+  const term = friendlyTerm(node.criterion?.preferred_term);
+  return term.toLowerCase() || "an unfilled symptom";
+}
+
+function listOfConcepts(nodes: EditableLogicNode[]): string {
+  const items = nodes.map(conceptText);
+  return joinWithLast(items, "or");
+}
+
+function joinWithLast(items: string[], lastSep: "and" | "or"): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} ${lastSep} ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, ${lastSep} ${items[items.length - 1]}`;
+}
+
+function leafToCondition(node: EditableLogicNode): string {
+  if (node.kind === "DEMOGRAPHIC") return demographicToText(node);
+  if (node.kind === "CONCEPT") return `has ${conceptText(node)}`;
+  if (node.kind === "AT_LEAST") {
+    const concepts = (node.children ?? []).filter((c) => c.kind === "CONCEPT");
+    const list = listOfConcepts(concepts);
+    return `has at least ${node.min ?? 1} of: ${list}`;
+  }
+  if (node.kind === "NOT") {
+    const inner = node.children?.[0];
+    return inner ? `does NOT have ${stripVerbPrefix(leafToCondition(inner))}` : "(empty NOT)";
+  }
+  // Nested AND / OR: render compactly inline
+  const parts = (node.children ?? []).map(leafToCondition);
+  const sep = node.kind === "AND" ? "and" : "or";
+  return joinWithLast(parts, sep);
+}
+
+function stripVerbPrefix(text: string): string {
+  return text
+    .replace(/^is\s+/i, "")
+    .replace(/^has\s+/i, "")
+    .replace(/^does\s+(?:not\s+)?have\s+/i, "");
+}
+
+function pathwayConditions(node: EditableLogicNode): string[] {
+  if (node.kind === "AND") {
+    return (node.children ?? []).map(leafToCondition);
+  }
+  return [leafToCondition(node)];
+}
+
+function pathwayHeadline(node: EditableLogicNode, index: number): string {
+  if (index === 0) return "Pathway A";
+  return `Pathway ${String.fromCharCode(65 + index)}`;
+}
+
+/**
+ * Render the tree to a structured summary. Recognises the common
+ * shape ``AND[Demographics..., OR[pathway1, pathway2, ...]]`` and
+ * splits it into a lead sentence + pathway list. Other shapes fall
+ * back to a single sentence.
+ */
+export function treeToSentence(node: EditableLogicNode | null): RuleSummary {
+  if (!node) {
+    return {
+      lead: "This rule has no conditions yet. Add a symptom or patient detail to get started.",
+      isWellShaped: false,
+    };
+  }
+
+  // Common pathway shape: AND[Demo*, OR[...pathways]]
+  if (node.kind === "AND") {
+    const children = node.children ?? [];
+    const demos = children.filter((c) => c.kind === "DEMOGRAPHIC");
+    const orChildren = children.filter((c) => c.kind === "OR");
+    const otherCount = children.length - demos.length - orChildren.length;
+
+    if (orChildren.length === 1 && otherCount === 0) {
+      const orChild = orChildren[0];
+      const demoText = joinWithLast(demos.map(leafToCondition), "and");
+      const lead = demoText
+        ? `Applies to patients who ${demoText}, AND match one of these pathways:`
+        : "Applies to patients who match any of these pathways:";
+      const pathways: PathwaySummary[] = (orChild.children ?? []).map((p, i) => ({
+        connector: i === 0 ? "" : "OR",
+        headline: pathwayHeadline(p, i),
+        conditions: pathwayConditions(p),
+      }));
+      return { lead, pathways, isWellShaped: true };
+    }
+
+    // Flat AND of leaves
+    const allParts = children.map(leafToCondition);
+    return {
+      lead: `Applies to patients who ${joinWithLast(allParts, "and")}.`,
+      isWellShaped: true,
+    };
+  }
+
+  if (node.kind === "OR") {
+    const pathways: PathwaySummary[] = (node.children ?? []).map((p, i) => ({
+      connector: i === 0 ? "" : "OR",
+      headline: pathwayHeadline(p, i),
+      conditions: pathwayConditions(p),
+    }));
+    return {
+      lead: "Applies to patients who match any of these pathways:",
+      pathways,
+      isWellShaped: true,
+    };
+  }
+
+  return {
+    lead: `Applies to patients who ${leafToCondition(node)}.`,
+    isWellShaped: true,
+  };
+}

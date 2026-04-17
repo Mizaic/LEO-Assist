@@ -12,8 +12,13 @@ from datetime import date, timedelta
 import pytest
 
 
-def test_same_day_referral_is_skipped():
-    """VT-119-TC-001: A same-day referral candidate is not selected."""
+def test_same_day_referral_is_claimed():
+    """VT-119-TC-001: DI-LEO-AI-145 -- same-day (d-0) PRISM referral IS claimed.
+
+    MIN_REFERRAL_TO_DIAG_DAYS was reduced from 3 to 0 to support one-stop
+    breast/dermatology clinics where the GP completes the PRISM questionnaire
+    and the suspected-cancer SNOMED code is entered on the same calendar day.
+    """
     from services.analysis_worker.app.analyzers.episode_builder._grouping import (
         _find_best_referral,
     )
@@ -27,7 +32,11 @@ def test_same_day_referral_is_skipped():
         }
     ]
     result = _find_best_referral(diag, "breast", sorted_ref, set())
-    assert result is None
+    assert result is not None, (
+        "DI-LEO-AI-145: same-day PRISM referral must be claimed (MIN_REFERRAL_TO_DIAG_DAYS=0)"
+    )
+    idx, ref_date = result
+    assert ref_date == date(2024, 2, 1)
 
 
 def test_earlier_referral_preferred_over_sub_gap_candidate():
@@ -65,8 +74,8 @@ def test_min_gap_respects_env_override(monkeypatch):
     reloaded = importlib.reload(cfg)
     assert reloaded.MIN_REFERRAL_TO_DIAG_DAYS == 7
 
-    # restore default for downstream tests in the same session
-    monkeypatch.setenv("EPISODE_MIN_REFERRAL_TO_DIAG_DAYS", "3")
+    # DI-LEO-AI-145: default changed from 3 to 0; restore to new default
+    monkeypatch.setenv("EPISODE_MIN_REFERRAL_TO_DIAG_DAYS", "0")
     importlib.reload(cfg)
 
 

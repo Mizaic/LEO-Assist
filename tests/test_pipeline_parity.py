@@ -175,6 +175,20 @@ def test_parity_observable_normalisation() -> None:
     )
 
 
+def test_parity_lab_triple_recovery_reticulocyte_observation() -> None:
+    """Recovery layer must produce identical triples in train and runtime.
+
+    Reproduces the production defect from the user's bug report: the
+    Reticulocyte observation line where the model emits nothing and
+    Layer 3b must add procedure / observable_entity / finding.
+    """
+    _assert_parity(
+        "Reticulocyte count - observation (42X..) 96 10^9/L [20 - 80] "
+        "- Outside reference range",
+        [],
+    )
+
+
 def test_parity_situation_lookup() -> None:
     _assert_parity(
         "Referred to cardiology for assessment",

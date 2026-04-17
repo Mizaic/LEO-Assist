@@ -1,0 +1,124 @@
+# -- DO-LEO-AI-164 -- TestPatient persistence, content-hash dedup and Cypher
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-164"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-165"]
+    user_needs: ["UN-LEO-AI-076"]
+    risks_addressed: ["R-LEO-AI-166"]
+    verification_tests: ["VT-LEO-AI-164"]
+
+  specification:
+    title: "TestPatient + RulesetReplay Cypher and persistence service"
+    description: |
+      Adds the persistence layer for the reusable test-patient library.
+
+      1. libs/cypher/test_patient_queries.py
+         - TEST_PATIENT_CONSTRAINTS:
+             constraint test_patient_id (unique :TestPatient.id)
+             index test_patient_guideline (:TestPatient.guideline_id)
+             index test_patient_content_hash (:TestPatient.content_hash)
+             constraint ruleset_replay_id (unique :RulesetReplay.id)
+             index ruleset_replay_version (:RulesetReplay.ruleset_version)
+         - CREATE_TEST_PATIENT MERGE-FIXTURE_FOR-Guideline.
+         - WRITE_EXPECTED_RESULT MERGE-EXPECTED_RESULT-AppropriatenessRule.
+         - LIST_TEST_PATIENTS, GET_TEST_PATIENT, DELETE_TEST_PATIENT,
+           FIND_BY_CONTENT_HASH, LIST_GUIDELINES_FOR_PICKER,
+           LIST_RULES_IN_SCOPE, WRITE_REPLAY_REPORT,
+           LIST_REPLAY_REPORTS, GET_REPLAY_REPORT.
+
+      2. libs/cypher/schema_constraints.py
+         - Imports TEST_PATIENT_CONSTRAINTS so the Coding graph client
+           applies them on startup alongside existing rule and concept
+           constraints.
+
+      3. services/api/app/services/test_patient_service.py
+         - PatientPayload dataclass with normalised_codes() and
+           content_hash() (blake2b, 16-byte digest).
+         - find_existing(), confirm_and_save(), list_patients(),
+           get_patient(), delete_patient().
+         - dry_run() that walks each matched rule's logic tree to
+           build branch_paths.
+         - diff_replay(), replay_one(), replay_scope(),
+           _persist_replay_report(), list_replay_reports(),
+           get_replay_report().
+
+      4. services/api/app/routers/test_patients.py
+         - Mounts /guidance/test-patients with PatientBody, DryRunRequest,
+           SaveRequest, GenerateRequest, ReplayRequest, ExpectationBody.
+         - All routes gated by require_admin.
+
+    acceptance_criteria:
+      - criterion: "Schema constraints are applied"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          TEST_PATIENT_CONSTRAINTS appears in CODING_SCHEMA_CONSTRAINTS;
+          a fresh CodingGraphClient.startup() applies the constraint
+          and index statements without error.
+      - criterion: "Idempotent save on duplicate hash"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Saving twice with the same (codes, age, sex, pathway_id) and
+          skip_if_exists=True yields {created: false, reason: 'duplicate',
+          expectations_written: 0} on the second call.
+      - criterion: "Expectation rels carry ruleset_version"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Every (:TestPatient)-[r:EXPECTED_RESULT]->(:AppropriatenessRule)
+          edge carries r.ruleset_version, r.snapshot_at, r.snapshot_by,
+          r.matched_branch_node_ids and r.fires.
+      - criterion: "Admin gate on every endpoint"
+        type: "safety"
+        measurement: "Inspection"
+        target: >
+          Every router function in test_patients.py declares
+          scope: CallerScope = Depends(require_admin) and a request
+          made without admin role returns HTTP 403.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/cypher/test_patient_queries.py"
+        description: "Cypher constraints + queries for TestPatient and RulesetReplay"
+      - artifact_type: "source_code"
+        location: "libs/cypher/schema_constraints.py"
+        description: "Imports TEST_PATIENT_CONSTRAINTS into the Coding graph schema"
+      - artifact_type: "source_code"
+        location: "services/api/app/services/test_patient_service.py"
+        description: >
+          PatientPayload, dry_run, confirm_and_save, list_patients,
+          delete_patient, diff_replay, replay_one, replay_scope,
+          _persist_replay_report, list_replay_reports, get_replay_report.
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/test_patients.py"
+        description: "FastAPI router for /guidance/test-patients/*"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 700
+      key_functions:
+        - "PatientPayload.content_hash"
+        - "confirm_and_save"
+        - "dry_run"
+        - "diff_replay"
+        - "replay_scope"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Snapshot integrity: every saved EXPECTED_RESULT carries the ruleset_version it was confirmed against, so a later regression diff is unambiguous."
+      - "Admin gate on every endpoint prevents non-admin authors from polluting the regression cohort."
+    risk_control_measures:
+      - "Content-hash dedup blocks accidental cohort drift from generator re-runs."
+      - "Skip_if_exists default True means re-saving a confirmed patient is a no-op, not a destructive overwrite."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

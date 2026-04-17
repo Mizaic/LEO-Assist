@@ -188,7 +188,7 @@ _SERVICE_CONFIG_KEY = "terminology:resolve_runtime"
 _SERVICE_CONFIG_CACHE_TTL_SECONDS = float(
     os.getenv("SERVICE_CONFIG_CACHE_TTL_SECONDS", "15")
 )
-_TERMINOLOGY_CACHE_PREFIX = os.getenv("TERMINOLOGY_CACHE_PREFIX", "terminology:api:v1:")
+_TERMINOLOGY_CACHE_PREFIX = os.getenv("TERMINOLOGY_CACHE_PREFIX", "terminology:api:v3:")
 _TERMINOLOGY_CACHE_TTL_SECONDS = int(os.getenv("TERMINOLOGY_CACHE_TTL_SECONDS", "3600"))
 _TERMINOLOGY_CACHE_CONNECT_TIMEOUT = 2
 _TERMINOLOGY_CACHE_SOCKET_TIMEOUT = 2
@@ -228,7 +228,15 @@ _ignore_pattern_cache_value: tuple[re.Pattern[str], ...] = ()
 
 @dataclass(frozen=True)
 class ResolvedTerm:
-    """A single terminology resolution result."""
+    """A single terminology resolution result.
+
+    The fused ``score`` is normalised relative to the term's own
+    candidate pool (the top candidate for a term always normalises
+    to ~1.0, then a 1.3 tag-match boost is applied) so it conveys
+    "best-of-this-search" but NOT absolute match strength. Use the
+    ``had_exact_match``, ``lexical_raw``, and ``vector_raw`` fields
+    below for calibrated downstream gating.
+    """
 
     text: str
     concept_id: str | None = None
@@ -236,6 +244,9 @@ class ResolvedTerm:
     semantic_tag: str | None = None
     score: float = 0.0
     read_code: str | None = None
+    had_exact_match: bool = False
+    lexical_raw: float = 0.0
+    vector_raw: float = 0.0
     raw: dict = field(default_factory=dict)
 
 
@@ -257,6 +268,9 @@ def _parse_results(
                 semantic_tag=c.get("semanticTag") or c.get("semantic_tag"),
                 score=float(c.get("score", 0.0)),
                 read_code=c.get("readCode") or c.get("read_code"),
+                had_exact_match=bool(c.get("had_exact_match", False)),
+                lexical_raw=float(c.get("lexical_raw", 0.0)),
+                vector_raw=float(c.get("vector_raw", 0.0)),
                 raw=c,
             )
             for c in candidates

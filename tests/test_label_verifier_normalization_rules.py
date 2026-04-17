@@ -219,15 +219,34 @@ def test_exact_duplicate_is_suppressed() -> None:
 
 
 def test_sub_span_of_same_label_is_suppressed() -> None:
+    # Sub-span suppression now requires the nested span to share the
+    # same normalised lookup term as the containing span (so we do not
+    # silently merge genuinely distinct concepts such as "breast lesion"
+    # and "malignant neoplasm of breast"). Setting `normalized` to the
+    # same value forces the three spans to be treated as the same
+    # concept and the two narrower copies should be suppressed.
     entities = [
         {
             "text": "Serum TSH level",
             "label": "observable_entity",
             "start": 0,
             "end": 15,
+            "normalized": "serum tsh level",
         },
-        {"text": "Serum TSH", "label": "observable_entity", "start": 0, "end": 9},
-        {"text": "TSH level", "label": "observable_entity", "start": 6, "end": 15},
+        {
+            "text": "Serum TSH",
+            "label": "observable_entity",
+            "start": 0,
+            "end": 9,
+            "normalized": "serum tsh level",
+        },
+        {
+            "text": "TSH level",
+            "label": "observable_entity",
+            "start": 6,
+            "end": 15,
+            "normalized": "serum tsh level",
+        },
     ]
     _normalise_entity_types(entities)
     assert len(entities) == 1

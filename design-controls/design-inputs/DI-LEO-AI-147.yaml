@@ -1,0 +1,153 @@
+# -- DI-LEO-AI-147 -- Wave E Phase 3: CRUD Knowledge tabs on @leo/design-system
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-147"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-071"]
+  requirement: >
+    The four CRUD-style Knowledge tabs -- Context Rules, Surface Forms,
+    Domains and Terminology -- SHALL be rebuilt onto the shared
+    @leo/design-system chrome primitives (KnowledgePageLayout supplies
+    the wrapper; each page renders StatHero, ToolbarActions and either
+    SegmentedTabs or FilterBar internally) and onto a body primitive
+    chosen for the page's interaction shape:
+      - Context Rules: ReviewListCard with ProgressiveReveal for the
+        plain-English description and worked example of every rule.
+      - Surface Forms: existing concept-group cards retained for the
+        alias-chip + AI-suggestion interaction (no current primitive
+        matches the shape) but re-styled to the design-system tokens
+        and wrapped in StatHero + FilterBar + ToolbarActions chrome.
+      - Domains: motion-enabled card grid (DomainCard) using
+        framer-motion for hover and tap feedback; pages list area
+        cards in a responsive grid driven by SegmentedTabs filtering
+        by source.
+      - Terminology: tone-accented PackageCards (one per terminology
+        package) plus a streaming LogPanel for the sync transcript;
+        chrome supplies StatHero with Neo4j counts and a Refresh
+        ToolbarAction.
+    Every page MUST keep its existing data-loading, write and
+    streaming handlers (loadRules / handleAdd / handleDeactivate /
+    exportContextRulesPdf for Context Rules; handleAuditDuplicates /
+    handleDeduplicate / handleSuggest / handleDeleteGroup /
+    handleAddAlias for Surface Forms; loadDomains / createDomain for
+    Domains; fetchStatus / startSync / cancelSync + EventSource for
+    Terminology). The legacy page-owned chrome (Breadcrumbs, top
+    h5 page title, "Domain Configuration" heading, Box maxWidth
+    wrapper) MUST be removed because KnowledgePageLayout supplies it
+    upstream.
+  rationale: >
+    After Wave E Phase 2 calmed the Training Data tab, the four CRUD
+    tabs were the next worst offenders: each one rendered a different
+    style of chrome (Context Rules: tabs + table; Surface Forms:
+    breadcrumbs + dense card; Domains: back-button heading + plain
+    list; Terminology: cards-without-stats and a raw text log). The
+    inconsistency made the Knowledge area feel like four different
+    products glued together, which directly contradicts UN-LEO-AI-071
+    AC-001 ("every Knowledge tab body renders through primitives
+    exported from @leo/design-system"). Picking the right body
+    primitive per page (rather than forcing one grid component on
+    everything) keeps each surface honest to its data shape while
+    sharing the same chrome language.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          AC-001: All four pages import StatHero and ToolbarActions
+          from @leo/design-system. Context Rules additionally imports
+          SegmentedTabs, ReviewListCard and ProgressiveReveal;
+          Surface Forms imports FilterBar; Domains imports
+          SegmentedTabs.
+      - type: "functional"
+        spec: >
+          AC-002: The legacy page-owned chrome is removed --
+          specifically, no <Breadcrumbs> in Context Rules, Surface
+          Forms or Terminology; no h5 page title competing with the
+          KnowledgePageLayout intro on any of the four pages; no
+          "Domain Configuration" heading on Domains.
+      - type: "functional"
+        spec: >
+          AC-003: ToolbarActions exposes a single primary action per
+          page, with secondary actions as text or grouped icons.
+          Context Rules: "Add rule" primary, "Export PDF" secondary.
+          Surface Forms: "Add SNOMED concept" primary, "Audit
+          duplicates" secondary. Domains: "Create area" primary
+          (gated on platform_admin via showCreateButton). Terminology:
+          "Refresh" secondary (no destructive primary).
+      - type: "functional"
+        spec: >
+          AC-004: All pre-existing handlers continue to be wired:
+          loadRules / handleAdd / handleDeactivate /
+          exportContextRulesPdf (Context Rules);
+          handleAuditDuplicates / handleDeduplicate / handleSuggest /
+          handleDeleteGroup / handleAddAlias (Surface Forms);
+          loadDomains / createDomain (Domains); fetchStatus /
+          startSync / cancelSync + EventSource (Terminology).
+      - type: "functional"
+        spec: >
+          AC-005: Context Rules renders rules via <ReviewListCard>
+          and exposes the plain-English description + worked example
+          via <ProgressiveReveal> so each rule's chrome is calm by
+          default. Domains renders a grid (data-testid:
+          domains-grid) of motion-enabled DomainCard buttons.
+          Terminology renders one PackageCard per package and a
+          LogPanel (data-testid: terminology-log-panel).
+      - type: "functional"
+        spec: >
+          AC-006: Surface Forms wraps its search and toolbar in a
+          single <FilterBar> so the search input, audit and add
+          actions sit on the same row, matching the chrome of the
+          other CRUD tabs.
+    constraints:
+      - type: "safety"
+        spec: >
+          The redesign MUST NOT silently drop any reviewer-controlled
+          action. In particular: the Surface Forms duplicate-audit,
+          AI-suggest and delete actions MUST remain reachable; the
+          Domains create-area button MUST stay gated on
+          platform_admin via the showCreateButton prop; the
+          Terminology streaming sync MUST keep its cancel handler so
+          a runaway sync can always be stopped.
+      - type: "safety"
+        spec: >
+          Pages MUST continue to render correctly when accessed
+          either standalone (legacy /settings/{context-rules,
+          surface-forms, domains, terminology} routes) or wrapped by
+          KnowledgePageLayout via /admin/knowledge. The internal
+          StatHero + ToolbarActions chrome MUST therefore be
+          self-contained and not assume an outer page intro is
+          present.
+    dependencies: ["DI-LEO-AI-142", "DI-LEO-AI-143"]
+    downstream_impacts:
+      - "services/ui/src/app/settings/context-rules/page.tsx"
+      - "services/ui/src/app/settings/surface-forms/page.tsx"
+      - "services/ui/src/app/settings/domains/page.tsx"
+      - "services/ui/src/app/settings/terminology/page.tsx"
+    technical_details:
+      language: "TypeScript"
+      framework: "React + Next.js + MUI + Framer Motion + @leo/design-system"
+      file_structure:
+        - "services/ui/src/app/settings/context-rules/page.tsx"
+        - "services/ui/src/app/settings/surface-forms/page.tsx"
+        - "services/ui/src/app/settings/domains/page.tsx"
+        - "services/ui/src/app/settings/terminology/page.tsx"
+      estimated_loc: 2200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-145 passes: 20 test cases covering import
+      assertions, legacy-chrome removal, handler preservation,
+      single-primary-action ToolbarActions, and per-page body
+      primitive selection.
+    test_protocol: "VT-LEO-AI-145"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-100"]
+  tags:
+    - "knowledge"
+    - "design-system"
+    - "wave-e"
+    - "phase-3"
+    - "crud-tabs"

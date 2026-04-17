@@ -1,14 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+/**
+ * Surface Forms -- Wave E Phase 3b chrome redesign
+ *
+ * Visible chrome (intro + page width) is provided upstream by
+ * KnowledgePageLayout when this page is mounted inside the Knowledge
+ * tab system. The page itself contributes:
+ *   - StatHero: concepts on this page / total concepts / total aliases.
+ *   - FilterBar: search across alias/concept name/SNOMED/Read code.
+ *   - ToolbarActions: Audit duplicates + Add SNOMED concept.
+ *
+ * The concept-group cards retain their bespoke alias-chip + inline
+ * add-alias editor + AI-suggestion behaviour because no design-system
+ * primitive captures that interaction shape; they are re-styled to
+ * match the rest of Knowledge through the wrapping layout.
+ *
+ * Design Controls: DI-LEO-AI-147, DO-LEO-AI-143, VT-LEO-AI-145.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
-import Link from "@mui/material/Link";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
@@ -34,6 +49,13 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import InputAdornment from "@mui/material/InputAdornment";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import {
+  FilterBar,
+  StatHero,
+  ToolbarActions,
+  type StatTile,
+  type ToolbarAction,
+} from "@leo/design-system";
 import {
   fetchGroupedSurfaceForms,
   fetchSurfaceForms,
@@ -74,8 +96,6 @@ interface AliasConflict {
 }
 
 export default function SurfaceFormsPage() {
-  const router = useRouter();
-
   // ── Search + pagination ───────────────────────────────────
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
@@ -429,32 +449,66 @@ export default function SurfaceFormsPage() {
     if (e.key === "Escape") { setAddAliasFor(null); setAddAliasInput(""); setAliasConflict(null); }
   };
 
-  return (
-    <Box sx={{ p: 3, maxWidth: 1100, mx: "auto" }}>
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link
-          underline="hover"
-          color="inherit"
-          sx={{ cursor: "pointer" }}
-          onClick={() => router.push("/settings")}
-        >
-          Settings
-        </Link>
-        <Typography color="text.primary">Surface Forms</Typography>
-      </Breadcrumbs>
+  const stats = useMemo<StatTile[]>(
+    () => [
+      {
+        id: "concepts",
+        label: "Concepts",
+        value: total.toLocaleString(),
+        hint: "Total SNOMED concepts mapped",
+      },
+      {
+        id: "concepts-on-page",
+        label: "On this page",
+        value: groups.length.toLocaleString(),
+        hint: query
+          ? `Matches "${query}"`
+          : "Showing the current page of concepts",
+      },
+      {
+        id: "aliases",
+        label: "Aliases on page",
+        value: totalAliases.toLocaleString(),
+        hint: "Surface-form text the pipeline recognises",
+        tone: "positive",
+      },
+    ],
+    [total, groups.length, totalAliases, query],
+  );
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-        <IconButton aria-label="Back to settings" size="small" onClick={() => router.push("/settings")}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-          Surface Forms
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Surface forms are text strings the NLP pipeline maps to SNOMED concepts. Grouped by concept
-        — add or remove aliases and concepts here.
-      </Typography>
+  const toolbarActions: ToolbarAction[] = [
+    {
+      id: "audit-duplicates",
+      label: duplicatesLoading ? "Auditing" : "Audit duplicates",
+      icon: duplicatesLoading ? (
+        <CircularProgress size={14} aria-label="Loading" />
+      ) : (
+        <WarningAmberIcon fontSize="small" />
+      ),
+      variant: "secondary",
+      onClick: handleAuditDuplicates,
+      disabled: duplicatesLoading || deduping,
+      loading: duplicatesLoading,
+    },
+    {
+      id: "add-concept",
+      label: addConceptOpen ? "Cancel" : "Add SNOMED concept",
+      icon: addConceptOpen ? undefined : (
+        <AddCircleOutlineIcon fontSize="small" />
+      ),
+      variant: "primary",
+      onClick: () => {
+        setAddConceptOpen((o) => !o);
+        setAddConceptQuery("");
+        setAddConceptResults([]);
+        setAddConceptWarning(null);
+      },
+    },
+  ];
+
+  return (
+    <Box>
+      <StatHero stats={stats} />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
@@ -462,55 +516,23 @@ export default function SurfaceFormsPage() {
         </Alert>
       )}
 
-      {/* ── Toolbar ─────────────────────────────────────────── */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
-        <TextField
-          size="small"
-          placeholder="Search by alias, concept name, SNOMED or Read code…"
-          value={searchInput}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          aria-label="Search by alias, concept name, SNOMED or Read code"
-          sx={{ width: 380 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" color="action" />
-              </InputAdornment>
-            ),
-          }}
+      <Box sx={{ mb: 2 }}>
+        <FilterBar
+          search={searchInput}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Search by alias, concept name, SNOMED or Read code"
+          aria-label="Search surface forms"
+          trailing={<ToolbarActions actions={toolbarActions} />}
         />
-        <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
-          {loading
-            ? "Loading…"
-            : `${total.toLocaleString()} concept${total === 1 ? "" : "s"} · ${totalAliases.toLocaleString()} alias${totalAliases === 1 ? "" : "es"}`}
-        </Typography>
-        <Button
-          size="small"
-          variant="outlined"
-          color="warning"
-          startIcon={
-            duplicatesLoading
-              ? <CircularProgress aria-label="Loading" size={14} />
-              : <WarningAmberIcon fontSize="small" />
-          }
-          onClick={handleAuditDuplicates}
-          disabled={duplicatesLoading || deduping}
-        >
-          Audit duplicates
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<AddCircleOutlineIcon fontSize="small" />}
-          onClick={() => {
-            setAddConceptOpen((o) => !o);
-            setAddConceptQuery("");
-            setAddConceptResults([]);
-            setAddConceptWarning(null);
-          }}
-        >
-          Add SNOMED concept
-        </Button>
+        {loading ? (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mt: 1 }}
+          >
+            Loading...
+          </Typography>
+        ) : null}
       </Box>
 
       {/* ── Deduplication result banner ──────────────────────── */}

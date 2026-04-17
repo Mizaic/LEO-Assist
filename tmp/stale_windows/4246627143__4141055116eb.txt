@@ -1,0 +1,98 @@
+======================================================================
+PATIENT      : 4246627143
+EPISODE      : 4141055116ebb405
+CANCER_TYPE  : breast
+STATUS       : stale_post_specialist
+REFERRAL     : 2024-04-30
+WINDOW       : 2024-04-16 .. 2024-07-29 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2024-04-30  referral                enc=720620e5-c15a-4b36-92fa-00f80560b627
+  2024-04-30  referral                enc=b818faa8-d7d4-4567-9f19-311ffbe71c88
+  2024-05-05  first_seen              enc=ce207be7-2eea-4ab7-8846-5b849a56edee
+  2024-05-10  referral                enc=c30930a3-7d62-4aba-99dc-68fa9dfd60bb
+  2024-07-03  first_seen              enc=7c676d50-011d-4bda-b23c-e3c4f757c71a
+  2025-06-11  first_seen              enc=7bc48a34-ef57-4006-a568-50df88f63d50
+  2025-06-16  first_seen              enc=0f891eff-568f-4065-be08-1f43914f6458
+
+Encounters in window (n=11):
+
+--- 01 2024-04-30 [other] milestones=[] eid=a9a91e2f-effa-434a-9e6c-19ceaf2f3777 ---
+08:14 - Surgery: OLSBERG, Felicity (Receptionist Access Role)
+
+--- 02 2024-04-30 [other] milestones=[] eid=1b08a78b-1224-4935-9925-a340d1da8901 ---
+Confirmation of appointment at Woodbrook Medical Centre - 30 Apr 2024 at 10:50 with Dr Eiman Bashir. Please call the surgery on 01509 239166 if you are unable to attend.
+
+--- 03 2024-04-30 [other] milestones=[] eid=8f311b9c-2f2b-456d-8727-6e0a3a077c2b ---
+10:53 - GP Surgery: BASHIR, Eiman (Dr) (Clinical Practitioner Access Role) 
+History: Breast lump (K3171) (Ongoing Episode)- 5 weeks , 
+Has sensation of  painful lump - streak like from armpit to right breast, 
+Had this in the past and seen by BReast clinic- as Fibrocytic changes, 
+Now started HRT- combined and noted that this has become persistent and feels this coming from armpit , 
+NO nipple change or skin chnage, 
+no family hx of breast cancer .
+Perimenopause
+Examination: The Right breast has no peaud orange , no nipple retraction , 
+there is some nodularity around the axillary tail and als o a lumpy breast tissu on the outer quandrant , no attached to nay tissue, 
+Left BReast - noskin changes, no nipple retraction , 
+ther breast tissue prominnet at axillary tail, 
+No axillary LN in both sides
+Plan: Dicussed could be changes due to hormone - Combined- small risk of breastca and there fore will refer to Breast clinic on 2 ww, tob rule that out .
+Community Pharmacy - Amendment via PDSPrevious data: Saraj Chemist, 206 Park Road, Loughborough, Leicestershire LE11 2HJ 
+Tel: 01509 263622
+
+--- 04 2024-04-30 [IN-EP] milestones=['referral'] eid=720620e5-c15a-4b36-92fa-00f80560b627 ---
+11:34 - Surgery: BASHIR, Eiman (Dr) (Clinical Practitioner Access Role) 
+- PRISM 2WW Breast Female -  questionnaire started - (finalised: 30 Apr 2024 11:34)
+Fast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+      2WW Breast Female Referral Pathway/Breast Clinic accessed
+      Outbound referral (XaY59)
+       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 30 Apr 2024 11:34)
+       2WW Breast Female PRISM to Unknown 
+ - PRISM 2WW Breast Female Drawing
+    
+2WW Breast Female PRISM to Unknown 
+Outbound referral (XaY59)
+2WW Breast Female Referral Pathway/Breast Clinic accessed
+
+--- 05 2024-04-30 [IN-EP] milestones=['referral'] eid=b818faa8-d7d4-4567-9f19-311ffbe71c88 ---
+14:49 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected breast cancer (XaMeC)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww Breast
+Hospital Fast track referral for suspected breast cancer
+Hospital Fast track referral for suspected breast cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww Breast
+
+--- 06 2024-05-05 [other] milestones=[] eid=429c2e68-f9d3-43cf-91f1-b67aecc418dc ---
+Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Breast to Woodbrook Medical Centre
+
+--- 07 2024-05-05 [IN-EP] milestones=['first_seen'] eid=ce207be7-2eea-4ab7-8846-5b849a56edee ---
+00:00 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Seen in fast track suspected breast cancer clinic (XaPyQ) (New Episode)
+
+--- 08 2024-05-05 [other] milestones=[] eid=21e44151-9cab-44b4-a47d-0eacc13acf24 ---
+Surgery: JONES, Emma (Medical Secretary Access Role) 
+First outpatient appointment date (XaKHc)
+OPA 05/05/24 GH
+
+--- 09 2024-05-05 [other] milestones=[] eid=3853108b-49d9-4237-9836-104b84e51380 ---
+Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role) 
+Mammogram (537..) (New Episode)
+US scan of breast (585C.) (New Episode)
+
+--- 10 2024-05-10 [IN-EP] milestones=['referral'] eid=c30930a3-7d62-4aba-99dc-68fa9dfd60bb ---
+10:20 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ 2WW
+   Date of First outpatient appointment: 05 May 2024 OPA 05/05/24 GH
+
+--- 11 2024-07-03 [IN-EP] milestones=['first_seen'] eid=7c676d50-011d-4bda-b23c-e3c4f757c71a ---
+17:05 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 05 May 2024
+

@@ -180,7 +180,7 @@
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Terminology resolver selects wrong SNOMED concept from multiple candidates",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | Workshop flag: Dedup Auditor - keep both but cross-link. R-055 is a high-severity subset of R-004.",
       "hazard_description": "An ambiguous clinical term is linked to the wrong SNOMED concept, causing incorrect classification or value set matching",
       "hazard_category": "software_defect",
       "hazardous_situation": "An ambiguous clinical term is linked to the wrong SNOMED concept, causing incorrect classification or value set matching",
@@ -206,7 +206,7 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
+      "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor - keep both but cross-link. R-055 is a high-severity subset of R-004.",
       "_master_id": "MR-004",
       "_proposed_r_id": "R-LEO-AI-004",
       "_action": "MIGRATE_YAML",
@@ -1757,7 +1757,7 @@
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Pipeline codes treatment recommendations or safety-netting advice as present clinical findings",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | Workshop flag: Dedup Auditor flagged R-054 and R-033 as possible merge (non-clinical text miscoded as finding). Medium confidence - retain both.",
       "hazard_description": "A clinical encounter contains treatment plans, safety-netting advice, or     speculative diagnostic statements. The LLM extracts entities from these     sentences with assertion \"present\" rather than \"hypothetical\" or     \"possible\". In autonomous mode, these entities pass the tier classifier's     Tier 1/2 gates and are persisted to the patient graph as confirmed clinical     findings. In HITL mode, they appear as coding suggestions that waste     reviewer time and erode trust.",
       "hazard_category": "software_defect",
       "hazardous_situation": "A clinical encounter contains treatment plans, safety-netting advice, or     speculative diagnostic statements. The LLM extracts entities from these     sentences with assertion \"present\" rather than \"hypothetical\" or     \"possible\". In autonomous mode, these entities pass the tier classifier's     Tier 1/2 gates and are persisted to the patient graph as confirmed clinical     findings. In HITL mode, they appear as coding suggestions that waste     reviewer time and erode trust.",
@@ -1788,7 +1788,7 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
+      "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-054 and R-033 as possible merge (non-clinical text miscoded as finding). Medium confidence - retain both.",
       "_master_id": "MR-033",
       "_proposed_r_id": "R-LEO-AI-033",
       "_action": "MIGRATE_YAML",
@@ -2900,7 +2900,7 @@
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Holdout encounters leak into training data, inflating evaluation metrics and concealing true model performance on unseen encounters.",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: FMEA-037. Existing YAML risk | Added FMEA link: FMEA-037 (holdout leakage)",
       "hazard_description": "The training export query omits the holdout filter (e.g. due to a code     change that drops the WHERE clause). Holdout encounters are included in     ner_training_gold.jsonl. The model trains on these examples. At evaluation,     the model scores well on the holdout set because it has already seen the     data. The NER team concludes the model is production-ready. In production,     the model performs worse than the metrics indicated, including on     safety-critical categories (cancer, safegua",
       "hazard_category": "software_defect",
       "hazardous_situation": "The training export query omits the holdout filter (e.g. due to a code     change that drops the WHERE clause). Holdout encounters are included in     ner_training_gold.jsonl. The model trains on these examples. At evaluation,     the model scores well on the holdout set because it has already seen the     data. The NER team concludes the model is production-ready. In production,     the model performs worse than the metrics indicated, including on     safety-critical categories (cancer, safegua",
@@ -2915,7 +2915,8 @@
       "identified_by": "LEO-AI-CORE FMEA master list 2026-04-16",
       "identified_date": "2026-04-16",
       "tags": [
-        "yaml"
+        "yaml",
+        "fmea-037"
       ],
       "monitoring_plan": "Monitor via DQ dashboards, coding quality alerts, and post-market surveillance. Review quarterly at hazard workshop.",
       "monitoring_metrics": [
@@ -2926,7 +2927,7 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
+      "mitigation_measures_detail": "Existing YAML risk | Added FMEA link: FMEA-037 (holdout leakage)",
       "_master_id": "MR-053",
       "_proposed_r_id": "R-LEO-AI-053",
       "_action": "MIGRATE_YAML",
@@ -2950,7 +2951,7 @@
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Administrative appointment header lines are coded as clinical SNOMED findings",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | Workshop flag: Dedup Auditor flagged R-054 and R-033 as possible merge (non-clinical text miscoded as finding). Medium confidence - retain both.",
       "hazard_description": "During encounter processing, the sentence splitter produces a chunk from     an administrative header line. The NER or LLM extractor identifies a     clinical context code and the pipeline writes a DOCUMENTS relationship     with the header line as the evidence phrase. This coded record appears     in the patient clinical graph as a clinical finding, potentially inflating     encounter-level coding counts and distorting audit dashboards. Reviewers     may accept the code without recognising it w",
       "hazard_category": "software_defect",
       "hazardous_situation": "During encounter processing, the sentence splitter produces a chunk from     an administrative header line. The NER or LLM extractor identifies a     clinical context code and the pipeline writes a DOCUMENTS relationship     with the header line as the evidence phrase. This coded record appears     in the patient clinical graph as a clinical finding, potentially inflating     encounter-level coding counts and distorting audit dashboards. Reviewers     may accept the code without recognising it w",
@@ -2979,7 +2980,7 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
+      "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-054 and R-033 as possible merge (non-clinical text miscoded as finding). Medium confidence - retain both.",
       "_master_id": "MR-054",
       "_proposed_r_id": "R-LEO-AI-054",
       "_action": "MIGRATE_YAML",
@@ -3003,7 +3004,7 @@
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Ambiguous GP abbreviation resolved to clinically incorrect SNOMED concept",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | Workshop flag: Dedup Auditor - keep both but cross-link. R-055 is a high-severity subset of R-004.",
       "hazard_description": "The LLM extractor or NER model extracts a short abbreviation from encounter     text and passes it to the terminology resolver without the organ/site context     required to disambiguate the intended meaning. The resolver returns a     biochemistry concept, a generic concept, or a specialty tag concept instead     of the clinically correct one. The incorrect code is written to the patient     graph and displayed in the clinical review UI, potentially influencing coding     decisions, QOF reporti",
       "hazard_category": "software_defect",
       "hazardous_situation": "The LLM extractor or NER model extracts a short abbreviation from encounter     text and passes it to the terminology resolver without the organ/site context     required to disambiguate the intended meaning. The resolver returns a     biochemistry concept, a generic concept, or a specialty tag concept instead     of the clinically correct one. The incorrect code is written to the patient     graph and displayed in the clinical review UI, potentially influencing coding     decisions, QOF reporti",
@@ -3032,7 +3033,7 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
+      "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor - keep both but cross-link. R-055 is a high-severity subset of R-004.",
       "_master_id": "MR-055",
       "_proposed_r_id": "R-LEO-AI-055",
       "_action": "MIGRATE_YAML",
@@ -3055,7 +3056,7 @@
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Automated audit remediation applies an incorrect SNOMED coding change to a patient record",
-      "description": "Source: YAML+FMEA. FMEA: FMEA-050. Consolidates FMEA: FMEA-050",
+      "description": "Source: YAML+FMEA. FMEA: n/a. Consolidates FMEA: FMEA-050 | Split out: FMEA-050 moved to new R-LEO-AI-160 per Dedup Auditor",
       "hazard_description": "A patient encounter record has a SNOMED code incorrectly deleted     (removing a genuine active diagnosis), incorrectly added (creating a     false diagnosis), or has its assertion changed incorrectly (e.g.,     active condition marked as historical). A clinician subsequently views     the record and makes a decision based on the incorrect coding.",
       "hazard_category": "software_defect",
       "hazardous_situation": "A patient encounter record has a SNOMED code incorrectly deleted     (removing a genuine active diagnosis), incorrectly added (creating a     false diagnosis), or has its assertion changed incorrectly (e.g.,     active condition marked as historical). A clinician subsequently views     the record and makes a decision based on the incorrect coding.",
@@ -3070,8 +3071,7 @@
       "identified_by": "LEO-AI-CORE FMEA master list 2026-04-16",
       "identified_date": "2026-04-16",
       "tags": [
-        "yaml+fmea",
-        "fmea-050"
+        "yaml+fmea"
       ],
       "monitoring_plan": "Monitor via DQ dashboards, coding quality alerts, and post-market surveillance. Review quarterly at hazard workshop.",
       "monitoring_metrics": [
@@ -3082,7 +3082,7 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Consolidates FMEA: FMEA-050",
+      "mitigation_measures_detail": "Consolidates FMEA: FMEA-050 | Split out: FMEA-050 moved to new R-LEO-AI-160 per Dedup Auditor",
       "_master_id": "MR-056",
       "_proposed_r_id": "R-LEO-AI-056",
       "_action": "MIGRATE_YAML+LINK_FMEA",
@@ -3237,7 +3237,7 @@
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Spurious benign closure of active cancer episode due to unrelated 395100000 coding",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | MERGED_IN: R-LEO-AI-061 (Cancer pathway incorrectly closed as completed after specialist letter when trea) per Dedup Auditor",
       "hazard_description": "A patient has an open 2WW breast cancer investigation (referral 2024-07). In     2026, a cervical smear result is coded as 395100000 (no malignancy detected).     Without a date window constraint, the episode builder closes the breast     investigation as 'closed_benign', removing it from the open episodes dashboard.     The breast cancer investigation is now invisible to clinical reviewers.",
       "hazard_category": "software_defect",
       "hazardous_situation": "A patient has an open 2WW breast cancer investigation (referral 2024-07). In     2026, a cervical smear result is coded as 395100000 (no malignancy detected).     Without a date window constraint, the episode builder closes the breast     investigation as 'closed_benign', removing it from the open episodes dashboard.     The breast cancer investigation is now invisible to clinical reviewers.",
@@ -3266,7 +3266,7 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
+      "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-061 (Cancer pathway incorrectly closed as completed after specialist letter when trea) per Dedup Auditor",
       "_master_id": "MR-059",
       "_proposed_r_id": "R-LEO-AI-059",
       "_action": "MIGRATE_YAML",
@@ -3276,7 +3276,8 @@
     "link_uns": null,
     "link_dis": {
       "target_ids": [
-        "DI-LEO-AI-085"
+        "DI-LEO-AI-085",
+        "DI-LEO-AI-087"
       ],
       "relationship": "MITIGATES"
     }
@@ -3335,57 +3336,6 @@
   },
   {
     "master_id": "MR-061",
-    "atlas_r_id": "R-LEO-AI-061",
-    "action": "MIGRATE_YAML",
-    "source": "YAML",
-    "create": {
-      "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
-      "title": "Cancer pathway incorrectly closed as completed after specialist letter when treatment is uncoded or external",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
-      "hazard_description": "A reviewer trusts a completed episode without verifying the correspondence.     Active cancer care is delayed or missed in audit follow-up lists.",
-      "hazard_category": "software_defect",
-      "hazardous_situation": "A reviewer trusts a completed episode without verifying the correspondence.     Active cancer care is delayed or missed in audit follow-up lists.",
-      "harm_description": "Delayed cancer treatment or loss to follow-up; incorrect audit assurance.",
-      "harm_severity": "serious",
-      "initial_severity": "serious",
-      "initial_probability": "unlikely",
-      "initial_detectability": 3,
-      "initial_rpn": 18,
-      "safety_class": "B",
-      "status": "identified",
-      "identified_by": "LEO-AI-CORE FMEA master list 2026-04-16",
-      "identified_date": "2026-04-16",
-      "tags": [
-        "yaml",
-        "episode-detection",
-        "hitl"
-      ],
-      "monitoring_plan": "Monitor via DQ dashboards, coding quality alerts, and post-market surveillance. Review quarterly at hazard workshop.",
-      "monitoring_metrics": [
-        "RPN trend",
-        "Incident count",
-        "Mitigation effectiveness"
-      ],
-      "review_frequency": "Quarterly",
-      "mitigation_control_type": "protective_measure",
-      "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-061",
-      "_proposed_r_id": "R-LEO-AI-061",
-      "_action": "MIGRATE_YAML",
-      "_source": "YAML",
-      "_rpn_level": "medium"
-    },
-    "link_uns": null,
-    "link_dis": {
-      "target_ids": [
-        "DI-LEO-AI-087"
-      ],
-      "relationship": "MITIGATES"
-    }
-  },
-  {
-    "master_id": "MR-062",
     "atlas_r_id": "R-LEO-AI-062",
     "action": "MIGRATE_YAML+LINK_FMEA",
     "source": "YAML+FMEA",
@@ -3422,7 +3372,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Consolidates FMEA: FMEA-063",
-      "_master_id": "MR-062",
+      "_master_id": "MR-061",
       "_proposed_r_id": "R-LEO-AI-062",
       "_action": "MIGRATE_YAML+LINK_FMEA",
       "_source": "YAML+FMEA",
@@ -3445,7 +3395,7 @@
     }
   },
   {
-    "master_id": "MR-063",
+    "master_id": "MR-062",
     "atlas_r_id": "R-LEO-AI-063",
     "action": "MIGRATE_YAML+LINK_FMEA",
     "source": "YAML+FMEA",
@@ -3483,7 +3433,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Consolidates FMEA: FMEA-063",
-      "_master_id": "MR-063",
+      "_master_id": "MR-062",
       "_proposed_r_id": "R-LEO-AI-063",
       "_action": "MIGRATE_YAML+LINK_FMEA",
       "_source": "YAML+FMEA",
@@ -3507,7 +3457,7 @@
     }
   },
   {
-    "master_id": "MR-064",
+    "master_id": "MR-063",
     "atlas_r_id": "R-LEO-AI-064",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -3544,7 +3494,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-064",
+      "_master_id": "MR-063",
       "_proposed_r_id": "R-LEO-AI-064",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -3559,14 +3509,14 @@
     }
   },
   {
-    "master_id": "MR-065",
+    "master_id": "MR-064",
     "atlas_r_id": "R-LEO-AI-065",
     "action": "MIGRATE_YAML+LINK_FMEA",
     "source": "YAML+FMEA",
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Auditor reviews and approves a cancer episode that contains incorrect AI-extracted data, leading to flawed clinical decisions",
-      "description": "Source: YAML+FMEA. FMEA: FMEA-008 FMEA-037. Consolidates FMEA: FMEA-008 FMEA-037",
+      "description": "Source: YAML+FMEA. FMEA: n/a. Consolidates FMEA: FMEA-008 FMEA-037 | Data fix: FMEA-037 re-routed to R-LEO-AI-053 per Dedup Auditor | Split out: FMEA-008 moved to new R-LEO-AI-159 per Dedup Auditor",
       "hazard_description": "An auditor opens a patient episode in Mission Control where the NLP     pipeline has incorrectly coded a benign finding as a cancer diagnosis     (or vice versa). The auditor reviews the coded data tab but does not     cross-check the raw encounter text tab. The auditor marks the episode     as reviewed. The episode is subsequently used to calculate cancer     prevalence statistics, which influence GP referral pathway prioritisation.",
       "hazard_category": "software_defect",
       "hazardous_situation": "An auditor opens a patient episode in Mission Control where the NLP     pipeline has incorrectly coded a benign finding as a cancer diagnosis     (or vice versa). The auditor reviews the coded data tab but does not     cross-check the raw encounter text tab. The auditor marks the episode     as reviewed. The episode is subsequently used to calculate cancer     prevalence statistics, which influence GP referral pathway prioritisation.",
@@ -3585,8 +3535,7 @@
         "mission-control",
         "audit",
         "clinical-safety",
-        "pipeline-validation",
-        "fmea-008"
+        "pipeline-validation"
       ],
       "monitoring_plan": "Monitor via DQ dashboards, coding quality alerts, and post-market surveillance. Review quarterly at hazard workshop.",
       "monitoring_metrics": [
@@ -3597,8 +3546,8 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Consolidates FMEA: FMEA-008 FMEA-037",
-      "_master_id": "MR-065",
+      "mitigation_measures_detail": "Consolidates FMEA: FMEA-008 FMEA-037 | Data fix: FMEA-037 re-routed to R-LEO-AI-053 per Dedup Auditor | Split out: FMEA-008 moved to new R-LEO-AI-159 per Dedup Auditor",
+      "_master_id": "MR-064",
       "_proposed_r_id": "R-LEO-AI-065",
       "_action": "MIGRATE_YAML+LINK_FMEA",
       "_source": "YAML+FMEA",
@@ -3627,7 +3576,7 @@
     }
   },
   {
-    "master_id": "MR-066",
+    "master_id": "MR-065",
     "atlas_r_id": "R-LEO-AI-066",
     "action": "MIGRATE_YAML+LINK_FMEA",
     "source": "YAML+FMEA",
@@ -3667,7 +3616,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Consolidates FMEA: FMEA-039",
-      "_master_id": "MR-066",
+      "_master_id": "MR-065",
       "_proposed_r_id": "R-LEO-AI-066",
       "_action": "MIGRATE_YAML+LINK_FMEA",
       "_source": "YAML+FMEA",
@@ -3690,14 +3639,14 @@
     }
   },
   {
-    "master_id": "MR-067",
+    "master_id": "MR-066",
     "atlas_r_id": "R-LEO-AI-067",
     "action": "MIGRATE_YAML+LINK_FMEA",
     "source": "YAML+FMEA",
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Extraction quality check drops valid entities or adds unsupported entities",
-      "description": "Source: YAML+FMEA. FMEA: FMEA-007 FMEA-020. Consolidates FMEA: FMEA-007 FMEA-020",
+      "description": "Source: YAML+FMEA. FMEA: FMEA-007 FMEA-020. Consolidates FMEA: FMEA-007 FMEA-020 | Workshop flag: Dedup Auditor flagged R-068 and R-067 as possible merge (same hazard, different pipeline stage). Medium confidence - retain both.",
       "hazard_description": "A valid disorder or finding mention is dropped by extraction_check, or an     unsupported mention is added. Relation linking may also attach the wrong     body-site link. The modified entity set proceeds to terminology and     persistence, resulting in under-coding or incorrect coded evidence in     patient and training stores.",
       "hazard_category": "software_defect",
       "hazardous_situation": "A valid disorder or finding mention is dropped by extraction_check, or an     unsupported mention is added. Relation linking may also attach the wrong     body-site link. The modified entity set proceeds to terminology and     persistence, resulting in under-coding or incorrect coded evidence in     patient and training stores.",
@@ -3727,8 +3676,8 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Consolidates FMEA: FMEA-007 FMEA-020",
-      "_master_id": "MR-067",
+      "mitigation_measures_detail": "Consolidates FMEA: FMEA-007 FMEA-020 | Workshop flag: Dedup Auditor flagged R-068 and R-067 as possible merge (same hazard, different pipeline stage). Medium confidence - retain both.",
+      "_master_id": "MR-066",
       "_proposed_r_id": "R-LEO-AI-067",
       "_action": "MIGRATE_YAML+LINK_FMEA",
       "_source": "YAML+FMEA",
@@ -3754,14 +3703,14 @@
     }
   },
   {
-    "master_id": "MR-068",
+    "master_id": "MR-067",
     "atlas_r_id": "R-LEO-AI-068",
     "action": "MIGRATE_YAML",
     "source": "YAML",
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Coding quality check removes valid coded entities or escalates excessively",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | Workshop flag: Dedup Auditor flagged R-068 and R-067 as possible merge (same hazard, different pipeline stage). Medium confidence - retain both.",
       "hazard_description": "After terminology resolution, coding_check marks a valid coded entity for     drop or applies force_review too broadly. Persisted coding output is reduced     or delayed, and operational queues increase. If tier override is ignored or     routing is bypassed, flagged coding errors may still be written as     auto-coded patient graph links.",
       "hazard_category": "software_defect",
       "hazardous_situation": "After terminology resolution, coding_check marks a valid coded entity for     drop or applies force_review too broadly. Persisted coding output is reduced     or delayed, and operational queues increase. If tier override is ignored or     routing is bypassed, flagged coding errors may still be written as     auto-coded patient graph links.",
@@ -3790,8 +3739,8 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-068",
+      "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-068 and R-067 as possible merge (same hazard, different pipeline stage). Medium confidence - retain both.",
+      "_master_id": "MR-067",
       "_proposed_r_id": "R-LEO-AI-068",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -3806,14 +3755,14 @@
     }
   },
   {
-    "master_id": "MR-069",
+    "master_id": "MR-068",
     "atlas_r_id": "R-LEO-AI-069",
     "action": "MIGRATE_YAML",
     "source": "YAML",
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "ConText double-negation inverts assertion on pre-negated SNOMED situation concepts",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | MERGED_IN: R-LEO-AI-071 (ConText double-negation inverts assertion on polarity-encoding SNOMED finding co) per Dedup Auditor",
       "hazard_description": "A clinician documents a negative mental health risk screen using a Read     or SNOMED situation code whose preferred term begins with \"No\" (e.g.     134420004 \"No suicidal thoughts\", 401228008 \"No thoughts of deliberate     self harm\"). The pipeline extracts the span, ConText detects the     preceding \"No\" as a negation cue and sets assertion=absent. The SNOMED     concept is then resolved. The persisted coded record now carries     assertion=absent on a concept that already means absent -- sema",
       "hazard_category": "software_defect",
       "hazardous_situation": "A clinician documents a negative mental health risk screen using a Read     or SNOMED situation code whose preferred term begins with \"No\" (e.g.     134420004 \"No suicidal thoughts\", 401228008 \"No thoughts of deliberate     self harm\"). The pipeline extracts the span, ConText detects the     preceding \"No\" as a negation cue and sets assertion=absent. The SNOMED     concept is then resolved. The persisted coded record now carries     assertion=absent on a concept that already means absent -- sema",
@@ -3839,8 +3788,8 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-069",
+      "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-071 (ConText double-negation inverts assertion on polarity-encoding SNOMED finding co) per Dedup Auditor",
+      "_master_id": "MR-068",
       "_proposed_r_id": "R-LEO-AI-069",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -3850,13 +3799,15 @@
     "link_dis": {
       "target_ids": [
         "DI-LEO-AI-005",
-        "DI-LEO-AI-101"
+        "DI-LEO-AI-101",
+        "DI-LEO-AI-103",
+        "DI-LEO-AI-104"
       ],
       "relationship": "MITIGATES"
     }
   },
   {
-    "master_id": "MR-070",
+    "master_id": "MR-069",
     "atlas_r_id": "R-LEO-AI-070",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -3894,7 +3845,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-070",
+      "_master_id": "MR-069",
       "_proposed_r_id": "R-LEO-AI-070",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -3909,63 +3860,7 @@
     }
   },
   {
-    "master_id": "MR-071",
-    "atlas_r_id": "R-LEO-AI-071",
-    "action": "MIGRATE_YAML",
-    "source": "YAML",
-    "create": {
-      "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
-      "title": "ConText double-negation inverts assertion on polarity-encoding SNOMED finding concepts",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
-      "hazard_description": "The encounter text contains a phrase such as \"Perineural invasion: absent\".     The LLM extractor outputs assertion=present (after DI-LEO-AI-103 change).     SNOMED terminology lookup resolves the entity to \"Perineural invasion by     tumor absent (finding)\" 370051000 because the polarity word \"absent\" appears     in the lookup text. ConText then sets assertion=absent because it detects     \"absent\" as a negation cue. The persisted coded record now carries     assertion=absent on a concept that",
-      "hazard_category": "software_defect",
-      "hazardous_situation": "The encounter text contains a phrase such as \"Perineural invasion: absent\".     The LLM extractor outputs assertion=present (after DI-LEO-AI-103 change).     SNOMED terminology lookup resolves the entity to \"Perineural invasion by     tumor absent (finding)\" 370051000 because the polarity word \"absent\" appears     in the lookup text. ConText then sets assertion=absent because it detects     \"absent\" as a negation cue. The persisted coded record now carries     assertion=absent on a concept that",
-      "harm_description": "Coded pathology record incorrectly implies positive perineural invasion       or other positive finding where the clinician documented its absence.       For cancer pathway coding, this could misclassify staging information or       affect MDT decisions based on coded audit data.",
-      "harm_severity": "serious",
-      "initial_severity": "serious",
-      "initial_probability": "possible",
-      "initial_detectability": 2,
-      "initial_rpn": 18,
-      "safety_class": "B",
-      "status": "identified",
-      "identified_by": "LEO-AI-CORE FMEA master list 2026-04-16",
-      "identified_date": "2026-04-16",
-      "tags": [
-        "yaml",
-        "assertion",
-        "double-negation",
-        "finding",
-        "polarity",
-        "snomed"
-      ],
-      "monitoring_plan": "Monitor via DQ dashboards, coding quality alerts, and post-market surveillance. Review quarterly at hazard workshop.",
-      "monitoring_metrics": [
-        "RPN trend",
-        "Incident count",
-        "Mitigation effectiveness"
-      ],
-      "review_frequency": "Quarterly",
-      "mitigation_control_type": "protective_measure",
-      "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-071",
-      "_proposed_r_id": "R-LEO-AI-071",
-      "_action": "MIGRATE_YAML",
-      "_source": "YAML",
-      "_rpn_level": "medium"
-    },
-    "link_uns": null,
-    "link_dis": {
-      "target_ids": [
-        "DI-LEO-AI-103",
-        "DI-LEO-AI-104",
-        "DI-LEO-AI-005"
-      ],
-      "relationship": "MITIGATES"
-    }
-  },
-  {
-    "master_id": "MR-072",
+    "master_id": "MR-070",
     "atlas_r_id": "R-LEO-AI-072",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4004,7 +3899,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-072",
+      "_master_id": "MR-070",
       "_proposed_r_id": "R-LEO-AI-072",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4019,7 +3914,7 @@
     }
   },
   {
-    "master_id": "MR-073",
+    "master_id": "MR-071",
     "atlas_r_id": "R-LEO-AI-073",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4058,7 +3953,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-073",
+      "_master_id": "MR-071",
       "_proposed_r_id": "R-LEO-AI-073",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4074,7 +3969,7 @@
     }
   },
   {
-    "master_id": "MR-074",
+    "master_id": "MR-072",
     "atlas_r_id": "R-LEO-AI-074",
     "action": "MIGRATE_YAML+LINK_FMEA",
     "source": "YAML+FMEA",
@@ -4113,7 +4008,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Consolidates FMEA: FMEA-014",
-      "_master_id": "MR-074",
+      "_master_id": "MR-072",
       "_proposed_r_id": "R-LEO-AI-074",
       "_action": "MIGRATE_YAML+LINK_FMEA",
       "_source": "YAML+FMEA",
@@ -4138,7 +4033,7 @@
     }
   },
   {
-    "master_id": "MR-075",
+    "master_id": "MR-073",
     "atlas_r_id": "R-LEO-AI-075",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4175,7 +4070,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-075",
+      "_master_id": "MR-073",
       "_proposed_r_id": "R-LEO-AI-075",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4191,7 +4086,7 @@
     }
   },
   {
-    "master_id": "MR-076",
+    "master_id": "MR-074",
     "atlas_r_id": "R-LEO-AI-076",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4228,7 +4123,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-076",
+      "_master_id": "MR-074",
       "_proposed_r_id": "R-LEO-AI-076",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4244,7 +4139,7 @@
     }
   },
   {
-    "master_id": "MR-077",
+    "master_id": "MR-075",
     "atlas_r_id": "R-LEO-AI-077",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4282,7 +4177,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-077",
+      "_master_id": "MR-075",
       "_proposed_r_id": "R-LEO-AI-077",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4297,7 +4192,7 @@
     }
   },
   {
-    "master_id": "MR-078",
+    "master_id": "MR-076",
     "atlas_r_id": "R-LEO-AI-078",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4336,7 +4231,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-078",
+      "_master_id": "MR-076",
       "_proposed_r_id": "R-LEO-AI-078",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4352,7 +4247,7 @@
     }
   },
   {
-    "master_id": "MR-079",
+    "master_id": "MR-077",
     "atlas_r_id": "R-LEO-AI-079",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4390,7 +4285,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-079",
+      "_master_id": "MR-077",
       "_proposed_r_id": "R-LEO-AI-079",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4406,7 +4301,7 @@
     }
   },
   {
-    "master_id": "MR-080",
+    "master_id": "MR-078",
     "atlas_r_id": "R-LEO-AI-080",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4444,7 +4339,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-080",
+      "_master_id": "MR-078",
       "_proposed_r_id": "R-LEO-AI-080",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4459,14 +4354,14 @@
     }
   },
   {
-    "master_id": "MR-081",
+    "master_id": "MR-079",
     "atlas_r_id": "R-LEO-AI-081",
     "action": "MIGRATE_YAML",
     "source": "YAML",
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "A patient, carer, or junior staff member acts on a LEO screen they do not fully understand because no inline 'what-is-this' or 'why-am-I-here' affordance exists, leading to a wrong",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | Workshop flag: Dedup Auditor flagged R-083 health-literacy overlap with R-081. Medium confidence - retain both.",
       "hazard_description": "A carer reads a safety-netting paragraph that says     \"persistent haematuria should be reviewed\". They do not     know what haematuria means. The carer assumes it is not     relevant and closes the page. The patient goes without the     intended follow-up. Or: a junior coder approves a record     marked 'refuted' without realising that 'refuted' means     the initial diagnosis was overturned, not that the record     itself is being rejected.",
       "hazard_category": "software_defect",
       "hazardous_situation": "A carer reads a safety-netting paragraph that says     \"persistent haematuria should be reviewed\". They do not     know what haematuria means. The carer assumes it is not     relevant and closes the page. The patient goes without the     intended follow-up. Or: a junior coder approves a record     marked 'refuted' without realising that 'refuted' means     the initial diagnosis was overturned, not that the record     itself is being rejected.",
@@ -4496,8 +4391,8 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-081",
+      "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-083 health-literacy overlap with R-081. Medium confidence - retain both.",
+      "_master_id": "MR-079",
       "_proposed_r_id": "R-LEO-AI-081",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4512,14 +4407,14 @@
     }
   },
   {
-    "master_id": "MR-082",
+    "master_id": "MR-080",
     "atlas_r_id": "R-LEO-AI-082",
     "action": "MIGRATE_YAML",
     "source": "YAML",
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "A junior trainee or older clinician misreads the Operations workspace and either skips a quality alert or triggers a training run they did not intend. hazard: description: > The Op",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | MERGED_IN: R-LEO-AI-088 (A junior staff member or older clinician misreads the Care Overview page and eit) per Dedup Auditor",
       "hazard_description": "An operator with low experience, low vision, or atypical     colour perception opens /admin/operations, sees four     unlabelled accordion rows, and either (a) ignores an     unacknowledged quality alert, or (b) opens 'Make it live'     before the model has finished training, causing a premature     promotion.",
       "hazard_category": "software_defect",
       "hazardous_situation": "An operator with low experience, low vision, or atypical     colour perception opens /admin/operations, sees four     unlabelled accordion rows, and either (a) ignores an     unacknowledged quality alert, or (b) opens 'Make it live'     before the model has finished training, causing a premature     promotion.",
@@ -4550,8 +4445,8 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-082",
+      "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-088 (A junior staff member or older clinician misreads the Care Overview page and eit) per Dedup Auditor",
+      "_master_id": "MR-080",
       "_proposed_r_id": "R-LEO-AI-082",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4561,20 +4456,21 @@
     "link_dis": {
       "target_ids": [
         "DI-LEO-AI-122",
-        "DI-LEO-AI-118"
+        "DI-LEO-AI-118",
+        "DI-LEO-AI-128"
       ],
       "relationship": "MITIGATES"
     }
   },
   {
-    "master_id": "MR-083",
+    "master_id": "MR-081",
     "atlas_r_id": "R-LEO-AI-083",
     "action": "MIGRATE_YAML",
     "source": "YAML",
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "A junior trainee misinterprets a coding-review case because clinical terms like 'assertion', 'semantic tag', or 'suppress' are not explained in product, and either accepts an incor",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | Workshop flag: Dedup Auditor flagged R-083 health-literacy overlap with R-081. Medium confidence - retain both.",
       "hazard_description": "A trainee opens the coding-review cases modal, sees a case     with assertion 'declined' and a suggested semantic tag     mismatch. Unsure of what either term means, they click     'Suppress' to make the case go away. The finding was in fact     a real clinical event that should have been coded, and it     is now filtered from future runs.",
       "hazard_category": "software_defect",
       "hazardous_situation": "A trainee opens the coding-review cases modal, sees a case     with assertion 'declined' and a suggested semantic tag     mismatch. Unsure of what either term means, they click     'Suppress' to make the case go away. The finding was in fact     a real clinical event that should have been coded, and it     is now filtered from future runs.",
@@ -4605,8 +4501,8 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-083",
+      "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-083 health-literacy overlap with R-081. Medium confidence - retain both.",
+      "_master_id": "MR-081",
       "_proposed_r_id": "R-LEO-AI-083",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4622,7 +4518,7 @@
     }
   },
   {
-    "master_id": "MR-084",
+    "master_id": "MR-082",
     "atlas_r_id": "R-LEO-AI-084",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4660,7 +4556,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-084",
+      "_master_id": "MR-082",
       "_proposed_r_id": "R-LEO-AI-084",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4675,14 +4571,14 @@
     }
   },
   {
-    "master_id": "MR-085",
+    "master_id": "MR-083",
     "atlas_r_id": "R-LEO-AI-085",
     "action": "MIGRATE_YAML",
     "source": "YAML",
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Different LEO dashboards report different NCDA interval KPIs for the same episode",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | MERGED_IN: R-LEO-AI-092 (Different analytics endpoints using different 'confirmed cancer' filters give co) per Dedup Auditor",
       "hazard_description": "A clinical quality lead reviews two dashboards side-by-side and sees     conflicting days-to-referral or days-to-treatment numbers. They     either lose trust in the system and disengage, or act on the number     from whichever dashboard they visited first, making a quality-     improvement decision on data that is silently inconsistent.",
       "hazard_category": "software_defect",
       "hazardous_situation": "A clinical quality lead reviews two dashboards side-by-side and sees     conflicting days-to-referral or days-to-treatment numbers. They     either lose trust in the system and disengage, or act on the number     from whichever dashboard they visited first, making a quality-     improvement decision on data that is silently inconsistent.",
@@ -4710,8 +4606,8 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-085",
+      "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-092 (Different analytics endpoints using different 'confirmed cancer' filters give co) per Dedup Auditor",
+      "_master_id": "MR-083",
       "_proposed_r_id": "R-LEO-AI-085",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4720,13 +4616,14 @@
     "link_uns": null,
     "link_dis": {
       "target_ids": [
-        "DI-LEO-AI-125"
+        "DI-LEO-AI-125",
+        "DI-LEO-AI-134"
       ],
       "relationship": "MITIGATES"
     }
   },
   {
-    "master_id": "MR-086",
+    "master_id": "MR-084",
     "atlas_r_id": "R-LEO-AI-086",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4762,7 +4659,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-086",
+      "_master_id": "MR-084",
       "_proposed_r_id": "R-LEO-AI-086",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4777,7 +4674,7 @@
     }
   },
   {
-    "master_id": "MR-087",
+    "master_id": "MR-085",
     "atlas_r_id": "R-LEO-AI-087",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4814,7 +4711,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-087",
+      "_master_id": "MR-085",
       "_proposed_r_id": "R-LEO-AI-087",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4829,61 +4726,7 @@
     }
   },
   {
-    "master_id": "MR-088",
-    "atlas_r_id": "R-LEO-AI-088",
-    "action": "MIGRATE_YAML",
-    "source": "YAML",
-    "create": {
-      "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
-      "title": "A junior staff member or older clinician misreads the Care Overview page and either misses a safety-netting alert or misinterprets a summary figure. hazard: description: > The Care",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
-      "hazard_description": "A user opens /dashboard, sees four summary cards and two     chart rows, and either (a) ignores the safety-alerts card     because its badge is small and uppercase, or (b) applies a     date filter and believes it has filtered the safety-alerts     list too, then concludes there are no alerts to action.",
-      "hazard_category": "software_defect",
-      "hazardous_situation": "A user opens /dashboard, sees four summary cards and two     chart rows, and either (a) ignores the safety-alerts card     because its badge is small and uppercase, or (b) applies a     date filter and believes it has filtered the safety-alerts     list too, then concludes there are no alerts to action.",
-      "harm_description": "A patient with an unactioned safety-net alert waits longer       than the NICE-recommended window for follow-up. A clinical       lead under-estimates the volume of open cases because a       chart description was misread.",
-      "harm_severity": "serious",
-      "initial_severity": "serious",
-      "initial_probability": "possible",
-      "initial_detectability": 3,
-      "initial_rpn": 27,
-      "safety_class": "B",
-      "status": "identified",
-      "identified_by": "LEO-AI-CORE FMEA master list 2026-04-16",
-      "identified_date": "2026-04-16",
-      "tags": [
-        "yaml",
-        "unacknowledged_alerts_over_24h",
-        "median_time_to_first_view_dashboard",
-        "care-overview",
-        "dashboard",
-        "inclusive-design"
-      ],
-      "monitoring_plan": "Monitor via DQ dashboards, coding quality alerts, and post-market surveillance. Review quarterly at hazard workshop.",
-      "monitoring_metrics": [
-        "RPN trend",
-        "Incident count",
-        "Mitigation effectiveness"
-      ],
-      "review_frequency": "Quarterly",
-      "mitigation_control_type": "protective_measure",
-      "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-088",
-      "_proposed_r_id": "R-LEO-AI-088",
-      "_action": "MIGRATE_YAML",
-      "_source": "YAML",
-      "_rpn_level": "high"
-    },
-    "link_uns": null,
-    "link_dis": {
-      "target_ids": [
-        "DI-LEO-AI-128"
-      ],
-      "relationship": "MITIGATES"
-    }
-  },
-  {
-    "master_id": "MR-089",
+    "master_id": "MR-086",
     "atlas_r_id": "R-LEO-AI-089",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4921,7 +4764,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-089",
+      "_master_id": "MR-086",
       "_proposed_r_id": "R-LEO-AI-089",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4937,7 +4780,7 @@
     }
   },
   {
-    "master_id": "MR-090",
+    "master_id": "MR-087",
     "atlas_r_id": "R-LEO-AI-090",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -4974,7 +4817,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-090",
+      "_master_id": "MR-087",
       "_proposed_r_id": "R-LEO-AI-090",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -4989,7 +4832,7 @@
     }
   },
   {
-    "master_id": "MR-091",
+    "master_id": "MR-088",
     "atlas_r_id": "R-LEO-AI-091",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -5026,7 +4869,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-091",
+      "_master_id": "MR-088",
       "_proposed_r_id": "R-LEO-AI-091",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -5042,59 +4885,7 @@
     }
   },
   {
-    "master_id": "MR-092",
-    "atlas_r_id": "R-LEO-AI-092",
-    "action": "MIGRATE_YAML",
-    "source": "YAML",
-    "create": {
-      "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
-      "title": "Different analytics endpoints using different 'confirmed cancer' filters give contradictory headline figures on the same dashboard, causing clinical users to mistrust or misinterpr",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
-      "hazard_description": "A practice quality improvement lead views the NCDA summary page     to decide where to focus clinical-improvement effort. They see     two mutually incompatible numbers. Depending on which number     they believe, they either (a) dismiss the product as unreliable,     (b) act on the wrong denominator when calculating practice     performance versus national benchmarks, or (c) report     inconsistent figures to their CCG / ICB.",
-      "hazard_category": "software_defect",
-      "hazardous_situation": "A practice quality improvement lead views the NCDA summary page     to decide where to focus clinical-improvement effort. They see     two mutually incompatible numbers. Depending on which number     they believe, they either (a) dismiss the product as unreliable,     (b) act on the wrong denominator when calculating practice     performance versus national benchmarks, or (c) report     inconsistent figures to their CCG / ICB.",
-      "harm_description": "Incorrect prioritisation of clinical improvement effort;       erosion of clinician trust in the audit platform; risk of       external audit / CQC finding if the inconsistency is       reproduced in a published benchmark report. No direct patient       harm, but meaningful quality-improvement and regulatory harm.",
-      "harm_severity": "serious",
-      "initial_severity": "serious",
-      "initial_probability": "likely",
-      "initial_detectability": 2,
-      "initial_rpn": 24,
-      "safety_class": "B",
-      "status": "identified",
-      "identified_by": "LEO-AI-CORE FMEA master list 2026-04-16",
-      "identified_date": "2026-04-16",
-      "tags": [
-        "yaml",
-        "ncda",
-        "analytics",
-        "cohort-definition"
-      ],
-      "monitoring_plan": "Monitor via DQ dashboards, coding quality alerts, and post-market surveillance. Review quarterly at hazard workshop.",
-      "monitoring_metrics": [
-        "RPN trend",
-        "Incident count",
-        "Mitigation effectiveness"
-      ],
-      "review_frequency": "Quarterly",
-      "mitigation_control_type": "protective_measure",
-      "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-092",
-      "_proposed_r_id": "R-LEO-AI-092",
-      "_action": "MIGRATE_YAML",
-      "_source": "YAML",
-      "_rpn_level": "high"
-    },
-    "link_uns": null,
-    "link_dis": {
-      "target_ids": [
-        "DI-LEO-AI-134"
-      ],
-      "relationship": "MITIGATES"
-    }
-  },
-  {
-    "master_id": "MR-093",
+    "master_id": "MR-089",
     "atlas_r_id": "R-LEO-AI-093",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -5132,7 +4923,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-093",
+      "_master_id": "MR-089",
       "_proposed_r_id": "R-LEO-AI-093",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -5147,14 +4938,14 @@
     }
   },
   {
-    "master_id": "MR-094",
+    "master_id": "MR-090",
     "atlas_r_id": "R-LEO-AI-094",
     "action": "MIGRATE_YAML",
     "source": "YAML",
     "create": {
       "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
       "title": "Users miss required information or take the wrong action because role-aware Knowledge intro copy is unclear, too long, or missing for their role",
-      "description": "Source: YAML. FMEA: n/a. Existing YAML risk",
+      "description": "Source: YAML. FMEA: n/a. Existing YAML risk | Workshop flag: Dedup Auditor flagged R-094 health-literacy overlap with R-081. Medium confidence - retain both.",
       "hazard_description": "A junior coder (staff role) opens /admin/knowledge?tab=context-rules     and reads an IntroCard that assumes prior knowledge of ConText     negation rules. They tick \"approve\" on a rule they do not     understand, and the rule propagates a false-negative assertion into     the coded dataset used for QOF reporting.",
       "hazard_category": "software_defect",
       "hazardous_situation": "A junior coder (staff role) opens /admin/knowledge?tab=context-rules     and reads an IntroCard that assumes prior knowledge of ConText     negation rules. They tick \"approve\" on a rule they do not     understand, and the rule propagates a false-negative assertion into     the coded dataset used for QOF reporting.",
@@ -5185,8 +4976,8 @@
       "review_frequency": "Quarterly",
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
-      "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-094",
+      "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-094 health-literacy overlap with R-081. Medium confidence - retain both.",
+      "_master_id": "MR-090",
       "_proposed_r_id": "R-LEO-AI-094",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -5202,7 +4993,7 @@
     }
   },
   {
-    "master_id": "MR-095",
+    "master_id": "MR-091",
     "atlas_r_id": "R-LEO-AI-095",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -5240,7 +5031,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-095",
+      "_master_id": "MR-091",
       "_proposed_r_id": "R-LEO-AI-095",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -5255,7 +5046,7 @@
     }
   },
   {
-    "master_id": "MR-096",
+    "master_id": "MR-092",
     "atlas_r_id": "R-LEO-AI-096",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -5293,7 +5084,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-096",
+      "_master_id": "MR-092",
       "_proposed_r_id": "R-LEO-AI-096",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -5310,7 +5101,7 @@
     }
   },
   {
-    "master_id": "MR-097",
+    "master_id": "MR-093",
     "atlas_r_id": "R-LEO-AI-097",
     "action": "MIGRATE_YAML",
     "source": "YAML",
@@ -5348,7 +5139,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Existing YAML risk",
-      "_master_id": "MR-097",
+      "_master_id": "MR-093",
       "_proposed_r_id": "R-LEO-AI-097",
       "_action": "MIGRATE_YAML",
       "_source": "YAML",
@@ -5363,7 +5154,7 @@
     }
   },
   {
-    "master_id": "MR-098",
+    "master_id": "MR-094",
     "atlas_r_id": "R-LEO-AI-098",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5398,7 +5189,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "No risk on shortlisting false negatives - create R-LEO-AI-078",
-      "_master_id": "MR-098",
+      "_master_id": "MR-094",
       "_proposed_r_id": "R-LEO-AI-098",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5423,7 +5214,7 @@
     }
   },
   {
-    "master_id": "MR-099",
+    "master_id": "MR-095",
     "atlas_r_id": "R-LEO-AI-099",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5458,7 +5249,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Lower severity but high volume effect - create R-LEO-AI-079",
-      "_master_id": "MR-099",
+      "_master_id": "MR-095",
       "_proposed_r_id": "R-LEO-AI-099",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5483,7 +5274,7 @@
     }
   },
   {
-    "master_id": "MR-100",
+    "master_id": "MR-096",
     "atlas_r_id": "R-LEO-AI-100",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5518,7 +5309,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Missing episode (false negative) not explicitly covered - create R-LEO-AI-081",
-      "_master_id": "MR-100",
+      "_master_id": "MR-096",
       "_proposed_r_id": "R-LEO-AI-100",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5543,7 +5334,7 @@
     }
   },
   {
-    "master_id": "MR-101",
+    "master_id": "MR-097",
     "atlas_r_id": "R-LEO-AI-101",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5578,7 +5369,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Over-redaction not covered - create R-LEO-AI-082",
-      "_master_id": "MR-101",
+      "_master_id": "MR-097",
       "_proposed_r_id": "R-LEO-AI-101",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5601,7 +5392,7 @@
     }
   },
   {
-    "master_id": "MR-102",
+    "master_id": "MR-098",
     "atlas_r_id": "R-LEO-AI-102",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5636,7 +5427,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Incorrect suppression scenario not covered - create R-LEO-AI-083",
-      "_master_id": "MR-102",
+      "_master_id": "MR-098",
       "_proposed_r_id": "R-LEO-AI-102",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5660,7 +5451,7 @@
     }
   },
   {
-    "master_id": "MR-103",
+    "master_id": "MR-099",
     "atlas_r_id": "R-LEO-AI-103",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5695,7 +5486,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Reference range data quality risk - create R-LEO-AI-085",
-      "_master_id": "MR-103",
+      "_master_id": "MR-099",
       "_proposed_r_id": "R-LEO-AI-103",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5717,7 +5508,7 @@
     }
   },
   {
-    "master_id": "MR-104",
+    "master_id": "MR-100",
     "atlas_r_id": "R-LEO-AI-104",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5752,7 +5543,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Reference range staleness risk - create R-LEO-AI-086",
-      "_master_id": "MR-104",
+      "_master_id": "MR-100",
       "_proposed_r_id": "R-LEO-AI-104",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5774,7 +5565,7 @@
     }
   },
   {
-    "master_id": "MR-105",
+    "master_id": "MR-101",
     "atlas_r_id": "R-LEO-AI-105",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5809,7 +5600,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Lower probability but regulatory impact - note at workshop",
-      "_master_id": "MR-105",
+      "_master_id": "MR-101",
       "_proposed_r_id": "R-LEO-AI-105",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5831,7 +5622,7 @@
     }
   },
   {
-    "master_id": "MR-106",
+    "master_id": "MR-102",
     "atlas_r_id": "R-LEO-AI-106",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5866,7 +5657,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "No explicit provenance loss risk - create R-LEO-AI-087",
-      "_master_id": "MR-106",
+      "_master_id": "MR-102",
       "_proposed_r_id": "R-LEO-AI-106",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5893,7 +5684,7 @@
     }
   },
   {
-    "master_id": "MR-107",
+    "master_id": "MR-103",
     "atlas_r_id": "R-LEO-AI-107",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5928,7 +5719,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "No risk on guideline threshold surfacing failure - create R-LEO-AI-088",
-      "_master_id": "MR-107",
+      "_master_id": "MR-103",
       "_proposed_r_id": "R-LEO-AI-107",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -5950,7 +5741,7 @@
     }
   },
   {
-    "master_id": "MR-108",
+    "master_id": "MR-104",
     "atlas_r_id": "R-LEO-AI-108",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -5985,7 +5776,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Linked to reference range risk - create alongside R-LEO-AI-085",
-      "_master_id": "MR-108",
+      "_master_id": "MR-104",
       "_proposed_r_id": "R-LEO-AI-108",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6007,7 +5798,7 @@
     }
   },
   {
-    "master_id": "MR-109",
+    "master_id": "MR-105",
     "atlas_r_id": "R-LEO-AI-109",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6042,7 +5833,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Guideline staleness at point of clinical use - create R-LEO-AI-089",
-      "_master_id": "MR-109",
+      "_master_id": "MR-105",
       "_proposed_r_id": "R-LEO-AI-109",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6063,7 +5854,7 @@
     }
   },
   {
-    "master_id": "MR-110",
+    "master_id": "MR-106",
     "atlas_r_id": "R-LEO-AI-110",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6098,7 +5889,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Comparator bias risk - workshop priority",
-      "_master_id": "MR-110",
+      "_master_id": "MR-106",
       "_proposed_r_id": "R-LEO-AI-110",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6119,7 +5910,7 @@
     }
   },
   {
-    "master_id": "MR-111",
+    "master_id": "MR-107",
     "atlas_r_id": "R-LEO-AI-111",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6154,7 +5945,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-090",
-      "_master_id": "MR-111",
+      "_master_id": "MR-107",
       "_proposed_r_id": "R-LEO-AI-111",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6175,7 +5966,7 @@
     }
   },
   {
-    "master_id": "MR-112",
+    "master_id": "MR-108",
     "atlas_r_id": "R-LEO-AI-112",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6210,7 +6001,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Linked to NICE currency risk",
-      "_master_id": "MR-112",
+      "_master_id": "MR-108",
       "_proposed_r_id": "R-LEO-AI-112",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6231,7 +6022,7 @@
     }
   },
   {
-    "master_id": "MR-113",
+    "master_id": "MR-109",
     "atlas_r_id": "R-LEO-AI-113",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6266,7 +6057,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-091",
-      "_master_id": "MR-113",
+      "_master_id": "MR-109",
       "_proposed_r_id": "R-LEO-AI-113",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6287,7 +6078,7 @@
     }
   },
   {
-    "master_id": "MR-114",
+    "master_id": "MR-110",
     "atlas_r_id": "R-LEO-AI-114",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6322,7 +6113,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-092",
-      "_master_id": "MR-114",
+      "_master_id": "MR-110",
       "_proposed_r_id": "R-LEO-AI-114",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6343,7 +6134,7 @@
     }
   },
   {
-    "master_id": "MR-115",
+    "master_id": "MR-111",
     "atlas_r_id": "R-LEO-AI-115",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6378,7 +6169,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-093",
-      "_master_id": "MR-115",
+      "_master_id": "MR-111",
       "_proposed_r_id": "R-LEO-AI-115",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6399,7 +6190,7 @@
     }
   },
   {
-    "master_id": "MR-116",
+    "master_id": "MR-112",
     "atlas_r_id": "R-LEO-AI-116",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6434,7 +6225,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "HITL gap for SBAR - create R-LEO-AI-094",
-      "_master_id": "MR-116",
+      "_master_id": "MR-112",
       "_proposed_r_id": "R-LEO-AI-116",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6456,7 +6247,7 @@
     }
   },
   {
-    "master_id": "MR-117",
+    "master_id": "MR-113",
     "atlas_r_id": "R-LEO-AI-117",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6491,7 +6282,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Dependency on safety netting - create R-LEO-AI-095",
-      "_master_id": "MR-117",
+      "_master_id": "MR-113",
       "_proposed_r_id": "R-LEO-AI-117",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6513,7 +6304,7 @@
     }
   },
   {
-    "master_id": "MR-118",
+    "master_id": "MR-114",
     "atlas_r_id": "R-LEO-AI-118",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6548,7 +6339,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-096",
-      "_master_id": "MR-118",
+      "_master_id": "MR-114",
       "_proposed_r_id": "R-LEO-AI-118",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6572,7 +6363,7 @@
     }
   },
   {
-    "master_id": "MR-119",
+    "master_id": "MR-115",
     "atlas_r_id": "R-LEO-AI-119",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6607,7 +6398,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-097 - high priority for workshop",
-      "_master_id": "MR-119",
+      "_master_id": "MR-115",
       "_proposed_r_id": "R-LEO-AI-119",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6633,7 +6424,7 @@
     }
   },
   {
-    "master_id": "MR-120",
+    "master_id": "MR-116",
     "atlas_r_id": "R-LEO-AI-120",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6668,7 +6459,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-099",
-      "_master_id": "MR-120",
+      "_master_id": "MR-116",
       "_proposed_r_id": "R-LEO-AI-120",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6690,7 +6481,7 @@
     }
   },
   {
-    "master_id": "MR-121",
+    "master_id": "MR-117",
     "atlas_r_id": "R-LEO-AI-121",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6725,7 +6516,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-100",
-      "_master_id": "MR-121",
+      "_master_id": "MR-117",
       "_proposed_r_id": "R-LEO-AI-121",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6746,7 +6537,7 @@
     }
   },
   {
-    "master_id": "MR-122",
+    "master_id": "MR-118",
     "atlas_r_id": "R-LEO-AI-122",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6781,7 +6572,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-101 - detectability high concern",
-      "_master_id": "MR-122",
+      "_master_id": "MR-118",
       "_proposed_r_id": "R-LEO-AI-122",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6802,7 +6593,7 @@
     }
   },
   {
-    "master_id": "MR-123",
+    "master_id": "MR-119",
     "atlas_r_id": "R-LEO-AI-123",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6837,7 +6628,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-102",
-      "_master_id": "MR-123",
+      "_master_id": "MR-119",
       "_proposed_r_id": "R-LEO-AI-123",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6858,7 +6649,7 @@
     }
   },
   {
-    "master_id": "MR-124",
+    "master_id": "MR-120",
     "atlas_r_id": "R-LEO-AI-124",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6893,7 +6684,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Lower priority - workshop: acceptable?",
-      "_master_id": "MR-124",
+      "_master_id": "MR-120",
       "_proposed_r_id": "R-LEO-AI-124",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6914,7 +6705,7 @@
     }
   },
   {
-    "master_id": "MR-125",
+    "master_id": "MR-121",
     "atlas_r_id": "R-LEO-AI-125",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -6949,7 +6740,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-104",
-      "_master_id": "MR-125",
+      "_master_id": "MR-121",
       "_proposed_r_id": "R-LEO-AI-125",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -6970,7 +6761,7 @@
     }
   },
   {
-    "master_id": "MR-126",
+    "master_id": "MR-122",
     "atlas_r_id": "R-LEO-AI-126",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7005,7 +6796,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-105",
-      "_master_id": "MR-126",
+      "_master_id": "MR-122",
       "_proposed_r_id": "R-LEO-AI-126",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7026,7 +6817,7 @@
     }
   },
   {
-    "master_id": "MR-127",
+    "master_id": "MR-123",
     "atlas_r_id": "R-LEO-AI-127",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7061,7 +6852,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-106",
-      "_master_id": "MR-127",
+      "_master_id": "MR-123",
       "_proposed_r_id": "R-LEO-AI-127",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7082,7 +6873,7 @@
     }
   },
   {
-    "master_id": "MR-128",
+    "master_id": "MR-124",
     "atlas_r_id": "R-LEO-AI-128",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7117,7 +6908,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-108",
-      "_master_id": "MR-128",
+      "_master_id": "MR-124",
       "_proposed_r_id": "R-LEO-AI-128",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7139,7 +6930,7 @@
     }
   },
   {
-    "master_id": "MR-129",
+    "master_id": "MR-125",
     "atlas_r_id": "R-LEO-AI-129",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7174,7 +6965,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-109 - low probability but high severity",
-      "_master_id": "MR-129",
+      "_master_id": "MR-125",
       "_proposed_r_id": "R-LEO-AI-129",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7195,7 +6986,7 @@
     }
   },
   {
-    "master_id": "MR-130",
+    "master_id": "MR-126",
     "atlas_r_id": "R-LEO-AI-130",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7230,7 +7021,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-110",
-      "_master_id": "MR-130",
+      "_master_id": "MR-126",
       "_proposed_r_id": "R-LEO-AI-130",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7252,7 +7043,7 @@
     }
   },
   {
-    "master_id": "MR-131",
+    "master_id": "MR-127",
     "atlas_r_id": "R-LEO-AI-131",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7287,7 +7078,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Lower probability - but note at workshop for regulatory impact",
-      "_master_id": "MR-131",
+      "_master_id": "MR-127",
       "_proposed_r_id": "R-LEO-AI-131",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7308,7 +7099,7 @@
     }
   },
   {
-    "master_id": "MR-132",
+    "master_id": "MR-128",
     "atlas_r_id": "R-LEO-AI-132",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7343,7 +7134,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-111",
-      "_master_id": "MR-132",
+      "_master_id": "MR-128",
       "_proposed_r_id": "R-LEO-AI-132",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7364,7 +7155,7 @@
     }
   },
   {
-    "master_id": "MR-133",
+    "master_id": "MR-129",
     "atlas_r_id": "R-LEO-AI-133",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7399,7 +7190,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-112",
-      "_master_id": "MR-133",
+      "_master_id": "MR-129",
       "_proposed_r_id": "R-LEO-AI-133",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7419,7 +7210,7 @@
     }
   },
   {
-    "master_id": "MR-134",
+    "master_id": "MR-130",
     "atlas_r_id": "R-LEO-AI-134",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7454,7 +7245,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-113",
-      "_master_id": "MR-134",
+      "_master_id": "MR-130",
       "_proposed_r_id": "R-LEO-AI-134",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7475,7 +7266,7 @@
     }
   },
   {
-    "master_id": "MR-135",
+    "master_id": "MR-131",
     "atlas_r_id": "R-LEO-AI-135",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7510,7 +7301,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-114",
-      "_master_id": "MR-135",
+      "_master_id": "MR-131",
       "_proposed_r_id": "R-LEO-AI-135",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7531,7 +7322,7 @@
     }
   },
   {
-    "master_id": "MR-136",
+    "master_id": "MR-132",
     "atlas_r_id": "R-LEO-AI-136",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7566,7 +7357,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-115",
-      "_master_id": "MR-136",
+      "_master_id": "MR-132",
       "_proposed_r_id": "R-LEO-AI-136",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7587,7 +7378,7 @@
     }
   },
   {
-    "master_id": "MR-137",
+    "master_id": "MR-133",
     "atlas_r_id": "R-LEO-AI-137",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7622,7 +7413,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-117",
-      "_master_id": "MR-137",
+      "_master_id": "MR-133",
       "_proposed_r_id": "R-LEO-AI-137",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7644,7 +7435,7 @@
     }
   },
   {
-    "master_id": "MR-138",
+    "master_id": "MR-134",
     "atlas_r_id": "R-LEO-AI-138",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7679,7 +7470,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-120 - low probability but catastrophic",
-      "_master_id": "MR-138",
+      "_master_id": "MR-134",
       "_proposed_r_id": "R-LEO-AI-138",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7700,7 +7491,7 @@
     }
   },
   {
-    "master_id": "MR-139",
+    "master_id": "MR-135",
     "atlas_r_id": "R-LEO-AI-139",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7735,7 +7526,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-121",
-      "_master_id": "MR-139",
+      "_master_id": "MR-135",
       "_proposed_r_id": "R-LEO-AI-139",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7758,7 +7549,7 @@
     }
   },
   {
-    "master_id": "MR-140",
+    "master_id": "MR-136",
     "atlas_r_id": "R-LEO-AI-140",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7793,7 +7584,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-123",
-      "_master_id": "MR-140",
+      "_master_id": "MR-136",
       "_proposed_r_id": "R-LEO-AI-140",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7816,7 +7607,7 @@
     }
   },
   {
-    "master_id": "MR-141",
+    "master_id": "MR-137",
     "atlas_r_id": "R-LEO-AI-141",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7851,7 +7642,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-124",
-      "_master_id": "MR-141",
+      "_master_id": "MR-137",
       "_proposed_r_id": "R-LEO-AI-141",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7872,7 +7663,7 @@
     }
   },
   {
-    "master_id": "MR-142",
+    "master_id": "MR-138",
     "atlas_r_id": "R-LEO-AI-142",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7907,7 +7698,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-125",
-      "_master_id": "MR-142",
+      "_master_id": "MR-138",
       "_proposed_r_id": "R-LEO-AI-142",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7928,7 +7719,7 @@
     }
   },
   {
-    "master_id": "MR-143",
+    "master_id": "MR-139",
     "atlas_r_id": "R-LEO-AI-143",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -7963,7 +7754,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-126",
-      "_master_id": "MR-143",
+      "_master_id": "MR-139",
       "_proposed_r_id": "R-LEO-AI-143",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -7986,7 +7777,7 @@
     }
   },
   {
-    "master_id": "MR-144",
+    "master_id": "MR-140",
     "atlas_r_id": "R-LEO-AI-144",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8021,7 +7812,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-129",
-      "_master_id": "MR-144",
+      "_master_id": "MR-140",
       "_proposed_r_id": "R-LEO-AI-144",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8043,7 +7834,7 @@
     }
   },
   {
-    "master_id": "MR-145",
+    "master_id": "MR-141",
     "atlas_r_id": "R-LEO-AI-145",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8078,7 +7869,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-130 - detectability concern",
-      "_master_id": "MR-145",
+      "_master_id": "MR-141",
       "_proposed_r_id": "R-LEO-AI-145",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8099,7 +7890,7 @@
     }
   },
   {
-    "master_id": "MR-146",
+    "master_id": "MR-142",
     "atlas_r_id": "R-LEO-AI-146",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8134,7 +7925,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-131",
-      "_master_id": "MR-146",
+      "_master_id": "MR-142",
       "_proposed_r_id": "R-LEO-AI-146",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8155,7 +7946,7 @@
     }
   },
   {
-    "master_id": "MR-147",
+    "master_id": "MR-143",
     "atlas_r_id": "R-LEO-AI-147",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8190,7 +7981,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-133",
-      "_master_id": "MR-147",
+      "_master_id": "MR-143",
       "_proposed_r_id": "R-LEO-AI-147",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8211,7 +8002,7 @@
     }
   },
   {
-    "master_id": "MR-148",
+    "master_id": "MR-144",
     "atlas_r_id": "R-LEO-AI-148",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8246,7 +8037,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-134 - reproducibility risk",
-      "_master_id": "MR-148",
+      "_master_id": "MR-144",
       "_proposed_r_id": "R-LEO-AI-148",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8267,7 +8058,7 @@
     }
   },
   {
-    "master_id": "MR-149",
+    "master_id": "MR-145",
     "atlas_r_id": "R-LEO-AI-149",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8302,7 +8093,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Lower priority - note at workshop",
-      "_master_id": "MR-149",
+      "_master_id": "MR-145",
       "_proposed_r_id": "R-LEO-AI-149",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8327,7 +8118,7 @@
     }
   },
   {
-    "master_id": "MR-150",
+    "master_id": "MR-146",
     "atlas_r_id": "R-LEO-AI-150",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8362,7 +8153,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-135",
-      "_master_id": "MR-150",
+      "_master_id": "MR-146",
       "_proposed_r_id": "R-LEO-AI-150",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8384,7 +8175,7 @@
     }
   },
   {
-    "master_id": "MR-151",
+    "master_id": "MR-147",
     "atlas_r_id": "R-LEO-AI-151",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8419,7 +8210,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-136",
-      "_master_id": "MR-151",
+      "_master_id": "MR-147",
       "_proposed_r_id": "R-LEO-AI-151",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8440,7 +8231,7 @@
     }
   },
   {
-    "master_id": "MR-152",
+    "master_id": "MR-148",
     "atlas_r_id": "R-LEO-AI-152",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8475,7 +8266,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Lower priority",
-      "_master_id": "MR-152",
+      "_master_id": "MR-148",
       "_proposed_r_id": "R-LEO-AI-152",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8497,7 +8288,7 @@
     }
   },
   {
-    "master_id": "MR-153",
+    "master_id": "MR-149",
     "atlas_r_id": "R-LEO-AI-153",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8532,7 +8323,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-137",
-      "_master_id": "MR-153",
+      "_master_id": "MR-149",
       "_proposed_r_id": "R-LEO-AI-153",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8553,7 +8344,7 @@
     }
   },
   {
-    "master_id": "MR-154",
+    "master_id": "MR-150",
     "atlas_r_id": "R-LEO-AI-154",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8588,7 +8379,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Low probability - note at workshop",
-      "_master_id": "MR-154",
+      "_master_id": "MR-150",
       "_proposed_r_id": "R-LEO-AI-154",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8609,7 +8400,7 @@
     }
   },
   {
-    "master_id": "MR-155",
+    "master_id": "MR-151",
     "atlas_r_id": "R-LEO-AI-155",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8644,7 +8435,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Lower priority",
-      "_master_id": "MR-155",
+      "_master_id": "MR-151",
       "_proposed_r_id": "R-LEO-AI-155",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8665,7 +8456,7 @@
     }
   },
   {
-    "master_id": "MR-156",
+    "master_id": "MR-152",
     "atlas_r_id": "R-LEO-AI-156",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8700,7 +8491,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-138",
-      "_master_id": "MR-156",
+      "_master_id": "MR-152",
       "_proposed_r_id": "R-LEO-AI-156",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8721,7 +8512,7 @@
     }
   },
   {
-    "master_id": "MR-157",
+    "master_id": "MR-153",
     "atlas_r_id": "R-LEO-AI-157",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8756,7 +8547,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-139",
-      "_master_id": "MR-157",
+      "_master_id": "MR-153",
       "_proposed_r_id": "R-LEO-AI-157",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8777,7 +8568,7 @@
     }
   },
   {
-    "master_id": "MR-158",
+    "master_id": "MR-154",
     "atlas_r_id": "R-LEO-AI-158",
     "action": "CREATE_NEW",
     "source": "FMEA_GAP",
@@ -8812,7 +8603,7 @@
       "mitigation_control_type": "protective_measure",
       "mitigation_effectiveness": "pending",
       "mitigation_measures_detail": "Create R-LEO-AI-140",
-      "_master_id": "MR-158",
+      "_master_id": "MR-154",
       "_proposed_r_id": "R-LEO-AI-158",
       "_action": "CREATE_NEW",
       "_source": "FMEA_GAP",
@@ -8831,5 +8622,95 @@
       ],
       "relationship": "MITIGATES"
     }
+  },
+  {
+    "master_id": "MR-155",
+    "atlas_r_id": "R-LEO-AI-159",
+    "action": "CREATE_NEW",
+    "source": "FMEA_GAP",
+    "create": {
+      "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
+      "title": "Automated episode quality-check rule fails to catch incorrect coding",
+      "description": "Source: FMEA_GAP. FMEA: FMEA-008. Split from R-LEO-AI-065 per Dedup Auditor - different control layer (automated rule vs human auditor approval).",
+      "hazard_description": "The automated episode quality-check RULE SET has coverage gaps; incorrectly coded entities pass the rule layer and enter episodes without being flagged for human review.",
+      "hazard_category": "software_defect",
+      "hazardous_situation": "The automated episode quality-check RULE SET has coverage gaps; incorrectly coded entities pass the rule layer and enter episodes without being flagged for human review.",
+      "harm_description": "The automated episode quality-check RULE SET has coverage gaps; incorrectly coded entities pass the rule layer and enter episodes without being flagged for human review.",
+      "harm_severity": "serious",
+      "initial_severity": "serious",
+      "initial_probability": "possible",
+      "initial_detectability": 3,
+      "initial_rpn": 27,
+      "safety_class": "B",
+      "status": "identified",
+      "identified_by": "LEO-AI-CORE FMEA master list 2026-04-16",
+      "identified_date": "2026-04-16",
+      "tags": [
+        "fmea_gap",
+        "fmea-008"
+      ],
+      "monitoring_plan": "Monitor via DQ dashboards, coding quality alerts, and post-market surveillance. Review quarterly at hazard workshop.",
+      "monitoring_metrics": [
+        "RPN trend",
+        "Incident count",
+        "Mitigation effectiveness"
+      ],
+      "review_frequency": "Quarterly",
+      "mitigation_control_type": "protective_measure",
+      "mitigation_effectiveness": "pending",
+      "mitigation_measures_detail": "Split from R-LEO-AI-065 per Dedup Auditor - different control layer (automated rule vs human auditor approval).",
+      "_master_id": "MR-155",
+      "_proposed_r_id": "R-LEO-AI-159",
+      "_action": "CREATE_NEW",
+      "_source": "FMEA_GAP",
+      "_rpn_level": "high"
+    },
+    "link_uns": null,
+    "link_dis": null
+  },
+  {
+    "master_id": "MR-156",
+    "atlas_r_id": "R-LEO-AI-160",
+    "action": "CREATE_NEW",
+    "source": "FMEA_GAP",
+    "create": {
+      "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
+      "title": "Human reviewer approves a wrong replacement code during coding correction due to terminology-expertise gap",
+      "description": "Source: FMEA_GAP. FMEA: FMEA-050. Split from R-LEO-AI-056 per Dedup Auditor - R-056 is automated dual-LLM remediation; this is human reviewer expertise gap.",
+      "hazard_description": "A human reviewer selects an incorrect SNOMED replacement during a coding-correction workflow because they lack terminology expertise or clinical context for ambiguous terms.",
+      "hazard_category": "software_defect",
+      "hazardous_situation": "A human reviewer selects an incorrect SNOMED replacement during a coding-correction workflow because they lack terminology expertise or clinical context for ambiguous terms.",
+      "harm_description": "A human reviewer selects an incorrect SNOMED replacement during a coding-correction workflow because they lack terminology expertise or clinical context for ambiguous terms.",
+      "harm_severity": "serious",
+      "initial_severity": "serious",
+      "initial_probability": "possible",
+      "initial_detectability": 3,
+      "initial_rpn": 27,
+      "safety_class": "B",
+      "status": "identified",
+      "identified_by": "LEO-AI-CORE FMEA master list 2026-04-16",
+      "identified_date": "2026-04-16",
+      "tags": [
+        "fmea_gap",
+        "fmea-050"
+      ],
+      "monitoring_plan": "Monitor via DQ dashboards, coding quality alerts, and post-market surveillance. Review quarterly at hazard workshop.",
+      "monitoring_metrics": [
+        "RPN trend",
+        "Incident count",
+        "Mitigation effectiveness"
+      ],
+      "review_frequency": "Quarterly",
+      "mitigation_control_type": "protective_measure",
+      "mitigation_effectiveness": "pending",
+      "mitigation_measures_detail": "Split from R-LEO-AI-056 per Dedup Auditor - R-056 is automated dual-LLM remediation; this is human reviewer expertise gap.",
+      "_master_id": "MR-156",
+      "_proposed_r_id": "R-LEO-AI-160",
+      "_action": "CREATE_NEW",
+      "_source": "FMEA_GAP",
+      "_rpn_level": "high"
+    },
+    "link_uns": null,
+    "link_dis": null
   }
 ]

@@ -178,11 +178,13 @@ describe("VT-036-TC-017: AppShell uses Next.js Link", () => {
 });
 
 // -- VT-036-TC-018: Cursor rule exists and covers all standards --------------
+// Note: ui-safety.mdc was renamed to ui-accessibility.mdc as part of the
+// Wave E cursor-rule refresh. Same coverage, new filename.
 
 describe("VT-036-TC-018: Cursor safety rule exists", () => {
-  const rulePath = path.join(ROOT, ".cursor/rules/ui-safety.mdc");
+  const rulePath = path.join(ROOT, ".cursor/rules/ui-accessibility.mdc");
 
-  it("ui-safety.mdc file exists", () => {
+  it("ui-accessibility.mdc file exists", () => {
     expect(fs.existsSync(rulePath)).toBe(true);
   });
 

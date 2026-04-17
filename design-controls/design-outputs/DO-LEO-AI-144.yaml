@@ -1,0 +1,100 @@
+# -- DO-LEO-AI-144 -- AI Instructions list on @leo/design-system
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-144"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-148"]
+    user_needs: ["UN-LEO-AI-071"]
+    risks_addressed: ["R-LEO-AI-101"]
+    verification_tests: ["VT-LEO-AI-146"]
+
+  specification:
+    title: "AI Instructions list page on @leo/design-system primitives"
+    description: |
+      Single Next.js page under
+      services/ui/src/app/admin/prompts/page.tsx that lists every
+      prompt configuration. The page now consumes the shared
+      @leo/design-system chrome:
+
+        - StatHero: four tiles (Instruction sets, Categories
+          covered, With double-check, With examples) tinted by
+          tone so the reviewer sees catalogue health at a glance.
+        - FilterBar: free-text search with the New-instructions
+          ToolbarAction in the trailing slot (single primary).
+        - SegmentedTabs: category filter (All + one segment per
+          discovered category, with counts).
+        - ReviewListCard: one row per instruction set. In browse
+          mode rows are grouped under category section headers;
+          in filter mode they collapse to a single flat list.
+
+      The legacy bespoke chrome (h4 page title, raw chip-strip
+      filter, raw TextField search, custom PromptCard grid with
+      CardActionArea) has been removed. The detail-page rebuild
+      (PromptEditorCard + few-shot library on ReviewListCard) is
+      out of scope here and lives on a future DI.
+    acceptance_criteria:
+      - criterion: "Design-system chrome on the AI Instructions list"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-146 TC-001 passes"
+      - criterion: "Legacy chrome removed"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-146 TC-002 passes"
+      - criterion: "Existing handlers preserved"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-146 TC-003 + TC-004 pass"
+      - criterion: "Single primary action via ToolbarActions"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-146 TC-005 passes"
+      - criterion: "Loading / empty / no-match states reachable"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-146 TC-006 passes"
+      - criterion: "Stat-tile semantics + SegmentedTabs API"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-146 TC-007 + TC-008 pass"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/prompts/page.tsx"
+        description: >
+          Redesigned AI Instructions list: StatHero + FilterBar +
+          SegmentedTabs + ToolbarActions + ReviewListCard. Grouped
+          browse mode preserved; flat filter mode preserved.
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 470
+      key_functions:
+        - "PromptsPage"
+        - "computeStats"
+        - "categorise"
+        - "humanName"
+        - "promptTitle"
+        - "promptMeta"
+        - "promptChips"
+        - "toReviewItem"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Preserve router.push to /admin/prompts/:id so the editor remains reachable"
+      - "Preserve router.push to /admin/prompts/new so new instructions can be authored"
+      - "Preserve sortByIsoDateDesc so the most recently changed instruction surfaces first"
+    risk_control_measures:
+      - "Single primary ToolbarAction reduces accidental destructive clicks (R-101 mitigation)"
+      - "ReviewListCard onSelect uses the same router.push contract as the legacy CardActionArea"
+      - "Grouped browse mode preserved so reviewers can still mentally chunk by category without having to filter"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

@@ -1,0 +1,99 @@
+# -- R-LEO-AI-107 -- Mis-classification of cancer site from text-only surface forms
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-107"
+  title: "Text-mined surface forms could mis-classify the cancer site of an episode"
+
+  hazard:
+    description: >
+      The cancer-site dictionary mined from gold labels contains literal
+      surface forms that may incidentally appear in encounters that are
+      not about that cancer (e.g. "breast" mentioned in a family-history
+      note for a colorectal patient).
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    Reviewer reads the NCDA report, filters by 'breast' pathway, and
+    sees an episode that is actually a colorectal pathway. The
+    reviewer-facing report metric (e.g. routes-to-diagnosis split) is
+    distorted, and the reviewer may chase a non-existent breast
+    pathway delay.
+
+  harm:
+    description: >
+      Wasted reviewer time, potential mis-direction of audit findings;
+      no direct patient harm because the underlying clinical record is
+      unchanged and reviewers always inspect the source encounter
+      before acting.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Surface forms must contain an anatomy/histology stem in the
+        SURFACE itself (not just the parent concept FSN). This filters
+        out generic findings whose parent concept happened to mention
+        an organ.
+      implemented_by: ["DI-LEO-AI-155"]
+      verified_by: ["VT-LEO-AI-153"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        match_cancer_site returns the site with the HIGHEST hit count
+        across the full episode text, not just the first match. A
+        single incidental mention of an unrelated organ is therefore
+        outweighed by the cluster of on-topic terms.
+      implemented_by: ["DI-LEO-AI-155"]
+      verified_by: ["VT-LEO-AI-153"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Reviewers always see the source encounter text alongside the
+        episode site classification in the operations UI; mis-pairs
+        are flagged by the human-in-the-loop process and fed back to
+        regenerate the dictionary.
+      implemented_by: ["DI-LEO-AI-155"]
+      verified_by: ["VT-LEO-AI-153"]
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 2
+    detectability: 2
+    rpn: 8
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Misclassification is recoverable -- it changes only the report
+      slice, not the patient record -- and the human-in-the-loop
+      review path catches it before any downstream action. The benefit
+      (going from 0% site coverage to >=70%) substantially outweighs
+      the residual mis-pair risk.
+
+  monitoring:
+    monitoring_plan: >
+      Quarterly audit of EpisodeOfCare.cancer_type against the source
+      encounter text on a sample of 50 episodes per pathway. Track
+      precision per cancer site; trigger a dictionary regeneration if
+      precision falls below 90% for any site.
+    metrics:
+      - "Site-level precision against reviewer spot-check"
+      - "Number of HITL flags raised due to wrong cancer_type"
+      - "Per-site hit count distribution drift"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Funnel investigation 2026-04-17 -- 230/230 episodes were non_site_specific because the :DOCUMENTS edges were deleted as a clean-up step (option C in the schema-driven GDS upgrade)"
+    identified_date: "2026-04-17"
+    status: "analyzed"
+    tags:
+      - "episode-building"
+      - "site-classification"
+      - "ncda-report"

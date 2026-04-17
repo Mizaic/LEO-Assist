@@ -1,0 +1,106 @@
+======================================================================
+PATIENT      : 4822020479
+EPISODE      : 91c083c2cd0bd901
+CANCER_TYPE  : urological
+STATUS       : stale_no_diagnosis
+REFERRAL     : 2024-02-27
+WINDOW       : 2024-02-13 .. 2024-05-27 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2024-02-27  referral                enc=7bc7cbc8-1fc9-4e62-8a96-019dca9b8603
+  2025-03-13  first_seen              enc=aea421d0-67b0-4a88-82b8-4cd87e218743
+  2025-04-01  first_seen              enc=870bcbb1-9e7f-445d-86ef-cfa02ba00b19
+
+Encounters in window (n=9):
+
+--- 01 2024-02-27 [IN-EP] milestones=['referral'] eid=7bc7cbc8-1fc9-4e62-8a96-019dca9b8603 ---
+10:04 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) 
+History: Duty doctor.
+Telephone call.
+Currently at work.
+Feels has UTI.
+Started yesterday.
+Having urinary frequency and urgency.
+Dysuria not started yet but feels soon will.
+Slight suprapubic discomfort.
+Today noticed slight tinge blood in urine in morning. Not on blood thinners.
+Had this occur in past when had UTI's.
+Had UTI's in past and feels similar symptoms occuring.
+Would like to treat early before becoming unwell with it.
+Currently no fevers, no shivers, no vomiting. Feels fine in self.
+2ww urology checked - visible haematuria without UTI or if persists following treatment for UTI.
+Discussed can issue abx for now. If no better then to drop urine sample to surgery. 
+Diagnosis: Suspected UTI (XaFqt)
+Plan: Nitrofurantoin issued.
+Keep hydrated.
+Paracetaol as needed.
+Advised to drop urine sample to surgery if symptoms no better.
+To call surgery if worsening haematuria.
+Nitrofurantoin 100mg modified-release capsules - 6 capsule - take one twice daily
+ETP2 FP10: Not Yet Printed - Signed
+Community Pharmacy changed. Previous data: Lloydsdirect, 17 Wadsworth Road, Perivale, Greenford UB6 7JD 
+Tel: 02080 688067
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 02 2024-02-27 [other] milestones=[] eid=e6adea35-67db-4093-bd89-de110ae83262 ---
+14:35 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role) 
+Patient telephone number (9159.) - +447786555808
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Cowan,
+All patients aged over 16 at a GP practice in Leicester, Leicestershire or Rutland are invited to tell us about their most recent experiences. 
+Complete a questionnaire via the link below before Sunday March 10th.
+www.bit.ly/LLRGPSurvey
+
+Woodbrook Medical Centre
+SMS sent on 27/02/2024 14:14:04
+
+--- 03 2024-02-27 [other] milestones=[] eid=4a501c36-e770-444f-8b3f-c69c1d553e01 ---
+14:35 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role)
+
+--- 04 2024-03-19 [other] milestones=[] eid=3fd4c380-b4db-4962-af3d-68f8cdc5ff00 ---
+09:42 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role) 
+Patient telephone number (9159.) - +447786555808
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Cowan,
+I'd like you to submit your blood pressure reading via the link below. 
+
+
+Please complete this questionnaire: https://accurx.nhs.uk/c/p-ms333cy35g
+
+Woodbrook Medical Centre
+SMS sent on 19/03/2024 09:36:06
+
+--- 05 2024-03-19 [other] milestones=[] eid=106d0194-d8ad-4212-813e-69f8729ded8d ---
+09:42 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role)
+
+--- 06 2024-03-25 [other] milestones=[] eid=f7358951-01a3-44aa-919b-f945471856ee ---
+11:54 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role) 
+ Hypertension v48 2023/2024
+   Hypertension Quick Entry
+      Hypertension exception reporting codes: Excepted from hypertension qual indicators: Informed dissent (XaJ4f)
+Excepted from hypertension qual indicators: Informed dissent (XaJ4f)
+
+--- 07 2024-04-24 [other] milestones=[] eid=b8f57f34-21c8-4e62-97e6-76630eeed04c ---
+10:19 - Surgery: RATHBONE, Lucy (Receptionist Access Role) 
+As per GP report list from the NHS Breast Screening Programme.
+Did not attend breast screening clinic (XaMdn)
+
+--- 08 2024-05-09 [other] milestones=[] eid=2b2c3697-aa17-4ae4-b899-64a67e42d329 ---
+10:34 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Citalopram 20mg tablets - 84 tablet - One To Be Taken Each Day
+(R) Ramipril 2.5mg capsules - 84 capsule - One To Be Taken Each Day
+ETP2 FP10: Not Yet Printed - Signed
+Community Pharmacy - Amendment via PDSPrevious data: Pharmacy First, 31 Bridge Street, Loughborough LE11 1NH 
+Tel: 01509 262821
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 09 2024-05-14 [other] milestones=[] eid=3af422a9-6fb4-43b5-a1ac-98cae1c54652 ---
+11:05 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Citalopram 20mg tablets - 84 tablet - One To Be Taken Each Day
+(R) Ramipril 2.5mg capsules - 84 capsule - One To Be Taken Each Day
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+

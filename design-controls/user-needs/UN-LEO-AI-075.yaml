@@ -1,0 +1,73 @@
+# -- UN-LEO-AI-075 -- Operations users need a clear, consistent Intelligence Console
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-075"
+  title: "When operations staff and the QA/RA lead open the Intelligence Console at /admin/console, the page must look and behave like the rest of the redesigned admin surfaces (Knowledge tabs, Pathways list) so that the AI learning loop (Discover -> Curate -> Train -> Evaluate -> Deploy -> Monitor) is easy to read at a glance, the next-best action is obvious, and the underlying training, evaluation and deployment data is presented in the same visual language used elsewhere in the platform."
+
+  description: |
+    Today /admin/console is the only top-level admin surface that has not
+    been moved onto the @leo/design-system. It still uses the bespoke
+    HealthBar / NudgeBanner / StageCard chrome, the AreaIntro is wrapped
+    by hand, there is no StatHero summarising the loop, and the page
+    width does not match the wide (1600 px) data-heavy layout used by
+    Training Data, Surface Forms, Pathways, etc.
+
+    The result is that:
+
+      - Staff cannot tell the AI loop is the same product as the
+        Knowledge tabs (different fonts, padding, card radii, focus
+        rings).
+
+      - There is no at-a-glance hero of the four numbers that actually
+        drive operations decisions (gold labels, candidate queue, latest
+        F1, live model version).
+
+      - The pipeline rail is a single-purpose component that cannot be
+        reused by the Pathway editor or by future stage views.
+
+      - The nudge banner does not share severity semantics with the
+        rest of the design-system, so a "warning" nudge here looks
+        different to a "warning" alert in a Knowledge card.
+
+    The user need is for the Intelligence Console to adopt
+    KnowledgePageLayout (wide) plus a small set of new design-system
+    primitives (PipelineRail, NudgeStrip) so the loop is rendered with
+    the same fonts, colours, spacing, motion and accessibility
+    contracts as every other Wave D / E surface, and so the existing
+    stage panels (Discover / Curate / Train / Evaluate / Deploy /
+    Monitor) keep working unchanged behind the new shell.
+
+  stakeholder: "Operations staff, QA/RA lead, platform admin"
+
+  priority: "high"
+
+  rationale: >
+    Inconsistent chrome on a top-level admin surface erodes trust in
+    the whole product and hides the signal that operations users need
+    (queue depth, last training F1, live model version). Moving the
+    console onto the design-system also unlocks Phase 8b in which the
+    inner TrainStage and EvaluateStage bodies are rebuilt on
+    ReviewListCard / DataGridCard / MetricTile primitives, because the
+    shell, motion and density contracts are shared.
+
+  acceptance_criteria:
+    - "services/ui/src/app/admin/console/page.tsx imports and renders KnowledgePageLayout from @leo/design-system with screenId='admin-console' and width='wide'."
+    - "The page renders a StatHero with at least three live tiles derived from useConsoleState: gold labels, candidate queue depth, and either latest F1 or live model version."
+    - "The legacy HealthBar import is removed; the page uses the new PipelineRail primitive from @leo/design-system to render the six AI-loop stages (DISCOVER / CURATE / TRAIN / EVALUATE / DEPLOY / MONITOR)."
+    - "The legacy NudgeBanner import is removed; nudges render via the new NudgeStrip primitive from @leo/design-system with a semantic severity (info / warning / danger)."
+    - "Stage panels keep their existing bodies (DiscoverStage, CurateStage, TrainStage, EvaluateStage, DeployStage, MonitorStage) and continue to function; only the surrounding shell changes."
+    - "The redesign is covered by a static-source jest verification test that pins the imports and the screenId/width contract."
+
+  design_inputs:
+    - "DI-LEO-AI-164"
+
+  metadata:
+    identified_by: "Rob Smith - Wave E Phase 8 console redesign request"
+    identified_date: "2026-04-16"
+    status: "approved"
+    tags:
+      - "intelligence-console"
+      - "design-system"
+      - "wave-e-phase-8"
+      - "operations"
+      - "ui"

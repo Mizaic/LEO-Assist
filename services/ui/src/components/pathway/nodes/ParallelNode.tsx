@@ -1,24 +1,60 @@
 "use client";
 
 import { memo } from "react";
-import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import Typography from "@mui/material/Typography";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
+
+import { BaseNode, NodeHandle, NodeHeader } from "./_base";
+
+const PARALLEL_ACCENT = "#00ACC1";
+
+interface ParallelNodeData {
+  branches?: string[];
+  onConfigure?: () => void;
+}
 
 function ParallelNodeComponent({ data, selected }: NodeProps) {
-  const branches = (data as any).branches ?? ["branch_a", "branch_b"];
+  const d = data as ParallelNodeData;
+  const branches = d.branches ?? ["branch_a", "branch_b"];
+
   return (
-    <Box sx={{ px: 2, py: 1.5, minWidth: 180, borderRadius: 2, border: "2px solid", borderColor: selected ? "primary.main" : "#00ACC1", bgcolor: "background.paper", position: "relative" }}>
-      <Handle id="input" type="target" position={Position.Left} />
-      <Typography variant="body2" fontWeight={700}>Parallel</Typography>
-      <Chip size="small" label={`${branches.length} branches`} sx={{ mt: 0.5, bgcolor: "#00ACC1", color: "#fff" }} />
-      {branches.map((name: string, i: number) => (
-        <Handle key={name} id={name} type="source" position={Position.Right} style={{ top: `${((i + 1) / (branches.length + 1)) * 100}%` }} />
+    <BaseNode
+      accentColor={PARALLEL_ACCENT}
+      selected={selected}
+      minWidth={180}
+      ariaLabel={`Parallel fan-out with ${branches.length} branches`}
+      onActivate={d.onConfigure}
+    >
+      <NodeHandle
+        id="input"
+        type="target"
+        color={PARALLEL_ACCENT}
+        tooltip="Input - data is forwarded to every branch"
+      />
+      <NodeHeader title="Parallel" />
+      <Chip
+        size="small"
+        label={`${branches.length} branches`}
+        sx={{
+          mt: 0.5,
+          bgcolor: PARALLEL_ACCENT,
+          color: "#fff",
+          fontSize: "0.65rem",
+          height: 20,
+        }}
+      />
+      {branches.map((name, i) => (
+        <NodeHandle
+          key={`out-${name}`}
+          id={name}
+          type="source"
+          color={PARALLEL_ACCENT}
+          top={`${((i + 1) / (branches.length + 1)) * 100}%`}
+          tooltip={`Branch output ${name}`}
+        />
       ))}
-    </Box>
+    </BaseNode>
   );
 }
 
 export const ParallelNode = memo(ParallelNodeComponent);
-

@@ -17,7 +17,18 @@ from libs.terminology.client import TerminologyClient
 logger = logging.getLogger(__name__)
 
 
-_DEFAULT_MIN_SCORE = 0.70  # matches the UI slider default
+# Minimum calibrated absolute confidence to accept a SNOMED mapping.
+# Calibrated ~ P(correct mapping). 0.55 admits:
+#   - Exact-branch hits (lex_signal=1.0 -> calibrated=1.0)
+#   - Strong fulltext (BM25>=2) with tag match (~0.67+0.10=0.77)
+#   - High-cosine vector hits (>=0.85)
+# Rejects:
+#   - Weak partial Lucene matches whose only candidate was a one-token
+#     hit (calibrated <= 0.5).
+# Was 0.70 under the old per-term-normalised scoring; lowered to 0.55
+# now that the score reflects absolute strength rather than relative
+# rank within the per-term candidate pool.
+_DEFAULT_MIN_SCORE = 0.55
 _TERM_CONCEPT_BLOCKLIST: dict[str, set[str]] = {
     # Generic mention in notes; do not auto-code to a specific named operation.
     "spinal surgery": {"1287097003"},

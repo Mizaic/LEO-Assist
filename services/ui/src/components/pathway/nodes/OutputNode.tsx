@@ -4,27 +4,36 @@ import { memo } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
-import Tooltip from "@mui/material/Tooltip";
 import SendIcon from "@mui/icons-material/Send";
 import HubIcon from "@mui/icons-material/Hub";
 import StorageIcon from "@mui/icons-material/Storage";
 import PersonIcon from "@mui/icons-material/Person";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
+
+import { BaseNode, NodeHandle, NodeHeader } from "./_base";
 
 /**
- * OutputNode — a terminal node on the canvas that represents an outbound
- * destination. It has INPUT handles only; it never forwards data further.
+ * OutputNode - terminal node on the canvas. Has INPUT handles only; never
+ * forwards data further.
  */
+export type OutputType =
+  | "knowledge_graph"
+  | "patient_graph"
+  | "pubsub_publish"
+  | "webhook";
 
-export type OutputType = "knowledge_graph" | "patient_graph" | "pubsub_publish" | "webhook";
+interface OutputMeta {
+  label: string;
+  description: string;
+  color: string;
+  inputs: string[];
+}
 
-export const OUTPUT_DEFINITIONS: Record<
-  OutputType,
-  { label: string; description: string; color: string; inputs: string[] }
-> = {
+export const OUTPUT_DEFINITIONS: Record<OutputType, OutputMeta> = {
   knowledge_graph: {
     label: "Knowledge Base",
-    description: "Write processed clinical facts back to the de-identified knowledge database",
+    description:
+      "Write processed clinical facts back to the de-identified knowledge database",
     color: "#00695C",
     inputs: ["entities", "documents_written"],
   },
@@ -50,63 +59,52 @@ export const OUTPUT_DEFINITIONS: Record<
 
 const OUTPUT_ICONS: Record<OutputType, React.ReactNode> = {
   knowledge_graph: <StorageIcon sx={{ fontSize: "1rem" }} />,
-  patient_graph:   <PersonIcon  sx={{ fontSize: "1rem" }} />,
-  pubsub_publish:  <HubIcon     sx={{ fontSize: "1rem" }} />,
-  webhook:         <SendIcon    sx={{ fontSize: "1rem" }} />,
+  patient_graph: <PersonIcon sx={{ fontSize: "1rem" }} />,
+  pubsub_publish: <HubIcon sx={{ fontSize: "1rem" }} />,
+  webhook: <SendIcon sx={{ fontSize: "1rem" }} />,
 };
 
-function OutputNodeComponent({ data, selected }: NodeProps) {
-  const d = data as {
-    label?: string;
-    outputType?: OutputType;
-    inputs?: string[];
-    onConfigure?: () => void;
-  };
+interface OutputNodeData {
+  label?: string;
+  outputType?: OutputType;
+  inputs?: string[];
+  onConfigure?: () => void;
+}
 
+function OutputNodeComponent({ data, selected }: NodeProps) {
+  const d = data as OutputNodeData;
   const outputType: OutputType = d.outputType ?? "knowledge_graph";
   const meta = OUTPUT_DEFINITIONS[outputType] ?? OUTPUT_DEFINITIONS.knowledge_graph;
   const inputs: string[] = d.inputs ?? meta.inputs;
+  const longestInput = Math.max(0, ...inputs.map((k) => k.length));
+  const leftPad = inputs.length > 0 ? `${longestInput * 6 + 28}px` : 12;
+  const chipLabel =
+    outputType === "knowledge_graph" || outputType === "patient_graph"
+      ? "Write destination"
+      : "Output";
 
   return (
-    <Box
-      onDoubleClick={d.onConfigure}
-      sx={{
-        px: 2,
-        py: 1.5,
-        minWidth: 190,
-        borderRadius: 2,
-        border: "2px solid",
-        borderColor: selected ? "primary.main" : meta.color,
-        bgcolor: `${meta.color}12`,
-        cursor: "grab",
-        position: "relative",
-        // Extra left padding for handle labels
-        pl: inputs.length > 0 ? `${Math.max(...inputs.map((k) => k.length)) * 6 + 28}px` : 2,
-      }}
+    <BaseNode
+      accentColor={meta.color}
+      selected={selected}
+      minWidth={190}
+      ariaLabel={`${d.label || meta.label} - output destination`}
+      onActivate={d.onConfigure}
+      sx={{ bgcolor: `${meta.color}12`, pl: leftPad }}
     >
-      {/* Input handles + labels */}
       {inputs.map((key, i) => {
         const topPct = `${((i + 1) / (inputs.length + 1)) * 100}%`;
         return (
-          <Tooltip key={key} title={`Wire "${key}" from an upstream step`} placement="left" arrow>
-            <Handle
-              id={key}
-              type="target"
-              position={Position.Left}
-              style={{
-                top: topPct,
-                width: 12,
-                height: 12,
-                background: meta.color,
-                border: "2px solid #fff",
-                borderRadius: "50%",
-              }}
-            />
-          </Tooltip>
+          <NodeHandle
+            key={`in-${key}`}
+            id={key}
+            type="target"
+            color={meta.color}
+            top={topPct}
+            tooltip={`Wire "${key}" from an upstream step`}
+          />
         );
       })}
-
-      {/* Labels sit to the left of the handles */}
       {inputs.map((key, i) => {
         const topPct = `${((i + 1) / (inputs.length + 1)) * 100}%`;
         return (
@@ -130,20 +128,33 @@ function OutputNodeComponent({ data, selected }: NodeProps) {
           </Typography>
         );
       })}
-
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.5 }}>
-        <Box sx={{ color: meta.color, display: "flex" }}>{OUTPUT_ICONS[outputType]}</Box>
-        <Typography variant="body2" fontWeight={700}>{d.label || meta.label}</Typography>
-      </Box>
+      <NodeHeader
+        icon={
+          <Box sx={{ color: meta.color, display: "flex" }}>
+            {OUTPUT_ICONS[outputType]}
+          </Box>
+        }
+        title={d.label || meta.label}
+      />
       <Chip
         size="small"
-        label={outputType === "knowledge_graph" || outputType === "patient_graph" ? "Write destination" : "Output"}
-        sx={{ bgcolor: meta.color, color: "#fff", fontSize: "0.65rem", height: 20 }}
+        label={chipLabel}
+        sx={{
+          mt: 0.5,
+          bgcolor: meta.color,
+          color: "#fff",
+          fontSize: "0.65rem",
+          height: 20,
+        }}
       />
-      <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 0.5, fontSize: "0.6rem" }}>
-        Double-click to configure
+      <Typography
+        variant="caption"
+        color="text.disabled"
+        sx={{ display: "block", mt: 0.5, fontSize: "0.6rem" }}
+      >
+        Click to configure
       </Typography>
-    </Box>
+    </BaseNode>
   );
 }
 

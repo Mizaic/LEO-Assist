@@ -11,6 +11,13 @@ from unittest.mock import patch, MagicMock, call
 import pytest
 
 
+def _make_scope(email: str, is_admin: bool = True):
+    """Build a CallerScope for direct (non-FastAPI) test invocation."""
+    from libs.auth.org_scope import CallerScope
+
+    return CallerScope(email=email, is_admin=is_admin)
+
+
 class TestGetOrgContext:
 
     @patch("services.analytics_api.app.routers.org_context.PatientGraphClient")
@@ -45,7 +52,9 @@ class TestGetOrgContext:
             ],
         ]
 
-        result = get_org_context(email="rob@test.ai")
+        result = get_org_context(
+            scope=_make_scope("rob@test.ai", is_admin=True), email="rob@test.ai"
+        )
 
         assert result["user"]["is_platform_admin"] is True
         assert len(result["organizations"]) == 2
@@ -82,7 +91,9 @@ class TestGetOrgContext:
             ],
         ]
 
-        result = get_org_context(email="ben@nhs.net")
+        result = get_org_context(
+            scope=_make_scope("ben@nhs.net", is_admin=False), email="ben@nhs.net"
+        )
 
         assert result["user"]["is_platform_admin"] is False
         assert len(result["organizations"]) == 1
@@ -100,7 +111,10 @@ class TestGetOrgContext:
         instance.run.return_value = []
 
         with pytest.raises(HTTPException) as exc_info:
-            get_org_context(email="nobody@unknown.com")
+            get_org_context(
+                scope=_make_scope("nobody@unknown.com", is_admin=True),
+                email="nobody@unknown.com",
+            )
 
         assert exc_info.value.status_code == 404
 
@@ -121,7 +135,10 @@ class TestGetOrgContext:
             [],
         ]
 
-        get_org_context(email="  Test@Example.COM  ")
+        get_org_context(
+            scope=_make_scope("  Test@Example.COM  ", is_admin=True),
+            email="  Test@Example.COM  ",
+        )
 
         first_call_kwargs = instance.run.call_args_list[0][1]
         assert first_call_kwargs["email"] == "test@example.com"
@@ -143,7 +160,9 @@ class TestGetOrgContext:
             [],
         ]
 
-        get_org_context(email="t@t.com")
+        get_org_context(
+            scope=_make_scope("t@t.com", is_admin=True), email="t@t.com"
+        )
         instance.close.assert_called_once()
 
     @patch("services.analytics_api.app.routers.org_context.PatientGraphClient")
@@ -155,7 +174,10 @@ class TestGetOrgContext:
         instance.run.return_value = []
 
         with pytest.raises(HTTPException):
-            get_org_context(email="fail@test.com")
+            get_org_context(
+                scope=_make_scope("fail@test.com", is_admin=True),
+                email="fail@test.com",
+            )
 
         instance.close.assert_called_once()
 
@@ -184,7 +206,9 @@ class TestGetOrgContext:
             ],
         ]
 
-        result = get_org_context(email="t@t.com")
+        result = get_org_context(
+            scope=_make_scope("t@t.com", is_admin=True), email="t@t.com"
+        )
 
         assert "user" in result
         assert "organizations" in result

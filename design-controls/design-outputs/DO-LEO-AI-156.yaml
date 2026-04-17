@@ -1,0 +1,79 @@
+# -- DO-LEO-AI-156 -- Pathway probe parity and popover safety (Phase 6b-v)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-156"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-160"]
+    user_needs: ["UN-LEO-AI-072"]
+    risks_addressed: ["R-LEO-AI-162"]
+    verification_tests: ["VT-LEO-AI-158"]
+
+  specification:
+    title: "Pathway editor probe registry parity + Escape-to-close popover"
+    description: |
+      Adds the four missing subgraph descriptors (encounter_loader,
+      staging_enrichment, human_review_gate, encounter_coding_agent) to
+      subgraphs.ts and corresponding probe strategy implementations to
+      probeStrategies.tsx, so that every python-registered subgraph has a
+      probe view in the canvas dry-run popover. Also wires a keyboard
+      Escape handler into the ProbeMonitor popover and exposes it as a
+      named ARIA dialog.
+    acceptance_criteria:
+      - criterion: "Subgraph descriptors registered"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          subgraphs.ts SUBGRAPH_OPTIONS, SUBGRAPH_IO and SUBGRAPH_CATEGORY each
+          include the four new IDs (encounter_loader was already in OPTIONS;
+          the new IDs are added to OPTIONS, IO and CATEGORY).
+      - criterion: "Probe strategies registered"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          PROBE_STRATEGIES contains entries for encounter_loader,
+          staging_enrichment, human_review_gate, encounter_coding_agent.
+      - criterion: "Escape closes the popover"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          A keydown listener on window with key === "Escape" closes the inspector
+          drawer if open, otherwise calls onClose. The popover carries
+          role="dialog" with an aria-label naming the source and target steps.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/pathway/config/subgraphs.ts"
+        description: "Adds 3 subgraph options + 3 IO descriptors + 3 category entries; extends inferDataType for verdict, messages, coded_entities, episode_ids, needs_human_review."
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/pathway/edges/probeStrategies.tsx"
+        description: "Adds encounterLoader, stagingEnrichment, humanReviewGate, encounterCodingAgent strategies and registers them in PROBE_STRATEGIES; extends CONFIG_INJECTED_FIELDS for encounter_coding_agent."
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/pathway/edges/PortEdge.tsx"
+        description: "ProbeMonitor: window keydown Escape handler closes drawer-then-popover; adds role=\"dialog\" and aria-label to popover root."
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 200
+      key_functions:
+        - "encounterLoader"
+        - "stagingEnrichment"
+        - "humanReviewGate"
+        - "encounterCodingAgent"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Probe-popover dismissal: Escape must always work without trapping focus"
+      - "Probe-strategy parity prevents the canvas from misleading the clinician about what a step does"
+    risk_control_measures:
+      - "Static-source VT enumerates registry.py subgraph names and asserts each appears in SUBGRAPH_IO and PROBE_STRATEGIES"
+      - "Static-source VT asserts the keydown handler and ARIA attributes are present"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

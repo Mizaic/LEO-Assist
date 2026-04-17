@@ -1,46 +1,67 @@
 "use client";
 
 import { memo } from "react";
-import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import Typography from "@mui/material/Typography";
 import BoltIcon from "@mui/icons-material/Bolt";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { type NodeProps } from "@xyflow/react";
+
+import { BaseNode, NodeHandle, NodeHeader } from "./_base";
+
+const TRIGGER_ACCENT = "#FFC107";
+const TRIGGER_PORT_COLOR = "#FFB300";
+
+interface TriggerNodeData {
+  label?: string;
+  triggerEvent?: string;
+  outputPorts?: string[];
+  onConfigure?: () => void;
+}
 
 function TriggerNodeComponent({ data, selected }: NodeProps) {
-  const outputPorts = (data as any).outputPorts ?? ["patient_id", "encounter_id", "encounter_text"];
+  const d = data as TriggerNodeData;
+  const outputPorts = d.outputPorts ?? [
+    "patient_id",
+    "encounter_id",
+    "encounter_text",
+  ];
+  const triggerLabel = d.triggerEvent || "manual";
+
   return (
-    <Box
-      sx={{
-        px: 2,
-        py: 1.5,
-        minWidth: 200,
-        borderRadius: 2,
-        border: "2px solid",
-        borderColor: selected ? "primary.main" : "#FFC107",
-        bgcolor: "#FFF8E1",
-        position: "relative",
-        cursor: "pointer",
-      }}
-      onClick={(data as any).onConfigure}
+    <BaseNode
+      accentColor={TRIGGER_ACCENT}
+      selected={selected}
+      minWidth={200}
+      ariaLabel={`Trigger node, fires on ${triggerLabel}`}
+      onActivate={d.onConfigure}
+      sx={{ bgcolor: "#FFF8E1" }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <BoltIcon fontSize="small" color="warning" />
-        <Typography variant="body2" fontWeight={700}>{(data as any).label || "Trigger"}</Typography>
-      </Box>
-      <Chip size="small" label={(data as any).triggerEvent || "manual"} sx={{ mt: 0.5, bgcolor: "#FFB300", color: "#fff" }} />
-      {outputPorts.map((name: string, i: number) => (
-        <Handle
-          key={name}
+      <NodeHeader
+        icon={<BoltIcon fontSize="small" color="warning" />}
+        title={d.label || "Trigger"}
+      />
+      <Chip
+        size="small"
+        label={triggerLabel}
+        sx={{
+          mt: 0.5,
+          bgcolor: TRIGGER_PORT_COLOR,
+          color: "#fff",
+          fontSize: "0.65rem",
+          height: 20,
+        }}
+      />
+      {outputPorts.map((name, i) => (
+        <NodeHandle
+          key={`out-${name}`}
           id={name}
           type="source"
-          position={Position.Right}
-          style={{ width: 12, height: 12, top: `${((i + 1) / (outputPorts.length + 1)) * 100}%`, background: "#FFB300", border: "2px solid #fff" }}
+          color={TRIGGER_PORT_COLOR}
+          top={`${((i + 1) / (outputPorts.length + 1)) * 100}%`}
+          tooltip={`Trigger output ${name}`}
         />
       ))}
-    </Box>
+    </BaseNode>
   );
 }
 
 export const TriggerNode = memo(TriggerNodeComponent);
-

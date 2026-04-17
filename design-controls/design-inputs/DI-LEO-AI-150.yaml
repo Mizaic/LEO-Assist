@@ -1,0 +1,137 @@
+# -- DI-LEO-AI-150 -- Diagnosis-aware open-episode completion (rescue auto-stale)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-150"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-006"]
+  requirement: >
+    The episode builder SHALL rescue 'open' (referral-only) episodes from
+    being auto-closed as stale when a confirmed cancer diagnosis anchor
+    exists inside the episode window. Specifically, in
+    ``_build_open_episode``, immediately before persisting the episode
+    node, the builder SHALL:
+      1. Check whether the computed status is 'in_progress' AND the
+         episode would otherwise be eligible for the stale auto-close
+         pass.
+      2. Scan ``anchors.diagnosis_anchors`` for any anchor whose
+         ``encounter_date`` is in the inclusive window
+         ``[ref_date, ref_date + STALE_HARD_DAYS]``, with
+         ``assertion in {present, ''}`` and not flagged
+         ``is_pathway_completion``.
+      3. Apply site-key compatibility using the existing
+         ``_site_keys_compatible`` helper -- a specific-site diagnosis
+         must match the referral's site, while ``unknown`` and
+         ``non_site_specific`` diagnoses match any site.
+      4. When at least one site-compatible diagnosis is found, set
+         ``status = 'completed'``, ``end_date = earliest matching
+         diagnosis date``, ``hitl_flag = True`` with a clear hitl_reason
+         ('Auto-completed: confirmed cancer diagnosis text in episode
+         window. Verify cancer site and pathway outcome.'), and write an
+         IS_PART_OF {milestone_type: 'diagnosis_confirmed'} edge for the
+         claimed diagnosis encounter(s).
+      5. When no rescue diagnosis is found, behaviour is unchanged --
+         the episode stays in_progress and falls into the existing
+         STALE_CLOSE_Q auto-close pass.
+
+    The rescue MUST run AFTER specialist-letter inference and benign-
+    closure detection so it does not overwrite a 'completed' or
+    'closed_with_benign' status that those passes have already set.
+  rationale: >
+    Investigation of 79 auto-closed text-path episodes (April 2026 cohort)
+    found 6 episodes where a confirmed cancer diagnosis text anchor
+    existed within the open-episode window but did NOT pair with the
+    referral in ``_build_diagnosis_led_groups`` (because the diagnosis
+    site key was 'unknown' / 'non_site_specific' or the gap exceeded the
+    180-day diagnosis-to-referral lookback). With no rescue, those
+    pathways were auto-filed as 'stale_post_specialist' or
+    'stale_no_diagnosis', producing zero confirmed-cancer counts in the
+    NCDA dashboard despite documented diagnoses on chart. After the
+    histology-vocabulary expansion (DI-LEO-AI-149) lifts diagnosis recall
+    by an estimated 20-30%, the population of unmatched-but-present
+    diagnoses will grow, making the rescue path the right structural fix
+    rather than tightening the grouping algorithm further (which would
+    risk false-pair episodes across pathway boundaries).
+
+    Diagnosis text is strictly stronger evidence than '90 days of no
+    activity', so the rescue must beat the stale rule. Setting
+    ``status = 'completed'`` removes the episode from the
+    ``WHERE ep.status = 'in_progress'`` clause in ``STALE_CLOSE_Q``,
+    so no Cypher change is required.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          When _build_open_episode is called and a confirmed diagnosis
+          anchor exists in [ref_date, ref_date + STALE_HARD_DAYS] with
+          a site-compatible site key, status is 'completed' and end_date
+          equals the earliest diagnosis date in the window.
+      - type: "functional"
+        spec: >
+          When the rescue path fires, IS_PART_OF
+          {milestone_type: 'diagnosis_confirmed'} edges are written for
+          all diagnosis anchors that share the earliest rescue date.
+      - type: "functional"
+        spec: >
+          When the rescue path fires, hitl_flag is True and hitl_reason
+          starts with 'Auto-completed: confirmed cancer diagnosis text'
+          so reviewers can audit the rescue.
+      - type: "functional"
+        spec: >
+          When no diagnosis anchors fall in the window, the episode is
+          written with the previous status (in_progress / closed_phantom)
+          and no diagnosis_confirmed edge is written. Existing stale
+          auto-close behaviour is unchanged.
+      - type: "functional"
+        spec: >
+          Diagnosis anchors with assertion='possible' or
+          is_pathway_completion=True do NOT trigger the rescue.
+      - type: "functional"
+        spec: >
+          When status is already 'completed' (set by specialist-letter
+          inference) or 'closed_with_benign' (set by benign-closure
+          detection), the rescue path is skipped and the existing status
+          / end_date is preserved.
+    constraints:
+      - type: "safety"
+        spec: >
+          The rescue MUST NOT pair a specific-site diagnosis with a
+          referral of a different specific site (e.g. lung diagnosis +
+          breast referral). The _site_keys_compatible guard preserves
+          this invariant.
+      - type: "safety"
+        spec: >
+          The rescue MUST NOT fire from a diagnosis anchor that is
+          flagged is_pathway_completion=True (those are benign-closure
+          markers, not confirmed-cancer markers).
+    dependencies: ["DI-LEO-AI-145", "DI-LEO-AI-149"]
+    downstream_impacts:
+      - "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+    technical_details:
+      language: "Python"
+      framework: "episode_builder"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+      estimated_loc: 60
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-148 passes: unit tests confirm the rescue helper
+      _rescue_diagnosis_for_open_episode picks the earliest in-window
+      site-compatible confirmed diagnosis; integration tests confirm
+      _build_open_episode promotes the episode to 'completed' with
+      end_date set to the rescue date and writes a diagnosis_confirmed
+      IS_PART_OF edge; regression tests confirm the rescue is a no-op
+      when status is already 'completed' or when no eligible diagnosis
+      exists.
+    test_protocol: "VT-LEO-AI-148"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-103"]
+  tags:
+    - "episode-builder"
+    - "auto-close"
+    - "diagnosis-rescue"
+    - "ncda"

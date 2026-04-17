@@ -1,0 +1,577 @@
+======================================================================
+PATIENT      : 4621680811
+EPISODE      : 1a32b8f4116f3f73
+CANCER_TYPE  : haematological
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-05-30
+WINDOW       : 2025-05-16 .. 2025-08-28 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-02-17  referral                enc=9da9cf46-5ea5-49b9-a886-e8842ac67aca
+  2025-02-26  referral                enc=1f775886-c7d5-46aa-9e7d-74c21225d840
+  2025-03-07  referral                enc=14b0d726-c028-48ad-b7ea-6f251e214d42
+  2025-04-11  referral                enc=b551eb84-2668-4cd0-9c91-769273b968c5
+  2025-05-30  referral                enc=9d144003-8073-43e0-9710-cb306a854478
+  2025-05-30  referral                enc=afea9d82-8098-48fb-9d6e-1b4cc309c976
+  2025-05-30  referral                enc=e0bbd04a-2292-4212-b028-5c75479ab189
+  2025-05-30  referral                enc=8f7df738-7c26-4c69-a727-e4448ca28131
+  2025-05-30  referral                enc=4b2542bd-77f4-45b2-a515-33a5f8981feb
+  2025-06-02  referral                enc=8fcd7d28-c5b0-4a2e-af7c-e77e040a3bf1
+  2025-07-04  first_seen              enc=94bfbae0-43b8-4425-8529-353001046d0a
+  2025-07-08  referral                enc=525a789a-cba2-42b2-bb79-c9f85b7af52b
+  2025-07-14  first_seen              enc=cc658f34-5bd9-43b6-b1e6-626cf0617565
+
+Encounters in window (n=68):
+
+--- 01 2025-05-16 [other] milestones=[] eid=728a0395-8b0d-4380-9313-8e32ab9e187c ---
+07:23 - INGLE, Kirsty  
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Questions about bloods or scan results (Y41ca)
+   Type of encounter: Administration (9....)
+Presenting to non-clinical team with: Questions about bloods or scan results (Y41ca)
+Administration (9....)
+
+--- 02 2025-05-16 [other] milestones=[] eid=237980e7-8f5a-439b-ac7b-345558f7f5fe ---
+09:00 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Informed consent given for treatment (XaXHK)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 03 2025-05-16 [other] milestones=[] eid=0231c458-67b4-4819-a137-ccbd560aaf98 ---
+09:04 - Surgery: Auto-filed  
+CMV IgM antibody level (XaERU) - Not detected by EIA
+Clinical Information: Reasons for Request:      atypical lymhocytes + splenomegally repeat FBC      non invasive liver scree.
+CMV IgM antibody level Report,ï¿½Satisfactory,ï¿½No Further Action (Patient Informed). Review done by SALEEM, Mariam (Dr) - 19 May 2025 11:43
+
+--- 04 2025-05-16 [other] milestones=[] eid=1154f002-b2ab-40de-9783-ee80e1b1a3fd ---
+09:04 - Surgery: Auto-filed  
+Epstein-Barr virus antibody titre (X76zb) - Not detected by EIA
+Sample serology (43L..)
+HIV screening test (XaIon) - Not detected by EIA
+Hepatitis B surface antigen level (XaFuS) - Not detected by EIA
+Hepatitis C antibody test (XaEOG) - Not detected by EIA
+Clinical Information: Reasons for Request:      atypical lymhocytes + splenomegally repeat FBC      non invasive liver scree.
+EBV VCA IgG: DETECTED by EIA; Evidence of past EBV infection
+Sample serology Report,ï¿½Satisfactory,ï¿½Need to speak to doctor, Other (evidence of past infection): pt needs a routine appt with any doctor ( preferrably Dr Denga) to discuss results - BT shows evidence of past infection t clarify whether current findings due to that too or does he need further inv? (Patient Informed). Review done by SALEEM, Mariam (Dr) - 19 May 2025 11:49
+
+--- 05 2025-05-16 [other] milestones=[] eid=198da29a-a895-466c-918c-f2819a00c0fb ---
+09:04 - Surgery: Auto-filed  
+Mean cell volume (42A..) 88 fL [80 - 99]
+Mean cell haemoglobin level (XE2pb) 31.1 pg [27 - 32]
+Platelet count - observation (42P..) 227 10^9/L [140 - 400]
+Neutrophil count (42J..) 3.62 10^9/L [1.5 - 7.5]
+Monocyte count - observation (42N..) 0.51 10^9/L [0.2 - 0.8]
+Eosinophil count - observation (42K..) 0.18 10^9/L [0.04 - 0.4]
+Basophil count (42L..) 0.04 10^9/L [0.02 - 0.1]
+Lymphocyte count (42M..) 2.14 10^9/L [1 - 4]
+Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]
+For further investigation of abnormal Full Blood Count
+please see Haematology Referral Guidelines:
+https://www.leicestershospitals.nhs.uk/aboutus/
+(click Departments & Services > Haematology >
+Haematology Referral
+Guidelines).
+If clinically urgent contact the Haematologist On Call.
+Full blood count (424..)
+Total white blood count (XaIdY) 6.5 10^9/L [4 - 11]
+Red blood cell count (426..) 5.23 10^12/L [3.9 - 6.5]
+Haemoglobin concentration (Xa96v) 162 g/L [130 - 180]
+Haematocrit (X76tb) 0.461  [0.4 - 0.54]
+Clinical Information: Reasons for Request:      atypical lymhocytes + splenomegally repeat FBC      non invasive liver scree.
+Full blood count Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 17 May 2025 10:56
+
+--- 06 2025-05-16 [other] milestones=[] eid=374b7bc3-7a54-4f7e-8220-95b30e7982cc ---
+09:04 - Surgery: Auto-filed  
+Serum A1 antitrypsin level (XE2du) 0.93 g/L [0.78 - 2]
+A1AT Genotyping performed by Genomics and Molecular Medicine Service,
+Nottingham University Hospitals NHS Trust
+Clinical Information: Reasons for Request:      atypical lymhocytes + splenomegally repeat FBC      non invasive liver scree.
+Serum A1 antitrypsin level Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by NOBLE, Ben (Dr) - 17 May 2025 10:56
+
+--- 07 2025-05-16 [other] milestones=[] eid=9da81eab-fb6a-4e5e-a2b6-bc24a66f9124 ---
+09:04 - Surgery: Auto-filed  
+Serum lactate dehydrogenase level (XaES8) 196 u/L [120 - 246]
+Clinical Information: Reasons for Request:      atypical lymhocytes + splenomegally repeat FBC      non invasive liver scree.
+Serum lactate dehydrogenase level Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) - 19 May 2025 13:32
+
+--- 08 2025-05-16 [other] milestones=[] eid=57665468-b7cb-4f44-8195-86d9d4a54b5a ---
+09:04 - Surgery: Auto-filed  
+Immunoglobulin G level (XE259) 10.8 g/L [6 - 16]
+Immunoglobulin A level (XE25B) 3.01 g/L [0.8 - 4]
+Immunoglobulin M level (XE25A) 0.76 g/L [0.5 - 2]
+Serum protein electrophoresis (XE25U) - No paraprotein detected
+Clinical Information: Reasons for Request:      atypical lymhocytes + splenomegally repeat FBC      non invasive liver scree.No.
+Igs and electrophoresis
+Igs and electrophoresis Report,ï¿½Normal,ï¿½No Further Action. Review done by BROCKHURST, Nikki (Dr) - 22 May 2025 08:26
+
+--- 09 2025-05-16 [other] milestones=[] eid=ae2330ba-c2c2-48a0-9455-02cd4b381bbe ---
+09:04 - Surgery: Auto-filed  
+Anti-smooth muscle autoantibody level (XE2ph) - Negative
+Mitochondrial antibody level (XaEPp) - Negative
+Anti-liver-kidney microsomal antibody level (43GW.) - Negative
+Miscellaneous antibodies
+Clinical Information: Reasons for Request:      atypical lymhocytes + splenomegally repeat FBC      non invasive liver scree.No.
+Miscellaneous antibodies Report,ï¿½Normal,ï¿½No Further Action. Review done by BROCKHURST, Nikki (Dr) - 22 May 2025 08:26
+
+--- 10 2025-05-16 [other] milestones=[] eid=63197ba4-0e17-486e-957d-0ac974c0b4b5 ---
+09:04 - Surgery: Auto-filed  
+Serum anti nuclear antibody level (XaIZI) - 1:400
+ENA antibody screening test (XaJkW)
+Negative; ENA screen includes antibodies to
+Ro,La,Sm,U1RNP,RNP70,CENP,Jo-1,Scl-70
+DNA binding autoantibody level (XE2pj) < 9.8 IU/mL [< 26]
+Serum ANA pattern (XaIZJ) - Positive homogenous pattern
+Nuclear related antibodies: Positive anti-nuclear antibody with negative ENA and dsDNA antibodies
+may occur in some healthy individuals, following infection, with some
+drug therapies and in autoimmune disorders not limited to connective
+tissue disease. SD
+Clinical Information: Reasons for Request:      atypical lymhocytes + splenomegally repeat FBC      non invasive liver scree.No.
+Nuclear related antibodies Report,ï¿½Abnormal,ï¿½Make an appointment to see doctor: For review with Dr Denga this week (Patient Informed). Review done by NOBLE, Ben (Dr) - 25 May 2025 10:39
+
+--- 11 2025-05-16 [other] milestones=[] eid=d313519b-5d68-4cb7-a5de-0b44bcf6581b ---
+09:04 - Surgery: Auto-filed  
+Clinical Information: Reasons for Request:      atypical lymhocytes + splenomegally repeat FBC      non invasive liver scree.
+A1AT Genotype: ..; GIC Assay performed by:- Nottingham City Hospital
+Nottingham University Hospitals NHS Trust
+A1AT Genotype   MM
+This patient was screened for the common alpha-1-antitrypsin
+deficiency variants Z and S and was found to have the normal MM
+genotype.
+This testing was performed within the Genomics and Molecular Medicine
+Service. For any further information please contact the laboratory
+on 01159691169 ext 75207 or e-mail NUHNT.MolecularGenetics@nhs.net
+A1AT Genotyping performed by Genomics and Molecular Medicine Service,
+Nottingham University Hospitals NHS Trust
+A1AT Genotype Report,ï¿½Normal,ï¿½No Further Action. Review done by DENGA, Takunda (Dr) - 16 Jun 2025 13:28
+
+--- 12 2025-05-17 [other] milestones=[] eid=47b51a9f-9e0a-455d-8288-9a25fe664a50 ---
+10:56 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role)
+
+--- 13 2025-05-17 [other] milestones=[] eid=8feb6a3c-88da-4c3d-b182-40f85d7f669f ---
+10:56 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role)
+
+--- 14 2025-05-19 [other] milestones=[] eid=8e3e281c-f709-444d-b968-4759b756796c ---
+11:34 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role)
+
+--- 15 2025-05-19 [other] milestones=[] eid=5b3917eb-00ab-4540-9d49-cbd9be23017b ---
+11:43 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role)
+
+--- 16 2025-05-19 [other] milestones=[] eid=2c08e5df-0b8f-497c-928b-fc1dc950032d ---
+11:49 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role)
+
+--- 17 2025-05-19 [other] milestones=[] eid=9356c640-0be3-4e06-b8c5-167d7cd7f5f6 ---
+11:53 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 18 2025-05-19 [other] milestones=[] eid=d68ad1b0-4175-4566-b185-a6c98801245d ---
+11:54 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+Patient telephone number (9159.) - 07593 190959
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Blowers,
+Please contact the surgery to make a routine appointment to discuss the results of your recent tests.  Please note that the time scale for a routine appointment is between 4-8 weeks.  
+Thanks
+Woodbrook Medical Centre
+
+--- 19 2025-05-19 [other] milestones=[] eid=b9f60077-c48b-4c21-bd44-d51ae4ccd9ca ---
+13:32 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role)
+
+--- 20 2025-05-20 [other] milestones=[] eid=d06f24f2-df81-43cb-b82a-b50d520ebc98 ---
+17:34 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+Telephone encounter (9N31.)
+
+--- 21 2025-05-22 [other] milestones=[] eid=b9ec3f3e-dc0e-499e-b76d-8b3e51ae2c94 ---
+08:26 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 22 2025-05-25 [other] milestones=[] eid=2ce5e262-ad9b-4794-a5bb-9cd9f31fd536 ---
+10:35 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role)
+
+--- 23 2025-05-26 [other] milestones=[] eid=35518612-ab12-4f46-9a29-c3c6f4da37b5 ---
+09:11 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role) 
+Scheduled Task Creation (Completed) - Admin Routine task (Check referral for splenomegaly) to be sent to NOBLE, Ben (Dr) on 03 Jun 2025.
+
+--- 24 2025-05-27 [other] milestones=[] eid=05ff3402-2d38-4382-8adc-8c969f1859cd ---
+10:20 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 25 2025-05-27 [other] milestones=[] eid=3ee0e81a-34f7-476b-ab37-55e8fbd6533d ---
+11:24 - Surgery: BAILEY, Cleopatra (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa)
+Telephone encounter (9N31.)
+
+--- 26 2025-05-27 [other] milestones=[] eid=a1b94a1c-8e9a-492c-af8e-8e207ec485ab ---
+Dear Neville Blowers
+
+Your appointment has been booked for 30 May 2025 09:10 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 27 2025-05-30 [other] milestones=[] eid=b6d1e772-2d34-4a6a-b8fd-b024bc2b1003 ---
+** Care started at: LLR Referral Support Service **
+
+--- 28 2025-05-30 [IN-EP] milestones=['referral'] eid=9d144003-8073-43e0-9710-cb306a854478 ---
+09:16 - GP Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) 
+History: seen  with wife
+booked in to discuss results
+had splenomegally screen/ non invasive liover screen
+ANA postive
+all other tests NAD
+remains well
+no weight loss
+no night sweats
+no swollen glands
+
+Outbound referral (XaY59)
+Diagnosis: unexplained splenomegally
+fatty liver
+PRISM 2WW Haematology Lymphoma Pathway Accessed
+Plan: explained no dientifiable cause for spelenomagelly as yet so instead of refrreing via normal pathyway may be p[rudent to refer via 2ww r/o cancer- patient understands this and cosents to refrral
+will alsi refer to hepatology for fib 4 scan as per prev plan
+- PRISM 2WW Haematology (Lymphoma) -  questionnaire started - (finalised: 30 May 2025 09:16)
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+       - PRISM 2WW Haematology (Lymphoma) -  questionnaire started - (finalised: 30 May 2025 09:16)
+       2WW Haematology (Lymphoma) PRISM to Unknown 
+ Consultation
+   General
+      Weight: 121 Kg  (? 19 st 1 lb)
+      BMI: 34.6 Kg/mï¿½
+2WW Haematology (Lymphoma) PRISM to Unknown 
+O/E - weight (22A..) 121 Kg (? 19 st 1 lb)
+Body mass index - observation (22K..) 34.6 Kg/mï¿½
+
+--- 29 2025-05-30 [IN-EP] milestones=['referral'] eid=afea9d82-8098-48fb-9d6e-1b4cc309c976 ---
+11:38 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+ Clinical Supervision
+   Discussed with supervisor: Yes
+   Clinical supervisor name:  NB
+   Supervised clinician name:  TD
+   Patient present: No (Y0428)
+   Notes:  Consultation reviewed with clinical supervisor after consultation
+   Plan:  note timeline and scan hx and bloods  
+splenomegaly ? cause 
+agree 2ww 
+Fib4 noted - needs gastro (discussed possible unifying gastro causes)
+scheduled task to TD - outcome reflections  
+needs F/U in 4/52 - release app and update BN/ NB with 2ww pls
+Scheduled Task Creation (Completed) - 2WW task (check outcome) to be sent to BROCKHURST, Nikki (Dr) on 27 Jun 2025.
+Discussed with clinical supervisor (XaXMv)
+Discussed with clinical supervisor (XaXMv) - NB
+Discussed with clinical supervisor (XaXMv) - TD
+No (Y0428)
+Overview Notes (Y0028) - Consultation reviewed with clinical supervisor after consultation
+Plan (XaIVg)
+note timeline and scan hx and bloods  
+splenomegaly ? cause 
+agree 2ww 
+Fib4 noted - needs gastro (discussed possible unifying gastro causes)
+scheduled task to TD - outcome reflections  
+needs F/U in 4/52 - release app and update BN/ NB with 2ww pls
+
+--- 30 2025-05-30 [IN-EP] milestones=['referral'] eid=e0bbd04a-2292-4212-b028-5c75479ab189 ---
+13:44 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) 
+Scheduled Task Creation (Completed) - 2WW task (note to self follow up on outcome) to be sent to DENGA, Takunda (Dr) on 14 Jun 2025.
+
+--- 31 2025-05-30 [other] milestones=[] eid=84a8be79-31e3-4685-9f99-da60943e133a ---
+Dear Neville Blowers
+
+Your appointment has been booked for 19 Jun 2025 13:50 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 32 2025-05-30 [IN-EP] milestones=['referral'] eid=8f7df738-7c26-4c69-a727-e4448ca28131 ---
+14:43 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected haematology malignancy (XaMeG)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww Haematology
+Hospital Fast track referral for suspected haematology malignancy
+Hospital Fast track referral for suspected haematology malignancy updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww Haematology
+
+--- 33 2025-05-30 [other] milestones=[] eid=80887f6a-342c-4ce7-b919-e0d3f99de315 ---
+14:52 - Surgery: PEARSON, Hannah (Clerical Access Role) Entered at: LLR Referral Support Service
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared
+
+--- 34 2025-05-30 [other] milestones=[] eid=b367d237-970b-454d-859c-da7f24e16109 ---
+14:52 - Surgery: PEARSON, Hannah (Clerical Access Role) Entered at: LLR Referral Support Service
+Referral In to LLR Referral Support Service for Haematology: Ended on 02 Jun 2025 16:12
+With the Following Intervention(s)
+Referral Triage Completed
+Status Update for Haematology Referral In: Accepted for triage, Status changed: 30 May 2025 14:52
+
+--- 35 2025-05-30 [other] milestones=[] eid=4fa217b0-8f17-40f1-a9b6-1cbb0e0eb308 ---
+14:52 - Surgery: PEARSON, Hannah (Clerical Access Role) Entered at: LLR Referral Support Service
+SystmOne Incoming Record Sharing consent changed to: Not asked - Record shared
+
+--- 36 2025-05-30 [other] milestones=[] eid=3131d83b-e0ce-4b5c-8d14-938d2bdf019b ---
+14:53 - Surgery: PEARSON, Hannah (Clerical Access Role) Entered at: LLR Referral Support Service
+Activity: Referral In Referral In with Patient Record
+
+--- 37 2025-05-30 [IN-EP] milestones=['referral'] eid=4b2542bd-77f4-45b2-a515-33a5f8981feb ---
+16:57 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) 
+- PRISM Hepatology (Combined Liver/ab. ALT/ALP) -  questionnaire started - (finalised: 30 May 2025 16:57)
+Referral to medical service (XaAcN) - (Added from Questionnaire)
+ PRISM Pathway & Referral Impl SysteM V3
+   H
+      PRISM Hepatology (Combined Liver/abnormal ALT/ALP) accessed
+       Hepatology (Combined Liver/abnormal ALT/ALP) PRISM to Unknown 
+      Outbound referral (XaY59)
+       - PRISM Hepatology (Combined Liver/ab. ALT/ALP) -  questionnaire started - (finalised: 30 May 2025 16:57)
+Hepatology (Combined Liver/abnormal ALT/ALP) PRISM to Unknown 
+Outbound referral (XaY59)
+PRISM Hepatology (Combined Liver/abnormal ALT/ALP) accessed
+
+--- 38 2025-06-02 [other] milestones=[] eid=cbee9a1b-e9bd-4723-849d-04aa1544d1dc ---
+** Care ended at LLR Referral Support Service **
+
+--- 39 2025-06-02 [other] milestones=[] eid=d08eddbc-7396-4028-9382-b09866ea966a ---
+12:49 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Referred to hepatology service (XaLrh)
+Choice and booking enhanced services administration (XaMJa)
+ WMC Referrals
+   Patient has been referred to the hepatology triage service. The hospital will contact the patient directly with details of an appointment. Letter sent to patient.
+ WMC Medical Secretary Template
+Hospital Referred to hepatology service
+Hospital Referred to hepatology service updated: Waiting For Information
+Patient has been referred to the hepatology triage service. The hospital will contact the patient directly with details of an appointment. Letter sent to patient.
+
+--- 40 2025-06-02 [IN-EP] milestones=['referral'] eid=8fcd7d28-c5b0-4a2e-af7c-e77e040a3bf1 ---
+13:11 - Unknown Staff Member  Entered at: LLR Referral Support Service, Entered By: LAING, Heather
+ 2WW Haematology Triage
+   Haem Triage
+      Plan:  Unexplained mild splenomegaly, which could be at upper limit of normal for the patient depending on their body habitus. FBC normal and no documented B symptoms. Accept as low priority.
+      Triage:  Triaged to 2WW - 2WW Prism Letter Complete
+
+Activity: Triaged to 2WW - 2WW Prism Letter Complete Triage with Patient Record
+Plan (XaIVg) - Unexplained mild splenomegaly, which could be at upper limit of normal for the patient depending on their body habitus. FBC normal and no documented B symptoms. Accept as low priority.
+Triage (Ua1SN)
+Triaged to 2WW - 2WW Prism Letter Complete
+
+--- 41 2025-06-02 [other] milestones=[] eid=b21bb535-ee94-4d93-bc25-86f44b93fbd4 ---
+16:11 - Surgery: ROFFEY, Louise (Clerical Access Role) Entered at: LLR Referral Support Service
+Status Update for Haematology Referral In: Discharged From Care, Status changed: 02 Jun 2025 16:12
+
+--- 42 2025-06-05 [other] milestones=[] eid=89dc1837-fa5d-4a6c-b9c4-2dd0e3de251d ---
+15:22 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa)
+Telephone encounter (9N31.)
+
+--- 43 2025-06-11 [other] milestones=[] eid=369946a4-3b00-4afc-abc0-ada392c2e1fd ---
+17:17 - Sent online by Mr Neville John Blowers  
+Request for 'Lansoprazole 30mg gastro-resistant capsules' by patient
+Request for 'Atorvastatin 20mg tablets' by patient
+Request for 'Mometasone 50micrograms/dose nasal spray' by patient
+Request for 'Mirtazapine 30mg tablets' by patient
+
+--- 44 2025-06-12 [other] milestones=[] eid=0e2bf7bc-5e57-46ed-b9af-476966f04459 ---
+07:37 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+(R) Lansoprazole 30mg gastro-resistant capsules - 28 capsule - take one once daily
+(R) Mirtazapine 30mg tablets - 28 tablet - take one at night
+(R) Mometasone 50micrograms/dose nasal spray - 140 dose - two sprays each nostril once daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 45 2025-06-16 [other] milestones=[] eid=5ec588d0-2500-4cb2-b1cd-6a6b5128a35c ---
+Dear Neville Blowers
+
+Your appointment has been booked for 03 Jul 2025 08:50 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 46 2025-06-16 [other] milestones=[] eid=f9255340-9cde-401d-8764-26afc898d07c ---
+13:27 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role)
+
+--- 47 2025-06-16 [other] milestones=[] eid=7db7ffc8-9581-4e64-863b-3278e53590a4 ---
+14:04 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Neville,
+We are reaching out to identify patients who may have had bariatric surgery outside the UK, so we can offer the appropriate follow-up care and support. If this applies to you, please complete the attached questionnaire or get in touch with our reception team.
+Thank you
+
+Please complete this questionnaire: https://accurx.nhs.uk/c/p-kgbkxympeb
+
+Woodbrook Medical Centre
+NHS app message sent on 16/06/2025 14:00:07
+
+--- 48 2025-06-16 [other] milestones=[] eid=2f7e62e9-2fbb-40af-b9d0-e643219ebc67 ---
+14:04 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 49 2025-06-20 [other] milestones=[] eid=d8bcf208-092e-4681-ab1c-61004941581e ---
+13:02 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 50 2025-06-20 [other] milestones=[] eid=81765d53-9337-4b94-85ce-8a98038906f9 ---
+13:02 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Neville,
+
+Our car park will be closing at the end of day on Friday 4th July 2025 for the foreseeable future.
+This is due to health and safety concerns while demolition work is taking place at the site next door. Please find alternative parking when attending the surgery after this date. 
+
+Thank you
+Woodbrook Medical Centre
+NHS app message sent on 20/06/2025 13:00:12
+
+--- 51 2025-06-27 [other] milestones=[] eid=5ae5df15-f621-4355-bedd-52a8c45ad40f ---
+15:33 - Surgery: BAILEY, Cleopatra (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa)
+Telephone encounter (9N31.)
+
+--- 52 2025-06-27 [other] milestones=[] eid=5cc29cbc-b32e-42b6-be1a-03cedd29e993 ---
+Dear Neville Blowers
+
+Your appointment has been booked for 08 Jul 2025 08:50 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 53 2025-07-01 [other] milestones=[] eid=3a00c4aa-73be-487c-886b-312e217cdbad ---
+Dear Neville Blowers
+
+Your appointment has been booked for 08 Jul 2025 08:45 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 54 2025-07-04 [IN-EP] milestones=['first_seen'] eid=94bfbae0-43b8-4425-8529-353001046d0a ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected cancer clinic (XaPyg)
+
+--- 55 2025-07-04 [other] milestones=[] eid=e6f4ab43-48d9-4192-9b5b-cf61e09ec8dc ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Haematology to Woodbrook Medical Centre
+
+--- 56 2025-07-04 [other] milestones=[] eid=06f7a65a-7961-4584-b325-eea6340925c5 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role)
+
+--- 57 2025-07-07 [other] milestones=[] eid=a2d120ff-cb16-4df2-b0cf-390db087e265 ---
+14:00 - Surgery: FOX, Lauren (Mrs) (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre
+Status Update for  Referral In: Discharged From Care, Status changed: 07 Jul 2025 14:00
+
+--- 58 2025-07-08 [other] milestones=[] eid=97fd30a2-f904-4215-acec-ca4a6450f1e0 ---
+05:55 - Sent online by Mr Neville John Blowers  
+Request for 'Lansoprazole 30mg gastro-resistant capsules' by patient
+
+--- 59 2025-07-08 [other] milestones=[] eid=f79ac825-a522-4fea-b8a4-ecba329288df ---
+07:35 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Lansoprazole 30mg gastro-resistant capsules - 28 capsule - take one once daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 60 2025-07-08 [other] milestones=[] eid=dfeab610-e3c1-4e87-8b20-b30c040d6e7d ---
+08:39 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)
+
+--- 61 2025-07-08 [other] milestones=[] eid=0df2bbd0-dec7-450e-85e7-a405a82f7e9a ---
+Dear Neville Blowers
+
+Your appointment has been booked for 29 Jul 2025 07:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 62 2025-07-08 [IN-EP] milestones=['referral'] eid=525a789a-cba2-42b2-bb79-c9f85b7af52b ---
+08:44 - GP Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) 
+History: review set up post refrral to haem via 2ww and hepatology referral
+not had comms from liver team
+seen by haem- nil concerns raised about malig
+due to have repeat scan in a few weeks and bloods but will likely be discharged
+we talked about changes he has made to lifestyle, he is eating less and has tried towalk a bit more
+has lost 10 pounds since wqe first had our chat about lifestyle in May
+denies contituitinal sx
+Diagnosis: Fatty change of liver (X307v) (Ongoing Episode)
+Plan: will task admin to see if hepatology referral has been receiived
+commeded efforts made to adjust lifestyle
+sos if any new concerns
+
+--- 63 2025-07-14 [IN-EP] milestones=['first_seen'] eid=cc658f34-5bd9-43b6-b1e6-626cf0617565 ---
+15:08 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected cancer clinic (XaPyg) 04 Jul 2025
+
+--- 64 2025-07-17 [other] milestones=[] eid=85afdc64-6f79-420d-b0f6-73722d5aa3bd ---
+11:26 - Surgery: JONES, Emma (Medical Secretary Access Role)
+
+--- 65 2025-07-17 [other] milestones=[] eid=94ea6a17-2107-424f-b266-9a51e935a552 ---
+11:30 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Patient telephone number (9159.) - +447593190959
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Blowers,
+
+Just to keep you updated ,your Hepatology referral is on the hospital system and is still awaiting triage. They will contact you once your referral has been viewed. 
+
+Kind Regards,
+Woodbrook Medical Centre
+Sent on 17/07/2025 at 11:30
+
+--- 66 2025-07-29 [other] milestones=[] eid=96ac952e-2db9-43bb-81b9-0a2e534cef85 ---
+07:33 - Surgery: MEE, Sara (Healthcare Assistant) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Phlebotomy generated from secondary care done by practice (XaK2I)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+      Phlebotomy generated from secondary care done by practice: Yes
+Informed consent given for treatment (XaXHK)
+Phlebotomy generated from secondary care done by practice (XaK2I)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+Phlebotomy generated from secondary care done by practice (XaK2I)
+
+--- 67 2025-08-05 [other] milestones=[] eid=b4172c3d-6883-4646-8c9e-05ba12337c70 ---
+22:08 - Sent online by Mr Neville John Blowers  
+Request for 'Lansoprazole 30mg gastro-resistant capsules' by patient
+Request for 'Atorvastatin 20mg tablets' by patient
+Request for 'Mometasone 50micrograms/dose nasal spray' by patient
+Request for 'Mirtazapine 30mg tablets' by patient
+
+--- 68 2025-08-06 [other] milestones=[] eid=344c890a-5db1-424c-b7d0-fcfed8ae23d8 ---
+07:37 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+(R) Lansoprazole 30mg gastro-resistant capsules - 28 capsule - take one once daily
+(R) Mirtazapine 30mg tablets - 28 tablet - take one at night
+(R) Mometasone 50micrograms/dose nasal spray - 140 dose - two sprays each nostril once daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+

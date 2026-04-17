@@ -1,0 +1,146 @@
+# -- R-LEO-AI-102 -- Histology vocabulary expansion mis-classifies suspected-cancer or non-cancer text
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-102"
+  title: >
+    Expanding _RE_CONFIRMED_CANCER and _RE_NO_CANCER with histology
+    vocabulary risks mis-classifying suspected-cancer referral text or
+    benign mention-in-differential as confirmed cancer or as a benign
+    pathway closure, producing false-positive diagnoses or premature
+    pathway closure.
+
+  hazard:
+    description: >
+      Histology vocabulary (e.g. 'invasive ductal', 'adenocarcinoma',
+      'lipoma', 'fibroadenoma') can appear in three contexts:
+        1. A standalone histology / clinic letter -- the intended
+           classification (confirmed cancer or benign closure).
+        2. A 2WW / fast-track referral letter that lists the suspected
+           histology ('Fast track referral for suspected invasive
+           ductal carcinoma'). If the regex fired without the referral
+           guard, this would be misclassified as a CONFIRMED diagnosis.
+        3. A differential diagnosis where benign and malignant terms
+           appear in the same encounter ('initial impression: lipoma,
+           but biopsy showed sarcoma'). If benign closure fired without
+           the malignancy override, this would close the episode despite
+           a confirmed cancer.
+      Mis-classification in either direction directly affects NCDA
+      reporting -- false confirmed cancers inflate the apparent yield
+      and trigger spurious 2WW breach calculations; false benign closures
+      hide active cancer pathways from clinical review.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinical reviewer opens the NCDA dashboard and sees an inflated
+    confirmed-cancer count or an episode listed as 'closed_with_benign'
+    with end_date in the past. Without going back to the source
+    encounter text, they trust the dashboard for monthly KPIs,
+    submitting incorrect counts to the NCDA programme. A safety alert
+    that should fire on an open active-cancer pathway is suppressed
+    because the episode appears closed.
+
+  harm:
+    description: >
+      Patient-level: a single missed cancer pathway (false benign
+      closure) delays follow-up and reviewer escalation by days to
+      weeks. Bounded by the second-pass label verifier and the daily
+      DQ alert that flags 'closed_with_benign episodes with no
+      benign coded concept and confirmed-cancer text in the same
+      window'.
+      Service-level: NCDA dashboard accuracy degrades, trust in the
+      product erodes if the headline numbers are wrong.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The expanded patterns are applied AFTER the existing
+        _is_referral_enc guard in _classify_text_encounters. Referral
+        encounters (PRISM proforma, 'Fast track referral for suspected
+        ...') NEVER appear in the diagnosis or benign-closure buckets,
+        so suspected-cancer text in referral letters cannot be
+        mis-classified.
+      implemented_by: ["DI-LEO-AI-149"]
+      verified_by: ["VT-LEO-AI-147"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        The episode builder's benign-closure path (in _build_open_episode
+        and _build_closed_episode) only fires benign closure when
+        _has_competing_confirmed_diagnosis returns False. A confirmed
+        cancer anchor in the same 90-day window suppresses benign
+        closure regardless of how the benign anchor was classified, so
+        an encounter mentioning both benign and malignant findings will
+        not close the episode.
+      implemented_by: ["DI-LEO-AI-082", "DI-LEO-AI-149"]
+      verified_by: ["VT-LEO-AI-147"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        VT-LEO-AI-147 includes explicit corpora of suspected / referral
+        phrases (>= 6 examples for both regexes) that MUST NOT match,
+        and corpora of histology-positive / benign-histology phrases
+        (>= 18 examples each) that MUST match. CI runs pytest on every
+        push; any false-positive or false-negative regression fails the
+        build.
+      implemented_by: ["DI-LEO-AI-149"]
+      verified_by: ["VT-LEO-AI-147"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Episodes filed as 'completed' or 'closed_with_benign' from the
+        text-only path always carry hitl_flag=true with a hitl_reason
+        explaining the source (e.g. 'Auto-completed: confirmed cancer
+        diagnosis text in episode window. Verify cancer site and
+        pathway outcome.'). Reviewers see these in the operations queue
+        and can mark them down before the NCDA submission.
+      implemented_by: ["DI-LEO-AI-150"]
+      verified_by: ["VT-LEO-AI-148"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the referral guard and the benign-vs-malignant override both
+      in place, the residual probability of a false confirmed-cancer or
+      false benign-closure firing is bounded by the small number of
+      genuinely ambiguous histology-letter encounters. The hitl_flag
+      ensures every text-derived diagnosis or closure is reviewed by a
+      human before it influences external reporting, so detectability
+      is high.
+
+  monitoring:
+    monitoring_plan: >
+      Track the rate of text-derived diagnosis_confirmed and
+      benign_closure milestones per week. Compare against a rolling
+      gold-label sample of 50 reviewer-adjudicated episodes per
+      quarter. Alert if precision drops below 0.95 on either bucket.
+      Track the count of episodes where the reviewer overrides the
+      auto-completed status to a different status.
+    metrics:
+      - "Precision of text-derived diagnosis_confirmed (gold sample)"
+      - "Precision of text-derived benign_closure (gold sample)"
+      - "Reviewer-override rate on auto-completed episodes"
+      - "Daily count of NCDA confirmed-cancer episodes"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Auto-closed episode investigation -- April 2026 cohort (79 episodes, scripts/investigate_auto_closed.py)"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "histology"
+      - "ncda"

@@ -1,0 +1,71 @@
+# -- DI-LEO-AI-165 -- TestPatient persistence + content-hash dedup
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-165"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-076"]
+  requirement: >
+    The system SHALL persist reviewer-confirmed test patient profiles as
+    :TestPatient nodes in the Knowledge Graph, FIXTURE_FOR-linked to a
+    :Guideline, with a deterministic content_hash so re-saving an
+    identical profile is idempotent. Saved expectations SHALL be stored
+    as EXPECTED_RESULT relationships from the patient to each asserted
+    AppropriatenessRule, capturing fires, matched_branch_node_ids,
+    ruleset_version and snapshot_by.
+  rationale: >
+    A reviewer-curated cohort is only useful for regression if it is
+    immutable, scope-filterable, and addressable. Storing it in the
+    primary clinical-graph database makes it queryable from the same
+    Cypher tooling used for guidelines and rules, so a deploy gate can
+    correlate replay outcomes against a specific rule version. A
+    blake2b content_hash over (codes, age, sex, pathway_id) keeps the
+    library free of accidental duplicates from generator re-runs and
+    from reviewers re-confirming the same profile under a slightly
+    different name.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "PatientPayload.content_hash() returns a 32-char blake2b hex digest computed over sorted normalised codes, age, lowercase sex and pathway_id; permuting codes or changing case of sex must not change the hash."
+      - type: "functional"
+        spec: "confirm_and_save() with skip_if_exists=True returns {created: false, reason: 'duplicate'} and writes nothing when a patient with the same content_hash already exists under the same guideline_id."
+      - type: "functional"
+        spec: "CREATE_TEST_PATIENT writes id, name, codes, age, sex, pathway_id, scope_type, scope_id, generation_source, content_hash, guideline_id, created_by, created_at and updated_at, and MERGEs a :FIXTURE_FOR edge to the guideline."
+      - type: "functional"
+        spec: "WRITE_EXPECTED_RESULT MERGEs a single (:TestPatient)-[:EXPECTED_RESULT {rule_id}]->(:AppropriatenessRule) edge per asserted rule, setting fires, matched_branch_node_ids, ruleset_version, snapshot_at and snapshot_by."
+      - type: "safety"
+        spec: "TestPatient.codes contains only SNOMED concept ids (string), not free-text or PHI; the API rejects payloads with non-numeric codes."
+    constraints:
+      - type: "safety"
+        spec: "All test-patient endpoints require require_admin (platform admin role); generated patient payloads must contain only synthetic SNOMED ids drawn from existing rule logic trees."
+    dependencies: []
+    downstream_impacts:
+      - "Knowledge Graph schema (:TestPatient + :RulesetReplay constraints + indexes)"
+      - "Clinical Guidelines page test-patient library"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI, neo4j 5.x driver"
+      file_structure:
+        - "libs/cypher/test_patient_queries.py"
+        - "libs/cypher/schema_constraints.py"
+        - "services/api/app/services/test_patient_service.py"
+        - "services/api/app/routers/test_patients.py"
+      estimated_loc: 700
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-164 covers content_hash determinism, idempotent save,
+      EXPECTED_RESULT writes and dry-run / replay diffing.
+      VT-LEO-AI-165 covers the FastAPI router contract.
+    test_protocol: "VT-LEO-AI-164"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-166"
+  tags:
+    - "test-patients"
+    - "regression-testing"
+    - "knowledge-graph"
+    - "appropriateness-rules"

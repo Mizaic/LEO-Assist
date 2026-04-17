@@ -307,12 +307,17 @@ class TestLabelVerifierAssertionSets:
 
 
 class TestExtractorContractVersion:
-    """CONTRACT_VERSION must be 1.2 after the assertion schema change."""
+    """CONTRACT_VERSION must be at least 1.2 after the assertion schema change."""
 
     def test_contract_version_is_1_2(self):
         from libs.ner.extractor_contract import CONTRACT_VERSION
 
-        assert CONTRACT_VERSION == "1.2"
+        # The assertion schema change first bumped to 1.2; later bumps
+        # (e.g. 1.3 for downstream-only assertion) remain compatible.
+        major, minor = CONTRACT_VERSION.split(".", 1)
+        assert int(major) == 1 and int(minor) >= 2, (
+            f"CONTRACT_VERSION must be >= 1.2; got {CONTRACT_VERSION}"
+        )
 
     def test_extraction_item_assertion_docstring_mentions_declined(self):
         from libs.ner.extractor_contract import ExtractionItem

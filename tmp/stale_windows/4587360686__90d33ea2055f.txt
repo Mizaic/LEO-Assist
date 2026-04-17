@@ -1,0 +1,1103 @@
+======================================================================
+PATIENT      : 4587360686
+EPISODE      : 90d33ea2055f432b
+CANCER_TYPE  : head_and_neck
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-06-02
+WINDOW       : 2025-05-19 .. 2025-08-31 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-06-02  referral                enc=eea3b9f1-89b0-4fb7-9f47-871bda7c92f3
+  2025-06-02  referral                enc=19f9f396-2bef-4f04-996d-83c008eb5771
+  2025-07-03  referral                enc=50f332e7-95b2-4b96-9637-78c3a09f84ec
+  2025-07-08  referral                enc=5c5b568f-3f98-43b0-aade-10cd6d54d1e2
+
+Encounters in window (n=111):
+
+--- 01 2025-05-19 [other] milestones=[] eid=8b489a21-a1f8-42db-89b9-169802ef5e04 ---
+07:54 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Hyoscine butylbromide 10mg tablets - 56 tablet - Two To Be Taken Four Times A Day
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 02 2025-05-19 [other] milestones=[] eid=89ee322b-d009-4e5e-8deb-6e7c825f4dc6 ---
+07:54 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Diethylamine salicylate 10% cream - 100 gram - APPLY TDS
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 03 2025-05-19 [other] milestones=[] eid=94c816a9-b82d-49d9-b939-605ebb4dc28e ---
+07:54 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Alendronic acid 70mg tablets - 4 tablet - take one tablet once weekly with a full glass of water 30mins before food and other tablets
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 04 2025-05-19 [other] milestones=[] eid=1e6b47e4-3808-4ef1-a6b2-4d48e662da94 ---
+07:55 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Fluoxetine 20mg capsules - 30 capsule - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 05 2025-05-19 [other] milestones=[] eid=ac557e0c-3f2e-45fb-b526-481af03a9ec8 ---
+07:58 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Quetiapine 25mg tablets - 56 tablet - take two tablets at night
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 06 2025-05-19 [other] milestones=[] eid=f7618fa3-cf38-4d73-9497-6e00db22b3f7 ---
+07:58 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Viscotears 2mg/g liquid gel (Bausch & Lomb UK Ltd) - 10 gram - Apply Four Times A Day To The Affected Eye(s)
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 07 2025-05-27 [other] milestones=[] eid=083f378a-b960-4049-b56e-420a6b4584d0 ---
+Dear Linda Barks
+
+Your appointment has been booked for 27 May 2025 15:00 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 08 2025-05-27 [other] milestones=[] eid=8efff2d2-0ad1-49d3-aa36-dcac844f91a1 ---
+08:23 - MCDOWELL, Giselle  
+ N+S Care Navigation & Signposting
+   Care Navigation 
+      Reason for the appointment:  osteoarthiritis pain
+      When did your symptoms start? :  3 days
+      *Outcome: Contact Outcome: Booked for same day face to face review (Y3ebf)
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+Telephone encounter (9N31.)
+Triage (Ua1SN) - osteoarthiritis pain
+Triage (Ua1SN) - 3 days
+Contact Outcome: Booked for same day face to face review (Y3ebf)
+
+--- 09 2025-05-27 [other] milestones=[] eid=bd555261-6cac-4ac2-8f25-f13f16d2cd92 ---
+15:40 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role) 
+History: f2f appt - 
+
+came in with husband, 
+says ongoing headache since friday - been squinting eyes when she walked in 
+on a reducing course of prednisolone. now reducing by 1mg every 4 weeks. 
+says she's been doing well but last friday started with a headache, 
+states her consultant had asked for bloods whenever she feesl she may need more steroids ,
+Examination: walked in squinting eyes a bit, when talking about headache keeps eye closed, 
+at times when relaxed sitting with eyes open and comfortable. 
+Plan: agreed to do bloods first as per rheum plan, happy with this. 
+meanwhile requesting cocodamol - says Dr Patel usually gives her for intermittent use. given 8/500 cocodamol 
+await results and f/u with GP or rheum re dose if indicated.
+Co-codamol 8mg/500mg tablets - 60 tablet - take 1 or 2 upto 4 times/day
+ETP2 FP10: Not Yet Printed - Signed
+Pathology Request (Complete):
+C reactive protein (Requested), Full Blood Count (Requested), Plasma viscosity (Requested)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 10 2025-05-27 [other] milestones=[] eid=13e26f3a-37f4-4fb2-8718-86c965f66d84 ---
+Dear Linda Barks
+
+Your appointment has been booked for 28 May 2025 12:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 11 2025-05-28 [other] milestones=[] eid=f9f7e0c4-92c7-4159-b2ae-3f00f3dbadab ---
+12:13 - Surgery: ATKIN, Sharon (Healthcare Assistant) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      Blood test type: Routine (X78uI)
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Informed consent given for treatment (XaXHK)
+Routine (X78uI)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 12 2025-05-28 [other] milestones=[] eid=67e03734-6f91-47d9-8f4c-6f9e88a8c081 ---
+12:14 - Surgery: Auto-filed  
+Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]
+For further investigation of abnormal Full Blood Count
+please see Haematology Referral Guidelines:
+https://www.leicestershospitals.nhs.uk/aboutus/
+(click Departments & Services > Haematology >
+Haematology Referral
+Guidelines).
+If clinically urgent contact the Haematologist On Call.
+Haematocrit (X76tb) 0.438  [0.37 - 0.47]
+Mean cell volume (42A..) 87 fL [80 - 99]
+Mean cell haemoglobin level (XE2pb) 29.2 pg [27 - 32]
+Platelet count - observation (42P..) 368 10^9/L [140 - 400]
+Neutrophil count (42J..) 12.15 10^9/L [1.5 - 7.5] - Outside reference range
+Monocyte count - observation (42N..) 0.63 10^9/L [0.2 - 0.8]
+Eosinophil count - observation (42K..) 0.08 10^9/L [0.04 - 0.4]
+Basophil count (42L..) 0.03 10^9/L [0.02 - 0.1]
+Lymphocyte count (42M..) 1.94 10^9/L [1 - 4]
+Full blood count (424..)
+Total white blood count (XaIdY) 14.8 10^9/L [4 - 11] - Outside reference range
+Red blood cell count (426..) 5.06 10^12/L [3.9 - 5.6]
+Haemoglobin concentration (Xa96v) 148 g/L [115 - 165]
+Clinical Information: Reasons for Request:      headache - ?GCA under rheum.
+Full blood count Report,ï¿½Normal,ï¿½Need to speak to doctor: normal CRP and PV (as per rheum jan25 - on reducing pred dose) - mild neurtophilia noted (? pred driven) - see AK will ask rec to release phone app for review (Patient Informed). Review done by BROCKHURST, Nikki (Dr) - 29 May 2025 08:05
+
+--- 13 2025-05-28 [other] milestones=[] eid=1710ba23-18e3-4cc9-a0b7-751935e6abff ---
+12:14 - Surgery: Auto-filed  
+Plasma C-reactive protein level (XE2dy) < 5 mg/L [< 10]
+Clinical Information: Reasons for Request:      headache - ?GCA under rheum.
+Plasma C-reactive protein level Report,ï¿½Normal,ï¿½Need to speak to doctor: normal CRP and PV (as per rheum jan25 - on reducing pred dose) - mild neurtophilia noted (? pred driven) - see AK will ask rec to release phone app for review (Patient Informed). Review done by BROCKHURST, Nikki (Dr) - 29 May 2025 08:05
+
+--- 14 2025-05-28 [other] milestones=[] eid=0fdae9ba-849b-454a-bacb-668670eff929 ---
+12:14 - Surgery: Auto-filed  
+Plasma viscosity (XE2pd) 1.72 mPas [1.5 - 1.72]
+Clinical Information: Reasons for Request:      headache - ?GCA under rheum.
+Plasma viscosity Report,ï¿½Normal,ï¿½Need to speak to doctor: normal CRP and PV (as per rheum jan25 - on reducing pred dose) - mild neurtophilia noted (? pred driven) - see AK will ask rec to release phone app for review (Patient Informed). Review done by BROCKHURST, Nikki (Dr) - 29 May 2025 08:05
+
+--- 15 2025-05-29 [other] milestones=[] eid=5de88dac-51ee-437a-92c0-dd9088ed868b ---
+08:02 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 16 2025-05-29 [other] milestones=[] eid=061ffd72-1336-4e7d-bcbc-2a158c984bc8 ---
+10:34 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 17 2025-05-29 [other] milestones=[] eid=2b52981e-3479-46c8-b6e1-0e037f70ecc4 ---
+10:48 - Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa)
+Telephone encounter (9N31.)
+
+--- 18 2025-06-02 [other] milestones=[] eid=ff2e7ff1-c5c7-4038-ac6e-7cb3ada8fd0b ---
+08:02 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+Telephone encounter (9N31.)
+
+--- 19 2025-06-02 [other] milestones=[] eid=fa5eb9bb-8442-433d-9982-c8135f0b5734 ---
+Dear Linda Barks
+
+Your appointment has been booked for 02 Jun 2025 09:15 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 20 2025-06-02 [IN-EP] milestones=['referral'] eid=eea3b9f1-89b0-4fb7-9f47-871bda7c92f3 ---
+09:22 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+- PRISM 2WW Head and Neck -  questionnaire started - (finalised: 02 Jun 2025 09:22)
+Fast track referral for suspected head and neck cancer (XaMkD) - (Added from Questionnaire)
+ Consultation.
+   General
+      Encounter: Consultation (Xa1qL)
+      H:  Subjective:
+- Presenting with voice changes, described as croaky and intermittent. Reports having a cyst next to thyroid that is pressing on voice box. Voice changes occur frequently.
+- History of left thyroid nodule with previous fine needle aspiration (FNA). Last seen by specialist approximately 10 years ago.
+- Reports development of a visible neck swelling, described as "hamster pouch".
+- No swallowing difficulties reported.
+- History of giant cell arteritis, currently on steroid treatment.
+- Reports suffering from anxiety.
+- Recent blood tests showed raised white cell count, attributed to steroid use.
+
+      E:  - Visible neck swelling observed on examination.
+- Voice noted to be croaky during consultation.
+      P:  1. Neck lump with voice changes
+- Assessment: Recurrent/enlarging left thyroid nodule
+- Referral: Urgent suspected cancer pathway referral to be made due to neck lump with voice changes, to expedite specialist review rather than routine pathway
+- Plan: Advised to call practice if no appointment received within 3-4 weeks
+
+      Advice if worsens, no better or concerns: Yes
+      Referral safety net: Cancer safety netting (Y281b)
+Consultation (Xa1qL)
+Clinical history and observations (X76sV)
+Subjective:
+- Presenting with voice changes, described as croaky and intermittent. Reports having a cyst next to thyroid that is pressing on voice box. Voice changes occur frequently.
+- History of left thyroid nodule with previous fine needle aspiration (FNA). Last seen by specialist approximately 10 years ago.
+- Reports development of a visible neck swelling, described as "hamster pouch".
+- No swallowing difficulties reported.
+- History of giant cell arteritis, currently on steroid treatment.
+- Reports suffering from anxiety.
+- Recent blood tests showed raised white cell count, attributed to steroid use.
+
+Clinical examination (XB001)
+- Visible neck swelling observed on examination.
+- Voice noted to be croaky during consultation.
+Plan (XaIVg)
+1. Neck lump with voice changes
+- Assessment: Recurrent/enlarging left thyroid nodule
+- Referral: Urgent suspected cancer pathway referral to be made due to neck lump with voice changes, to expedite specialist review rather than routine pathway
+- Plan: Advised to call practice if no appointment received within 3-4 weeks
+
+Patient given advice (8CA..)
+Cancer safety netting (Y281b)
+
+--- 21 2025-06-02 [IN-EP] milestones=['referral'] eid=19f9f396-2bef-4f04-996d-83c008eb5771 ---
+10:54 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected head and neck cancer (XaMkD)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww head and neck
+Hospital Fast track referral for suspected head and neck cancer
+2WW Head and Neck PRISM to Unknown 
+Hospital Fast track referral for suspected head and neck cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww head and neck
+
+--- 22 2025-06-06 [other] milestones=[] eid=25118e78-8bea-4f52-a795-707e17a3c57d ---
+07:46 - Surgery: Unknown Staff Member  
+Request for 'Omeprazole 20mg gastro-resistant capsules' by patient
+
+--- 23 2025-06-06 [other] milestones=[] eid=5f4289e1-ea68-4287-aa3d-0559da18981e ---
+07:47 - Surgery: Unknown Staff Member  
+Request for 'Prednisolone 1mg tablets' by patient
+
+--- 24 2025-06-06 [other] milestones=[] eid=a1678740-ac01-4878-b7af-85d246f70bdd ---
+07:47 - Surgery: Unknown Staff Member  
+Request for 'Adcal-D3 chewable tablets tutti frutti (Kyowa Kirin International UK NewCo Ltd)' by patient
+
+--- 25 2025-06-06 [other] milestones=[] eid=3040c942-3ee1-4552-9fb7-42c8cc2347d8 ---
+07:49 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Omeprazole 20mg gastro-resistant capsules - 28 capsule - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 26 2025-06-06 [other] milestones=[] eid=dde13d82-776f-4296-8c31-27e3b5b1082c ---
+07:50 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Prednisolone 1mg tablets - 200 tablet - reducing regime as per rheumatology
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 27 2025-06-06 [other] milestones=[] eid=840d2749-62af-4067-9e52-d27ccbd99d67 ---
+07:50 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Adcal-D3 chewable tablets tutti frutti (Kyowa Kirin International UK NewCo Ltd) - 112 tablet - take one tablet twice daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 28 2025-06-13 [other] milestones=[] eid=9265f633-aea4-4823-99fe-1f4b49a98d14 ---
+08:53 - Surgery: Unknown Staff Member  
+Request for 'Alendronic acid 70mg tablets' by patient
+
+--- 29 2025-06-13 [other] milestones=[] eid=c5fbaa4e-d5fd-4baf-8b4f-7cee295c8699 ---
+08:54 - Surgery: BAILEY, Cleopatra (Receptionist Access Role) 
+(R) Alendronic acid 70mg tablets - 4 tablet - take one tablet once weekly with a full glass of water 30mins before food and other tablets
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 30 2025-06-18 [other] milestones=[] eid=b6d21a5f-3727-4953-b5ef-83d39eb397a6 ---
+18:16 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role) 
+Problem - whole event: Giant cell arteritis (G755.)
+History: TEL CONS - 
+
+Phone call to discuss recent blood results. 
+was under rheumrecently presumed GCA but stable. - has been on a reducing course of prednisolone by 1mg every 4 weeks. 
+noticed as she reduced the steroids sx seemed to come back with the headache. 
+had rpt bloods done. 
+WCC nad neutrophils seems to be raised, prev raised back in nov but in feb bloods after starting steroids they are normal on ICE. 
+says sx arent as severe as it was as stil taking pred. 
+Plan: advised sinc erheum had deischarged will speak to their oncall reg or bed bureau for hot clinic 
+spoke to bed bureau , they suggested to ring Rheumatology team during the day before 5pm. 
+booked tel cons on friday to discuss with Rheum and then patient.
+
+--- 31 2025-06-20 [other] milestones=[] eid=219961e0-2b7b-40e1-b4d6-996bf51fa549 ---
+13:53 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role) 
+Problem: Giant cell arteritis (G755.)
+History: tel cons- with Dr Kuruvilla - rehumatology reg. 
+chat ab out pt's sx and currently on 4mg daily of pred. 
+prev notes and letters from consultatn reviewed. 
+Plan: bloods on monday and they will discuss on tuesday with results.
+Pathology Request (Complete):
+C reactive protein (Requested), Full Blood Count (Requested), Plasma viscosity (Requested), Urea & electrolytes (Requested)
+
+--- 32 2025-06-20 [other] milestones=[] eid=61877a93-e67c-4d1e-81ff-915fcad73b2c ---
+16:32 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 33 2025-06-20 [other] milestones=[] eid=1befd9f6-b33a-44f5-8062-5322ea0ed28d ---
+Dear Linda Barks
+
+Your appointment has been booked for 23 Jun 2025 09:07 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 34 2025-06-20 [other] milestones=[] eid=ca25dc27-b1f3-481f-aada-d951a9be997c ---
+16:35 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+Patient telephone number (9159.) - +447938512451
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Barks,
+
+Sorry just to add onto that conversation- please continue your current steroid dose of prednisolone 4mg daily.
+
+Thank you
+Woodbrook Medical Centre
+Sent on 20/06/2025 at 16:35
+
+--- 35 2025-06-23 [other] milestones=[] eid=0c686a3c-5e47-4a0f-b273-9fd231ae0a76 ---
+09:12 - Surgery: DAWSON, Claire (Nurse) (Nurse Access Role) 
+ Phlebotomy Test
+   Entries from previous template version
+      Use of aseptic technique (Ua1Rc)
+      Informed consent given (XaLQR)
+      Infectious disease : prevention/control (XE1Sf)
+      Blood sample taken (XaEJK)
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Blood test type: Urgent (X78uK)
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Informed consent given (XaLQR)
+Use of aseptic technique (Ua1Rc)
+Infectious disease : prevention/control (XE1Sf)
+Blood sample taken (XaEJK)
+Urgent (X78uK)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 36 2025-06-23 [other] milestones=[] eid=c7e9cf75-1c14-4300-9709-ecad7b54cd60 ---
+09:13 - Surgery: Auto-filed  
+Urea and electrolytes (X77Wi)
+Serum sodium level (XE2q0) 144 mmol/L [133 - 146]
+Serum potassium level (XE2pz) 3.7 mmol/L [3.5 - 5.3]
+Serum urea level (XM0lt) 3.9 mmol/L [2.5 - 7.8]
+Serum creatinine level (XE2q5) 79 umol/L [60 - 120]
+eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 67 mL/min
+Urine ACR should be checked on at least an annual basis
+for all individuals with CKD.  NICE recommends the
+Kidney failure Risk Equation www.kfre.co.uk to
+predict the risk of endstage kidney disease in CKD
+stages 3a to 5.  KFRE is not valid in the presence
+of acute kidney injury.
+Clinical Information: Reasons for Request:      GCA? FOR RHEUMATOLOGY REVIEW.
+Urea and electrolytes Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by KETHEESWARAN, Arthika (Dr) - 24 Jun 2025 20:00
+
+--- 37 2025-06-23 [other] milestones=[] eid=1b9366be-0798-44af-b543-12d6477dd442 ---
+09:13 - Surgery: Auto-filed  
+Clinical Information: Reasons for Request:      GCA? FOR RHEUMATOLOGY REVIEW.
+Acute Kidney Injury Staging: 0; No AKI
+Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by KETHEESWARAN, Arthika (Dr) - 24 Jun 2025 20:00
+
+--- 38 2025-06-23 [other] milestones=[] eid=e9a92766-2f68-428d-9555-0b9d14514b5e ---
+09:13 - Surgery: Auto-filed  
+Plasma C-reactive protein level (XE2dy) < 5 mg/L [< 10]
+Clinical Information: Reasons for Request:      GCA? FOR RHEUMATOLOGY REVIEW.
+Plasma C-reactive protein level Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by KETHEESWARAN, Arthika (Dr) - 24 Jun 2025 20:00
+
+--- 39 2025-06-23 [other] milestones=[] eid=3c0fa8a1-c112-4728-9882-3836de872caf ---
+09:13 - Surgery: Auto-filed  
+Plasma viscosity (XE2pd) 1.67 mPas [1.5 - 1.72]
+Clinical Information: Reasons for Request:      GCA? FOR RHEUMATOLOGY REVIEW.
+Plasma viscosity Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by KETHEESWARAN, Arthika (Dr) - 24 Jun 2025 20:00
+
+--- 40 2025-06-23 [other] milestones=[] eid=18195c27-71c7-4f6d-a03c-c04ed4092fa3 ---
+09:13 - Surgery: Auto-filed  
+Basophil count (42L..) 0.02 10^9/L [0.02 - 0.1]
+Lymphocyte count (42M..) 2.1 10^9/L [1 - 4]
+Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]
+For further investigation of abnormal Full Blood Count
+please see Haematology Referral Guidelines:
+https://www.leicestershospitals.nhs.uk/aboutus/
+(click Departments & Services > Haematology >
+Haematology Referral
+Guidelines).
+If clinically urgent contact the Haematologist On Call.
+Red blood cell count (426..) 4.97 10^12/L [3.9 - 5.6]
+Haemoglobin concentration (Xa96v) 146 g/L [115 - 165]
+Haematocrit (X76tb) 0.448  [0.37 - 0.47]
+Mean cell volume (42A..) 90 fL [80 - 99]
+Mean cell haemoglobin level (XE2pb) 29.3 pg [27 - 32]
+Platelet count - observation (42P..) 323 10^9/L [140 - 400]
+Neutrophil count (42J..) 3.27 10^9/L [1.5 - 7.5]
+Monocyte count - observation (42N..) 0.47 10^9/L [0.2 - 0.8]
+Eosinophil count - observation (42K..) 0.11 10^9/L [0.04 - 0.4]
+Full blood count (424..)
+Total white blood count (XaIdY) 6 10^9/L [4 - 11]
+Clinical Information: Reasons for Request:      GCA? FOR RHEUMATOLOGY REVIEW.
+Full blood count Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by KETHEESWARAN, Arthika (Dr) - 24 Jun 2025 20:00
+
+--- 41 2025-06-24 [other] milestones=[] eid=2203fd17-8245-4633-9d17-74c67563936b ---
+20:00 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role)
+
+--- 42 2025-06-28 [other] milestones=[] eid=03fe5ae7-a580-44a3-9f4d-639c620ae66d ---
+18:36 - Surgery: Unknown Staff Member  
+Request for 'Omeprazole 20mg gastro-resistant capsules' by patient
+
+--- 43 2025-06-28 [other] milestones=[] eid=33432b51-97b2-4b59-b73a-e99d932beada ---
+18:36 - Surgery: Unknown Staff Member  
+Request for 'Fluoxetine 20mg capsules' by patient
+
+--- 44 2025-06-28 [other] milestones=[] eid=a4dd1d6c-ecd2-4168-8030-66f433e18bf9 ---
+18:37 - Surgery: Unknown Staff Member  
+Request for 'Quetiapine 25mg tablets' by patient
+
+--- 45 2025-06-30 [other] milestones=[] eid=cbfab786-3071-428f-b2f8-10c96a1109e1 ---
+09:53 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Omeprazole 20mg gastro-resistant capsules - 28 capsule - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 46 2025-06-30 [other] milestones=[] eid=09f31e92-cef6-42f9-afd7-51207cd0a71d ---
+09:53 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Fluoxetine 20mg capsules - 30 capsule - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 47 2025-06-30 [other] milestones=[] eid=7abd1c4b-9362-407f-864f-19144d1e5f97 ---
+09:53 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Quetiapine 25mg tablets - 56 tablet - take two tablets at night
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 48 2025-06-30 [other] milestones=[] eid=0157cf94-ce36-4c38-9f4a-cc4af3f1f9f7 ---
+10:27 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 49 2025-06-30 [other] milestones=[] eid=efe121a6-ef15-478d-8103-ddaf911fe408 ---
+10:27 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Patient telephone number (9159.) - +447938512451
+Short message service text message sent to patient (XaMiI)
+
+Dear Linda,
+
+Our car park will be closing at the end of day on Friday 4th July 2025 for the foreseeable future.
+This is due to health and safety concerns while demolition work is taking place at the site next door. Please find alternative parking when attending the surgery after this date. 
+
+Thank you
+Woodbrook Medical Centre
+SMS sent on 20/06/2025 13:01:33
+
+--- 50 2025-06-30 [other] milestones=[] eid=c30ab96b-8d28-4cc3-ba77-ef96a32a4f9f ---
+16:00 - Surgery: FOX, Lauren (Mrs) (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre
+Status Update for  Referral In: Discharged From Care, Status changed: 30 Jun 2025 16:00
+
+--- 51 2025-06-30 [other] milestones=[] eid=6a7b8ca2-f7d4-4bee-a415-62142b5ff8f3 ---
+17:02 - Surgery: FOX, Lauren (Mrs) (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre
+Status Update for  Referral In: Discharged From Care, Status changed: 30 Jun 2025 17:02
+
+--- 52 2025-07-03 [other] milestones=[] eid=fb8a082a-2adb-47b6-85de-d2dc38664e94 ---
+08:01 - Surgery: BAILEY, Cleopatra (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+Telephone encounter (9N31.)
+
+--- 53 2025-07-03 [other] milestones=[] eid=790b04f3-6f4d-41c8-8412-d7e832e802d2 ---
+Dear Linda Barks
+
+Your appointment has been booked for 03 Jul 2025 08:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 54 2025-07-03 [IN-EP] milestones=['referral'] eid=50f332e7-95b2-4b96-9637-78c3a09f84ec ---
+08:47 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+Problem - whole event: Giant cell arteritis (G755.)
+ Consultation.
+   General
+      Encounter: Consultation (Xa1qL)
+      H:   Awaiting head and neck cancer referral with current wait time of six to eight weeks, appointment scheduled for 11th July was cancelled with notification received two days ago
+- Developing new symptoms including sensation of tight band in the throat area and persistent aching in the lower jaw
+- Persistent cough for approximately three weeks duration, unable to resolve
+- Currently on steroid therapy, received instruction via text to remain on 4mg until blood test results available, uncertain about dose reduction schedule
+      P:  . Head and neck cancer referral
+- Cancelled appointment with extended waiting times
+- Will contact head and neck team to expedite new appointment given developing symptoms
+
+2. New throat and jaw symptoms
+- Tight band sensation in throat with persistent lower jaw aching
+- Monitoring in context of pending specialist review
+
+3. Steroid therapy management
+- Normal blood test results including CRP
+- Reduce prednisolone dose to 3mg daily as patient has been on current dose for more than four weeks
+- Continue dose reduction by 1mg every four weeks as per established tapering schedule
+Consultation (Xa1qL)
+Clinical history and observations (X76sV)
+ Awaiting head and neck cancer referral with current wait time of six to eight weeks, appointment scheduled for 11th July was cancelled with notification received two days ago
+- Developing new symptoms including sensation of tight band in the throat area and persistent aching in the lower jaw
+- Persistent cough for approximately three weeks duration, unable to resolve
+- Currently on steroid therapy, received instruction via text to remain on 4mg until blood test results available, uncertain about dose reduction schedule
+Plan (XaIVg)
+. Head and neck cancer referral
+- Cancelled appointment with extended waiting times
+- Will contact head and neck team to expedite new appointment given developing symptoms
+
+2. New throat and jaw symptoms
+- Tight band sensation in throat with persistent lower jaw aching
+- Monitoring in context of pending specialist review
+
+3. Steroid therapy management
+- Normal blood test results including CRP
+- Reduce prednisolone dose to 3mg daily as patient has been on current dose for more than four weeks
+- Continue dose reduction by 1mg every four weeks as per established tapering schedule
+
+--- 55 2025-07-05 [other] milestones=[] eid=fe268fff-ca38-4ef0-b6ff-d55188e98324 ---
+09:51 - Surgery: Unknown Staff Member  
+Request for 'Alendronic acid 70mg tablets' by patient
+
+--- 56 2025-07-07 [other] milestones=[] eid=6649422e-cc3e-442b-8c00-8e513b2df5a0 ---
+07:51 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Alendronic acid 70mg tablets - 4 tablet - take one tablet once weekly with a full glass of water 30mins before food and other tablets
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 57 2025-07-08 [IN-EP] milestones=['referral'] eid=5c5b568f-3f98-43b0-aade-10cd6d54d1e2 ---
+15:06 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Call to pt regarding cancelled 2ww appt, she now has a new appt. Given pt the 2ww office number too just in case it get rearranged again. Pt knows to let us know if there are any issues.
+
+--- 58 2025-07-10 [other] milestones=[] eid=c6fcc17c-1c2b-44f6-97d5-8899cf206856 ---
+11:02 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Comment note (XaIg6)
+E-Mail sent to lindabarks133@yahoo.com via Abtrace tool. Subject: Medication monitoring blood test; Content: Dear Linda Barks,
+
+Your medication monitoring blood tests are overdue.
+Your medication is an effective treatment, but tests are required to prevent potentially serious side effects occurring. It is therefore essential that these tests are done regularly. 
+If you have your monitoring tests done at hospital or elsewhere, please let us know so we can update our records. 
+
+For your safety, if these tests are not done, we may have to remove these medications from your repeat prescription. 
+
+Please book an appointment using the link provided below.
+
+Click here to book an appointment: https://abtr.co/4U7Hv
+
+Alternatively, you can navigate to https://patients.abtrace.com/login/enter-invitation-code in a web browser and enter the following invitation code: 4U7Hv
+
+Woodbrook Medical Centre
+28 Bridge Street
+Loughborough, LE11 1NH
+
+*******************************************************************************************************
+
+This is sent from a no-reply mailbox. To respond to this message, please contact the practice directly.
+Comment note (XaIg6)
+SMS sent to 07938 512451 via Abtrace tool. Message: Dear Linda Barks,
+Your medication monitoring blood tests are overdue.
+Your medication is an effective treatment, but tests are required to prevent potentially serious side effects occurring. It is therefore essential that these tests are done regularly. 
+If you have your monitoring tests done at hospital or elsewhere, please let us know so we can update our records. 
+
+For your safety, if these tests are not done, we may have to remove these medications from your repeat prescription. 
+
+Please book an appointment using the link provided below.
+abtr.co/4U7Hv
+Woodbrook Medical Centre
+Blood test due (41B1.)
+
+--- 59 2025-07-10 [other] milestones=[] eid=5477dba7-301b-4ed7-a98a-d9c9cde3d3c3 ---
+11:02 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 60 2025-07-10 [other] milestones=[] eid=e479f907-75d9-47e6-b4dd-e6d0d95e04b0 ---
+12:51 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 61 2025-07-10 [other] milestones=[] eid=dd0553d7-5628-45ec-9f28-2097c974fe36 ---
+Dear Linda Barks
+
+Your appointment has been booked for 28 Jul 2025 09:50 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 62 2025-07-22 [other] milestones=[] eid=6428cdca-993d-4a5c-8d9f-8d16a75acaac ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+ENT to Woodbrook Medical Centre
+
+--- 63 2025-07-22 [other] milestones=[] eid=9c0deb1f-7eb4-495e-955b-b2246a858240 ---
+Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) 
+Minor: Thyroid nodule (X40Gg) (New Episode)
+Thyroid nodule (X40Gg)
+
+--- 64 2025-07-28 [other] milestones=[] eid=590b94f5-236d-43e6-aa96-d4acdaa10c5f ---
+09:30 - Surgery: Auto-filed  
+Urea and electrolytes (X77Wi)
+Serum sodium level (XE2q0) 141 mmol/L [133 - 146]
+Serum potassium level (XE2pz) 4.1 mmol/L [3.5 - 5.3]
+Serum urea level (XM0lt) 5.1 mmol/L [2.5 - 7.8]
+Serum creatinine level (XE2q5) 79 umol/L [60 - 120]
+eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 67 mL/min
+Urine ACR should be checked on at least an annual basis
+for all individuals with CKD.  NICE recommends the
+Kidney failure Risk Equation www.kfre.co.uk to
+predict the risk of endstage kidney disease in CKD
+stages 3a to 5.  KFRE is not valid in the presence
+of acute kidney injury.
+Clinical Information: Reasons for Request:      as per task.
+Urea and electrolytes Report,ï¿½Normal,ï¿½No Further Action. Review done by DENGA, Takunda (Dr) - 29 Jul 2025 12:05
+
+--- 65 2025-07-28 [other] milestones=[] eid=fe143c8e-c62d-4ced-9e91-9d9db1983f26 ---
+09:30 - Surgery: Auto-filed  
+Serum non high density lipoprotein cholesterol level (XabE1) 4 mmol/L
+Serum lipid levels (XE2q7)
+Serum cholesterol level (XE2eD) 6.1 mmol/L
+Serum triglyceride levels (XE2q9) 1.95 mmol/L [0 - 1.7] - Outside reference range
+Serum HDL cholesterol level (44P5.) 2.12 mmol/L [0.9 - 2.2]
+Serum LDL cholesterol level (44P6.) 3.1 mmol/L
+Non-fasting LDL is acceptable for screening patients
+and escalating oral lipid treatment. Fasting LDL should
+be used when considering starting treatment with PCSK9
+inhibitors.
+Total cholesterol:HDL ratio (44PF.) 2.9 
+Clinical Information: Reasons for Request:      as per task.
+Serum lipid levels Report,ï¿½Abnormal,ï¿½Other (appt wih pharamcist). Review done by DENGA, Takunda (Dr) - 29 Jul 2025 12:05
+
+--- 66 2025-07-28 [other] milestones=[] eid=10ae5a6d-c3ac-458b-8ebf-5497a0934e2e ---
+09:30 - Surgery: Auto-filed  
+Acute Kidney Injury Staging: 0; No AKI
+Clinical Information: Reasons for Request:      as per task.
+Acute Kidney Injury Staging Report,ï¿½Normal,ï¿½No Further Action. Review done by DENGA, Takunda (Dr) - 29 Jul 2025 12:05
+
+--- 67 2025-07-28 [other] milestones=[] eid=4cadf2b5-e562-4579-ac8b-8935c81838c5 ---
+09:30 - Surgery: Auto-filed  
+Serum total protein level (XE2e9) 66 g/L [57 - 82]
+Clinical Information: Reasons for Request:      as per task.
+Serum total protein level Report,ï¿½Normal,ï¿½No Further Action. Review done by DENGA, Takunda (Dr) - 29 Jul 2025 12:05
+
+--- 68 2025-07-28 [other] milestones=[] eid=1b6403a6-5da7-4e66-a392-0d5d77eb8067 ---
+09:30 - Surgery: Auto-filed  
+Serum alkaline phosphatase level (XE2px) 65 iu/L [30 - 130]
+Serum alanine aminotransferase level (XaLJx) 18 iu/L [10 - 49]
+Serum bilirubin level (44E..) 6 umol/L [< 21]
+Liver function tests (X77WP)
+Serum albumin level (XE2eA) 46 g/L [35 - 50]
+Clinical Information: Reasons for Request:      as per task.
+Calculated Globulin: 20 g/L; Globulins may be raised in myeloma and decreased in
+some cases of myeloma or immune deficiency states.
+Please correlate clinically. Suggest checking serum
+immunoglobulins if Glb >40 g/L in patients >40 years of
+age. Check serum immunoglobulins and free light chain
+assay if Glb <18 g/L.
+Minor abnormalities of Globulins outside of the above
+are unlikely to represent myeloma and would not
+normally require further action or repeat testing.
+Elevation of Globulin levels is common in
+infection / inflammation.
+Liver function tests Report,ï¿½Normal,ï¿½No Further Action. Review done by DENGA, Takunda (Dr) - 29 Jul 2025 12:05
+
+--- 69 2025-07-28 [other] milestones=[] eid=ca76b239-28d0-414b-9725-afeefafc998c ---
+09:30 - Surgery: Auto-filed  
+Haemoglobin A1c level - IFCC standardised (XaPbt) 40 mmol/mol [20 - 41]
+Clinical Information: Reasons for Request:      as per task.
+Haemoglobin A1c level - IFCC standardised Report,ï¿½Normal,ï¿½No Further Action. Review done by PATEL, Krishan (Dr) - 31 Jul 2025 08:15
+
+--- 70 2025-07-28 [other] milestones=[] eid=b38008e0-8844-4aa7-9a39-8a8b4d6c34c9 ---
+09:30 - Surgery: Auto-filed  
+Haemoglobin A1c level (X772q) 5.8 % [4 - 5.9]
+Clinical Information: Reasons for Request:      as per task.
+Haemoglobin A1c level Report,ï¿½Normal,ï¿½No Further Action. Review done by PATEL, Krishan (Dr) - 31 Jul 2025 08:15
+
+--- 71 2025-07-28 [other] milestones=[] eid=3dfded22-14bb-4caf-b9ef-69fbd445995c ---
+09:50 - Surgery: MEE, Sara (Healthcare Assistant) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Informed consent given for treatment (XaXHK)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 72 2025-07-28 [other] milestones=[] eid=06f3c754-d29b-4706-bfc6-0c0f0bcc65d8 ---
+09:55 - Surgery: MEE, Sara (Admin/Clinical Support Access Role) 
+Comment note (XaIg6) - Liver Function Tests
+Comment note (XaIg6) - Lipid / Cholesterol
+Comment note (XaIg6) - Triglycerides
+Comment note (XaIg6) - HbA1c
+
+--- 73 2025-07-28 [other] milestones=[] eid=f46b1c0c-818f-42ba-b591-f5d3b7d1f186 ---
+22:16 - Surgery: Unknown Staff Member  
+Request for 'Adcal-D3 chewable tablets tutti frutti (Kyowa Kirin International UK NewCo Ltd)' by patient
+
+--- 74 2025-07-28 [other] milestones=[] eid=94fa520a-16aa-4606-953f-c2656a22d2af ---
+22:16 - Surgery: Unknown Staff Member  
+Request for 'Fluoxetine 20mg capsules' by patient
+
+--- 75 2025-07-28 [other] milestones=[] eid=40200b20-5456-4a61-9587-1e4e99cf1075 ---
+22:17 - Surgery: Unknown Staff Member  
+Request for 'Omeprazole 20mg gastro-resistant capsules' by patient
+
+--- 76 2025-07-28 [other] milestones=[] eid=5c0e133b-099e-4ee5-86c6-3124cba61a39 ---
+22:17 - Surgery: Unknown Staff Member  
+Request for 'Quetiapine 25mg tablets' by patient
+
+--- 77 2025-07-28 [other] milestones=[] eid=f4c461a6-8756-4dbb-b1ec-911a569d9ac4 ---
+22:17 - Surgery: Unknown Staff Member  
+Request for 'Viscotears 2mg/g liquid gel (Bausch & Lomb UK Ltd)' by patient
+
+--- 78 2025-07-29 [other] milestones=[] eid=0dd56fec-d1fc-4ab7-8f01-4e063e213f28 ---
+07:38 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Adcal-D3 chewable tablets tutti frutti (Kyowa Kirin International UK NewCo Ltd) - 112 tablet - take one tablet twice daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 79 2025-07-29 [other] milestones=[] eid=b5303deb-634b-4295-b55b-6e08f66dd01f ---
+07:39 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Viscotears 2mg/g liquid gel (Bausch & Lomb UK Ltd) - 10 gram - Apply Four Times A Day To The Affected Eye(s)
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 80 2025-07-29 [other] milestones=[] eid=3bbae6a2-4ff8-45a0-b0d7-f4945a9ad136 ---
+07:39 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Fluoxetine 20mg capsules - 30 capsule - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 81 2025-07-29 [other] milestones=[] eid=9241969b-cf32-416e-b453-ec7c1a455647 ---
+07:39 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Omeprazole 20mg gastro-resistant capsules - 28 capsule - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 82 2025-07-29 [other] milestones=[] eid=6d3f5460-3689-410b-baac-c1b937f9c27b ---
+07:40 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Quetiapine 25mg tablets - 56 tablet - take two tablets at night
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 83 2025-07-29 [other] milestones=[] eid=171e6cd1-18ca-4a42-a96d-0b21fae6fc1d ---
+12:04 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role)
+
+--- 84 2025-07-29 [other] milestones=[] eid=6523a8a6-401a-455f-9ec4-9da80fff1cae ---
+12:12 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 85 2025-07-29 [other] milestones=[] eid=28966b87-4f29-4dd9-9dbf-26fb2d45c8fa ---
+12:12 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+Patient telephone number (9159.) - +447938512451
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Barks,
+
+Please contact the surgery to make a routine telephone appointment with the pharmacist to discuss the results of your recent tests.  
+
+Thanks
+Woodbrook Medical Centre
+Sent on 29/07/2025 at 12:12
+
+--- 86 2025-07-30 [other] milestones=[] eid=3cfac53b-da30-4689-ae8d-5094de2ad445 ---
+13:38 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+Telephone encounter (9N31.)
+
+--- 87 2025-07-30 [other] milestones=[] eid=f8143e84-9ed9-45eb-a96e-a7924c87a692 ---
+Dear Linda Barks
+
+Your appointment has been booked for 04 Oct 2025 09:04 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 88 2025-07-31 [other] milestones=[] eid=c97af139-cac0-4604-8a21-b7161169fb84 ---
+08:15 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)
+
+--- 89 2025-08-01 [other] milestones=[] eid=c1911ea8-d641-40a9-b5c5-0bf481cb7ded ---
+13:13 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Influenza vaccination invitation short message service text message sent (Y3f85)
+Patient telephone number (9159.) - +447938512451
+Short message service text message sent to patient (XaMiI)
+
+Dear Linda,
+Our records show you are eligible for a flu vaccination. 
+Our clinics start in October and appointments are being booked now! Please use the link provided below to book your appointment or to let us know if you do not want the flu vaccine. Alternatively, please call reception on 01509 239166. 
+Appointments are limited so we would advise booking as soon as possible.
+
+Thank you
+
+To respond: https://accurx.nhs.uk/c/p-dshpw28zea
+(Expires in 7 days)
+
+Woodbrook Medical Centre
+SMS sent on 01/08/2025 13:00:13
+
+--- 90 2025-08-01 [other] milestones=[] eid=583ac913-1c8d-4d31-8606-6ce069e0ed00 ---
+13:13 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 91 2025-08-05 [other] milestones=[] eid=eccc63cd-949a-4af9-bf8f-469157a95f5c ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+US scan of neck (X70lq) (New Episode)
+
+--- 92 2025-08-06 [other] milestones=[] eid=e3a7c8f4-d325-4f67-a584-1f531d9ee091 ---
+10:14 - Surgery: SUTHAR, Jaiman (Mr) (Pharmacist) 
+QRISK2 cardiovascular disease 10 year risk score (XaQVY) 8.39 %
+Estimated creatinine clearance calculated using actual body weight Cockcroft-Gault formula (Y200c) 61.6 mL/min
+(R) Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+ Clinical Pharmacist
+   Clinical Pharmacist
+      Seen: Seen by clinical pharmacist (Y20a6)
+      Identity + contact details verified: Yes
+      Shared decision making: Shared decision making (XaYjg)
+   Notes
+      History:  -called to discuss lipids as per task 
+-LDL 3.1, trigs 1.95
+-Reports quetiapine may be contributing to increased cholesterol.
+-Explained increased risks of high cholesterols including increased CVD risk
+-Reports irritable bowel leading to diarrhoea with high fruit and vegetable intake.
+-Diet consists of ready meals, limited fresh fruit/veg due to bowel issues. Reports excessive cake consumption, now attempting to reduce. Fairly sedentary 
+-Discussed option of statins and their role in lowering cholesterol and reducing CVD risk 
+-Also discussed working on diet/lifestyle
+      Plan:  -Patient opted to commence statins 
+-commence atorvastatin 20mg od 
+-repeat LFTs and lipids in 3m
+-s/e discussed eg muscle pain
+-advised if any issues or concerns seek medical advice GP/111/999
+   Entries from previous template version
+      Telephone consultation (XaIge)
+Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+Recall: Blood Test Due (03 Nov 2025) repeat LFTs and lipids - fasting bloods
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Seen by clinical pharmacist (Y20a6)
+Telephone consultation (XaIge)
+Patient identity verified (XaXmW)
+Shared decision making (XaYjg)
+Clinical history and observations (X76sV)
+-called to discuss lipids as per task 
+-LDL 3.1, trigs 1.95
+-Reports quetiapine may be contributing to increased cholesterol.
+-Explained increased risks of high cholesterols including increased CVD risk
+-Reports irritable bowel leading to diarrhoea with high fruit and vegetable intake.
+-Diet consists of ready meals, limited fresh fruit/veg due to bowel issues. Reports excessive cake consumption, now attempting to reduce. Fairly sedentary 
+-Discussed option of statins and their role in lowering cholesterol and reducing CVD risk 
+-Also discussed working on diet/lifestyle
+Plan (XaIVg)
+-Patient opted to commence statins 
+-commence atorvastatin 20mg od 
+-repeat LFTs and lipids in 3m
+-s/e discussed eg muscle pain
+-advised if any issues or concerns seek medical advice GP/111/999
+
+--- 93 2025-08-12 [other] milestones=[] eid=57175c2a-492d-4c82-aeb6-dcf05684ff75 ---
+14:25 - Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) 
+ Consultation.
+   General
+
+--- 94 2025-08-15 [other] milestones=[] eid=5c72f29a-82e3-4d33-bea1-656a258d681a ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+ENT to Woodbrook Medical Centre
+
+--- 95 2025-08-15 [other] milestones=[] eid=3297be2b-cf37-4f08-92fe-5e8ca9f20e17 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role)
+
+--- 96 2025-08-21 [other] milestones=[] eid=fff06a1a-4b88-4a8f-9fd9-75d6cc15346c ---
+06:49 - Surgery: Unknown Staff Member  
+Request for 'Alendronic acid 70mg tablets' by patient
+
+--- 97 2025-08-21 [other] milestones=[] eid=53251caf-62ab-471f-b5e6-8b252f5f7d98 ---
+06:49 - Surgery: Unknown Staff Member  
+Request for 'Diethylamine salicylate 10% cream' by patient
+
+--- 98 2025-08-21 [other] milestones=[] eid=bd946020-b1fd-4f03-ab1d-72379a52837a ---
+06:50 - Surgery: Unknown Staff Member  
+Request for 'Fluoxetine 20mg capsules' by patient
+
+--- 99 2025-08-21 [other] milestones=[] eid=1671e86a-2945-428d-a2ad-68a0836003da ---
+06:50 - Surgery: Unknown Staff Member  
+Request for 'Hyoscine butylbromide 10mg tablets' by patient
+
+--- 100 2025-08-21 [other] milestones=[] eid=49fd82f4-d920-4e03-8e3e-323679fac172 ---
+06:50 - Surgery: Unknown Staff Member  
+Request for 'Omeprazole 20mg gastro-resistant capsules' by patient
+
+--- 101 2025-08-21 [other] milestones=[] eid=6d47c884-8943-458a-9b32-108c67ebacd7 ---
+06:50 - Surgery: Unknown Staff Member  
+Request for 'Quetiapine 25mg tablets' by patient
+
+--- 102 2025-08-21 [other] milestones=[] eid=8a9f62a9-5381-475b-a59a-c31a97fc9311 ---
+06:51 - Surgery: Unknown Staff Member  
+Request for 'Viscotears 2mg/g liquid gel (Bausch & Lomb UK Ltd)' by patient
+
+--- 103 2025-08-21 [other] milestones=[] eid=a837952e-4acb-4e6b-b89b-56429766484d ---
+07:47 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+(R) Alendronic acid 70mg tablets - 4 tablet - take one tablet once weekly with a full glass of water 30mins before food and other tablets
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 104 2025-08-21 [other] milestones=[] eid=ddc9d1ff-67d2-4c1f-a77e-0663933b9d53 ---
+07:47 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+(R) Fluoxetine 20mg capsules - 30 capsule - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 105 2025-08-21 [other] milestones=[] eid=64e3d209-2231-4bfa-a9ac-0a1d3534480d ---
+07:47 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+(R) Diethylamine salicylate 10% cream - 100 gram - APPLY TDS
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 106 2025-08-21 [other] milestones=[] eid=500cf170-e57e-45e7-910c-cfe193910567 ---
+07:48 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+(R) Hyoscine butylbromide 10mg tablets - 56 tablet - Two To Be Taken Four Times A Day
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 107 2025-08-21 [other] milestones=[] eid=9157ffe2-0415-45d9-8850-986a66ea0447 ---
+07:48 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+(R) Omeprazole 20mg gastro-resistant capsules - 28 capsule - take one daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 108 2025-08-21 [other] milestones=[] eid=42788fed-ec91-45e6-ab0d-2c83af59ea1a ---
+07:48 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+(R) Quetiapine 25mg tablets - 56 tablet - take two tablets at night
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 109 2025-08-21 [other] milestones=[] eid=6e2276a0-d154-4f99-bace-723f7100baaf ---
+07:49 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+(R) Viscotears 2mg/g liquid gel (Bausch & Lomb UK Ltd) - 10 gram - Apply Four Times A Day To The Affected Eye(s)
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 110 2025-08-27 [other] milestones=[] eid=c1222fea-b639-499a-8778-ef1951504346 ---
+07:41 - Surgery: Unknown Staff Member  
+Request for 'Atorvastatin 20mg tablets' by patient
+
+--- 111 2025-08-27 [other] milestones=[] eid=b2ef20fa-4663-417a-a26d-30244efdf371 ---
+07:50 - Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role) 
+(R) Atorvastatin 20mg tablets - 28 tablet - take one tablet daily
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+

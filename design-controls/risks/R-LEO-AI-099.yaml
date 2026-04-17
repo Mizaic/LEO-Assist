@@ -1,0 +1,127 @@
+# -- R-LEO-AI-099 -- CandidateReviewList progressive-disclosure refactor hides the Delete action
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-099"
+  title: >
+    Moving the Delete action from an always-visible icon button into
+    an overflow kebab menu makes it harder for reviewers to remove
+    candidates with bad pipeline output, slowing data-quality
+    clean-up or causing reviewers to mark bad candidates as gold
+    just to clear their queue.
+
+  hazard:
+    description: >
+      Progressive disclosure is a usability win on the happy path
+      (most clicks are "Mark gold"), but it hides destructive
+      actions one extra click away. If the kebab affordance is
+      unclear, or the menu item is ambiguously worded, reviewers
+      who need to discard a malformed candidate may either
+      (a) accept the candidate to clear it from the queue,
+      polluting the gold dataset, or (b) skip it and leave the
+      queue permanently blocked.
+    category: "usability"
+
+  hazardous_situation: >
+    A reviewer opens the Training Data tab and encounters a
+    candidate whose entities are wrong (e.g. NER mislabelled a
+    procedure as a finding). They previously had a red trash icon
+    directly on the card; now they see only "Mark gold" and a
+    three-dot icon. Under time pressure, they mark the bad item as
+    gold to keep moving. The next training run consumes the
+    incorrect label, degrading model accuracy.
+
+  harm:
+    description: >
+      Degraded training-dataset quality, leading to lower NER
+      precision in downstream coding. No direct patient harm (the
+      coding worker has its own assertion guard), but model drift
+      over multiple release cycles increases the residual error
+      rate that the clinical reviewer has to catch.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Kebab icon (MoreHorizIcon) is rendered immediately next to
+        the Mark gold button with an aria-label "More actions" and
+        a tooltip; MenuItem copy uses plain English ("Remove item",
+        not jargon like "Discard" or icon-only). Delete MenuItem is
+        tinted error.main so the user sees it is destructive.
+      implemented_by: ["DI-LEO-AI-144"]
+      verified_by: ["VT-LEO-AI-143"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Edit action ("Edit codes and terms") lives in the same
+        kebab menu above Delete. Reviewers who realise they want to
+        correct the entities instead of discarding the candidate
+        will see Edit before Delete, reducing accidental removal.
+      implemented_by: ["DI-LEO-AI-144"]
+      verified_by: ["VT-LEO-AI-143"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Post-deployment monitoring: track deletions per reviewer
+        session; a sudden drop after rollout triggers UX review.
+        Also track "mark gold then untangle later" patterns via
+        the existing gold-label edit telemetry.
+      implemented_by: ["DI-LEO-AI-144"]
+      verified_by: ["VT-LEO-AI-143"]
+      effectiveness: "partially_effective"
+    - control_type: "design_feature"
+      description: >
+        The same progressive-disclosure pattern is now applied to
+        the GoldLabelDetailDialog footer (DI-LEO-AI-146). Delete
+        sits inside a kebab next to the morphing primary action,
+        tinted error.main, with confirm-and-suppress as a separate
+        slide-in DeleteConfirmPanel. Skip-to-next remains visible
+        as a tertiary text button so reviewers always have a
+        non-destructive escape from a bad item.
+      implemented_by: ["DI-LEO-AI-146"]
+      verified_by: ["VT-LEO-AI-144"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 2
+    detectability: 3
+    rpn: 12
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the kebab visibly adjacent to Mark gold, explicit
+      aria-label, destructive tint on the Delete menu item, and
+      post-deploy telemetry to catch behaviour change, the
+      residual risk of accidental mis-flow is low. Power reviewers
+      using the compact density mode still see both actions in the
+      same visual row.
+
+  monitoring:
+    monitoring_plan: >
+      Track per-reviewer-session counts of deletions, marks-as-gold,
+      and gold-label edits in the coding review telemetry
+      dashboard. A 20 percent drop in deletions over the first
+      month after rollout, unexplained by pipeline quality
+      improvements, triggers a UX review.
+    metrics:
+      - "Deletions per reviewer per day"
+      - "Marks-as-gold per reviewer per day"
+      - "Gold-label edits per reviewer per day (post-mark correction)"
+    review_frequency: "Weekly for first month, then monthly"
+
+  metadata:
+    identified_by: "Wave E design review 2026-04-17"
+    identified_date: "2026-04-17"
+    status: "analyzed"
+    tags:
+      - "knowledge"
+      - "training-data"
+      - "progressive-disclosure"
+      - "design-system"

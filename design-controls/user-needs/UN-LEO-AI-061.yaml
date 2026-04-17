@@ -61,7 +61,7 @@
     created_date: "2026-04-13"
     status: "draft"
 
-  design_inputs: ["DI-LEO-AI-107"]
+  design_inputs: ["DI-LEO-AI-107", "DI-LEO-AI-174", "DI-LEO-AI-176"]
   validation_tests: []
 
   tags: ["multi-label", "ner", "spancat", "training", "post-processing"]

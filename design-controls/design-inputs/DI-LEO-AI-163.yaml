@@ -1,0 +1,67 @@
+# -- DI-LEO-AI-163 -- Manual gold seed for cancer / benign discrimination
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-163"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-074"]
+  requirement: >
+    The system SHALL support a hand-authored gold-seed manifest under
+    design-controls/training-data/, plus a seeder script
+    (scripts/seed_manual_gold_records.py) that idempotently writes one
+    TrainingCandidate (status=completed) and one linked GoldLabel per
+    manifest record into the Knowledge Graph, after re-validating each
+    sentence against libs.ner.deid_validator.DeIdValidator and rejecting
+    any residual PHI.
+  rationale: >
+    Hand-authored seeds let QA target specific failure modes (cancer
+    detection on noisy mammogram lines, refuted-cancer phrasing,
+    benign findings on screening pathways) with far fewer records than a
+    synthetic corpus would need. A YAML manifest plus a deterministic
+    seeder makes the dataset reviewable, version-controllable, and safe
+    to re-run as part of routine training pipeline maintenance.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "scripts/seed_manual_gold_records.py loads design-controls/training-data/manual-gold-seed-2026-04-17.yaml, validates every record against DeIdValidator, find_span, VALID_LABELS and VALID_ASSERTIONS, and exits non-zero if any check fails."
+      - type: "functional"
+        spec: "candidate_id is sha256(text) and label_id is GL- + first 16 hex chars of sha256(text + sorted entity surface texts), so a re-run with the same manifest writes the same node IDs."
+      - type: "functional"
+        spec: "TrainingCandidate is upserted with status='completed' so the linked GoldLabel is picked up by GET_TRAINING_GOLD_LABELS_FOR_EXPORT."
+      - type: "safety"
+        spec: "The script aborts with exit code 1 before any Knowledge Graph write if any sentence yields a non-empty DeIdValidator.check_record() result."
+    constraints:
+      - type: "safety"
+        spec: "Manifest text fields and entity payloads must contain only de-identified clinical phrases. Patient identifiers, encounter UUIDs and episode prefixes may appear as provenance metadata in the YAML manifest but MUST NOT be written into TrainingCandidate or GoldLabel nodes."
+    dependencies:
+      - "DI-LEO-AI-001"
+    downstream_impacts:
+      - "Knowledge Graph TrainingCandidate / GoldLabel population"
+      - "Next training_worker run picks up the new gold records via label_exporter"
+    technical_details:
+      language: "Python"
+      framework: "neo4j 5.x driver, pyyaml"
+      file_structure:
+        - "scripts/seed_manual_gold_records.py"
+        - "design-controls/training-data/manual-gold-seed-2026-04-17.yaml"
+      estimated_loc: 350
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-160 covers manifest schema validation, PHI rejection,
+      idempotent ID generation, and assertion / label vocabulary
+      enforcement. The runtime write path is exercised via the dry-run
+      mode of the seeder against the real manifest and recorded in the
+      VT execution_history.
+    test_protocol: "VT-LEO-AI-160"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-003"
+  tags:
+    - "training-data"
+    - "gold-seed"
+    - "cancer-detection"
+    - "knowledge-graph"

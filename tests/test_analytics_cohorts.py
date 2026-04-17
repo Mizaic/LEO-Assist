@@ -24,9 +24,17 @@ from libs.analytics import (
 # ---------------------------------------------------------------------------
 
 
-def test_confirmed_cancer_where_contains_status_filter():
+def test_confirmed_cancer_where_excludes_invalid_and_benign_statuses():
+    """Excluded: merged, closed_phantom, closed_related, closed_benign.
+
+    'completed' must NOT be required (in_progress episodes that already
+    carry a diagnosis_confirmed milestone are still counted).
+    """
     clause = confirmed_cancer_where()
-    assert "ep.status = 'completed'" in clause
+    assert "NOT ep.status IN" in clause
+    for status in ("merged", "closed_phantom", "closed_related", "closed_benign"):
+        assert f"'{status}'" in clause
+    assert "ep.status = 'completed'" not in clause
 
 
 def test_confirmed_cancer_where_contains_benign_filter():
@@ -44,7 +52,7 @@ def test_confirmed_cancer_where_contains_diagnosis_exists():
 
 def test_confirmed_cancer_where_honours_alias():
     clause = confirmed_cancer_where("episode")
-    assert "episode.status = 'completed'" in clause
+    assert "NOT episode.status IN" in clause
     assert "ep.status" not in clause
 
 
@@ -154,7 +162,31 @@ def test_clause_is_single_line_safe():
         "RETURN count(ep)"
     )
     assert "\n" not in frag
-    assert composed.startswith("MATCH (ep:EpisodeOfCare) WHERE ep.status")
+    assert composed.startswith("MATCH (ep:EpisodeOfCare) WHERE NOT ep.status")
     assert "count(ep)" in composed
     assert composed.count("EXISTS") == 1
     assert composed.count("{") == composed.count("}")
+
+
+# ---------------------------------------------------------------------------
+# TC-006 (new in VT-LEO-AI-164): regression - in_progress with a
+# diagnosis_confirmed milestone IS counted; closed_benign is NOT.
+# ---------------------------------------------------------------------------
+
+
+def test_in_progress_status_is_not_excluded():
+    """in_progress episodes pass the status filter so they can be counted
+    as confirmed cancer once a diagnosis_confirmed milestone exists.
+    """
+    clause = confirmed_cancer_where()
+    assert "'in_progress'" not in clause
+
+
+def test_completed_status_is_not_excluded():
+    """completed episodes also pass the status filter -- the cohort is
+    inclusive of any non-benign, non-administrative episode that carries
+    a diagnosis milestone.
+    """
+    clause = confirmed_cancer_where()
+    excluded_block = clause.split("NOT ep.status IN ")[1].split("]")[0]
+    assert "'completed'" not in excluded_block

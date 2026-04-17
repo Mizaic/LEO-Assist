@@ -1,0 +1,94 @@
+# -- DI-LEO-AI-154 -- Manual review-time editing of AI-generated guidance rules
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-154"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-028"]
+  requirement: >
+    The system SHALL allow an authorised reviewer to edit the logic tree,
+    name, and recommended action of a pending AppropriatenessRule from a
+    centred dialog before approval. The dialog SHALL provide live SNOMED
+    concept search and SHALL persist any edit as a new versioned rule that
+    supersedes the original, preserving the audit trail and the diff view.
+  rationale: >
+    Reviewers in usability testing of the prior side-drawer surface reported
+    that they could not edit anything inside the drawer (only enter a
+    free-text reason), which forced them to either accept incorrect SNOMED
+    concepts or reject the entire rule. Allowing in-place edits with full
+    SNOMED search keeps the human-in-the-loop gate clinically useful and
+    avoids back-and-forth via re-generation. Versioning the edits (rather
+    than mutating in place) preserves IEC 62304 and ISO 14971 audit
+    obligations and enables rollback if a manual edit later proves wrong.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          POST /guidance/rules/review/{id}/decision with action="edit" and
+          a non-empty updates.logic_tree payload writes a new
+          :AppropriatenessRule node, sets the predecessor status to
+          'superseded', creates [:SUPERSEDES] from new -> old, and writes a
+          GuidanceAuditEvent with action='edit'.
+      - type: "functional"
+        spec: >
+          The edit dialog renders the existing logic tree with click-to-replace
+          SNOMED chips, +Add Concept / +Add Group / +Add Demographic affordances
+          inside every group, AT_LEAST minimum and demographic operator/value
+          inputs.
+      - type: "safety"
+        spec: >
+          Server-side validation rejects: empty groups, NOT with arity != 1,
+          AT_LEAST min < 1 or > children count, trees deeper than 6 levels or
+          containing more than 80 nodes, and any concept_id absent from the
+          knowledge graph.
+      - type: "functional"
+        spec: >
+          Save is gated client-side on a non-empty 'Reason for edit' (>= 3
+          chars) and a tree that passes findValidationError().
+    constraints:
+      - type: "safety"
+        spec: >
+          Edits SHALL NOT mutate the predecessor rule's logicJson, name or
+          strength. Predecessor history SHALL remain queryable via the
+          /diff endpoint.
+      - type: "safety"
+        spec: >
+          Only rules whose status is 'pending_review' or 'active' may be
+          edited; attempts to edit 'superseded' or 'rejected' rules SHALL
+          return HTTP 409.
+    dependencies: ["DI-LEO-AI-063", "DI-LEO-AI-064"]
+    downstream_impacts:
+      - "Guidance rule review workflow"
+      - "Bitmap compilation (consumes only status=active rules)"
+      - "Audit trail / GuidanceAuditEvent retention"
+    technical_details:
+      language: "Python and TypeScript"
+      framework: "FastAPI + Next.js / MUI"
+      file_structure:
+        - "services/api/app/services/guidance_rule_edit.py"
+        - "services/api/app/routers/guidance_rules.py"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/index.tsx"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/ConceptSearchPanel.tsx"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/treeOps.ts"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/types.ts"
+        - "services/ui/src/app/admin/guidance/RuleReviewSection.tsx"
+      estimated_loc: 1200
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-152 passes: 13 jest cases covering tree operations and dialog
+      behaviour, plus 18 pytest cases covering server-side validation, the
+      edit service, and the router integration. Every required acceptance
+      criterion above is exercised by at least one named test case.
+    test_protocol: "VT-LEO-AI-152"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-106"]
+  tags:
+    - "guidance-rules"
+    - "hitl-review"
+    - "snomed"
+    - "admin-ui"

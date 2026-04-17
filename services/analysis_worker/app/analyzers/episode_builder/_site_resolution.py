@@ -295,19 +295,41 @@ def _extract_condition_key(concept_name: str) -> str:
 
 
 def _extract_condition_key_from_anchor(anchor: dict[str, Any]) -> str:
-    """Resolve site key from anchor, preferring concept_id when available.
+    """Resolve site key from anchor.
 
     Resolution order:
-    1. _SITE_BY_CONCEPT_ID -- explicit base-concept overrides.
+    0a. site_source in {"explicit_2ww_code", "explicit_malignancy_code"}
+        -- DI-LEO-AI-159. The encounter text contained an unambiguous
+        Read/CTV3 code that fixes the cancer site (e.g. "(XaMeC)" =>
+        breast 2WW referral, "(X78WM)" => malignant tumour of breast).
+        This trumps every other source, including coded SNOMED, because
+        the surface-form heuristic and SNOMED concept name can disagree
+        with what the GP actually filed (e.g. lung clinic letter inside
+        a breast 2WW workflow).
+    0b. Explicit anchor['site_key'] -- set by text-path anchor detector
+        from the gold-mined cancer_site_terms dictionary (DI-LEO-AI-155).
+        This is preferred because the text-path generic sentinel
+        concept_ids (e.g. "Text: confirmed cancer diagnosis") carry no
+        site information.
+    1. _SITE_BY_CONCEPT_ID -- explicit coded-base concept overrides.
     2. _DESCENDANT_SITE_MAP -- IS_A-expanded SNOMED descendants.
     3. _extract_condition_key -- keyword matching on concept_name.
     """
+    site_source = str(anchor.get("site_source") or "").strip()
+    explicit = str(anchor.get("site_key") or "").strip()
+    if site_source in {"explicit_2ww_code", "explicit_malignancy_code"} and explicit:
+        return explicit
+    if explicit and explicit not in ("unknown", "non_site_specific"):
+        return explicit
     concept_id = str(anchor.get("concept_id") or "").strip()
     if concept_id and concept_id in _SITE_BY_CONCEPT_ID:
         return _SITE_BY_CONCEPT_ID[concept_id]
     if concept_id and concept_id in _DESCENDANT_SITE_MAP:
         return _DESCENDANT_SITE_MAP[concept_id]
-    return _extract_condition_key(str(anchor.get("concept_name") or ""))
+    fallback = _extract_condition_key(str(anchor.get("concept_name") or ""))
+    if fallback in ("unknown", "non_site_specific") and explicit:
+        return explicit
+    return fallback
 
 
 def _site_keys_compatible(episode_key: str, visit_key: str) -> bool:

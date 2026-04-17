@@ -3,7 +3,7 @@
 
 - id: "VT-LEO-AI-139"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-138"]
@@ -108,4 +108,32 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - execution_date: "2026-04-16"
+      executor: "automated pytest CI"
+      commit: "HEAD (episode-builder-fragmentation-fix branch)"
+      command: >
+        PYTHONPATH=. python -m pytest tests/test_specialty_markers_breast.py
+        tests/test_clinical_scoping.py
+      result: "pass"
+      cases_executed: 37
+      cases_passed: 37
+      cases_failed: 0
+      evidence_path: >
+        /evidence-bundles/LEO-AI/verification/VT-LEO-AI-139/
+        2026-04-16-pytest-breast-marker.log
+      notes: >
+        23 breast-marker cases (legacy-anchor preservation, endocrine
+        therapy, invasive ductal/lobular, BRCA, axilla, sentinel node,
+        fast-track-breast phrasing, negative-corpus false-positive
+        suppression, real-text recall >= 18/20 on the 2026-04 audit
+        sample) plus 14 shared clinical-scoping cases. Marker also
+        corroborated end-to-end against the rebuilt graph: "Fast
+        track referral for suspected breast cancer (XaMeC)" matches
+        breast and non_site_specific; "Fast track referral for
+        suspected head and neck cancer (XaMkD)" matches head_and_neck
+        and non_site_specific - see verify script
+        scripts/investigations/_verify_fast_track_specialty_markers
+        (ad-hoc). childrens_tumour regex tightened so "children's
+        cancer" and "paediatric oncology" both match without
+        false-positive inflation.

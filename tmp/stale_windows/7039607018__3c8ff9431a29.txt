@@ -1,0 +1,548 @@
+======================================================================
+PATIENT      : 7039607018
+EPISODE      : 3c8ff9431a297d26
+CANCER_TYPE  : gynaecological
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-06-02
+WINDOW       : 2025-05-19 .. 2025-08-31 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-05-20  diagnosis_confirmed     enc=d40c9e60-2f1b-47a2-9144-92b773c1ba91
+  2025-06-02  referral                enc=7593b815-0817-42e1-956b-0104e836d29a
+  2025-06-03  referral                enc=0f20d494-8193-4a31-9613-11213d6a79dd
+  2025-06-16  first_seen              enc=90e3b37d-ef34-4173-b576-a8cba5712b4e
+  2025-06-25  first_seen              enc=fd97ce42-ebe2-460e-b71c-feb75e4e3c91
+
+Encounters in window (n=63):
+
+--- 01 2025-05-20 [other] milestones=[] eid=787cee7f-c63d-4e19-811f-708c79b9dea4 ---
+Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role) 
+Abnormal vaginal bleeding (Xa86A)
+Abnormal vaginal bleeding (Xa86A)
+
+--- 02 2025-05-20 [other] milestones=[] eid=314e12d5-4d01-47e0-9369-6e9480783325 ---
+08:23 - O'CONNELL, Charlotte (Ms)  
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+   Type of encounter: Telephone encounter (9N31.)
+ N+S Care Navigation & Signposting
+   Care Navigation 
+      Reason for the appointment:  been bleeding for 6 weeks
+      *Outcome: Contact Outcome: Booked for same day face to face review (Y3ebf)
+Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+Telephone encounter (9N31.)
+Triage (Ua1SN) - been bleeding for 6 weeks
+Contact Outcome: Booked for same day face to face review (Y3ebf)
+
+--- 03 2025-05-20 [other] milestones=[] eid=0dc6e829-9d7e-4939-940f-653963278d62 ---
+Dear Marzena Zieba
+
+Your appointment has been booked for 20 May 2025 10:45 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 04 2025-05-20 [IN-EP] milestones=['diagnosis_confirmed'] eid=d40c9e60-2f1b-47a2-9144-92b773c1ba91 ---
+11:05 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role) 
+Problem: Abnormal vaginal bleeding (Xa86A)
+History: Irregular periods over past 6/12. 
+Bleeding at least every 2 weeks, lasting between 10d and 6 weeks (currently)
+Can be anything from spotting to heavy with clot. Currentl bleed light.
+Associated crampy back pain occasionally but not bothered by dysmenorrhoea.
+Previously regular 5-6/28-30
+Sometimes gets PCB
+G2P2, NVD
+Has IUS in situ. Changed November 2023.
+Prev cervical polypectomy 12/6/23
+Examination: Not examined to day as bleeding. 
+Plan: Check bloods in the next 3/52 then f/u with Dr Bridges in 4-5/52. 
+Given norethisterone to take prior to seeing Dr Bridges to aid examination.
+Norethisterone 5mg tablets - 30 tablet - take one tablet 3 times /day
+ETP2 FP10: Not Yet Printed - Signed
+Community Pharmacy changed. Previous data: Was previously unset
+Pathology Request (Request Sent):
+HbA1c (Requested), Coagulation screen (Requested), C reactive protein (Requested), Full Blood Count (Requested), Ferritin (Requested), Liver Function Test (Requested), Thyroid Stimulating Hormone (Requested), Urea & electrolytes (Requested)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 05 2025-05-20 [other] milestones=[] eid=6f79bc8c-c7a2-4ee0-899a-8595b02dd3f4 ---
+11:19 - MCDOWELL, Giselle  
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To book tests requested by practice (Y41cc)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Presenting to non-clinical team with: To book tests requested by practice (Y41cc)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 06 2025-05-20 [other] milestones=[] eid=613db913-2ddb-4cbb-9a00-0daa7edeeb6f ---
+Dear Marzena Zieba
+
+Your appointment has been booked for 11 Jun 2025 08:45 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 07 2025-05-20 [other] milestones=[] eid=24086795-6fa7-4deb-a187-b6df8b697e71 ---
+Dear Marzena Zieba
+
+Your appointment has been booked for 27 Jun 2025 09:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 08 2025-05-20 [other] milestones=[] eid=17ccd620-a8be-4aaa-927e-e831c753852d ---
+12:39 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role) 
+Pathology Request (Request Sent):
+LH+FSH (Requested)
+
+--- 09 2025-05-20 [other] milestones=[] eid=cae1e937-640f-470f-9c32-0ecd085a3e4c ---
+16:12 - Changed by NHS login  
+Email changed. Previously unset
+
+--- 10 2025-05-20 [other] milestones=[] eid=306213da-95a1-4c25-a9d4-ed6bcdfaec82 ---
+16:12 - Surgery: Unknown Staff Member  
+Identity Verification
+Citizen ID
+Recorded during online services registration
+
+--- 11 2025-05-21 [other] milestones=[] eid=6ed94c4a-e6a3-42d4-a9bc-fc37f11a07bf ---
+09:31 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)
+
+--- 12 2025-05-31 [other] milestones=[] eid=556183cd-733e-4613-95bb-32ec16363958 ---
+Surgery: O'NEILL, Anna-Louise (Admin/Clinical Support Access Role) , Entered By: HORNE, Jonathan (Dr)
+Minor: Ovarian cyst (X406j) - right 51.7mmx59.4mm (New Episode)
+US scan of pelvis (Xa83O) (New Episode)
+Ovarian cyst (X406j) - right 51.7mmx59.4mm
+
+--- 13 2025-06-02 [other] milestones=[] eid=19807ff5-3c87-4d66-b158-7c635bcd1d46 ---
+08:22 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+Telephone encounter (9N31.)
+
+--- 14 2025-06-02 [other] milestones=[] eid=fcd1e222-4c82-4c27-b197-e2b1286a8a44 ---
+08:23 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+Patient telephone number (9159.) - 07455 707071
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Zieba,
+Please reply to this message with a clear picture of the document you have received. 
+TO RESPOND, please follow this link: (link will autogenerate here)
+Thank you
+Woodbrook Medical Centre
+
+--- 15 2025-06-02 [other] milestones=[] eid=560d22c2-d598-4ce7-9bd3-1e94ca766bce ---
+10:26 - Surgery: DOUGHTY, Lauren (Receptionist Access Role)
+
+--- 16 2025-06-02 [other] milestones=[] eid=31e991a8-8682-43e4-ba72-ca9f82e9b32f ---
+10:26 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+Online questionnaire completed by patient
+Dear Mrs Zieba,
+
+Please reply to this message with a clear picture of the document you have received. 
+
+Thank you
+Woodbrook Medical Centre
+
+Response:
+Hi, 2 days ago I had private gynaecologist appointment. The doctor found solid heteroechoic cyst on my ovary. 
+Patient attached photo or document
+Patient uploaded 2 attachments
+Received on: 02/06/2025 at 08:29
+JPEG Image: rvwokmnf.jpg - Photo submitted by patient
+URL: https://web.accurx.com/api/conversation/patientupload/5542/60873940/ceb6d7s6a7 - Photo submitted by patient
+JPEG Image: n4lzgzk3.jpg - Photo submitted by patient (compressed file, for original please see photo link in affiliated consultation)
+URL: https://web.accurx.com/api/conversation/patientupload/5542/60873940/ee7cqsxfst - Photo submitted by patient
+
+--- 17 2025-06-02 [IN-EP] milestones=['referral'] eid=7593b815-0817-42e1-956b-0104e836d29a ---
+16:44 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) 
+History: Tel appt.
+
+Seen private gynaecologist last week.
+Tells me arranged due to continuous PV bleeding for 7 weeks.
+Occasional intermenstrual spotting prior to this.
+
+Mother had ovarian removal. Not sure why. Does not think cancer.
+No weight loss.
+Mild lower abdo pain.
+Mild bloating.
+
+Was told has a cyst on her right ovary. Was advised needs to rule out cancer.
+
+See private clinic letter in attachments sent by pt today.
+Diagnosis: Ovarian mass.
+Plan: 2ww gynae referral as advised by private gynaecologist.
+Contact us if not heard in the next 2 weeks.
+- PRISM 2WW Gynaecology -  questionnaire started - (finalised: 02 Jun 2025 16:44)
+Fast track referral for suspected gynaecological cancer (XaMeB) - (Added from Questionnaire)
+
+--- 18 2025-06-03 [IN-EP] milestones=['referral'] eid=0f20d494-8193-4a31-9613-11213d6a79dd ---
+08:35 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected gynaecological cancer (XaMeB)
+Choice and booking enhanced services administration (XaMJa)
+ WMC Medical Secretary Template
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww gynae
+Hospital Fast track referral for suspected gynaecological cancer
+2WW Gynaecology PRISM to Unknown 
+Hospital Fast track referral for suspected gynaecological cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww gynae
+
+--- 19 2025-06-11 [other] milestones=[] eid=4a761081-2ef7-46c7-8318-797d64c58190 ---
+08:43 - Surgery: MEE, Sara (Healthcare Assistant) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Informed consent given for treatment (XaXHK)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 20 2025-06-11 [other] milestones=[] eid=4d617865-0cbc-4212-9a72-74713ad9c4d4 ---
+08:44 - Surgery: Auto-filed  
+Serum ferritin level (XE24r) 7 ng/ml [10 - 291] - Outside reference range
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Serum ferritin level Report, Abnormal, Need to speak to doctor (Patient Informed). Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 21 2025-06-11 [other] milestones=[] eid=834640c7-5a0a-46f8-9586-3eb6d7b75e40 ---
+08:44 - Surgery: Auto-filed  
+Urea and electrolytes (X77Wi)
+Serum sodium level (XE2q0) 141 mmol/L [133 - 146]
+Serum potassium level (XE2pz) 4.4 mmol/L [3.5 - 5.3]
+Serum urea level (XM0lt) 5.1 mmol/L [2.5 - 7.8]
+Serum creatinine level (XE2q5) 85 umol/L [60 - 120]
+eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 72 mL/min
+Urine ACR should be checked on at least an annual basis
+for all individuals with CKD.  NICE recommends the
+Kidney failure Risk Equation www.kfre.co.uk to
+predict the risk of endstage kidney disease in CKD
+stages 3a to 5.  KFRE is not valid in the presence
+of acute kidney injury.
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Urea and electrolytes Report, Borderline, Need to repeat test: eGFR low for age and mild ALT rise.
+Rpt U&E and LFTs in 6 weeks pls. (Patient Informed). Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 22 2025-06-11 [other] milestones=[] eid=52a11ef1-5932-4ab8-a29e-ecdd52e94360 ---
+08:44 - Surgery: Auto-filed  
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+See Specimen comment: ..
+See Specimen comment Report, Borderline, Need to repeat test: eGFR low for age and mild ALT rise.
+Rpt U&E and LFTs in 6 weeks pls. (Patient Informed). Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 23 2025-06-11 [other] milestones=[] eid=475eef5f-3bab-4445-bab8-55e866b119ac ---
+08:44 - Surgery: Auto-filed  
+International normalised ratio (42QE.) - No coagulation sample received
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+International normalised ratio Report, Borderline, Need to repeat test: eGFR low for age and mild ALT rise.
+Rpt U&E and LFTs in 6 weeks pls. (Patient Informed). Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 24 2025-06-11 [other] milestones=[] eid=3022bb9f-1b24-4807-9ffb-696ab2828aca ---
+08:44 - Surgery: Auto-filed  
+Serum TSH level (XaELV) 1.8 miu/L [0.55 - 4.78]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Serum TSH level Report, Borderline, Need to repeat test: eGFR low for age and mild ALT rise.
+Rpt U&E and LFTs in 6 weeks pls. (Patient Informed). Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 25 2025-06-11 [other] milestones=[] eid=4785ec29-bb53-4531-8765-5875a102b3e6 ---
+08:44 - Surgery: Auto-filed  
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Acute Kidney Injury Staging: Not Applicable; AKI Stage not calulated
+Acute Kidney Injury Staging Report, Borderline, Need to repeat test: eGFR low for age and mild ALT rise.
+Rpt U&E and LFTs in 6 weeks pls. (Patient Informed). Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 26 2025-06-11 [other] milestones=[] eid=49b403bb-6e61-4052-98b7-c96dd476df9f ---
+08:44 - Surgery: Auto-filed  
+Serum total protein level (XE2e9) 70 g/L [57 - 82]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Serum total protein level Report, Borderline, Need to repeat test: eGFR low for age and mild ALT rise.
+Rpt U&E and LFTs in 6 weeks pls.. Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 27 2025-06-11 [other] milestones=[] eid=ac74bc38-560c-4814-b5e9-e23bea368136 ---
+08:44 - Surgery: Auto-filed  
+Full blood count (424..)
+Total white blood count (XaIdY) 11.3 10^9/L [4 - 11] - Outside reference range
+Red blood cell count (426..) 5.44 10^12/L [3.9 - 5.6]
+Haemoglobin concentration (Xa96v) 151 g/L [115 - 165]
+Haematocrit (X76tb) 0.464  [0.37 - 0.47]
+Mean cell volume (42A..) 85 fL [80 - 99]
+Mean cell haemoglobin level (XE2pb) 27.8 pg [27 - 32]
+Platelet count - observation (42P..) 373 10^9/L [140 - 400]
+Neutrophil count (42J..) 7.42 10^9/L [1.5 - 7.5]
+Monocyte count - observation (42N..) 0.62 10^9/L [0.2 - 0.8]
+Eosinophil count - observation (42K..) 0.14 10^9/L [0.04 - 0.4]
+Basophil count (42L..) 0.05 10^9/L [0.02 - 0.1]
+Lymphocyte count (42M..) 3.06 10^9/L [1 - 4]
+Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]
+For further investigation of abnormal Full Blood Count
+please see Haematology Referral Guidelines:
+https://www.leicestershospitals.nhs.uk/aboutus/
+(click Departments & Services > Haematology >
+Haematology Referral
+Guidelines).
+If clinically urgent contact the Haematologist On Call.
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Full blood count Report, Borderline, Need to repeat test: eGFR low for age and mild ALT rise.
+Rpt U&E and LFTs in 6 weeks pls. (Patient Informed). Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 28 2025-06-11 [other] milestones=[] eid=9ffda8be-e25a-4e7f-a2e7-69daf01af9d3 ---
+08:44 - Surgery: Auto-filed  
+Plasma C-reactive protein level (XE2dy) < 5 mg/L [< 10]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Plasma C-reactive protein level Report, Borderline, Need to repeat test: eGFR low for age and mild ALT rise.
+Rpt U&E and LFTs in 6 weeks pls. (Patient Informed). Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 29 2025-06-11 [other] milestones=[] eid=94e072c2-23e8-414e-9d80-37662d29332a ---
+08:44 - Surgery: Auto-filed  
+Liver function tests (X77WP)
+Serum albumin level (XE2eA) 45 g/L [35 - 50]
+Serum alkaline phosphatase level (XE2px) 57 iu/L [30 - 130]
+Serum alanine aminotransferase level (XaLJx) 56 iu/L [10 - 49] - Outside reference range
+Serum bilirubin level (44E..) 11 umol/L [< 21]
+Calculated Globulin: 25 g/L; Globulins may be raised in myeloma and decreased in
+some cases of myeloma or immune deficiency states.
+Please correlate clinically. Suggest checking serum
+immunoglobulins if Glb >40 g/L in patients >40 years of
+age. Check serum immunoglobulins and free light chain
+assay if Glb <18 g/L.
+Minor abnormalities of Globulins outside of the above
+are unlikely to represent myeloma and would not
+normally require further action or repeat testing.
+Elevation of Globulin levels is common in
+infection / inflammation.
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Liver function tests Report, Borderline, Need to repeat test: eGFR low for age and mild ALT rise.
+Rpt U&E and LFTs in 6 weeks pls. (Patient Informed). Review done by HORNE, Jonathan (Dr) - 12 Jun 2025 12:06
+
+--- 30 2025-06-11 [other] milestones=[] eid=3dc61c2b-b862-426c-bbb4-5087cf7d34eb ---
+08:44 - Surgery: Auto-filed  
+Haemoglobin A1c level - IFCC standardised (XaPbt) 46 mmol/mol [20 - 41] - Outside reference range
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Haemoglobin A1c level - IFCC standardised Report, Abnormal, but expected, Communicate Patient (Patient Informed). Review done by HORNE, Jonathan (Dr) - 16 Jun 2025 10:10
+
+--- 31 2025-06-11 [other] milestones=[] eid=d59eed29-a2ed-44d5-bed7-975a46acb32b ---
+08:44 - Surgery: Auto-filed  
+Serum LH level (XM0lv) 2.2 iu/L
+Reference ranges for adult females:-
+Follicular Phase   1.9 - 12.5  iu/L
+Ovulatory Phase    8.7 - 76.3  iu/L
+Luteal Phase       0.5 - 16.9  iu/L
+Menopausal        15.9 - 54.0  iu/L
+Serum follicle stimulating hormone level (XM0lx)
+<0.5; Reference ranges for adult females:-
+Follicular phase   2.5 - 10.2  iu/L
+Ovulatory phase    3.4 - 33.4  iu/L
+Luteal phase       1.5 - 9.1   iu/L
+Menopausal        23.0 - 116.3 iu/L
+FSH/LH
+Clinical Information: Reasons for Request:      Irregular PV bleeding.
+FSH/LH Report, Abnormal, Need to speak to doctor: Has appt with Dr NB next week. (Patient Informed). Review done by HORNE, Jonathan (Dr) - 17 Jun 2025 16:41
+
+--- 32 2025-06-11 [other] milestones=[] eid=2b7880eb-6b2e-46f3-ae88-0cbc2485e822 ---
+08:44 - Surgery: Auto-filed  
+Haemoglobin A1c level (X772q) 6.4 % [4 - 5.9] - Outside reference range
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Irregular PV bleeding.
+Haemoglobin A1c level Report, Abnormal, but expected, Communicate Patient (Patient Informed). Review done by HORNE, Jonathan (Dr) - 16 Jun 2025 10:10
+
+--- 33 2025-06-12 [other] milestones=[] eid=2b5fae80-df55-4eda-9b43-79ffa621dabd ---
+12:04 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
+
+--- 34 2025-06-12 [other] milestones=[] eid=166b5529-4344-4f5f-8642-bbfca4a6b453 ---
+13:26 - MCDOWELL, Giselle  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Scheduled Task Creation (Completed) - Blood test task (check if booked rpt bloods due w/c 21/07) to be sent to Receptionists on 10 Jul 2025.
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 35 2025-06-12 [other] milestones=[] eid=e3e99512-d60e-413a-9739-4ae1fa4adff6 ---
+13:28 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+Patient telephone number (9159.) - +447455707071
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Zieba,
+
+Following your recent blood test, the results have been received, and the GP would like you to have a further blood test IN 6 WEEKS TIME.
+Could you please contact the surgery between 10:00-17:00 to arrange a suitable appointment. 
+The GP has also advised you book an appointment to discuss your recent results. To arrange this please telephone the surgery or book via the NHS app.The routine time frame is 6 to 8 weeks.
+
+Many Thanks,
+Woodbrook Medical Centre
+Sent on 12/06/2025 at 13:28
+
+--- 36 2025-06-16 [other] milestones=[] eid=f8a8ade0-db55-45ff-9f2d-fa06e7fa75ae ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Gynaecology to Woodbrook Medical Centre
+
+--- 37 2025-06-16 [IN-EP] milestones=['first_seen'] eid=90e3b37d-ef34-4173-b576-a8cba5712b4e ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected gynaecological cancer clinic (XaPyV) (Ongoing Episode)
+
+--- 38 2025-06-16 [other] milestones=[] eid=12a246f1-bd08-4790-b167-a012fd3e4307 ---
+Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
+
+--- 39 2025-06-16 [other] milestones=[] eid=50ed18bd-f51d-4c74-8bc3-ca8d796336a1 ---
+10:09 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
+
+--- 40 2025-06-16 [other] milestones=[] eid=fa9a46dd-33e8-448a-9eb0-f8fb45b0b192 ---
+11:06 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 41 2025-06-16 [other] milestones=[] eid=db80b68e-8e45-42b5-bba4-4cc7136b4e45 ---
+11:18 - Surgery: O'NEILL, Anna-Louise (Admin/Clinical Support Access Role) 
+ Consultation.
+   General
+      Weight: 86.4 Kg  (? 13 st 8 lb)
+      Height: 1.65 m  (? 5 ' 5 ")
+      BMI: 31.74 Kg/m²
+ Vitals & Lifestyle
+   Recordings
+      Smoking: Smoker (137R.)
+Smoker (137R.)
+O/E - weight (22A..) 86.4 Kg (? 13 st 8 lb)
+O/E - height (229..) 1.65 m (? 5 ' 5 ")
+Body mass index - observation (22K..) 31.74 Kg/m²
+
+--- 42 2025-06-16 [other] milestones=[] eid=846ebb8c-5c36-4cba-bc7d-8ab9127c468f ---
+12:52 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) 
+Pre-diabetes (XaZq8)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Pre-diabetes (XaZq8)
+
+--- 43 2025-06-16 [other] milestones=[] eid=d5a02f35-1f08-47aa-9dbc-f82f16c4b4d2 ---
+12:54 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ Non-Diabetic Hyperglycaemia NDH / Pre-Diabetes
+   Diagnosis
+      NDPP: NHS Diabetes Prevention Programme invitation (Xaglb)
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Patient Leaflet to Mrs Marzena Zieba 
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+NHS Diabetes Prevention Programme invitation (Xaglb)
+
+--- 44 2025-06-16 [other] milestones=[] eid=aea56127-5870-4b5c-a54d-df411bb89037 ---
+12:57 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+Patient telephone number (9159.) - +447455707071
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Zieba,
+
+Please find attached information with regards to your recent blood test results as they have advised you are now prediabetic. If you are unable to access the letter please inform reception so this can be printed for you. 
+
+To view your attachment, please follow this link: https://accurx.nhs.uk/c/p-4hv7nq9mgd
+
+Thanks
+Woodbrook Medical Centre
+Sent on 16/06/2025 at 12:57
+
+--- 45 2025-06-17 [other] milestones=[] eid=02368991-4a17-4b36-967f-ea2fe82c4efc ---
+16:36 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
+
+--- 46 2025-06-18 [other] milestones=[] eid=9cac0842-8dd7-4063-8187-d439ba67fe90 ---
+15:00 - Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To book tests requested by practice (Y41cc)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: To book tests requested by practice (Y41cc)
+Telephone encounter (9N31.)
+
+--- 47 2025-06-18 [other] milestones=[] eid=5b5da8c0-4028-4a88-9a78-8a18a4d8f3e2 ---
+Dear Marzena Zieba
+
+Your appointment has been booked for 22 Aug 2025 10:20 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 48 2025-06-20 [other] milestones=[] eid=fc75dd5c-f968-415a-ab9b-8ac2a546bfa5 ---
+16:00 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 49 2025-06-20 [other] milestones=[] eid=1fe7d8e8-f957-4350-8f77-1671e2b00039 ---
+16:00 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Mrs Zieba,
+
+Our car park will be closing at the end of day on Friday 4th July 2025 for the foreseeable future.
+This is due to health and safety concerns while demolition work is taking place at the site next door. Please find alternative parking when attending the surgery after this date. 
+
+Thank you
+Woodbrook Medical Centre
+NHS app message sent on 20/06/2025 13:02:15
+
+--- 50 2025-06-25 [IN-EP] milestones=['first_seen'] eid=fd97ce42-ebe2-460e-b71c-feb75e4e3c91 ---
+15:43 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected gynaecological cancer clinic (XaPyV) 16 Jun 2025
+
+--- 51 2025-06-27 [other] milestones=[] eid=63875e11-5802-4761-85f7-13ccb9bfac7d ---
+09:13 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)
+
+--- 52 2025-06-30 [other] milestones=[] eid=039fd582-9dab-4f7e-8fe8-b43596cfed1d ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Gynaecology to Woodbrook Medical Centre
+
+--- 53 2025-06-30 [other] milestones=[] eid=8ae55873-0df9-4d3f-9101-de0b0e9504d4 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+Hysteroscopy and endometrial biopsy (XaBDK) (New Episode)
+
+--- 54 2025-06-30 [other] milestones=[] eid=2f0a6318-027b-479b-8704-e3f022d06ba7 ---
+11:06 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Mrs Zieba,
+We are reaching out to identify patients who may have had bariatric surgery outside the UK, so we can offer the appropriate follow-up care and support. If this applies to you, please complete the attached questionnaire or get in touch with our reception team.
+Thank you
+
+Please complete this questionnaire: https://accurx.nhs.uk/c/p-cpxsqnjwzs
+
+Woodbrook Medical Centre
+NHS app message sent on 20/06/2025 14:00:06
+
+--- 55 2025-06-30 [other] milestones=[] eid=cf270b64-2ded-426c-876f-aea9e8063eef ---
+11:06 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 56 2025-07-10 [other] milestones=[] eid=72ae9924-bba2-4802-9bc9-24c674cca6c0 ---
+09:03 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 57 2025-07-16 [other] milestones=[] eid=8dcf08e0-808a-4e4b-9df4-d435baf218f2 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Gynaecology to Woodbrook Medical Centre
+
+--- 58 2025-07-16 [other] milestones=[] eid=e175b9dc-f3d4-4861-9a66-69d4ed905525 ---
+Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
+
+--- 59 2025-08-12 [other] milestones=[] eid=39534eba-c374-4dee-b7f3-2f51e84a5b2a ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: SUTHAR, Jaiman (Mr)
+Major: Lapar total abdominal hysterect bilat salpingo-oophorectomy (XaJy8)
+Granulosa cell ovarian tumour
+HRT contraindicated (letter 18/9/25) (New Episode)
+Biopsy of omentum (XS8uj) (New Episode)
+Lapar total abdominal hysterect bilat salpingo-oophorectomy (XaJy8) - Granulosa cell ovarian tumour
+HRT contraindicated (letter 18/9/25)
+
+--- 60 2025-08-12 [other] milestones=[] eid=0d16d903-a2b5-435b-8e0f-c2018365f690 ---
+Admission to University Hospitals of Leicester NHS Trust - EPR (University Hospitals of Leicester NHS Trust): Referred to C6159903, C6159903 @ University Hospitals of Leicester NHS Trust - EPR on 12 Aug 2025 07:19
+Discharged on 14 Aug 2025 19:09
+There are 2 consultations under this admission. (Not currently shown in journal)
+
+--- 61 2025-08-12 [other] milestones=[] eid=8c6ad13d-f93e-4061-a8ed-a270a2417a72 ---
+14:59 - Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) 
+ Consultation.
+   General
+
+--- 62 2025-08-14 [other] milestones=[] eid=611bb6ae-83e2-4646-89e7-936451e7ab0d ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Hospital Discharge Letter to Woodbrook Medical Centre
+
+--- 63 2025-08-14 [other] milestones=[] eid=9df508d2-4fb3-460f-afba-2012c52bf538 ---
+Surgery: SUTHAR, Jaiman (Mr) (Pharmacist)
+

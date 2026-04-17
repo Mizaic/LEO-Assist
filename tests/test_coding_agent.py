@@ -365,9 +365,9 @@ def test_build_system_prompt_includes_admin_encounter_rules():
 
     for mode in ("audit", "code"):
         prompt = build_system_prompt(mode)
-        assert "ADMIN / NON-CLINICAL ENCOUNTERS" in prompt
+        assert "ADMIN-ONLY ENCOUNTERS" in prompt
         assert "no_clinical_content" in prompt
-        assert 'NEVER return "has_issues"' in prompt
+        assert 'Do NOT return "has_issues"' in prompt
 
 
 # ---------------------------------------------------------------------------

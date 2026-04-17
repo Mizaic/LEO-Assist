@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { StatTile } from "@leo/design-system";
 import { HealthStatus } from "@/theme/tokens";
 
 export interface TrainingJob {
@@ -132,6 +133,67 @@ export function useConsoleState(): ConsoleState {
     loading,
     refresh: fetchAll,
   };
+}
+
+// -- StatHero tile derivation ------------------------------------------------
+
+// Pretty-print an F1 score (0..1) as a percentage with one decimal.
+// Returns null when the value is missing so the caller can fall back.
+function formatF1(value?: number | null): string | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  return (value * 100).toFixed(1) + "%";
+}
+
+function goldTile(state: ConsoleState): StatTile {
+  const total = state.goldStats?.total ?? 0;
+  return {
+    id: "gold-labels",
+    label: "Gold labels",
+    value: total,
+    hint: total === 0 ? "Nothing to train on yet" : "Verified training rows",
+    tone: total >= 100 ? "positive" : total > 0 ? "neutral" : "warning",
+  };
+}
+
+function queueTile(state: ConsoleState): StatTile {
+  const total = state.candidateQueueTotal ?? 0;
+  return {
+    id: "candidate-queue",
+    label: "Candidate queue",
+    value: total,
+    hint: total === 0 ? "All caught up" : "Awaiting reviewer",
+    tone: total >= 20 ? "warning" : total > 0 ? "neutral" : "positive",
+  };
+}
+
+function modelTile(state: ConsoleState): StatTile {
+  const f1 = formatF1(state.latestJob?.f1);
+  if (f1) {
+    return {
+      id: "latest-f1",
+      label: "Latest F1",
+      value: f1,
+      hint: state.latestJob?.model_version ?? "Last training run",
+      tone:
+        state.latestJob?.passed_gates === false ? "danger" : "positive",
+    };
+  }
+  return {
+    id: "live-model",
+    label: "Live model",
+    value: state.promotedVersion ?? "None",
+    hint: state.promotedVersion ? "Serving today" : "No model promoted",
+    tone: state.promotedVersion ? "positive" : "neutral",
+  };
+}
+
+// computeConsoleStats -- distil the console state into the small set of
+// numbers operations users actually scan when they open the page. Used
+// by /admin/console to feed StatHero. Returns >= 3 tiles so the
+// design-system grid stays balanced. See DI-LEO-AI-164 acceptance
+// criterion (>= 3 tiles) and VT-LEO-AI-162 TC-004.
+export function computeConsoleStats(state: ConsoleState): StatTile[] {
+  return [goldTile(state), queueTile(state), modelTile(state)];
 }
 
 // -- Smart nudge derivation --------------------------------------------------

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -17,6 +18,19 @@ import Stepper from "@mui/material/Stepper";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ConfirmDialog from "@/components/ConfirmDialog";
+
+interface ReplaySummary {
+  id: string;
+  ruleset_version: string | null;
+  scope_type: string;
+  scope_id: string;
+  guideline_id: string | null;
+  regressions_count: number;
+  passes_count: number;
+  drift_count: number;
+  total_count: number;
+  completed_at: string;
+}
 
 interface BitmapStatus {
   active_version: string | null;
@@ -47,6 +61,7 @@ export default function BitmapLifecycleSection() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [status, setStatus] = useState<BitmapStatus | null>(null);
   const [versions, setVersions] = useState<VersionEntry[]>([]);
+  const [latestReplay, setLatestReplay] = useState<ReplaySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [compiling, setCompiling] = useState(false);
   const [rollingBack, setRollingBack] = useState(false);
@@ -67,13 +82,25 @@ export default function BitmapLifecycleSection() {
       scope_id: scopeId || "default",
     }).toString();
     try {
-      const [statusResp, versionsResp] = await Promise.all([
+      const replayQs = new URLSearchParams({
+        scope_type: scopeType,
+        scope_id: scopeId || "default",
+        limit: "1",
+      }).toString();
+      const [statusResp, versionsResp, replayResp] = await Promise.all([
         fetch(`/api/terminology/guidelines/bitmap/status?${qs}`),
         fetch(`/api/terminology/guidelines/bitmap/versions?${qs}`),
+        fetch(`/api/guidance/test-patients/replay-reports?${replayQs}`),
       ]);
       if (!statusResp.ok || !versionsResp.ok) throw new Error("fetch failed");
       setStatus(await statusResp.json());
       setVersions(await versionsResp.json());
+      if (replayResp.ok) {
+        const reports = (await replayResp.json()) as ReplaySummary[];
+        setLatestReplay(reports[0] || null);
+      } else {
+        setLatestReplay(null);
+      }
       setError(null);
     } catch {
       setError("Could not load the current status. Please refresh the page.");
@@ -295,6 +322,53 @@ export default function BitmapLifecycleSection() {
           Included: {status.compile_stats.rules_included ?? 0} | Excluded: {status.compile_stats.rules_excluded ?? 0} |
           Policy issues: {status.compile_stats.policy_violations ?? 0}
         </Typography>
+      )}
+
+      {latestReplay && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            borderRadius: 1,
+            bgcolor: latestReplay.regressions_count > 0 ? "error.50" : "success.50",
+            border: "1px solid",
+            borderColor:
+              latestReplay.regressions_count > 0 ? "error.200" : "success.200",
+          }}
+        >
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+            <Typography variant="body2">
+              Last test patient replay (ruleset {latestReplay.ruleset_version || "n/a"}):
+            </Typography>
+            <Chip
+              size="small"
+              color={latestReplay.regressions_count === 0 ? "success" : "error"}
+              label={`${latestReplay.regressions_count} regression${latestReplay.regressions_count === 1 ? "" : "s"}`}
+            />
+            <Chip
+              size="small"
+              variant="outlined"
+              label={`${latestReplay.passes_count} pass`}
+            />
+            <Chip
+              size="small"
+              variant="outlined"
+              label={`${latestReplay.total_count} patients`}
+            />
+            <Box sx={{ flex: 1 }} />
+            <Link href="/admin/guidance/test-patients" passHref legacyBehavior>
+              <Button size="small" variant="text" component="a">
+                Open library
+              </Button>
+            </Link>
+          </Stack>
+          {latestReplay.regressions_count > 0 && (
+            <Typography variant="caption" color="error">
+              The replay flagged regressions. Roll back to a known-good
+              version above if needed.
+            </Typography>
+          )}
+        </Box>
       )}
 
       {compiling && (

@@ -1,0 +1,201 @@
+======================================================================
+PATIENT      : 6268086643
+EPISODE      : e294edcb53f49081
+CANCER_TYPE  : breast
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-05-12
+WINDOW       : 2025-04-28 .. 2025-08-10 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-05-12  referral                enc=3c727f4d-b092-40a6-b6fc-b3a38c772c7e
+  2025-05-12  referral                enc=c88cb838-c4c9-4f59-85fe-a0d74a5ccc00
+  2025-06-06  first_seen              enc=a7b26430-63af-4179-8d81-d1094a9c6b37
+  2025-06-25  first_seen              enc=a3e8b673-1823-4309-a54b-057bfae1dd8e
+
+Encounters in window (n=21):
+
+--- 01 2025-05-12 [other] milestones=[] eid=f6689438-2e5f-463d-8f13-1f20397fe084 ---
+08:51 - DOUGHTY, Lauren  
+ N+S Care Navigation & Signposting
+   Care Navigation 
+      Reason for the appointment:  lump in armpit
+      *Outcome: Contact Outcome: GP /AHP Triage appointment booked same day (Y41d7)
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+Telephone encounter (9N31.)
+Triage (Ua1SN) - lump in armpit
+Contact Outcome: GP /AHP Triage appointment booked same day (Y41d7)
+
+--- 02 2025-05-12 [other] milestones=[] eid=3c4ac966-8c0f-4c56-b922-645b17093d1d ---
+10:10 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) 
+History: Duty doctor.
+Telephone call.
+Noticed peasize lump left armpit region.
+Noticed getting ache feeling from this now past few weeks.
+States not superficial, feels deep.
+Had lump before but now aching and concerned.
+Not sure if increased size since first noticed it just over a year ago.
+Offerred f2f review, pateitnt agrees for this.
+Plan: TCI 15:00 for review.
+To call surgery if unable to attend.
+
+--- 03 2025-05-12 [IN-EP] milestones=['referral'] eid=3c727f4d-b092-40a6-b6fc-b3a38c772c7e ---
+14:57 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) 
+History: Duty doctor f2f review.
+History as per my entry above.
+Lump under left armpit present for a while.
+Has started to ache past few weeks.
+No other lump to breasts.
+Outbound referral (XaY59)
+Examination: Alert. Appears well.
+Walking normally.
+Chaperoned by receptionist Paula Edwardes...
+Small pinpoint firm lump left axilla.
+No other breast lumps.
+Diagnosis: 2WW Breast Female Referral Pathway/Breast Clinic accessed
+Plan: Refer 2ww breast.
+Advised to call surgery if not heard anything by 2 weeks.
+- PRISM 2WW Breast Female -  questionnaire started - (finalised: 12 May 2025 14:57)
+Fast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)
+ - PRISM 2WW Breast Female Drawing
+    
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 12 May 2025 14:57)
+       2WW Breast Female PRISM to Unknown 
+2WW Breast Female PRISM to Unknown
+
+--- 04 2025-05-12 [IN-EP] milestones=['referral'] eid=c88cb838-c4c9-4f59-85fe-a0d74a5ccc00 ---
+16:03 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected breast cancer (XaMeC)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww breast
+Hospital Fast track referral for suspected breast cancer
+Hospital Fast track referral for suspected breast cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww breast
+
+--- 05 2025-05-24 [other] milestones=[] eid=9fe6a25d-57ce-4d30-bd4a-4a0eeedd24f0 ---
+10:28 - Sent online by Ms Jane Alison Harker  
+Request for 'Clopidogrel 75mg tablets' by patient
+Request for 'Atorvastatin 40mg tablets' by patient
+Request for 'Ramipril 5mg capsules' by patient
+Request for 'Doxazosin 1mg tablets' by patient
+
+--- 06 2025-05-27 [other] milestones=[] eid=b94251bf-eaec-4713-aaaa-bad81cf1f9bd ---
+07:46 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Atorvastatin 40mg tablets - 28 tablet - take one tablet daily
+(R) Clopidogrel 75mg tablets - 28 tablet - take one once daily
+(R) Doxazosin 1mg tablets - 28 tablet - take one tablet daily
+(R) Ramipril 5mg capsules - 56 capsule - 1 bd
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 07 2025-06-06 [IN-EP] milestones=['first_seen'] eid=a7b26430-63af-4179-8d81-d1094a9c6b37 ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected breast cancer clinic (XaPyQ)
+
+--- 08 2025-06-06 [other] milestones=[] eid=313f28d4-003c-46c0-b43d-b91e50e71a75 ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Breast Clinic to Dr Medical Woodbrook
+
+--- 09 2025-06-06 [other] milestones=[] eid=6417930d-3ad2-4650-a1df-7bbde4e2a2a8 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+Mammogram (537..) - b/l - normal (New Episode)
+US scan of breast (585C.) - L - fibroglandular tissue and small intramammary nodes, normal nodes to L axilla, 3mm calcified dermal and subdermal nodule (New Episode)
+
+--- 10 2025-06-17 [other] milestones=[] eid=de531025-67b3-41be-9e69-5fe64b71505e ---
+14:08 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 11 2025-06-17 [other] milestones=[] eid=2bcc809f-0b93-4d0b-8bd0-0833b979cf86 ---
+14:08 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Jane,
+We are reaching out to identify patients who may have had bariatric surgery outside the UK, so we can offer the appropriate follow-up care and support. If this applies to you, please complete the attached questionnaire or get in touch with our reception team.
+Thank you
+
+Please complete this questionnaire: https://accurx.nhs.uk/c/p-xjqw2hmkhd
+
+Woodbrook Medical Centre
+NHS app message sent on 17/06/2025 14:00:10
+
+--- 12 2025-06-20 [other] milestones=[] eid=bd3223ea-2dc5-457d-a509-81bbc3ac59fa ---
+14:04 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 13 2025-06-20 [other] milestones=[] eid=fc0b91b5-0ac1-43e4-bddd-99540c606fb1 ---
+14:04 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Dear Jane,
+
+Our car park will be closing at the end of day on Friday 4th July 2025 for the foreseeable future.
+This is due to health and safety concerns while demolition work is taking place at the site next door. Please find alternative parking when attending the surgery after this date. 
+
+Thank you
+Woodbrook Medical Centre
+NHS app message sent on 20/06/2025 13:01:12
+
+--- 14 2025-06-23 [other] milestones=[] eid=d895603c-214e-409d-af34-d6b1fc070c45 ---
+07:34 - Sent online by Ms Jane Alison Harker  
+Request for 'Clopidogrel 75mg tablets' by patient
+Request for 'Atorvastatin 40mg tablets' by patient
+Request for 'Ramipril 5mg capsules' by patient
+Request for 'Doxazosin 1mg tablets' by patient
+
+--- 15 2025-06-23 [other] milestones=[] eid=8759c99a-b52b-405b-bff4-554e26962a5e ---
+07:39 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Atorvastatin 40mg tablets - 28 tablet - take one tablet daily
+(R) Clopidogrel 75mg tablets - 28 tablet - take one once daily
+(R) Doxazosin 1mg tablets - 28 tablet - take one tablet daily
+(R) Ramipril 5mg capsules - 56 capsule - 1 bd
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+
+--- 16 2025-06-25 [IN-EP] milestones=['first_seen'] eid=a3e8b673-1823-4309-a54b-057bfae1dd8e ---
+14:43 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 06 Jun 2025
+
+--- 17 2025-06-30 [other] milestones=[] eid=ac946f30-b3c8-4ea5-8a0b-ba4fc6d056b7 ---
+17:07 - Surgery: FOX, Lauren (Mrs) (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre
+Status Update for  Referral In: Discharged From Care, Status changed: 30 Jun 2025 17:07
+
+--- 18 2025-07-04 [other] milestones=[] eid=be252ef4-c6c5-4323-88cb-729f0bccfbb6 ---
+08:09 - Surgery: FOX, Lauren (Mrs) (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre
+Status Update for  Referral In: Discharged From Care, Status changed: 04 Jul 2025 08:09
+
+--- 19 2025-07-07 [other] milestones=[] eid=6dc10feb-3b37-4089-98bd-9ad48513e43c ---
+12:56 - Surgery: FOX, Lauren (Mrs) (Systems Support Access Role) Entered at: Loughborough Urgent Treatment Centre
+Status Update for  Referral In: Discharged From Care, Status changed: 07 Jul 2025 12:56
+
+--- 20 2025-07-25 [other] milestones=[] eid=9093edc3-0787-4946-ae08-10055beb96f9 ---
+08:03 - Sent online by Ms Jane Alison Harker  
+Request for 'Clopidogrel 75mg tablets' by patient
+Request for 'Atorvastatin 40mg tablets' by patient
+Request for 'Ramipril 5mg capsules' by patient
+Request for 'Doxazosin 1mg tablets' by patient
+
+--- 21 2025-07-25 [other] milestones=[] eid=0ff79591-b62b-479e-8b86-69d2c8b1b373 ---
+08:25 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Atorvastatin 40mg tablets - 28 tablet - take one tablet daily
+(R) Clopidogrel 75mg tablets - 28 tablet - take one once daily
+(R) Doxazosin 1mg tablets - 28 tablet - take one tablet daily
+(R) Ramipril 5mg capsules - 56 capsule - 1 bd
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: To request repeat medication (Y41ce)
+   Type of encounter: Administration (9....)
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Presenting to non-clinical team with: To request repeat medication (Y41ce)
+Administration (9....)
+

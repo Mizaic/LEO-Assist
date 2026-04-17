@@ -1,30 +1,48 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+/**
+ * Domains -- Wave E Phase 3c redesign
+ *
+ * Visible chrome (intro + page width) is provided upstream by
+ * KnowledgePageLayout when this page is mounted inside the Knowledge
+ * tab system. The page itself contributes:
+ *   - StatHero: total areas / NICE / platform / your-org counts.
+ *   - SegmentedTabs: source filter (All / NICE / Platform / Your org).
+ *   - ToolbarActions: Create area (platform admins only).
+ *   - Card grid: one MetricTile-styled card per area with hover lift,
+ *     framer-motion stagger, and tone accents for NICE / built-in.
+ *
+ * Design Controls: DI-LEO-AI-147, DO-LEO-AI-143, VT-LEO-AI-145.
+ */
+
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardActionArea from "@mui/material/CardActionArea";
-import Grid from "@mui/material/Grid";
-import Chip from "@mui/material/Chip";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
-import TextField from "@mui/material/TextField";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import CircularProgress from "@mui/material/CircularProgress";
+import { motion as fm } from "framer-motion";
+
 import Alert from "@mui/material/Alert";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+
+import {
+  SegmentedTabs,
+  StatHero,
+  ToolbarActions,
+  type StatTile,
+  type ToolbarAction,
+} from "@leo/design-system";
+
 import {
   fetchDomains,
   createDomain,
@@ -33,6 +51,208 @@ import {
 import { useOrg } from "@/context/OrgContext";
 
 type SourceFilter = "all" | "nice" | "platform" | "tenant";
+
+function computeStats(domains: DomainSummary[]): StatTile[] {
+  const total = domains.length;
+  const nice = domains.filter((d) => d.source === "nice").length;
+  const platform = domains.filter((d) => d.source === "platform").length;
+  const tenant = domains.filter((d) => d.source === "tenant").length;
+  return [
+    {
+      id: "total",
+      label: "Areas",
+      value: total,
+      hint: "All clinical areas LEO can audit",
+    },
+    {
+      id: "nice",
+      label: "From NICE",
+      value: nice,
+      hint: "Sourced from NICE guidelines",
+      tone: nice > 0 ? "positive" : "neutral",
+    },
+    {
+      id: "platform",
+      label: "Built-in",
+      value: platform,
+      hint: "Shipped with LEO",
+    },
+    {
+      id: "tenant",
+      label: "Your organisation",
+      value: tenant,
+      hint: "Created by your admins",
+      tone: tenant > 0 ? "positive" : "neutral",
+    },
+  ];
+}
+
+function DomainCard({
+  domain,
+  onNavigate,
+  index,
+}: {
+  domain: DomainSummary;
+  onNavigate: (id: string) => void;
+  index: number;
+}) {
+  const isNice = domain.source === "nice";
+  const isPlatform = domain.source === "platform";
+  const accent = isNice ? "#2563EB" : isPlatform ? "#64748B" : "#16A34A";
+
+  return (
+    <fm.button
+      type="button"
+      onClick={() => onNavigate(domain.id)}
+      data-testid={`domain-card-${domain.id}`}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.22,
+        ease: "easeOut",
+        delay: Math.min(index, 12) * 0.04,
+      }}
+      whileHover={{ y: -2, boxShadow: "0 8px 18px rgba(15, 23, 42, 0.08)" }}
+      whileTap={{ y: 0 }}
+      style={{
+        appearance: "none",
+        textAlign: "left",
+        background: "#FFFFFF",
+        border: "1px solid #E2E8F0",
+        borderRadius: 12,
+        padding: 18,
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        position: "relative",
+        font: "inherit",
+        minHeight: 168,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 14,
+          bottom: 14,
+          width: 3,
+          borderRadius: 2,
+          background: accent,
+        }}
+      />
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 1,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+          <FolderOpenOutlinedIcon sx={{ fontSize: 22, color: accent, flexShrink: 0 }} />
+          <Typography
+            sx={{
+              fontWeight: 600,
+              fontSize: "1rem",
+              lineHeight: 1.25,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {domain.name}
+          </Typography>
+        </Box>
+        {isNice ? (
+          <Chip
+            icon={<MenuBookOutlinedIcon sx={{ fontSize: 12 }} />}
+            label="NICE"
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: "0.7rem",
+              bgcolor: "#DBEAFE",
+              color: "#1E40AF",
+              border: "1px solid #BFDBFE",
+              flexShrink: 0,
+            }}
+          />
+        ) : isPlatform ? (
+          <Chip
+            label="Built in"
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: "0.7rem",
+              bgcolor: "#F1F5F9",
+              color: "#475569",
+              border: "1px solid #E2E8F0",
+              flexShrink: 0,
+            }}
+          />
+        ) : (
+          <Chip
+            label="Your org"
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: "0.7rem",
+              bgcolor: "#ECFDF5",
+              color: "#047857",
+              border: "1px solid #A7F3D0",
+              flexShrink: 0,
+            }}
+          />
+        )}
+      </Box>
+      {domain.description ? (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            fontSize: "0.82rem",
+            lineHeight: 1.45,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {domain.description}
+        </Typography>
+      ) : (
+        <Typography
+          variant="body2"
+          color="text.disabled"
+          sx={{ fontSize: "0.82rem", fontStyle: "italic" }}
+        >
+          No description yet.
+        </Typography>
+      )}
+      <Box sx={{ flex: 1 }} />
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mt: 0.5,
+        }}
+      >
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontSize: "0.72rem", fontWeight: 500 }}
+        >
+          {domain.subdomain_count} subdomain
+          {domain.subdomain_count !== 1 ? "s" : ""}
+        </Typography>
+        <ChevronRightIcon sx={{ fontSize: 18, color: "#94A3B8" }} />
+      </Box>
+    </fm.button>
+  );
+}
 
 export default function DomainsListPage() {
   const router = useRouter();
@@ -83,106 +303,124 @@ export default function DomainsListPage() {
   const showCreateButton =
     isPlatformAdmin && (sourceFilter === "all" || sourceFilter === "tenant");
 
-  return (
-    <Box sx={{ p: 3, maxWidth: 1000, mx: "auto" }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-        <IconButton aria-label="Back to settings" onClick={() => router.push("/settings")} size="small">
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
-          Domain Configuration
-        </Typography>
-      </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Manage areas and their medical codes (SNOMED terms). Each area groups
-        codes that the system uses to check if a patient meets a care standard.
-      </Typography>
+  const stats = useMemo(() => computeStats(domains), [domains]);
 
-      {error && (
+  const niceCount = domains.filter((d) => d.source === "nice").length;
+  const platformCount = domains.filter((d) => d.source === "platform").length;
+  const tenantCount = domains.filter((d) => d.source === "tenant").length;
+  const totalCount = domains.length;
+
+  const toolbarActions: ToolbarAction[] = showCreateButton
+    ? [
+        {
+          id: "create-area",
+          label: "Create area",
+          icon: <AddIcon fontSize="small" />,
+          variant: "primary",
+          onClick: () => setCreateOpen(true),
+        },
+      ]
+    : [];
+
+  return (
+    <Box>
+      <StatHero stats={stats} />
+
+      {error ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
-      )}
+      ) : null}
 
-      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
-        <Tabs
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 2,
+        }}
+      >
+        <SegmentedTabs
+          tabs={[
+            { id: "all", label: "All", count: totalCount },
+            { id: "nice", label: "NICE", count: niceCount },
+            { id: "platform", label: "Built-in", count: platformCount },
+            { id: "tenant", label: "Your organisation", count: tenantCount },
+          ]}
           value={sourceFilter}
-          onChange={(_, v: SourceFilter) => setSourceFilter(v)}
-          aria-label="Filter domains by source"
-        >
-          <Tab label="All" value="all" />
-          <Tab label="NICE" value="nice" icon={<MenuBookOutlinedIcon fontSize="small" />} iconPosition="start" />
-          <Tab label="Platform" value="platform" />
-          <Tab label="Your organisation" value="tenant" />
-        </Tabs>
+          onChange={(id) => setSourceFilter(id as SourceFilter)}
+          aria-label="Filter areas by source"
+        />
+        {toolbarActions.length > 0 ? (
+          <ToolbarActions actions={toolbarActions} />
+        ) : null}
       </Box>
 
-      {!isPlatformAdmin && (
+      {!isPlatformAdmin ? (
         <Alert severity="info" sx={{ mb: 2 }}>
           You can view areas and export code lists. Only a platform admin can
           create areas or change codes.
         </Alert>
-      )}
+      ) : null}
 
-      {sourceFilter === "nice" && (
+      {sourceFilter === "nice" ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          {isPlatformAdmin ? (
-            <>
-              These areas came from official NICE guidelines. You can add more
-              codes to them, but you cannot delete them.
-            </>
-          ) : (
-            <>
-              These areas came from official NICE guidelines. You can view them
-              and export code lists. Only a platform admin can add or change
-              codes.
-            </>
-          )}
+          {isPlatformAdmin
+            ? "These areas came from official NICE guidelines. You can add more codes to them, but you cannot delete them."
+            : "These areas came from official NICE guidelines. You can view them and export code lists. Only a platform admin can add or change codes."}
         </Alert>
-      )}
+      ) : null}
 
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
           <CircularProgress aria-label="Loading domains" />
         </Box>
+      ) : domains.length === 0 ? (
+        <Box
+          sx={{
+            py: 6,
+            textAlign: "center",
+            color: "text.secondary",
+            border: "1px dashed",
+            borderColor: "divider",
+            borderRadius: 2,
+            bgcolor: "#F8FAFC",
+          }}
+        >
+          <Typography variant="body2">
+            {sourceFilter === "nice"
+              ? "No NICE areas yet. Run a guideline sync to add them."
+              : isPlatformAdmin
+                ? "No areas yet. Create one to get started."
+                : "No areas match this filter."}
+          </Typography>
+        </Box>
       ) : (
-        <>
-          {showCreateButton && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setCreateOpen(true)}
-              >
-                Create area
-              </Button>
-            </Box>
-          )}
-
-          <Grid container spacing={2}>
-            {domains.map((d) => (
-              <Grid key={d.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                <DomainCard domain={d} onNavigate={(id) => router.push(`/settings/domains/${id}`)} />
-              </Grid>
-            ))}
-          </Grid>
-
-          {domains.length === 0 && (
-            <Typography
-              color="text.secondary"
-              sx={{ py: 6, textAlign: "center" }}
-            >
-              {sourceFilter === "nice"
-                ? "No NICE areas yet. Run a guideline sync to add them."
-                : isPlatformAdmin
-                  ? "No areas yet. Create one to get started."
-                  : "No areas match this filter."}
-            </Typography>
-          )}
-        </>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, 1fr)",
+              md: "repeat(3, 1fr)",
+            },
+            gap: 2,
+          }}
+          data-testid="domains-grid"
+        >
+          {domains.map((d, i) => (
+            <DomainCard
+              key={d.id}
+              domain={d}
+              index={i}
+              onNavigate={(id) => router.push(`/settings/domains/${id}`)}
+            />
+          ))}
+        </Box>
       )}
 
-      {/* Create domain dialog */}
       <Dialog
         open={createOpen}
         onClose={() => !createSubmitting && setCreateOpen(false)}
@@ -203,7 +441,7 @@ export default function DomainsListPage() {
           <TextField
             margin="dense"
             label="Description"
-            placeholder="Optional — what is this area for?"
+            placeholder="Optional - what is this area for?"
             fullWidth
             multiline
             rows={2}
@@ -223,83 +461,10 @@ export default function DomainsListPage() {
             onClick={handleCreate}
             disabled={!createName.trim() || createSubmitting}
           >
-            {createSubmitting ? "Creating\u2026" : "Create"}
+            {createSubmitting ? "Creating..." : "Create"}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
-  );
-}
-
-function DomainCard({
-  domain,
-  onNavigate,
-}: {
-  domain: DomainSummary;
-  onNavigate: (id: string) => void;
-}) {
-  const isNice = domain.source === "nice";
-  const isPlatform = domain.source === "platform";
-
-  return (
-    <Card sx={{ height: "100%" }}>
-      <CardActionArea
-        onClick={() => onNavigate(domain.id)}
-        sx={{ height: "100%", display: "block" }}
-      >
-        <CardContent sx={{ p: 2.5 }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              mb: 1,
-            }}
-          >
-            <FolderOpenOutlinedIcon
-              sx={{ fontSize: 32, color: isNice ? "info.main" : "primary.main" }}
-            />
-            <ChevronRightIcon color="action" fontSize="small" />
-          </Box>
-
-          {isNice && (
-            <Chip
-              icon={<MenuBookOutlinedIcon />}
-              label="From NICE guidelines"
-              color="info"
-              size="small"
-              sx={{ mb: 1 }}
-            />
-          )}
-          {isPlatform && (
-            <Chip
-              label="Built in"
-              size="small"
-              sx={{ mb: 1 }}
-            />
-          )}
-
-          <Typography
-            variant="subtitle1"
-            sx={{ fontWeight: 600, mb: 0.5 }}
-          >
-            {domain.name}
-          </Typography>
-          {domain.description && (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ mb: 1 }}
-            >
-              {domain.description}
-            </Typography>
-          )}
-          <Chip
-            label={`${domain.subdomain_count} subdomain${domain.subdomain_count !== 1 ? "s" : ""}`}
-            size="small"
-          />
-        </CardContent>
-      </CardActionArea>
-    </Card>
   );
 }

@@ -1,0 +1,72 @@
+# -- UN-LEO-AI-074 -- Hand-authored gold seed for cancer / benign discrimination
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-074"
+  title: "When the NER model is trained, it must learn from a small but precise hand-authored seed of cancer-positive and benign / excluded / normal control sentences taken from real GP records, so that the model reliably distinguishes a confirmed malignancy from a normal investigation, an excluded cancer or a benign finding"
+  description: |
+    Production telemetry on the spancat model showed two recurring failure
+    modes on the cancer / benign boundary:
+
+      - cancer-positive sentences that mention an investigation or screening
+        result alongside the malignancy phrase (for example
+        "Mammogram - tethered malignant L inner breast mass with associated
+        microcalcifications") were sometimes coded as a procedure-only line
+        with no DISORDER span, so the patient never reached the suspected-
+        cancer queue.
+
+      - benign or excluded findings (for example "Cancer excluded -
+        discharge to GP", "FOBT Normal - negative result", "Cyst of breast -
+        Aspiration of breast - M2 / U2", "Single renal cyst") were
+        sometimes given a DISORDER span with assertion present, so the
+        safety-net dashboard raised a malignancy alert that the GP had
+        explicitly ruled out.
+
+    The synthetic-only training corpus does not currently carry enough of
+    these GP-style sentences for the model to learn the boundary. The user
+    need is for a small, hand-authored gold seed of 21 verified records
+    (4 cancer-positive, 17 benign / excluded / normal control) drawn from
+    real but de-identified GP encounters, persisted into the Knowledge
+    Graph as TrainingCandidate + GoldLabel, so that the next training run
+    of the spancat head learns the boundary natively and ConText
+    evaluation can assert correct assertion handling on negation /
+    exclusion phrases.
+
+    The seed is verification data only; it is small enough to author by
+    hand, every span is checked against DeIdValidator before persistence,
+    and the workflow is fully idempotent so a re-seed never duplicates
+    records.
+
+  stakeholder: "Clinical staff, QA/RA lead, ML engineer"
+
+  priority: "high"
+
+  rationale: >
+    Failing to detect a confirmed malignancy is a Class B clinical-safety
+    event under IEC 62304 and DCB0129; raising a false malignancy alert on
+    a benign finding causes avoidable patient harm and erodes clinician
+    trust. Adding a tightly-targeted hand-authored seed is the smallest
+    change that closes both failure modes without retraining on the entire
+    synthetic corpus, and gives QA an explicit verification dataset for
+    future regression checks.
+
+  acceptance_criteria:
+    - "A YAML manifest with at least 21 records (>= 4 cancer-positive, >= 16 benign/excluded/normal) lives under design-controls/training-data/, every record references a real encounter id from the patient graph for traceability and contains de-identified sentence text plus typed entity spans."
+    - "Every sentence in the manifest passes libs.utils.deidentify.deidentify_text() round-trip and libs.ner.deid_validator.DeIdValidator.check_record() with zero residual PHI issues."
+    - "A seeder script (scripts/seed_manual_gold_records.py) reads the manifest and writes one TrainingCandidate (status=completed) and one linked GoldLabel per record into the Knowledge Graph, idempotently (deterministic candidate_id and label_id)."
+    - "Each entity payload uses the lowercase SNOMED semantic-tag label vocabulary and an assertion drawn from the canonical set {present, absent, refuted, possible, historical, planned, hypothetical, family, declined, cancelled}."
+    - "The seeded records appear in the next label_exporter dry-run with non-zero entities after assertion filtering and span realignment."
+
+  design_inputs:
+    - "DI-LEO-AI-163"
+
+  metadata:
+    identified_by: "Rob Smith - 2026-04-17 cancer / benign boundary review"
+    identified_date: "2026-04-17"
+    status: "approved"
+    tags:
+      - "ner"
+      - "training-data"
+      - "gold-seed"
+      - "clinical-safety"
+      - "cancer-detection"
+      - "negation"

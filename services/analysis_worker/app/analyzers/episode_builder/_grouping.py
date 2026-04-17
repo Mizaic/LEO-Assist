@@ -99,7 +99,10 @@ def _find_best_referral(
     enforced in both passes.
     """
     best_idx: int | None = None
-    best_gap = timedelta(days=cfg.DIAG_LOOKBACK_DAYS + 1)
+    # DI-LEO-AI-145: prefer the EARLIEST valid referral (largest gap) so
+    # the actual 2WW trigger date is recorded, not a same-day diagnostic
+    # clinic note that happens to contain "fast track" text.
+    best_gap = timedelta(days=-1)
     best_date: date | None = None
     for idx, ref in enumerate(sorted_ref):
         if idx in claimed:
@@ -120,7 +123,7 @@ def _find_best_referral(
                 and ref_key != "non_site_specific"
             ):
                 continue
-        if gap < best_gap:
+        if gap > best_gap:
             best_gap = gap
             best_idx = idx
             best_date = r_date

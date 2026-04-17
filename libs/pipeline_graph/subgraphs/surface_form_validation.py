@@ -36,7 +36,12 @@ def _find_mismatches(state: SurfaceFormValidationState) -> dict[str, Any]:
     errors = list(state.get("errors") or [])
     mismatches: list[dict[str, Any]] = []
     client = TerminologyClient()
-    threshold = float(state.get("surface_form_validation_threshold", 0.9))
+    # Default threshold lowered from 0.9 to 0.7 in line with the resolver's
+    # switch to calibrated absolute scoring (top exact match = 1.0; strong
+    # fulltext + tag match ~0.77; high vector cosine >= 0.85). Was 0.9
+    # under the old per-term-normalised + 1.3 tag-boost scoring (top
+    # candidate routinely hit 1.0-1.3).
+    threshold = float(state.get("surface_form_validation_threshold", 0.7))
 
     for ent in entities:
         text = (ent.get("text") or "").strip()
@@ -98,7 +103,7 @@ def _apply_or_queue(state: SurfaceFormValidationState) -> dict[str, Any]:
     entities = list(state.get("entities") or [])
     encounter_text = state.get("encounter_text") or ""
     candidate_id = state.get("candidate_id") or ""
-    threshold = float(state.get("surface_form_validation_threshold", 0.9))
+    threshold = float(state.get("surface_form_validation_threshold", 0.7))
     tasks_created = 0
     errors = list(state.get("errors") or [])
     ent_by_id = {id(e): e for e in entities}

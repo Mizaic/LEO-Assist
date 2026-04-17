@@ -64,6 +64,54 @@ const config = [
       ],
     },
   },
+  // DI-LEO-AI-165 / VT-LEO-AI-163 (Phase 6b-vi cleanup): the pathway
+  // canvas should consume design-system primitives, not raw MUI. The
+  // editor still relies on MUI for a few container components (Drawer,
+  // dialogs that ship from upstream Wave D) so this rule is currently
+  // a "warn" rather than an "error". Flip to "error" once the legacy
+  // MUI imports under pathway/** are migrated to @leo/design-system.
+  {
+    files: ["src/components/pathway/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          patterns: [
+            {
+              group: ["@mui/*"],
+              message:
+                "Pathway components should use @leo/design-system primitives instead of raw MUI imports.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // DI-LEO-AI-176 / VT-LEO-AI-171 (Wave E Phase 7): the Knowledge tab
+  // shell at /admin/knowledge should consume @leo/design-system
+  // primitives (KnowledgePageLayout, StatHero, ToolbarActions,
+  // FilterBar, PromptEditorCard, ReviewListCard, DataGridCard,
+  // MetricTile, NudgeStrip) rather than reach into raw MUI. The
+  // wrapper page still uses MUI Tabs/Tab as transitional infrastructure
+  // so this is a "warn" -- flip to "error" once the eight tab bodies
+  // are fully migrated to design-system primitives.
+  {
+    files: ["src/app/admin/knowledge/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          patterns: [
+            {
+              group: ["@mui/*"],
+              message:
+                "Knowledge tabs should use @leo/design-system primitives instead of raw MUI imports.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default config;

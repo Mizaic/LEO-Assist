@@ -15,6 +15,7 @@ import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import DensityMediumOutlinedIcon from "@mui/icons-material/DensityMediumOutlined";
 import AreaIntro from "@/components/AreaIntro";
 
 interface SettingsCard {
@@ -58,6 +59,14 @@ const SETTINGS_CARDS: SettingsCard[] = [
       "Teach the system how to handle new clinical phrases -- for example, that 'would not consider' means DECLINED. Rules are added to the context detection pipeline without a code deploy.",
     icon: <AccountTreeOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
     path: "/settings/context-rules",
+  },
+  {
+    id: "preferences",
+    title: "Preferences",
+    description:
+      "Personal display settings, including how tightly LEO packs information on the page. Saved to your account and applied on every device after sign-in.",
+    icon: <DensityMediumOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
+    path: "/settings/preferences",
   },
   {
     id: "tenant",

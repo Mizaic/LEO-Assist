@@ -1,0 +1,136 @@
+# -- DI-LEO-AI-161 -- Problem-list code recognition and stricter stale-close criteria
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-161"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-006"]
+  requirement: >
+    The episode-building text path SHALL (a) recognise curated CTV3/Read
+    code tokens and benign-investigation phrases that appear in encounter
+    free text within +/- 7 days of the first_seen anchor and emit
+    diagnosis_confirmed or benign_closure milestones accordingly,
+    (b) prefer an explicit fast-track-referral Read code over surface-form
+    matches when resolving the cancer site of an episode, and (c) refuse to
+    auto-close an EpisodeOfCare as stale if any encounter linked to that
+    episode already carries a diagnosis_confirmed, diagnosis,
+    benign_closure or treatment_started milestone relationship.
+  rationale: >
+    A 41-episode deep-read of stale 2024 and 2025 patients in the live
+    corpus identified four recurring root causes:
+    (1) malignancy SNOMED codes were filed to the problem list within days
+    of first_seen but never produced a diagnosis_confirmed milestone
+    because the anchor detector only matched free-text phrasing,
+    (2) benign explanations (XaK99 laryngopharyngeal reflux, F5801
+    presbyacusis, "mammogram normal", "cancer excluded - discharge to GP",
+    etc.) were filed but not recognised, leaving real benign closures
+    flagged stale,
+    (3) explicit 2WW Read codes (XaMeC breast, XaMeB gynaecological, ...)
+    were ignored in favour of generic surface-form matches that picked the
+    wrong site,
+    (4) episodes that already had a diagnosis or benign closure were still
+    being auto-stamped stale_post_specialist by the daily sweep because
+    STALE_CLOSE_Q only checked dates, not milestone presence.
+    Together these caused 36 patients to appear "lost to follow-up" when
+    the underlying record contained a clear clinical outcome.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          libs/domains/code_inventories.py exposes MALIGNANCY_READ_CODES,
+          BENIGN_EXPLANATION_READ_CODES, FAST_TRACK_REFERRAL_READ_CODES,
+          BENIGN_INVESTIGATION_PHRASES, LETTER_STUB_PATTERNS plus the
+          helpers find_malignancy_code, find_benign_explanation_code,
+          find_fast_track_referral_site, match_benign_investigation_phrase,
+          looks_like_letter_stub. Codes are drawn verbatim from the
+          deep-read corpus; no codes are added without a clinical source.
+      - type: "functional"
+        spec: >
+          When _classify_text_encounters in
+          services/analysis_worker/app/analyzers/anchor_detector.py
+          finds a malignancy code in encounter text it emits a diagnosis
+          anchor with diagnosis_source="problem_list_code" and
+          diagnosis_code populated. When it finds a benign explanation
+          code or investigation phrase it emits a benign_closure anchor
+          with benign_source set to problem_list_code or
+          investigation_phrase respectively.
+      - type: "functional"
+        spec: >
+          When an explicit fast-track-referral Read code is present, the
+          anchor's site_key, site_hits, and site_source="explicit_2ww_code"
+          are populated. _extract_condition_key_from_anchor in
+          services/analysis_worker/app/analyzers/episode_builder/_site_resolution.py
+          returns that explicit site in preference to surface-form,
+          SNOMED-concept, or fallback heuristics.
+      - type: "safety"
+        spec: >
+          STALE_CLOSE_Q in
+          services/analysis_worker/app/analyzers/episode_builder/_cypher.py
+          uses an EXISTS guard so that an episode is never set to
+          stale_post_specialist or stale_no_diagnosis if it has any
+          IS_PART_OF relationship whose milestone_type is in
+          {diagnosis, diagnosis_confirmed, benign_closure,
+          treatment_started}.
+      - type: "performance"
+        spec: >
+          On the live patient corpus a full episode rebuild followed by a
+          stale sweep MUST reduce the stale_post_specialist +
+          stale_no_diagnosis distinct-patient count from 36 to <= 12 and
+          MUST raise the patient count with status closed_benign or
+          closed_benign_qualifier by at least 25.
+    constraints:
+      - type: "safety"
+        spec: >
+          Code inventories MUST be derived only from clinically reviewed
+          deep-read evidence. New codes require either a CTV3 lookup or a
+          documented reviewer note before being added.
+      - type: "safety"
+        spec: >
+          Outcome-inference defence-in-depth (libs/pipeline/outcome_inference.py)
+          MUST NOT count the same signal twice: new code/phrase patterns
+          that overlap an existing POST_BENIGN regex are filtered before
+          extending POST_BENIGN, preserving the inference engine's
+          balanced HITL_REQUIRED tie-break behaviour.
+      - type: "safety"
+        spec: >
+          The +/- 7 day window for problem-list recognition is enforced
+          implicitly by the existing anchor->episode binding logic; this
+          DI does not change that window.
+    dependencies: ["DI-LEO-AI-145", "DI-LEO-AI-149", "DI-LEO-AI-155"]
+    downstream_impacts:
+      - "EpisodeOfCare.status now reflects coded clinical outcomes"
+      - "Stale-episode dashboard shrinks to genuine loss-to-follow-up cases"
+      - "Site classification stability improves for explicit 2WW pathways"
+      - "Outcome inference engine has additional defence-in-depth signals"
+    technical_details:
+      language: "Python"
+      framework: "analysis_worker + libs"
+      file_structure:
+        - "libs/domains/code_inventories.py"
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+        - "services/analysis_worker/app/analyzers/episode_builder/_site_resolution.py"
+        - "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
+        - "libs/pipeline/outcome_inference.py"
+      estimated_loc: 380
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All test cases in tests/test_stale_detector_fixes.py pass
+      (code-inventory helpers, malignancy and benign anchor emission,
+      site reconciliation, STALE_CLOSE_Q regression, outcome-inference
+      defence-in-depth). A live-corpus wipe-and-rebuild via
+      scripts/_wipe_episodes_and_rebuild.py shows stale count <= 12 and
+      benign-closure count up by >= 25.
+    test_protocol: "VT-LEO-AI-161"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-163"]
+  tags:
+    - "episode-building"
+    - "stale-detector"
+    - "problem-list-codes"
+    - "ctv3"
+    - "2ww-pathway"
+    - "site-classification"

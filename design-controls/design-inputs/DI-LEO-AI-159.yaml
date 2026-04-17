@@ -1,0 +1,116 @@
+# -- DI-LEO-AI-159 -- Pathway editor configurator: condition rule editing,
+#                     dirty guard, and load-failure surfacing (Phase 6b-iv)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-159"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-072"]
+  requirement: >
+    The pathway editor at services/ui/src/app/admin/pathways/[id]/page.tsx
+    SHALL (a) make Condition node branch rules editable from the wizard's
+    Settings step using the existing ConditionRuleBuilder primitive,
+    (b) track unsaved-changes state via a useDirtyGuard hook that compares
+    a stable signature of the persistable pathway (plan name, description,
+    status, trigger event, nodes, edges, per-node configs) against the
+    last-saved baseline and installs a beforeunload listener while dirty,
+    (c) render PathwaySaveBar with one of the canonical states
+    (idle | dirty | saving | saved | error), and (d) replace the silent
+    `.catch(() => {})` on the FHIR PlanDefinition GET with a visible
+    PathwayLoadError surface that exposes the error message and a retry
+    button.
+  rationale: >
+    Three concrete pain points the discovery (plan 6b) found in the live
+    editor: Condition nodes had no UI to edit their rules at all (the
+    wizard fell through to a generic settings panel that did not include
+    rules) so rules could only be the hardcoded defaults set on creation;
+    the orchestrator silently swallowed plan load failures with
+    `.catch(() => {})`, leaving the user staring at a blank canvas with
+    no message; closing a tab or navigating away mid-edit dropped unsaved
+    work without warning. Each of these is a clinical-content control
+    that QA-RA leads need to trust before publishing a pathway to live.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          When the wizard opens on a node whose nodeType is "condition",
+          step 2 (Settings) renders ConditionRuleBuilder bound to
+          config.params.rules and config.params.defaultPort. Updates to
+          rules and defaultPort flow back through onSave -> handleConfigSave
+          and update both nodeConfigs[nodeId] and the corresponding canvas
+          node's data.rules / data.defaultPort.
+      - type: "functional"
+        spec: >
+          useDirtyGuard returns dirty=true when the stable signature of
+          (planName, planDescription, planStatus, triggerEvent, nodes,
+          edges, nodeConfigs) differs from the captured baseline, and
+          dirty=false immediately after markSaved() is called following
+          a successful PUT /fhir/PlanDefinition/:id. While dirty=true,
+          a beforeunload listener is registered on window; while dirty
+          becomes false, the listener is removed.
+      - type: "functional"
+        spec: >
+          PathwaySaveBar is rendered as the bottom-most element of the
+          editor flex layout. The state prop is derived as: "saving" when
+          isSaving is true, "error" when saveError is set, "dirty" when
+          useDirtyGuard reports dirty, "saved" when lastSaved is non-null
+          and the editor is clean, and "idle" otherwise. The save button
+          inside the bar is enabled in "dirty" / "error" states.
+      - type: "functional"
+        spec: >
+          A failed `GET /fhir/PlanDefinition/:id` sets loadError to the
+          error.message (or a default plain-English fallback) and renders
+          PathwayLoadError above the canvas with retry and dismiss
+          actions. Clicking "Try again" re-runs the loader by incrementing
+          loadAttempt; clicking "Dismiss" clears loadError without
+          reloading.
+    constraints:
+      - type: "safety"
+        spec: >
+          Save and publish handlers MUST continue to use the same payload
+          shape as before this change. The dirty guard MUST be additive:
+          it must never block a save, never silently mutate state, and
+          never throw if window is unavailable (SSR-safe via "use client").
+      - type: "safety"
+        spec: >
+          ConditionRuleBuilder updates MUST NOT clobber other params on the
+          condition node (e.g. inputSource, outputTarget, label). The
+          existing updateParam("rules", ...) / updateParam("defaultPort",
+          ...) plumbing MUST be reused so the params object is patched,
+          not replaced.
+    dependencies: ["DI-LEO-AI-156", "DI-LEO-AI-157"]
+    downstream_impacts:
+      - "Pathway editor save behaviour"
+      - "Condition node configuration"
+      - "Plan load error surface"
+    technical_details:
+      language: "TypeScript"
+      framework: "Next.js + React + MUI"
+      file_structure:
+        - "services/ui/src/app/admin/pathways/[id]/page.tsx"
+        - "services/ui/src/app/admin/pathways/[id]/editor/PathwaySaveBar.tsx"
+        - "services/ui/src/app/admin/pathways/[id]/editor/PathwayLoadError.tsx"
+        - "services/ui/src/app/admin/pathways/[id]/editor/hooks/useDirtyGuard.ts"
+        - "services/ui/src/components/pathway/panel/ConditionRuleBuilder.tsx"
+      estimated_loc: 280
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-157 must pass with all 12 static-source test cases:
+      hook + components exist; page.tsx wires ConditionRuleBuilder under a
+      `nodeType === "condition"` guard; page.tsx wires useDirtyGuard,
+      PathwaySaveBar, and PathwayLoadError; the silent `.catch(() => {})`
+      is removed.
+    test_protocol: "VT-LEO-AI-157"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-110"]
+  tags:
+    - "wave-e"
+    - "phase-6b"
+    - "phase-6b-iv"
+    - "pathway-editor"
+    - "configurator"
+    - "dirty-guard"

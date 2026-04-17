@@ -2,7 +2,7 @@
 # ISO 13485 / IEC 62304 Design Output
 
 - id: "DO-LEO-AI-131"
-  version: "1.0.0"
+  version: "1.1.0"
   type: "Software_Module"
   status: "draft"
 
@@ -10,7 +10,23 @@
     design_inputs: ["DI-LEO-AI-134"]
     user_needs: ["UN-LEO-AI-019"]
     risks_addressed: ["R-LEO-AI-092"]
-    verification_tests: ["VT-LEO-AI-130"]
+    verification_tests: ["VT-LEO-AI-130", "VT-LEO-AI-163"]
+
+  change_history:
+    - version: "1.1.0"
+      date: "2026-04-17"
+      summary: >
+        Refined canonical cohort: dropped the status='completed'
+        precondition so in_progress episodes that already carry a
+        diagnosis_confirmed milestone are counted as confirmed cancer.
+        Added explicit exclusion of closed_benign (in addition to the
+        existing letter_inferred_benign filter) so legacy
+        closed_benign-with-spurious-diagnosis_confirmed episodes (8
+        cases on 2026-04-17) cannot flip into the confirmed-cancer
+        cohort. Effect on live data: confirmed_cancers tile in the
+        2024-01-01 .. 2026-01-01 window moved from 47 to 50; all-time
+        count moved from 80 to 83. See VT-LEO-AI-163 for the
+        regression suite.
 
   specification:
     title: "libs/analytics/cohorts.py canonical NCDA cohort definition"
@@ -28,8 +44,26 @@
         measurement: "Test"
         target: >
           confirmed_cancer_where() returns a Cypher fragment matching
-          exactly: status='completed' AND NOT letter_inferred_benign
-          AND EXISTS diagnosis-milestone encounter.
+          exactly: NOT status IN [merged, closed_phantom,
+          closed_related, closed_benign] AND NOT
+          letter_inferred_benign AND EXISTS diagnosis-milestone
+          encounter (milestone_type IN [diagnosis,
+          diagnosis_confirmed]).
+      - criterion: "in_progress_with_diagnosis_counts"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          An EpisodeOfCare with status='in_progress' that has a linked
+          Encounter milestone of type diagnosis_confirmed passes the
+          canonical clause (regression for VT-LEO-AI-163 TC-001).
+      - criterion: "closed_benign_with_diagnosis_excluded"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          An EpisodeOfCare with status='closed_benign' that ALSO
+          carries a diagnosis_confirmed milestone (legacy data
+          artefact) does NOT pass the canonical clause (regression for
+          VT-LEO-AI-163 TC-002).
       - criterion: "suspected_cancer_referral_clause"
         type: "functional"
         measurement: "Test"

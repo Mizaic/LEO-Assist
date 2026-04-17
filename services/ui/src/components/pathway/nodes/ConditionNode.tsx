@@ -4,11 +4,29 @@ import { memo, useMemo } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Position, type NodeProps } from "@xyflow/react";
+
+import { BaseNode, NodeHandle, NodeHeader } from "./_base";
+
+const CONDITION_ACCENT = "#E91E63";
+const CONDITION_PORT_COLOR = "#4CAF50";
+
+interface ConditionRule {
+  outputPort?: string;
+}
+
+interface ConditionNodeData {
+  label?: string;
+  rules?: ConditionRule[];
+  defaultPort?: string;
+  onConfigure?: () => void;
+}
 
 function ConditionNodeComponent({ data, selected }: NodeProps) {
-  const rules = (data as any).rules ?? [];
-  const defaultPort = (data as any).defaultPort ?? "else";
+  const d = data as ConditionNodeData;
+  const rules = d.rules ?? [];
+  const defaultPort = d.defaultPort ?? "else";
+
   const ports = useMemo(() => {
     const unique = new Set<string>();
     for (const rule of rules) {
@@ -19,33 +37,60 @@ function ConditionNodeComponent({ data, selected }: NodeProps) {
   }, [rules, defaultPort]);
 
   return (
-    <Box
-      sx={{
-        px: 2,
-        py: 1.5,
-        minWidth: 180,
-        bgcolor: "background.paper",
-        borderRadius: 2,
-        border: "2px solid",
-        borderColor: selected ? "primary.main" : "#E91E63",
-        cursor: "pointer",
-        position: "relative",
-      }}
-      onClick={(data as any).onConfigure}
+    <BaseNode
+      accentColor={CONDITION_ACCENT}
+      selected={selected}
+      minWidth={180}
+      ariaLabel={`Condition node with ${rules.length} rule${rules.length === 1 ? "" : "s"}`}
+      onActivate={d.onConfigure}
     >
-      <Handle type="target" id="input" position={Position.Left} style={{ width: 12, height: 12, background: "#E91E63", border: "2px solid #fff" }} />
-      <Typography variant="body2" fontWeight={700}>{(data as any).label || "Condition"}</Typography>
-      <Chip size="small" label={`${rules.length} rule${rules.length === 1 ? "" : "s"}`} sx={{ mt: 0.5, height: 18, fontSize: "0.62rem" }} />
-
+      <NodeHandle
+        id="input"
+        type="target"
+        color={CONDITION_ACCENT}
+        tooltip="Input - value to evaluate"
+      />
+      <NodeHeader title={d.label || "Condition"} />
+      <Chip
+        size="small"
+        label={`${rules.length} rule${rules.length === 1 ? "" : "s"}`}
+        sx={{
+          mt: 0.5,
+          height: 20,
+          fontSize: "0.62rem",
+          bgcolor: CONDITION_ACCENT,
+          color: "#fff",
+        }}
+      />
       {ports.map((port, i) => (
-        <Box key={port} sx={{ position: "absolute", right: -80, top: `${((i + 1) / (ports.length + 1)) * 100}%`, transform: "translateY(-50%)", width: 72 }}>
-          <Handle type="source" id={port} position={Position.Right} style={{ width: 12, height: 12, background: "#4CAF50", border: "2px solid #fff", right: 72 }} />
-          <Typography variant="caption" sx={{ ml: 1, fontFamily: "monospace", fontSize: "0.62rem" }}>{port}</Typography>
+        <Box
+          key={`port-${port}`}
+          sx={{
+            position: "absolute",
+            right: -80,
+            top: `${((i + 1) / (ports.length + 1)) * 100}%`,
+            transform: "translateY(-50%)",
+            width: 72,
+          }}
+        >
+          <NodeHandle
+            id={port}
+            type="source"
+            position={Position.Right}
+            color={CONDITION_PORT_COLOR}
+            style={{ right: 72 }}
+            tooltip={`Branch '${port}' - taken when matching rule fires`}
+          />
+          <Typography
+            variant="caption"
+            sx={{ ml: 1, fontFamily: "monospace", fontSize: "0.62rem" }}
+          >
+            {port}
+          </Typography>
         </Box>
       ))}
-    </Box>
+    </BaseNode>
   );
 }
 
 export const ConditionNode = memo(ConditionNodeComponent);
-

@@ -98,7 +98,7 @@ class TestClassifyAnchorRows:
         )
 
         buckets, _ = _build_buckets(mock_registry)
-        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres, _first_seens = _classify_anchor_rows(
             [], buckets
         )
         assert (
@@ -119,7 +119,7 @@ class TestClassifyAnchorRows:
 
         buckets, _ = _build_buckets(mock_registry)
         row = _make_row("E1", "2024-03-15", _REFERRAL_ID, "Fast track referral")
-        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres, _first_seens = _classify_anchor_rows(
             [row], buckets
         )
         assert len(refs) == 1
@@ -139,7 +139,7 @@ class TestClassifyAnchorRows:
 
         buckets, _ = _build_buckets(mock_registry)
         row = _make_row("E2", "2024-05-10", _DIAGNOSIS_ID, "Malignant tumour")
-        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres, _first_seens = _classify_anchor_rows(
             [row], buckets
         )
         assert len(diags) == 1
@@ -160,7 +160,7 @@ class TestClassifyAnchorRows:
         row = _make_row(
             "E3", "2024-05-10", _DIAGNOSIS_ID, "Malignant tumour", assertion="present"
         )
-        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres, _first_seens = _classify_anchor_rows(
             [row], buckets
         )
         # present != hypothetical => excluded
@@ -184,7 +184,7 @@ class TestClassifyAnchorRows:
             "Malignant tumour",
             assertion="hypothetical",
         )
-        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres, _first_seens = _classify_anchor_rows(
             [row], buckets
         )
         assert len(diags) == 1 and letters == [] and first_pres == []
@@ -220,7 +220,7 @@ class TestClassifyAnchorRows:
                 assertion="hypothetical",
             ),
         ]
-        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres, _first_seens = _classify_anchor_rows(
             rows, buckets
         )
         assert len(diags) == 3 and letters == [] and first_pres == []
@@ -251,7 +251,7 @@ class TestClassifyAnchorRows:
         benign_row = _make_row(
             "E9", "2024-06-01", _BENIGN_ID, "No evidence of cancer found"
         )
-        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres, _first_seens = _classify_anchor_rows(
             [cancer_row, benign_row], buckets, pathway_ids
         )
 
@@ -289,7 +289,7 @@ class TestClassifyAnchorRows:
         mock_registry.get_concept_ids.side_effect = _concept_ids
         buckets, _ = _build_buckets(mock_registry)
         row = _make_row("EL1", "2024-08-30", _LETTER, "Letter (record artifact)")
-        refs, diags, treats, specs, benign, letters, first_pres = _classify_anchor_rows(
+        refs, diags, treats, specs, benign, letters, first_pres, _first_seens = _classify_anchor_rows(
             [row], buckets
         )
         assert len(letters) == 1
@@ -309,10 +309,118 @@ class TestClassifyAnchorRows:
                 "text": "Dermatology to Woodbrook Medical Centre",
             }
         ]
-        r, d, t, s, b, letters, first_pres = _classify_text_encounters(rows, set())
+        r, d, t, s, b, letters, first_pres, _first_seens = _classify_text_encounters(rows, set())
         assert len(letters) == 1
         assert letters[0]["concept_id"] == 308470004
         assert first_pres == []
+
+
+class TestReferralRejectionAndResubmission:
+    """DI-LEO-AI-182 -- detect referral rejection / marked-in-error /
+    resubmission audit events as referral anchors with a dedicated
+    subtype, so DQ tooling can surface workflow delays.
+
+    Pattern level: applies to ANY 2WW pathway where the secondary-care
+    provider rejects the referral (most often "no recent CXR / no
+    recent imaging") and the GP must resubmit. These tests describe
+    the textual pattern, NOT a specific patient.
+    """
+
+    def _classify(self, text: str, encounter_id: str = "E1"):
+        from services.analysis_worker.app.analyzers.anchor_detector import (
+            _classify_text_encounters,
+        )
+
+        rows = [
+            {
+                "encounter_id": encounter_id,
+                "encounter_date": "2024-04-10",
+                "content_type": "clinical",
+                "text": text,
+            }
+        ]
+        return _classify_text_encounters(rows, set())
+
+    def test_choose_and_book_rejected_emits_referral_rejected_subtype(self):
+        text = (
+            "Choose and book referral rejected by service provider: referral "
+            "rejected as no recent chest xray. Task to clinician to request CXR."
+        )
+        refs, _d, _t, _s, _b, _l, _fp, _fs = self._classify(text)
+        assert len(refs) == 1
+        assert refs[0]["referral_subtype"] == "rejected"
+
+    def test_referral_marked_in_error_emits_rejected_subtype(self):
+        text = (
+            "Hospital Fast track referral for suspected breast cancer "
+            "Marked in Error: Amended data\n"
+            "e-Referral Service Referral Marked in Error: Amended data"
+        )
+        refs, _d, _t, _s, _b, _l, _fp, _fs = self._classify(text)
+        assert len(refs) == 1
+        assert refs[0]["referral_subtype"] == "rejected"
+
+    def test_referral_resubmitted_emits_resubmitted_subtype(self):
+        text = (
+            "Fast track referral for suspected lung cancer (XaMeH) - "
+            "amended referral sent following provider rejection."
+        )
+        refs, _d, _t, _s, _b, _l, _fp, _fs = self._classify(text)
+        assert len(refs) == 1
+        assert refs[0]["referral_subtype"] == "resubmitted"
+
+    def test_rejection_does_not_emit_diagnosis_or_benign(self):
+        text = (
+            "Choose and book referral rejected by service provider for "
+            "fast track referral for suspected colorectal cancer."
+        )
+        refs, diags, _t, _s, benigns, _l, _fp, _fs = self._classify(text)
+        assert len(refs) == 1
+        assert refs[0]["referral_subtype"] == "rejected"
+        assert diags == []
+        assert benigns == []
+
+    def test_normal_2ww_referral_still_emits_text_generic(self):
+        """Regression: vanilla 2WW referrals must still be detected as
+        plain text_generic referrals, not get re-bucketed by the new
+        rejection patterns."""
+        text = "Fast track referral for suspected breast cancer (XaMeC)"
+        refs, _d, _t, _s, _b, _l, _fp, _fs = self._classify(text)
+        assert len(refs) == 1
+        assert refs[0]["referral_subtype"] == "text_generic"
+
+    def test_prism_referral_still_emits_prism_subtype(self):
+        """Regression: PRISM proforma referrals must still take primacy
+        over generic referral text."""
+        text = (
+            "PRISM 2WW Lung -  questionnaire started - "
+            "(finalised: 09 Apr 2024 15:56)"
+        )
+        refs, _d, _t, _s, _b, _l, _fp, _fs = self._classify(text)
+        assert len(refs) == 1
+        assert refs[0]["referral_subtype"] == "prism"
+
+    def test_rejection_keyword_alone_no_referral_context_does_not_match(self):
+        """Guard: 'rejected' on its own (e.g. organ transplant rejection)
+        must not match the referral-rejection pattern."""
+        text = "Patient discussed: no signs of transplant rejection."
+        refs, _d, _t, _s, _b, _l, _fp, _fs = self._classify(text)
+        assert refs == []
+
+    def test_resubmitted_keyword_alone_does_not_match_without_referral(self):
+        """Guard: 'resubmitted' on its own (e.g. lab sample resubmitted)
+        must not produce a referral anchor."""
+        text = "Sample was resubmitted to the lab for re-analysis."
+        refs, _d, _t, _s, _b, _l, _fp, _fs = self._classify(text)
+        assert refs == []
+
+    def test_marked_in_error_unrelated_event_does_not_match(self):
+        """Guard: 'Marked in Error' on a non-referral entity (e.g. a lab
+        value or diagnosis line) must not be classified as a referral
+        rejection."""
+        text = "Blood pressure 140/90 - Marked in Error: Amended data"
+        refs, _d, _t, _s, _b, _l, _fp, _fs = self._classify(text)
+        assert refs == []
 
 
 # ---------------------------------------------------------------------------

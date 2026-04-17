@@ -1,11 +1,54 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * Intelligence Console -- Wave E Phase 8a redesign.
+ *
+ * The page hands its chrome to the @leo/design-system so it visually
+ * matches the Knowledge tabs and the Pathways list:
+ *
+ *   - KnowledgePageLayout (width="wide", screenId="admin-console")
+ *     supplies the shared gutter and 1600px column.
+ *   - AreaIntro renders the role-aware IntroCard for the operations
+ *     area (preserves the area-intro-wiring contract enforced by
+ *     VT-LEO-AI-135 TC-004).
+ *   - StatHero summarises the AI loop in three live tiles
+ *     (gold labels / candidate queue / latest F1 or live model).
+ *   - NudgeStrip surfaces the smart next-best-action banner.
+ *   - PipelineRail is the accessible six-stage pipeline navigator.
+ *   - ConsoleStagePanel renders each stage body inside a
+ *     design-system-tokenised card.
+ *
+ * The internal stage modules (DiscoverStage, CurateStage, TrainStage,
+ * EvaluateStage, DeployStage, MonitorStage) keep working unchanged
+ * behind the new shell. Their bodies will be rebuilt on
+ * ReviewListCard / DataGridCard primitives in Phase 8b.
+ *
+ * Design Controls: DI-LEO-AI-164, DO-LEO-AI-163, R-LEO-AI-165, VT-LEO-AI-162.
+ */
+
+import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
-import { HealthBar, NudgeBanner, StageCard, MetricChip } from "@/components/ui";
-import { useConsoleState, deriveNudge, deriveStageHealth } from "@/components/console/useConsoleState";
+import Stack from "@mui/material/Stack";
+
+import {
+  KnowledgePageLayout,
+  NudgeStrip,
+  PipelineRail,
+  StatHero,
+  type PipelineStage,
+} from "@leo/design-system";
+
+import AreaIntro from "@/components/AreaIntro";
+import { MetricChip } from "@/components/ui";
+import {
+  computeConsoleStats,
+  deriveNudge,
+  deriveStageHealth,
+  useConsoleState,
+} from "@/components/console/useConsoleState";
+import { ConsoleStagePanel } from "@/components/console/ConsoleStagePanel";
 import { DiscoverStage } from "@/components/console/DiscoverStage";
 import { CurateStage } from "@/components/console/CurateStage";
 import { TrainStage } from "@/components/console/TrainStage";
@@ -13,21 +56,39 @@ import { EvaluateStage } from "@/components/console/EvaluateStage";
 import { DeployStage } from "@/components/console/DeployStage";
 import { MonitorStage } from "@/components/console/MonitorStage";
 import { STAGE_COLORS } from "@/theme/tokens";
-import AreaIntro from "@/components/AreaIntro";
 
-const STAGE_KEYS = ["DISCOVER", "CURATE", "TRAIN", "EVALUATE", "DEPLOY", "MONITOR"] as const;
+const STAGE_KEYS = [
+  "DISCOVER",
+  "CURATE",
+  "TRAIN",
+  "EVALUATE",
+  "DEPLOY",
+  "MONITOR",
+] as const;
+
+type StageKey = (typeof STAGE_KEYS)[number];
+
+const STAGE_ACTION_LABELS: Record<StageKey, string> = {
+  DISCOVER: "View encounters",
+  CURATE: "Review candidates",
+  TRAIN: "Train now",
+  EVALUATE: "Run safety test",
+  DEPLOY: "Manage models",
+  MONITOR: "View alerts",
+};
 
 export default function ConsolePage() {
   const state = useConsoleState();
-  const [activeStage, setActiveStage] = useState<string | null>(null);
+  const [activeStage, setActiveStage] = useState<StageKey | null>(null);
   const [training, setTraining] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
   const stageHealth = deriveStageHealth(state);
   const nudge = deriveNudge(state);
+  const stats = useMemo(() => computeConsoleStats(state), [state]);
 
   const handleStageClick = (key: string) => {
-    setActiveStage((prev) => (prev === key ? null : key));
+    setActiveStage((prev) => (prev === key ? null : (key as StageKey)));
   };
 
   const handleTrain = async () => {
@@ -57,52 +118,53 @@ export default function ConsolePage() {
     }
   };
 
-  const stages = STAGE_KEYS.map((key) => ({
-    key,
+  const railStages: PipelineStage[] = STAGE_KEYS.map((key) => ({
+    id: key,
     label: key,
-    ...(stageHealth[key] ?? { status: "neutral" as const, reason: "" }),
+    status: stageHealth[key]?.status ?? "neutral",
+    reason: stageHealth[key]?.reason,
+    accentColor: STAGE_COLORS[key],
   }));
 
   if (state.loading) {
     return (
-      <Box sx={{ p: 3, display: "flex", alignItems: "center", gap: 2 }}>
-        <CircularProgress size={20} />
-        <Typography>Loading console…</Typography>
-      </Box>
+      <KnowledgePageLayout screenId="admin-console" width="wide">
+        <Box
+          sx={{ p: 3, display: "flex", alignItems: "center", gap: 2 }}
+          aria-live="polite"
+        >
+          <CircularProgress size={20} />
+          <Typography>Loading console...</Typography>
+        </Box>
+      </KnowledgePageLayout>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <KnowledgePageLayout screenId="admin-console" width="wide">
       <AreaIntro area="operations" />
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-        Intelligence Console
-      </Typography>
-      <Typography sx={{ color: "text.secondary", mb: 2.5, fontSize: "0.9rem" }}>
-        The AI learning loop - from encounter to deployed model.
-      </Typography>
 
-      {/* Smart nudge */}
-      {nudge && (
-        <NudgeBanner
+      <StatHero stats={stats} />
+
+      {nudge ? (
+        <NudgeStrip
           message={nudge.message}
           actionLabel={nudge.actionLabel}
-          severity={nudge.severity}
+          severity={nudge.severity === "error" ? "danger" : nudge.severity}
           onAction={() => handleStageClick(nudge.actionStage)}
         />
-      )}
+      ) : null}
 
-      {/* Health bar */}
-      <HealthBar
-        stages={stages}
-        activeStage={activeStage ?? undefined}
-        onStageClick={handleStageClick}
+      <PipelineRail
+        stages={railStages}
+        activeStageId={activeStage}
+        onStageSelect={handleStageClick}
+        ariaLabel="AI learning loop stages"
       />
 
-      {/* Stage panels */}
-      <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
+      <Stack spacing={1.5} sx={{ mt: 2 }}>
         {activeStage === "DISCOVER" && (
-          <StageCard
+          <ConsoleStagePanel
             title="Discover"
             status={stageHealth.DISCOVER?.status ?? "neutral"}
             statusReason={stageHealth.DISCOVER?.reason}
@@ -110,24 +172,32 @@ export default function ConsolePage() {
             accentColor={STAGE_COLORS.DISCOVER}
           >
             <DiscoverStage />
-          </StageCard>
+          </ConsoleStagePanel>
         )}
 
         {activeStage === "CURATE" && (
-          <StageCard
+          <ConsoleStagePanel
             title="Curate"
             status={stageHealth.CURATE?.status ?? "neutral"}
             statusReason={stageHealth.CURATE?.reason}
-            metric={state.goldStats ? <MetricChip value={state.goldStats.total} label="labels" color={STAGE_COLORS.CURATE} /> : undefined}
+            metric={
+              state.goldStats ? (
+                <MetricChip
+                  value={state.goldStats.total}
+                  label="labels"
+                  color={STAGE_COLORS.CURATE}
+                />
+              ) : undefined
+            }
             defaultExpanded
             accentColor={STAGE_COLORS.CURATE}
           >
             <CurateStage queueTotal={state.candidateQueueTotal} />
-          </StageCard>
+          </ConsoleStagePanel>
         )}
 
         {activeStage === "TRAIN" && (
-          <StageCard
+          <ConsoleStagePanel
             title="Train"
             status={stageHealth.TRAIN?.status ?? "neutral"}
             statusReason={stageHealth.TRAIN?.reason}
@@ -146,11 +216,11 @@ export default function ConsolePage() {
               onCancelJob={handleCancelJob}
               cancelling={cancelling}
             />
-          </StageCard>
+          </ConsoleStagePanel>
         )}
 
         {activeStage === "EVALUATE" && (
-          <StageCard
+          <ConsoleStagePanel
             title="Evaluate"
             status={stageHealth.EVALUATE?.status ?? "neutral"}
             statusReason={stageHealth.EVALUATE?.reason}
@@ -171,28 +241,32 @@ export default function ConsolePage() {
               latestJob={state.latestJob}
               promotedVersion={state.promotedVersion}
             />
-          </StageCard>
+          </ConsoleStagePanel>
         )}
 
         {activeStage === "DEPLOY" && (
-          <StageCard
+          <ConsoleStagePanel
             title="Deploy"
             status={stageHealth.DEPLOY?.status ?? "neutral"}
             statusReason={stageHealth.DEPLOY?.reason}
             metric={
               state.promotedVersion ? (
-                <MetricChip value={state.promotedVersion} label="live" color={STAGE_COLORS.DEPLOY} />
+                <MetricChip
+                  value={state.promotedVersion}
+                  label="live"
+                  color={STAGE_COLORS.DEPLOY}
+                />
               ) : undefined
             }
             defaultExpanded
             accentColor={STAGE_COLORS.DEPLOY}
           >
             <DeployStage promotedVersion={state.promotedVersion} />
-          </StageCard>
+          </ConsoleStagePanel>
         )}
 
         {activeStage === "MONITOR" && (
-          <StageCard
+          <ConsoleStagePanel
             title="Monitor"
             status={stageHealth.MONITOR?.status ?? "neutral"}
             statusReason={stageHealth.MONITOR?.reason}
@@ -200,41 +274,31 @@ export default function ConsolePage() {
             accentColor={STAGE_COLORS.MONITOR}
           >
             <MonitorStage />
-          </StageCard>
+          </ConsoleStagePanel>
         )}
 
-        {/* Overview when no stage selected */}
         {!activeStage && (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Stack spacing={1}>
             {STAGE_KEYS.map((key) => {
-              const h = stageHealth[key] ?? { status: "neutral" as const, reason: "" };
+              const h = stageHealth[key] ?? {
+                status: "neutral" as const,
+                reason: "",
+              };
               return (
-                <StageCard
+                <ConsoleStagePanel
                   key={key}
                   title={key}
                   status={h.status}
                   statusReason={h.reason}
-                  actionLabel={_stageActionLabel(key)}
+                  actionLabel={STAGE_ACTION_LABELS[key]}
                   onAction={() => handleStageClick(key)}
                   accentColor={STAGE_COLORS[key]}
                 />
               );
             })}
-          </Box>
+          </Stack>
         )}
-      </Box>
-    </Box>
+      </Stack>
+    </KnowledgePageLayout>
   );
-}
-
-function _stageActionLabel(stage: string): string {
-  const map: Record<string, string> = {
-    DISCOVER: "View encounters",
-    CURATE: "Review candidates",
-    TRAIN: "Train now",
-    EVALUATE: "Run safety test",
-    DEPLOY: "Manage models",
-    MONITOR: "View alerts",
-  };
-  return map[stage] ?? "Open";
 }

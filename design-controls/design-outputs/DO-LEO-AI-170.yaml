@@ -1,0 +1,102 @@
+# -- DO-LEO-AI-170 -- Problem-list malignancy term + Read appendix sweep
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-170"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-171"]
+    user_needs: ["UN-LEO-AI-005", "UN-LEO-AI-006"]
+    risks_addressed: ["R-LEO-AI-170"]
+    verification_tests: ["VT-LEO-AI-170"]
+
+  specification:
+    title: "Problem-list malignancy term + active-care code recognition + history guard + Read appendix sweep"
+    description: |
+      Implements DI-LEO-AI-171. Four coordinated changes to the
+      missed-cancer detection layer:
+
+      1. libs/domains/code_inventories.py gains four new inventories
+         (ACTIVE_CANCER_CARE_CODES, HISTORY_OF_CANCER_CODE_PREFIXES,
+         MALIGNANCY_TERM_PATTERNS, PROBLEM_LIST_LINE_PREFIX) and four
+         new helpers (find_active_cancer_care_code,
+         find_malignancy_term_in_problem_line, is_history_of_cancer_code,
+         text_contains_history_of_cancer).
+      2. The MALIGNANCY_READ_CODES dictionary gains corpus-confirmed
+         entries from the 2025 closed_benign audit (X78Y6 prostate,
+         Ya0ln breast) and a comprehensive Xa-prefix sweep of
+         configs/read codes/readcode.md.
+      3. The buggy "B5..." -> head_and_neck mapping is REMOVED
+         (B5 covers connective tissue and skin in the Read appendix;
+         only B57.. -> brain remains).
+      4. anchor_detector._classify_text_encounters is rewired to:
+         (a) call text_contains_history_of_cancer first as a hard
+             guard against any diagnosis emission;
+         (b) call find_malignancy_term_in_problem_line and
+             find_active_cancer_care_code in addition to
+             find_malignancy_code;
+         (c) emit diagnosis anchors with diagnosis_source set to one
+             of {problem_list_code, malignancy_term_problem_line,
+             active_cancer_care_code, adjuvant_therapy_drug} and
+             hitl_required=True for the latter three sources.
+
+    acceptance_criteria:
+      - criterion: "New inventories registered"
+        type: "functional"
+        measurement: "Test"
+        target: "Helpers importable; inventories non-empty; XaIph in active-care set; ZV10 in history prefixes."
+      - criterion: "History-of-cancer guard"
+        type: "safety"
+        measurement: "Test"
+        target: "No diagnosis or benign anchor emitted when text_contains_history_of_cancer returns True."
+      - criterion: "Malignancy term on problem-list line"
+        type: "functional"
+        measurement: "Test"
+        target: "Diagnosis anchor with diagnosis_source=malignancy_term_problem_line emitted with hitl_required=True."
+      - criterion: "Active-care code recognition"
+        type: "functional"
+        measurement: "Test"
+        target: "Diagnosis anchor with diagnosis_source=active_cancer_care_code emitted with hitl_required=True."
+      - criterion: "B5 mapping bug fixed"
+        type: "safety"
+        measurement: "Test"
+        target: "MALIGNANCY_READ_CODES['B5...'] does not exist; MALIGNANCY_READ_CODES['B57..'] == 'brain'."
+      - criterion: "Live-corpus impact"
+        type: "performance"
+        measurement: "Live rebuild"
+        target: "2025 confirmed-cancer count rises from 24 to >= 28; the 6 known-missed episodes flip status."
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/domains/code_inventories.py"
+        description: "ACTIVE_CANCER_CARE_CODES, HISTORY_OF_CANCER_CODE_PREFIXES, MALIGNANCY_TERM_PATTERNS, PROBLEM_LIST_LINE_PREFIX inventories plus helpers; MALIGNANCY_READ_CODES extended; B5 bug removed."
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/anchor_detector.py"
+        description: "_classify_text_encounters extended with history guard, term/active-care/drug paths, and richer diagnosis_source provenance."
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 320
+      key_functions:
+        - "find_active_cancer_care_code"
+        - "find_malignancy_term_in_problem_line"
+        - "is_history_of_cancer_code"
+        - "text_contains_history_of_cancer"
+        - "_classify_text_encounters"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Confirmed-cancer cohort identification (drives the cancer audit dashboard)"
+      - "History-of-cancer suppression (prevents false fresh-diagnosis assignment to survivors)"
+    risk_control_measures:
+      - "History-of-cancer guard runs BEFORE any diagnosis emission"
+      - "All new inventories carry source provenance (corpus or appendix line) in code comments"
+      - "Hitl_required=True on every term/active-care/drug-derived anchor"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

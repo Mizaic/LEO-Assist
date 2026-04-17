@@ -63,6 +63,7 @@ from app.routers.prompts import router as prompts_router
 from app.routers.model_configs import router as model_configs_router
 from app.routers.nice_guidance import router as nice_guidance_router
 from app.routers.guidance_rules import router as guidance_rules_router
+from app.routers.test_patients import router as test_patients_router
 from app.routers.pricing import router as pricing_router
 from app.routers.reference_ranges import router as reference_ranges_router
 from app.routers.audit_quality import router as audit_quality_router
@@ -317,6 +318,7 @@ app.include_router(prompts_router)
 app.include_router(model_configs_router)
 app.include_router(nice_guidance_router)
 app.include_router(guidance_rules_router)
+app.include_router(test_patients_router)
 app.include_router(pricing_router)
 app.include_router(reference_ranges_router)
 app.include_router(audit_quality_router)

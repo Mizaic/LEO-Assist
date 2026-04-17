@@ -213,6 +213,11 @@ class TestCodingResolver:
         from services.terminology_api.app.services.coding_resolver import CodingResolver
 
         resolver = CodingResolver()
+        # Models an exact-branch hit (had_exact_match=True, lexical_raw=1.0).
+        # The test verifies that an expected_tag passed in the underscore
+        # form ("observable_entity") matches the SNOMED tag stored in the
+        # space form ("observable entity") and does NOT trigger the
+        # cross-group penalty that would drop the score by half.
         merged = {
             "obs-1": {
                 "concept_id": "obs-1",
@@ -221,6 +226,7 @@ class TestCodingResolver:
                 "read_codes": [],
                 "lexical_raw": 1.0,
                 "vector_raw": 0.0,
+                "had_exact_match": True,
                 "surface_form_status": "",
             }
         }
@@ -231,7 +237,205 @@ class TestCodingResolver:
         )
 
         assert len(candidates) == 1
-        assert candidates[0].score >= 1.0
+        # Exact-branch hit (lex_signal=1.0) + tag exact boost capped at 1.0.
+        # Without the underscore-vs-space normalisation, this would be
+        # treated as cross-group and penalised to 0.5.
+        assert candidates[0].score == 1.0
+
+
+class TestCalibratedScoring:
+    """Pin the calibrated absolute score semantics.
+
+    These tests exist because the resolver previously returned a per-term
+    relative score (top candidate always normalised to ~1.0, then *1.3
+    tag-boost) which conveyed "best-of-this-search" but NOT absolute
+    match strength. The new score is in [0.0, 1.0] and roughly
+    interpretable as P(correct mapping).
+    """
+
+    def test_exact_branch_hit_scores_1_0(self):
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingResolver,
+        )
+
+        resolver = CodingResolver()
+        merged = {
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Cough (finding)",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "lexical_raw": 1.0,
+                "vector_raw": 0.0,
+                "had_exact_match": True,
+                "surface_form_status": "",
+            }
+        }
+        candidates = resolver._fuse_and_rank(merged)
+        assert candidates[0].score == 1.0
+
+    def test_weak_fulltext_only_does_not_score_above_0_5(self):
+        """The original bug: a weak BM25=1 fulltext hit used to normalise
+        to score=1.0 because it was the top (only) candidate. Now it
+        scores honestly around 0.5."""
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingResolver,
+        )
+
+        resolver = CodingResolver()
+        merged = {
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Some weak hit",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "lexical_raw": 1.0,
+                "vector_raw": 0.0,
+                "had_exact_match": False,
+                "surface_form_status": "",
+            }
+        }
+        candidates = resolver._fuse_and_rank(merged)
+        assert 0.45 <= candidates[0].score <= 0.55
+
+    def test_strong_fulltext_bm25_5_scores_around_0_83(self):
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingResolver,
+        )
+
+        resolver = CodingResolver()
+        merged = {
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Strong hit",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "lexical_raw": 5.0,
+                "vector_raw": 0.0,
+                "had_exact_match": False,
+                "surface_form_status": "",
+            }
+        }
+        candidates = resolver._fuse_and_rank(merged)
+        assert 0.80 <= candidates[0].score <= 0.86
+
+    def test_high_vector_only_scores_at_cosine(self):
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingResolver,
+        )
+
+        resolver = CodingResolver()
+        merged = {
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Lexicon-gap hit",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "lexical_raw": 0.0,
+                "vector_raw": 0.92,
+                "had_exact_match": False,
+                "surface_form_status": "",
+            }
+        }
+        candidates = resolver._fuse_and_rank(merged)
+        assert 0.91 <= candidates[0].score <= 0.93
+
+    def test_lex_and_vector_agreement_earns_small_bonus(self):
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingResolver,
+        )
+
+        resolver = CodingResolver()
+        merged = {
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Lex+vec hit",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "lexical_raw": 0.0,
+                "vector_raw": 0.80,
+                "had_exact_match": True,  # lex_signal = 1.0
+                "surface_form_status": "",
+            }
+        }
+        candidates = resolver._fuse_and_rank(merged)
+        # max(1.0, 0.80) + 0.10 * min(1.0, 0.80) = 1.0 + 0.08 = capped to 1.0
+        assert candidates[0].score == 1.0
+
+    def test_cross_group_tag_penalty_halves_score(self):
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingResolver,
+        )
+
+        resolver = CodingResolver()
+        merged = {
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Wrong-group hit",
+                "semantic_tag": "procedure",  # caller wanted clinical/finding
+                "read_codes": [],
+                "lexical_raw": 1.0,
+                "vector_raw": 0.0,
+                "had_exact_match": True,
+                "surface_form_status": "",
+            }
+        }
+        candidates = resolver._fuse_and_rank(merged, expected_tag="finding")
+        assert candidates[0].score == 0.5
+
+    def test_tag_match_adds_small_boost_not_inflated(self):
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingResolver,
+        )
+
+        resolver = CodingResolver()
+        merged = {
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Tag-match hit",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "lexical_raw": 4.0,  # bm25=4 -> lex_signal = 0.8
+                "vector_raw": 0.0,
+                "had_exact_match": False,
+                "surface_form_status": "",
+            }
+        }
+        candidates = resolver._fuse_and_rank(merged, expected_tag="finding")
+        # 4/(4+1)=0.8, +0.10 tag boost = 0.9, capped at 1.0
+        assert 0.89 <= candidates[0].score <= 0.91
+
+    def test_tag_matching_candidate_wins_tie(self):
+        """Two candidates with equal raw lex strength: tag-match wins."""
+        from services.terminology_api.app.services.coding_resolver import (
+            CodingResolver,
+        )
+
+        resolver = CodingResolver()
+        merged = {
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Finding match",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "lexical_raw": 3.0,
+                "vector_raw": 0.0,
+                "had_exact_match": False,
+                "surface_form_status": "",
+            },
+            "c2": {
+                "concept_id": "c2",
+                "fsn": "Procedure neighbour",
+                "semantic_tag": "procedure",
+                "read_codes": [],
+                "lexical_raw": 3.0,
+                "vector_raw": 0.0,
+                "had_exact_match": False,
+                "surface_form_status": "",
+            },
+        }
+        candidates = resolver._fuse_and_rank(merged, expected_tag="finding")
+        assert candidates[0].snomed_concept_id == "c1"
 
 
 class TestBatchExact:

@@ -1,0 +1,128 @@
+# -- DO-LEO-AI-149 -- Pathways list on @leo/design-system
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-149"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-153"]
+    user_needs: ["UN-LEO-AI-071"]
+    risks_addressed: ["R-LEO-AI-105"]
+    verification_tests: ["VT-LEO-AI-151"]
+
+  specification:
+    title: "Pathways admin list rebuilt on the design-system"
+    description: |
+      Wave E Phase 6 splits the previous 815 LOC monolith into
+      four sibling modules under
+      services/ui/src/app/admin/pathways/:
+
+        - page.tsx -- slim orchestrator with StatHero + SegmentedTabs
+          + ToolbarActions chrome and a Stack of PathwayCards.
+          Owns all state and dialog handlers.
+        - PathwayCard.tsx -- presentational card on the canonical
+          12px / 18px / 3px-accent / motion-stagger pattern.
+        - dialogs.tsx -- NewPathwayDialog (template picker),
+          PublishDialog (with optional version notes),
+          DeletePathwayDialog (with type-the-name confirm gate).
+        - templates.ts -- PATHWAY_TEMPLATES catalogue (blank,
+          extraction-only, extraction-verify-persist,
+          training-audit) + PathwayTemplate type.
+        - types.ts -- shared PlanDefinition shape.
+
+      The detail-page editor
+      (services/ui/src/app/admin/pathways/[id]/page.tsx) is
+      explicitly out of scope for this DO and is deferred to a
+      dedicated session.
+    acceptance_criteria:
+      - criterion: "Imports + module split"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-001 passes"
+      - criterion: "Legacy custom h5 header removed"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-002 passes"
+      - criterion: "FHIR + routing handlers preserved"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-003 passes"
+      - criterion: "SegmentedTabs API correctness"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-004 passes"
+      - criterion: "Single primary action"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-005 passes"
+      - criterion: "Canonical stat tiles"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-006 passes"
+      - criterion: "PathwayCard token alignment"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-007 passes"
+      - criterion: "Full per-card action surface"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-008 passes"
+      - criterion: "Dialog exports + delete-name-gate"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-009 passes"
+      - criterion: "Template catalogue completeness"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-010 passes"
+      - criterion: "Loading / empty / no-match reachable"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-151 TC-011 passes"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/page.tsx"
+        description: "Slim orchestrator + chrome + state"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/PathwayCard.tsx"
+        description: "Canonical 12px/18px/3px-accent + motion stagger"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/dialogs.tsx"
+        description: "New / Publish / Delete dialogs"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/templates.ts"
+        description: "PATHWAY_TEMPLATES catalogue + helper baseConfig"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/pathways/types.ts"
+        description: "PlanDefinition shape"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 1280
+      key_functions:
+        - "PathwaysPage"
+        - "computeStats"
+        - "filterPlans"
+        - "PathwayCard"
+        - "NewPathwayDialog"
+        - "PublishDialog"
+        - "DeletePathwayDialog"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Preserve api.put status patch so retire / reactivate / publish remain reachable"
+      - "Preserve api.delete + type-the-name confirm gate so destructive deletes stay behind a deliberate barrier"
+      - "Preserve api.post template-payload contract so all four starter templates round-trip to the FHIR API correctly"
+    risk_control_measures:
+      - "Single primary ToolbarAction reduces accidental destructive clicks (R-105 mitigation)"
+      - "Delete dialog requires the user to type the pathway name verbatim (R-105 mitigation, kept from the legacy implementation)"
+      - "Publish dialog stays behind an explicit confirmation step with optional version notes"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

@@ -1,0 +1,323 @@
+======================================================================
+PATIENT      : 4245896566
+EPISODE      : 2eb59881b2144bc3
+CANCER_TYPE  : bladder
+STATUS       : stale_post_specialist
+REFERRAL     : 2024-04-11
+WINDOW       : 2024-03-28 .. 2024-07-10 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2024-04-02  referral                enc=1ed470e9-9f88-46a6-b04e-05089a05f76b
+  2024-04-11  referral                enc=5b9ca039-e569-4af4-804f-a3e29effa53d
+  2024-04-23  referral                enc=b6878ebd-6861-4085-9ad5-db62a2d7f17b
+  2025-03-01  first_seen              enc=9e17e3bf-fcf2-4bfa-a8b0-b2a88d36facd
+  2025-03-01  first_seen              enc=4c8b28ae-5218-4886-9a9c-845474e2ace7
+  2025-03-05  first_seen              enc=f364688f-0510-4f71-b1fe-8154a2c99f75
+
+Encounters in window (n=44):
+
+--- 01 2024-04-02 [other] milestones=[] eid=101da744-daa4-48f8-8285-31260895a8d8 ---
+08:05 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 02 2024-04-02 [other] milestones=[] eid=58c77028-6ffe-4ca3-adce-6492a3b5e2b5 ---
+08:06 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 03 2024-04-02 [other] milestones=[] eid=6c1a82fd-8989-4ddc-baf0-e0d9eee9bead ---
+Confirmation of appointment at Woodbrook Medical Centre - 02 Apr 2024 at 09:15 with Dr Jaspreet Johal. Please call the surgery on 01509 239166 if you are unable to attend.
+
+--- 04 2024-04-02 [other] milestones=[] eid=8be63e7b-cb7b-4eff-b8b6-0aad5812c1d1 ---
+Confirmation of appointment at Woodbrook Medical Centre - 11 Apr 2024 at 11:10 with  Thomas Edwards. Please call the surgery on 01509 239166 if you are unable to attend.
+
+--- 05 2024-04-02 [other] milestones=[] eid=c9d96c8a-f865-4a92-bdb9-a620b46aff3a ---
+09:14 - Surgery: JOHAL, Jaspreet (Dr) (Clinical Practitioner Access Role) 
+History: F2F  
+Explained outcome of CT scan - NAD  
+USS - NAD, little debris in bladder  
+Bloods reassuring  
+Unsure as to why nothing has shown on the scan 
+Wonders if related to eating/ moving abdominal viscrea  
+Wonders if related to c - section  
+No PR bleed, no weight loss, no change in bowel habits, no diarrhoea/ constipation or vomiting
+Examination: Has pinpoint tenderness over right abdominal wall - mid clavicular, T8 
+No lump  
+Plan: Reassurance  
+Advised core exercises  
+A+G Gastro - patient keen for further investigations  
+Explained currently not clinically indicated
+
+--- 06 2024-04-02 [IN-EP] milestones=['referral'] eid=1ed470e9-9f88-46a6-b04e-05089a05f76b ---
+12:33 - Surgery: JOHAL, Jaspreet (Dr) (Clinical Practitioner Access Role) 
+- PRISM Advice & Guidance Request -  questionnaire started - (finalised: 02 Apr 2024 12:33)
+ PRISM Pathway & Referral Impl SysteM V3
+   Content
+       - PRISM Advice & Guidance Request -  questionnaire started - (finalised: 02 Apr 2024 12:33)
+
+--- 07 2024-04-03 [other] milestones=[] eid=dcfc46fa-66f1-4d92-8af2-826b665239e9 ---
+09:08 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+History: Advice and guidance request has been sent today to Gi and Liver as per Dr Johal. To await response.
+Choose and book advice and guidance request (XaYv5)
+Choice and booking enhanced services administration (XaMJa)
+Hospital Choose and book advice and guidance request
+Advice & Guidance Request PRISM to Unknown 
+Hospital Choose and book advice and guidance request updated: Waiting For Information
+
+--- 08 2024-04-05 [other] milestones=[] eid=d2bf94bd-7fc7-455f-8047-8168d75773f9 ---
+16:56 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+History: GI and Liver surgery have responded to Dr Johal A&G request - PDF copy placed in to Attachments for reference. Task sent to GP.
+Acrobat Document: A&G MT.pdf - A&G Response
+
+--- 09 2024-04-09 [other] milestones=[] eid=3c1ef6c3-c459-4f27-97a4-5a484e37c135 ---
+15:05 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)
+
+--- 10 2024-04-09 [other] milestones=[] eid=31edcfba-7db8-4f14-9dc9-68ee28f4fcfd ---
+15:06 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+Patient telephone number (9159.) - 07813 832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+Please contact the surgery to pre-book a follow up appointment with Dr Johal.
+This has been authorised as a pre-booked appointment.
+Thanks
+Woodbrook Medical Centre
+
+--- 11 2024-04-11 [other] milestones=[] eid=5a50883c-6da8-4d79-95e7-e3cbd33f3819 ---
+** Care started at: LLR Referral Support Service **
+
+--- 12 2024-04-11 [other] milestones=[] eid=0796784b-79f7-4064-8d66-16b59aac845e ---
+11:06 - Surgery: MCDOWELL, Giselle (Receptionist Access Role)
+
+--- 13 2024-04-11 [other] milestones=[] eid=1721b3b0-b252-436e-ada0-87dec10e16ac ---
+11:08 - Surgery: EDWARDES, Paula (Ms) (Receptionist Access Role)
+
+--- 14 2024-04-11 [other] milestones=[] eid=c4c15467-ae3d-49b3-b588-46d20ce5f84d ---
+11:10 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role)
+
+--- 15 2024-04-11 [other] milestones=[] eid=bca56b6a-3035-40b9-92c1-12216c02ef68 ---
+Confirmation of appointment at Woodbrook Medical Centre - 23 Apr 2024 at 09:45 with Dr Jaspreet Johal. Please call the surgery on 01509 239166 if you are unable to attend.
+
+--- 16 2024-04-11 [IN-EP] milestones=['referral'] eid=5b9ca039-e569-4af4-804f-a3e29effa53d ---
+11:10 - Surgery: EDWARDS, Thomas (Health Professional Access Role) 
+History: Consent
+ongoing back pain, seen physio with no benefit. Feels like symptoms are worsening.
+still getting flare ups where pain goes down left leg to knee.
+No bladder or bowel, no saddle aneasthesia, no leg weakness, no bilateral sciatica, no sexual dysfunction.
+Pain been present since teenage years, 
+Explored stress and other factors of pain with physio but was not able to find a trigger.
+Keen to get checked out and scanned and if nothing found is happy to manage things ongoing.
+Plan: refer to ortho.
+Review if needed
+advised to come back if worsens
+- PRISM MSK Radicular and Non Radicular Back Pain -  questionnaire started - (finalised: 11 Apr 2024 11:10)
+ - PRISM Drawing Radicular and Non Radicular
+    
+ PRISM Pathway & Referral Impl SysteM V3
+   M
+ - PRISM MSK all Pathway
+   Entries from previous template version
+      - PRISM MSK Radicular and Non Radicular Back Pain -  questionnaire started - (finalised: 11 Apr 2024 11:10)
+
+--- 17 2024-04-11 [other] milestones=[] eid=c720d607-4062-4279-8155-665aef5fd460 ---
+17:00 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+History: Patient has been referred to MSK triage today as per Thomas Edwards. The service will contact the patient directly with details of an appointment. Letter sent to patient.
+Referral to orthopaedic triage service (XaZGl)
+Choice and booking enhanced services administration (XaMJa)
+Hospital Referral to orthopaedic triage service
+MSK Radicular and Non-Radicular Back Pain PRISM * to Unknown 
+Hospital Referral to orthopaedic triage service updated: Waiting For Information
+
+--- 18 2024-04-11 [other] milestones=[] eid=640070c8-0bde-4a77-825d-54c86a4e5b47 ---
+17:41 - Surgery: BROWN, Catherine (Clerical Access Role) Entered at: LLR Referral Support Service
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared
+
+--- 19 2024-04-11 [other] milestones=[] eid=4bd615d1-589a-453c-b409-f4f646cebcc8 ---
+17:41 - Surgery: BROWN, Catherine (Clerical Access Role) Entered at: LLR Referral Support Service
+SystmOne Incoming Record Sharing consent changed to: Not asked - Record shared
+
+--- 20 2024-04-11 [other] milestones=[] eid=83b40bc5-58eb-42db-9ed4-da934b8a12df ---
+17:41 - Surgery: BROWN, Catherine (Clerical Access Role) Entered at: LLR Referral Support Service
+Referral In to LLR Referral Support Service for Trauma & Orthopaedics: Ended on 15 Apr 2024 08:43
+With the Following Intervention(s)
+Referral Triage Completed
+Status Update for Trauma & Orthopaedics Referral In: Accepted for triage, Status changed: 11 Apr 2024 17:41
+
+--- 21 2024-04-11 [other] milestones=[] eid=7b7ecfda-21e0-4ab2-a356-340359d1d638 ---
+17:48 - Surgery: BROWN, Catherine (Clerical Access Role) Entered at: LLR Referral Support Service
+Activity: Referral In Referral In with Patient Record
+
+--- 22 2024-04-13 [other] milestones=[] eid=1c559e21-134b-460d-b69f-1f5fd614f0c5 ---
+18:14 - WONG, Jean (Doctor)  Entered at: LLR Referral Support Service
+ OLD - DO NOT USE - RSS Clinical Triage Template
+   MSK Triage
+      Triage:  Triaged to Secondary Care
+      Referral to clinic:  Orthopaedics: Spine - Back Pain (not Scoliosis / Defrom)
+Activity: Triaged to Secondary Care Triage with Patient Record
+Triage (Ua1SN) - Triaged to Secondary Care
+Referral to clinic (8HT..) - Orthopaedics: Spine - Back Pain (not Scoliosis / Defrom)
+
+--- 23 2024-04-15 [other] milestones=[] eid=c14185be-086c-4c53-b18f-39313a62832a ---
+** Care ended at LLR Referral Support Service **
+
+--- 24 2024-04-15 [other] milestones=[] eid=4b87ad40-cbb6-4e3f-9da4-407e0a5f84d6 ---
+08:42 - Surgery: NDLOVU, Thokozani (Clerical Access Role) Entered at: LLR Referral Support Service
+Status Update for Trauma & Orthopaedics Referral In: Discharged From Care, Status changed: 15 Apr 2024 08:44
+
+--- 25 2024-04-23 [IN-EP] milestones=['referral'] eid=b6878ebd-6861-4085-9ad5-db62a2d7f17b ---
+09:51 - Surgery: JOHAL, Jaspreet (Dr) (Clinical Practitioner Access Role) 
+History: F2F 
+Explained A+G advice - patient not keen on starting amitriptyline  
+Believes ? colon getting twisted  or LN enlarging and reducing in size leading to flare ups 
+No new bowel sx  
+Examination: Unable to discern lump on examination today  
+Tenderness at mid clavicular T 8 region  
+Plan: A+G O+G - patient request  
+Refer to Gastro
+- PRISM Advice & Guidance Request -  questionnaire started - (finalised: 23 Apr 2024 09:51)
+- PRISM Gastroenterology - General -  questionnaire started - (finalised: 23 Apr 2024 09:51)
+ PRISM Pathway & Referral Impl SysteM V3
+   Content
+       - PRISM Advice & Guidance Request -  questionnaire started - (finalised: 23 Apr 2024 09:51)
+       - PRISM Gastroenterology - General -  questionnaire started - (finalised: 23 Apr 2024 09:51)
+
+--- 26 2024-04-23 [other] milestones=[] eid=9c6b87ca-8c04-42a4-95df-a5fd82e2ae63 ---
+10:18 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+History: Patient has been referred to the gastroenterology triage service at Leicester Royal Infirmary as per Dr Johal. The hospital will contact the patient directly with details of an appointment. Letter sent to patient.
+Referral to gastroenterology service (8H48.)
+Choice and booking enhanced services administration (XaMJa)
+rtf: US Report.rtf
+rtf: CT Report.rtf
+Hospital Referral to gastroenterology service
+Gastroenterology (General) PRISM * to Unknown 
+Hospital Referral to gastroenterology service updated: Waiting For Information
+
+--- 27 2024-04-23 [other] milestones=[] eid=db0abf79-17f9-400f-8b8f-1ed7ad49e6e2 ---
+10:23 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+History: Advice and guidance request has been sent today to Gynaecology as per Dr Johal. To await response.
+Choose and book advice and guidance request (XaYv5)
+Choice and booking enhanced services administration (XaMJa)
+rtf: CT Report.rtf
+rtf: US Report.rtf
+Hospital Choose and book advice and guidance request
+Advice & Guidance Request PRISM to Unknown 
+Hospital Choose and book advice and guidance request updated: Waiting For Information
+
+--- 28 2024-05-08 [other] milestones=[] eid=5bbfbe77-6547-4ebd-b41c-fcbb0b20dbc3 ---
+10:24 - Surgery: INGLE, Kirsty (Receptionist Access Role)
+
+--- 29 2024-05-14 [other] milestones=[] eid=0e7fa5cd-4916-40b2-89cd-c806c6ea6a2c ---
+14:57 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Gynaecology have responded to A&G request - PDF copy placed in to Attachments for reference. Task sent to GP.
+Acrobat Document: A&G MT.pdf - A&G Response
+
+--- 30 2024-05-14 [other] milestones=[] eid=ee493812-b248-45ff-ac55-4bfa61498202 ---
+16:19 - Surgery: JOHAL, Jaspreet (Dr) (Clinical Practitioner Access Role)
+
+--- 31 2024-05-14 [other] milestones=[] eid=43a3af97-e1a3-4c8f-a219-03c170ee4153 ---
+16:22 - Surgery: JOHAL, Jaspreet (Dr) (Clinical Practitioner Access Role) 
+Patient telephone number (9159.) - 07813 832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+We have received advice and guidance from Gynaecology. They stated if the lump is not related to the c-section scar e.g. 'overhang' in the region of the scar and CT and ultrasound have been normal, there is no further advice from the team. 
+If you believe it is overhang above the c section scar - they have advised gradual core exercises. 
+If you would like to discuss further, please kindly book an appointment.
+Best wishes, Dr Johal
+Woodbrook Medical Centre
+
+--- 32 2024-05-24 [other] milestones=[] eid=81322ccc-dde0-4674-9c1a-46c3678384c0 ---
+10:55 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role) 
+Diagnosis Marked in Error: Wrong data entered
+11 Apr 2024 11:10, Consultation for minor injury (XaJme) (SNOMED: 113011000000100),
+Template Entry Marked in Error: Wrong data entered
+
+Template Marked in Error:
+
+--- 33 2024-06-05 [other] milestones=[] eid=e627f883-5b07-40a4-8258-709108312329 ---
+** Care ended at LLR Musculoskeletal Physiotherapy **
+
+--- 34 2024-06-05 [other] milestones=[] eid=866b62d1-0763-4cba-9e76-a575f022c24c ---
+08:20 - Out-patient Clinic: HANDY, Sherelyn (Clerical Access Role) Entered at: LLR Musculoskeletal Physiotherapy
+ Communication Template
+   Communication Template
+      Comment note:  pt has not been in contact with the booking office for 12wks, therefore has now been discharged from physiotherapy.
+Status Update for Musculoskeletal Service Referral In: Discharged From Care, Status changed: 05 Jun 2024 08:20
+Comment note (XaIg6) - pt has not been in contact with the booking office for 12wks, therefore has now been discharged from physiotherapy.
+
+--- 35 2024-07-01 [other] milestones=[] eid=075a4e72-4232-41c9-9e1a-624b1b8b9755 ---
+15:23 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)
+
+--- 36 2024-07-03 [other] milestones=[] eid=24439261-17a2-4fbb-8cac-be389f8d1f6b ---
+** Care started at: Carillon PCN **
+
+--- 37 2024-07-03 [other] milestones=[] eid=ae887168-6f97-443b-8812-ef206344a7ce ---
+11:10 - Carillon PCN: SLOANE, Jade (Admin/Clinical Support Access Role) Entered at: Carillon PCN
+Activity: Record Keeping (5 minutes) Administration with Patient Record
+
+--- 38 2024-07-03 [other] milestones=[] eid=b2572a80-c968-4aea-9625-4a55e4b4374c ---
+14:36 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+Referral to social prescribing service (XaaEC)
+ Social Prescribing Referral (Carillon PCN)
+   Reason for referral:  as per JS request.
+Reason for referral (XaIpS) - as per JS request.
+
+--- 39 2024-07-03 [other] milestones=[] eid=6b8c36da-701a-4d37-b9b0-fd3968a8e9df ---
+14:38 - SLOANE, Jade (Admin/Clinical Support Access Role) Entered at: Carillon PCN
+ Social Prescribing
+   Notes
+      Notes:  Reason for SP referral - referral came through on son's record (2 y/o), looking for support groups for parents for children with ASD.
+Referral In to Carillon PCN for Social Prescribing: Ended on 28 Feb 2025 15:38
+With the Following Intervention(s)
+Treatment completed
+Status Update for Social Prescribing Referral In: Waiting For Assessment, Status changed: 03 Jul 2024 14:38
+Current Home Address: 97 Buckingham Drive, Loughborough LE11 4TD
+Activity: Record Keeping (5 minutes) Administration with Patient Record
+Overview Notes (Y0028) - Reason for SP referral - referral came through on son's record (2 y/o), looking for support groups for parents for children with ASD.
+
+--- 40 2024-07-03 [other] milestones=[] eid=3a2b9ada-f12f-4fca-9e0f-45dd8ab19839 ---
+14:38 - Surgery: Unknown Staff Member  Entered at: Bed Bureau
+Current Home Address: 97 Buckingham Drive, Loughborough LE11 4TD
+
+--- 41 2024-07-03 [other] milestones=[] eid=5ed58625-f374-4b7d-9074-860aa1ab4654 ---
+14:39 - Surgery: SLOANE, Jade (Admin/Clinical Support Access Role) Entered at: Carillon PCN
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared
+
+--- 42 2024-07-10 [other] milestones=[] eid=f5519f70-fedb-4701-abc6-7e96771d7614 ---
+13:40 - Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) 
+Fluconazole 150mg capsules - 3 capsule - 150mg every 72 hours
+ETP2 Nurse Independent Prescriber FP10: Not Yet Printed - Signed
+Pathology Request (Complete):
+High Vaginal Swab (Requested)
+Pathology Request (Complete):
+Chlamydia and GC Detection (Swab) (Requested)
+Summary Care Record Update
+
+--- 43 2024-07-10 [other] milestones=[] eid=55d25ce7-59f4-4c19-a03d-480d27773851 ---
+13:52 - Surgery: Auto-filed  
+Sample serology (43L..)
+Chlamydia deoxyribonucleic acid detection (XaJAk) - Not Detected by NAATs
+Neisseria gonorrhoeae nucleic acid detection (XaILd) - Not Detected by NAATs
+Clinical Information: Reasons for Request:      sUSPECTED CANDIDA.
+Sample serology Report,ï¿½Normal,ï¿½No Further Action. Review done by PATEL, Krishan (Dr) - 12 Jul 2024 08:03
+
+--- 44 2024-07-10 [other] milestones=[] eid=2b4dd660-b506-40c9-b671-1f92520c67b4 ---
+13:52 - Surgery: Auto-filed  
+Genital microscopy, culture and sensitivities (XaIw1)
+  Candida species ISOLATED
+  Trichomonas vaginalis not isolated
+  Gardnerella vaginalis not isolated; To prevent delays in investigations, please send
+Chlamydia swabs accompanied by a Virology form and
+vaginal discharge swabs with a Microbiology form.
+The criteria for reporting antimicrobial
+susceptibilities has recently changed. From the end
+of February 2021 agents reported as 'intermediate' can
+still be considered effective, provided that the
+organism has increased exposure to the agent. Increased
+exposure may be achieved by either increasing the dose,
+frequency, or mode of administration. A further
+explanation can be found in the Microbiology handbook.
+Clinical antimicrobial advice pertaining to this should
+be sought from the Microbiology team as per usual
+instruction.
+Clinical Information: Reasons for Request:      sUSPECTED CANDIDA.
+Genital microscopy, culture and sensitivities Report,ï¿½Abnormal, but expected,ï¿½Need to speak to nurse: spoke to Suzanne - trying extended course of fluconazole. Review done by JOHAL, Jaspreet (Dr) - 16 Jul 2024 08:32
+

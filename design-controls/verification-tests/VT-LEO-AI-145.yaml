@@ -1,0 +1,280 @@
+# -- VT-LEO-AI-145 -- CRUD Knowledge tabs on @leo/design-system
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-145"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-147"]
+    risks: ["R-LEO-AI-100"]
+
+  metadata:
+    title: "CRUD Knowledge tabs chrome + body redesign"
+    description: >
+      Verifies the four CRUD Knowledge pages (Context Rules, Surface
+      Forms, Domains, Terminology) consume the @leo/design-system
+      chrome primitives, that legacy page-owned chrome (Breadcrumbs,
+      h5 page titles, "Domain Configuration" heading) is gone, that
+      every existing data-loading and write handler is still wired,
+      that ToolbarActions exposes a single primary action per page,
+      and that each page renders the correct body primitive
+      (ReviewListCard for Context Rules, FilterBar for Surface
+      Forms toolbar, DomainCard grid for Domains, PackageCard +
+      LogPanel for Terminology). The test does a static-source scan
+      because each page is a Next.js route with its own data-loading
+      lifecycle (Neo4j calls, EventSource streaming, etc.); a full
+      render test is reserved for the Phase 7 Playwright sweep.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/crud-tabs-chrome.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "node >= 20"
+      - "npm install run in services/ui"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-145-TC-001a"
+      case_name: "Context Rules imports the right design-system primitives"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read context-rules/page.tsx as text"
+          expected_result: "Import block from @leo/design-system contains StatHero, SegmentedTabs, ToolbarActions, ReviewListCard, ProgressiveReveal"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "All five primitives imported from @leo/design-system"
+
+    - case_id: "VT-145-TC-001b"
+      case_name: "Surface Forms imports the right design-system primitives"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read surface-forms/page.tsx as text"
+          expected_result: "Import block from @leo/design-system contains StatHero, FilterBar, ToolbarActions"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "All three primitives imported"
+
+    - case_id: "VT-145-TC-001c"
+      case_name: "Domains imports the right design-system primitives"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read domains/page.tsx as text"
+          expected_result: "Import block from @leo/design-system contains StatHero, SegmentedTabs, ToolbarActions"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "All three primitives imported"
+
+    - case_id: "VT-145-TC-001d"
+      case_name: "Terminology imports the right design-system primitives"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read terminology/page.tsx as text"
+          expected_result: "Import block from @leo/design-system contains StatHero, ToolbarActions"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Both primitives imported"
+
+    - case_id: "VT-145-TC-002a"
+      case_name: "Context Rules removes legacy Breadcrumbs and h5 page title"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search context-rules/page.tsx source"
+          expected_result: "No <Breadcrumbs and no h5 page title competing with the chrome"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Legacy chrome removed"
+
+    - case_id: "VT-145-TC-002b"
+      case_name: "Surface Forms removes legacy Breadcrumbs and h5 page title"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search surface-forms/page.tsx source"
+          expected_result: "No <Breadcrumbs and no h5 page title"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Legacy chrome removed"
+
+    - case_id: "VT-145-TC-002c"
+      case_name: "Domains removes legacy back-button and Domain Configuration heading"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search domains/page.tsx source"
+          expected_result: "No 'Domain Configuration' heading and no IconButton-Back-to-settings + h5 cluster"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Legacy chrome removed"
+
+    - case_id: "VT-145-TC-002d"
+      case_name: "Terminology removes legacy Breadcrumbs and h5 page title"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search terminology/page.tsx source"
+          expected_result: "No <Breadcrumbs and no h5 page title"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Legacy chrome removed"
+
+    - case_id: "VT-145-TC-003a"
+      case_name: "Context Rules preserves loadRules / handleAdd / handleDeactivate / exportContextRulesPdf"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Search context-rules/page.tsx source for handler definitions"
+          expected_result: "All four handlers are still defined and wired"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "All legacy handlers preserved"
+
+    - case_id: "VT-145-TC-003b"
+      case_name: "Surface Forms preserves dedupe / suggest / delete / addAlias / audit handlers"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Search surface-forms/page.tsx source for handler definitions"
+          expected_result: "handleAuditDuplicates, handleDeduplicate, handleSuggest, handleDeleteGroup, handleAddAlias all still wired"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "All legacy handlers preserved"
+
+    - case_id: "VT-145-TC-003c"
+      case_name: "Domains preserves loadDomains and createDomain"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Search domains/page.tsx source"
+          expected_result: "Both data handlers still called"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Data handlers preserved"
+
+    - case_id: "VT-145-TC-003d"
+      case_name: "Terminology preserves fetchStatus / startSync / cancelSync / EventSource"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Search terminology/page.tsx source"
+          expected_result: "fetchStatus, startSync, cancelSync, EventSource all still wired"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Streaming sync handlers preserved"
+
+    - case_id: "VT-145-TC-004a"
+      case_name: "Context Rules ToolbarActions exposes Export PDF + Add rule"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search context-rules/page.tsx for ToolbarAction ids"
+          expected_result: "id 'export-pdf' and id 'add-rule' both present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Single primary action with secondary export"
+
+    - case_id: "VT-145-TC-004b"
+      case_name: "Surface Forms ToolbarActions exposes Audit + Add concept"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search surface-forms/page.tsx for ToolbarAction ids"
+          expected_result: "id 'audit-duplicates' and id 'add-concept' both present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Single primary action with secondary audit"
+
+    - case_id: "VT-145-TC-004c"
+      case_name: "Domains ToolbarActions exposes Create area gated by showCreateButton"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search domains/page.tsx for ToolbarAction id and showCreateButton gating"
+          expected_result: "id 'create-area' present and showCreateButton appears in source"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Single primary action with role gating preserved"
+
+    - case_id: "VT-145-TC-004d"
+      case_name: "Terminology ToolbarActions exposes Refresh"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search terminology/page.tsx for ToolbarAction id"
+          expected_result: "id 'refresh-status' present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Refresh available from chrome"
+
+    - case_id: "VT-145-TC-005a"
+      case_name: "Context Rules renders ReviewListCard + ProgressiveReveal body"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search context-rules/page.tsx for body primitives"
+          expected_result: "<ReviewListCard and <ProgressiveReveal both rendered"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Body primitive matches DI-147 AC-005"
+
+    - case_id: "VT-145-TC-005b"
+      case_name: "Surface Forms wraps the toolbar in FilterBar"
+      priority: "medium"
+      test_steps:
+        - step_number: 1
+          action: "Search surface-forms/page.tsx for <FilterBar"
+          expected_result: "FilterBar present at the top of the page body"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "FilterBar wraps the search + toolbar row"
+
+    - case_id: "VT-145-TC-005c"
+      case_name: "Domains renders framer-motion DomainCard grid"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search domains/page.tsx for DomainCard, framer-motion import, and data-testid='domains-grid'"
+          expected_result: "All three present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "DomainCard grid is the body primitive"
+
+    - case_id: "VT-145-TC-005d"
+      case_name: "Terminology renders PackageCard + LogPanel"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search terminology/page.tsx for PackageCard, LogPanel, and data-testid='terminology-log-panel'"
+          expected_result: "All three present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "PackageCard list and LogPanel render in the body"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-145/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-17"
+      executed_by: "Wave E Phase 3 automation"
+      result: "pass"
+      notes: "All 20 test cases pass under jest 30; 0 failures."

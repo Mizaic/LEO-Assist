@@ -1,0 +1,959 @@
+======================================================================
+PATIENT      : 4245896566
+EPISODE      : 78f823244c24ce2a
+CANCER_TYPE  : brain
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-02-24
+WINDOW       : 2025-02-10 .. 2025-05-25 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-02-24  referral                enc=1740b631-63b0-4eb1-ab93-d16d28c7a7ef
+  2025-02-24  referral                enc=047a4ebf-4973-4a12-b75a-9984def13b62
+  2025-03-01  first_seen              enc=9e17e3bf-fcf2-4bfa-a8b0-b2a88d36facd
+  2025-03-01  first_seen              enc=4c8b28ae-5218-4886-9a9c-845474e2ace7
+  2025-03-05  first_seen              enc=f364688f-0510-4f71-b1fe-8154a2c99f75
+  2025-03-22  referral                enc=9e469866-1e72-4261-88d2-d266d5cd7acc
+  2025-06-03  referral                enc=35ee1c46-18ce-41ce-8ed8-9a3a20459a25
+
+Encounters in window (n=83):
+
+--- 01 2025-02-11 [other] milestones=[] eid=055f04a4-7ca3-4098-8781-228917d3762f ---
+Dear Michelle Torr
+
+Your appointment has been booked for 11 Feb 2025 11:15 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 02 2025-02-11 [other] milestones=[] eid=80eba0e8-4b3e-420f-887e-67246e7bf1db ---
+11:37 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role) 
+History: f2f appt 
+ongoing situation with financial stress- see above cons on 3rd feb. 
+signed off but struggling to sleep. 
+also having hot and cold shivers in the last 3 days, no cough or cold sx. thought maybe stress reaction but been worried to take paracetamol with zopiclone. 
+in tuch with citizens advice as well. 
+work very supportive. 
+Examination: tearful upset. 
+O/E - temperature (XaBzA) 37.7 degC
+obs ok- breathing nad. 
+Plan: supportive chat - 
+possible viral illness - conservative management. 
+trial of mirtazapine to help with mood and sleep  
+f/u in 3 weeks appt given. sooner if any concerns.
+Mirtazapine 15mg tablets - 28 tablet - take one at night
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+
+--- 03 2025-02-11 [other] milestones=[] eid=1cfc4c45-ae29-44b0-b309-644465443578 ---
+Dear Michelle Torr
+
+Your appointment has been booked for 05 Mar 2025 09:45 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 04 2025-02-13 [other] milestones=[] eid=7ee2e065-badd-46ab-8b72-d91cddd5e669 ---
+08:01 - Surgery: BAILEY, Cleopatra (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+Telephone encounter (9N31.)
+
+--- 05 2025-02-13 [other] milestones=[] eid=b533e91e-1681-4417-b66a-b848e04b0558 ---
+Dear Michelle Torr
+
+Your appointment has been booked for 13 Feb 2025 08:50 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 06 2025-02-13 [other] milestones=[] eid=4bee7c55-cfde-40eb-8a21-b26ce4dbce65 ---
+08:59 - GP Surgery: SURATI, Sufyan (Dr) (Clinical Practitioner Access Role) 
+125 / 81
+History: F2F - seen alone  
+
+Woke up this morning with itchy rash all over body and joint pains   
+Has had general aches and pains and fevers for the past couple of weeks    
+No URTI symptoms - no cough/sore throat/SOB/runny or blocked nose/chest pains/palpitations   
+Still feeling feverish   
+PU fine and BO fine   
+Has been struggling with stresss recently and wonders if could be due to this   
+Also started a new contraceptive 3 days ago - Slynd  
+Hasn't started taking mirtazapine yet   
+Nobody else in household has similar symptoms   
+Taking paracetamol and ibuprofen for fevers but not tried anything for the rash yet  
+Bloods all normal except vit D which was 33 - has started taking otc supplements   
+Examination: Alert, comfortable  
+Widespread mildly erythematous, bumpy rah all over body
+No signs of weeping/discharge/spots  
+Blanching rash  
+Photos taken - please see  
+No strawberry tongue
+Throat: no redness or exudate, tonsils not inflamed  
+Diagnosis: ?Reaction to Slynd or stress related 
+Could also be viral exanthem?
+Plan: Trial antihistamine otc  
+If not settling by next week, book with Dr Bridges to discuss Slynd as could be reacting to that  
+If rash worsening in the meantime or develops any SOB/lip or face swelling, go to A&E/UCC/call 999
+ Common GP Values and Examination Codes  GP
+   Values
+      BP: 125 / 81
+      Temperature: 36.6 C
+      Pulse: 74 bpm
+      Blood oxygen saturation: 100 %
+      Respiratory rate: 16 breath/min
+Summary Care Record Update
+Temperature (X75Xk) 36.6 C
+Pulse (XaIBo) 74 bpm
+Blood oxygen saturation (X7708) 100 %
+Respiratory rate (X774f) 16 breath/min
+
+--- 07 2025-02-13 [other] milestones=[] eid=5aa10fe5-6df4-479f-b1cf-caae5485d057 ---
+09:11 - Surgery: SURATI, Sufyan (Dr) (Clinical Practitioner Access Role) 
+Patient telephone number (9159.) - 07813 832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+Please use the link below to send photos of the issue we discussed. These may be saved to your medical record.
+Please do not send photos that include intimate areas of the body, such as the bottom, breasts or genitals.
+TO RESPOND, please follow this link: (link will autogenerate here)
+Thanks, Sufyan Surati
+Woodbrook Medical Centre
+
+--- 08 2025-02-13 [other] milestones=[] eid=1bbe5a2d-dc87-4ab4-be9d-3d4ff957342d ---
+09:14 - Surgery: SURATI, Sufyan (Dr) (Clinical Practitioner Access Role) 
+Online questionnaire completed by patient
+Dear Miss Torr,
+
+Please use the link below to send photos of the issue we discussed. These may be saved to your medical record.
+
+Please do not send photos that include intimate areas of the body, such as the bottom, breasts or genitals.
+
+Thanks, Sufyan Surati
+Woodbrook Medical Centre
+
+Response:
+Photos of rash
+Patient attached photo or document
+Patient uploaded 3 attachments
+Received on: 13/02/2025 at 09:13
+URL: https://web.accurx.com/api/conversation/patientupload/5542/33164410/tdf4ydywtv - Photo submitted by patient
+JPEG Image: qz4lq2ys.jpg - Photo submitted by patient (compressed file, for original please see photo link in affiliated consultation)
+URL: https://web.accurx.com/api/conversation/patientupload/5542/33164410/jeeeqfzq5x - Photo submitted by patient
+JPEG Image: mdgm0uw3.jpg - Photo submitted by patient (compressed file, for original please see photo link in affiliated consultation)
+URL: https://web.accurx.com/api/conversation/patientupload/5542/33164410/htwwpq4r22 - Photo submitted by patient
+JPEG Image: sbv3s02j.jpg - Photo submitted by patient (compressed file, for original please see photo link in affiliated consultation)
+
+--- 09 2025-02-13 [other] milestones=[] eid=b4322249-c2ee-4d2c-b521-d2d3870d4df7 ---
+13:04 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+ Clinical Supervision
+   Discussed with supervisor: Yes
+   Patient present: No (Y0428)
+   Notes:  trial of antihistamine, emollient. 
+rv inb
+Discussed with clinical supervisor (XaXMv)
+No (Y0428)
+Overview Notes (Y0028)
+trial of antihistamine, emollient. 
+rv inb
+
+--- 10 2025-02-14 [other] milestones=[] eid=3bb7ccf0-dc0e-463b-aab4-3e588d9f2f29 ---
+08:01 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 11 2025-02-14 [other] milestones=[] eid=e6bfd339-2a98-4770-b29e-5b021eeb76fe ---
+Dear Michelle Torr
+
+Your appointment has been booked for 14 Feb 2025 08:30 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 12 2025-02-14 [other] milestones=[] eid=f5cf6a31-6442-40a9-8b77-99f21c6e9a54 ---
+08:39 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role) 
+ Consultation.
+   General
+      Encounter: Telephone consultation (XaIge)
+      H:  Spoke to patient 
+ID confirmed 
+See notes from Dr Surati 
+Started with rash 2 days after started POP -Slynd
+She is unsure if related but concerned as rash not settling and coming up to weekend 
+Is taking antihistimes
+Nil worsening rash and nil wheeze/respiratory or GI symptoms
+      P:  Discussed to stop Slynd -happy to switch back to Desogestrel for now and see if rash settles, review if rash not settling/symptoms worsening/concerns.
+      Advice if worsens, no better or concerns: Yes
+Telephone consultation (XaIge)
+Clinical history and observations (X76sV)
+Spoke to patient 
+ID confirmed 
+See notes from Dr Surati 
+Started with rash 2 days after started POP -Slynd
+She is unsure if related but concerned as rash not settling and coming up to weekend 
+Is taking antihistimes
+Nil worsening rash and nil wheeze/respiratory or GI symptoms
+Plan (XaIVg) - Discussed to stop Slynd -happy to switch back to Desogestrel for now and see if rash settles, review if rash not settling/symptoms worsening/concerns.
+Patient given advice (8CA..)
+
+--- 13 2025-02-17 [other] milestones=[] eid=cc17e23e-0d0e-4357-a2fb-61b6b8fcc931 ---
+09:58 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) 
+History: Tel appt. Stress.
+
+Lots of stress recently. Seen by Dr AK and KV.
+Some financial issues following car accident.
+Had some zopiclone to help sleep. Did not help. Felt a bit muddled on these. Also came out in a rash. Rash has settled now.
+
+Has been on mirtazapine for 4 days. Felt more tired, weak, aching, lethargic since then.
+No reported thoughts dSH or suicide.
+Med3 has expired. Does not feel ready to go back to work.
+Examination: Sounds well on phone.
+Diagnosis: Likely mirtazapine SEs.
+Plan: Stop mirtazapine.
+Med3.
+Keep review with Dr AK in 3 weeks's time. review sooner if worsening / new Sx.
+If struggling with sleep again can trial OTC nytol.
+eMED3 (2010) new statement issued, not fit for work (XaX1E)
+PNG Image: MED3Statement.png
+New MED3 statement issued: Not fit for work - Valid from 17 Feb 2025 to 02 Mar 2025
+Diagnosis: Acute stress
+
+--- 14 2025-02-17 [other] milestones=[] eid=33c9cb54-5210-4a70-a9c3-b26573a90875 ---
+Dear Miss Torr
+Please see fit note as discussed
+Kind regards
+
+https://systmonline.tpp-uk.com/2/Link?id=b55f3870_Ng_X4_2
+
+Access Code 997483
+
+--- 15 2025-02-21 [other] milestones=[] eid=b90f772e-cbd9-4000-aa39-329047e08b2c ---
+08:05 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+Telephone encounter (9N31.)
+
+--- 16 2025-02-21 [other] milestones=[] eid=9a77b432-d2c4-4251-a43b-75adaf59ba1a ---
+10:38 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+Sumatriptan 50mg tablets - 6 tablet - Take ONE tablet at onset of headache, if headache gets better but then recurs take a 2nd tablet after 2 hours - do not use more than 10 days a month
+ Consultation.
+   General
+      Encounter: Telephone consultation (XaIge)
+      H:  - Presenting with particularly bad migraine attack, different from usual pattern
+- Headache waking from sleep at 01:00, lasting until mid-afternoon before dulling
+- Pain returns around 08:00-09:00
+- Duration: 3 days
+- Associated symptoms: Nausea present, no vomiting
+- No visual changes
+- Ibuprofen every 4 hours providing no relief
+- Previous history of triptan use (Imigran)
+- Currently signed off work
+- Recent history of significant stress over past few weeks
+- Stopped all medications approximately 5 days ago
+      P:  1. Migraine
+- Assessment: Migraine with altered pattern, waking from sleep
+- Treatment: Prescribed triptans
+- Follow up telephone review arranged for 28/02/2025 to assess response
+- If sleep-disrupting headaches persist, further investigation to be considered
+   Neuro
+ Migraine Formulary
+   Entries from previous template version
+      Advice about drug treatment (Ua02Z)
+      Sumatriptan 50mg tablets - 6 tablet - Take ONE tablet at onset of headache, if headache gets better but then recurs take a 2nd tablet after 2 hours - do not use more than 10 days a month
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+Advice about drug treatment (Ua02Z)
+Telephone consultation (XaIge)
+Clinical history and observations (X76sV)
+- Presenting with particularly bad migraine attack, different from usual pattern
+- Headache waking from sleep at 01:00, lasting until mid-afternoon before dulling
+- Pain returns around 08:00-09:00
+- Duration: 3 days
+- Associated symptoms: Nausea present, no vomiting
+- No visual changes
+- Ibuprofen every 4 hours providing no relief
+- Previous history of triptan use (Imigran)
+- Currently signed off work
+- Recent history of significant stress over past few weeks
+- Stopped all medications approximately 5 days ago
+Plan (XaIVg)
+1. Migraine
+- Assessment: Migraine with altered pattern, waking from sleep
+- Treatment: Prescribed triptans
+- Follow up telephone review arranged for 28/02/2025 to assess response
+- If sleep-disrupting headaches persist, further investigation to be considered
+Advice about drug treatment (Ua02Z)
+
+--- 17 2025-02-24 [other] milestones=[] eid=7a429a90-4788-40b8-b5e6-76329fc23f15 ---
+** Care started at: LLR Referral Support Service **
+
+--- 18 2025-02-24 [other] milestones=[] eid=25644725-1eb8-4b11-aae8-871d09b3e300 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+A&E to Woodbrook Medical Centre
+
+--- 19 2025-02-24 [other] milestones=[] eid=f0128dff-9c76-4f52-a370-3180df1ea6b1 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+A&E to Woodbrook Medical Centre
+
+--- 20 2025-02-24 [other] milestones=[] eid=8277f8a3-0dd1-479a-8e36-22e3439e3252 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+CT of head (X70my) - nil acute (New Episode)
+
+--- 21 2025-02-24 [other] milestones=[] eid=003a02d3-3e1c-4e72-a25a-8185204341e6 ---
+08:09 - INGLE, Kirsty  
+ N+S Care Navigation & Signposting
+   Care Navigation 
+      *Outcome: Contact Outcome: Booked for same day non face to face review (Y3ec4)
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+Telephone encounter (9N31.)
+Contact Outcome: Booked for same day non face to face review (Y3ec4)
+
+--- 22 2025-02-24 [IN-EP] milestones=['referral'] eid=1740b631-63b0-4eb1-ab93-d16d28c7a7ef ---
+11:40 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+- PRISM 2WW Brain/CNS Direct Access -  questionnaire started - (finalised: 24 Feb 2025 11:40)
+Fast track referral for suspected brain tumour (XaMeK) - (Added from Questionnaire)
+Aspirin 300mg tablets - 32 tablet - Take ONE to THREE tablets up to FOUR times in 24hrs when required, for headache
+Sumatriptan 100mg tablets - 6 tablet - Take ONE tablet at onset of headache, if headache gets better but then recurs take a 2nd tablet after 2 hours - do not use more than 10 days a month
+ Consultation.
+   General
+      Encounter: Telephone consultation (XaIge)
+      H:  - Presenting with severe headaches: waking up between 1-3am, affecting forehead and behind eye. Pain score 10/10 in morning
+- Headache pattern: starts around 9pm, able to fall asleep but wakes during night. Dull throughout day, intensifies again 8-9pm
+- Recent treatment with sumatriptan: provides temporary relief for 30-60 minutes but headache returns
+- Shooting pain from left ear across head, previously assessed as neuralgia
+- Left ear symptoms: feels blocked and itchy, no hearing loss noted
+- Long history of migraines but current pattern is different with nocturnal symptoms
+- Recent stressful period with changes to antidepressant medication, now discontinued as they were not helpful
+- Previous CT in August following 8-day migraine episode - reported as normal
+ Currently experiencing severe headache
+
+      P:  1. Nocturnal Headaches
+- Red flag symptoms noted due to nocturnal pattern
+- Plan for urgent outpatient brain imaging
+- Prescribed aspirin 900mg
+- Increased dose of sumatriptan prescribed
+- Counselled regarding red flag symptoms and rationale for imaging
+- Option of A&E attendance discussed if symptoms worsen
+
+2. Left Ear Symptoms
+- Possible sinusitis noted
+- Previously assessed as neuralgia
+- For ongoing monitoring
+      Advice if worsens, no better or concerns: Yes
+ Migraine Formulary
+   Entries from previous template version
+      Sumatriptan 100mg tablets - 6 tablet - Take ONE tablet at onset of headache, if headache gets better but then recurs take a 2nd tablet after 2 hours - do not use more than 10 days a month
+      Aspirin 300mg tablets - 32 tablet - Take ONE to THREE tablets up to FOUR times in 24hrs when required, for headache
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+Telephone consultation (XaIge)
+Clinical history and observations (X76sV)
+- Presenting with severe headaches: waking up between 1-3am, affecting forehead and behind eye. Pain score 10/10 in morning
+- Headache pattern: starts around 9pm, able to fall asleep but wakes during night. Dull throughout day, intensifies again 8-9pm
+- Recent treatment with sumatriptan: provides temporary relief for 30-60 minutes but headache returns
+- Shooting pain from left ear across head, previously assessed as neuralgia
+- Left ear symptoms: feels blocked and itchy, no hearing loss noted
+- Long history of migraines but current pattern is different with nocturnal symptoms
+- Recent stressful period with changes to antidepressant medication, now discontinued as they were not helpful
+- Previous CT in August following 8-day migraine episode - reported as normal
+ Currently experiencing severe headache
+
+Plan (XaIVg)
+1. Nocturnal Headaches
+- Red flag symptoms noted due to nocturnal pattern
+- Plan for urgent outpatient brain imaging
+- Prescribed aspirin 900mg
+- Increased dose of sumatriptan prescribed
+- Counselled regarding red flag symptoms and rationale for imaging
+- Option of A&E attendance discussed if symptoms worsen
+
+2. Left Ear Symptoms
+- Possible sinusitis noted
+- Previously assessed as neuralgia
+- For ongoing monitoring
+Patient given advice (8CA..)
+
+--- 23 2025-02-24 [other] milestones=[] eid=2e53523b-594c-4e7c-afac-b02c5f3a0f4b ---
+12:01 - MCDOWELL, Giselle  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Telephone encounter (9N31.)
+Contact trigger : Other (Y3eaa)
+Telephone encounter (9N31.)
+
+--- 24 2025-02-24 [IN-EP] milestones=['referral'] eid=047a4ebf-4973-4a12-b75a-9984def13b62 ---
+12:12 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected brain tumour (XaMeK)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww brain
+Hospital Fast track referral for suspected brain tumour
+2WW Brain/CNS Direct Access PRISM to Unknown 
+Hospital Fast track referral for suspected brain tumour updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww brain
+
+--- 25 2025-02-24 [other] milestones=[] eid=fede3cb5-f47d-4261-847f-231b1df9c5c0 ---
+12:22 - Surgery: Unknown Staff Member  Entered at: LLR RTT Mental Health Services
+Current Home Address: 97 Buckingham Drive, Loughborough LE11 4TD
+
+--- 26 2025-02-24 [other] milestones=[] eid=3ee2ef6a-601b-4149-877c-eaf55228212a ---
+12:22 - Surgery: ROFFEY, Louise (Clerical Access Role) Entered at: LLR Referral Support Service
+Referral In to LLR Referral Support Service for Brain: Ended on 01 Mar 2025 14:00
+With the Following Intervention(s)
+Referral Triage Completed
+Status Update for Brain Referral In: Accepted for triage, Status changed: 24 Feb 2025 12:22
+Current Home Address: 97 Buckingham Drive, Loughborough LE11 4TD
+
+--- 27 2025-02-24 [other] milestones=[] eid=c34eef98-d7d2-47b1-b309-99b66a6df0cf ---
+12:22 - Surgery: ROFFEY, Louise (Clerical Access Role) Entered at: LLR Referral Support Service
+Activity: Referral In Referral In with Patient Record
+
+--- 28 2025-02-24 [other] milestones=[] eid=d2f1dc63-67ce-4e52-a04e-00b5b4d51d09 ---
+12:22 - Surgery: ROFFEY, Louise (Clerical Access Role) Entered at: LLR Referral Support Service
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared
+
+--- 29 2025-02-24 [other] milestones=[] eid=26bf22e2-cbab-4369-9820-842b6857cf9f ---
+18:09 - DHANJI, Fahreen (Doctor)  Entered at: LLR Referral Support Service
+ Brain Triage
+   Brain Triage
+      Radiology requested:  MRI Requested
+Activity: MRI Requested Triage with MRI/CT Request
+Pathology Request (Request Sent):
+MRI Head Cancer Exclusion (RSS use only) (Requested)
+Radiology requested (5112.) - MRI Requested
+
+--- 30 2025-02-25 [other] milestones=[] eid=d2ae3e05-e79f-413e-8723-08a1938eeb8d ---
+Would you like to support research? Please complete the questionnaire study looking at how lifestyle behaviours could impact health now and in the future:
+
+https://redcap.lcbru.le.ac.uk/surveys/?s=CL9NTEJM4YPRATJW 
+
+Thank you for your support
+
+--- 31 2025-02-26 [other] milestones=[] eid=355d6a32-f900-4840-9d58-80f922bc54c0 ---
+17:03 - Surgery: Auto-filed  Entered at: LLR Referral Support Service
+MRI Head:  Report Summary 
+.
+Clinical History :
+2w
+worsening headache, frontal , behind the head. waking from
+sleep everyday between 12am-3am. pain / neuralgic pain
+coming from the left, left jaw as well. no hearing loss.
+ct head in aug 24 was normal - nil acute.
+migraines for years, however past 2w has had daily night
+time waking headaches.
+no visual sx.
+please do mri scan to rule out brain ca
+.
+DR DAVID SWIENTON CONSULTANT RADIOLOGIST C7016965 UHL
+.
+ MRI Head 
+.
+MRI Head :
+.
+CT Head 24/2/25 noted.
+.
+No mass lesion. No intracranial haemorrhage.
+Few left frontal lobe white matter T2/FLAIR hyperintensities
+are non-specific. The patient is rather young for small
+vessel disease (assuming no vascular risk factors) and small
+numbers of white matter hyperintensities can be seen in
+migraineurs.
+Normal ventricles and basal cisterns.
+Normal posterior fossa structures and craniocervical
+junction.
+Normal proximal flow voids.
+.
+Conclusion:
+No structural cause for symptoms demonstrated.
+.
+DR DAVID SWIENTON CONSULTANT RADIOLOGIST C7016965 UHL
+.
+ Dr Alex Eskenazi / DR DAVID JAMES SWIENTON / C7659249
+MRI Head Report,ï¿½Satisfactory,ï¿½No Further Action. Review done by DHANJI, Fahreen (Doctor) @ LLR Referral Support Service at LLR Referral Support Service (Llr Patient Care Locally) - 28 Feb 2025 19:30
+
+--- 32 2025-02-28 [other] milestones=[] eid=c8dcf415-6789-426b-9205-a9710f4adac5 ---
+11:07 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+Problem - whole event: Migraine (F26..)
+Migraine (F26..) (Ongoing Episode)
+Propranolol 40mg tablets - 56 tablet - take one twice daily
+ Consultation.
+   General
+      Encounter: Telephone consultation (XaIge)
+      H:  fu from last week, ended up going to ed on monday, ct head was normal.  was referred on the brain pathway before the ed attendance, had mri brain on weds, result not back. 
+diagnosis migraine based on normal ct.  acute/ concerning issues excluded. 
+aspirin helped moreso than the triptans.  sx have improved, mild dull ache now.
+gpau suggested headache clinic referral for migraine rv, explained currently not taking anything therefore referral to headache clinic not indicated, propranolol suggested as per the gpau d/c letter from last year, didnt pick them up when prescribed last year.
+adv to give those a try and rv.
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+Migraine (F26..)
+Telephone consultation (XaIge)
+Clinical history and observations (X76sV)
+fu from last week, ended up going to ed on monday, ct head was normal.  was referred on the brain pathway before the ed attendance, had mri brain on weds, result not back. 
+diagnosis migraine based on normal ct.  acute/ concerning issues excluded. 
+aspirin helped moreso than the triptans.  sx have improved, mild dull ache now.
+gpau suggested headache clinic referral for migraine rv, explained currently not taking anything therefore referral to headache clinic not indicated, propranolol suggested as per the gpau d/c letter from last year, didnt pick them up when prescribed last year.
+adv to give those a try and rv.
+
+--- 33 2025-02-28 [other] milestones=[] eid=888453e1-eec1-48e5-8fa5-e82132fc47ee ---
+15:18 - Primary Care Network (PCN): SLOANE, Jade (Admin/Clinical Support Access Role) Entered at: Carillon PCN
+ Social Prescribing
+   Home
+      Encounter: Telephone follow-up (Xaa4C)
+      Social prescribing: Social prescribing offered (XaaEA)
+   Overview
+      Follow-up: Social prescribing case closed (Y2f60)
+   Notes
+      Encounter: Telephone follow-up (Xaa4C)
+      Notes:  Tel follow up to Michelle today.
+Michelle thankful as Opcare had provided a pushchair for them, however unfortunately it is too small so she needs to contact them again. Michelle advised Henry isn't eligible for the other option as he can sit unaided, however we discussed getting some support from HV team/GP to see if they can 'fight' their corner in it being appropriate for Henry given his needs.
+Michelle said Henry has his operation next week and then they are going to look at the right to choose assessment for autism.
+      Patient goals reviewed:  Supported with Opcare referral.
+Liaised with HV team.
+Provided info to HV from incontinence team.
+Provided info on support groups in the area.
+      Discussion about support:  Discussion with Michelle about SP input, likely nothing more at this stage that we can add, a lot of it now is waiting for services.
+Michelle happy to be discharged at present, reiterated she can get in contact again if things change and she feels SP can support.
+      Plan:  Discharging, Michelle happy with plan and thankful for support given.
+Status Update for Social Prescribing Referral In: Discharged From Care, Status changed: 28 Feb 2025 15:38
+Activity: Follow Up (20 minutes) Telephone with Patient
+Telephone follow-up (Xaa4C)
+Social prescribing offered (XaaEA)
+Social prescribing case closed (Y2f60)
+Telephone follow-up (Xaa4C)
+Overview Notes (Y0028)
+Tel follow up to Michelle today.
+Michelle thankful as Opcare had provided a pushchair for them, however unfortunately it is too small so she needs to contact them again. Michelle advised Henry isn't eligible for the other option as he can sit unaided, however we discussed getting some support from HV team/GP to see if they can 'fight' their corner in it being appropriate for Henry given his needs.
+Michelle said Henry has his operation next week and then they are going to look at the right to choose assessment for autism.
+Review of patient goals (XaXfH)
+Supported with Opcare referral.
+Liaised with HV team.
+Provided info to HV from incontinence team.
+Provided info on support groups in the area.
+Discussion about social support (Xag0F)
+Discussion with Michelle about SP input, likely nothing more at this stage that we can add, a lot of it now is waiting for services.
+Michelle happy to be discharged at present, reiterated she can get in contact again if things change and she feels SP can support.
+Plan (XaIVg) - Discharging, Michelle happy with plan and thankful for support given.
+
+--- 34 2025-02-28 [other] milestones=[] eid=9e63f5d7-d167-458c-9987-3e7200ea4720 ---
+19:30 - Surgery: DHANJI, Fahreen (Doctor) (Clinical Practitioner Access Role) Entered at: LLR Referral Support Service
+
+--- 35 2025-02-28 [other] milestones=[] eid=1783873c-6be2-4682-874d-21f17d905e1f ---
+19:30 - DHANJI, Fahreen (Doctor)  Entered at: LLR Referral Support Service
+ Brain Triage
+   Brain Triage
+      Triage:  Cancer excluded - discharge to GP
+      Consultation and outcome notes:  see results -cancer excluded
+
+Conclusion:
+No structural cause for symptoms demonstrated.
+
+Activity: Cancer excluded - Discharge to GP Triage with Brain Triage Outcome
+Triage (Ua1SN) - Cancer excluded - discharge to GP
+Consultation (Xa1qL)
+see results -cancer excluded
+
+Conclusion:
+No structural cause for symptoms demonstrated.
+
+--- 36 2025-03-01 [other] milestones=[] eid=12e2a76e-7b2b-4de6-ab3a-00a5a5551a3c ---
+** Care ended at LLR Referral Support Service **
+
+--- 37 2025-03-01 [IN-EP] milestones=['first_seen'] eid=9e17e3bf-fcf2-4bfa-a8b0-b2a88d36facd ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected brain tumour clinic (XaPyP)
+
+--- 38 2025-03-01 [IN-EP] milestones=['first_seen'] eid=4c8b28ae-5218-4886-9a9c-845474e2ace7 ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+2WW Clinic Letter to Woodbrook Medical Centre
+
+--- 39 2025-03-01 [other] milestones=[] eid=7245bba6-301a-4e55-acca-fd124a233e9d ---
+Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)
+
+--- 40 2025-03-01 [other] milestones=[] eid=fea247fe-c5aa-414e-acb9-4b31fa874f86 ---
+13:59 - Surgery: ROFFEY, Louise (Clerical Access Role) Entered at: LLR Referral Support Service
+ RSS Admin 3
+   Referral Support Service Admin cont.
+       Discharge Letter to Dr Medical Woodbrook 
+       Discharge Letter to Miss Michelle Torr 
+Discharge Letter to Dr Medical Woodbrook 
+Discharge Letter to Miss Michelle Torr 
+Status Update for Brain Referral In: Discharged From Care, Status changed: 01 Mar 2025 14:00
+
+--- 41 2025-03-03 [other] milestones=[] eid=c4e88638-c76e-4fac-9b26-0305045f4cb5 ---
+Surgery: Auto-filed  
+Cervical cytology screening test (XaMDf)
+Report:   No Cytology result (HPV Primary Screening).
+HPV Test: High risk HPV not detected.
+Suggested Management: Normal Recall.
+Cervical cytology screening test Report,ï¿½Normal,ï¿½No Further Action. Review done by SILK-MOORE, Karen (Mrs) (Receptionist Access Role) - 17 Mar 2025 10:42
+
+--- 42 2025-03-03 [other] milestones=[] eid=8f1ee1b3-e88b-4c9e-b184-1152eef5683e ---
+15:06 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role) 
+Cervical Screening: Cervical smear - negative (XE278) - Previous smear in 2023 HPV+, currently taking POP Desogestrel. Reports no bleeding or d/c issues. External genitalia appeared normal, cervix visualised, appeared healthy. Slight contact bleed after sampling. Advised re results.
+ Cervical Screening Smear
+   Pre-Procedure
+      Encounter: Face to face consultation (Y290c)
+      Consent: Yes
+      HPV: Human papillomavirus screening (XaaPs)
+      Reason: Smear Reason: Previous Abnormal Smear (Y0392)
+      Date of this test: 03 Mar 2025
+      Date of LMP -1st day: 09 Jan 2025
+      Periods: Amenorrhoea (K590.)
+      Condition: Patient taking hormones (Y0395)
+      Hormone details: Progestogen only oral contraceptive (6148.)
+   Procedure
+      Consent: Yes
+      Smear: Cervical smear (Xa8Pl)
+      ^GMS: Smear Under GMS (Y0384)
+      No chaperone: Chaperone offered (XaEiq)
+      Advice on optimal positioning in order to obtain adequate views of the cervix: Yes
+      Appearance of cervix suspicious of cervical cancer: No (Y0428)
+      Cervix findings: O/E-vaginal speculum exam. NAD (2691.)
+      Transformation zone view: Uterine cervix transformation zone visualised (XaNfe)
+      Smear taken: Liquid based cervical cytology screening (XaKTi)
+      Sweep: 360 degree sweep of cervix performed (XaEns)
+      Notes:  Previous smear in 2023 HPV+, currently taking POP Desogestrel. Reports no bleeding or d/c issues. External genitalia appeared normal, cervix visualised, appeared healthy. Slight contact bleed after sampling. Advised re results.
+      Cytology Sent: Yes
+      Vial label attached: Yes
+      Infection prevention/control: Yes
+      Cervix findings: O/E-vaginal speculum exam. NAD (2691.)
+   Entries from previous template version
+      Patient given advice (8CA..)
+      Patient given advice (8CA..)
+      Patient given advice (8CA..)
+Smear consent given (Y3562)
+Human papillomavirus screening (XaaPs)
+Smear Reason: Previous Abnormal Smear (Y0392)
+Date (Xa0ck)
+Amenorrhoea (K590.)
+Patient taking hormones (Y0395)
+Progestogen only oral contraceptive (6148.)
+Face to face consultation (Y290c)
+Smear consent given (Y3562)
+Cervical smear (Xa8Pl)
+Smear Under GMS (Y0384)
+Chaperone offered (XaEiq)
+Patient given advice (8CA..)
+No (Y0428)
+O/E-vaginal speculum exam. NAD (2691.)
+O/E-vaginal speculum exam. NAD (2691.)
+Uterine cervix transformation zone visualised (XaNfe)
+Liquid based cervical cytology screening (XaKTi)
+360 degree sweep of cervix performed (XaEns)
+Smear Clinical Data (Y0387) - Previous smear in 2023 HPV+, currently taking POP Desogestrel. Reports no bleeding or d/c issues. External genitalia appeared normal, cervix visualised, appeared healthy. Slight contact bleed after sampling. Advised re results.
+Tissue sent for cytology (4K51.)
+Checking procedure (Ua1KL)
+Infectious disease : prevention/control (XE1Sf)
+Patient given advice (8CA..)
+Patient given advice (8CA..)
+Patient given advice (8CA..)
+
+--- 43 2025-03-03 [other] milestones=[] eid=247c2be7-a481-4645-b408-286f543062da ---
+15:08 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa) check if we have a letter from hospital
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Contact trigger : Other (Y3eaa) - check if we have a letter from hospital
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+
+--- 44 2025-03-04 [other] milestones=[] eid=eff260f8-2a82-438d-ad09-9f750db6ab95 ---
+16:18 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 45 2025-03-05 [other] milestones=[] eid=15085a27-ac5a-477c-98e1-fbbfe7b7a22a ---
+09:18 - Primary Care Network (PCN): SLOANE, Jade (Admin/Clinical Support Access Role) Entered at: Carillon PCN
+Activity: Record Keeping (5 minutes) Administration with Patient Record
+
+--- 46 2025-03-05 [other] milestones=[] eid=6043fec8-be58-4ef1-85f8-710d7e9fde47 ---
+09:21 - Surgery: SLOANE, Jade (Admin/Clinical Support Access Role) Entered at: Carillon PCN
+Patient telephone number (9159.) - 07813 832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+You have recently accessed the Social Prescribing Service. Please provide us with any feedback as this helps us to improve the service. This will be anonymous and we will not have a record of your identity. 
+https://docs.google.com/forms/d/e/1FAIpQLSci-2tYqRcQSTFgKNEylowEXwu-BXPagw_cs9UhAHHI_P52fQ/viewform?usp=sf_link
+Thank you,
+Social Prescribing Team
+Carillon PCN
+
+--- 47 2025-03-05 [IN-EP] milestones=['first_seen'] eid=f364688f-0510-4f71-b1fe-8154a2c99f75 ---
+15:09 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected brain tumour clinic (XaPyP) 01 Mar 2025
+
+--- 48 2025-03-12 [other] milestones=[] eid=a5a80d8c-d626-436f-8323-4585a865823a ---
+Would you like to support research? Please complete the questionnaire study looking at how lifestyle behaviours could impact health now and in the future:
+
+https://redcap.lcbru.le.ac.uk/surveys/?s=CL9NTEJM4YPRATJW 
+
+Thank you for your support
+
+--- 49 2025-03-17 [other] milestones=[] eid=83f90097-0242-41bc-899d-dc0d760fa5d4 ---
+10:41 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role)
+
+--- 50 2025-03-17 [other] milestones=[] eid=f1ea8768-22cf-4b7c-b349-924ac713b5ed ---
+10:41 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Cervical smear - negative (XE278)
+Smear Slide Number (Y0385) - Unknown
+Cervical smear - human papillomavirus negative (XaagX)
+
+--- 51 2025-03-17 [other] milestones=[] eid=4a71aeb6-71c9-4b7f-a6d6-2b4ea18ef3df ---
+11:44 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Summary Care Record Update
+
+--- 52 2025-03-20 [other] milestones=[] eid=3b4d5d3e-13de-4da0-af4d-b13294e6d49f ---
+08:05 - Surgery: DOUGHTY, Lauren (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Acute Symptoms (Y41c8)
+Telephone encounter (9N31.)
+
+--- 53 2025-03-20 [other] milestones=[] eid=a8512aba-e41b-4b85-8db7-c5aa42055e9a ---
+You have a tel GP appt Saturday, please ensure that you are available:1-5, on the number you provided, all call will be from a withheld no. If your symptoms worsen and you feel it is unsafe to wait for this appt, please contact NHS 111. If you need to cancel, please call 07535467692. Thank you
+
+--- 54 2025-03-22 [IN-EP] milestones=['referral'] eid=9e469866-1e72-4261-88d2-d266d5cd7acc ---
+15:06 - Primary Care Network (PCN): RANA, Pujan (Dr) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+ Telephone Consultation
+   Identity + contact details verified: Yes
+   Notes:  TC by Dr Rana (Remote Telephone EA Shift-GP) Noted PMHx, Repeat meds and Allergies
+Thinks may have ASD/ADHD. 
+Reports has migraines, noted recent 2WW NAD. Migraines worse around clock changes in spring/autum, can struggle with temp change (morning cold and warm in day time). Reports very organised, has 20 lists around the house. 
+Can sleep poorly - mind overthinking. Can procastinate and easily distractred and can struggle with taks or mantain concentration. Reports sx more noticeable more after having son. 
+Thinks sx was present from childhood. Thinks also suffered with anxiety/depression since young. Reports was diagnosed with fibromyalgia in her 20s. Chronic back pain. 
+Son - Awaiting ASD assessment.
+   Plan:  Discussed could be related to fibro/ personality/ just the way patient is or could be ADHD. Discussed does not sound like ASD. 
+Advised to fill out ADHD questioniarre, returnt o practice and book rv appt. Discussed right to choose if wanted - pros and cons discussed, pt declined rght to choose and is happy to wait for local assessment.
+   Advice if worsens, no better or concerns: Yes
+Patient identity verified (XaXmW)
+Telephone consultation (XaIge)
+TC by Dr Rana (Remote Telephone EA Shift-GP) Noted PMHx, Repeat meds and Allergies
+Thinks may have ASD/ADHD. 
+Reports has migraines, noted recent 2WW NAD. Migraines worse around clock changes in spring/autum, can struggle with temp change (morning cold and warm in day time). Reports very organised, has 20 lists around the house. 
+Can sleep poorly - mind overthinking. Can procastinate and easily distractred and can struggle with taks or mantain concentration. Reports sx more noticeable more after having son. 
+Thinks sx was present from childhood. Thinks also suffered with anxiety/depression since young. Reports was diagnosed with fibromyalgia in her 20s. Chronic back pain. 
+Son - Awaiting ASD assessment.
+Plan (XaIVg)
+Discussed could be related to fibro/ personality/ just the way patient is or could be ADHD. Discussed does not sound like ASD. 
+Advised to fill out ADHD questioniarre, returnt o practice and book rv appt. Discussed right to choose if wanted - pros and cons discussed, pt declined rght to choose and is happy to wait for local assessment.
+Patient given advice (8CA..)
+
+--- 55 2025-03-24 [other] milestones=[] eid=3f48fc99-79b6-4cc0-8735-d891fa0ff8f1 ---
+Surgery: JONES, Emma (Medical Secretary Access Role) 
+ADHD Questionnaire to Woodbrook Medical Centre
+
+--- 56 2025-03-24 [other] milestones=[] eid=c766a2a4-9724-4dbc-a66f-ecd9587bca56 ---
+Dear patient, with regards to your recent out of hours GP appointment, we would like to know your satisfaction with this service. Please complete the following questionnaire using this link: https: https://forms.office.com/e/SnXEdYHUpu
+Thank you
+
+--- 57 2025-03-24 [other] milestones=[] eid=1f58509c-a066-4013-ac56-97bb4b47a128 ---
+16:23 - Surgery: BAILEY, Cleopatra (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Administration (9....)
+Contact trigger : Other (Y3eaa)
+Administration (9....)
+
+--- 58 2025-03-24 [other] milestones=[] eid=f49ef442-57f1-451c-a3a7-62a9a96660f7 ---
+16:25 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ADHD questionnaire printed and given to CB to give to pt.
+
+--- 59 2025-03-25 [other] milestones=[] eid=b58ffaca-ba4f-4c39-a70d-34d8a0bcb519 ---
+11:50 - Surgery: BAILEY, Cleopatra (Receptionist Access Role) 
+Request for 'Desogestrel 75microgram tablets' by patient
+
+--- 60 2025-03-25 [other] milestones=[] eid=23bae644-b232-4462-ad19-889222b1e8dd ---
+14:24 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Scheduled Task Creation (Completed) - Referrals task (Has pt made an ADHD referral appt? (see text 25.3.25)) to be sent to Secretary on 25 Apr 2025.
+
+--- 61 2025-03-25 [other] milestones=[] eid=2eed18c9-25da-4b7b-9b74-f46c62354503 ---
+14:29 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Patient telephone number (9159.) - 07813 832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+Thank you for returning your ADHD questionnaire. Please make an appointment with a GP who will then be able to complete this referral. 
+Kind Regards,
+Woodbrook Medical Centre
+
+--- 62 2025-03-26 [other] milestones=[] eid=f9abd55e-311b-4742-8e1c-3ad9d64c2568 ---
+09:49 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+   Type of encounter: Telephone encounter (9N31.)
+Presenting to non-clinical team with: Chronic Symptoms (Y41c9)
+Telephone encounter (9N31.)
+
+--- 63 2025-03-27 [other] milestones=[] eid=7fea8f13-ee02-4733-a564-fe198ad4079f ---
+Surgery: JONES, Emma (Medical Secretary Access Role) 
+Letter from Patient to Woodbrook Medical Centre
+
+--- 64 2025-03-27 [other] milestones=[] eid=a2df3a70-f5fa-47c5-9cb2-dafa5d47a6d9 ---
+13:35 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 65 2025-03-27 [other] milestones=[] eid=3464715d-4bc1-4bb8-8d18-7dab98d6b8d9 ---
+15:02 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) 
+Desogestrel 75microgram tablets - 168 tablet - take one daily
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+
+--- 66 2025-03-27 [other] milestones=[] eid=4063991c-6b63-4b03-a99d-0bc758adc431 ---
+15:04 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) 
+Patient telephone number (9159.) - 07813 832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+I have been asked to issue medication for you.  Out of interest, did you have any issues with the Slynd pill?
+Thanks,
+TO RESPOND, please follow this link: (link will autogenerate here)
+Dr Kirstie Bridges
+Woodbrook Medical Centre
+
+--- 67 2025-03-27 [other] milestones=[] eid=1f5d65ee-f94b-4334-8d85-486207d82032 ---
+15:26 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 68 2025-03-27 [other] milestones=[] eid=7ec95018-cd09-4237-a1e6-af0eeb04afed ---
+15:26 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+
+Dear Michelle,
+Please join our research study on stomach bugs. This involves a weekly check-in & testing your poo in a lab if you catch a bug. See link for more info.
+
+To register, please use:
+â¢ Sign up code or research code: IID3
+â¢ Your NHS number â there is a link to find out your NHS number if you do not have it to hand
+â¢ Your GP Location: C82070
+
+https://iid3.peoplewith.com/?sid=iid3&ods=C82070
+Woodbrook Medical Centre
+NHS app message sent on 14/03/2025 11:30:07
+
+--- 69 2025-03-31 [other] milestones=[] eid=70d4454e-e118-4716-9ef0-57c857ba6621 ---
+08:11 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) 
+Sensitivity: SLYND - Rash ?unsure if definitely this
+Summary Care Record Update
+
+--- 70 2025-03-31 [other] milestones=[] eid=e24df55c-e2bf-4c2d-9fd1-87d7d32fe800 ---
+08:12 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) 
+Online questionnaire completed by patient
+Dear Miss Torr,
+I have been asked to issue medication for you.  Out of interest, did you have any issues with the Slynd pill?
+Thanks,
+
+Dr Kirstie Bridges
+Woodbrook Medical Centre
+
+Response:
+Yes potentially. I started taking it in February, I was going through a very stressful period at the time, I was signed off work and taking various tablets but I came out in a full head to toe swollen rash, there should be pictures on file. Drs couldnât be sure it was the Slynd or stress but said to stop the Slynd immediately and the rash did subside. Could be a coincidence but I am back on the desogestral for now.
+Received on: 27/03/2025 at 17:49
+
+--- 71 2025-03-31 [other] milestones=[] eid=9a65546e-de35-4506-b3fa-a55487820338 ---
+08:19 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role)
+
+--- 72 2025-03-31 [other] milestones=[] eid=e8403852-b986-4b8f-b7de-0c1edf173661 ---
+08:19 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) 
+Patient telephone number (9159.) - +447813832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+Thank you - I will log this as an adverse reaction on your records and report it to the MHRA as it is a relatively 'new' pill option.  Hope all is well,
+Dr Kirstie Bridges
+Woodbrook Medical Centre
+Sent on 31/03/2025 at 07:19
+
+--- 73 2025-04-01 [other] milestones=[] eid=8ac4ce7b-a3fc-4048-9ef4-76be1ffa7ad6 ---
+14:17 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) 
+xml: YellowCard_2031581C2021209YC1743513608607.xml - Successfully sent
+Yellow Card Submitted - Drug sensitivity: Slynd 4mg tablets (Exeltis UK Ltd)
+
+--- 74 2025-04-02 [other] milestones=[] eid=1f8ac030-e8fc-4727-afed-b358bdfbbeba ---
+14:52 - Surgery: JONES, Emma (Medical Secretary Access Role)
+
+--- 75 2025-04-02 [other] milestones=[] eid=c2159d58-076a-470d-95f0-c004da6ee333 ---
+14:54 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Patient telephone number (9159.) - 07813 832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+Thank you for your letter requesting your medication and consultation details. Please could you confirm if you would like copies of your full consultation notes from this time or just the details of the appointment (i.e time, date, which GP)? 
+TO RESPOND, please follow this link: (link will autogenerate here)
+Kind Regards,
+Woodbrook Medical Centre
+
+--- 76 2025-04-07 [other] milestones=[] eid=e008916d-b463-441d-89aa-65d89a6d2e7d ---
+12:51 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ WMC Medical record requests
+   Completed SAR form / Request added to record: Yes
+   Request received by:: Letter encounter from patient (XE2NK)
+   Record requested from:: Patient requests copy of medical record (XaP6f)
+   Details of request::  Pt requesting consultation notes from all consults in February. Printed and put to named GP for approval.
+ WMC Medical Secretary Template
+Scanned document (XaIhQ)
+Letter encounter from patient (XE2NK)
+Patient requests copy of medical record (XaP6f)
+Patient clinical record requested (XaPnA) - Pt requesting consultation notes from all consults in February. Printed and put to named GP for approval.
+
+--- 77 2025-04-07 [other] milestones=[] eid=7b7c3675-31f6-42ad-ab70-fd69cdf3f37b ---
+12:51 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Online questionnaire completed by patient
+Dear Miss Torr,
+
+Thank you for your letter requesting your medication and consultation details. Please could you confirm if you would like copies of your full consultation notes from this time or just the details of the appointment (i.e time, date, which GP)? 
+
+Kind Regards,
+Woodbrook Medical Centre
+
+Response:
+Full consolation notes would be great along with any prescribed medicines or treatments please thank you 
+Received on: 02/04/2025 at 20:29
+
+--- 78 2025-04-09 [other] milestones=[] eid=00ce8a1e-c3d4-48e3-8f10-69153d163a09 ---
+09:35 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ WMC Medical record requests
+   SAR completed: Copy of clinical record given to patient (XaYoC) Consultation notes requested are now ready to collect.
+ WMC Medical Secretary Template
+Copy of clinical record given to patient (XaYoC) - Consultation notes requested are now ready to collect.
+
+--- 79 2025-04-09 [other] milestones=[] eid=1c6f3002-2661-48c9-9562-a82031bef367 ---
+09:37 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Patient telephone number (9159.) - 07813 832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+The information you requested is now ready to collect. 
+Kind Regards,
+Woodbrook Medical Centre
+Scheduled to send on 10/04/2025 08:00:00
+
+--- 80 2025-04-24 [other] milestones=[] eid=b4630846-27b0-4506-a4ad-c1c5a12d2290 ---
+12:26 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa)
+   Type of encounter: Contact trigger: Patient request via walk in / front desk (Y3e8f)
+ Reception & Administration
+   Entries from previous template version
+      Administration note (XaIg4) - collected letter
+Contact trigger : Other (Y3eaa)
+Contact trigger: Patient request via walk in / front desk (Y3e8f)
+Administration note (XaIg4) - collected letter
+
+--- 81 2025-04-24 [other] milestones=[] eid=65d93156-4664-4c02-b984-461aef18d5ca ---
+Dear Michelle Torr
+
+Your appointment has been booked for 04 Jun 2025 15:15 at Woodbrook Medical Centre.
+
+Kind Regards, Woodbrook Medical Centre
+
+--- 82 2025-04-25 [other] milestones=[] eid=71027bf5-512c-40ea-bc18-68a1963c7781 ---
+10:24 - Surgery: JONES, Emma (Medical Secretary Access Role)
+
+--- 83 2025-04-25 [other] milestones=[] eid=78801a33-e61b-44cf-89a9-e075a1dc4dc9 ---
+10:30 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Patient telephone number (9159.) - 07813 832782
+Short message service text message sent to patient (XaMiI)
+
+Dear Miss Torr,
+Thank you for returning your ADHD questionnaire. If you would like to be referred for an assessment, please make an appointment to discuss this with a GP, unfortunately we are unable to send the referral without an appointment. 
+Kind Regards,
+Woodbrook Medical Centre
+

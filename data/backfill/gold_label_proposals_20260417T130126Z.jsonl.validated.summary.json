@@ -1,0 +1,36 @@
+{
+  "input_records": 950,
+  "input_additions": 635,
+  "kept_additions": 240,
+  "dropped_additions": 395,
+  "kept_with_synonym_tag": 68,
+  "records_with_kept_additions": 180,
+  "records_unchanged": 107,
+  "records_emptied": 204,
+  "drop_reasons": {
+    "low_surface_match": 322,
+    "tag_mismatch_all": 44,
+    "no_candidates": 22,
+    "polarity_mismatch": 7
+  },
+  "kept_by_label": {
+    "disorder": 34,
+    "procedure": 32,
+    "finding": 93,
+    "situation": 12,
+    "substance": 26,
+    "qualifier_value": 33,
+    "observable_entity": 6,
+    "body_structure": 4
+  },
+  "dropped_by_label": {
+    "procedure": 62,
+    "finding": 172,
+    "situation": 38,
+    "disorder": 27,
+    "observable_entity": 22,
+    "qualifier_value": 68,
+    "substance": 5,
+    "body_structure": 1
+  }
+}

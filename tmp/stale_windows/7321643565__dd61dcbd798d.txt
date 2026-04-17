@@ -1,0 +1,670 @@
+======================================================================
+PATIENT      : 7321643565
+EPISODE      : dd61dcbd798d525a
+CANCER_TYPE  : non_site_specific
+STATUS       : stale_post_specialist
+REFERRAL     : 2024-03-13
+WINDOW       : 2024-02-28 .. 2024-06-11 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2024-03-13  referral                enc=b5f79774-d45a-4444-9e0a-9dbd0e7a9d45
+  2024-04-05  referral                enc=d83d874c-154d-4426-a92b-d8ef5641ddf4
+  2025-01-23  first_seen              enc=edb8e2b3-6f3d-4304-99b4-b217fd345eae
+  2025-02-07  first_seen              enc=2bd08f45-881a-41fa-979d-6b8b86d80776
+
+Encounters in window (n=75):
+
+--- 01 2024-02-28 [other] milestones=[] eid=f8e9c71c-d156-4e26-a828-de44c3f4afe1 ---
+08:50 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) 
+Pathology Request (Complete):
+Serum Free Light Chains (Requested), Immunoglobulins & Electrophoresis (Requested)
+Pathology Request (Request Sent):
+Bone Profile (Requested), C reactive protein (Requested), Full Blood Count (Requested), Gamma GT (Requested), Liver Function Test (Requested), Urea & electrolytes (Requested)
+
+--- 02 2024-02-28 [other] milestones=[] eid=c43cd675-d5ca-4cee-a1c9-9e7beaee09bf ---
+15:56 - Surgery: KING, Georgia (Admin/Clinical Support Access Role)
+
+--- 03 2024-02-28 [other] milestones=[] eid=6e0a718e-ebdd-42e9-94cb-3fee8e88ad30 ---
+15:57 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+Patient telephone number (9159.) - +447404308252
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Akpokodje,
+Our records indicate that you are now due for a blood test following your recent test as the GP has requested that these be repeated, Could you please contact the surgery between 10:00am-05:00pm to arrange a suitable appointment on 01509 239166.
+To book: (link will autogenerate here)
+(Expires in 7 days)
+Thanks,
+Woodbrook Medical Centre
+
+--- 04 2024-02-28 [other] milestones=[] eid=26c8323d-a753-43b8-bc65-11f026e8eded ---
+16:09 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)
+
+--- 05 2024-02-28 [other] milestones=[] eid=e2d84d8a-759c-43c0-9f64-7e7bf1f28c10 ---
+Confirmation of appointment at Woodbrook Medical Centre - 12 Mar 2024 at 13:40 with  Anita Rumming. Please call the surgery on 01509 239166 if you are unable to attend.
+
+--- 06 2024-03-04 [other] milestones=[] eid=236db25b-3944-4154-97a3-f7b765fc4bc2 ---
+12:11 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role)
+
+--- 07 2024-03-04 [other] milestones=[] eid=be298363-ebc8-4283-b2f3-bb78fb53baa7 ---
+12:12 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) 
+Major: Pre-diabetes (XaZq8)
+Summary Care Record Update
+Pre-diabetes (XaZq8)
+
+--- 08 2024-03-04 [other] milestones=[] eid=f73f599e-5f52-4b23-852a-c1cc5c826705 ---
+12:18 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+ Non-Diabetic Hyperglycaemia NDH / Pre-Diabetes
+   Diagnosis
+      NDPP: NHS Diabetes Prevention Programme invitation (Xaglb)
+Patient Leaflet to Mr Emmanuel Akpokodje 
+NHS Diabetes Prevention Programme invitation (Xaglb)
+
+--- 09 2024-03-12 [other] milestones=[] eid=40b24cab-96e2-4394-bf54-8aa900f13d10 ---
+13:33 - Surgery: Auto-filed  
+Serum gamma-glutamyl transferase level (XaES3) 26 iu/L [< 73]
+Please note change to method-specific reference range
+from 6th February 2024
+Clinical Information: Reasons for Request:      raised globulin - recheck.
+Serum gamma-glutamyl transferase level Report,ï¿½Borderline,ï¿½Need to repeat test: rpt bloods in 3-4 weeks please.. Review done by PATEL, Krishan (Dr) - 13 Mar 2024 13:12
+
+--- 10 2024-03-12 [other] milestones=[] eid=e6aeaa74-0b21-432c-95ea-70eb009111c0 ---
+13:33 - Surgery: Auto-filed  
+Liver function tests (X77WP)
+Serum alanine aminotransferase level (XaLJx) 25 iu/L [10 - 49]
+Please note change to method-specific reference range
+from 19th January 2024
+Serum bilirubin level (44E..) 10 umol/L [< 21]
+Clinical Information: Reasons for Request:      raised globulin - recheck.
+Liver function tests Report,ï¿½Borderline,ï¿½Need to repeat test: rpt bloods in 3-4 weeks please.. Review done by PATEL, Krishan (Dr) - 13 Mar 2024 13:12
+
+--- 11 2024-03-12 [other] milestones=[] eid=a9b3b107-985d-43b4-8db6-cb77e032a3f2 ---
+13:33 - Surgery: Auto-filed  
+Acute Kidney Injury Staging: Not Applicable; AKI Stage not calulated
+Clinical Information: Reasons for Request:      raised globulin - recheck.
+Acute Kidney Injury Staging Report,ï¿½Borderline,ï¿½Need to repeat test: rpt bloods in 3-4 weeks please.. Review done by PATEL, Krishan (Dr) - 13 Mar 2024 13:12
+
+--- 12 2024-03-12 [other] milestones=[] eid=796c2f63-94d8-4624-a1bc-de3a324d38a5 ---
+13:33 - Surgery: Auto-filed  
+Serum total protein level (XE2e9) 81 g/L [57 - 82]
+Please note change to method-specific reference range
+from 19th January 2024
+Clinical Information: Reasons for Request:      raised globulin - recheck.
+Serum total protein level Report,ï¿½Borderline,ï¿½Need to repeat test: rpt bloods in 3-4 weeks please.. Review done by PATEL, Krishan (Dr) - 13 Mar 2024 13:12
+
+--- 13 2024-03-12 [other] milestones=[] eid=d8772be4-7a97-4b9e-bb1e-e1984d748f0e ---
+13:33 - Surgery: Auto-filed  
+Plasma C-reactive protein level (XE2dy) < 5 mg/L [< 10]
+Clinical Information: Reasons for Request:      raised globulin - recheck.
+Plasma C-reactive protein level Report,ï¿½Borderline,ï¿½Need to repeat test: rpt bloods in 3-4 weeks please.. Review done by PATEL, Krishan (Dr) - 13 Mar 2024 13:12
+
+--- 14 2024-03-12 [other] milestones=[] eid=51eef83a-3807-4241-901e-108ee0d9b9e5 ---
+13:33 - Surgery: Auto-filed  
+Immunoglobulin G level (XE259) 19.3 g/L [6 - 16] - Outside reference range
+Immunoglobulin A level (XE25B) 2.42 g/L [0.8 - 4]
+Immunoglobulin M level (XE25A) 2.22 g/L [0.5 - 2] - Outside reference range
+Serum protein electrophoresis (XE25U) - No paraprotein detected
+Igs and electrophoresis:
+Clinical Information: Reasons for Request:      raised globulin - recheck.Yes.
+Igs and electrophoresis Report,ï¿½Satisfactory,ï¿½Other (await full bloods back - mild elevations - no paraprotein). Review done by BROCKHURST, Nikki (Dr) - 15 Mar 2024 08:18
+
+--- 15 2024-03-12 [other] milestones=[] eid=4e421c64-8d58-4081-8013-69a6d90a1d50 ---
+13:33 - Surgery: Auto-filed  
+Bone profile (44Z2.)
+Serum albumin level (XE2eA) 44 g/L [35 - 50]
+Serum calcium level (XE2q3) 2.35 mmol/L
+Serum adjusted calcium concentration (Xabpk) 2.27 mmol/L [2.12 - 2.51]
+Reference range amended to account for calibration
+difference in the SIEMENS assay.  Ann Clin Biochem
+2020 Sep 57(5):373-381
+Serum inorganic phosphate level (XE2q4) 0.56 mmol/L [0.8 - 1.5] - Outside reference range
+Serum alkaline phosphatase level (XE2px) 62 iu/L [30 - 130]
+Calculated Globulin: 37 g/L [15.0 - 30.0]; Globulins may be raised in myeloma and decreased in
+some cases of myeloma or immune deficiency states.
+Please correlate clinically. Suggest checking serum
+immunoglobulins if Glb >40 g/L in patients >40 years of
+age. Check serum immunoglobulins and free light chain
+assay if Glb <18 g/L.; Outside reference range
+Clinical Information: Reasons for Request:      raised globulin - recheck.
+Bone profile Report,ï¿½Borderline,ï¿½Need to repeat test: rpt bloods in 3-4 weeks please.. Review done by PATEL, Krishan (Dr) - 13 Mar 2024 13:12
+
+--- 16 2024-03-12 [other] milestones=[] eid=dc73ab32-a2c3-4b6f-a6d6-f1438dd435e7 ---
+13:33 - Surgery: Auto-filed  
+Serum kappa/lambda ratio: 0.97 [0.26 - 1.65]
+Clinical Information: Reasons for Request:      raised globulin - recheck.Yes.
+Serum free kappa light chains: 32.0 mg/L [3.3 - 19.4]; Outside reference range
+Serum free lambda light chains: 33.1 mg/L [5.71 - 26.3]; Outside reference range
+Serum free light chains: Significant abnormalities of serum free light chains either Kappa or
+Lambda >100mg/L AND ratio of <0.1 or >7 should have a 2 week wait
+referral to haematology
+Minor abnormalities of light chains and light chain ratios outside of
+the above are unlikely to represent myeloma and would not normally
+require further action or repeat testing.  Elevations of light chains
+with normal or near normal ratio are common in
+infection/inflammation.  Please ensure light chains are interpreted
+in conjunction with serum electrophoresis and note that light chain
+analysis only is not adequate to exclude myeloma
+In patients with end stage renal disease or dialysis dependent renal
+failure the reference range for Kappa/Lambda ratio is 0.37 - 3.1.
+Antigen excess causes all immunoassays to underestimate very high
+concentrations of antigen.  The assay has been manufactured to
+minimise the occurrence of antigen excess, but it is not possible to
+completely eradicate it.  Serum free light chain results should
+always be interpreted in conjunction with other laboratory tests and
+clinical evidence.
+Serum free light chains Report,ï¿½Satisfactory,ï¿½Make an appointment to see doctor: no paraprotein, note plts, BBV screen pending - needs routine app with GP given FBC - pls relaese app within 2/52. Review done by BROCKHURST, Nikki (Dr) - 15 Mar 2024 08:17
+
+--- 17 2024-03-12 [other] milestones=[] eid=03202e2b-bc63-4db1-829b-383df1a38d18 ---
+13:33 - Surgery: Auto-filed  
+Serum urea level (XM0lt) 3.4 mmol/L [2.5 - 7.8]
+Serum creatinine level (XE2q5) 82 umol/L [60 - 120]
+eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) > 90 mL/min
+Urine ACR should be checked on at least an annual basis
+for all individuals with CKD.  NICE recommends the
+Kidney failure Risk Equation www.kfre.co.uk to
+predict the risk of endstage kidney disease in CKD
+stages 3a to 5.  KFRE is not valid in the presence
+of acute kidney injury.
+Urea and electrolytes (X77Wi)
+Serum sodium level (XE2q0) 138 mmol/L [133 - 146]
+Serum potassium level (XE2pz) 4.4 mmol/L [3.5 - 5.3]
+Clinical Information: Reasons for Request:      raised globulin - recheck.
+Urea and electrolytes Report,ï¿½Borderline,ï¿½Need to repeat test: rpt bloods in 3-4 weeks please.. Review done by PATEL, Krishan (Dr) - 13 Mar 2024 13:12
+
+--- 18 2024-03-12 [other] milestones=[] eid=ebd486b1-a1f4-4562-963a-c628a1a2840f ---
+13:33 - Surgery: Auto-filed  
+Total white blood count (XaIdY) 3.9 10^9/L [4 - 11] - Outside reference range
+Red blood cell count (426..) 5.41 10^12/L [3.9 - 6.5]
+Haemoglobin concentration (Xa96v) 138 g/L [130 - 180]
+Haematocrit (X76tb) 0.425  [0.4 - 0.54]
+Mean cell volume (42A..) 79 fL [80 - 99] - Outside reference range
+Mean cell haemoglobin level (XE2pb) 25.5 pg [27 - 32] - Outside reference range
+Platelet count - observation (42P..) 101 10^9/L [140 - 400] - Outside reference range
+Neutrophil count (42J..) 2.09 10^9/L [1.5 - 7.5]
+Monocyte count - observation (42N..) 0.26 10^9/L [0.2 - 0.8]
+Eosinophil count - observation (42K..) 0.02 10^9/L [0.04 - 0.4] - Outside reference range
+Basophil count (42L..) 0.02 10^9/L [0.02 - 0.1]
+Lymphocyte count (42M..) 1.52 10^9/L [1 - 4]
+Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]
+For further investigation of abnormal Full Blood Count
+please see Haematology Referral Guidelines:
+https://www.leicestershospitals.nhs.uk/aboutus/
+(click Departments & Services > Haematology >
+Haematology Referral
+Guidelines).
+If clinically urgent contact the Haematologist On Call.
+Full blood count (424..)
+Clinical Information: Reasons for Request:      raised globulin - recheck.
+Full blood count Report,ï¿½Borderline,ï¿½Need to repeat test: rpt bloods in 3-4 weeks please.. Review done by PATEL, Krishan (Dr) - 13 Mar 2024 13:12
+
+--- 19 2024-03-12 [other] milestones=[] eid=6a2236da-9097-436e-89b2-df2469ddbef4 ---
+13:33 - Surgery: RUMMING, Anita (Health Professional Access Role) 
+130 / 73
+135 / 77
+137 / 85
+Examination: Pt req weight and BP while he was here - all documented.
+ Phlebotomy Test
+   Entries from previous template version
+      Blood sample taken (XaEJK)
+      Informed consent given (XaLQR)
+      Seen by practice phlebotomist (9N2S.)
+ Vitals & Lifestyle
+   Recordings
+      BP (Right Arm): 137 / 85 (Right)
+      BP: 135 / 77
+      BP: 130 / 73
+      Weight: 72 Kg  (? 11 st 5 lb)
+      BMI: 22.98 Kg/mï¿½
+Informed consent given (XaLQR)
+Seen by practice phlebotomist (9N2S.)
+Blood sample taken (XaEJK)
+O/E - weight (22A..) 72 Kg (? 11 st 5 lb)
+Body mass index - observation (22K..) 22.98 Kg/mï¿½
+
+--- 20 2024-03-13 [other] milestones=[] eid=1231b8be-66f0-4635-9ce4-c1eb28fd3f78 ---
+13:07 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+Pathology Request (Complete):
+Bloodborne virus screen (HIV, HBV & HCV) (Requested)
+Pathology Request (Request Sent):
+Cardiolipin antibodies (Requested), ANA (includes Centromere Antibody) (Requested), Serum Free Light Chains (Requested), Immunoglobulins & Electrophoresis (Requested), Rheumatoid Factor (Requested)
+Pathology Request (Complete):
+Vitamin B12 (Postponed), Manual Differential (Blood Film) (Postponed), Ferritin (Postponed), Folate (Postponed), Lactate Dehydogenase (Postponed)
+
+--- 21 2024-03-13 [other] milestones=[] eid=5c39b2b6-abbb-4697-b93b-30c042e5fa09 ---
+13:50 - Surgery: INGLE, Kirsty (Receptionist Access Role)
+
+--- 22 2024-03-13 [other] milestones=[] eid=0259dc4f-3ae7-479b-ac10-625927306f4c ---
+13:51 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+Patient telephone number (9159.) - 07404 308252
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Akpokodje,
+Following your recent blood test, the results have been received, and the GP would like you to have a further blood test in 3-4 weeks time.
+Could you please contact the surgery between 10:00am-05:00pm to arrange a suitable appointment. 
+Thanks, 
+Woodbrook Medical Centre
+
+--- 23 2024-03-13 [IN-EP] milestones=['referral'] eid=b5f79774-d45a-4444-9e0a-9dbd0e7a9d45 ---
+14:17 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+- PRISM Diabetes Prevention Programme -  questionnaire started - (finalised: 13 Mar 2024 14:17)
+QRISK2 cardiovascular disease 10 year risk score (XaQVY) 1.48 %
+NHS Health Check programme (XaR6f)
+ NHS Health Check Part 1 (LLR) PH CBS
+   Payment & Recall
+      ^Tick to confirm you have completed ALL mandatory components: Yes
+      ^NHS Health Check completed: Yes
+ PRISM Pathway & Referral Impl SysteM V3
+   D
+       - PRISM Diabetes Prevention Programme -  questionnaire started - (finalised: 13 Mar 2024 14:17)
+       Diabetes Prevention Programme PRISM to Unknown 
+      History: Outbound referral (XaY59)
+Diagnosis:  Diabetes prevention programme Pathway Accessed
+Plan: Referral to NHS Diabetes Prevention Programme (XaeDH)
+ Non-Diabetic Hyperglycaemia NDH / Pre-Diabetes
+   Diagnosis
+      NDPP: Referral to NHS Diabetes Prevention Programme (XaeDH)
+Diabetes Prevention Programme PRISM to Unknown 
+NHSmail to Unknown 
+NHS Health Check completed (XaRBQ)
+NHS Health Check completed (XaRBQ)
+Referral to NHS Diabetes Prevention Programme (XaeDH)
+History: Outbound referral (XaY59)
+Diagnosis:  Diabetes prevention programme Pathway Accessed
+Plan: Referral to NHS Diabetes Prevention Programme (XaeDH)
+
+--- 24 2024-03-13 [other] milestones=[] eid=4a03f0c8-3c68-434d-ac32-45e1fd50d0ee ---
+Confirmation of appointment at Woodbrook Medical Centre - 02 Apr 2024 at 09:40 with  Anita Rumming. Please call the surgery on 01509 239166 if you are unable to attend.
+
+--- 25 2024-03-15 [other] milestones=[] eid=ca0afad2-71a2-4c52-9aaa-0315fc78b08e ---
+08:14 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 26 2024-03-15 [other] milestones=[] eid=941a7c7b-cdd6-4969-99fc-ba615323566c ---
+08:17 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role)
+
+--- 27 2024-03-20 [other] milestones=[] eid=4287be69-0f99-43bc-b65f-34acb22c3e54 ---
+09:54 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)
+
+--- 28 2024-03-20 [other] milestones=[] eid=8be8b33d-944e-42e4-ba7d-1769f977ac23 ---
+09:55 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+Patient telephone number (9159.) - 07404 308252
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Akpokodje,
+Following your recent blood test results, please contact the surgery at 8am to book a routine appointment with a GP to discuss this. 
+Please note that we are fully booked for today. 
+Thanks
+Woodbrook Medical Centre
+
+--- 29 2024-03-20 [other] milestones=[] eid=73256e60-a5d5-45c3-a0ff-127e56655a30 ---
+17:18 - Surgery: OLSBERG, Felicity (Receptionist Access Role)
+
+--- 30 2024-03-25 [other] milestones=[] eid=6457025f-de1a-46d2-b1ec-04a829212921 ---
+** Care started at Carillon PCN (Remotely Registered) **
+
+--- 31 2024-03-25 [other] milestones=[] eid=61b39235-754f-4185-835b-fd73f12c0f66 ---
+12:01 - Surgery: DOUGHTY, Lauren (Receptionist Access Role)
+
+--- 32 2024-03-25 [other] milestones=[] eid=382e3333-d2b1-490d-84ed-082800a70d6f ---
+12:02 - Surgery: Unknown Staff Member  Entered at: Carillon PCN
+Registered remotely through GP Connect - Woodbrook Medical Centre
+Previous Home Address: 68 Gracedieu Road, Loughborough LE11 4QG
+Mobile telephone number: 07404 308252
+
+--- 33 2024-03-26 [other] milestones=[] eid=6a785b24-8702-4c0c-abba-9ee670076514 ---
+10:27 - Surgery: OLSBERG, Felicity (Receptionist Access Role)
+
+--- 34 2024-03-28 [other] milestones=[] eid=6e0f8260-20fd-429a-9d9c-a7a4b4dce282 ---
+18:46 - Primary Care Network (PCN): SAUND, Narinder (Dr) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+SystmOne Outgoing Record Sharing consent changed to: Not asked - Record shared
+
+--- 35 2024-03-28 [other] milestones=[] eid=d0e1a0b9-e1d9-4ab1-a8fb-d1135598ccdd ---
+18:46 - Primary Care Network (PCN): SAUND, Narinder (Dr) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+History: Failed encounter - no answer when rang back (9N4C.)mobile 07404 308252 - unable to leave a message
+
+--- 36 2024-03-28 [other] milestones=[] eid=591149df-400b-4a69-8827-7bddac5a5d73 ---
+19:23 - Primary Care Network (PCN): SAUND, Narinder (Dr) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+ Consultation
+   General
+      Encounter: Telephone consultation (XaIge)
+      H:  EH appt to discuss blood results  
+noted raised globulins with raised IgG and IGM, light chains (both kappa and lambda but normal ratio)
+normal CRP/LFT 
+came from Nigeria 6m ago 
+well in self
+had major surgery in Nigeria but does not know what for - will chase documentation 
+no h/o infections
+      P:  discussed - suggests needs infectious virology screen and USS liver/spleen 
+ten review
+Telephone consultation (XaIge)
+Clinical history and observations (X76sV)
+EH appt to discuss blood results  
+noted raised globulins with raised IgG and IGM, light chains (both kappa and lambda but normal ratio)
+normal CRP/LFT 
+came from Nigeria 6m ago 
+well in self
+had major surgery in Nigeria but does not know what for - will chase documentation 
+no h/o infections
+Plan (XaIVg)
+discussed - suggests needs infectious virology screen and USS liver/spleen 
+ten review
+
+--- 37 2024-03-29 [other] milestones=[] eid=09de360e-6658-42fe-a4bc-43b65a42a3c1 ---
+08:31 - Primary Care Network (PCN): SAUND, Narinder (Dr) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+Pathology Request (Request Sent):
+Syphilis Serology (Requested)
+Pathology Request (Complete):
+US Abdomen (Requested)
+Pathology Request (Request Sent):
+Haemoglobinopathy Screen (Requested)
+Pathology Request (Request Sent):
+Full Blood Count (Requested)
+
+--- 38 2024-04-02 [other] milestones=[] eid=62c35890-e337-48fd-ab60-0a5e2e12634f ---
+09:06 - Surgery: OLSBERG, Felicity (Receptionist Access Role)
+
+--- 39 2024-04-02 [other] milestones=[] eid=43a9f34b-8b01-4683-aa4a-2f17e9bd1373 ---
+09:24 - Surgery: Auto-filed  
+Sample serology (43L..)
+HBV DNA (Quantification): 647 IU/mL
+Clinical Information: Order Comment:      MS775465K
+HBV DNA: 2.81 Log IU/mL
+Sample serology Report,ï¿½Abnormal,ï¿½No Further Action. Review done by PATEL, Krishan (Dr) - 08 Apr 2024 08:11
+
+--- 40 2024-04-02 [other] milestones=[] eid=457e6006-3538-4e36-9e08-02e01b16f4bc ---
+09:24 - Surgery: Auto-filed  
+HIV screening test (XaIon) - Not detected by EIA
+Hepatitis B surface antigen level (XaFuS)
+DETECTED by EIA; Patient infectious for hepatitis B.
+If this patient needs dental treatment he/she should
+tell the dentist that he/she is positive for hepatitis
+B. Household contacts should be screened for hepatitis
+B infection.
+Please refer to the Infectious Diseases clinic at LRI
+for specialist follow-up.
+Hepatitis C antibody test (XaEOG) - Not detected by EIA
+Hepatitis B core antibody level (XaFuU) - DETECTED by EIA
+Sample serology (43L..)
+Hepatitis B e Ag: Not detected by EIA
+Hepatitis B core IgM: Not detected by EIA
+Hepatitis B e Ab: DETECTED by EIA; Serological profile consistent with chronic
+hepatitis B virus infection. Please send a
+further specimen to confirm patient identity.
+Referral to the hepatitis clinic at LRI is advised.
+Sample serology Report,ï¿½Abnormal,ï¿½Need to speak to doctor, Need to repeat test: needs to rpt bloods within 1-2 weeks please
+also needs to discuss with GP results of results (i tried calling pt at the time of filing but no answer - i have done a referral to infectious disease today).. Review done by PATEL, Krishan (Dr) - 05 Apr 2024 08:20
+
+--- 41 2024-04-02 [other] milestones=[] eid=694e7661-bea4-48e2-8e2f-434791343253 ---
+09:24 - Surgery: Auto-filed  
+Clinical Information: Order Comment:      MS775465K
+Virus Reference Dept., UKHSA: Virus Reference Dept., UKHSA
+   HBV Genotype:
+   HBV DNA sequence See report below.
+   Report comment:
+   Sequence and phylogenetic analysis across the HBsAg region indicate
+s
+   that the virus isolated from this sample belongs to genotype E. Ple
+ase
+   note that additional analysis showed the presence of the amino acid
+   change Q129H. Amino acid changes occurring at this codon may abroga
+te
+   the HBsAg conformation resulting in an alteration to HBsAg
+   antigenicity.; Overlong lines have been split into multiple lines after 70 chars.
+Virus Reference Dept., UKHSA Report,ï¿½Abnormal, but expected,ï¿½Other (referred to ID). Review done by PATEL, Krishan (Dr) - 26 Apr 2024 16:53
+
+--- 42 2024-04-02 [other] milestones=[] eid=155a7112-31af-46aa-9f45-1c3cc90250b9 ---
+09:24 - Surgery: RUMMING, Anita (Health Professional Access Role) 
+ Phlebotomy Test
+   Entries from previous template version
+      Informed consent given (XaLQR)
+      Seen by practice phlebotomist (9N2S.)
+      Blood sample taken (XaEJK)
+Informed consent given (XaLQR)
+Seen by practice phlebotomist (9N2S.)
+Blood sample taken (XaEJK)
+
+--- 43 2024-04-02 [other] milestones=[] eid=04760e21-8b56-44f1-b2dd-20bcb2b5ae25 ---
+09:25 - Surgery: Auto-filed  
+Rheumatoid factor level (XE255) < 6 iu/mL [< 12.5] - Note change in RF reference range from 10.02.2023
+Clinical Information: Clinical Details:     Low WCC. Reasons for Request:      raised globulins
+Rheumatoid factor level Report,ï¿½Normal,ï¿½No Further Action. Review done by PATEL, Krishan (Dr) - 05 Apr 2024 08:23
+
+--- 44 2024-04-02 [other] milestones=[] eid=ff8a97ce-e4a1-4e9b-a3d3-359ff5577267 ---
+09:25 - Surgery: Auto-filed  
+Immunoglobulin G level (XE259) - see result comments below
+Immunoglobulin A level (XE25B) - see result comments below
+Immunoglobulin M level (XE25A) - see result comments below
+Serum protein electrophoresis (XE25U) - see result comments below
+Igs and electrophoresis:
+Clinical Information: Clinical Details:     Low WCC. Reasons for Request:      raised globulins
+Igs and electrophoresis Report,ï¿½Specimen lost / unusable,ï¿½Other (sample not tested as same test has been done recently.). Review done by PATEL, Krishan (Dr) - 04 Apr 2024 08:22
+
+--- 45 2024-04-02 [other] milestones=[] eid=1b9dcedd-9a44-44bc-afa0-efc502d8f1b0 ---
+09:25 - Surgery: Auto-filed  
+Clinical Information: Clinical Details:     Low WCC. Reasons for Request:      raised globulins
+Duplicate Test: see result comments below
+Duplicate Test Report,ï¿½Normal,ï¿½No Further Action. Review done by PATEL, Krishan (Dr) - 10 Apr 2024 08:00
+
+--- 46 2024-04-02 [other] milestones=[] eid=1a726402-da8d-468b-bf3c-80ef4c6a5853 ---
+09:25 - Surgery: Auto-filed  
+Serum cardiolipin IgG antibody level (Y20a4) 3.5 CU [< 20]
+Serum cardiolipin IgM antibody level (Y20a5) 7.9 CU [< 20]
+Cardiolipin antibodies: Laboratory criteria for antiphospholipid syndrome (APS) include IgG
+and/or IgM anticardiolipin antibodies or B2-glycoprotein-1
+> 20 CU (the 99th centile) or positive lupus anticoagulant, present
+on 2 or more occasions at least 12 weeks apart.
+Clinical Information: Clinical Details:     Low WCC. Reasons for Request:      raised globulins
+Cardiolipin antibodies Report,ï¿½Normal,ï¿½No Further Action. Review done by PATEL, Krishan (Dr) - 10 Apr 2024 08:00
+
+--- 47 2024-04-02 [other] milestones=[] eid=1e5979e2-e18e-4a85-bfd0-d8e7fa52df6e ---
+09:25 - Surgery: Auto-filed  
+Serum anti nuclear antibody level (XaIZI) - Negative
+Clinical Information: Clinical Details:     Low WCC. Reasons for Request:      raised globulins
+Serum anti nuclear antibody level Report,ï¿½Normal,ï¿½No Further Action. Review done by PATEL, Krishan (Dr) - 04 Apr 2024 08:20
+
+--- 48 2024-04-02 [other] milestones=[] eid=7b71a2ec-2756-474c-b3d6-7cf81f6f52df ---
+09:25 - Surgery: Auto-filed  
+Serum kappa/lambda ratio: see result comments below; This sample/test has not been tested because a sample
+from the same patient has previously been tested within
+the standard minimum repeat order time for this assay.
+If there is a clinical need to retest please contact
+Immunology. This sample has been stored for four weeks.
+Immunology ext. 16196
+Serum free kappa light chains: see result comments below
+Serum free lambda light chains: see result comments below
+Clinical Information: Clinical Details:     Low WCC. Reasons for Request:      raised globulins
+Serum free light chains: Significant abnormalities of serum free light chains either Kappa or
+Lambda >100mg/L AND ratio of <0.1 or >7 should have a 2 week wait
+referral to haematology
+Minor abnormalities of light chains and light chain ratios outside of
+the above are unlikely to represent myeloma and would not normally
+require further action or repeat testing.  Elevations of light chains
+with normal or near normal ratio are common in
+infection/inflammation.  Please ensure light chains are interpreted
+in conjunction with serum electrophoresis and note that light chain
+analysis only is not adequate to exclude myeloma
+In patients with end stage renal disease or dialysis dependent renal
+failure the reference range for Kappa/Lambda ratio is 0.37 - 3.1.
+Antigen excess causes all immunoassays to underestimate very high
+concentrations of antigen.  The assay has been manufactured to
+minimise the occurrence of antigen excess, but it is not possible to
+completely eradicate it.  Serum free light chain results should
+always be interpreted in conjunction with other laboratory tests and
+clinical evidence.
+Serum free light chains Report,ï¿½Specimen lost / unusable,ï¿½Other (sample not tested as same test has been done recently.). Review done by PATEL, Krishan (Dr) - 04 Apr 2024 08:22
+
+--- 49 2024-04-04 [other] milestones=[] eid=2934e1ca-e2e1-479e-b9d1-10b241a6ea4c ---
+08:19 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)
+
+--- 50 2024-04-04 [other] milestones=[] eid=04a54113-1276-48af-b62e-719d50118061 ---
+08:20 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)
+
+--- 51 2024-04-05 [other] milestones=[] eid=ff34e33f-e31d-4d90-8f09-a56d9008d690 ---
+08:06 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+Pathology Request (Awaiting Sample):
+Hepatitis B Serology (Postponed)
+
+--- 52 2024-04-05 [other] milestones=[] eid=f9a0df8c-1c4e-41a4-9a17-4ab7d82d3d01 ---
+08:22 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)
+
+--- 53 2024-04-05 [IN-EP] milestones=['referral'] eid=d83d874c-154d-4426-a92b-d8ef5641ddf4 ---
+10:04 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+- PRISM Infectious Diseases -  questionnaire started - (finalised: 05 Apr 2024 10:04)
+
+--- 54 2024-04-05 [other] milestones=[] eid=d6a609a1-4012-4ce5-9397-67e2031c25de ---
+10:14 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Infectious diseases referral made today via ERS. Letter sent to patient with appointment details.
+Referral to infectious diseases service (XaAch)
+Choice and booking enhanced services administration (XaMJa)
+Hospital Referral to infectious diseases service
+Referral Letter to Unknown 
+Infectious Diseases PRISM * to Unknown 
+Hospital Referral to infectious diseases service updated: Waiting For Information
+
+--- 55 2024-04-05 [other] milestones=[] eid=f8b12e46-ca2b-4d75-bed2-82b9c8070442 ---
+12:07 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Hepatitis B screening positive (XaPEy)
+Summary Care Record Update
+Hepatitis B screening positive (XaPEy)
+
+--- 56 2024-04-05 [other] milestones=[] eid=4f2cbefb-674c-49dc-96da-f50a6f19e6ed ---
+12:10 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Reminder/Alert: Hepatitis B Positive - Priority: Normal
+
+--- 57 2024-04-08 [other] milestones=[] eid=a3ed58e9-5843-4521-9185-486dc82f6aad ---
+08:10 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)
+
+--- 58 2024-04-08 [other] milestones=[] eid=92b705dd-8ff0-4d08-aa9e-d5186e6255ce ---
+15:30 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)
+
+--- 59 2024-04-08 [other] milestones=[] eid=daca8c34-9ead-4ff0-a43f-f13087bc40eb ---
+15:30 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role) 
+Patient telephone number (9159.) - 07404 308252
+Short message service text message sent to patient (XaMiI)
+
+Dear Mr Akpokodje,
+Following your recent test results, please contact the surgery at 8am to book a routine appointment with a GP to discuss the results.
+Please note that we are fully booked for today.
+The GP would also like you to book a repeat blood test in 2-3 weeks time.
+Thanks
+Woodbrook Medical Centre
+
+--- 60 2024-04-10 [other] milestones=[] eid=389a6137-06e9-4a05-9b66-72afabd10a5a ---
+08:00 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role)
+
+--- 61 2024-04-15 [other] milestones=[] eid=07948427-bd74-4e33-a7a0-930c34278738 ---
+08:39 - Surgery: O'CONNELL, Charlotte (Ms) (Receptionist Access Role)
+
+--- 62 2024-04-15 [other] milestones=[] eid=542e4b5e-0cce-4488-8176-9e460e1d5c98 ---
+18:52 - Primary Care Network (PCN): OLUWABAMISE, Oluwafunso (Dr) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+Problem: Hepatitis B screening positive (XaPEy)
+History: ID checked
+
+Discussed test results  
+known with Hepatitis B for years now 
+was during a surgical procedure  
+was advised it was not an issue and given some medications 
+GP has referred im now to infectious disease 
+Has received appointment from infectious disease clinic
+Plan: Discussed implications of result  
+advised care needs to be taken to limit transmission  
+Await Iinfectious disease appt
+
+--- 63 2024-04-16 [other] milestones=[] eid=7dd352f9-e46c-4564-baa4-93c76b1fb9e7 ---
+You have a tel GP appt booked between 18:30-20:00, please ensure that you are available on the number that you provided.If symptoms worsen and you feel it is unsafe to wait for this appt, please contact NHS 111. If you need to cancel, please contact 07535467692. Thank you
+
+--- 64 2024-04-26 [other] milestones=[] eid=da3c8512-83fe-4fe4-8d03-206e2cf25f2c ---
+16:52 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) 
+Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role) , Entered By: BAILEY, Cleopatra
+Ultrasound elastography of liver (XaX64) (New Episode)
+
+--- 65 2024-05-06 [other] milestones=[] eid=b8f863f3-701a-47cb-851a-0402d544ae37 ---
+** Care ended at Carillon PCN (Remotely Registered) **
+
+--- 66 2024-05-08 [other] milestones=[] eid=fc45f44a-a968-4589-accc-69526a6f633f ---
+Surgery: RATHBONE, Lucy (Receptionist Access Role) 
+Diabetes to Woodbrook Medical Centre
+
+--- 67 2024-05-08 [other] milestones=[] eid=b3a13398-a7f3-4ba4-b0a5-7032f1b38a13 ---
+Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 68 2024-05-08 [other] milestones=[] eid=5ece046a-a36e-4bcd-92e9-042e2f4dec9e ---
+Surgery: REJAIE, Layla (Admin/Clinical Support Access Role) , Entered By: BAILEY, Cleopatra
+Failed encounter (9N4..) (New Episode)
+Major: Non-diabetic hyperglycaemia (XaaeP) (New Episode)
+NHS Diabetes Prevention Programme not completed (XaeCw) (New Episode)
+Non-diabetic hyperglycaemia (XaaeP)
+
+--- 69 2024-05-09 [other] milestones=[] eid=0dab1a80-5b2a-4889-82f3-47a9bb03a1ac ---
+14:18 - Surgery: MACKINSON, Kristy (Ms) (Admin/Clinical Support Access Role) Entered at: Carillon PCN
+US Abdomen:  Report Summary 
+.
+Clinical History :
+Raised globulins in african descent patient - raised IgM,
+IgG, light chains (ratio normal) - please assess for
+hepatosplenal abnormality or intra-abdominal lymphadenopathy
+.
+Cross Infection status? : No Known Risk
+Patient Allergies : No Known Allergy
+Is the patient diabetic? : No
+.
+TRACEY BAGNALL SONOGRAPHER RA33014 UHL
+.
+ US Abdomen 
+.
+Abdomen ultrasound
+.
+Scan performed with patient consent. Chaperone present ( HF-
+RDA)
+.
+The liver has an irregular outline with a macronodular
+appearance consistent with cirrhotic changes. No obvious
+focal lesions identified. Normal PV flow.
+.
+The gallbladder is not distended as the patient has eaten.
+No intra or extra hepatic duct dilatation evident.
+.
+The spleen is enlarged measuring 152mm in AP diameter. There
+are multiple calcific specks in the parenchyma.
+.
+Booth kidneys, the visible pancreas and the aorta appear
+unremarkable.
+.
+No  ascites evident.
+.
+TRACEY BAGNALL SONOGRAPHER RA33014 UHL
+.
+ Bagnall Tracey / RA33014
+US Abdomen Report,ï¿½Abnormal, but expected,ï¿½No Further Action: Already referred to ID clinic. Review done by HEWINS, Angharad (Dr) @ Carillon PCN at Carillon PCN (NHS Leicester, Leicestershire and Rutland Icb - 04v) - 21 May 2024 18:37
+
+--- 70 2024-05-09 [other] milestones=[] eid=43a93cb0-cc30-4520-9587-ba593755d51b ---
+15:25 - Automatically updated from PAS interface: Unknown Staff Member  Entered at: University Hospitals of Leicester NHS Trust - EPR
+
+--- 71 2024-05-14 [other] milestones=[] eid=18267902-e147-46db-81b8-734840687401 ---
+Surgery: BAILEY, Christopher (Receptionist Access Role) 
+Infectious Diseases & Tropical Medicine to Woodbrook Medical Centre
+
+--- 72 2024-05-14 [other] milestones=[] eid=745bf22d-89c5-4326-87c1-081d4e0651c8 ---
+Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 73 2024-05-14 [other] milestones=[] eid=00b6507e-6ede-4b9d-8cd0-ca01926e28ba ---
+13:30 - Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role) 
+ Vitals & Lifestyle
+   Recordings
+      Alcohol: Teetotaller (1361.)
+      Smoking: Never smoked tobacco (XE0oh)
+ Consultation
+   General
+      Weight: 73.7 Kg  (? 11 st 8 lb)
+      BMI: 23.52 Kg/mï¿½
+O/E - weight (22A..) 73.7 Kg (? 11 st 8 lb)
+Body mass index - observation (22K..) 23.52 Kg/mï¿½
+Teetotaller (1361.)
+Never smoked tobacco (XE0oh)
+
+--- 74 2024-05-21 [other] milestones=[] eid=4e6bff3d-4290-48e6-9427-a02901b38900 ---
+18:36 - Carillon PCN, Primary Care Network (PCN): HEWINS, Angharad (Dr) (Clinical Practitioner Access Role) Entered at: Carillon PCN
+
+--- 75 2024-06-10 [other] milestones=[] eid=2c852701-aeaf-4ad5-9a03-c67b10fef47f ---
+15:53 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Summary Care Record Update
+

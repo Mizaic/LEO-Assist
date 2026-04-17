@@ -22,7 +22,6 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Paper from "@mui/material/Paper";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -31,10 +30,8 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import HistoryIcon from "@mui/icons-material/History";
 import ReplayIcon from "@mui/icons-material/Replay";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import SearchIcon from "@mui/icons-material/Search";
 import StorageIcon from "@mui/icons-material/Storage";
 import Drawer from "@mui/material/Drawer";
@@ -88,6 +85,16 @@ import {
   type PlanData,
   type ModelPreset,
 } from "@/components/pathway/config/types";
+import { PathwayToolbar } from "./editor/PathwayToolbar";
+import { DeletePathwayDialog } from "./editor/dialogs/DeletePathwayDialog";
+import { EdgeDeleteConfirm } from "./editor/dialogs/EdgeDeleteConfirm";
+import { PublishDialog } from "./editor/dialogs/PublishDialog";
+import { type PlanLifecycleStatus } from "./editor/utils";
+import { PathwaySaveBar, type SaveBarState } from "./editor/PathwaySaveBar";
+import { PathwayLoadError } from "./editor/PathwayLoadError";
+import { useDirtyGuard } from "./editor/hooks/useDirtyGuard";
+import { ConditionRuleBuilder } from "@/components/pathway/panel/ConditionRuleBuilder";
+import type { ConditionRule } from "@/components/pathway/config/types";
 
 const edgeTypes = { portEdge: PortEdge };
 
@@ -189,27 +196,45 @@ function ModelPresetPicker({
     );
   }
 
+  // When the user has not picked a preset yet, treat the library default as
+  // the active selection so the "this is what will run" affordance matches
+  // the step-type picker (see StepCard). Without this, a fresh step shows
+  // no highlight at all and reviewers cannot tell which preset is in play.
+  const hasExplicitChoice = presets.some((p) => p.preset_id === value);
+  const defaultPresetId = presets.find((p) => p.is_default)?.preset_id ?? "";
+  const effectiveSelectedId = hasExplicitChoice ? value : defaultPresetId;
+
   return (
     <Stack spacing={1}>
       {presets.map((p) => {
-        const selected = value === p.preset_id;
+        const isSelected = effectiveSelectedId === p.preset_id;
+        const usingDefault = !hasExplicitChoice && p.is_default;
+        const accent = p.color || "#1976d2";
         return (
           <Paper
             key={p.preset_id}
             variant="outlined"
             onClick={() => onChange(p.preset_id, p)}
             sx={{
-              p: 1.5, cursor: "pointer", borderRadius: 2,
-              borderColor: selected ? "primary.main" : "divider",
-              borderWidth: selected ? 2 : 1,
-              bgcolor: selected ? "primary.50" : "transparent",
+              p: 1.5,
+              cursor: "pointer",
+              borderRadius: 2,
+              borderLeft: `5px solid ${accent}`,
+              borderColor: isSelected ? accent : "divider",
+              borderWidth: isSelected ? 2 : 1,
+              bgcolor: isSelected ? `${accent}14` : "background.paper",
+              transition: "all 0.15s ease",
+              "&:hover": {
+                bgcolor: isSelected ? `${accent}1f` : `${accent}08`,
+                borderColor: accent,
+              },
             }}
           >
             <Stack direction="row" alignItems="flex-start" spacing={1.5}>
-              <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: p.color || "#999", mt: "5px", flexShrink: 0 }} />
-              <Box sx={{ flex: 1 }}>
+              <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: accent, mt: "5px", flexShrink: 0 }} />
+              <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
-                  <Typography variant="body2" fontWeight={700}>{p.name}</Typography>
+                  <Typography variant="body2" fontWeight={isSelected ? 700 : 500}>{p.name}</Typography>
                   {p.is_default && <Chip size="small" label="Default" color="primary" sx={{ height: 16, fontSize: "0.6rem" }} />}
                   {p.is_system && <Chip size="small" label="System" variant="outlined" sx={{ height: 16, fontSize: "0.6rem" }} />}
                   <Chip size="small" label={p.extractor} variant="outlined"
@@ -224,6 +249,14 @@ function ModelPresetPicker({
                   </Typography>
                 )}
               </Box>
+              {isSelected && (
+                <Chip
+                  size="small"
+                  label={usingDefault ? "In use (default) \u2713" : "Selected \u2713"}
+                  color="primary"
+                  sx={{ height: 22, fontSize: "0.7rem", flexShrink: 0, mt: 0.25 }}
+                />
+              )}
             </Stack>
           </Paper>
         );
@@ -2469,7 +2502,26 @@ function ActionConfigurator({
             onOperationsChange={(ops) => updateParam("operations", ops)}
           />
         )}
-        {step === 2 && config.nodeType !== "parallel" && config.nodeType !== "merge" && config.nodeType !== "transform" && (
+        {step === 2 && config.nodeType === "condition" && (
+          <Stack spacing={2.5}>
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+                Branch rules
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Each rule sends matching items to a named output port. The default
+                port is used when no rule matches.
+              </Typography>
+            </Box>
+            <ConditionRuleBuilder
+              rules={(config.params.rules as ConditionRule[]) ?? []}
+              defaultPort={(config.params.defaultPort as string) ?? "else"}
+              onRulesChange={(rules) => updateParam("rules", rules)}
+              onDefaultPortChange={(port) => updateParam("defaultPort", port)}
+            />
+          </Stack>
+        )}
+        {step === 2 && config.nodeType !== "parallel" && config.nodeType !== "merge" && config.nodeType !== "transform" && config.nodeType !== "condition" && (
           <Stack spacing={2.5}>
             <SubgraphSettingsPanel
               category={category}
@@ -3159,10 +3211,6 @@ interface VersionEntry {
   name?: string;
 }
 
-function formatSaveTime(date: Date): string {
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
 function isSeededPlanRecord(plan: Pick<PlanData, "meta" | "source">): boolean {
   return Boolean(plan.meta?.seeded || plan.source === "seed");
 }
@@ -3569,6 +3617,9 @@ export default function PathwayBuilderPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [planLoaded, setPlanLoaded] = useState<boolean>(false);
+  const [loadAttempt, setLoadAttempt] = useState<number>(0);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [versionNotes, setVersionNotes] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -3657,6 +3708,20 @@ export default function PathwayBuilderPage() {
 
   const validationWarnings = useValidationWarnings(nodes, edges, nodeConfigs, triggerEvent);
 
+  const dirtyInputs = useMemo(
+    () => ({
+      planName,
+      planDescription,
+      planStatus,
+      triggerEvent,
+      nodes,
+      edges,
+      nodeConfigs,
+    }),
+    [planName, planDescription, planStatus, triggerEvent, nodes, edges, nodeConfigs],
+  );
+  const { dirty, markSaved } = useDirtyGuard(dirtyInputs, { ready: planLoaded });
+
   const openConfigurator = useCallback((nodeId: string) => {
     setSelectedNode(nodeId);
     setDrawerKey((k) => k + 1); // force remount so step resets to 0 and initialConfig re-applies
@@ -3664,8 +3729,12 @@ export default function PathwayBuilderPage() {
   }, []);
 
   useEffect(() => {
-    if (!isNew) {
-      api.get<PlanData>(`/fhir/PlanDefinition/${planId}`)
+    if (isNew) {
+      setPlanLoaded(true);
+      return;
+    }
+    setLoadError(null);
+    api.get<PlanData>(`/fhir/PlanDefinition/${planId}`)
         .then((data) => {
           setIsSeededPathway(isSeededPlanRecord(data));
           setPlanName(data.name || "");
@@ -3764,10 +3833,15 @@ export default function PathwayBuilderPage() {
           }));
           edgesRef.current = loadedEdges;
           setEdges(loadedEdges);
+          setPlanLoaded(true);
         })
-        .catch(() => {});
-    }
-  }, [planId, isNew, setNodes, setEdges, openConfigurator]);
+        .catch((err: unknown) => {
+          const message = err instanceof Error
+            ? err.message
+            : "The pathway could not be loaded. Check your connection and try again.";
+          setLoadError(message);
+        });
+  }, [planId, isNew, setNodes, setEdges, openConfigurator, loadAttempt]);
 
   const onConnect = useCallback((connection: Connection) => {
     const edgeId = `${connection.source}:${connection.sourceHandle ?? "_"}->${connection.target}:${connection.targetHandle ?? "_"}`;
@@ -4743,13 +4817,14 @@ export default function PathwayBuilderPage() {
         await api.put(`/fhir/PlanDefinition/${planId}`, payload);
         if (statusOverride) setPlanStatus(statusOverride);
         setLastSaved(new Date());
+        markSaved();
       }
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save pathway");
     } finally {
       setIsSaving(false);
     }
-  }, [planName, planStatus, planDescription, triggerEvent, versionNotes, isNew, planId, router]);
+  }, [planName, planStatus, planDescription, triggerEvent, versionNotes, isNew, planId, router, markSaved]);
 
   const handlePublish = useCallback(() => {
     const errCount = validationWarnings.filter((w) => w.severity === "error").length;
@@ -4897,228 +4972,58 @@ export default function PathwayBuilderPage() {
 
   return (
     <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <Box sx={{ px: 2, py: 1.25, display: "flex", alignItems: "center", gap: 1.5, borderBottom: 1, borderColor: "divider", overflowX: "auto", flexShrink: 0 }}>
-        <IconButton size="small" onClick={() => router.push("/admin/knowledge?tab=pathways")} sx={{ flexShrink: 0 }}><ArrowBackIcon /></IconButton>
-        <TextField
-          size="small" placeholder="Pathway name" value={planName}
-          onChange={(e) => setPlanName(e.target.value)} sx={{ width: 200, flexShrink: 0 }}
-        />
-        {/* Status badge — read-only display; changed via Publish / Retire */}
-        <Chip
-          size="small"
-          label={planStatus.charAt(0).toUpperCase() + planStatus.slice(1)}
-          color={planStatus === "active" ? "success" : planStatus === "retired" ? "default" : "warning"}
-          variant="outlined"
-          sx={{ fontWeight: 600, fontSize: "0.72rem", flexShrink: 0 }}
-        />
-        {/* Retire action */}
-        {planStatus !== "retired" && (
-          <Tooltip title="Mark this pathway as retired (no longer in use)">
-            <Button size="small" variant="text" color="inherit"
-              sx={{ textTransform: "none", fontSize: "0.72rem", color: "text.disabled", minWidth: 0, px: 1, flexShrink: 0 }}
-              onClick={() => handleSave("retired")}
-            >
-              Retire
-            </Button>
-          </Tooltip>
-        )}
-        <Box sx={{ flex: 1, minWidth: 8 }} />
-        {/* Save draft — always safe, never changes live status */}
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={isSaving ? <CircularProgress size={13} color="inherit" /> : <SaveIcon />}
-          disabled={isSaving}
-          onClick={() => handleSave()}
-          sx={{ textTransform: "none", minWidth: 100, flexShrink: 0 }}
-        >
-          {isSaving ? "Saving…" : "Save draft"}
-        </Button>
-        {/* Publish — validates first, sets status=active */}
-        <Tooltip title={planStatus === "active" ? "Re-publish to apply latest draft changes to live" : "Validate and publish this pathway to live"}>
-          <span style={{ flexShrink: 0 }}>
-            <Button
-              variant="contained"
-              size="small"
-              color="success"
-              startIcon={<CloudUploadIcon />}
-              disabled={isSaving}
-              onClick={handlePublish}
-              sx={{ textTransform: "none", minWidth: 90 }}
-            >
-              Publish
-            </Button>
-          </span>
-        </Tooltip>
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-        {/* Last-saved indicator */}
-        {!isSaving && lastSaved && (
-          <Typography variant="caption" color="text.disabled" sx={{ fontSize: "0.7rem", flexShrink: 0, whiteSpace: "nowrap" }}>
-            Saved {formatSaveTime(lastSaved)}
-          </Typography>
-        )}
-        {saveError && (
-          <Alert severity="error" sx={{ py: 0, fontSize: "0.72rem", flexShrink: 0 }} onClose={() => setSaveError(null)}>
-            {saveError}
-          </Alert>
-        )}
-        {/* Add data source — creates a fan-out source node on the canvas */}
-        <FormControl size="small" sx={{ minWidth: 160, flexShrink: 0 }}>
-          <InputLabel>Add a data source</InputLabel>
-          <Select label="Add a data source" value="" onChange={(e) => { if (e.target.value) addSourceNode(e.target.value as SourceType); }}>
-            <MenuItem value="">Add a data source…</MenuItem>
-            {(Object.entries(SOURCE_DEFINITIONS) as [SourceType, typeof SOURCE_DEFINITIONS[SourceType]][]).map(([type, meta]) => (
-              <MenuItem key={type} value={type}>
-                <Box>
-                  <Typography variant="body2">{meta.label}</Typography>
-                  <Typography variant="caption" color="text.secondary">{meta.description}</Typography>
-                </Box>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <PathwayToolbar
+        planName={planName}
+        onPlanNameChange={setPlanName}
+        planStatus={planStatus as PlanLifecycleStatus}
+        isSaving={isSaving}
+        isDeletingPathway={isDeletingPathway}
+        isTestRunning={isTestRunning}
+        isBatchRunning={isBatchRunning}
+        isNew={isNew}
+        isSeededPathway={isSeededPathway}
+        hasTestTrace={Boolean(testTrace)}
+        hasTestInput={Boolean(testInputRef.current)}
+        executionNodeCount={executionNodeCount}
+        lastSaved={lastSaved}
+        saveError={saveError}
+        onClearSaveError={() => setSaveError(null)}
+        onBack={() => router.push("/admin/knowledge?tab=pathways")}
+        onSaveDraft={() => handleSave()}
+        onPublish={handlePublish}
+        onRetire={() => handleSave("retired")}
+        onAddSourceNode={addSourceNode}
+        onAddOutputNode={addOutputNode}
+        onAddViewerNode={addViewerNode}
+        onAddAction={addAction}
+        onAutoLayout={autoLayout}
+        onClearTestTrace={() => {
+          setTestTrace(null);
+          setSelectedBatchTrace(null);
+          setSelectedBatchCandidateId(null);
+          setTestRunError(null);
+          setProbedEdges(new Set());
+        }}
+        onOpenTestRun={() => setTestRunOpen(true)}
+        onRunAllSteps={handleRunAllSteps}
+        onOpenBatchPanel={() => setBatchPanelOpen(true)}
+        onOpenHistory={openHistory}
+        onOpenDelete={() => {
+          setDeleteConfirmText("");
+          setDeleteDialogOpen(true);
+        }}
+      />
 
-        {/* Add output destination — creates a sink node on the canvas; includes canvas-only viewer */}
-        <FormControl size="small" sx={{ minWidth: 160, flexShrink: 0 }}>
-          <InputLabel>Add an output</InputLabel>
-          <Select
-            label="Add an output"
-            value=""
-            onChange={(e) => {
-              const val = e.target.value;
-              if (!val) return;
-              if (val === "__viewer__") { addViewerNode(); return; }
-              addOutputNode(val as OutputType);
-            }}
-          >
-            <MenuItem value="">Add an output…</MenuItem>
-            {(Object.entries(OUTPUT_DEFINITIONS) as [OutputType, typeof OUTPUT_DEFINITIONS[OutputType]][]).map(([type, meta]) => (
-              <MenuItem key={type} value={type}>
-                <Box>
-                  <Typography variant="body2">{meta.label}</Typography>
-                  <Typography variant="caption" color="text.secondary">{meta.description}</Typography>
-                </Box>
-              </MenuItem>
-            ))}
-            <Divider />
-            <MenuItem value="__viewer__">
-              <Box>
-                <Typography variant="body2">Mini HITL viewer</Typography>
-                <Typography variant="caption" color="text.secondary">Canvas-only preview node — inspect step output in context</Typography>
-              </Box>
-            </MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" sx={{ minWidth: 170, flexShrink: 0 }}>
-          <InputLabel>Add a step</InputLabel>
-          <Select label="Add a step" value="" onChange={(e) => addAction(e.target.value)}>
-            <MenuItem value="">Add a step…</MenuItem>
-            <MenuItem disabled sx={{ fontWeight: 700, opacity: 1 }}>Clinical Steps</MenuItem>
-            {SUBGRAPH_OPTIONS.map((s) => (
-              <MenuItem key={s.id} value={s.id}>{s.label}</MenuItem>
-            ))}
-            <MenuItem disabled sx={{ fontWeight: 700, opacity: 1 }}>Flow Control</MenuItem>
-            <MenuItem value="condition">Condition</MenuItem>
-            <MenuItem value="parallel">Parallel</MenuItem>
-            <MenuItem value="merge">Merge</MenuItem>
-            <MenuItem value="transform">Transform</MenuItem>
-            <MenuItem value="trigger">Trigger</MenuItem>
-            <MenuItem disabled sx={{ fontWeight: 700, opacity: 1 }}>Connectors</MenuItem>
-            <MenuItem value="rest_connector">REST API Call</MenuItem>
-            <MenuItem value="queue_publish">Queue Publish</MenuItem>
-          </Select>
-        </FormControl>
-        {/* Auto-layout */}
-        <Tooltip title="Auto-layout — rearrange steps into a tidy flow (top to bottom)">
-          <IconButton size="small" onClick={autoLayout} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5, flexShrink: 0 }}>
-            <AccountTreeIcon sx={{ fontSize: "1.1rem" }} />
-          </IconButton>
-        </Tooltip>
-        {/* Test run */}
-        {testTrace && (
-          <Tooltip title="Clear test results">
-              <IconButton size="small" onClick={() => { setTestTrace(null); setSelectedBatchTrace(null); setSelectedBatchCandidateId(null); setTestRunError(null); setProbedEdges(new Set()); }}
-              sx={{ border: "1px solid", borderColor: "success.light", borderRadius: 1.5, color: "success.main", flexShrink: 0 }}>
-              <CloseIcon sx={{ fontSize: "1rem" }} />
-            </IconButton>
-          </Tooltip>
-        )}
-        <Tooltip title="Dry-run the pipeline with sample data — opens the input dialog">
-          <span style={{ flexShrink: 0 }}>
-            <Button
-              size="small"
-              variant="outlined"
-              color="success"
-              startIcon={isTestRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
-              disabled={isTestRunning || executionNodeCount === 0}
-              onClick={() => setTestRunOpen(true)}
-              sx={{ textTransform: "none", minWidth: 85 }}
-            >
-              {isTestRunning ? "Running…" : "Test run"}
-            </Button>
-          </span>
-        </Tooltip>
-        <Tooltip title={
-          testInputRef.current
-            ? "Re-run every step with the same test input — stops at the first failure"
-            : "Run all steps — opens the input dialog (no previous run yet)"
-        }>
-          <span style={{ flexShrink: 0 }}>
-            <Button
-              size="small"
-              variant={testInputRef.current ? "contained" : "outlined"}
-              color="success"
-              startIcon={isTestRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
-              disabled={isTestRunning || executionNodeCount === 0}
-              onClick={handleRunAllSteps}
-              sx={{ textTransform: "none", minWidth: 100 }}
-            >
-              {isTestRunning ? "Running…" : "Run all steps"}
-            </Button>
-          </span>
-        </Tooltip>
-        <Tooltip title="Batch dry-run — run the draft pathway against real Training Candidates from the Knowledge Graph">
-          <span style={{ flexShrink: 0 }}>
-            <Button
-              size="small"
-              variant="outlined"
-              color="secondary"
-              startIcon={isBatchRunning ? <CircularProgress size={13} color="inherit" /> : <PlayArrowIcon />}
-              disabled={isBatchRunning || isTestRunning || executionNodeCount === 0}
-              onClick={() => setBatchPanelOpen(true)}
-              sx={{ textTransform: "none", minWidth: 100 }}
-            >
-              {isBatchRunning ? "Running…" : "Batch dry run"}
-            </Button>
-          </span>
-        </Tooltip>
-        {/* Version history */}
-        {!isNew && (
-          <Tooltip title="Version history — view and restore previous published versions">
-            <IconButton size="small" onClick={openHistory} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5, flexShrink: 0 }}>
-              <HistoryIcon sx={{ fontSize: "1.1rem" }} />
-            </IconButton>
-          </Tooltip>
-        )}
-        {!isNew && (
-          <Tooltip title={isSeededPathway ? "Seeded pathways cannot be deleted from the UI" : "Delete this pathway permanently"}>
-            <span style={{ flexShrink: 0 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                color="error"
-                startIcon={<DeleteOutlineIcon />}
-                disabled={isSaving || isDeletingPathway || isSeededPathway}
-                onClick={() => { setDeleteConfirmText(""); setDeleteDialogOpen(true); }}
-                sx={{ textTransform: "none", minWidth: 90 }}
-              >
-                Delete
-              </Button>
-            </span>
-          </Tooltip>
-        )}
-      </Box>
+      {loadError ? (
+        <PathwayLoadError
+          message={loadError}
+          onRetry={() => {
+            setLoadError(null);
+            setLoadAttempt((n) => n + 1);
+          }}
+          onDismiss={() => setLoadError(null)}
+        />
+      ) : null}
 
       <TriggerContextPanel
         triggerEvent={triggerEvent}
@@ -5541,161 +5446,39 @@ export default function PathwayBuilderPage() {
         })()}
       </Dialog>
 
-      {/* ── Edge deletion confirmation dialog ────────────────────────────── */}
-      <Dialog open={Boolean(pendingDeleteEdges)} onClose={() => setPendingDeleteEdges(null)} maxWidth="xs" fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}>
-        <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
-          <Typography variant="h6" fontWeight={700} gutterBottom>Remove connection?</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Disconnecting this wire means the next step will no longer receive data from this one. You can reconnect it on the canvas at any time.
-          </Typography>
-        </Box>
-        <Box sx={{ px: 3, pb: 2.5, pt: 1.5, display: "flex", justifyContent: "flex-end", gap: 1 }}>
-          <Button onClick={() => setPendingDeleteEdges(null)} sx={{ textTransform: "none" }}>Keep connected</Button>
-          <Button variant="contained" color="error" onClick={confirmEdgeDeletion} sx={{ textTransform: "none" }}>
-            Remove connection
-          </Button>
-        </Box>
-      </Dialog>
+      <EdgeDeleteConfirm
+        open={Boolean(pendingDeleteEdges)}
+        onCancel={() => setPendingDeleteEdges(null)}
+        onConfirm={confirmEdgeDeletion}
+      />
 
-      {/* ── Publish confirmation dialog ───────────────────────────────────── */}
-      {(() => {
-        const errCount  = validationWarnings.filter((w) => w.severity === "error").length;
-        const warnCount = validationWarnings.filter((w) => w.severity === "warning").length;
-        const stepCount = nodes.length;
-        return (
-          <Dialog
-            open={publishDialogOpen}
-            onClose={() => !isSaving && setPublishDialogOpen(false)}
-            maxWidth="xs"
-            fullWidth
-            PaperProps={{ sx: { borderRadius: 3 } }}
-          >
-            <Box sx={{ px: 3, pt: 2.5, pb: 1, borderBottom: 1, borderColor: "divider" }}>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <CloudUploadIcon color="success" />
-                <Typography variant="h6" fontWeight={700}>Publish to live</Typography>
-              </Stack>
-              <Typography variant="caption" color="text.secondary">
-                {planName || "This pathway"} will immediately be used by the runtime for new executions.
-              </Typography>
-            </Box>
+      <PublishDialog
+        open={publishDialogOpen}
+        onClose={() => setPublishDialogOpen(false)}
+        onConfirm={confirmPublish}
+        isSaving={isSaving}
+        planName={planName}
+        stepCount={nodes.length}
+        errorCount={
+          validationWarnings.filter((w) => w.severity === "error").length
+        }
+        warningCount={
+          validationWarnings.filter((w) => w.severity === "warning").length
+        }
+        versionNotes={versionNotes}
+        onVersionNotesChange={setVersionNotes}
+      />
 
-            <Box sx={{ px: 3, py: 2 }}>
-              {/* Validation summary */}
-              <Stack spacing={0.75} sx={{ mb: 2 }}>
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="caption" color="text.secondary">Pipeline steps</Typography>
-                  <Typography variant="caption" fontWeight={600}>{stepCount}</Typography>
-                </Stack>
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="caption" color="text.secondary">Validation errors</Typography>
-                  <Typography variant="caption" fontWeight={600} color={errCount > 0 ? "error.main" : "success.main"}>
-                    {errCount === 0 ? "None ✓" : `${errCount} error${errCount > 1 ? "s" : ""}`}
-                  </Typography>
-                </Stack>
-                {warnCount > 0 && (
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="caption" color="text.secondary">Warnings</Typography>
-                    <Typography variant="caption" fontWeight={600} color="warning.main">{warnCount}</Typography>
-                  </Stack>
-                )}
-              </Stack>
-
-              <Alert severity="info" icon={false} sx={{ mb: 2, fontSize: "0.75rem" }}>
-                To roll back: edit the pathway, adjust the steps, and publish again.
-                For a clean rollback, duplicate a known-good version as a new draft and publish that.
-              </Alert>
-
-              <TextField
-                label="Version notes (optional)"
-                placeholder="e.g. Added verification step before persist; updated extraction prompt to v3"
-                multiline
-                minRows={2}
-                fullWidth
-                size="small"
-                value={versionNotes}
-                onChange={(e) => setVersionNotes(e.target.value)}
-              />
-            </Box>
-
-            <Box sx={{ px: 3, pb: 2.5, display: "flex", justifyContent: "flex-end", gap: 1 }}>
-              <Button onClick={() => setPublishDialogOpen(false)} disabled={isSaving} sx={{ textTransform: "none" }}>
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                color="success"
-                disabled={isSaving}
-                startIcon={isSaving ? <CircularProgress size={13} color="inherit" /> : <CloudUploadIcon />}
-                onClick={confirmPublish}
-                sx={{ textTransform: "none" }}
-              >
-                {isSaving ? "Publishing…" : "Publish to live"}
-              </Button>
-            </Box>
-          </Dialog>
-        );
-      })()}
-
-      <Dialog
+      <DeletePathwayDialog
         open={deleteDialogOpen}
-        onClose={() => !isDeletingPathway && setDeleteDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
-      >
-        <Box sx={{ px: 3, pt: 2.5, pb: 1, borderBottom: 1, borderColor: "divider" }}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <DeleteOutlineIcon color="error" />
-            <Typography variant="h6" fontWeight={700}>Delete pathway permanently?</Typography>
-          </Stack>
-          <Typography variant="caption" color="text.secondary">
-            {deleteConfirmTarget} will be removed from the admin UI and deleted from Neo4j.
-          </Typography>
-        </Box>
-
-        <Box sx={{ px: 3, py: 2 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            This deletes the pathway definition, its linked actions, and its saved version history from Neo4j.
-            This cannot be undone.
-          </Typography>
-          {planStatus === "active" && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              This pathway is currently live. Deleting it may stop future runtime processing that depends on it.
-            </Alert>
-          )}
-          <Alert severity="error" icon={false} sx={{ mb: 2, fontSize: "0.78rem" }}>
-            Type the pathway name exactly to unlock permanent deletion.
-          </Alert>
-          <TextField
-            label="Confirm pathway name"
-            fullWidth
-            size="small"
-            autoFocus
-            value={deleteConfirmText}
-            onChange={(e) => setDeleteConfirmText(e.target.value)}
-            disabled={isDeletingPathway}
-            helperText={`Type "${deleteConfirmTarget}" to confirm.`}
-          />
-        </Box>
-
-        <Box sx={{ px: 3, pb: 2.5, display: "flex", justifyContent: "flex-end", gap: 1 }}>
-          <Button onClick={() => setDeleteDialogOpen(false)} disabled={isDeletingPathway} sx={{ textTransform: "none" }}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            disabled={isDeletingPathway || deleteConfirmText.trim() !== deleteConfirmTarget}
-            startIcon={isDeletingPathway ? <CircularProgress size={13} color="inherit" /> : <DeleteOutlineIcon />}
-            onClick={handleDeletePathway}
-            sx={{ textTransform: "none" }}
-          >
-            {isDeletingPathway ? "Deleting…" : "Delete pathway permanently"}
-          </Button>
-        </Box>
-      </Dialog>
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleDeletePathway}
+        isDeleting={isDeletingPathway}
+        isLive={planStatus === "active"}
+        pathwayName={deleteConfirmTarget}
+        confirmText={deleteConfirmText}
+        onConfirmTextChange={setDeleteConfirmText}
+      />
 
       {/* ── Test-run dialog ──────────────────────────────────────────────── */}
       <TestRunDialog
@@ -5955,6 +5738,20 @@ export default function PathwayBuilderPage() {
       )}
 
       {/* Probe monitors are rendered inline on edges via PortEdge/EdgeLabelRenderer */}
+
+      <PathwaySaveBar
+        state={(() => {
+          if (isSaving) return "saving" as SaveBarState;
+          if (saveError) return "error" as SaveBarState;
+          if (dirty) return "dirty" as SaveBarState;
+          if (lastSaved) return "saved" as SaveBarState;
+          return "idle" as SaveBarState;
+        })()}
+        lastSaved={lastSaved}
+        errorMessage={saveError}
+        onSave={() => handleSave()}
+        onDismissError={() => setSaveError(null)}
+      />
     </Box>
   );
 }

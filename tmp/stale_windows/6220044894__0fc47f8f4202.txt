@@ -1,0 +1,180 @@
+======================================================================
+PATIENT      : 6220044894
+EPISODE      : 0fc47f8f42022dd7
+CANCER_TYPE  : gynaecological
+STATUS       : stale_post_specialist
+REFERRAL     : 2024-05-07
+WINDOW       : 2024-04-23 .. 2024-08-05 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2024-05-07  referral                enc=91384838-b386-4cc5-85a2-efa73d234423
+  2024-05-07  referral                enc=0fb779d6-39b5-4cc2-9561-01f158ca47da
+  2024-05-07  referral                enc=0b10a5e7-b5e3-491b-8464-79116058a84e
+  2024-05-10  referral                enc=37bb737f-8f19-49c5-9b54-c62dc58ef2ef
+  2024-05-16  first_seen              enc=f2639f47-e424-40c3-9c68-913c6fec4c11
+  2024-07-03  first_seen              enc=57f770fa-bf31-43ab-aa63-a1e72a6c0839
+
+Encounters in window (n=27):
+
+--- 01 2024-04-25 [other] milestones=[] eid=9952442f-4e2f-4372-96eb-448808f5b204 ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+As per GP report list from the NHS Breast Screening Programme.
+Breast neoplasm screening normal (68620)
+
+--- 02 2024-05-07 [other] milestones=[] eid=6b44805b-c411-4410-b6b2-b3cdbe51a80b ---
+08:12 - Surgery: OLSBERG, Felicity (Receptionist Access Role)
+
+--- 03 2024-05-07 [other] milestones=[] eid=9614f64f-5612-47d2-947b-7a6e13e62d23 ---
+Confirmation of appointment at Woodbrook Medical Centre - 07 May 2024 at 15:45 with Dr Jaspreet Johal. Please call the surgery on 01509 239166 if you are unable to attend.
+
+--- 04 2024-05-07 [IN-EP] milestones=['referral'] eid=91384838-b386-4cc5-85a2-efa73d234423 ---
+15:44 - Surgery: JOHAL, Jaspreet (Dr) (Clinical Practitioner Access Role) 
+History: F2F 
+Menopausal for 8-9 years  
+1 episode spanning 2 days - multiple episodes of spotting  
+Has period like cramping abdominal pain  
+No HRT  
+No PCB  
+Non smoker  
+Normal BMI  
+No FHx
+Has 4 children  
+No weight loss/ fevers/ night sweats  
+Usually fit and well  
+Examination: Chaperone declined  
+Speculum - whitening to the skin in the anterior vulva region (clitoral hood) with eschar and ulcer 
+Cervix - NAD  
+No obvious masses  
+Plan: In light of new anterior vulval ulceration and eschar - 2ww Gynae vulva  
+In light of PMB and period like cramping - 2ww Gynae Endometrium
+- PRISM 2WW Gynaecology -  questionnaire started - (finalised: 07 May 2024 15:44)
+- PRISM 2WW Gynaecology -  questionnaire started - (finalised: 07 May 2024 15:44)
+Fast track referral for suspected gynaecological cancer (XaMeB) - (Added from Questionnaire)
+Fast track referral for suspected gynaecological cancer (XaMeB) - (Added from Questionnaire)
+ PRISM Pathway & Referral Impl SysteM V3
+   Content
+       - PRISM 2WW Gynaecology -  questionnaire started - (finalised: 07 May 2024 15:44)
+       - PRISM 2WW Gynaecology -  questionnaire started - (finalised: 07 May 2024 15:44)
+
+--- 05 2024-05-07 [IN-EP] milestones=['referral'] eid=0fb779d6-39b5-4cc2-9561-01f158ca47da ---
+16:25 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected gynaecological cancer (XaMeB)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww Gynae (Vulval)
+Hospital Fast track referral for suspected gynaecological cancer
+2WW Gynaecology PRISM to Unknown 
+Hospital Fast track referral for suspected gynaecological cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww Gynae (Vulval)
+
+--- 06 2024-05-07 [IN-EP] milestones=['referral'] eid=0b10a5e7-b5e3-491b-8464-79116058a84e ---
+16:28 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected gynaecological cancer (XaMeB)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww Gynae (Endometrial)
+Hospital Fast track referral for suspected gynaecological cancer
+2WW Gynaecology PRISM to Unknown 
+Hospital Fast track referral for suspected gynaecological cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww Gynae (Endometrial)
+
+--- 07 2024-05-10 [IN-EP] milestones=['referral'] eid=37bb737f-8f19-49c5-9b54-c62dc58ef2ef ---
+10:35 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ 2WW
+   Date of First outpatient appointment: 16 May 2024 Vulval appt: OPA 16.05.24
+
+--- 08 2024-05-16 [other] milestones=[] eid=87bd865d-6092-46e8-a00d-a0e3a1999fb8 ---
+Surgery: JONES, Emma (Medical Secretary Access Role) 
+First outpatient appointment date (XaKHc) - Vulval appt: OPA 16.05.24
+
+--- 09 2024-05-16 [other] milestones=[] eid=152e2f57-ba2e-411e-ac02-41bb44f71141 ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Gynaecology to Dr Medical Woodbrook
+
+--- 10 2024-05-16 [IN-EP] milestones=['first_seen'] eid=f2639f47-e424-40c3-9c68-913c6fec4c11 ---
+00:00 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Seen in fast track suspected gynaecological cancer clinic (XaPyV)
+
+--- 11 2024-05-16 [other] milestones=[] eid=e2c19686-7d82-432f-8307-b60b7e6df2c1 ---
+Surgery: BAILEY, Christopher (Receptionist Access Role) 
+Gynaecology to Woodbrook Medical Centre
+
+--- 12 2024-05-16 [other] milestones=[] eid=935a228b-7110-4048-82ee-ea3e6a69659c ---
+Surgery: SAYADIAN, Leanna (Miss) (Admin/Clinical Support Access Role) 
+Hysteroscopy and endometrial biopsy (XaBDK) (New Episode)
+
+--- 13 2024-06-10 [other] milestones=[] eid=2c9eb00c-36af-4cec-8680-820942104d17 ---
+Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Gynaecology to Woodbrook Medical Centre
+
+--- 14 2024-06-10 [other] milestones=[] eid=9aac4601-10e0-4bcd-aa6d-d0f70e390730 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+Hysteroscopy (7E0E.) (New Episode)
+Non-smoker (Ub0oq) (New Episode)
+
+--- 15 2024-06-18 [other] milestones=[] eid=b4aae3ae-af45-49e9-93a8-a93e2bc603ef ---
+Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role) , Entered By: AMIN, Kunal (Dr)
+Major: Endometrioid carcinoma (BB5j2) (New Episode)
+Minor: Lapar total abdominal hysterect bilat salpingo-oophorectomy (XaJy8) (New Episode)
+Lapar total abdominal hysterect bilat salpingo-oophorectomy (XaJy8)
+Endometrioid carcinoma (BB5j2)
+
+--- 16 2024-06-18 [other] milestones=[] eid=96887c55-47b3-4dc5-ae80-bd27b923390c ---
+Admission to University Hospitals of Leicester NHS Trust - EPR (University Hospitals of Leicester NHS Trust): Referred to CHATTOPADHYAY, Supratik @ University Hospitals of Leicester NHS Trust - EPR on 18 Jun 2024 07:00
+Discharged on 19 Jun 2024 17:15
+There are 2 consultations under this admission. (Not currently shown in journal)
+
+--- 17 2024-06-18 [other] milestones=[] eid=e90f9938-43de-424d-933f-64ef532202d7 ---
+10:19 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) 
+Major: Endometrial carcinoma (X78XO) - total laparoscopic hysterectomy and bilateral salpingo-oophorectomy on 18/06/24. (New Episode)
+Endometrial carcinoma (X78XO) - total laparoscopic hysterectomy and bilateral salpingo-oophorectomy on 18/06/24.
+
+--- 18 2024-06-19 [other] milestones=[] eid=ef7c4652-f6d3-4a3a-9870-55aeeebf056b ---
+Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Anticoagulation to Woodbrook Medical Centre
+
+--- 19 2024-06-19 [other] milestones=[] eid=b0420dfe-63ed-4493-bf0d-3155064ed2b2 ---
+Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) 
+Endometrial carcinoma (X78XO) (New Episode)
+
+--- 20 2024-06-19 [other] milestones=[] eid=8a097985-8e32-4901-86fb-81d66139478d ---
+Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)
+
+--- 21 2024-06-28 [other] milestones=[] eid=db2765e2-2aad-4b01-99f4-a0187b61bb2d ---
+14:49 - Surgery: GORJI, Negin (Mrs) (Pharmacist) 
+History: fragmin 5000/day for 28 days post opp, hospitalised for one day query re length of treatment 
+px unsure why on this as no risk factors, advice age >60yr 3 + 3 days of poor mobilisation/ surgey,
+weight >50kg  eGFR ok  dose ok  advice to complete course 
+No unsual bleeding or excess bruising, no hx of ulcer, no otc aspirin
+Telephone call to a patient (XaIgc)
+
+--- 22 2024-07-03 [IN-EP] milestones=['first_seen'] eid=57f770fa-bf31-43ab-aa63-a1e72a6c0839 ---
+17:27 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected gynaecological cancer clinic (XaPyV) 16 May 2024
+
+--- 23 2024-07-16 [other] milestones=[] eid=7f33db47-9b69-4cc0-9373-1967e88aadf1 ---
+10:13 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) 
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 24 2024-07-16 [other] milestones=[] eid=f5f714ce-ac7a-4cb5-a81e-cdc2abacd70a ---
+10:19 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) 
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 25 2024-07-30 [other] milestones=[] eid=5c0016ce-4024-4440-be99-bdcf422a8538 ---
+10:05 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role) 
+ Cancer v49 2024/2025
+   Cancer codes
+      Codes for provision of information about cancer support services available in primary care: Provision of information about cancer support services available in primary care (Y2c7e)
+Letter to Patients to Mrs Nete Willis 
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Provision of information about cancer support services available in primary care (Y2c7e)
+
+--- 26 2024-08-05 [other] milestones=[] eid=624fab00-8be2-4d38-adbd-61d5a132ac5c ---
+Surgery: BAILEY, Christopher (Receptionist Access Role) 
+Oncology to Woodbrook Medical Centre
+
+--- 27 2024-08-05 [other] milestones=[] eid=c59f4c3d-633c-4eef-9d10-949789f20c83 ---
+Surgery: SAYADIAN, Leanna (Miss) (Admin/Clinical Support Access Role)
+

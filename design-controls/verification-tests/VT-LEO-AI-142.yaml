@@ -1,0 +1,118 @@
+# -- VT-LEO-AI-142 -- Wave E Phase 2a: Training Data chrome primitives verification
+# IEC 62304 Verification Protocol
+
+- id: "VT-LEO-AI-142"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-143"]
+    risks: ["R-LEO-AI-098"]
+
+  metadata:
+    title: "Training Data tab chrome renders through design-system primitives"
+    description: >
+      Confirms that the upper chrome region of GoldDatasetPanel.tsx
+      imports and uses the shared StatHero, ProgressStrip,
+      SegmentedTabs, and ToolbarActions primitives from
+      @leo/design-system, that the legacy MUI Tabs element is no
+      longer present in the chrome, and that each chrome element
+      stays wired to its existing state/handler.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/training-data-chrome.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-142-TC-001"
+      case_name: "Primitive imports present in GoldDatasetPanel source"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+          expected_result: >
+            The file contains a single import block from
+            '@leo/design-system' that includes StatHero,
+            ProgressStrip, SegmentedTabs, ToolbarActions, and the
+            type alias DsStatTile.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All four primitive names appear in the from '@leo/design-system' import"
+    - case_id: "VT-142-TC-002"
+      case_name: "Legacy MUI Tabs removed from chrome region"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Scan GoldDatasetPanel.tsx for '<Tabs '"
+          expected_result: >
+            No '<Tabs ' opening tag exists in the file (the primary
+            segmented tab is now a SegmentedTabs primitive).
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Static scan returns zero matches for the pattern '<Tabs '"
+    - case_id: "VT-142-TC-003"
+      case_name: "Export button still uses exportMedSpaCyTraining"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Scan GoldDatasetPanel.tsx for 'exportMedSpaCyTraining'"
+          expected_result: >
+            The call site to exportMedSpaCyTraining is preserved and
+            invoked from the handleExport handler.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "exportMedSpaCyTraining appears in handleExport"
+    - case_id: "VT-142-TC-004"
+      case_name: "Six canonical metric tiles are prepared for StatHero"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Scan the file for the six metric labels: 'Received',
+            'Ready for training', 'Failed', 'Verified gold',
+            'Synthetic gold', 'Avg quality'.
+          expected_result: >
+            All six labels appear in the StatHero data array.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All six canonical labels present"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-142/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-142-EXEC-001"
+      executed_at: "2026-04-17"
+      executed_by: "cursor-agent"
+      environment: "development"
+      result: "pass"
+      cases_passed: 7
+      cases_failed: 0
+      notes: >
+        Jest run of services/ui/src/__tests__/training-data-chrome.test.tsx
+        -- 7 static-source scan cases confirming the chrome region of
+        GoldDatasetPanel.tsx now imports StatHero, ProgressStrip,
+        SegmentedTabs, and ToolbarActions from @leo/design-system,
+        that the legacy MUI Tabs element is removed, that
+        handleExport still invokes exportMedSpaCyTraining, that the
+        six canonical metric labels are wired into StatHero, that
+        SegmentedTabs exposes the three training-data views, that
+        ProgressStrip renders only on the candidates tab, and that
+        ToolbarActions carries the Deduplicate and Export actions.

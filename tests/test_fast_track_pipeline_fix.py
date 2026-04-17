@@ -238,6 +238,8 @@ def test_tc010_child_concept_matched_in_bucket():
         specialists,
         benign,
         _letters,
+        _first_pres,
+        _first_seens,
     ) = _classify_anchor_rows(rows, buckets, pathway_ids)
 
     assert (

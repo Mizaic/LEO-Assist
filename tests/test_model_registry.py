@@ -66,7 +66,13 @@ def test_offline_validate_pass():
     assert reg.get("1.0").status == ModelStatus.OFFLINE_VALIDATED
 
 
-def test_offline_validate_fail():
+def test_offline_validate_fail(monkeypatch):
+    # Pin thresholds at the test level: secrets/.env* lowers them in
+    # development environments, which would otherwise let a 0.50/0.50
+    # result pass the gate and silently weaken this regression test.
+    import libs.model_registry.registry as registry_mod
+    monkeypatch.setattr(registry_mod, "_MIN_PRECISION", 0.80)
+    monkeypatch.setattr(registry_mod, "_MIN_RECALL", 0.75)
     reg = ModelRegistry()
     reg.register(_make_record())
     reg.validate_offline("1.0", precision=0.50, recall=0.50)
@@ -112,7 +118,11 @@ def test_promote_fails_without_canary_kpis():
         reg.promote("1.0")
 
 
-def test_promote_fails_low_canary_kpi():
+def test_promote_fails_low_canary_kpi(monkeypatch):
+    # Pin canary thresholds: secrets/.env* lowers them in development.
+    import libs.model_registry.registry as registry_mod
+    monkeypatch.setattr(registry_mod, "_MIN_CANARY_PRECISION", 0.78)
+    monkeypatch.setattr(registry_mod, "_MIN_CANARY_RECALL", 0.72)
     reg = ModelRegistry()
     reg.register(_make_record())
     reg.validate_offline("1.0", precision=0.88, recall=0.82)

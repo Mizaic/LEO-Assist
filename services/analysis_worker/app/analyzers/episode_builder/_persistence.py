@@ -91,6 +91,7 @@ def _write_episode(
             letter_inferred_benign=params.letter_inferred_benign,
             referral_match_method=params.referral_match_method,
             referral_inferred=params.referral_inferred,
+            first_seen_date=params.first_seen_date,
         )
         episode_ids.append(params.ep_id)
     except Exception as exc:  # noqa: BLE001
@@ -105,14 +106,24 @@ def _link_encounters_to_episode(
     """Replace IS_PART_OF edges for one episode with current milestone links."""
     if not episode_id:
         return
-    encounter_links: list[dict[str, str]] = []
+    encounter_links: list[dict[str, Any]] = []
     seen: set[str] = set()
     for anchor_list, milestone_type in anchors_by_type:
         for anchor in anchor_list:
             eid = str(anchor.get("encounter_id") or "")
             if eid and eid not in seen:
+                # DI-LEO-AI-182: persist referral_subtype on the
+                # IS_PART_OF edge when present so DQ tooling can
+                # measure rejection-to-resubmission delays. Empty
+                # string when the subtype is not relevant (non-referral
+                # milestones) -- avoids NULL-vs-missing ambiguity.
+                referral_subtype = anchor.get("referral_subtype") or ""
                 encounter_links.append(
-                    {"encounter_id": eid, "milestone_type": milestone_type}
+                    {
+                        "encounter_id": eid,
+                        "milestone_type": milestone_type,
+                        "referral_subtype": referral_subtype,
+                    }
                 )
                 seen.add(eid)
     try:

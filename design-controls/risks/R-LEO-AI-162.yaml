@@ -1,0 +1,82 @@
+# -- R-LEO-AI-162 -- Pathway probe registry drift may mislead the clinician
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-162"
+  title: "Pathway editor probe drift between python registry and UI may misrepresent step behaviour or trap users in an undismissable popover"
+
+  hazard:
+    description: >
+      The pathway canvas dry-run view shows a "probe" popover that is meant to
+      summarise what each step did. When a python-registered subgraph has no
+      UI descriptor or no probe strategy, the popover renders an empty card or
+      the wrong icon/label. Separately, until this change the popover had no
+      keyboard escape, leaving keyboard-only and screen-reader users unable to
+      dismiss it.
+    category: "usability"
+
+  hazardous_situation: >
+    A clinical reviewer designs or audits a pathway containing
+    encounter_loader, staging_enrichment, human_review_gate, or
+    encounter_coding_agent. They run a dry-run, click a probe, and either
+    (a) see a blank/incorrect probe and conclude the step did nothing, or
+    (b) cannot dismiss the popover via keyboard.
+
+  harm:
+    description: >
+      The reviewer ships a pathway whose actual runtime behaviour does not
+      match the canvas summary, or a keyboard-only user is blocked from
+      completing review. Both lead to a loss of trust in the editor and may
+      cause subtle clinical-pipeline mis-configuration to go unnoticed.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Register a subgraph descriptor and a probe strategy for every python
+        subgraph; expose role="dialog" + aria-label on the popover; install
+        a window keydown handler that closes the inspector drawer first then
+        calls onClose.
+      implemented_by: ["DI-LEO-AI-160"]
+      verified_by: ["VT-LEO-AI-158"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With descriptors + probe strategies + keyboard-Escape, the canvas
+      cannot silently disagree with the python registry for the four
+      affected steps and cannot trap the user in a popover. Future
+      subgraphs are caught by the static-source VT-LEO-AI-158 enumeration
+      check, so the same drift will fail CI rather than reach production.
+
+  monitoring:
+    monitoring_plan: >
+      VT-LEO-AI-158 is run in CI on every pathway-canvas change.
+      Quarterly review the python subgraph registry for new entries.
+    metrics:
+      - "Number of subgraphs in registry.py without a SUBGRAPH_IO entry (target: 0)"
+      - "Number of subgraphs in registry.py without a PROBE_STRATEGIES entry (target: 0)"
+      - "Reports of undismissable canvas popovers (target: 0)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Pathway canvas discovery review (Phase 6b-i)"
+    identified_date: "2026-04-16"
+    status: "mitigated"
+    tags:
+      - "pathway-canvas"
+      - "phase-6b-v"
+      - "registry-drift"
+      - "accessibility"

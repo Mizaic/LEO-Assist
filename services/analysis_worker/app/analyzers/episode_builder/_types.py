@@ -76,6 +76,10 @@ class WriteEpisodeParams:
     # paths that may choose to supply a computed date with an explicit
     # audit flag rather than persisting NULL.
     referral_inferred: bool = False
+    # DI-LEO-AI-145: date of first IS_PART_OF first_seen encounter
+    # claimed for this episode; None when no fast-track clinic attendance
+    # was detected within the episode window.
+    first_seen_date: str | None = None
 
 
 @dataclass

@@ -1,0 +1,127 @@
+======================================================================
+PATIENT      : 4926885158
+EPISODE      : ebf8035928423907
+CANCER_TYPE  : bladder
+STATUS       : stale_no_diagnosis
+REFERRAL     : 2024-05-10
+WINDOW       : 2024-04-26 .. 2024-08-08 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2024-05-10  referral                enc=8e707c45-0c9c-484e-9d9d-a86766170934
+
+Encounters in window (n=1):
+
+--- 01 2024-05-10 [IN-EP] milestones=['referral'] eid=8e707c45-0c9c-484e-9d9d-a86766170934 ---
+10:16 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Metformin 500mg tablets - 112 tablet - one with breakfast and one with evening meal
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+09:09 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Finetest Lite testing strips (Neon Diagnostics Ltd) - 100 strip - use as directed
+(R) GlucoRx FinePoint hypodermic insulin needles for pre-filled / reusable pen injectors screw on 5mm/31gauge (GlucoRx Ltd) - 100 needle - For Use With Insulin Pen As Directed
+(R) Metformin 500mg tablets - 112 tablet - one with breakfast and one with evening meal
+(R) NovoMix 30 FlexPen 100units/ml suspension for injection 3ml pre-filled pens (Novo Nordisk Ltd) - 5 pre-filled disposable injection - 10 UNITS PRIOR TO BREAKFAST AND 10 UNITS PRIOR TO Evening MEAL DEPENDING ON BLOOD MONIOTOR READINGS
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+ ** Care ended at LLR Podiatry **
+10:08 - BARRATT, Aaron (Health Professional Access Role) Entered at: LLR Podiatry
+Status Update for Podiatry Referral In: Discharged From Care, Status changed: 25 Jul 2024 10:08
+Activity: Record Keeping Administration with No Patient/No Proxy present
+17:23 - Surgery: BRADBURN, Sarah (Miss)  
+Possibly eligible for participation in clinical trial (XaaEl) 59,066 CPMS - SELF FRAX
+12:07 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+(R) Finetest Lite testing strips (Neon Diagnostics Ltd) - 100 strip - use as directed
+(R) GlucoRx FinePoint hypodermic insulin needles for pre-filled / reusable pen injectors screw on 5mm/31gauge (GlucoRx Ltd) - 100 needle - For Use With Insulin Pen As Directed
+(R) NovoMix 30 FlexPen 100units/ml suspension for injection 3ml pre-filled pens (Novo Nordisk Ltd) - 5 pre-filled disposable injection - 10 UNITS PRIOR TO BREAKFAST AND 10 UNITS PRIOR TO Evening MEAL DEPENDING ON BLOOD MONIOTOR READINGS
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+15:16 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+10:00 - Surgery: DODDS, Portia  
+Influenza vaccination invitation first letter sent (XaLHL) - Added in bulk
+15:30 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) 
+(R) Metformin 500mg tablets - 112 tablet - one with breakfast and one with evening meal
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update
+18:05 - Home of Patient: NALEER, Sahla (Dr) (Clinical Practitioner Access Role) 
+History: F2F appt - confirmed ID 
+ - care plan 
+
+BG of T2DM, HTN 
+
+lives by himself at own house,
+independent & mobile  
+no falls 
+stopped driving 2 years ago  
+able to care for himself well   
+coping quite well, active  
+
+NOK - 2 brothers - David J Slater, Brian S Slater - numbers currently not available  
+
+Discussed ACP & ReSPECT form - NOT for CPR, agreed to go into hospital / invasive procedures / interventions if reversbile conditions
+Examination: Alert, looks well 
+Normal gait 
+speaking in full sentences   
+
+Afebrile Temp 36.5
+Sats 95% on air 
+O/E - pulse rhythm regular (2431.) 70
+O/E - blood pressure reading (246..)173/84 
+
+Erythematous, dry crusted skin lesions over forehead & scalp - previously was under dermatology - managing with OTC creams  - pictures taken with consent 
+Plan: 1. Advised to drop in home BP readings - safety netted if severe headache, weakness, numbness call 111/ attend A&E
+2. Will complete ReSPECT form & ACP as discussed 
+3. Dermatology A&G for skin lesions
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ReSPECT Form to Mr Geoffrey Slater 
+00:00 - Surgery: NALEER, Sahla (Dr) (Clinical Practitioner Access Role) 
+Personalised Care and Support Plan agreed (Y281e)
+13:00 - Surgery: NALEER, Sahla (Dr) (Clinical Practitioner Access Role) 
+- PRISM Advice & Guidance Request -  questionnaire started - (finalised: 02 Oct 2024 13:00)
+ PRISM Pathway & Referral Impl SysteM V3
+   A
+       - PRISM Advice & Guidance Request -  questionnaire started - (finalised: 02 Oct 2024 13:00)
+      Outbound referral (XaY59)
+      Advice and Guidance PRISM pathway accessed
+       Advice & Guidance Request PRISM to Unknown 
+Advice & Guidance Request PRISM to Unknown 
+Outbound referral (XaY59)
+Advice and Guidance PRISM pathway accessed
+13:17 - Surgery: NALEER, Sahla (Dr) (Clinical Practitioner Access Role) 
+ LLR SystmOne Templates
+   Clinical Templates
+13:36 - Surgery: NALEER, Sahla (Dr) (Clinical Practitioner Access Role) 
+173 / 84
+Low risk of falls (XaObN)
+ LLR SystmOne Templates
+   Clinical Templates
+ ReSPECT V3
+   Palliative and EOL Care Planning
+       ReSPECT Form to Mr Geoffrey Slater 
+   Entries from previous template version
+      Personalised Care and Support Plan agreed (Y281e): 02 Oct 2024 00:00
+      Resuscitation discussed with patient (XaLwc)
+      Treatment Escalation Plan (XacZx)
+NOT for CPR 
+Agreed for hospital admission/ invasive procedures/ ITU admissions for any reversible causes
+      Preferred place of care - discussed with patient (XaR4x)
+      Not for attempted CPR (cardiopulmonary resuscitation) (XaZ9c)
+      Summary of needs (XaX3D) - Type II Diabetes, Hypertension
+      On integrated care pathway (XaYpW)
+      Preferred place of care - home (XaQTk)
+      Preferred priorities for care document completed (XaXrX) - Quality of life and comfort
+      Has mental capacity to make decision (Mental Capacity Act 2005) (Y37f0)
+      Mental capacity assessment (Y0d13)
+Understands information related to the decision 
+Is able to retain the information
+Uses the information in a decision making process
+Is able to communicate the decision by any means (sign/talk)
+      Has ReSPECT (Recommended Summary Plan for Emergency Care and Treatment) (Y1fc1)
+      Assess of mental capacity in accord Mental Capacity Act 2005 (XaXbR)
+      Assess of mental capacity in accord Mental Capacity Act 2005 (XaXbR)
+      Assess of mental capacity in accord Mental Capacity Act 2005 (XaXbR)
+      Assess of mental capacity in accord Mental Capacity Act 2005 (XaXbR)
+ LLR Integrated Care Planning Template V6
+   Patient Core 
+  ... [truncated, 4000 chars more]
+

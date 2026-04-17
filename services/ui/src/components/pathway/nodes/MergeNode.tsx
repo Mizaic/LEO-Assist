@@ -1,24 +1,61 @@
 "use client";
 
 import { memo } from "react";
-import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import Typography from "@mui/material/Typography";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Position, type NodeProps } from "@xyflow/react";
+
+import { BaseNode, NodeHandle, NodeHeader } from "./_base";
+
+const MERGE_ACCENT = "#8E24AA";
+
+interface MergeNodeData {
+  inputs?: string[];
+  onConfigure?: () => void;
+}
 
 function MergeNodeComponent({ data, selected }: NodeProps) {
-  const inputs = (data as any).inputs ?? ["branch_a", "branch_b"];
+  const d = data as MergeNodeData;
+  const inputs = d.inputs ?? ["branch_a", "branch_b"];
+
   return (
-    <Box sx={{ px: 2, py: 1.5, minWidth: 180, borderRadius: 2, border: "2px solid", borderColor: selected ? "primary.main" : "#8E24AA", bgcolor: "background.paper", position: "relative" }}>
-      {inputs.map((name: string, i: number) => (
-        <Handle key={name} id={name} type="target" position={Position.Left} style={{ top: `${((i + 1) / (inputs.length + 1)) * 100}%` }} />
+    <BaseNode
+      accentColor={MERGE_ACCENT}
+      selected={selected}
+      minWidth={180}
+      ariaLabel={`Merge node, waits for ${inputs.length} inputs`}
+      onActivate={d.onConfigure}
+    >
+      {inputs.map((name, i) => (
+        <NodeHandle
+          key={`in-${name}`}
+          id={name}
+          type="target"
+          color={MERGE_ACCENT}
+          top={`${((i + 1) / (inputs.length + 1)) * 100}%`}
+          tooltip={`Wait for upstream branch ${name}`}
+        />
       ))}
-      <Typography variant="body2" fontWeight={700}>Merge</Typography>
-      <Chip size="small" label={`wait for ${inputs.length}`} sx={{ mt: 0.5, bgcolor: "#8E24AA", color: "#fff" }} />
-      <Handle id="merged" type="source" position={Position.Right} />
-    </Box>
+      <NodeHeader title="Merge" />
+      <Chip
+        size="small"
+        label={`wait for ${inputs.length}`}
+        sx={{
+          mt: 0.5,
+          bgcolor: MERGE_ACCENT,
+          color: "#fff",
+          fontSize: "0.65rem",
+          height: 20,
+        }}
+      />
+      <NodeHandle
+        id="merged"
+        type="source"
+        position={Position.Right}
+        color={MERGE_ACCENT}
+        tooltip="Merged output - all branches arrived"
+      />
+    </BaseNode>
   );
 }
 
 export const MergeNode = memo(MergeNodeComponent);
-

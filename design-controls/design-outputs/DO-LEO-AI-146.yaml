@@ -1,0 +1,94 @@
+# -- DO-LEO-AI-146 -- Diagnosis-aware open-episode rescue in episode_builder
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-146"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-150"]
+    user_needs: ["UN-LEO-AI-006"]
+    risks_addressed: ["R-LEO-AI-103"]
+    verification_tests: ["VT-LEO-AI-148"]
+
+  specification:
+    title: "_rescue_diagnosis_for_open_episode helper + _build_open_episode wiring"
+    description: |
+      Adds a pure helper function to ``_builder.py`` --
+      ``_rescue_diagnosis_for_open_episode(diagnosis_anchors, site_key,
+      ref_date)`` -- that returns ``(earliest_diag_date, anchors_on_that_date)``
+      when at least one site-compatible confirmed diagnosis anchor falls
+      in ``[ref_date, ref_date + STALE_HARD_DAYS]``, and ``None``
+      otherwise. The helper applies the existing
+      ``_extract_condition_key_from_anchor`` and ``_site_keys_compatible``
+      helpers so a specific-site diagnosis must match the referral site
+      while ``unknown`` / ``non_site_specific`` diagnoses are eligible
+      for any site.
+
+      ``_build_open_episode`` is updated to call this helper AFTER
+      specialist-letter inference and benign-closure detection have run
+      and AFTER ``_first_seen_link_anchors`` has been moved before
+      ``_write_episode`` (defect fix from DI-LEO-AI-145). When the
+      computed status is ``in_progress`` and the helper returns a
+      rescue, the builder sets ``status = 'completed'``,
+      ``end_date = rescue_date.isoformat()``, ``hitl_flag = True``, and
+      ``hitl_reason = 'Auto-completed: confirmed cancer diagnosis text
+      in episode window. Verify cancer site and pathway outcome.'``.
+      The diagnosis anchors at the earliest rescue date are passed to
+      ``_link_encounters_to_episode`` with milestone_type
+      ``'diagnosis_confirmed'`` so the IS_PART_OF edge is written in
+      the same builder pass.
+
+    acceptance_criteria:
+      - criterion: "Helper returns earliest in-window diagnosis"
+        type: "functional"
+        measurement: "Test"
+        target: "_rescue_diagnosis_for_open_episode picks the earliest qualifying diagnosis date when multiple eligible anchors exist"
+      - criterion: "Site-compat guard"
+        type: "safety"
+        measurement: "Test"
+        target: "Specific-site diagnosis on a different specific-site referral returns None; unknown/NSS diagnosis on any site returns the anchor"
+      - criterion: "Pathway-completion exclusion"
+        type: "safety"
+        measurement: "Test"
+        target: "Anchors with is_pathway_completion=True or assertion='possible' do NOT trigger the rescue"
+      - criterion: "Status promotion"
+        type: "functional"
+        measurement: "Test"
+        target: "When rescue fires, EpisodeOfCare is written with status='completed', end_date=earliest diag date, hitl_flag=true"
+      - criterion: "diagnosis_confirmed edge"
+        type: "functional"
+        measurement: "Test"
+        target: "When rescue fires, IS_PART_OF {milestone_type:'diagnosis_confirmed'} edge is written for each anchor sharing the earliest rescue date"
+      - criterion: "Idempotent vs already-completed"
+        type: "safety"
+        measurement: "Test"
+        target: "When status is already 'completed' (specialist letter) or 'closed_with_benign', rescue is skipped"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+        description: "_rescue_diagnosis_for_open_episode helper and _build_open_episode rescue wiring"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 60
+      key_functions:
+        - "_rescue_diagnosis_for_open_episode"
+        - "_build_open_episode"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Open-episode status determination (drives stale auto-close eligibility)"
+      - "Diagnosis encounter linkage (drives diagnosis_confirmed milestone visibility)"
+    risk_control_measures:
+      - "Site-key compatibility check prevents cross-site mis-pairing"
+      - "Pathway-completion and assertion guards prevent benign or possible diagnoses from triggering rescue"
+      - "Rescue runs AFTER specialist-letter and benign-closure passes so it cannot regress those signals"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

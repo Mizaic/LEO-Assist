@@ -1,0 +1,222 @@
+# -- VT-LEO-AI-157 -- Pathway editor configurator wiring (Phase 6b-iv)
+# IEC 62304 / ISO 13485 Verification Test Protocol
+
+- id: "VT-LEO-AI-157"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-159"]
+    risks: ["R-LEO-AI-110"]
+
+  metadata:
+    title: "Pathway editor configurator: condition rules, dirty guard, load error"
+    description: >
+      Static-source verification that the pathway editor at
+      services/ui/src/app/admin/pathways/[id]/page.tsx wires
+      ConditionRuleBuilder under the wizard's Settings step for
+      nodeType==="condition" nodes, installs useDirtyGuard with
+      beforeunload, derives PathwaySaveBar's state from
+      isSaving/saveError/dirty/lastSaved, and replaces the silent
+      `.catch(() => {})` on the FHIR plan loader with a visible
+      PathwayLoadError surface.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/pathway-canvas-configurator.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-157-TC-001"
+      case_name: "useDirtyGuard hook file exists"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Stat the hooks/useDirtyGuard.ts file"
+          expected_result: "Path exists on disk"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "fs.existsSync returns true for editor/hooks/useDirtyGuard.ts"
+
+    - case_id: "VT-157-TC-002"
+      case_name: "PathwayLoadError component file exists"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Stat editor/PathwayLoadError.tsx"
+          expected_result: "Path exists on disk"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "fs.existsSync returns true for editor/PathwayLoadError.tsx"
+
+    - case_id: "VT-157-TC-003"
+      case_name: "useDirtyGuard exports the canonical surface"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect useDirtyGuard.ts contents"
+          expected_result: >
+            Exports useDirtyGuard, exports computePathwaySignature, and the
+            hook returns dirty + markSaved
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Source contains `export function useDirtyGuard`"
+        - "Source contains `export function computePathwaySignature`"
+        - "Source contains `markSaved`"
+
+    - case_id: "VT-157-TC-004"
+      case_name: "useDirtyGuard installs beforeunload while dirty"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect useDirtyGuard.ts for beforeunload listener"
+          expected_result: >
+            window.addEventListener('beforeunload', ...) inside a
+            useEffect that depends on dirty
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Source contains `addEventListener(\"beforeunload\"`"
+        - "Source contains `removeEventListener(\"beforeunload\"`"
+
+    - case_id: "VT-157-TC-005"
+      case_name: "page.tsx imports the new wiring"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect page.tsx imports"
+          expected_result: >
+            Imports PathwaySaveBar, PathwayLoadError, useDirtyGuard,
+            ConditionRuleBuilder
+          verification_method: "automated"
+      acceptance_criteria:
+        - "page.tsx imports from ./editor/PathwaySaveBar"
+        - "page.tsx imports from ./editor/PathwayLoadError"
+        - "page.tsx imports from ./editor/hooks/useDirtyGuard"
+        - "page.tsx imports ConditionRuleBuilder from @/components/pathway/panel/ConditionRuleBuilder"
+
+    - case_id: "VT-157-TC-006"
+      case_name: "ConditionRuleBuilder is wired under nodeType === \"condition\""
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect page.tsx for the ConditionRuleBuilder JSX guard"
+          expected_result: >
+            ConditionRuleBuilder appears inside a `step === 2 &&
+            config.nodeType === "condition"` branch
+          verification_method: "automated"
+      acceptance_criteria:
+        - "page.tsx contains `<ConditionRuleBuilder`"
+        - "page.tsx contains `config.nodeType === \"condition\"` near the ConditionRuleBuilder JSX"
+
+    - case_id: "VT-157-TC-007"
+      case_name: "Catch-all SubgraphSettingsPanel branch excludes condition"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect the catch-all settings branch in page.tsx"
+          expected_result: >
+            The branch that renders SubgraphSettingsPanel includes
+            `config.nodeType !== \"condition\"`
+          verification_method: "automated"
+      acceptance_criteria:
+        - "page.tsx contains `config.nodeType !== \"condition\"`"
+
+    - case_id: "VT-157-TC-008"
+      case_name: "useDirtyGuard is consumed in page.tsx"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect page.tsx for useDirtyGuard usage"
+          expected_result: >
+            page.tsx calls useDirtyGuard with a ready flag and destructures
+            dirty + markSaved
+          verification_method: "automated"
+      acceptance_criteria:
+        - "page.tsx contains `useDirtyGuard(`"
+        - "page.tsx contains `markSaved`"
+        - "page.tsx contains `planLoaded`"
+
+    - case_id: "VT-157-TC-009"
+      case_name: "markSaved fires after a successful PUT"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect handleSave in page.tsx"
+          expected_result: >
+            markSaved() is called immediately after the success branch of
+            api.put(`/fhir/PlanDefinition/${planId}`, ...)
+          verification_method: "automated"
+      acceptance_criteria:
+        - "page.tsx contains `markSaved()` near `setLastSaved(new Date())`"
+
+    - case_id: "VT-157-TC-010"
+      case_name: "PathwaySaveBar is rendered with derived state"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect page.tsx for PathwaySaveBar JSX"
+          expected_result: >
+            <PathwaySaveBar ... /> is rendered, the state prop covers the
+            five canonical states, and onSave + onDismissError are wired
+          verification_method: "automated"
+      acceptance_criteria:
+        - "page.tsx contains `<PathwaySaveBar`"
+        - "page.tsx contains \"saving\" as SaveBarState"
+        - "page.tsx contains \"dirty\" as SaveBarState"
+        - "page.tsx contains `onSave={() => handleSave()}`"
+
+    - case_id: "VT-157-TC-011"
+      case_name: "Silent catch on the plan loader is removed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Search page.tsx for `.catch(() => {})`"
+          expected_result: >
+            The orchestrator no longer swallows the FHIR plan load error
+            silently
+          verification_method: "automated"
+      acceptance_criteria:
+        - "page.tsx does NOT contain `.catch(() => {})`"
+
+    - case_id: "VT-157-TC-012"
+      case_name: "PathwayLoadError is rendered when loadError is set"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect page.tsx for PathwayLoadError usage"
+          expected_result: >
+            PathwayLoadError is rendered with message, onRetry and
+            onDismiss callbacks; loadError + setLoadError + loadAttempt
+            are state hooks
+          verification_method: "automated"
+      acceptance_criteria:
+        - "page.tsx contains `<PathwayLoadError`"
+        - "page.tsx contains `loadError`"
+        - "page.tsx contains `setLoadAttempt`"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-157/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-16T00:00:00Z"
+      executed_by: "ci"
+      result: "pass"
+      notes: >
+        12/12 cases passed via static source inspection.
+        File: services/ui/src/__tests__/pathway-canvas-configurator.test.tsx.

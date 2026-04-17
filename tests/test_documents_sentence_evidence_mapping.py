@@ -66,7 +66,7 @@ def test_sentence_evidence_maps_to_correct_documents_relationship() -> None:
     docs_calls = [
         c
         for c in session.run.call_args_list
-        if c.kwargs.get("encounter_id") == "enc-1" and "evidence_sentence" in c.kwargs
+        if c.kwargs.get("source_id") == "enc-1" and "evidence_sentence" in c.kwargs
     ]
     assert len(docs_calls) == 2
 
@@ -135,7 +135,7 @@ def test_multiline_sentence_payload_is_narrowed_to_matching_line() -> None:
     docs_calls = [
         c
         for c in session.run.call_args_list
-        if c.kwargs.get("encounter_id") == "enc-2" and "evidence_sentence" in c.kwargs
+        if c.kwargs.get("source_id") == "enc-2" and "evidence_sentence" in c.kwargs
     ]
     assert len(docs_calls) == 1
     call = docs_calls[0].kwargs

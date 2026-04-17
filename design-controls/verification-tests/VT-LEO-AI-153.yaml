@@ -1,0 +1,125 @@
+- id: "VT-LEO-AI-153"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-155"]
+    risks: ["R-LEO-AI-107"]
+
+  metadata:
+    title: "Cancer-site classification from gold-mined surface forms"
+    description: >
+      Verifies that match_cancer_site() picks the right NCDA site key
+      from real encounter text, that the dictionary uses canonical
+      keys only, that single incidental organ mentions do NOT outweigh
+      the actual pathway, and that the noise filter excludes generic
+      findings whose surface form lacks an anatomy stem.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_cancer_site_terms.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-153-TC-001"
+      case_name: "Specific cancer text yields the right NCDA key"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call match_cancer_site('Fast track referral for suspected breast cancer; PRISM 2WW.')"
+          expected_result: "Returns ('breast', n) with n >= 1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Exact key 'breast' returned"
+
+    - case_id: "VT-153-TC-002"
+      case_name: "Highest-hit site wins on mixed text"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build text with three colorectal mentions and one incidental 'breast' word, call match_cancer_site"
+          expected_result: "Returns ('colorectal', n) -- the higher hit count wins"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Result is colorectal not breast"
+
+    - case_id: "VT-153-TC-003"
+      case_name: "Empty / no-cancer text returns None"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call match_cancer_site('') and match_cancer_site('Routine BP review, no symptoms.')"
+          expected_result: "Both return None"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Both calls return None"
+
+    - case_id: "VT-153-TC-004"
+      case_name: "Every key in the dictionary is a canonical NCDA key"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Compare CANCER_SITE_TERMS.keys() against the union of canonical keys produced by episode_builder/_site_resolution.py _SITE_MAP"
+          expected_result: "Every dictionary key is found in the canonical set"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No drift -- 0 unknown keys"
+
+    - case_id: "VT-153-TC-005"
+      case_name: "Noise filter drops generic findings"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Inspect CANCER_SITE_TERMS['stomach']/['pancreatic']/['liver'] for 'cramps', 'amy was not elevated', 'abnormal lfts'"
+          expected_result: "None of those literals are present in any site list"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Noise literals absent"
+
+    - case_id: "VT-153-TC-006"
+      case_name: "_extract_condition_key_from_anchor prefers explicit site_key"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _extract_condition_key_from_anchor({'site_key': 'breast', 'concept_name': 'Text: confirmed cancer diagnosis'})"
+          expected_result: "Returns 'breast' (not falling through to the generic concept_name)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Explicit site_key wins"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-153/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-153-EXEC-001"
+      executed_by: "automated_pytest"
+      executed_date: "2026-04-17"
+      result: "pass"
+      command: "python -m pytest tests/test_cancer_site_terms.py -v"
+      total_cases: 13
+      passed: 13
+      failed: 0
+      notes: >
+        13/13 passed including parameterised cases for breast, prostate,
+        colorectal, melanoma, ovarian and myeloma. Dictionary contains
+        955 unique surface forms across 29 NCDA-aligned site keys mined
+        from 1,620 GoldLabel entities and 4,956 SurfaceForm-MAPS_TO-Concept
+        edges. Coverage on the 230-episode live patient corpus: 178/230
+        (77%) -- exceeds the >=70% acceptance criterion.
+

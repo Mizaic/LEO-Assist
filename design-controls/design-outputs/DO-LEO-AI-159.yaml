@@ -1,0 +1,116 @@
+# -- DO-LEO-AI-159 -- Manual gold seed manifest and seeder script
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-159"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-163"]
+    user_needs: ["UN-LEO-AI-074"]
+    risks_addressed: ["R-LEO-AI-003"]
+    verification_tests: ["VT-LEO-AI-160"]
+
+  specification:
+    title: "Manual gold seed YAML manifest + Knowledge Graph seeder"
+    description: |
+      Two artefacts that together let QA add a small, hand-authored set of
+      cancer-positive and benign / excluded / normal control gold records
+      to the Knowledge Graph for the next training run.
+
+      1. design-controls/training-data/manual-gold-seed-2026-04-17.yaml
+         - YAML manifest with 21 records (4 POS, 17 NEG).
+         - Each record has a stable tag, an encounter_id (provenance only),
+           an episode_prefix (provenance only), the de-identified sentence
+           text and a list of typed entity spans.
+         - Spans use the lowercase SNOMED semantic-tag label vocabulary
+           and the canonical assertion vocabulary.
+
+      2. scripts/seed_manual_gold_records.py
+         - Loads the manifest, re-validates every sentence against
+           libs.utils.deidentify.deidentify_text() and
+           libs.ner.deid_validator.DeIdValidator.check_record(), and
+           re-derives entity start / end offsets from the surface text
+           using libs.ner.span_finder.find_span().
+         - Computes deterministic candidate_id (sha256 of text) and
+           label_id (GL- + first 16 hex of sha256(text + sorted entity
+           texts)) so re-runs are idempotent.
+         - In dry-run mode (default) prints per-record IDs and
+           label / assertion distributions.
+         - In --commit mode UPSERTs one TrainingCandidate
+           (status="completed") and one linked GoldLabel per record into
+           the Knowledge Graph and ensures the (:TrainingCandidate)-
+           [:PRODUCED]->(:GoldLabel) edge is created via the
+           UPSERT_GOLD_LABEL Cypher.
+
+    acceptance_criteria:
+      - criterion: "Manifest passes DeIdValidator with zero residual PHI"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          For every record in the manifest, deidentify_text(text, ner=False)
+          equals text (no mutation) and DeIdValidator().check_record({"text":
+          text, "entities": []}) returns an empty list.
+      - criterion: "Spans are findable and correctly aligned"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          For every entity in every record, find_span(text, surface) returns
+          (start, end) such that text[start:end].lower() == surface.lower().
+      - criterion: "Idempotent IDs"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          candidate_id and label_id are deterministic functions of text
+          and sorted entity surface texts only; two preparations of the
+          same record yield identical IDs.
+      - criterion: "Vocabulary enforcement"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Any entity whose label is not in VALID_LABELS or whose assertion
+          is not in VALID_ASSERTIONS causes prepare_record() to raise
+          ValueError before any Knowledge Graph write.
+      - criterion: "GoldLabel exportability"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          After --commit, GET_TRAINING_GOLD_LABELS_FOR_EXPORT picks up the
+          21 new records (TrainingCandidate.status='completed' AND
+          frozen_golden_set is null/false).
+
+  implementation:
+    artifacts:
+      - artifact_type: "data"
+        location: "design-controls/training-data/manual-gold-seed-2026-04-17.yaml"
+        description: "21-record gold-seed manifest (4 POS, 17 NEG)"
+      - artifact_type: "source_code"
+        location: "scripts/seed_manual_gold_records.py"
+        description: >
+          Loader, validator and idempotent UPSERT for the gold-seed
+          manifest. Writes to KnowledgeGraphClient only.
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 350
+      key_functions:
+        - "load_manifest"
+        - "prepare_record"
+        - "prepare_all"
+        - "write_records"
+        - "_candidate_id"
+        - "_label_id"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "DI-ID gate: aborts the seeder before any Neo4j write if residual PHI is detected in any record."
+      - "Vocabulary gate: rejects any entity whose label or assertion falls outside the canonical set, preventing schema drift in the GoldLabel store."
+    risk_control_measures:
+      - "Hand-authored cancer-positive and refuted-cancer / benign-finding records target the assertion-misclassification failure mode covered by R-LEO-AI-003."
+      - "Deterministic IDs make the script safe to re-run as part of routine training pipeline maintenance without producing duplicate GoldLabels."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

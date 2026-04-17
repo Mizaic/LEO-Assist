@@ -1,0 +1,125 @@
+# -- R-LEO-AI-161 -- Silent loss of lab observation triple
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-161"
+  title: "Lab observation extraction silently fails on long observable spans, causing abnormal results to be omitted from the coding queue and safety-net dashboard"
+
+  hazard:
+    description: >
+      The NER spancat model and the LLM extractor both fail to emit
+      the long observable_entity span on UK primary-care lab lines
+      that contain test name + value + unit + reference range +
+      interpretation. Because the downstream observable normaliser
+      only enriches existing observable_entity entities, no entity
+      is ever produced for the result. The line is silently dropped
+      from the coding pipeline.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinical document contains a lab line such as
+    "Reticulocyte count - observation (42X..) 96 10^9/L [20 - 80] -
+    Outside reference range". The spancat suggester is capped at 10
+    tokens so it cannot propose the 18-22 token observable span. The
+    LLM extractor follows the production prompt and emits only a
+    short observable parameter name with structured value/unit
+    fields, OR emits nothing if the parameter name is unfamiliar.
+    The post-processing observable normaliser sees no
+    observable_entity and does nothing. The abnormal result is never
+    queued for coding, no Coding Review item is created, and the
+    safety-net dashboard receives no signal that the patient has an
+    out-of-range result.
+
+  harm:
+    description: >
+      Clinically significant abnormal lab result (e.g. abnormal
+      reticulocyte count, abnormal MCH, abnormal eGFR) is not
+      surfaced to the clinician. Downstream pathways depending on
+      the abnormal value (urgent referral, safety-net review,
+      medication adjustment) do not trigger. The patient's care
+      plan is built from incomplete data.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 4
+    rpn: 48
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Deterministic Lab Triple Recovery layer (layer_3b) added to
+        the shared post-processing pipeline. For every lab-shaped
+        line the layer adds the missing procedure / observable_entity
+        / finding entities at the correct character offsets, so the
+        downstream Layer 4 (Observable Normalisation) and Layer 6
+        (Value-Unit Linking) have something to enrich. Runs in both
+        the training verification path and the runtime coding path
+        because both call run_post_processing().
+      implemented_by: ["DI-LEO-AI-157"]
+      verified_by: ["VT-LEO-AI-155"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Spancat span suggester max_size raised from 10 to 24 so the
+        model can natively learn the long observable / finding span
+        from gold data after the next training run, reducing
+        reliance on the deterministic recovery layer over time.
+      implemented_by: ["DI-LEO-AI-158"]
+      verified_by: ["VT-LEO-AI-156"]
+      effectiveness: "partially_effective"
+    - control_type: "information_for_safety"
+      description: >
+        Recovered entities carry _recovered_lab_triple = True so the
+        gold-label review UI flags them for reviewer attention.
+      implemented_by: ["DI-LEO-AI-157"]
+      verified_by: ["VT-LEO-AI-155"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the deterministic recovery layer in place the residual
+      probability of total signal loss on a lab line that follows
+      the standard grammar is very low. Detectability improves
+      because every recovered entity is flagged for reviewer
+      attention via _recovered_lab_triple. Residual risk is the
+      narrow class of lab lines that do not follow the standard
+      grammar (free-text style results without an explicit
+      separator) which the lenient mode intentionally does not
+      accept to avoid false positives. These residual cases are
+      caught by the existing weekly drift-detection job
+      (R-LEO-AI-047 mitigation) and by clinician review.
+
+  monitoring:
+    monitoring_plan: >
+      Track the number of layer_3b recovered entities per encounter
+      in the post-processing telemetry trace and alert if the
+      recovery count drops to zero across a sliding window of
+      production encounters that contain numeric lab patterns. Also
+      run the existing weekly NER accuracy-drift job
+      (R-LEO-AI-047) which would catch a regression in observable
+      F1 even if the recovery layer mis-fires.
+    metrics:
+      - "Count of layer_3b additions per encounter"
+      - "Ratio of observable_entity entities created by the model vs by the recovery layer"
+      - "False-positive rate on the test corpus (must remain zero)"
+      - "Weekly observable F1 on the gold test set"
+    review_frequency: "Weekly"
+
+  metadata:
+    identified_by: "Production defect report 2026-04-17 (Reticulocyte observation line)"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "ner"
+      - "lab-results"
+      - "post-processing"
+      - "clinical-safety"
+      - "train-serve-parity"

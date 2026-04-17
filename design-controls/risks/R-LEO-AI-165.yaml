@@ -1,0 +1,111 @@
+# -- R-LEO-AI-165 -- Console redesign may misrepresent pipeline health or break operations workflow
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-165"
+  title: "Re-skinning /admin/console onto the design-system may misrepresent the AI pipeline status, hide critical nudges, or break the existing train / cancel / inspect workflow"
+
+  hazard:
+    description: >
+      The Intelligence Console is the primary surface for operations staff
+      to start training jobs, watch them run, see whether the latest model
+      passed evaluation gates, and decide whether to promote it. Replacing
+      its bespoke chrome (HealthBar / NudgeBanner / StageCard) with new
+      design-system primitives (PipelineRail / NudgeStrip /
+      ConsoleStagePanel) carries three risks:
+
+        - the new PipelineRail could render the wrong status dot for a
+          stage (e.g. show "healthy" when training has actually failed)
+          if the status mapping is mis-wired;
+        - the new NudgeStrip could omit a critical "golden set
+          regression" or "training failed" message because severity
+          mapping is wrong;
+        - the new ConsoleStagePanel could fail to wire the existing stage
+          handlers (Train now / Cancel job / Open evaluation), leaving
+          operations staff unable to drive the loop.
+    category: "usability"
+
+  hazardous_situation: >
+    An operations user opens /admin/console after the redesign and either
+    (a) sees a healthy-looking rail and acts on stale data even though a
+    training job has failed silently, (b) misses the smart nudge telling
+    them the latest model regressed on the frozen golden set, or (c)
+    cannot click "Train now" because the action handler is no longer
+    plumbed into the new stage panel.
+
+  harm:
+    description: >
+      The user ships an under-performing model, fails to triage a failed
+      training run, or cannot perform routine operations work, all of
+      which delay the Discover -> Curate -> Train -> Evaluate -> Deploy
+      loop and may erode model quality over time.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Preserve the public surface of useConsoleState; introduce
+        computeConsoleStats as an additive helper; mirror the existing
+        deriveStageHealth status mapping in PipelineRail; preserve the
+        existing handler contract on ConsoleStagePanel (action button,
+        toggle, accentColor); use color.status.* tokens so severity
+        tones are consistent across the design-system.
+      implemented_by: ["DI-LEO-AI-164"]
+      verified_by: ["VT-LEO-AI-162"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        NudgeStrip exposes role="status" with aria-live="polite" so the
+        nudge is announced to assistive tech; severity is mapped 1:1 to
+        the existing nudge.severity values from deriveNudge so no
+        existing nudge silently disappears.
+      implemented_by: ["DI-LEO-AI-164"]
+      verified_by: ["VT-LEO-AI-162"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The static-source VT pins the import contract and the screenId/
+      width invariants. The stage status mapping continues to come from
+      the unchanged deriveStageHealth function, so the rail can only
+      show what the existing logic computed. The handler contract on
+      ConsoleStagePanel is identical to the legacy StageCard surface,
+      so existing actions (Train now / Cancel / Open evaluation)
+      continue to fire. Phase 8b will rebuild the deeper TrainStage and
+      EvaluateStage bodies on design-system primitives under their own
+      DI / VT.
+
+  monitoring:
+    monitoring_plan: >
+      VT-LEO-AI-162 runs in CI on every console change. Operations
+      staff feedback is captured in the Wave E Phase 8 retro and any
+      mis-rendered status / missing nudge becomes a follow-up DI under
+      Phase 8b.
+    metrics:
+      - "Reports of missing or stale nudges on /admin/console (target: 0)"
+      - "Reports of broken Train now / Cancel actions on /admin/console (target: 0)"
+      - "PipelineRail status mismatches against deriveStageHealth (target: 0)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Wave E Phase 8 console redesign review"
+    identified_date: "2026-04-16"
+    status: "mitigated"
+    tags:
+      - "intelligence-console"
+      - "design-system"
+      - "wave-e-phase-8"
+      - "operations"
+      - "ui"

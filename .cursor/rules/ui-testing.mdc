@@ -1,0 +1,234 @@
+---
+description: Testing strategy for the LEO AI Core UI -- jest static-source VTs, Playwright user journeys, axe-core accessibility
+globs: services/ui/src/**/*.tsx,services/ui/src/__tests__/**/*.test.tsx,services/ui/e2e/**/*.spec.ts,services/design-system/src/**/*.tsx,services/design-system/src/__tests__/**/*.test.ts
+alwaysApply: false
+---
+
+# UI Testing Standards
+
+Wave D / Wave E established a three-layer test pyramid for UI work.
+Every UI Design Input MUST pin the right layer in its
+`verification.test_protocol`.
+
+```
+1. jest static-source VT      -- chrome, imports, structural invariants (fast, deterministic)
+2. jest live-render VT        -- isolated primitive behaviour (limited blast radius)
+3. Playwright + axe e2e       -- user journeys + WCAG 2.1 AA (slow, full-stack)
+```
+
+---
+
+## Layer 1 -- Jest static-source VTs (the workhorse)
+
+Most pages we ship hit live FastAPI / Neo4j / NICE endpoints on mount,
+which makes a unit-scoped live render fragile. The fix is to read the
+component source as a string and assert structural invariants with
+ripgrep-style regexes. This is the canonical Wave E pattern.
+
+### When to use
+
+- Verifying a page imports the right `@leo/design-system` primitives.
+- Verifying legacy chrome (Card / CardContent / SectionBox / raw
+  TextField) is removed.
+- Verifying a card uses canonical tokens (12px radius, 18px padding,
+  3px accent strip, 168px minHeight, framer-motion stagger).
+- Verifying handlers / API calls / router pushes are preserved
+  through a refactor (`api.get('/fhir/PlanDefinition')`,
+  `router.push('/admin/pathways/...')`).
+- Verifying a page exposes the canonical loading / empty / no-match
+  copy strings.
+
+### Canonical skeleton
+
+```tsx
+/**
+ * VT-LEO-AI-XXX -- <one-line summary of what is being verified>.
+ *
+ * Static-source verification:
+ *   - <bullet 1>
+ *   - <bullet 2>
+ *
+ * Design Controls: DI-LEO-AI-XXX, DO-LEO-AI-XXX, VT-LEO-AI-XXX.
+ */
+
+import * as fs from "fs";
+import * as path from "path";
+
+const REPO_ROOT = path.resolve(__dirname, "../../../..");
+
+function readFile(relPath: string): string {
+  return fs.readFileSync(path.join(REPO_ROOT, relPath), "utf8");
+}
+
+describe("VT-LEO-AI-XXX - <feature> chrome", () => {
+  test("TC-001: imports the right design-system primitives", () => {
+    const src = readFile("services/ui/src/app/admin/<feature>/page.tsx");
+    expect(src).toMatch(/from\s+["']@leo\/design-system["']/);
+    expect(src).toMatch(/StatHero/);
+    expect(src).toMatch(/SegmentedTabs/);
+    expect(src).toMatch(/ToolbarActions/);
+  });
+
+  test("TC-002: legacy chrome removed", () => {
+    const src = readFile("services/ui/src/app/admin/<feature>/page.tsx");
+    expect(src).not.toMatch(/<Typography variant="h5">/);
+    expect(src).not.toMatch(/import\s+Card\s+from\s+"@mui\/material\/Card"/);
+  });
+
+  // ... more cases
+});
+```
+
+### Regex discipline (lessons learned)
+
+Static-source regexes break easily when prettier wraps long lines.
+Always:
+
+- Use `[\s\S]*?` (NOT `.*?`) when matching across newlines.
+- Insert `\\s*` between adjacent tokens (e.g. between `>` of a
+  generic and `(` of a call): `\.get<[\s\S]*?>\s*\(\s*"\/fhir\/`.
+- Anchor on stable strings (route paths, API endpoints, design-token
+  values) -- never on whitespace-sensitive layout.
+- Extract a JSX tag with `src.match(/<MyComponent[\s\S]*?\/>/)` then
+  assert on its props -- much more robust than one giant regex.
+
+### Test case naming
+
+- Suite name: `VT-LEO-AI-<NNN> - <short title>`.
+- Test name: `TC-<NNN>: <observable behaviour>`.
+- The test names MUST match the `case_name` field in the VT YAML
+  one-for-one.
+
+### Recording execution evidence in the VT YAML
+
+After running, append to `execution_history`:
+
+```yaml
+execution_history:
+  - executed_at: "<YYYY-MM-DD>"
+    executed_by: "Wave E Phase <N> automation"
+    result: "pass"
+    notes: "All <N> test cases pass under jest 30; 0 failures."
+```
+
+Set `status: "passed"` only when the run is green.
+
+---
+
+## Layer 2 -- Jest live-render VTs (isolated primitives)
+
+For shared primitives in `@leo/design-system/src/primitives/` and for
+small leaf components that do not hit the network, do mount them with
+React Testing Library and assert real behaviour.
+
+### When to use
+
+- A primitive in `@leo/design-system` exposes interactive props
+  (`SegmentedTabs.onChange`, `ToolbarActions.onClick`,
+  `ConfirmDialog` flow).
+- A leaf UI component has branching logic that benefits from running
+  the actual code path (form validation, computed labels).
+
+### What to use
+
+- `@testing-library/react` for mounting.
+- `@testing-library/user-event` for interaction (NOT `fireEvent`).
+- `jest.config.js` already maps `@leo/design-system` to the workspace
+  source, so imports work without a build step.
+
+### What NOT to do
+
+Do NOT live-render a full page that calls `api.get()` on mount. Stub
+the API and assert via static-source instead -- the maintenance cost
+of stubs across 8+ pages outweighs the benefit.
+
+---
+
+## Layer 3 -- Playwright user journeys + axe-core
+
+Playwright lives in `services/ui/e2e/`. Every designed user journey
+MUST have a spec file. The Wave E Phase 7 work also requires every
+Knowledge tab body to ship a Playwright screenshot test that pins
+the new layout.
+
+### Required journey coverage
+
+- `dashboard.spec.ts` -- role-first dashboard for each role.
+- `pipeline.spec.ts` -- end-to-end coding pipeline.
+- `review-workflow.spec.ts` -- coding review queue.
+- `report-builder.spec.ts` -- report assembly.
+- `episode-timeline.spec.ts` -- patient pathway view.
+- `patient-workflow.spec.ts` -- full patient journey.
+- `encounters-batch.spec.ts` -- batch processing.
+
+### Accessibility (axe-core)
+
+`a11y-baseline.spec.ts` runs `@axe-core/playwright` against every
+shipped page. Every page / wizard step MUST pass axe-core with ZERO
+critical or serious violations. WCAG 2.1 AA is the bar.
+
+```ts
+import AxeBuilder from "@axe-core/playwright";
+
+const results = await new AxeBuilder({ page })
+  .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+  .analyze();
+expect(results.violations.filter(v =>
+  ["critical", "serious"].includes(v.impact ?? "")
+)).toEqual([]);
+```
+
+### CSS-alerts spec
+
+`css-alerts.spec.ts` enforces visual regressions on the role-first
+shell. Run it before merging any change to `RoleShellProvider.tsx`,
+the navigation, or the top-level layout.
+
+---
+
+## Definition of done for any UI change
+
+A Class B UI change is NOT done until ALL of the following are true:
+
+1. The DI lists `verification.test_protocol: "VT-LEO-AI-<N>"` and
+   that VT YAML exists and is consistent with the test file.
+2. The VT YAML's `metadata.test_file_paths` lists the actual jest
+   spec(s).
+3. `npx jest --testPathPatterns "<spec-name>" --no-coverage` is
+   green locally.
+4. The full Wave E regression sweep is green:
+   ```bash
+   cd services/ui && npx jest --no-coverage \
+     --testPathPatterns "knowledge-tab|chrome|theme-port|wave-d|design-system-primitives|training-data"
+   ```
+5. The VT YAML's `execution_history` records the run with
+   `result: "pass"` and `status` is set to `"passed"`.
+6. For any new visible surface, the corresponding Playwright spec is
+   updated AND `a11y-baseline.spec.ts` still passes.
+7. The traceability matrices (`DC-TM-001-traceability-matrix.md`,
+   `DC-TM-002-traceability-matrix.csv`) and `design-controls/README.md`
+   are updated with the new DI / DO / Risk / VT rows.
+
+---
+
+## Common pitfalls
+
+| Mistake                                      | Fix                                                     |
+| -------------------------------------------- | ------------------------------------------------------- |
+| `--testPathPattern` (singular) deprecated    | Use `--testPathPatterns` (plural)                       |
+| Regex misses across line wrap                | Use `[\s\S]*?` and insert `\s*` between adjacent tokens |
+| Live-render of page that hits `/api/...`     | Static-source scan instead, or mock the SWR / fetch hook |
+| Asserting on hex colour values               | Anchor on token names / palette constants in the source |
+| Forgetting `aria-label` on `SegmentedTabs`   | Static VT MUST assert `aria-label="..."` is present     |
+| One giant regex on the whole component       | Extract the JSX tag with `match(/<X[\s\S]*?\/>/)` first |
+| VT case names drift from VT YAML             | Match `case_name` 1:1; CI will read both                |
+| Forgetting to update both DC-TM matrices     | Update `DC-TM-001*.md` AND `DC-TM-002*.csv` in same PR  |
+
+---
+
+## Snapshot tests are banned
+
+Snapshot tests rot silently. Use targeted assertions on the specific
+invariants that matter (a token, a prop, an aria-label). If you find
+yourself writing `expect(component).toMatchSnapshot()`, write a
+static-source VT instead.

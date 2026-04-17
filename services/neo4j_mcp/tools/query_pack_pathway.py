@@ -6,9 +6,15 @@ from services.neo4j_mcp.tools.query_pack_common import _result, run_patient
 
 
 def dq_missing_milestone_chains(limit: int = 200) -> dict:
+    # Episodes with status='merged' have had their IS_PART_OF edges
+    # migrated to the primary by DI-LEO-AI-137 (MOVE_LINKS_Q). They
+    # legitimately have no milestone chain of their own; including
+    # them produces false-positive DQ alerts (~187 of 200 hits at the
+    # last sweep). Filter them out at source.
     rows = run_patient(
         """
         MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare)
+        WHERE coalesce(ep.status, '') <> 'merged'
         OPTIONAL MATCH (:Encounter)-[r:IS_PART_OF]->(ep)
         WITH p, ep,
              collect(DISTINCT toLower(coalesce(r.milestone_type, ''))) AS milestone_types
@@ -103,6 +109,59 @@ def dq_looping_pathways(repeat_threshold: int = 3, limit: int = 200) -> dict:
     )
 
 
+def dq_rejected_referrals_resubmission_delay(
+    min_delay_days: int = 3,
+    limit: int = 200,
+) -> dict:
+    """DI-LEO-AI-182: surface 2WW pathways where the referral was
+    rejected by the secondary-care provider (or marked in error) and
+    later resubmitted, and report the delay in calendar days.
+
+    Workflow-quality signal -- not safety-critical on its own, but
+    repeated multi-day delays accumulate into 2WW breaches. Excludes
+    merged episodes for the same reason as
+    ``dq_missing_milestone_chains``."""
+    rows = run_patient(
+        """
+        MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare)
+        WHERE coalesce(ep.status, '') <> 'merged'
+        MATCH (rej:Encounter)-[r1:IS_PART_OF]->(ep)
+          WHERE toLower(coalesce(r1.referral_subtype, '')) = 'rejected'
+        OPTIONAL MATCH (resub:Encounter)-[r2:IS_PART_OF]->(ep)
+          WHERE toLower(coalesce(r2.referral_subtype, '')) = 'resubmitted'
+            AND date(substring(toString(resub.date), 0, 10))
+              >= date(substring(toString(rej.date), 0, 10))
+        WITH p, ep, rej,
+             min(date(substring(toString(resub.date), 0, 10))) AS resub_date
+        WITH p, ep,
+             date(substring(toString(rej.date), 0, 10)) AS rejection_date,
+             resub_date,
+             CASE WHEN resub_date IS NOT NULL
+               THEN duration.inDays(
+                   date(substring(toString(rej.date), 0, 10)), resub_date
+               ).days
+               ELSE NULL END AS delay_days
+        WHERE delay_days IS NULL OR delay_days >= $min_delay_days
+        RETURN toString(p.id) AS patient_id,
+               coalesce(toString(ep.episode_id), 'unknown') AS episode_id,
+               toString(rejection_date) AS rejection_date,
+               toString(resub_date) AS resubmission_date,
+               delay_days
+        ORDER BY coalesce(delay_days, 99999) DESC, patient_id
+        LIMIT $limit
+        """,
+        min_delay_days=min_delay_days,
+        limit=limit,
+    )
+    return _result(
+        "dq_rejected_referrals_resubmission_delay",
+        "pathway",
+        f"Found {len(rows)} 2WW referrals with rejection-to-resubmission delay "
+        f">= {min_delay_days} days (NULL resubmission_date = never resubmitted).",
+        rows,
+    )
+
+
 def dq_orphan_coded_encounters(limit: int = 500) -> dict:
     rows = run_patient(
         """
@@ -161,6 +220,21 @@ TOOLS = [
         "description": "Pathway audit: coded encounters missing episode links.",
         "inputSchema": {"type": "object", "properties": {"limit": {"type": "integer", "default": 500}}},
         "fn": dq_orphan_coded_encounters,
+    },
+    {
+        "name": "dq_rejected_referrals_resubmission_delay",
+        "description": (
+            "Pathway audit: 2WW referrals rejected by the provider and the "
+            "calendar-day delay until resubmission (or never resubmitted)."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "min_delay_days": {"type": "integer", "default": 3},
+                "limit": {"type": "integer", "default": 200},
+            },
+        },
+        "fn": dq_rejected_referrals_resubmission_delay,
     },
 ]
 

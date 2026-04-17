@@ -1,0 +1,112 @@
+# -- R-LEO-AI-175 -- Reviewer diagnostic disagrees with production firing decision
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-175"
+  title: "Reviewer diagnostic disagrees with the production rule firing decision"
+
+  hazard:
+    description: >
+      A QA reviewer or clinical lead inspecting a test-patient
+      regression in the Replay Results dialog sees per-leaf tick / cross
+      diagnostics that disagree with the live ruleset's firing decision.
+      Specifically, the previous client-side walker (and the legacy
+      test_patient_service walker) used naive exact-match against
+      patient SNOMED codes, while production uses roaring bitmaps that
+      include the full SNOMED IS_A descendant closure compiled from
+      Cypher. A reviewer could see a green "all leaves satisfied" view
+      while production reports the rule as not firing -- or, more
+      dangerously, see a red "leaf failed" view while production
+      silently fires the rule and triggers a clinical action.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    During pre-deploy review of a guideline edit or a periodic ruleset
+    rebuild, the reviewer relies on the diagnostic to triage
+    regressions. If the diagnostic disagrees with production, the
+    reviewer (a) approves a real regression because the diagnostic
+    incorrectly says the rule still fires, or (b) blocks a benign
+    edit and forces an unnecessary rollback because the diagnostic
+    incorrectly reports a failure.
+
+  harm:
+    description: >
+      Approval of a real regression silently disables a 2-week wait
+      recommendation, a safety-net dashboard alert, or another
+      Class B clinical control. The patient is not escalated within
+      the NICE-mandated window. False rollbacks delay rollout of
+      improved guidance and erode reviewer trust.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The Replay Results dialog and the test_patient_service.diagnose
+        helper both delegate to GuidelineEvaluator.diagnose() in the
+        terminology API. There is exactly one evaluator: the same
+        roaring-bitmap engine used to fire rules in production.
+      implemented_by: ["DI-LEO-AI-180"]
+      verified_by: ["VT-LEO-AI-174"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        The previous client-side walker (evaluateLogicTree.ts) and the
+        cid-in-codes walker in test_patient_service have been removed
+        as part of this change so a future maintainer cannot re-wire
+        the dialog to a duplicate evaluator.
+      implemented_by: ["DI-LEO-AI-180"]
+      verified_by: ["VT-LEO-AI-174"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        When a rule's compiled bitmap is missing in Redis, the
+        diagnose response marks the affected node with
+        missing_bitmap=true and the dialog surfaces a recompile hint
+        -- the reviewer is told that the diagnostic cannot be trusted
+        until POST /terminology/guidelines/bitmap/compile has run,
+        rather than seeing a silent false negative.
+      implemented_by: ["DI-LEO-AI-180"]
+      verified_by: ["VT-LEO-AI-174"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With a single source of truth for the firing decision, the only
+      remaining path to disagreement is a stale ruleset_version (the
+      reviewer's diagnose call hits a different version than the
+      production firing). The diagnose endpoint accepts and surfaces
+      ruleset_version so the dialog passes the version that produced
+      the regression, eliminating that path.
+
+  monitoring:
+    monitoring_plan: >
+      Pytest parity test (VT-174 TC-001 / TC-002) runs in CI on every
+      PR touching the evaluator or the diagnose route. Any divergence
+      between diagnose() and evaluate_patient() blocks the merge.
+    metrics:
+      - "Number of diagnose / evaluate_patient parity test failures (target: 0 in CI)"
+      - "Number of replay reports where diagnose returns missing_bitmap=true (target: 0 outside scheduled rebuild windows)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Rob Smith - 2026-04-17 user feedback: 'its not applying the rule correctly' on Replay Results"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "appropriateness-rules"
+      - "regression-testing"
+      - "test-patients"
+      - "clinical-safety"
+      - "bitmap-engine"

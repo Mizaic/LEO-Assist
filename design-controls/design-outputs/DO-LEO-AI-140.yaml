@@ -1,0 +1,86 @@
+# -- DO-LEO-AI-140 -- Wave E Phase 2a: Training Data chrome on design-system primitives
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-140"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-143"]
+    user_needs: ["UN-LEO-AI-071"]
+    risks_addressed: ["R-LEO-AI-098"]
+    verification_tests: ["VT-LEO-AI-142"]
+
+  specification:
+    title: "Training Data tab chrome composed from @leo/design-system"
+    description: |
+      Rewrites the top section of GoldDatasetPanel.tsx -- header +
+      toolbar actions, stats grid, progress banner, and primary
+      segmented tab control -- to consume the shared primitives
+      StatHero, MetricTile, ProgressStrip, SegmentedTabs, and
+      ToolbarActions. All existing state (tab, candidateStats,
+      goldStats, syntheticStats, exportLoading) and all existing
+      handlers (handleTabChange, handleExport, handleDedupePreview,
+      setDedupeDialogOpen) are preserved; only the rendering layer
+      is swapped.
+    acceptance_criteria:
+      - criterion: "Primitive imports present"
+        type: "functional"
+        measurement: "Static file scan"
+        target: >
+          GoldDatasetPanel.tsx imports StatHero, ProgressStrip,
+          SegmentedTabs, ToolbarActions, and type DsStatTile from
+          @leo/design-system.
+      - criterion: "Legacy MUI Tabs removed from chrome"
+        type: "functional"
+        measurement: "Static file scan"
+        target: >
+          No <Tabs value=...> or <Tab label=...> JSX exists in the
+          chrome region (between the PanelHeader/AlphaBanner and
+          the tab body switch statement).
+      - criterion: "Handler preservation"
+        type: "functional"
+        measurement: "Render test"
+        target: >
+          Clicking each segmented tab updates the tab state;
+          clicking Export invokes handleExport; clicking Deduplicate
+          opens the dedupe dialog.
+      - criterion: "Data preservation"
+        type: "functional"
+        measurement: "Render test"
+        target: >
+          StatHero shows the six canonical tiles whose values come
+          from candidateStats / goldStats / syntheticStats.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+        description: >
+          Chrome region (~180 LOC) replaced with imports and use of
+          primitives. Functions touched: none (the JSX inside
+          return() was rewritten).
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 180
+      key_functions:
+        - "GoldDatasetPanel (render return block)"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Navigating between Candidates / Verified gold / Synthetic views"
+      - "Triggering the medspacy training data export"
+      - "Visualising progress toward full candidate review"
+    risk_control_measures:
+      - >
+        State and handlers unchanged -- the swap is render-layer only.
+      - >
+        Interaction test (VT-LEO-AI-142) pins each chrome element to
+        its handler so regressions fail CI.
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

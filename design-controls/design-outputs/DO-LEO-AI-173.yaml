@@ -1,0 +1,77 @@
+# -- DO-LEO-AI-173 -- AI Instructions editor decomposition (Wave E Phase 4b)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-173"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-174"]
+    user_needs: ["UN-LEO-AI-061"]
+    risks_addressed: []
+    verification_tests: ["VT-LEO-AI-169"]
+
+  specification:
+    title: "AI Instructions editor decomposition"
+    description: |
+      Splits services/ui/src/app/admin/prompts/[id]/page.tsx (1110 LOC)
+      into a slim orchestrator plus dedicated tab body components and
+      shared types/constants. Each tab body lives under
+      services/ui/src/app/admin/prompts/[id]/_components/ and stays
+      inside the project's 500 LOC hard cap. The orchestrator delegates
+      rendering to IdentitySection, InstructionsTab, OutputFormatTab,
+      TeachingExamplesTab, SandboxTab, and the SandboxCostTable helper.
+    acceptance_criteria:
+      - criterion: "Orchestrator under 500 LOC"
+        type: "functional"
+        measurement: "Test"
+        target: "page.tsx <= 500 LOC"
+      - criterion: "Tab bodies extracted"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          _components/IdentitySection.tsx, InstructionsTab.tsx,
+          OutputFormatTab.tsx, TeachingExamplesTab.tsx, SandboxTab.tsx,
+          ExampleCard.tsx, InputDisplay.tsx, OutputPreview.tsx,
+          SandboxCostTable.tsx and types.ts all exist and stay under
+          500 LOC each.
+      - criterion: "Single source of truth for taxonomy"
+        type: "functional"
+        measurement: "Inspection"
+        target: >
+          CATEGORY_OPTIONS, SCOPE_OPTIONS, TAG_COLORS, ASSERTION_COLORS,
+          categoryLabel, categoryColor and FewShotExample come from
+          _components/types.ts.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/prompts/[id]/page.tsx"
+        description: "Slim orchestrator after extraction"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/prompts/[id]/_components/"
+        description: "Extracted tab body components and shared module"
+      storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 2089
+      key_functions:
+        - "PromptTunerPage"
+        - "IdentitySection"
+        - "InstructionsTab"
+        - "OutputFormatTab"
+        - "TeachingExamplesTab"
+        - "SandboxTab"
+        - "SandboxCostTable"
+        - "ExampleCard"
+
+  safety_characteristics:
+    safety_class: "A"
+    safety_critical_functions: []
+    risk_control_measures:
+      - "Pure structural refactor; payload contracts and endpoints unchanged"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

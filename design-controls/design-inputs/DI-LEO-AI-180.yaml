@@ -1,0 +1,88 @@
+# -- DI-LEO-AI-180 -- Test patient regression diagnostics use the production bitmap evaluator
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-180"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-076"]
+  requirement: >
+    The Replay Results dialog SHALL display per-node match diagnostics
+    for any test patient regression using the SAME roaring-bitmap
+    evaluator that production uses to fire rules; the diagnostic
+    verdict shown in the UI MUST agree with the live firing decision
+    for the same (rule, patient, ruleset_version) inputs.
+
+  rationale: >
+    Reviewers use the diagnostic to decide whether a regression is a
+    real safety problem or a benign rule edit. A previous client-side
+    walker (evaluateLogicTree.ts) and the test_patient_service walker
+    both used naive exact-match against patient codes -- which silently
+    disagreed with production whenever a CONCEPT criterion relied on
+    the SNOMED IS_A descendant closure. A reviewer could see ticks for
+    every leaf and a green "expected to fire" indicator, while
+    production reported the rule as not firing (or vice versa). This
+    is a Class B clinical safety hazard: a reviewer might approve a
+    silent regression in a 2-week wait recommendation.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "safety"
+        spec: >
+          For any (rule_id, patient_codes, patient_age, patient_sex,
+          ruleset_version) tuple, the diagnostic verdict (annotated_tree
+          root .matched) MUST equal the live firing decision returned
+          by /terminology/guidelines/evaluate.
+      - type: "functional"
+        spec: >
+          The diagnostic response includes per-node match status, with
+          AT_LEAST nodes reporting matched_count and threshold, and
+          CONCEPT nodes reporting match_count (the number of patient
+          codes inside the criterion's compiled bitmap, which includes
+          the SNOMED IS_A descendant closure).
+      - type: "functional"
+        spec: >
+          The Replay Results dialog renders the annotated tree
+          hierarchically, preserving AND / OR / NOT / AT_LEAST grouping
+          so the reviewer can see which branch of the rule fired.
+    constraints:
+      - type: "safety"
+        spec: >
+          The diagnostic MUST NOT contain its own evaluator. It must
+          delegate to GuidelineEvaluator (the production evaluator) so
+          there is exactly one source of truth for rule semantics.
+    dependencies: ["DI-LEO-AI-167"]
+    downstream_impacts:
+      - "Clinical Guidelines page replay banner"
+      - "EditRuleDialog regression alert and View report dialog"
+      - "Test Patient Library replay results dialog"
+    technical_details:
+      language: "Python + TypeScript"
+      framework: "FastAPI + React/MUI"
+      file_structure:
+        - "services/terminology_api/app/services/guideline_evaluator.py"
+        - "services/terminology_api/app/routers/guidelines.py"
+        - "services/api/app/services/test_patient_service.py"
+        - "services/api/app/routers/test_patients.py"
+        - "services/ui/src/app/admin/guidance/test-patients/api.ts"
+        - "services/ui/src/app/admin/guidance/test-patients/types.ts"
+        - "services/ui/src/app/admin/guidance/test-patients/ReplayResultsDialog.tsx"
+      estimated_loc: 450
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-174 covers (a) parity between diagnose() and
+      evaluate_patient() across schema v1 and v2 rules, (b) AT_LEAST
+      and CONCEPT match-count reporting, (c) the ReplayResultsDialog
+      fetches /diagnose and renders the annotated tree, and (d) a
+      missing rule surfaces a recompile hint instead of a stack trace.
+    test_protocol: "VT-LEO-AI-174"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-175"]
+  tags:
+    - "appropriateness-rules"
+    - "regression-testing"
+    - "test-patients"
+    - "clinical-safety"
+    - "bitmap-engine"

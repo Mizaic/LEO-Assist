@@ -1,0 +1,135 @@
+======================================================================
+PATIENT      : 6012067550
+EPISODE      : 9378ab28cd0d4768
+CANCER_TYPE  : breast
+STATUS       : stale_post_specialist
+REFERRAL     : 2025-07-11
+WINDOW       : 2025-06-27 .. 2025-10-09 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2025-07-11  referral                enc=8437db68-efc5-4c2e-9ff6-a72ff4388a31
+  2025-07-11  referral                enc=57ddd330-aa7a-4c56-9c9d-00fcf530b54c
+  2025-08-10  first_seen              enc=55fe00d1-87d6-481c-9321-db50a8367d7d
+  2025-08-20  first_seen              enc=2be786ad-34da-4381-a0b1-4fb20442d5df
+
+Encounters in window (n=15):
+
+--- 01 2025-06-30 [other] milestones=[] eid=73e4ff5a-a837-4998-8a8e-d45314e43523 ---
+10:46 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 02 2025-06-30 [other] milestones=[] eid=5af608f0-4124-43c6-ac43-22c375078689 ---
+10:46 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Hi Brogan,
+
+Our car park will be closing at the end of day on Friday 4th July 2025 for the foreseeable future.
+This is due to health and safety concerns while demolition work is taking place at the site next door. Please find alternative parking when attending the surgery after this date. 
+
+Thank you
+Woodbrook Medical Centre
+NHS app message sent on 20/06/2025 13:01:07
+
+--- 03 2025-07-01 [other] milestones=[] eid=fc727486-411e-4f01-b964-f9407af4905b ---
+08:11 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Summary Care Record Update
+
+--- 04 2025-07-11 [other] milestones=[] eid=0f4c50e9-cc10-4caa-8152-65a76f241493 ---
+09:29 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+Problem: Breast lump (K3171)
+History: ID confirmed  
+
+a week ago  noted marks on vest on R side figured R side breast leaking 
+has had a lump on R side  in 2016, 2018 and 2019 - was seen in breast clinic - thought to have a cyst/ glandular lobule 
+
+same side now noted lump and leaking with mild dull ache on and off  for last week
+not breast feeding  
+no fever  
+no vomiting / sickness  
+feels well in self   
+no weight loss   
+non smoker   
+no FH of breast Ca
+Plan: see F2f
+Breast lump (K3171)
+Summary Care Record Update
+Breast lump (K3171)
+
+--- 05 2025-07-11 [other] milestones=[] eid=f5d6c2c0-d57d-4cbd-8c03-2d267e58aea2 ---
+10:22 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 06 2025-07-11 [IN-EP] milestones=['referral'] eid=8437db68-efc5-4c2e-9ff6-a72ff4388a31 ---
+10:29 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) 
+History: please see above for more history  
+
+unilateral non bloody discharge from R side  
+previous known cyst that comes and goes in outer quadrant   
+Examination: looks well 
+consented for examination   
+declined chaperone  
+
+noted small 1.5cm lump inner quadrant of R breast  
+no skin distortion / nipple retraction , discharge at the moment  
+small <2cm 2nd lump noted on outer quadrant lower side of R breast  - both lump seem mobile   not attached to overlying skin  
+Plan: - given new lump and unilateral discharge low threshold to r/o cancer 2ww
+- PRISM 2WW Breast Female -  questionnaire started - (finalised: 11 Jul 2025 10:29)
+Fast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)
+ - PRISM 2WW Breast Female Drawing
+    
+ PRISM Pathway & Referral Impl SysteM V3
+   2WW
+       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 11 Jul 2025 10:29)
+ Common GP examination values
+   Values
+      Weight: 65 Kg  (? 10 st 3 lb)
+      BMI: 23.31 Kg/mï¿½
+O/E - weight (22A..) 65 Kg (? 10 st 3 lb)
+Body mass index - observation (22K..) 23.31 Kg/mï¿½
+
+--- 07 2025-07-11 [IN-EP] milestones=['referral'] eid=57ddd330-aa7a-4c56-9c9d-00fcf530b54c ---
+11:40 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Fast track referral for suspected breast cancer (XaMeC)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes Breast
+Hospital Fast track referral for suspected breast cancer
+2WW Breast Female PRISM to Unknown 
+Hospital Fast track referral for suspected breast cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - Breast
+
+--- 08 2025-07-28 [other] milestones=[] eid=c5989180-caf8-409d-ba4f-7563abcab3ad ---
+14:52 - Surgery: BAILEY, Cleopatra (Receptionist Access Role)
+
+--- 09 2025-08-10 [IN-EP] milestones=['first_seen'] eid=55fe00d1-87d6-481c-9321-db50a8367d7d ---
+00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Seen in fast track suspected breast cancer clinic (XaPyQ)
+
+--- 10 2025-08-10 [other] milestones=[] eid=886e8dc5-a85d-41ca-8ede-912cfbe494bf ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Breast Clinic to Woodbrook Medical Centre
+
+--- 11 2025-08-10 [other] milestones=[] eid=e807f832-aa99-4aaf-a6cc-f267fa8bbe2a ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) 
+US scan of breast (585C.) - R - normal (New Episode)
+
+--- 12 2025-08-20 [IN-EP] milestones=['first_seen'] eid=2be786ad-34da-4381-a0b1-4fb20442d5df ---
+14:33 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 10 Aug 2025
+
+--- 13 2025-09-15 [other] milestones=[] eid=1f2520a5-3336-446a-8cfa-8449aea155af ---
+12:39 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Hi Brogan,
+Please be advised that the car park remains closed to patients and visitors. It is for use by authorised staff only until further notice. At times, the entrance chain may be up or down to allow access to the building, but please note the car park remains closed to patients and visitors at all times.
+We kindly ask all patients to make alternative travel and parking arrangements when attending appointments.
+Thank you for your understanding and cooperation
+
+Woodbrook Medical Centre
+NHS app message sent on 15/09/2025 11:49:08
+
+--- 14 2025-09-15 [other] milestones=[] eid=d368d5c7-2ec3-4e18-a484-2539814dca32 ---
+12:39 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role)
+
+--- 15 2025-09-15 [other] milestones=[] eid=8c607298-f35f-43d2-a180-12b64b376282 ---
+13:52 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+Summary Care Record Update
+

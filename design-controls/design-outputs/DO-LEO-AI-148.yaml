@@ -1,0 +1,97 @@
+# -- DO-LEO-AI-148 -- Clinical Guidelines orchestrator on @leo/design-system
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-148"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-152"]
+    user_needs: ["UN-LEO-AI-071"]
+    risks_addressed: ["R-LEO-AI-104"]
+    verification_tests: ["VT-LEO-AI-150"]
+
+  specification:
+    title: "Clinical Guidelines workflow rebuilt on the design-system"
+    description: |
+      Single Next.js page under
+      services/ui/src/app/admin/guidance/page.tsx that orchestrates
+      the four child sections (NiceLoaderSection,
+      LoadedGuidelinesPanel, RuleReviewSection,
+      BitmapLifecycleSection). Wave E Phase 5 swaps the legacy
+      heavy chrome for a sticky design-system jump strip and
+      motion-enabled StepCard sections:
+
+        - SegmentedTabs jump strip (sticky, blur-backed) at the top
+          with three tabs (load / review / compile). Selecting a
+          tab smoothly scrolls the matching StepCard into view.
+        - StepCard: fm.section with 12px radius, 1px divider border,
+          3px tone-coded left accent strip, framer-motion stagger
+          entry. Each StepCard owns the numbered pip + title +
+          description in its header, then renders the existing
+          child section in its body.
+
+      Sub-module internals (NiceLoaderSection etc.) are NOT touched
+      by this DO; their visual upgrade is staged to a follow-up DI.
+    acceptance_criteria:
+      - criterion: "Design-system imports + framer-motion"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-150 TC-001 + TC-002 pass"
+      - criterion: "Legacy heavy chrome removed"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-150 TC-003 passes"
+      - criterion: "StepCard token alignment"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-150 TC-004 passes"
+      - criterion: "Child sections preserved"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-150 TC-005 passes"
+      - criterion: "Refresh-key bridges preserved"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-150 TC-006 passes"
+      - criterion: "Sticky jump strip + SegmentedTabs API"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-150 TC-007 + TC-008 pass"
+      - criterion: "Numbered step pips"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-150 TC-009 passes"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/page.tsx"
+        description: >
+          Redesigned Clinical Guidelines orchestrator: SegmentedTabs
+          sticky jump strip + four motion-enabled StepCards wrapping
+          the unchanged child sections.
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 230
+      key_functions:
+        - "GuidancePage"
+        - "StepCard"
+        - "STEP_TABS"
+        - "handleJump"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Preserve loadedRefreshKey bridge so that loading a guideline still triggers LoadedGuidelinesPanel to refetch"
+      - "Preserve ruleRefreshKey bridge so that generating rules still triggers RuleReviewSection to refetch"
+    risk_control_measures:
+      - "Refresh-key state bridges remain intact (R-104 mitigation)"
+      - "Child sections are mounted with the same prop contract as before"
+      - "Sticky jump strip + numbered pips give the QA lead a clear sense of place inside the workflow"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

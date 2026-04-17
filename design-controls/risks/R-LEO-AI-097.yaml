@@ -57,6 +57,21 @@
       effectiveness: "effective"
     - control_type: "design_feature"
       description: >
+        Multi-distinct-type guard (closes 2026-04-17 audit finding):
+        when a cluster contains two or more episodes with distinct,
+        recognised cancer_types AND the diagnosis text does not
+        uniquely corroborate one of them, pick_evidence_winner skips
+        the merge entirely and emits logger.warning with both
+        episode_ids. The previous behaviour fell back to
+        sorted(known_types)[0] (alphabetical), which silently merged
+        same-day breast + melanoma 2WW pathways and similar
+        cross-type pairs. Backfill (scripts/backfill_unmerge_
+        unsafe_episodes.py) reverses historical bad merges.
+      implemented_by: ["DI-LEO-AI-137"]
+      verified_by: ["VT-LEO-AI-138"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
         Merges are reversible: MARK_MERGED_Q records merged_into
         and merge_reasoning; MOVE_LINKS_Q tags every migrated
         IS_PART_OF edge with r.linked_by='merge_duplicate', so a

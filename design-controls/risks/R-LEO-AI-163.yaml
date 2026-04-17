@@ -1,0 +1,120 @@
+# -- R-LEO-AI-163 -- Problem-list code matching may misclassify episode outcome
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-163"
+  title: "Curated Read/CTV3 code matching could misclassify an episode outcome (false benign closure or false diagnosis)"
+
+  hazard:
+    description: >
+      The new MALIGNANCY_READ_CODES and BENIGN_EXPLANATION_READ_CODES
+      inventories are matched against encounter free text within +/- 7 days
+      of first_seen. A code mentioned in a clinical letter for context
+      (e.g. quoting a previous benign result while still investigating, or
+      copying a malignancy code into a problem list as "ruled out") could
+      be picked up and used to close an episode that is actually still in
+      flight, or to mark a still-investigating episode as
+      diagnosis_confirmed.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinician reviews the LEO-AI stale-episode dashboard and sees a real
+    cancer pathway has been auto-closed as closed_benign because a
+    laryngopharyngeal-reflux code (XaK99) appeared in a copy-and-paste
+    quote inside a 2WW letter. They miss the active pathway and the
+    patient's downstream review slips. Conversely, a quoted malignancy
+    code in a "history of" note could falsely promote an episode to
+    diagnosis_confirmed.
+
+  harm:
+    description: >
+      Delayed clinical follow-up for a real cancer pathway, or false
+      reassurance from an episode marked completed/diagnosis_confirmed
+      when the patient is still under investigation. Mis-pair is
+      recoverable because the source encounter text is always one click
+      away in the operations UI, but the stale dashboard is the primary
+      surface for triage so a missed pathway here is meaningful.
+      severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Code inventories are curated only from clinically reviewed
+        deep-read evidence. New codes require a CTV3 lookup or a
+        documented reviewer note before being added; the inventory file
+        carries inline source comments next to each code.
+      implemented_by: ["DI-LEO-AI-161"]
+      verified_by: ["VT-LEO-AI-161"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Anchors emitted from problem-list code matches carry explicit
+        diagnosis_source / benign_source provenance plus the matched
+        code or phrase, so reviewers and downstream rules can audit
+        every classification and override it.
+      implemented_by: ["DI-LEO-AI-161"]
+      verified_by: ["VT-LEO-AI-161"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        STALE_CLOSE_Q only short-circuits stale closure; it never fires
+        on its own. Episode promotion to closed_benign or completed
+        still requires the existing milestone-fusion rules, so a single
+        spurious code cannot close an episode without corroborating
+        evidence within the +/- 7 day window.
+      implemented_by: ["DI-LEO-AI-161"]
+      verified_by: ["VT-LEO-AI-161"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        A reviewer always sees the source encounter text alongside the
+        episode classification in the operations UI. Misclassifications
+        are flagged through the existing HITL queue and feed back into
+        the inventory curation cycle.
+      implemented_by: ["DI-LEO-AI-161"]
+      verified_by: ["VT-LEO-AI-161"]
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+    acceptability: "acceptable"
+    justification: >
+      The fixes substantially reduce a much larger documented harm:
+      36 patients in the live corpus were sitting in stale_*
+      categories despite having a coded clinical outcome, hiding their
+      real pathway state from reviewers. The new mitigations
+      (provenance, milestone-fusion preservation, HITL feedback) keep
+      the residual misclassification risk acceptable, and reviewers
+      always have the source text available to over-ride.
+
+  monitoring:
+    monitoring_plan: >
+      Quarterly audit: sample 50 episodes per quarter that flipped to
+      closed_benign or diagnosis_confirmed via problem_list_code or
+      investigation_phrase provenance and confirm against the source
+      letter. Track precision per provenance channel; trigger inventory
+      review if precision falls below 90%.
+    metrics:
+      - "Precision of problem_list_code -> closed_benign classifications"
+      - "Precision of problem_list_code -> diagnosis_confirmed classifications"
+      - "HITL override rate on episodes flipped by these new rules"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Stale-episode deep-read 2026-04-17 (41 episodes, 36 patients)"
+    identified_date: "2026-04-17"
+    status: "analyzed"
+    tags:
+      - "episode-building"
+      - "stale-detector"
+      - "problem-list-codes"

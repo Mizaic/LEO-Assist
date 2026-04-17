@@ -9,14 +9,34 @@ one of these fragments so that /audit/summary, /audit/cancer-stage,
 meaning of 'confirmed cancer'.
 
 Canonical definition ('confirmed cancer episode'):
-    ep.status = 'completed'
+    ep.status NOT IN ['merged','closed_phantom','closed_related',
+                      'closed_benign']
     AND coalesce(ep.letter_inferred_benign, false) = false
     AND EXISTS (Encounter)-[:IS_PART_OF {milestone_type IN
         ['diagnosis','diagnosis_confirmed']}]->(ep)
 
-This is the NCDA publication definition: an episode where a cancer
+This is the NCDA publication definition: an episode where a CANCER
 diagnosis has been recorded in the audit period, regardless of whether
-the route was a documented 2WW referral.
+the patient has yet started treatment (so 'in_progress' episodes that
+already carry a diagnosis_confirmed milestone are counted) and
+regardless of whether the route was a documented 2WW referral.
+
+Episodes the patient is still being worked up on (in_progress) are
+counted only once a diagnosis_confirmed milestone exists. Episodes
+closed as benign (closed_benign) or flagged as letter-inferred benign
+are explicitly excluded -- a benign closure means the current 2WW
+pathway has been clinically resolved as not-cancer, even if the
+encounter text mentions a historic unrelated malignancy.
+
+Note for upcoming PPV analytics:
+The diagnosis_confirmed milestone is reserved for cancer outcomes.
+Benign outcomes are recorded by the episode builder as a benign_closure
+milestone with a code/phrase reason (see libs/domains/code_inventories
+for the code inventory) and the episode status is set to closed_benign.
+The two milestone types are mutually exclusive in clean data and the
+cohort definition above relies on that contract. The eight legacy
+closed_benign episodes that still carry a diagnosis_confirmed milestone
+are tracked in design-controls/audits/improvements-backlog.md.
 
 Suspected-cancer-referral variant ('2WW-route diagnoses'):
     canonical confirmed-cancer clause
@@ -33,8 +53,16 @@ from __future__ import annotations
 # Cypher snippets (ep must already be bound in the caller's query)
 # ---------------------------------------------------------------------------
 
+# Statuses that mean the episode is administratively invalid (merged,
+# phantom, related-duplicate) or has been clinically resolved as
+# not-cancer (closed_benign). None of these can be a confirmed cancer
+# regardless of what milestones the builder may have attached.
+_EXCLUDED_STATUSES = (
+    "['merged', 'closed_phantom', 'closed_related', 'closed_benign']"
+)
+
 _STATUS_AND_BENIGN = (
-    "{alias}.status = 'completed' "
+    "NOT {alias}.status IN " + _EXCLUDED_STATUSES + " "
     "AND coalesce({alias}.letter_inferred_benign, false) = false"
 )
 

@@ -77,9 +77,13 @@ import {
 } from "@/lib/entitySemanticLabels";
 import { renderNerSpans, themeForAssertion, type AnnotatedSpan } from "@/lib/nerAnnotation";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import CandidateCard from "@/components/gold-dataset/CandidateCard";
+import CandidateReviewList from "@/components/gold-dataset/CandidateReviewList";
 import DatasetHealthPanel from "@/components/gold-dataset/DatasetHealthPanel";
-import GoldLabelRow from "@/components/gold-dataset/GoldLabelRow";
+import DialogActionsBar from "@/components/gold-dataset/GoldLabelDetailDialog/DialogActionsBar";
+import DialogTitleStrip from "@/components/gold-dataset/GoldLabelDetailDialog/DialogTitleStrip";
+import DeleteConfirmPanel from "@/components/gold-dataset/GoldLabelDetailDialog/DeleteConfirmPanel";
+import SuggestionsPanel from "@/components/gold-dataset/GoldLabelDetailDialog/SuggestionsPanel";
+import GoldLabelReviewList from "@/components/gold-dataset/GoldLabelReviewList";
 import SimilarCandidatesBatch from "@/components/gold-dataset/SimilarCandidatesBatch";
 import SnomedInlineSearch from "@/components/gold-dataset/SnomedInlineSearch";
 import useKeyboardShortcuts from "@/components/gold-dataset/useKeyboardShortcuts";
@@ -1196,6 +1200,7 @@ function GoldLabelDetailDialog({
   });
   const [searchingAll, setSearchingAll] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+  const [showGuidelines, setShowGuidelines] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [selectionAdded, setSelectionAdded] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -2117,18 +2122,22 @@ function GoldLabelDetailDialog({
   return (
     <>
       <Dialog open onClose={onClose} maxWidth="lg" fullWidth scroll="paper">
-        <DialogTitle sx={{ pb: 0.75, pr: 7, borderBottom: "1px solid", borderColor: "divider" }}>
-          <Typography variant="h6" component="span" sx={{ fontWeight: 700, lineHeight: 1.25, mb: 0.25, display: "block" }}>
-            Review this example
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
-            Check the terms and codes below. Fix anything wrong, then mark it as gold.
-          </Typography>
-          <IconButton onClick={onClose} size="small" sx={{ position: "absolute", top: 10, right: 10 }}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent dividers>
+        <DialogTitleStrip
+          title="Review this example"
+          uncodedCount={uncodedCount}
+          suggestionCount={pendingSuggestionCount}
+          hasGuidelines={Boolean(annotationGuidelines)}
+          guidelinesOpen={showGuidelines}
+          shortcutsOpen={showShortcutHelp}
+          copied={copiedKey === "sentence"}
+          onCopySentence={() =>
+            copyToClipboard(String(item.text || ""), "sentence")
+          }
+          onToggleGuidelines={() => setShowGuidelines((v) => !v)}
+          onToggleShortcuts={() => setShowShortcutHelp((v) => !v)}
+          onClose={onClose}
+        />
+        <DialogContent dividers sx={{ borderTopColor: "divider" }}>
           {saveError && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveError(null)}>
               {saveError}
@@ -2144,9 +2153,9 @@ function GoldLabelDetailDialog({
               Shortcuts: Enter = mark gold, A = accept all suggestions, N = next, Esc = close
             </Alert>
           )}
-          {annotationGuidelines && (
+          {showGuidelines && annotationGuidelines && (
             <Box sx={{ mb: 1.5 }}>
-              <AnnotationGuidelinesPanel text={annotationGuidelines} defaultExpanded={false} />
+              <AnnotationGuidelinesPanel text={annotationGuidelines} defaultExpanded />
             </Box>
           )}
 
@@ -2463,89 +2472,25 @@ function GoldLabelDetailDialog({
               </Stack>
             </Stack>
 
-            {relationSuggestions.length > 0 && (
-              <Box
-                sx={{
-                  mb: 0.9,
-                  p: 1,
-                  border: "1px solid",
-                  borderColor: "info.light",
-                  borderRadius: 1.25,
-                  bgcolor: "info.50",
-                }}
-              >
-                <Typography variant="caption" sx={{ color: "info.dark", fontWeight: 700 }}>
-                  Recommended links
-                </Typography>
-                <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-                  {relationSuggestions.slice(0, 5).map((suggestion) => {
-                    const source = entities[suggestion.sourceIdx];
-                    const target = entities[suggestion.targetIdx];
-                    const key = `${suggestion.sourceIdx}:${suggestion.type}:${suggestion.targetIdx}`;
-                    const rejectedReason = rejectedRelationKeys[key];
-                    return (
-                      <Stack
-                        key={key}
-                        direction="row"
-                        spacing={0.75}
-                        alignItems="center"
-                        sx={{ flexWrap: "wrap" }}
-                      >
-                        <Chip
-                          size="small"
-                          color="info"
-                          label={`Recommended ${(suggestion.confidence * 100).toFixed(0)}%`}
-                          sx={{ height: 20, fontSize: "0.66rem", fontWeight: 700 }}
-                        />
-                        <Typography variant="caption" sx={{ color: "text.primary" }}>
-                          {(source?.text ?? "Source")} {"->"} {(target?.text ?? "Target")}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                          ({suggestion.type})
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                          {suggestion.reason}
-                        </Typography>
-                        {!rejectedReason ? (
-                          <>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              sx={{ minHeight: 22, fontSize: "0.66rem", px: 1 }}
-                              onClick={() => handleAcceptRelationSuggestion(suggestion)}
-                              disabled={saving}
-                            >
-                              Accept
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="inherit"
-                              sx={{ minHeight: 22, fontSize: "0.66rem", px: 1 }}
-                              onClick={() => handleRejectRelationSuggestion(suggestion, "not relevant")}
-                              disabled={saving}
-                            >
-                              Reject
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            size="small"
-                            variant="text"
-                            color="inherit"
-                            sx={{ minHeight: 22, fontSize: "0.66rem", px: 1 }}
-                            onClick={() => handleUndoRejectedRelation(suggestion)}
-                            disabled={saving}
-                          >
-                            Undo reject
-                          </Button>
-                        )}
-                      </Stack>
-                    );
-                  })}
-                </Stack>
-              </Box>
-            )}
+            <SuggestionsPanel
+              suggestions={relationSuggestions}
+              entities={entities}
+              rejectedKeys={rejectedRelationKeys}
+              saving={saving}
+              onAccept={handleAcceptRelationSuggestion}
+              onReject={(s, reason) => handleRejectRelationSuggestion(s, reason)}
+              onUndoReject={handleUndoRejectedRelation}
+              onAcceptAll={() => {
+                relationSuggestions
+                  .filter(
+                    (s) =>
+                      !rejectedRelationKeys[
+                        `${s.sourceIdx}:${s.type}:${s.targetIdx}`
+                      ],
+                  )
+                  .forEach((s) => handleAcceptRelationSuggestion(s));
+              }}
+            />
 
             {entities.map((e, i) => {
               const nonPresent = isNonPresent(e.assertion);
@@ -3016,128 +2961,36 @@ function GoldLabelDetailDialog({
             </Typography>
           </Stack>
         </DialogContent>
-        {/* Delete / block confirm panel — slides in above the footer */}
         {showDeleteConfirm && onDeleteCandidate && (
-          <Box
-            sx={{
-              px: 2,
-              py: 1.25,
-              borderTop: "1px solid",
-              borderColor: "error.light",
-              bgcolor: "error.50",
-              display: "flex",
-              flexDirection: "column",
-              gap: 0.75,
+          <DeleteConfirmPanel
+            suppressOnDelete={suppressOnDelete}
+            onSuppressChange={setSuppressOnDelete}
+            onCancel={() => {
+              setShowDeleteConfirm(false);
+              setSuppressOnDelete(false);
             }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 600, color: "error.dark" }}>
-              Delete this sentence?
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              This removes the candidate and any linked gold labels. It cannot be undone.
-            </Typography>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  checked={suppressOnDelete}
-                  onChange={(e) => setSuppressOnDelete(e.target.checked)}
-                  color="error"
-                />
-              }
-              label={
-                <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                  Also block this sentence from future pipeline runs
-                </Typography>
-              }
-            />
-            <Stack direction="row" spacing={1}>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={() => { setShowDeleteConfirm(false); setSuppressOnDelete(false); }}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                color="error"
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  onDeleteCandidate(suppressOnDelete);
-                }}
-              >
-                {suppressOnDelete ? "Delete and block" : "Delete"}
-              </Button>
-            </Stack>
-          </Box>
+            onConfirm={() => {
+              setShowDeleteConfirm(false);
+              onDeleteCandidate(suppressOnDelete);
+            }}
+          />
         )}
 
-        <DialogActions sx={{ px: 2, py: 1.25, gap: 1, borderTop: "1px solid", borderColor: "divider", bgcolor: "action.hover" }}>
-          <Button
-            variant="text"
-            size="small"
-            onClick={onClose}
-            disabled={saving || markingGold}
-            sx={{ color: "text.secondary" }}
-          >
-            Close
-          </Button>
-          {onDeleteCandidate && !showDeleteConfirm && (
-            <Tooltip title="Delete this sentence and optionally block it from being extracted again">
-              <Button
-                variant="text"
-                size="small"
-                color="error"
-                startIcon={<DeleteOutlineIcon sx={{ fontSize: 15 }} />}
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={saving || markingGold}
-                sx={{ opacity: 0.7, "&:hover": { opacity: 1 } }}
-              >
-                Delete
-              </Button>
-            </Tooltip>
-          )}
-          {onNextCandidate && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={onNextCandidate}
-              disabled={saving || markingGold}
-            >
-              Skip to next
-            </Button>
-          )}
-          <Box sx={{ flex: 1 }} />
-          {canAcceptAllAndMark && onMarkGold && (
-            <Button
-              variant="outlined"
-              color="success"
-              size="small"
-              disabled={markingGold || saving}
-              onClick={async () => {
-                await handleAcceptAllSuggestions();
-                await flushTermDraftsAndMarkGold();
-              }}
-              sx={{ fontWeight: 600 }}
-            >
-              Accept all and mark as gold
-            </Button>
-          )}
-          {onMarkGold && (
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={markingGold ? <CircularProgress size={14} color="inherit" /> : <VerifiedIcon />}
-              disabled={markingGold || saving}
-              onClick={() => void flushTermDraftsAndMarkGold()}
-              sx={{ px: 2.5, fontWeight: 700, fontSize: "0.9rem" }}
-            >
-              {markingGold ? "Saving..." : "Mark as gold"}
-            </Button>
-          )}
-        </DialogActions>
+        <DialogActionsBar
+          saving={saving}
+          markingGold={Boolean(markingGold)}
+          pendingSuggestionCount={canAcceptAllAndMark ? uncodedCount : 0}
+          canMarkGold={Boolean(onMarkGold)}
+          canDelete={Boolean(onDeleteCandidate) && !showDeleteConfirm}
+          canSkip={Boolean(onNextCandidate)}
+          onMarkGold={() => void flushTermDraftsAndMarkGold()}
+          onAcceptAllAndMark={async () => {
+            await handleAcceptAllSuggestions();
+            await flushTermDraftsAndMarkGold();
+          }}
+          onSkipNext={() => onNextCandidate?.()}
+          onRequestDelete={() => setShowDeleteConfirm(true)}
+        />
       </Dialog>
 
       <Popover
@@ -4201,27 +4054,25 @@ export default function GoldDatasetPanel() {
       ) : (
         <>
           {tab === "candidates"
-            ? (items as Candidate[]).map((item, i) => (
-                <CandidateCard
-                  key={item.candidate_id ?? `c-${i}`}
-                  item={item}
-                  onClick={() => void openCandidateLabelEditor(item.candidate_id)}
+            ? (
+                <CandidateReviewList
+                  items={items as Candidate[]}
+                  onOpen={(id) => void openCandidateLabelEditor(id)}
                   onMarkGold={markCandidateAsGold}
                   onDelete={requestDeleteCandidate}
-                  openingLabelEditor={openingCandidateLabelId === item.candidate_id}
-                  markingGold={markingGoldCandidateId === item.candidate_id}
-                  deleting={deletingCandidateId === item.candidate_id}
+                  openingLabelId={openingCandidateLabelId}
+                  markingGoldId={markingGoldCandidateId}
+                  deletingId={deletingCandidateId}
                 />
-              ))
-            : (items as GoldLabel[]).filter((item) => item.label_id).map((item, i) => (
-                <GoldLabelRow
-                  key={item.label_id ?? `g-${i}`}
-                  item={item}
-                  onClick={() => setSelectedItem(item)}
-                  onReset={() => requestDeleteGoldLabel(item)}
-                  resetting={resettingLabelId === item.label_id}
+              )
+            : (
+                <GoldLabelReviewList
+                  items={(items as GoldLabel[]).filter((item) => item.label_id)}
+                  onOpen={(item) => setSelectedItem(item)}
+                  onReset={(item) => requestDeleteGoldLabel(item)}
+                  resettingLabelId={resettingLabelId}
                 />
-              ))
+              )
           }
           {totalPages > 1 && (
             <Stack alignItems="center" sx={{ mt: 2 }}>

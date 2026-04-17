@@ -1,0 +1,61 @@
+# -- DI-LEO-AI-158 -- Spancat suggester capacity for long lab spans
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-158"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-073"]
+  requirement: >
+    The training pipeline configuration
+    (services/training_worker/app/config/base.cfg) SHALL set the
+    spancat span suggester max_size to a value large enough (>= 24
+    tokens) that the model can natively propose, score, and learn
+    full observable / finding spans on UK primary-care lab lines.
+  rationale: >
+    The previous max_size of 10 tokens was shorter than the typical
+    observable span, which tokenises to 18-22 tokens (test name plus
+    Read code plus value plus unit plus reference range plus optional
+    interpretation). With the cap at 10 the spancat model has no
+    structural way to even propose the long span; raising it gives
+    the model the ability to learn the pattern from gold data once
+    the runtime recovery layer (DI-LEO-AI-157) starts producing
+    consistent triples for backfill.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "services/training_worker/app/config/base.cfg sets [components.spancat.suggester].max_size = 24."
+      - type: "functional"
+        spec: "After the next training run completes, the spancat candidate set on a typical lab encounter contains at least one candidate of >= 18 tokens covering the full observable span."
+    constraints:
+      - type: "performance"
+        spec: "max_size must be balanced against training time and memory; values above 32 are not approved without a separate performance review."
+    dependencies:
+      - "DI-LEO-AI-157"
+    downstream_impacts:
+      - "Training worker compute time (slightly higher per epoch)"
+      - "Spancat F1 on lab-result lines (expected to improve)"
+    technical_details:
+      language: "Python"
+      framework: "spaCy 3.x spancat (transformer + LinearLogistic)"
+      file_structure:
+        - "services/training_worker/app/config/base.cfg"
+      estimated_loc: 5
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-156 covers a lightweight inspection test that asserts
+      the configured max_size is >= 24 and a documentation-style
+      check that the value is used by the spancat suggester. The
+      training F1 improvement is tracked separately by the standard
+      training-job evaluation reports.
+    test_protocol: "VT-LEO-AI-156"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-161"
+  tags:
+    - "training"
+    - "spancat"
+    - "lab-results"

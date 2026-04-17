@@ -1,0 +1,137 @@
+# -- VT-LEO-AI-166 -- Test patient library page + ReplayResultsDialog UI
+# IEC 62304 / ISO 13485 Verification Test Protocol
+
+- id: "VT-LEO-AI-166"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-167"]
+    risks: ["R-LEO-AI-166"]
+
+  metadata:
+    title: "Test patient library page chrome, API client and ReplayResultsDialog rendering"
+    description: >
+      Verifies the /admin/guidance/test-patients page wires the Build,
+      Generate and Replay actions, that the api client targets the
+      correct endpoints with the right headers, and that the
+      ReplayResultsDialog renders pass / regression / unexpected
+      buckets in plain English (reading age 9-11).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/test-patients-page.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "node + jest + @testing-library/react installed via services/ui/package.json"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-166-TC-001"
+      case_name: "Library page wires Build, Generate and Replay dialogs"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Static-source check: page.tsx imports BuildPatientDialog, GeneratePatientsDialog and ReplayResultsDialog and renders the matching button labels."
+          expected_result: "All three dialog imports and button labels present."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All three reviewer actions are reachable."
+
+    - case_id: "VT-166-TC-002"
+      case_name: "Library page supports per-guideline scope filter and 'All guidelines'"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Static-source check: page.tsx mentions 'All guidelines' and uses a scopeGuideline state variable."
+          expected_result: "Both substrings present."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewer can scope down to a single guideline or stay global."
+
+    - case_id: "VT-166-TC-003"
+      case_name: "Empty-state copy avoids jargon (reading age 9-11)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Static-source check: page.tsx contains 'No saved patients yet' and does NOT contain 'fixture' or 'corpus'."
+          expected_result: "Empty-state line present, jargon absent."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Plain-English standard preserved on the empty state."
+
+    - case_id: "VT-166-TC-004"
+      case_name: "listPatients API client targets the scoped GET endpoint"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock global fetch; call listPatients({guideline_id: 'g1'}); inspect the URL."
+          expected_result: "URL matches /api/guidance/test-patients?... and contains guideline_id=g1; rows are returned to the caller."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Frontend calls the right backend route with the right filter."
+
+    - case_id: "VT-166-TC-005"
+      case_name: "dryRun POSTs JSON body with X-Requested-With"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock global fetch; call dryRun({patient: {codes: ['100'], age: 70, sex: 'male'}})."
+          expected_result: "POST to /api/guidance/test-patients/dry-run with Content-Type application/json and X-Requested-With XMLHttpRequest."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "CSRF-style header set on every state-changing call."
+
+    - case_id: "VT-166-TC-006"
+      case_name: "ReplayResultsDialog renders patient name and pass / regression labels"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render ReplayResultsDialog with one patient ('Smoker, 70'), one pass and one regression."
+          expected_result: "Dialog shows the patient name and surfaces both 'pass' and 'regression' labels in the DOM."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewer sees per-patient outcome at a glance."
+
+    - case_id: "VT-166-TC-007"
+      case_name: "Empty report avoids developer jargon"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render ReplayResultsDialog with report=null and assert that the words 'diff' and 'regex' do not appear."
+          expected_result: "Neither word in the rendered DOM."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Empty state stays in plain English."
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-166/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-166-EXEC-001"
+      executed_by: "automated_jest"
+      executed_date: "2026-04-17"
+      result: "pass"
+      command: "cd services/ui && npx jest src/__tests__/test-patients-page.test.tsx --no-coverage"
+      total_cases: 7
+      passed: 7
+      failed: 0
+      notes: >
+        7/7 cases passed. Mixes static-source assertions on page.tsx
+        (no DOM mount of the full library page is required for the
+        chrome contract) with a focused ReplayResultsDialog DOM
+        render and a fetch-mock test of the api client.

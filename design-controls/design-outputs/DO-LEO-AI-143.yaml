@@ -1,0 +1,117 @@
+# -- DO-LEO-AI-143 -- CRUD Knowledge tabs on @leo/design-system
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-143"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-147"]
+    user_needs: ["UN-LEO-AI-071"]
+    risks_addressed: ["R-LEO-AI-100"]
+    verification_tests: ["VT-LEO-AI-145"]
+
+  specification:
+    title: "CRUD Knowledge tabs (Context Rules, Surface Forms, Domains, Terminology)"
+    description: |
+      Four Next.js pages under services/ui/src/app/settings/ that
+      together form the CRUD half of the Knowledge area. Each page
+      now uses the @leo/design-system chrome primitives (StatHero +
+      ToolbarActions, plus SegmentedTabs or FilterBar where the
+      interaction calls for it) and a body primitive matched to the
+      data shape:
+
+        - Context Rules: ReviewListCard rows with ProgressiveReveal
+          for the plain-English description and worked example,
+          SegmentedTabs to filter by source (verifier / surface form /
+          ConText / dictionary), Export PDF and Add rule via
+          ToolbarActions.
+        - Surface Forms: existing concept-group cards retained for
+          alias-chip + AI-suggestion editing, restyled to the
+          design-system tokens, wrapped in StatHero + FilterBar +
+          ToolbarActions chrome (Audit duplicates, Add SNOMED concept).
+        - Domains: motion-enabled DomainCard grid (data-testid:
+          domains-grid) using framer-motion for hover and tap
+          feedback, SegmentedTabs to filter by source, Create area
+          ToolbarAction gated on platform_admin via showCreateButton.
+        - Terminology: tone-accented PackageCard list (one per
+          terminology package) plus a streaming LogPanel
+          (data-testid: terminology-log-panel), StatHero with the
+          live Neo4j knowledge-graph counts, Refresh ToolbarAction.
+
+      All pre-existing data-loading, write and streaming handlers
+      stay wired so there is zero behaviour change beyond the chrome
+      and body redesign.
+    acceptance_criteria:
+      - criterion: "Design-system chrome on every CRUD tab"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-145 TC-001a..d pass"
+      - criterion: "Legacy chrome removed (no Breadcrumbs / no h5 page title)"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-145 TC-002a..d pass"
+      - criterion: "Existing handlers preserved"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-145 TC-003a..d pass"
+      - criterion: "Single primary action via ToolbarActions"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-145 TC-004a..d pass"
+      - criterion: "Right body primitive per page"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-145 TC-005a..d pass"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/settings/context-rules/page.tsx"
+        description: >
+          Context Rules page: StatHero + SegmentedTabs +
+          ToolbarActions + ReviewListCard with ProgressiveReveal.
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/settings/surface-forms/page.tsx"
+        description: >
+          Surface Forms page: StatHero + FilterBar + ToolbarActions
+          chrome. Concept-group cards retained and restyled.
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/settings/domains/page.tsx"
+        description: >
+          Domains page: StatHero + SegmentedTabs + ToolbarActions +
+          framer-motion DomainCard grid.
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/settings/terminology/page.tsx"
+        description: >
+          Terminology page: StatHero + ToolbarActions + tone-accented
+          PackageCard list + streaming LogPanel.
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 2200
+      key_functions:
+        - "ContextRulesPage"
+        - "SurfaceFormsPage"
+        - "DomainsPage"
+        - "TerminologyPage"
+        - "DomainCard"
+        - "PackageCard"
+        - "LogPanel"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Preserve Surface Forms duplicate-audit so DQ leads can find aliases that map to two SNOMED concepts"
+      - "Preserve Terminology cancel-sync so a runaway sync can be stopped"
+      - "Preserve Domains showCreateButton gating so non-admins cannot create areas"
+      - "Preserve Context Rules deactivate so QA can retire a rule without code change"
+    risk_control_measures:
+      - "Single-primary-action ToolbarActions per page (R-100 mitigation: prevents accidental destructive clicks)"
+      - "Surface Forms keeps the audit-duplicates path visible so reviewers don't fall back on ad-hoc Cypher"
+      - "Terminology keeps the cancel-sync handler reachable from the chrome at all times"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

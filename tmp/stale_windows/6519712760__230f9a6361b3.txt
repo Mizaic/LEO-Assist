@@ -1,0 +1,339 @@
+======================================================================
+PATIENT      : 6519712760
+EPISODE      : 230f9a6361b3ebb0
+CANCER_TYPE  : liver
+STATUS       : stale_no_diagnosis
+REFERRAL     : 2024-12-17
+WINDOW       : 2024-12-03 .. 2025-03-17 (referral -14d .. +90d)
+======================================================================
+
+Episode milestones (in episode IS_PART_OF graph):
+  2024-09-05  referral                enc=30bde9e7-d055-42d8-a212-7a6ca27408d6
+  2024-11-18  referral                enc=7efd1374-e06f-420d-9087-33c122b466a0
+  2024-12-06  referral                enc=536f9937-d0fc-4ed6-9561-70a7fa391b5a
+  2024-12-17  referral                enc=f5cfa1e5-2293-4c27-9abe-51f8c650b5f7
+  2024-12-19  referral                enc=d027dc3d-5d4c-4dc3-a307-ecbeaf42d281
+  2024-12-29  first_seen              enc=0f5bc3ed-ea6b-41bf-a75d-f073ffb7ff51
+  2025-01-23  first_seen              enc=648a5769-a78d-4be2-a072-d47c6b9fbf79
+
+Encounters in window (n=39):
+
+--- 01 2024-12-06 [IN-EP] milestones=['referral'] eid=536f9937-d0fc-4ed6-9561-70a7fa391b5a ---
+09:42 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) 
+History: Tel appt re FIT test.
+
+Was arranged as [part of haemorrhoids referral.
+FIT of 12.
+Discussed with patient.
+No change in bowels. No weight loss. No persistent abdo pain. No reported Fhx CRC.
+Her main concern is her haemorrhoids. Desperate for procedure.
+Plan: A&G to colorectal re FIT ? 2ww needed as >12.
+Chase haemorrhoids referral.
+- PRISM Advice & Guidance Request -  questionnaire started - (finalised: 06 Dec 2024 09:42)
+Referral to medical service (XaAcN) - (Added from Questionnaire)
+
+--- 02 2024-12-06 [other] milestones=[] eid=9ee73442-7f6a-4fd6-91b6-4ce7547c06cc ---
+10:40 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Choose and book advice and guidance request (XaYv5)
+Choice and booking enhanced services administration (XaMJa)
+ WMC Referrals
+   Advice and guidance request has been sent today to Gastroenterology. To await response.
+ WMC Medical Secretary Template
+Hospital Choose and book advice and guidance request
+Advice & Guidance Request PRISM to Unknown 
+Hospital Choose and book advice and guidance request updated: Waiting For Information
+Advice and guidance request has been sent today to Gastroenterology. To await response.
+
+--- 03 2024-12-12 [other] milestones=[] eid=845b57eb-2f88-42a8-a04f-d1581306cbe2 ---
+08:33 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ WMC Medical Secretary Template
+ WMC Referrals
+   Gastroenterology have responded to A&G request - PDF copy placed in to Attachments for reference. Task sent to GP.
+Acrobat Document: A&G SS.pdf - A&G response
+Gastroenterology have responded to A&G request - PDF copy placed in to Attachments for reference. Task sent to GP.
+
+--- 04 2024-12-17 [IN-EP] milestones=['referral'] eid=f5cfa1e5-2293-4c27-9abe-51f8c650b5f7 ---
+14:28 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) 
+Problem: Bleeding per rectum (X30Bj)
+History: Tel call re A&G response from colorectal.
+
+FIT of 12 as part of haemorrhoids referral.
+No weight loss, change in bowels, abdo pain.
+Colorectal team advised 2ww lower GI ref.
+
+Patient updated. Happy for colonoscopy ref.
+Plan: Bloods
+Lower GI 2ww ref. Contact us if not heard in 3 weeks.
+Haemorrhoids ref already sent.
+- PRISM 2WW Lower GI -  questionnaire started - (finalised: 17 Dec 2024 14:28)
+Fast track referral for suspected lower GI cancer (Xaalp) - (Added from Questionnaire)
+Pathology Request (Request Sent):
+Bone Profile (Requested), C reactive protein (Requested), Full Blood Count (Requested), Ferritin (Requested), Liver Function Test (Requested), Thyroid Stimulating Hormone (Requested), Urea & electrolytes (Requested)
+
+--- 05 2024-12-17 [other] milestones=[] eid=eb9496aa-2ab0-4378-8b72-8b4a6c66e18b ---
+17:17 - Surgery: JONES, Emma (Medical Secretary Access Role)
+
+--- 06 2024-12-18 [other] milestones=[] eid=6701f16a-82fe-4c1f-b446-1ff38eb06ab1 ---
+08:40 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+Temporary telephone number: 07972 819729
+
+--- 07 2024-12-19 [other] milestones=[] eid=d38ffa99-8592-45a1-adbd-b16dd8c9ece5 ---
+12:43 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) 
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      Informed consent given for treatment   (XaXHK): Yes
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+      ^Seen by practice phlebotomist: Yes
+Informed consent given for treatment (XaXHK)
+Referral by GP (XaAZQ)
+Blood sample taken (XaEJK)
+Seen by practice phlebotomist (9N2S.)
+
+--- 08 2024-12-19 [other] milestones=[] eid=1e9f2525-54c7-4201-9046-addaeddd96a8 ---
+12:45 - Surgery: Auto-filed  
+Plasma C-reactive protein level (XE2dy) < 5 mg/L [< 10]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.
+Plasma C-reactive protein level Report,ï¿½Abnormal, but expected,ï¿½Need to speak to doctor: FU booked. Review done by HORNE, Jonathan (Dr) - 23 Dec 2024 14:13
+
+--- 09 2024-12-19 [other] milestones=[] eid=5693d85e-61c2-4326-a8e1-18a456da0abd ---
+12:45 - Surgery: Auto-filed  
+Bone profile (44Z2.)
+Serum albumin level (XE2eA) 46 g/L [35 - 50]
+Serum calcium level (XE2q3) 2.35 mmol/L
+Serum adjusted calcium concentration (Xabpk) 2.23 mmol/L [2.12 - 2.51]
+Reference range amended to account for calibration
+difference in the SIEMENS assay.  Ann Clin Biochem
+2020 Sep 57(5):373-381
+Serum inorganic phosphate level (XE2q4) 1.16 mmol/L [0.8 - 1.5]
+Serum alkaline phosphatase level (XE2px) 71 iu/L [30 - 130]
+Calculated Globulin: 27 g/L; Globulins may be raised in myeloma and decreased in
+some cases of myeloma or immune deficiency states.
+Please correlate clinically. Suggest checking serum
+immunoglobulins if Glb >40 g/L in patients >40 years of
+age. Check serum immunoglobulins and free light chain
+assay if Glb <18 g/L.
+Minor abnormalities of Globulins outside of the above
+are unlikely to represent myeloma and would not
+normally require further action or repeat testing.
+Elevation of Globulin levels is common in
+infection / inflammation.
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.
+Bone profile Report,ï¿½Abnormal, but expected,ï¿½Need to speak to doctor: FU booked. Review done by HORNE, Jonathan (Dr) - 23 Dec 2024 14:13
+
+--- 10 2024-12-19 [other] milestones=[] eid=5e336693-322a-47d4-ac0c-0ae884f7a8a9 ---
+12:45 - Surgery: Auto-filed  
+Total white blood count (XaIdY) 8 10^9/L [4 - 11]
+Red blood cell count (426..) 4.09 10^12/L [3.9 - 5.6]
+Haemoglobin concentration (Xa96v) 98 g/L [115 - 165] - Outside reference range
+Haematocrit (X76tb) 0.303  [0.37 - 0.47] - Outside reference range
+Mean cell volume (42A..) 74 fL [80 - 99] - Outside reference range
+Mean cell haemoglobin level (XE2pb) 24 pg [27 - 32] - Outside reference range
+Platelet count - observation (42P..) 289 10^9/L [140 - 400]
+Neutrophil count (42J..) 5.51 10^9/L [1.5 - 7.5]
+Monocyte count - observation (42N..) 0.46 10^9/L [0.2 - 0.8]
+Eosinophil count - observation (42K..) 0.07 10^9/L [0.04 - 0.4]
+Basophil count (42L..) 0.03 10^9/L [0.02 - 0.1]
+Lymphocyte count (42M..) 1.98 10^9/L [1 - 4]
+Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]
+For further investigation of abnormal Full Blood Count
+please see Haematology Referral Guidelines:
+https://www.leicestershospitals.nhs.uk/aboutus/
+(click Departments & Services > Haematology >
+Haematology Referral
+Guidelines).
+If clinically urgent contact the Haematologist On Call.
+Full blood count (424..) - Please note low Haemoglobin
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.
+Full blood count Report,ï¿½Abnormal, but expected,ï¿½Need to speak to doctor: FU booked. Review done by HORNE, Jonathan (Dr) - 23 Dec 2024 14:13
+
+--- 11 2024-12-19 [other] milestones=[] eid=bca37080-d1d2-4d92-9415-64126aa13dd1 ---
+12:45 - Surgery: Auto-filed  
+Liver function tests (X77WP)
+Serum alanine aminotransferase level (XaLJx) 12 iu/L [10 - 49]
+Serum bilirubin level (44E..) 7 umol/L [< 21]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.
+Liver function tests Report,ï¿½Abnormal, but expected,ï¿½Need to speak to doctor: FU booked. Review done by HORNE, Jonathan (Dr) - 23 Dec 2024 14:13
+
+--- 12 2024-12-19 [other] milestones=[] eid=62be82c0-b93f-47f5-a553-d2ff4a49b024 ---
+12:45 - Surgery: Auto-filed  
+Urea and electrolytes (X77Wi)
+Serum sodium level (XE2q0) 140 mmol/L [133 - 146]
+Serum potassium level (XE2pz) 4.2 mmol/L [3.5 - 5.3]
+Serum urea level (XM0lt) 4.3 mmol/L [2.5 - 7.8]
+Serum creatinine level (XE2q5) 64 umol/L [60 - 120]
+eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) > 90 mL/min
+Urine ACR should be checked on at least an annual basis
+for all individuals with CKD.  NICE recommends the
+Kidney failure Risk Equation www.kfre.co.uk to
+predict the risk of endstage kidney disease in CKD
+stages 3a to 5.  KFRE is not valid in the presence
+of acute kidney injury.
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.
+Urea and electrolytes Report,ï¿½Abnormal, but expected,ï¿½Need to speak to doctor: FU booked. Review done by HORNE, Jonathan (Dr) - 23 Dec 2024 14:13
+
+--- 13 2024-12-19 [other] milestones=[] eid=370d70a4-6e3e-4ee3-923b-7b1ad56b7f09 ---
+12:45 - Surgery: Auto-filed  
+Serum TSH level (XaELV) 1.2 miu/L [0.55 - 4.78]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.
+Serum TSH level Report,ï¿½Abnormal, but expected,ï¿½Need to speak to doctor: FU booked. Review done by HORNE, Jonathan (Dr) - 23 Dec 2024 14:13
+
+--- 14 2024-12-19 [other] milestones=[] eid=6397cbee-3644-4f78-8a31-9136c0469b5a ---
+12:45 - Surgery: Auto-filed  
+Serum total protein level (XE2e9) 73 g/L [57 - 82]
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.
+Serum total protein level Report,ï¿½Abnormal, but expected,ï¿½Need to speak to doctor: FU booked. Review done by HORNE, Jonathan (Dr) - 23 Dec 2024 14:13
+
+--- 15 2024-12-19 [other] milestones=[] eid=ac6ef46d-e716-4140-9a2e-678176fea163 ---
+12:45 - Surgery: Auto-filed  
+Serum ferritin level (XE24r) 2 ng/ml [10 - 291] - Outside reference range
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.
+Serum ferritin level Report,ï¿½Abnormal, but expected,ï¿½Need to speak to doctor: FU booked. Review done by HORNE, Jonathan (Dr) - 23 Dec 2024 14:13
+
+--- 16 2024-12-19 [other] milestones=[] eid=07dfe79b-15b4-4388-ac9d-57bef9fc43c0 ---
+12:45 - Surgery: Auto-filed  
+Clinical Information: Clinical Details:     Not on Thyroid Tx Reasons for Request:      Lower GI ref for FIT posotive.
+Acute Kidney Injury Staging: 0; No AKI
+Acute Kidney Injury Staging Report,ï¿½Abnormal, but expected,ï¿½Need to speak to doctor: FU booked. Review done by HORNE, Jonathan (Dr) - 23 Dec 2024 14:13
+
+--- 17 2024-12-19 [IN-EP] milestones=['referral'] eid=d027dc3d-5d4c-4dc3-a307-ecbeaf42d281 ---
+14:40 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Fast track referral for suspected lower GI cancer (Xaalp)
+Choice and booking enhanced services administration (XaMJa)
+ 2WW
+   Patient awaiting OPD appt.: Yes 2ww lower GI
+Hospital Fast track referral for suspected lower GI cancer
+2WW Lower GI PRISM to Unknown 
+Hospital Fast track referral for suspected lower GI cancer updated: Waiting For Information
+Patient awaiting OPD appt. (9R52.) - 2ww lower GI
+
+--- 18 2024-12-23 [other] milestones=[] eid=64f3bb19-a824-4a02-991a-0154716ecb3b ---
+14:13 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
+
+--- 19 2024-12-27 [other] milestones=[] eid=936a0392-c603-4ead-b29f-7038f4ac6782 ---
+Repeat stopped - see entry on 27 May 2024 12:56
+CosmoCol Orange Flavour oral powder sachets (Stirling Anglian Pharmaceuticals Ltd) - 60 sachet - 1-3 sachets daily depending on bowel movements
+ Ended 27 Dec 2024 Clinical grounds by HORNE, Jonathan (Dr)
+
+--- 20 2024-12-27 [other] milestones=[] eid=dfed07d0-40f5-45a6-a560-5d504c9b2949 ---
+11:29 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) 
+Problem: Iron deficiency anaemia (XE13c)
+History: Tel appt
+
+Bloods arranged for lethargy and PR bleeding
+known severe haemorrhoids awaiting referral
+awaiting colonoscopy under two week weight clinic due to positive fit of 12
+ida earlier this year was treated with oral iron - symptoms and Ida have recurred since stopping
+
+no change in bowels no up to pain no weight loss
+Poor iron intake, no red meat, occasional spinach, regular chipatties
+Examination: Sounds well on phone
+Diagnosis: idea secondary to haemorrhoids and reduced intake
+Plan: ferrous gluconate alternate days long term
+repeat bloods in three months
+OTC vitamin D
+review if symptoms don't improve
+awake colonoscopy and hemorrhoid referral
+Scheduled Task Creation (Completed) - Blood test task (Please kindly arrnage repeat blood test as per consult  27/12/24
+Thanks
+Jon) to be sent to Receptionists on 17 Mar 2025.
+Pathology Request (Awaiting Sample):
+Full Blood Count (Postponed), Ferritin (Postponed)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 21 2024-12-27 [other] milestones=[] eid=3b19efbf-3061-4b8e-b083-84fe3cadbfe2 ---
+11:44 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) 
+(R) Ferrous gluconate 300mg tablets - 28 tablet - Take 1x tablet on alternate days long term
+ETP2 FP10: Not Yet Printed - Signed
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 22 2024-12-29 [other] milestones=[] eid=05677806-603f-406b-80e7-8b80e4990d10 ---
+Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) 
+Colonoscopy Report to Woodbrook Medical Centre
+
+--- 23 2024-12-29 [IN-EP] milestones=['first_seen'] eid=0f5bc3ed-ea6b-41bf-a75d-f073ffb7ff51 ---
+00:00 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+Seen in fast track suspected colorectal cancer clinic (XaPyb)
+
+--- 24 2024-12-29 [other] milestones=[] eid=ac210c1e-e1df-4520-b2f4-fc7b41d59383 ---
+Surgery: DOLLIVE, Lauren (Admin/Clinical Support Access Role)
+
+--- 25 2024-12-29 [other] milestones=[] eid=01df1b4a-8463-468e-afb2-28a8133855b5 ---
+Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) , Entered By: DOLLIVE, Lauren
+Minor: Haemorrhoid (G84..) (New Episode)
+Colonoscopy (XM0By) (New Episode)
+Haemorrhoid (G84..)
+
+--- 26 2024-12-29 [other] milestones=[] eid=c1a9ef05-d251-4b2b-8739-3de5c64c1b24 ---
+Admission to University Hospitals of Leicester NHS Trust - EPR (University Hospitals of Leicester NHS Trust): Referred to C7102698, C7102698 @ University Hospitals of Leicester NHS Trust - EPR on 29 Dec 2024 14:15
+Discharged on 29 Dec 2024 18:50
+There are 2 consultations under this admission. (Not currently shown in journal)
+
+--- 27 2025-01-23 [IN-EP] milestones=['first_seen'] eid=648a5769-a78d-4be2-a072-d47c6b9fbf79 ---
+13:54 - Surgery: JONES, Emma (Medical Secretary Access Role) 
+ 2WW
+   Seen in 2WW Clinic?: Seen in fast track suspected colorectal cancer clinic (XaPyb) 29 Dec 2024
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+
+--- 28 2025-01-27 [other] milestones=[] eid=fde6b411-256a-4862-b11e-e8b03b02c085 ---
+Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) 
+General Surgery to Dr Medical Woodbrook
+
+--- 29 2025-01-27 [other] milestones=[] eid=9dae02b1-50aa-4f8a-8aae-5e0dbc881aa0 ---
+Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role)
+
+--- 30 2025-02-20 [other] milestones=[] eid=cb6f43de-29d6-44cf-b3a3-4e576078a69b ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Gastroenterology to Woodbrook Medical Centre
+
+--- 31 2025-02-20 [other] milestones=[] eid=7abd3eee-dbb4-43be-bdf9-026ba7d1e802 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: MCDOWELL, Giselle
+Minor: Menorrhagia (K5920) (New Episode)
+Menorrhagia (K5920)
+
+--- 32 2025-02-20 [other] milestones=[] eid=ff9b792c-e53c-4989-9b84-9a782cf82943 ---
+Surgery: MCDOWELL, Giselle (Receptionist Access Role)
+
+--- 33 2025-02-20 [other] milestones=[] eid=6d7610f7-c520-4233-828e-e67ad192a459 ---
+Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: JONES, Emma
+
+--- 34 2025-02-20 [other] milestones=[] eid=7a18acf9-2189-461f-a49c-f5dd5228c19d ---
+Surgery: JONES, Emma (Medical Secretary Access Role)
+
+--- 35 2025-02-26 [other] milestones=[] eid=55906725-48fd-4dab-8079-661fa0eee747 ---
+Surgery: BEGUM, Senuara (Medical Secretary Access Role) 
+Colorectal to Woodbrook Medical Centre
+
+--- 36 2025-02-26 [other] milestones=[] eid=618f0506-e93e-44fe-8c4f-889e637d00ac ---
+Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) 
+Did not attend hospital appointment (XaF81) (New Episode)
+
+--- 37 2025-02-28 [other] milestones=[] eid=19d3975e-adac-42fc-bc15-08ba092cbd9f ---
+14:47 - MCDOWELL, Giselle  
+ N+S Encounter type
+   *Reason for contact / Entering record: Incoming mail processing (XE2NQ)
+   Type of encounter: Administration (9....)
+Incoming mail processing (XE2NQ)
+Administration (9....)
+
+--- 38 2025-03-17 [other] milestones=[] eid=3869ae71-63c9-474f-8449-cb616c164ca7 ---
+11:49 - INGLE, Kirsty  
+ N+S Encounter type
+   *Reason for contact / Entering record: Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+   Type of encounter: Administration (9....)
+Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.
+Contact trigger: Practice: Activity generated in response to a task (Y41c4)
+Administration (9....)
+
+--- 39 2025-03-17 [other] milestones=[] eid=fef4ba6e-0ce0-403d-9450-c8812ee3427d ---
+11:50 - Surgery: INGLE, Kirsty (Receptionist Access Role) 
+Blood test due (41B1.)
+Patient telephone number (9159.) - 07972 819729
+Short message service text message sent to patient (XaMiI)
+
+Dear Mrs Sharma,
+Our records indicate that you are now due a blood test. Could you please contact the surgery to arrange a suitable appointment for this to be carried out.
+If you already have an appointment booked, please ignore this message.  
+Thanks
+Woodbrook Medical Centre
+

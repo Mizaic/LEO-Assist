@@ -1,0 +1,89 @@
+# -- DI-LEO-AI-155 -- Text-based cancer-site classification from gold-mined surface forms
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-155"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-006"]
+  requirement: >
+    The episode builder SHALL classify the cancer site of every
+    EpisodeOfCare from the encounter free text when no coded SNOMED
+    edges are available, using a per-site dictionary of literal surface
+    forms mined from the GoldLabel and SurfaceForm-MAPS_TO-Concept
+    annotations in the knowledge graph.
+  rationale: >
+    With the :DOCUMENTS edges deleted, every episode currently
+    classifies as cancer_type='non_site_specific' which breaks the
+    NCDA report (the headline product) because routes-to-diagnosis,
+    stage-of-diagnosis, and treatment metrics cannot be split by
+    pathway. Reviewers have already labelled hundreds of cancer
+    encounters in the GoldLabel store; the surface forms in those
+    annotations are exactly the literals that appear in primary-care
+    free text, so they are the right vocabulary to drive a text-only
+    site classifier.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          For an encounter text containing one or more literal forms
+          listed under a site key in cancer_site_terms.CANCER_SITE_TERMS,
+          match_cancer_site() returns the site key with the highest hit
+          count, or None when no site matches.
+      - type: "functional"
+        spec: >
+          When the episode builder text-classifies a referral/diagnosis/
+          first_seen/treatment anchor and match_cancer_site() returns a
+          site, the anchor SHALL carry an explicit site_key field that
+          _extract_condition_key_from_anchor() prefers over the generic
+          sentinel concept_name.
+      - type: "performance"
+        spec: >
+          On the current 230-episode patient corpus, at least 70% of
+          EpisodeOfCare nodes SHALL receive a non-{unknown,
+          non_site_specific} cancer_type after rebuild (vs. 0% today).
+      - type: "safety"
+        spec: >
+          Site keys returned SHALL be one of the canonical NCDA keys
+          already defined in episode_builder/_site_resolution.py
+          _SITE_MAP. No new keys are introduced.
+    constraints:
+      - type: "safety"
+        spec: >
+          The dictionary is mined exclusively from reviewer-confirmed
+          GoldLabel entities and curated SurfaceForm-MAPS_TO-Concept
+          edges. No literals are auto-suggested from un-reviewed text.
+      - type: "safety"
+        spec: >
+          Surface forms shorter than 3 chars or longer than 80 chars
+          are excluded to suppress accidental matches.
+    dependencies: ["DI-LEO-AI-145", "DI-LEO-AI-149"]
+    downstream_impacts:
+      - "EpisodeOfCare.cancer_type populated for text-built episodes"
+      - "NCDA report routes-to-diagnosis split by cancer site"
+      - "_PATHWAY_TO_SPECIFIC compatibility checks now have real input"
+    technical_details:
+      language: "Python"
+      framework: "analysis_worker"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/cancer_site_terms.py"
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+        - "services/analysis_worker/app/analyzers/episode_builder/_site_resolution.py"
+        - "scripts/_mine_cancer_site_terms.py"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      All 5 unit tests in tests/test_cancer_site_terms.py pass and a
+      full episode rebuild against the live patient corpus shows
+      >=70% of episodes carrying a specific cancer site.
+    test_protocol: "VT-LEO-AI-153"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-107"]
+  tags:
+    - "episode-building"
+    - "site-classification"
+    - "text-path"
+    - "gold-mined"

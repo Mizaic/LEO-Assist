@@ -121,6 +121,7 @@ class TestGetDomain:
                     "rawJson": raw,
                 }
             ],
+            [],
         ]
 
         result = get_domain("cancer_audit")
@@ -579,7 +580,10 @@ class TestEnsureDefaultDomain:
         MockKG.return_value.run.return_value = [{"cnt": 3}]
 
         _ensure_default_domain()
-        assert MockKG.return_value.run.call_count == 1
+        # Two calls: the existence check + the duplicate-relationship cleanup.
+        assert MockKG.return_value.run.call_count == 2
+        cleanup_call = MockKG.return_value.run.call_args_list[1]
+        assert "HAS_SUBDOMAIN" in cleanup_call[0][0]
 
 
 # ── Helper functions ──────────────────────────────────────────────────────

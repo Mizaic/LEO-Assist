@@ -1,0 +1,115 @@
+# -- DO-LEO-AI-169 -- Editable action SNOMED procedure on EditRuleDialog
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-169"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-170"]
+    user_needs: ["UN-LEO-AI-028"]
+    risks_addressed: ["R-LEO-AI-169"]
+    verification_tests: ["VT-LEO-AI-168"]
+
+  specification:
+    title: "Action SNOMED procedure surfaced + editable in EditRuleDialog"
+    description: |
+      Adds three changes that close the gap left by DO-LEO-AI-150:
+
+      1. Backend: `_format_rule` now parses the stored `actionJson` and
+         exposes it as `action` on the API response (snomed_concept_id,
+         preferred_term, semantic_tag, term).
+
+      2. Backend: `RuleUpdates` accepts an optional `action: LogicCriterion`.
+         `apply_rule_edit` validates that the action's snomed_concept_id
+         exists in the graph and writes the new actionJson on the new
+         versioned rule. When `action` is omitted, the predecessor's
+         actionJson is preserved unchanged.
+
+      3. Frontend: a new `ActionPanel` shown above the logic-tree editor
+         in `EditRuleDialog`. It displays the current procedure as a chip
+         (or an empty state when the action is uncoded) and routes click
+         events through the same SearchTarget mechanism used by concept
+         chips in the tree. Selecting a result from the search panel
+         updates the dialog's `action` state, which is sent in the save
+         payload.
+    acceptance_criteria:
+      - criterion: "action_validator"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          apply_rule_edit raises LogicTreeValidationError when
+          updates.action.snomed_concept_id is unknown to the graph.
+      - criterion: "action_persisted"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          When updates.action is supplied, the new rule's actionJson
+          contains the new SNOMED concept; when omitted, it equals the
+          predecessor's actionJson byte-for-byte.
+      - criterion: "dialog_renders_action"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          EditRuleDialog renders the procedure chip with its
+          friendlyTerm() label and exposes a Tooltip that includes the
+          SNOMED code.
+      - criterion: "dialog_saves_action"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Selecting a different concept in the search panel while the
+          action chip is the focused target sends the new criterion in
+          the save payload's `action` field.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/guidance_rule_edit.py"
+        description: >
+          RuleUpdates.action; apply_rule_edit verifies action concept,
+          composes action_json parameter for _INSERT_EDITED_RULE.
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/guidance_rules.py"
+        description: >
+          _format_rule parses action_json into a structured `action`
+          field on every rule response.
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/index.tsx"
+        description: >
+          Action state + save wiring; integrates ActionPanel above the
+          logic tree and routes its click into the existing search
+          target machinery.
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/ActionPanel.tsx"
+        description: >
+          Presentational card that shows the action procedure chip
+          (or an "Action not coded yet" empty state) with a tooltip
+          including the SNOMED code, plus a swap affordance.
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/types.ts"
+        description: >
+          ActionConcept type alias re-exported for the panel.
+    storage_location: "git"
+    technical_details:
+      language: "Python 3.12 / TypeScript 5"
+      loc: 280
+      key_functions:
+        - "apply_rule_edit"
+        - "_format_rule"
+        - "ActionPanel"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Server-side verification of the action's SNOMED concept id"
+      - "Predecessor actionJson preserved when no edit is supplied"
+    risk_control_measures:
+      - "Concept-existence check identical to logic-tree concept check"
+      - "Required Reason for edit (>= 3 chars) gates Save"
+      - "Edit creates a new versioned rule -- predecessor preserved for rollback"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

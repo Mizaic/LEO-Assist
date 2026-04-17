@@ -1,0 +1,179 @@
+# -- VT-LEO-AI-144 -- GoldLabelDetailDialog chrome redesign
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-144"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-146"]
+    risks: ["R-LEO-AI-099"]
+
+  metadata:
+    title: "GoldLabelDetailDialog chrome redesign on @leo/design-system"
+    description: >
+      Verifies the four chrome sub-components introduced in Wave E
+      Phase 2a-iv (DialogTitleStrip, DialogActionsBar,
+      SuggestionsPanel, DeleteConfirmPanel) are imported and
+      rendered by GoldDatasetPanel.tsx, that the legacy chrome
+      (loud DialogTitle, dual-green-button footer, saturated
+      info-tinted suggestions box, inline delete confirm) is gone,
+      and that each sub-component honours its acceptance criteria
+      from DI-LEO-AI-146 (single primary action, status pill,
+      progressive-disclosure delete, collapsible suggestions,
+      morphing primary label).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest + @testing-library/react"
+    test_file_paths:
+      - "services/ui/src/__tests__/training-data-dialog.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "node >= 20"
+      - "npm install run in services/ui"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-144-TC-001"
+      case_name: "Panel imports the four new dialog sub-components"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read GoldDatasetPanel.tsx as text"
+          expected_result: "All four sub-component import statements are present"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "DialogTitleStrip import present"
+        - "DialogActionsBar import present"
+        - "SuggestionsPanel import present"
+        - "DeleteConfirmPanel import present"
+
+    - case_id: "VT-144-TC-002"
+      case_name: "Panel renders new chrome elements inside the dialog"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Search panel source for sub-component JSX usage"
+          expected_result: "Each component is referenced as a JSX tag"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "<DialogTitleStrip used"
+        - "<DialogActionsBar used"
+        - "<SuggestionsPanel used"
+        - "<DeleteConfirmPanel used"
+
+    - case_id: "VT-144-TC-003"
+      case_name: "Legacy DialogTitle and dual-button footer are removed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Confirm legacy 'Review this example' Typography is gone"
+          expected_result: "No legacy header"
+        - step_number: 2
+          action: "Confirm legacy 'Accept all and mark as gold' label string is gone"
+          expected_result: "No dual-green-button footer"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Legacy header / dual primary footer removed"
+
+    - case_id: "VT-144-TC-004"
+      case_name: "Status pill morphs from 'ready' to work-counts (AC-002)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render DialogTitleStrip with 0/0 work"
+          expected_result: "Pill shows 'Ready to mark gold'"
+        - step_number: 2
+          action: "Re-render with 3 uncoded + 2 suggested"
+          expected_result: "Pill shows '3 need code' and '2 suggested'"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Status pill text and tone reflect outstanding work"
+
+    - case_id: "VT-144-TC-005"
+      case_name: "Single primary footer + Delete behind kebab (AC-001/AC-003)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render DialogActionsBar with all actions enabled"
+          expected_result: "One contained primary, Skip is text, kebab present"
+        - step_number: 2
+          action: "Click the kebab"
+          expected_result: "Delete menu item appears"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Footer renders exactly one primary contained button"
+        - "Delete is reachable only after opening the kebab"
+
+    - case_id: "VT-144-TC-006"
+      case_name: "Primary action label morphs when suggestions pending (AC-005)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render DialogActionsBar with pendingSuggestionCount=4"
+          expected_result: "data-morph='accept-and-mark', label='Accept 4 + mark as gold'"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "data-morph attribute set to accept-and-mark"
+        - "Label includes the suggestion count"
+
+    - case_id: "VT-144-TC-007"
+      case_name: "SuggestionsPanel renders nothing for an empty list (AC-004)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render SuggestionsPanel with suggestions=[]"
+          expected_result: "Returns null; container.firstChild is null"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "No empty surface is left behind"
+
+    - case_id: "VT-144-TC-008"
+      case_name: "SuggestionsPanel exposes Accept-all and per-row Accept"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render with one suggestion"
+          expected_result: "Accept-all button visible"
+        - step_number: 2
+          action: "Click suggestion-accept-0:finding_site:1"
+          expected_result: "onAccept handler called with the suggestion"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Per-row Accept invokes onAccept with the suggestion"
+
+    - case_id: "VT-144-TC-009"
+      case_name: "DeleteConfirmPanel toggles destructive label"
+      priority: "medium"
+      test_steps:
+        - step_number: 1
+          action: "Render with suppressOnDelete=false"
+          expected_result: "Confirm button reads 'Delete'"
+        - step_number: 2
+          action: "Re-render with suppressOnDelete=true"
+          expected_result: "Confirm button reads 'Delete and block'"
+      verification_method: "automated"
+      acceptance_criteria:
+        - "Label flips when the suppress checkbox flips"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-144/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-17"
+      executed_by: "Wave E Phase 2a-iv automation"
+      result: "pass"
+      notes: "All 9 test cases pass under jest 30; 0 failures."

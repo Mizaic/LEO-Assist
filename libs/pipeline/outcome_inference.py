@@ -16,6 +16,13 @@ import re
 from dataclasses import dataclass, field
 from typing import Sequence
 
+# DI-LEO-AI-159: defence-in-depth Read/CTV3 code recognition.
+from libs.domains.code_inventories import (
+    BENIGN_EXPLANATION_READ_CODES,
+    BENIGN_INVESTIGATION_PHRASES,
+    MALIGNANCY_READ_CODES,
+)
+
 # ---------------------------------------------------------------------------
 # Encounter-level exclusion contexts.
 #
@@ -151,6 +158,46 @@ POST_BENIGN: list[tuple[str, str]] = [
     (r"\bdiverticul", "diverticular disease"),
     (r"\bhaemorrhoid", "haemorrhoids"),
     (r"\bbarrett", "Barrett's oesophagus"),
+]
+
+# ---------------------------------------------------------------------------
+# DI-LEO-AI-159: extend POST_CANCER / POST_BENIGN with curated Read/CTV3
+# code tokens and benign-investigation phrases pulled from the deep-read
+# corpus of stale episodes. _match_labels lowercases the encounter text
+# before matching, so the patterns below use the lowercased form of each
+# code (e.g. "(x78wm)" not "(X78WM)").
+#
+# We add ONLY signals that the legacy patterns above cannot see.
+# Adding a pattern that overlaps with an existing one would double-count
+# the same signal and break the HITL_REQUIRED tie-break the inference
+# engine relies on (a single "discharged from clinic" mention must
+# produce one hit, not two).
+# ---------------------------------------------------------------------------
+
+# Phrase labels (case-insensitive) that the legacy POST_BENIGN already
+# matches via a more general regex. Skip these to avoid double-counting.
+_LEGACY_BENIGN_LABELS_OVERLAP: frozenset[str] = frozenset({
+    "discharged from care",
+    "discharged from clinic",
+    "discharged from 2WW pathway",
+    "no evidence of malignancy",
+    "negative for malignancy",
+    "no further action",
+    "cancer excluded - discharge to GP",
+})
+
+POST_CANCER += [
+    (rf"\({re.escape(code.lower())}\)", f"malignancy code {code}")
+    for code in sorted(MALIGNANCY_READ_CODES)
+]
+POST_BENIGN += [
+    (rf"\({re.escape(code.lower())}\)", f"benign explanation code {code}")
+    for code in sorted(BENIGN_EXPLANATION_READ_CODES)
+]
+POST_BENIGN += [
+    (rx.pattern.lower(), label)
+    for rx, label in BENIGN_INVESTIGATION_PHRASES
+    if label not in _LEGACY_BENIGN_LABELS_OVERLAP
 ]
 
 # Confidence constants

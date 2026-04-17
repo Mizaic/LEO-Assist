@@ -1,0 +1,107 @@
+# -- R-LEO-AI-108 -- Decomposing pathway editor chrome may break parity
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-108"
+  title: "Extracting toolbar / dialogs from the pathway editor monolith may diverge from the legacy behaviour and silently change save / publish / delete semantics"
+
+  hazard:
+    description: >
+      The pathway editor is a 5,960-LOC monolith. Splitting the
+      visible chrome into prop-driven sibling modules touches every
+      handler that the user clicks (Save, Publish, Retire, Add
+      Source / Output / Step, Auto-layout, Test run, Run all, Batch
+      dry run, History, Delete). A subtle wiring mistake during
+      extraction could change the meaning of one of these actions -
+      for example, Save draft secretly switching the lifecycle
+      status to active, or Delete losing its type-the-name confirm
+      gate, or Publish skipping the validation summary - without
+      any visible change in copy or layout.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A QA / RA lead opens a draft pathway after Phase 6b-ii landed,
+    clicks "Save draft" expecting the lifecycle to stay 'draft',
+    and the regression silently sets it to 'active'. The pathway
+    is now live and starts gating coding decisions on real
+    encounters before its verifier rules are finished.
+
+  harm:
+    description: >
+      An unfinished pathway begins controlling clinical coding
+      output. Encounters can be miscoded, halt-on-error gates can
+      fire on the wrong steps, and downstream safety alerts can be
+      missed. In the worst case a clinician's coding workflow is
+      misdirected by a misconfigured pipeline.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        All extracted modules are prop-driven only - they own no
+        state and no side effects. The orchestrator page.tsx remains
+        the single source of truth for save semantics; the chrome
+        modules cannot accidentally call setPlanStatus, fetch, or
+        any API.
+      implemented_by: ["DI-LEO-AI-156"]
+      verified_by: ["VT-LEO-AI-154"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DeletePathwayDialog enforces the type-the-name confirm gate
+        inside the component (canDelete only when confirmText.trim()
+        === pathwayName), so the gate cannot be removed by changing
+        the parent.
+      implemented_by: ["DI-LEO-AI-156"]
+      verified_by: ["VT-LEO-AI-154"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: >
+        Static-source verification asserts that the legacy inline
+        toolbar / dialog markup has been removed from page.tsx and
+        that the new components are rendered, preventing dual
+        copies of the same control going out of sync over time.
+      implemented_by: ["DI-LEO-AI-156"]
+      verified_by: ["VT-LEO-AI-154"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Save semantics, validation rules, and node logic are
+      untouched in Phase 6b-ii (verified by static source). The
+      only mutated handler call sites pass identical arguments via
+      props. Residual risk reduces further once Phase 6b-iv ships
+      the explicit dirty-tracking save model.
+
+  monitoring:
+    monitoring_plan: >
+      QA / RA lead drives the editor end-to-end after Phase 6b-ii
+      lands (open existing pathway, save draft, publish, delete a
+      seed pathway draft) before Phase 6b-iii is started. Any
+      behaviour drift opens a follow-up DI before continuing.
+    metrics:
+      - "Number of pathway lifecycle status changes after Save draft (target: 0)"
+      - "Number of pathway deletions completed without typing the name (target: 0)"
+      - "Number of validation-skipping publishes (target: 0)"
+    review_frequency: "Once after Phase 6b-ii lands; quarterly after Phase 6b-vi"
+
+  metadata:
+    identified_by: "Pathway canvas discovery (Phase 6b-i)"
+    identified_date: "2026-04-16"
+    status: "mitigated"
+    tags:
+      - "pathways"
+      - "knowledge"
+      - "ui-refactor"

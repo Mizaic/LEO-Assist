@@ -1,0 +1,318 @@
+# -- VT-LEO-AI-172 -- Skin/melanoma inventory + cancer follow-up + benign-phrase scope guard
+# IEC 62304 / ISO 13485 Verification Test Protocol
+
+- id: "VT-LEO-AI-172"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-175", "DI-LEO-AI-177", "DI-LEO-AI-178"]
+    risks: ["R-LEO-AI-172", "R-LEO-AI-173"]
+
+  metadata:
+    title: "Skin/melanoma inventory completeness, cancer follow-up template recogniser, and benign-investigation phrase scope guard"
+    description: >
+      Verifies the three coordinated changes that recover the
+      patient 4921442355 (Mr Harold Allwyn) Lentigo maligna
+      melanoma case and the two related missed melanoma episodes
+      a644d1c1586405a6 and fb62376ea4b48443:
+      (1) skin / melanoma vocabulary (XaMeA, XaPyd, B32.. family,
+          Xa99Y, lentigo maligna term patterns, 7G055/X90PX
+          treatment procedures);
+      (2) cancer follow-up template recogniser (Skin / Breast /
+          Prostate / etc. Cancer Follow Up template names);
+      (3) benign-investigation phrase scope guard that prevents
+          the day-17 closure bug where an unrelated CKD encounter
+          containing "no further action" silently closed the
+          parallel skin-cancer episode.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_stale_detector_fixes.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-172-TC-001"
+      case_name: "FAST_TRACK_REFERRAL_READ_CODES contains XaMeA -> melanoma"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call find_fast_track_referral_site('Fast track referral for suspected skin cancer (XaMeA)')."
+          expected_result: "Returns ('XaMeA', 'melanoma')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "2WW skin code now mapped to the melanoma site."
+
+    - case_id: "VT-172-TC-002"
+      case_name: "SPECIALIST_CLINIC_READ_CODES contains XaPyd -> melanoma"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call find_specialist_clinic_site('Seen in fast track suspected skin cancer clinic (XaPyd)')."
+          expected_result: "Returns ('XaPyd', 'melanoma')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Specialist clinic code recognised."
+
+    - case_id: "VT-172-TC-003"
+      case_name: "MALIGNANCY_READ_CODES recognises Xa99Y (Lentigo maligna)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call find_malignancy_code('Major: Lentigo maligna melanoma (Xa99Y)')."
+          expected_result: "Returns ('Xa99Y', 'melanoma')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Audit-discovered code is now in the inventory."
+
+    - case_id: "VT-172-TC-004"
+      case_name: "MALIGNANCY_READ_CODES recognises B32.. family (B3230 cheek)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call find_malignancy_code('Diagnosis: Malignant melanoma of cheek (B3230)')."
+          expected_result: "Returns ('B3230', 'melanoma')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "B32.. family appendix sweep applied."
+
+    - case_id: "VT-172-TC-005"
+      case_name: "MALIGNANCY_READ_CODES recognises B32.. parent code"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call find_malignancy_code('Problem: Malignant melanoma of skin (B32..)')."
+          expected_result: "Returns ('B32..', 'melanoma')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Parent B32.. mapping present."
+
+    - case_id: "VT-172-TC-006"
+      case_name: "MALIGNANCY_TERM_PATTERNS matches 'lentigo maligna melanoma' on a problem-list line"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call find_malignancy_term_in_problem_line('Major: Lentigo maligna melanoma - excised by plastics April 2025')."
+          expected_result: "Returns (matched_term, 'melanoma')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Histological subtype recognised."
+
+    - case_id: "VT-172-TC-007"
+      case_name: "Other melanoma subtypes recognised on problem-list lines"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call find_malignancy_term_in_problem_line for 'Major: Superficial spreading melanoma', 'Problem: Nodular melanoma', 'Active Problem: Acral lentiginous melanoma'."
+          expected_result: "All three return (term, 'melanoma')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All four common melanoma subtypes mapped."
+
+    - case_id: "VT-172-TC-008"
+      case_name: "CANCER_TREATMENT_PROCEDURE_CODES contains 7G055 and X90PX"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert '7G055' in CANCER_TREATMENT_PROCEDURE_CODES and 'X90PX' in CANCER_TREATMENT_PROCEDURE_CODES."
+          expected_result: "Both assertions hold."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Wide excision and biopsy action codes present."
+
+    - case_id: "VT-172-TC-009"
+      case_name: "Treatment anchor fires on encounter containing 7G055"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Wide excision of skin lesion (7G055) - right cheek lentigo maligna'."
+          expected_result: "treatment anchor emitted for the encounter."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Treatment milestone fires from procedure code alone."
+
+    - case_id: "VT-172-TC-010"
+      case_name: "find_cancer_follow_up_phrase recognises 'Skin Cancer Follow Up'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call find_cancer_follow_up_phrase('Template: Skin Cancer Follow Up - 6 month surveillance')."
+          expected_result: "Returns (matched_phrase, 'melanoma')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Skin surveillance template mapped to melanoma site."
+
+    - case_id: "VT-172-TC-011"
+      case_name: "find_cancer_follow_up_phrase recognises 'Breast Cancer Follow Up'"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call find_cancer_follow_up_phrase('Breast Cancer Follow Up clinic - 12 month review')."
+          expected_result: "Returns (matched_phrase, 'breast')."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Breast surveillance template mapped to breast site."
+
+    - case_id: "VT-172-TC-012"
+      case_name: "Follow-up template fires diagnosis_confirmed via the detector"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Skin Cancer Follow Up: lesion on back 4x4mm seb k. No local recurrence.'."
+          expected_result: "diagnosis anchor with diagnosis_source='cancer_follow_up_template' and hitl_required=True."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Detector wires the new helper."
+
+    - case_id: "VT-172-TC-013"
+      case_name: "History-of-cancer guard wins over follow-up template"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Major: H/O cancer of breast (B934.). Skin Cancer Follow Up template attached.'."
+          expected_result: "No diagnosis anchor emitted."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "History guard precedes the new follow-up path."
+
+    - case_id: "VT-172-TC-014"
+      case_name: "BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT exposes the gated labels"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert {'no further action', 'discharged from care', 'discharged from clinic'}.issubset(BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT)."
+          expected_result: "Assertion holds."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Frozenset names the broad phrases that must be gated."
+
+    - case_id: "VT-172-TC-015"
+      case_name: "CANCER_PATHWAY_CONTEXT_REGEX matches cancer / 2WW / fast track"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert CANCER_PATHWAY_CONTEXT_REGEX.search returns a match for 'cancer review', '2WW skin clinic', 'fast track referral', 'oncology surveillance', 'malignant melanoma', 'lymphoma'."
+          expected_result: "All six phrases match."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Cancer-context regex is broad enough."
+
+    - case_id: "VT-172-TC-016"
+      case_name: "Day-17 closure bug regression: CKD encounter does NOT fire benign_closure"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on the verbatim CKD encounter text from patient 4921442355 / 2024-11-18 (which contains 'no further action' but no cancer context)."
+          expected_result: "No benign_closure anchor emitted."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Scope guard prevents the day-17 misclosure structurally."
+
+    - case_id: "VT-172-TC-017"
+      case_name: "Tier-1 phrases unaffected: 'no evidence of malignancy' still fires"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Mole biopsy: no evidence of malignancy.'."
+          expected_result: "benign_closure anchor emitted."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Tier-1 cancer-specific phrase remains unconditional."
+
+    - case_id: "VT-172-TC-018"
+      case_name: "Cancer-context override: 2WW + 'discharged from clinic' fires benign"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Letter from 2WW skin clinic: lesion benign, discharged from clinic.'."
+          expected_result: "benign_closure anchor emitted."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Gated phrase fires when cancer context is present."
+
+    - case_id: "VT-172-TC-019"
+      case_name: "Read-code path unaffected by gate"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on 'Lymphadenopathy NAD on 2WW (Xa0Vr).' (with no surrounding cancer prose)."
+          expected_result: "benign_closure anchor emitted (Read-code path is unconditional)."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Read-code hit retains its tier-1 status regardless of surrounding text."
+
+    - case_id: "VT-172-TC-020"
+      case_name: "Inventory sanity: CANCER_FOLLOW_UP_PHRASES non-empty list of (re.Pattern, str)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Iterate CANCER_FOLLOW_UP_PHRASES; assert all entries are (compiled regex, non-empty site key)."
+          expected_result: "All entries valid."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Module loads with valid follow-up patterns."
+
+    - case_id: "VT-172-TC-021"
+      case_name: "Live rebuild: patient 4921442355 episode reclassified to completed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "After scripts/_wipe_episodes_and_rebuild.py, query MATCH (p:Patient {id:'4921442355'})-[:HAS_EPISODE]->(ep:EpisodeOfCare {episode_id:'42b722eb6082a4b7'}) RETURN ep.status, ep.cancer_type, ep.hitl_flag."
+          expected_result: "status='completed', cancer_type='melanoma', hitl_flag=true."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Harold Allwyn case reclassified."
+
+    - case_id: "VT-172-TC-022"
+      case_name: "Live rebuild: cohort-level closed_benign skin/melanoma episodes drop"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "After rebuild, count closed_benign episodes with cancer_type in ('skin','melanoma') AND any encounter text containing 'lentigo maligna' OR '7G055' OR 'wide excision of skin lesion' OR 'Skin Cancer Follow Up'."
+          expected_result: "Count drops from 3 (baseline) to 0."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All audit-flagged false-benign skin episodes recovered."
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-172/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-17"
+      executor: "automated:pytest + manual:scripts/_wipe_episodes_and_rebuild.py"
+      result: "pass"
+      summary: >
+        99 unit cases in tests/test_stale_detector_fixes.py passed
+        (including the 27 cases added by VT-LEO-AI-172 across
+        TestSkinMelanomaInventory, TestCancerFollowUpTemplate,
+        TestBenignPhraseScopeGuard, TestRegressionHaroldAllwyn).
+        Live end-to-end verification: scripts/_wipe_episodes_and_rebuild.py
+        executed against the patient graph; episode 42b722eb6082a4b7
+        (Mr Harold Allwyn) reclassified from closed_benign to
+        completed/melanoma (status='completed', cancer_type='melanoma',
+        referral_route='two_week_wait', referral_date='2024-11-01',
+        first_seen_date='2024-11-13', end_date='2025-01-28',
+        presenting_complaint='bleeding, skin lesion'). Cohort-wide
+        impact: closed_benign 77 -> 49 (-28 episodes), benign_outcome
+        distinct patients 67 -> 41 (-26), in_progress 14 -> 22 (+8),
+        diagnosed_or_treated 82 -> 83 (+1).
+      defects_found: 0
+      followups:
+        - "Episode 42b722eb6082a4b7 days_diagnosis_to_treatment is -19; tracked in audits/improvements-backlog.md as the wide-excision provenance follow-up."
+        - "SPECIALIST_CLINIC_READ_CODES still missing XaMxx codes for non-skin sites; tracked as separate backlog row."

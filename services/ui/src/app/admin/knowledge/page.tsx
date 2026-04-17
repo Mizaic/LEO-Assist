@@ -7,10 +7,30 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
-import { KnowledgePageLayout, isRole, type Role } from "@leo/design-system";
+import {
+  KnowledgePageLayout,
+  isRole,
+  type KnowledgeLayoutWidth,
+  type Role,
+} from "@leo/design-system";
 
 import { KNOWLEDGE_TAB_COPY, type KnowledgeTabKey } from "@/lib/knowledgeCopy";
 import { useAuth } from "@/lib/authContext";
+
+// Per DI-LEO-AI-144: data-heavy tabs get the wide (1600px) column so
+// reviewers have horizontal room for long clinical sentences, entity
+// chip rows, and grid columns. Intro-heavy tabs stay at the reading
+// default (1280px).
+const TAB_WIDTH: Record<KnowledgeTabKey, KnowledgeLayoutWidth> = {
+  "training-data": "wide",
+  "surface-forms": "wide",
+  "context-rules": "wide",
+  "ai-instructions": "wide",
+  "clinical-guidelines": "wide",
+  pathways: "wide",
+  domains: "wide",
+  terminology: "wide",
+};
 
 const GoldDatasetPage = dynamic(() => import("@/app/admin/gold-dataset/page"), { ssr: false });
 const SurfaceFormsPage = dynamic(() => import("@/app/admin/surface-forms/page"), { ssr: false });
@@ -85,6 +105,7 @@ export default function KnowledgePage() {
         screenId={`knowledge-${activeKey}`}
         intro={KNOWLEDGE_TAB_COPY[activeKey]}
         role={role}
+        width={TAB_WIDTH[activeKey]}
       >
         <ActiveBody />
       </KnowledgePageLayout>

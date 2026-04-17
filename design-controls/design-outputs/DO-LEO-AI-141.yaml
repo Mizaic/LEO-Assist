@@ -1,0 +1,84 @@
+# -- DO-LEO-AI-141 -- First-seen milestone detection and episode wiring
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-141"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-145"]
+    user_needs: ["UN-LEO-AI-006"]
+    risks_addressed: ["R-LEO-AI-096"]
+    verification_tests: ["VT-LEO-AI-143"]
+
+  specification:
+    title: "first_seen milestone: anchor detector + episode builder wiring"
+    description: |
+      Adds a first_seen milestone bucket to the anchor detector text-search
+      layer and wires it through the episode builder so that IS_PART_OF edges
+      with milestone_type='first_seen' are written for fast-track/2WW clinic
+      attendance encounters, and a first_seen_date property is stored on the
+      EpisodeOfCare node.
+      Also lowers MIN_REFERRAL_TO_DIAG_DAYS from 3 to 0 to capture same-day
+      PRISM-pathway referrals (one-stop breast/dermatology clinics).
+    acceptance_criteria:
+      - criterion: "first_seen regex distinct from referral regex"
+        type: "functional"
+        measurement: "Test"
+        target: "No overlap between _RE_FIRST_SEEN and _RE_REFERRAL on test corpus"
+      - criterion: "IS_PART_OF first_seen edge written"
+        type: "functional"
+        measurement: "Test"
+        target: "Episode with Seen-in-fast-track encounter has milestone_type=first_seen edge"
+      - criterion: "first_seen_date on episode node"
+        type: "functional"
+        measurement: "Test"
+        target: "EpisodeOfCare.first_seen_date equals earliest first_seen encounter date"
+      - criterion: "Same-day PRISM referral claimed"
+        type: "functional"
+        measurement: "Test"
+        target: "Referral at d-0 is claimed when MIN_REFERRAL_TO_DIAG_DAYS=0"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/anchor_detector.py"
+        description: "_RE_FIRST_SEEN regex, first_seen TEXT_SENTINEL, first_seen_anchors field"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_config.py"
+        description: "MIN_REFERRAL_TO_DIAG_DAYS default changed from 3 to 0"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_types.py"
+        description: "first_seen_date field on WriteEpisodeParams"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
+        description: "first_seen_date in MERGE_EPISODE Cypher"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_persistence.py"
+        description: "first_seen_date passed to MERGE_EPISODE"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+        description: "Claim first_seen anchors, write (first_seen_anchors, 'first_seen') milestone link"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 80
+      key_functions:
+        - "_RE_FIRST_SEEN"
+        - "_classify_text_encounters (first_seen bucket)"
+        - "detect_anchors (first_seen_anchors merge)"
+        - "_build_closed_episode (first_seen linking)"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "first_seen milestone must not be confused with referral milestone"
+      - "same-day referral guard must not create phantom episodes"
+    risk_control_measures:
+      - "Distinct non-overlapping regexes for referral and first_seen"
+      - "MIN_REFERRAL_TO_DIAG_DAYS=0 applies only to episodes where _RE_REFERRAL or PRISM match"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

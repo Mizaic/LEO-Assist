@@ -177,6 +177,7 @@ const MODEL_CANARY_MIN_PRECISION = 0.78;
 const MODEL_CANARY_MIN_RECALL = 0.72;
 const DEFAULT_API_TIMEOUT_MS = 15000;
 const DRY_RUN_API_TIMEOUT_MS = 180000;
+const DRY_RUN_SEARCH_TIMEOUT_MS = 60000;
 
 async function fetchWithTimeout(
   input: string,
@@ -193,6 +194,14 @@ async function fetchWithTimeout(
   } finally {
     window.clearTimeout(timer);
   }
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    error instanceof DOMException && error.name === "AbortError"
+  ) || (
+    error instanceof Error && error.name === "AbortError"
+  );
 }
 
 function canonicalWordType(raw: string): string {
@@ -638,6 +647,8 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       });
       const res = await fetchWithTimeout(
         `/api/proxy/analytics/mission-control/encounters?${params.toString()}`,
+        undefined,
+        DRY_RUN_SEARCH_TIMEOUT_MS,
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(detailToString(data.detail) || `Failed (${res.status})`);
@@ -654,6 +665,10 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       setPipelineTraceResults([]);
       if (rows.length > 0) setDryRunDialogOpen(true);
     } catch (e: unknown) {
+      if (isAbortError(e)) {
+        setError("Search took too long and timed out. Try a more specific query or run search again.");
+        return;
+      }
       setError(e instanceof Error ? e.message : "Could not search encounters.");
     } finally {
       setDryRunLoading(false);

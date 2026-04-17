@@ -1,0 +1,144 @@
+# -- DI-LEO-AI-181 -- Sandbox draft-rule replay and explicit "no ruleset compiled" signalling
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-181"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-076"]
+  requirement: >
+    The appropriateness rule editor SHALL provide a sandbox replay
+    that compiles UNSAVED draft rules into an isolated bitmap scope,
+    runs the saved test patients through that scope, and discards the
+    sandbox after the run; AND every bitmap-backed evaluation surface
+    (production runtime evaluate, sandbox evaluate, per-rule diagnose,
+    test-patient replay) SHALL explicitly signal when no active
+    ruleset is compiled for the requested scope, rather than returning
+    a silent zero-match result.
+
+  rationale: >
+    Two independent reviewer pain-points are mitigated by the same
+    safety control:
+
+    1. Reviewers had no way to test how a pending edit would behave
+       BEFORE saving it. They had to save the rule, accept the
+       version increment, wait for a recompile, then replay -- which
+       meant a regressing edit could already be live in any scope
+       that auto-deploys. The sandbox replay compiles the draft into
+       a custom-scoped bitmap (refusing the global scope so it can
+       never accidentally overwrite production), runs the persistent
+       test-patient library through it, and tears the sandbox down,
+       so the reviewer sees the regression report against their
+       UNSAVED edit.
+
+    2. When the production bitmap had not yet been compiled (cold
+       start, missing scope, expired Redis keys), evaluate_patient
+       and replay would return zero matches -- visually identical to
+       a legitimate zero. A reviewer would conclude "the rule does
+       not match any of my saved patients" and ship a regressing
+       edit. The evaluator now returns ``not_compiled: True`` and a
+       ``recompile_hint``, which the UI surfaces as a loud banner
+       with a one-click "Compile now" button, so the reviewer cannot
+       confuse "nothing is loaded" with "nothing matched".
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "safety"
+        spec: >
+          GuidelineCompiler.compile_drafts(scope=...) MUST refuse a
+          ``global`` scope so the sandbox can never accidentally
+          overwrite the production ruleset; an attempt MUST raise
+          ValueError before any Redis write.
+      - type: "safety"
+        spec: >
+          Every successful sandbox compile MUST receive a Redis TTL
+          (default >= 1 hour) so an abandoned sandbox is reaped even
+          if the orchestrator crashes between compile and replay.
+      - type: "functional"
+        spec: >
+          test_patient_service.sandbox_replay() MUST compile the
+          draft, replay the requested patient_ids against the new
+          scope, AND delete the sandbox scope on a try/finally so the
+          sandbox is removed even when the replay raises.
+      - type: "safety"
+        spec: >
+          When evaluate_patient or diagnose finds no active ruleset
+          for the requested scope, the response MUST include
+          ``not_compiled: True``, a plain-English ``message`` and a
+          ``recompile_hint`` containing the POST URL the reviewer
+          can use to fix the problem. Successful responses MUST
+          include ``not_compiled: False`` so the UI can rely on the
+          flag without sniffing for error strings.
+      - type: "functional"
+        spec: >
+          The Test Patients panel of EditRuleDialog MUST expose a
+          "Test draft" button (visible only when an unsaved draft
+          rule is held in state) that calls
+          POST /api/guidance/test-patients/sandbox-replay and opens
+          the existing Replay Results dialog with the returned
+          report.
+      - type: "functional"
+        spec: >
+          The Replay Results dialog AND the Test Patients panel
+          MUST render a ``RulesetNotCompiledBanner`` whenever the
+          backend response carries ``not_compiled: True`` OR every
+          per-patient row carries the "no active ruleset" error.
+          The banner MUST offer a "Compile now" button for the
+          production scope and an explanation for the sandbox scope
+          (where compiling production would not fix the empty
+          sandbox).
+    constraints:
+      - type: "safety"
+        spec: >
+          The sandbox compile MUST reuse GuidelineCompiler so the
+          bitmap semantics (SNOMED IS_A descendant closure,
+          policy_mode handling, distance overrides) are identical to
+          production -- the sandbox MUST NOT contain its own
+          compiler.
+    dependencies: ["DI-LEO-AI-167", "DI-LEO-AI-180"]
+    downstream_impacts:
+      - "EditRuleDialog Test Patients panel"
+      - "Replay Results dialog (live + sandbox)"
+      - "Bitmap lifecycle / scope cleanup"
+      - "Test patient regression workflow"
+    technical_details:
+      language: "Python + TypeScript"
+      framework: "FastAPI + React/MUI"
+      file_structure:
+        - "services/terminology_api/app/services/guideline_compiler.py"
+        - "services/terminology_api/app/services/bitmap_store.py"
+        - "services/terminology_api/app/services/guideline_evaluator.py"
+        - "services/terminology_api/app/routers/guidelines.py"
+        - "services/api/app/services/test_patient_service.py"
+        - "services/api/app/routers/test_patients.py"
+        - "services/ui/src/app/admin/guidance/test-patients/api.ts"
+        - "services/ui/src/app/admin/guidance/test-patients/types.ts"
+        - "services/ui/src/app/admin/guidance/test-patients/RulesetNotCompiledBanner.tsx"
+        - "services/ui/src/app/admin/guidance/test-patients/ReplayResultsDialog.tsx"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/TestPatientsPanel.tsx"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/index.tsx"
+      estimated_loc: 700
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-175 covers (a) compile_drafts refuses the global
+      scope and TTL is applied, (b) BitmapStore.delete_scope removes
+      every key for a custom scope and refuses to touch global,
+      (c) evaluate_patient and diagnose surface ``not_compiled`` with
+      a recompile hint when no ruleset exists, (d) sandbox_replay
+      compiles -> replays -> deletes even when the replay raises,
+      (e) the Test Patients panel triggers /sandbox-replay and opens
+      the report, and (f) RulesetNotCompiledBanner offers a
+      "Compile now" button for production scopes and the explanatory
+      message for sandbox scopes.
+    test_protocol: "VT-LEO-AI-175"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-176"]
+  tags:
+    - "appropriateness-rules"
+    - "regression-testing"
+    - "test-patients"
+    - "clinical-safety"
+    - "bitmap-engine"
+    - "sandbox-replay"

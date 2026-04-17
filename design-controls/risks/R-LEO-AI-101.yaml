@@ -1,0 +1,115 @@
+# -- R-LEO-AI-101 -- AI Instructions list redesign loses reachability of the editor or new-instructions route
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-101"
+  title: >
+    Replacing the bespoke PromptCard grid with a ReviewListCard
+    risks dropping the only entry points to author or edit AI
+    instructions (router.push to /admin/prompts/:id and
+    /admin/prompts/new), or hiding the row-select affordance behind
+    a misconfigured onSelect, leaving QA leads unable to fix a
+    malfunctioning prompt.
+
+  hazard:
+    description: >
+      The legacy PromptCard wrapped its CardActionArea around the
+      whole card so a click anywhere routed to the editor. The
+      redesign re-wires that route through ReviewListCard.onSelect.
+      If the wiring regresses (onSelect omitted, wrong id, or wrong
+      route), the only path to the editor disappears and the page
+      becomes a read-only catalogue. Similarly, the New-instructions
+      ToolbarAction is the sole entry point to author a new prompt;
+      losing it locks knowledge editors out of the workflow.
+    category: "usability"
+
+  hazardous_situation: >
+    A QA lead opens the AI Instructions tab to fix an extraction
+    prompt that has been over-extracting smoking history. They
+    expect the same click-to-edit interaction as before. If the
+    ReviewListCard row does not route, they may either (a) give
+    up and email the platform admin, slowing remediation, or
+    (b) try to "fix" the prompt by editing a similar one they can
+    reach, polluting unrelated extractions.
+
+  harm:
+    description: >
+      A bad prompt continues to mislabel encounters until the route
+      is restored, producing miscoded encounters and incorrect
+      assertion classifications downstream. Severity is bounded by
+      the second-pass verifier and the human review queue, but the
+      time-to-fix grows from minutes to days.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        ReviewListCard rows wire onSelect through a single
+        handleSelect(id) callback that calls router.push(
+        `/admin/prompts/${id}`). The routing contract matches the
+        legacy CardActionArea behaviour so the editor remains
+        reachable from a single click anywhere on the row.
+      implemented_by: ["DI-LEO-AI-148"]
+      verified_by: ["VT-LEO-AI-146"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        The New-instructions route is exposed as a single primary
+        ToolbarAction (id: 'new-instructions', variant: 'primary')
+        in the FilterBar trailing slot, so it is always visible
+        regardless of search or category filter state.
+      implemented_by: ["DI-LEO-AI-148"]
+      verified_by: ["VT-LEO-AI-146"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        VT-LEO-AI-146 TC-003 and TC-005 statically assert the
+        presence of api.get('/api/prompts'), router.push to
+        /admin/prompts/:id and /admin/prompts/new, and exactly
+        one variant: "primary" toolbar action. CI runs jest on
+        every push and blocks merge if any of these regress.
+      implemented_by: ["DI-LEO-AI-148"]
+      verified_by: ["VT-LEO-AI-146"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With both routes asserted by VT-LEO-AI-146, the residual
+      probability of losing reachability is very low. Detectability
+      is high because the page renders an empty CTA state if the
+      routes break, which a smoke test would catch immediately.
+
+  monitoring:
+    monitoring_plan: >
+      Track AI Instructions usage post-Wave-E: count of edits per
+      week per editor, time from rule.flagged_bad to
+      rule.deactivated. Compare to the pre-redesign baseline at
+      the next quarterly review.
+    metrics:
+      - "Median time from prompt.flagged_bad to prompt.next_version_published"
+      - "Count of New-instructions primary clicks per week"
+      - "Count of ReviewListCard row selects routing to /admin/prompts/:id per week"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Wave E Phase 4 design review (chrome migration trade-off)"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "knowledge"
+      - "design-system"
+      - "wave-e"
+      - "phase-4"
+      - "ai-instructions"

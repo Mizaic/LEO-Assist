@@ -142,11 +142,9 @@ class TestConTextAssertionAfterPresentInit:
                 "start": sentence_text.lower().find(entity_text.lower()),
                 "end": sentence_text.lower().find(entity_text.lower())
                 + len(entity_text),
-                "__sentence_id": "s1",
             }
         ]
-        sentences = {"s1": sentence_text}
-        apply_context_detection_to_dicts(entities, sentences)
+        apply_context_detection_to_dicts(sentence_text, entities)
         return entities[0]["assertion"]
 
     def test_negated_entity_gets_absent(self):

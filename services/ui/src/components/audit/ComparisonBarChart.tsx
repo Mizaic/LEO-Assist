@@ -163,8 +163,8 @@ export default function ComparisonBarChart({
             domain={unit === "percent" ? [0, 100] : ["auto", "auto"]}
           />
           <Tooltip
-            formatter={(v: any, name?: string) => {
-              const series = name ?? "";
+            formatter={(v: unknown, name: unknown) => {
+              const series = `${name ?? ""}`;
               return [
                 `${v}${unitSuffix}`,
                 BENCHMARK_LABELS[series as keyof typeof BENCHMARK_LABELS] ?? series,

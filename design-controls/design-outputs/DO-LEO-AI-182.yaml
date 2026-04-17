@@ -1,0 +1,160 @@
+# -- DO-LEO-AI-182 -- Calibrated SNOMED resolver scoring
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-182"
+  version: "1.0.0"
+  type: "Algorithm"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-183"]
+    user_needs: ["UN-LEO-AI-078"]
+    risks_addressed: ["R-LEO-AI-177"]
+    verification_tests: ["VT-LEO-AI-177"]
+
+  specification:
+    title: "Calibrated absolute confidence scoring for /terminology/resolve"
+    description: |
+      Replaces the per-term-relative + multiplicative-tag-boost
+      scoring previously used by HybridCodingResolver._fuse_and_rank
+      with a calibrated absolute confidence in [0, 1].
+
+      The new pipeline computes:
+
+        1. lex_signal in [0, 1]
+           - 1.0 when had_exact_match is True (Term/SurfaceForm)
+           - bm25 / (bm25 + 1) for the fulltext branch
+             (BM25=1 -> 0.5, BM25=5 -> 0.833, BM25=10 -> 0.909)
+
+        2. vec_signal in [0, 1]: cosine similarity (clamped)
+
+        3. Combined: max(lex, vec) + 0.10 * min(lex, vec), capped at 1.0
+           (agreement bonus rewards two independent branches firing)
+
+        4. Tag adjustment in _apply_tag_adjustment:
+           - exact tag match  -> +0.10 additive (capped at 1.0)
+           - same group       -> no change
+           - cross group      -> *0.5 penalty
+           - non-clinical no-tag -> capped at 0.4
+           - clinical expected_tag + non-clinical candidate -> hard-blocked
+
+        5. Hard cull: scores below _MIN_SCORE (0.15) dropped.
+
+      The CodingCandidate dataclass exposes had_exact_match,
+      lexical_raw, vector_raw alongside the calibrated score, and
+      the CandidateResponse on /terminology/resolve mirrors all
+      four fields. The terminology client cache prefix is
+      incremented v2 -> v3 to flush stale entries. Downstream
+      gates (terminology._DEFAULT_MIN_SCORE, surface_form_validation
+      threshold) are retuned to match the new score magnitude.
+    acceptance_criteria:
+      - criterion: "Exact branch reports 1.0"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          had_exact_match=True with no tag adjustment yields
+          score == 1.0.
+      - criterion: "Fulltext saturating curve"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          A fulltext-only candidate with BM25=1.0 yields lex_signal
+          0.5; BM25=5.0 yields 0.833; BM25=10.0 yields 0.909.
+      - criterion: "Vector-only honesty"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          A vector-only candidate (lex=0) reports score == cosine
+          (modulo tag adjustment).
+      - criterion: "Agreement bonus capped at 1.0"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          When lex_signal=1.0 and vec_signal=0.9, score does not
+          exceed 1.0 even with tag boost (cap holds).
+      - criterion: "Cross-group penalty"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          A candidate whose semantic_tag is in a different
+          TAG_GROUPS group from expected_tag is multiplied by
+          0.5, never boosted.
+      - criterion: "No multiplicative boost > 1.0"
+        type: "safety"
+        measurement: "Inspection"
+        target: >
+          Code review confirms no remaining occurrences of
+          1.3x or any other multiplicative tag boost > 1.0 in
+          coding_resolver.py.
+      - criterion: "Downstream gates retuned"
+        type: "functional"
+        measurement: "Inspection"
+        target: >
+          libs/pipeline_graph/subgraphs/terminology.py
+          _DEFAULT_MIN_SCORE == 0.55 and
+          libs/pipeline_graph/subgraphs/surface_form_validation.py
+          default threshold == 0.7.
+      - criterion: "Cache flushed"
+        type: "functional"
+        measurement: "Inspection"
+        target: >
+          libs/terminology/client.py _TERMINOLOGY_CACHE_PREFIX
+          starts with "v3" so previous-implementation cache hits
+          are discarded.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/coding_resolver.py"
+        description: >
+          Rewrote _fuse_and_rank to call new module-level helpers
+          _calibrate_confidence and _apply_tag_adjustment.
+          Replaced _TAG_BOOST and _TAG_COMPAT_BOOST with
+          _TAG_EXACT_BOOST (+0.10 additive) and _AGREEMENT_BONUS
+          (0.10). _TAG_PENALTY (*0.5) retained for cross-group.
+          CodingCandidate gained had_exact_match, lexical_raw,
+          vector_raw fields.
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/routers/resolve.py"
+        description: >
+          CandidateResponse exposes had_exact_match, lexical_raw,
+          vector_raw alongside the calibrated score with updated
+          docstrings explaining the absolute semantics.
+      - artifact_type: "source_code"
+        location: "libs/terminology/client.py"
+        description: >
+          ResolvedTerm parses the new fields. Cache prefix bumped
+          v2 -> v3 to invalidate stale entries.
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/terminology.py"
+        description: >
+          _DEFAULT_MIN_SCORE retuned 0.70 -> 0.55.
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/surface_form_validation.py"
+        description: >
+          Default surface_form_validation_threshold retuned 0.9 -> 0.7
+          in two locations.
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 180
+      key_functions:
+        - "HybridCodingResolver._fuse_and_rank"
+        - "_calibrate_confidence"
+        - "_apply_tag_adjustment"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Score must be a calibrated absolute confidence so downstream coder gates can rely on it"
+      - "Tag mismatch must penalise (not boost) so wrong-tag matches cannot dominate ranking"
+      - "Non-clinical tags must be capped or blocked so qualifier values cannot be coded as findings"
+    risk_control_measures:
+      - "Hard cull at _MIN_SCORE=0.15 prevents noise candidates appearing in API responses"
+      - "Cross-group *0.5 penalty preserves the previous safety floor"
+      - "Cache prefix bump forces all consumers to re-resolve under the new contract on first call"
+      - "8 dedicated tests in TestCalibratedScoring pin every per-branch score path"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

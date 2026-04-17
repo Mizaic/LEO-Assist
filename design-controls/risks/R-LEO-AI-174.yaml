@@ -1,0 +1,128 @@
+# -- R-LEO-AI-174 -- Reviewer skips surrounding-context check during episode review
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-174"
+  title: "Cancer auditor reviews an episode without checking surrounding-context encounters because the affordance to do so is hidden behind a scope toggle plus manual scroll, and so misses a clinically relevant signal (a normal scan, a chase letter, a competing diagnosis) that sat just outside the episode window"
+
+  hazard:
+    description: >
+      The Mission Control patient detail Encounter text tab defaults
+      to "Episode linked" scope, which shows only encounters tied to
+      the focused episode. Surrounding-context encounters (a
+      surveillance review the week before referral, a chase letter the
+      week after a missed milestone) are reachable only by switching
+      to "All encounters" and scrolling. Without a spatial navigation
+      affordance, reviewers under time pressure either skip the check
+      or mis-recall the date and read the wrong encounter -- in both
+      cases the episode is reviewed and signed off against incomplete
+      evidence.
+    category: "use_error"
+
+  hazardous_situation: >
+    A cancer auditor opens an episode flagged "Type not yet
+    confirmed" with two linked encounters on 2025-02-28 and
+    2025-03-04. A normal mammogram dated 2025-02-14 (two weeks
+    before the focused encounter) is in the patient's wider history
+    but not linked to the episode. The auditor, working through a
+    queue of 80 cases, does not switch scope and scroll, signs off
+    the episode as "needs further confirmation", and the patient is
+    re-queued for clinical follow-up that the upstream mammogram
+    would have rendered unnecessary.
+
+  harm:
+    description: >
+      Unnecessary downstream clinical follow-up triggered for a
+      patient whose surrounding evidence already explained the
+      episode; reviewer fatigue and queue churn; lower confidence
+      in the audit dashboard. In the inverse case, a missed
+      surrounding signal could lead to a cancer diagnosis being
+      attributed to the wrong episode or the wrong site, with
+      knock-on effects on cohort statistics and time-to-diagnosis
+      reporting.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 4
+    detectability: 4
+    rpn: 32
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-179 introduces a persistent horizontal timeline
+        scrubber on the Encounter text tab. Every encounter in the
+        patient's history appears as a dot on a real date axis;
+        linked encounters are filled, others are hollow; the
+        episode window appears as a tinted band. Surrounding-
+        context encounters are visible at a glance and reachable
+        with one click, removing the multi-step scope-toggle plus
+        scroll workflow that previously gated the check.
+      implemented_by: ["DI-LEO-AI-179"]
+      verified_by: ["VT-LEO-AI-173"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Scrubber dots show a hover preview (date, coded count,
+        first 120 chars of text) so the reviewer can decide
+        whether to commit to a jump without losing their place.
+        Active-indicator animation and scroll-sync make it
+        obvious which encounter the reviewer is reading at any
+        moment, reducing the chance of context loss.
+      implemented_by: ["DI-LEO-AI-179"]
+      verified_by: ["VT-LEO-AI-173"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        Tab help copy notes that the scrubber covers all
+        encounters in the patient's history, not just those linked
+        to the focused episode, so reviewers do not assume the
+        scrubber is filtered.
+      implemented_by: ["DI-LEO-AI-179"]
+      verified_by: ["VT-LEO-AI-173"]
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 2
+    detectability: 2
+    rpn: 8
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The scrubber removes the structural cause of the missed-
+      context use error: surrounding encounters are now visible at
+      a glance and one click away, with a hover preview that
+      confirms the date and coded count before commit. Residual
+      risk reflects the narrow case where a reviewer dismisses the
+      scrubber entirely; the existing scope chips and milestone
+      jumps remain available as fallbacks, and the harm is minor
+      (downstream re-review, not a missed cancer diagnosis -- the
+      upstream coding pipeline and the safety-net dashboard remain
+      the primary controls for missed cancers).
+
+  monitoring:
+    monitoring_plan: >
+      Quarterly UX telemetry review of the Mission Control patient
+      detail tab: count scrubber clicks per case review session,
+      ratio of cases reviewed with at least one scrubber-driven
+      jump, average time from drawer open to first scrubber
+      interaction. Investigate any drop in adoption or any spike
+      in rapid-sign-off review patterns.
+    metrics:
+      - "Scrubber click rate per patient detail session"
+      - "Ratio of episode reviews with at least one scrubber jump"
+      - "Median time from drawer open to first scrubber interaction"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Rob Smith - 2026-04-17 patient detail navigation review"
+    identified_date: "2026-04-17"
+    status: "analyzed"
+    tags:
+      - "mission-control"
+      - "patient-detail"
+      - "use-error"
+      - "navigation"
+      - "usability"

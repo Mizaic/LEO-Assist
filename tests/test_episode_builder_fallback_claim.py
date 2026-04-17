@@ -55,14 +55,20 @@ class TestFindBestReferralFallback:
         assert idx == 0
         assert ref_date == date(2024, 4, 1)
 
-    def test_fallback_still_respects_min_gap(self):
-        """VT-137-TC-003: same-day referrals rejected in both passes."""
+    def test_fallback_same_day_referral_claimed(self):
+        """VT-137-TC-003 (updated DI-LEO-AI-145): d-0 referrals ARE claimed.
+
+        MIN_REFERRAL_TO_DIAG_DAYS was reduced to 0 to support same-day PRISM
+        workflows. The fallback pass also respects this change.
+        """
         diag = date(2024, 5, 1)
         refs = [_ref("2024-05-01", concept="suspected lung cancer")]
-        assert (
-            _find_best_referral(diag, "breast", refs, set(), require_site_match=False)
-            is None
+        result = _find_best_referral(
+            diag, "breast", refs, set(), require_site_match=False
         )
+        assert result is not None, "DI-LEO-AI-145: d-0 referral must be claimed"
+        _, ref_date = result
+        assert ref_date == date(2024, 5, 1)
 
     def test_fallback_still_respects_lookback(self):
         """VT-137-TC-004: referrals outside DIAG_LOOKBACK_DAYS rejected."""

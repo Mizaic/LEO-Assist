@@ -87,10 +87,14 @@ describe("GuidancePage", () => {
     });
   });
 
-  it("has a single h1 element (accessibility requirement)", () => {
+  it("does not render its own h1 (KnowledgePageLayout provides the page heading)", () => {
+    // Wave E Phase 5 redesign: GuidancePage is mounted inside
+    // KnowledgePageLayout which owns the h1 + intro chrome. Asserting
+    // zero h1s here guarantees we never duplicate the page heading and
+    // keeps the AT outline coherent.
     render(<GuidancePage />);
     const h1s = document.querySelectorAll("h1");
-    expect(h1s.length).toBe(1);
+    expect(h1s.length).toBe(0);
   });
 });
 

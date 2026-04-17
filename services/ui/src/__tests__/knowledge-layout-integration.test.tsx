@@ -17,7 +17,7 @@ describe("VT-133 TC-004 - KnowledgePageLayout integration", () => {
   const src = readSource("src/app/admin/knowledge/page.tsx");
 
   it("imports KnowledgePageLayout from @leo/design-system", () => {
-    expect(src).toMatch(/KnowledgePageLayout.*@leo\/design-system/);
+    expect(src).toMatch(/KnowledgePageLayout[\s\S]*?@leo\/design-system/);
   });
 
   it("uses KnowledgePageLayout in the render tree", () => {

@@ -78,6 +78,8 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE INDEX audit_event_provider IF NOT EXISTS FOR (ae:AuditEvent) ON (ae.extraction_provider)",
 ]
 
+from libs.cypher.test_patient_queries import TEST_PATIENT_CONSTRAINTS
+
 CODING_SCHEMA_CONSTRAINTS: list[str] = [
     "CREATE FULLTEXT INDEX surface_form_fulltext IF NOT EXISTS FOR (sf:SurfaceForm) ON EACH [sf.form]",
     "CREATE CONSTRAINT surface_form_normalized IF NOT EXISTS FOR (sf:SurfaceForm) REQUIRE sf.normalized IS UNIQUE",
@@ -93,4 +95,5 @@ CODING_SCHEMA_CONSTRAINTS: list[str] = [
     "CREATE INDEX gold_label_candidate IF NOT EXISTS FOR (g:GoldLabel) ON (g.candidate_id)",
     "CREATE CONSTRAINT surface_form_task_id IF NOT EXISTS FOR (t:SurfaceFormTask) REQUIRE t.task_id IS UNIQUE",
     "CREATE INDEX surface_form_task_status IF NOT EXISTS FOR (t:SurfaceFormTask) ON (t.status)",
+    *TEST_PATIENT_CONSTRAINTS,
 ]

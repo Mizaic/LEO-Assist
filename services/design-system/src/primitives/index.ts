@@ -33,6 +33,7 @@ export {
 export {
   ReviewListCard,
   type ReviewListCardProps,
+  type ReviewListDensity,
   type ReviewListItem,
 } from "./ReviewListCard";
 export {
@@ -47,6 +48,7 @@ export {
 export {
   KnowledgePageLayout,
   type KnowledgePageLayoutProps,
+  type KnowledgeLayoutWidth,
 } from "./KnowledgePageLayout";
 export {
   TaskQueue,
@@ -55,3 +57,18 @@ export {
   type WorkTaskType,
   type CountsBySource,
 } from "./TaskQueue";
+export {
+  PipelineRail,
+  type PipelineRailProps,
+  type PipelineStage,
+  type PipelineStageStatus,
+} from "./PipelineRail";
+export {
+  NudgeStrip,
+  type NudgeStripProps,
+  type NudgeSeverity,
+} from "./NudgeStrip";
+export {
+  PromptEditorCard,
+  type PromptEditorCardProps,
+} from "./PromptEditorCard";

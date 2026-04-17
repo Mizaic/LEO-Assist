@@ -7,6 +7,34 @@ from typing import Any
 
 from libs.domain_config.registry import DomainRegistry
 
+# DI-LEO-AI-155: text-only site classification using gold-mined surface forms.
+from services.analysis_worker.app.analyzers.cancer_site_terms import (
+    match_cancer_site,
+)
+
+# DI-LEO-AI-159 / DI-LEO-AI-171 / DI-LEO-AI-172: Read/CTV3 code
+# recognition for problem-list malignancy diagnoses, free-text
+# malignancy terms on problem-list lines, active-cancer-care codes,
+# adjuvant-therapy inference, benign-explanation problems, history-of-
+# cancer guards, and explicit fast-track 2WW referral site
+# reconciliation.
+from libs.domains.code_inventories import (
+    BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT,
+    adjuvant_therapy_is_newly_issued,
+    find_active_cancer_care_code,
+    find_adjuvant_therapy_drug,
+    find_benign_explanation_code,
+    find_cancer_follow_up_phrase,
+    find_cancer_treatment_procedure_code,
+    find_fast_track_referral_site,
+    find_malignancy_code,
+    find_malignancy_term_in_problem_line,
+    find_specialist_clinic_site,
+    match_benign_investigation_phrase,
+    text_contains_history_of_cancer,
+    text_has_cancer_pathway_context,
+)
+
 
 @dataclass(frozen=True)
 class MilestoneBucket:
@@ -26,6 +54,8 @@ class AnchorResult:
         default_factory=list
     )
     first_presentation_anchors: list[dict[str, Any]] = field(default_factory=list)
+    # DI-LEO-AI-145: "Seen in fast-track/2WW clinic" attendance encounters.
+    first_seen_anchors: list[dict[str, Any]] = field(default_factory=list)
     detection_method: str = "none"
     expanded_start: str | None = None
     expanded_end: str | None = None
@@ -50,6 +80,7 @@ _MILESTONE_TYPE_TO_BUCKET_KEY = {
     "benign_closure": "benign_closure_anchors",
     "specialist_outcome_letter": "specialist_outcome_letter_anchors",
     "first_presentation": "first_presentation_anchors",
+    "first_seen": "first_seen_anchors",
 }
 
 
@@ -96,6 +127,7 @@ _AnchorBuckets = tuple[
     list[dict[str, Any]],
     list[dict[str, Any]],
     list[dict[str, Any]],
+    list[dict[str, Any]],  # DI-LEO-AI-145: first_seen
 ]
 
 
@@ -282,6 +314,8 @@ def _classify_anchor_rows(
     benign_closures: list[dict[str, Any]] = []
     specialist_letters: list[dict[str, Any]] = []
     first_presentations: list[dict[str, Any]] = []
+    # DI-LEO-AI-145: coded path never produces first_seen anchors; text-only.
+    first_seens: list[dict[str, Any]] = []
 
     bucket_lists = {
         "referral": referrals,
@@ -324,6 +358,7 @@ def _classify_anchor_rows(
         _dedupe_by_encounter(benign_closures),
         _dedupe_by_encounter(specialist_letters),
         _dedupe_first_presentation(first_presentations),
+        first_seens,  # DI-LEO-AI-145: always empty from coded path
     )
 
 
@@ -367,24 +402,109 @@ ORDER BY encounter_date
 
 # -- Text pattern sets (compiled once at module level) --
 
+# DI-LEO-AI-149: histology-aware confirmed-cancer detection. The legacy
+# pattern only matched 'confirmed', 'diagnosed', 'biopsy showed', and a few
+# generic verbs. Investigation of 79 auto-closed text-path episodes found
+# 24 (30%) where the histology letter used vocabulary the regex did not
+# cover -- e.g. 'Invasive ductal carcinoma, grade 2', 'Adenocarcinoma of
+# colon (T2 N0 M0)', 'DCIS high grade', 'Gleason 7 (3+4) prostate'. These
+# additional alternations capture standard histology-result phrasing
+# without changing the upstream _is_referral_enc / not _has_no_cancer
+# guards that prevent suspected-cancer referrals from being mis-classified
+# as confirmed diagnoses.
 _RE_CONFIRMED_CANCER = re.compile(
     r"\b(?:confirmed|diagnosed|diagnosis of|biopsy (?:showed|confirmed|proven)|"
-    r"histology|histological|proven|malignancy confirmed|cancer confirmed|"
-    r"positive for|diagnostic|definitive)\b",
+    r"histology|histological|histopathology|histopathological|"
+    r"proven|malignancy confirmed|cancer confirmed|"
+    r"positive for|diagnostic|definitive|"
+    r"invasive ductal|invasive lobular|invasive carcinoma|"
+    r"DCIS|LCIS|in[-\s]?situ|carcinoma in[-\s]?situ|"
+    r"adenocarcinoma|squamous cell carcinoma|basal cell carcinoma|"
+    r"BCC|SCC|"
+    r"high[-\s]grade|low[-\s]grade|"
+    r"poorly differentiated|moderately differentiated|well differentiated|"
+    r"grade [123iv]+|"
+    r"Gleason\s*\d|"
+    r"T[0-4][a-c]?\s*N[0-3][a-c]?\s*M[01x]|"
+    r"stage\s*(?:I{1,3}V?|IV|[1-4])(?:[abc])?\b|"
+    r"FIGO\s*(?:I{1,3}V?|IV|[1-4])(?:[abc])?\b|"
+    r"Dukes[''\s]?[ABCD]|"
+    r"Breslow|Clark[''\s]?level|"
+    r"melanoma in[-\s]?situ|melanoma confirmed|"
+    r"metasta(?:sis|tic|ses)|metastatic disease|"
+    r"lymph node involvement|positive (?:margin|node|lymph node)s?|"
+    r"infiltrating (?:ductal|lobular|carcinoma)|"
+    r"frank malignancy|frankly malignant)\b",
     re.IGNORECASE,
 )
+# DI-LEO-AI-149: include histology-specific cancer terms (DCIS, LCIS,
+# Gleason, Dukes, FIGO etc.) so the classifier's
+# 'has_cancer AND has_confirmed' guard accepts modern histology-letter
+# vocabulary without needing the generic 'cancer / carcinoma / malignant'
+# words to also be present.
 _RE_CANCER_TERM = re.compile(
     r"\b(?:cancer|carcinoma|malignant|malignancy|melanoma|lymphoma|leukaemia|"
     r"leukemia|myeloma|sarcoma|mesothelioma|neoplasm|tumou?r|adenocarcinoma|"
     r"glioblastoma|glioma|squamous cell|basal cell|papillary|anaplastic|"
-    r"metasta(?:sis|tic|ses)|oncolog)\b",
+    r"metasta(?:sis|tic|ses)|oncolog|"
+    r"DCIS|LCIS|BCC|SCC|"
+    r"invasive ductal|invasive lobular|invasive carcinoma|"
+    r"infiltrating (?:ductal|lobular|carcinoma)|"
+    r"in[-\s]?situ|carcinoma in[-\s]?situ|"
+    r"Gleason\s*\d|"
+    r"Dukes[''\s]?[ABCD]|"
+    r"FIGO\s*(?:I{1,3}V?|IV|[1-4])|"
+    r"Breslow|Clark[''\s]?level)\b",
     re.IGNORECASE,
 )
-_RE_NO_CANCER = re.compile(
-    r"\b(?:no evidence of (?:cancer|malignancy|malignant)|benign|not malignant|"
-    r"no cancer|discharged from cancer pathway|normal biopsy|benign biopsy|"
+# DI-LEO-AI-149: histology-aware benign-closure detection. The legacy
+# pattern relied on explicit 'no cancer / NED / nothing sinister' phrasing
+# and missed the standard benign-histology vocabulary that appears in
+# 19/79 (24%) auto-closed episodes -- e.g. 'Lipoma', 'Sebaceous cyst',
+# 'Fibroadenoma', 'No malignant cells', 'Normal appearance', 'Unremarkable
+# biopsy'. Adding these terms lets the episode builder close benign
+# pathways at the right calendar date instead of leaving them as
+# stale_post_specialist for 90+ days.
+# DI-LEO-AI-178 split (R-LEO-AI-173 follow-up):
+# Definitive benign findings -- inherently benign histology / pathology /
+# explicit "no cancer" statements. These are sufficient on their own to
+# emit a benign_closure anchor and do NOT require co-occurring
+# cancer-pathway context.
+_RE_DEFINITIVE_BENIGN = re.compile(
+    r"\b(?:no evidence of (?:cancer|malignancy|malignant)|"
+    r"not malignant|no cancer|discharged from cancer pathway|"
+    r"normal biopsy|benign biopsy|"
     r"no evidence of disease|NED|all clear|nothing sinister|"
-    r"no cancer found|no malignancy|no malignant|reassured)\b",
+    r"no cancer found|no malignancy|no malignant|"
+    r"no malignant cells|no atypia|no atypical cells|"
+    r"no abnormality detected|no significant abnormality|"
+    r"normal appearance|normal histology|normal biopsy result|"
+    r"unremarkable biopsy|unremarkable histology|unremarkable findings|"
+    r"benign (?:naevus|nevus|lesion|finding|cyst|polyp|nodule)|"
+    r"lipoma|fibroadenoma|sebaceous cyst|epidermal cyst|epidermoid cyst|"
+    r"seborrhoeic keratos[ie]s|seborrheic keratos[ie]s|"
+    r"actinic keratos[ie]s|solar keratos[ie]s|"
+    r"skin tag|acrochordon|dermatofibroma|"
+    r"inflammatory change|reactive change|reactive atypia|"
+    r"hyperplastic polyp|inflammatory polyp|"
+    r"fibrocystic change|cystic change|"
+    r"intramucosal|hamartoma)\b",
+    re.IGNORECASE,
+)
+# Generic benign-disposition phrases -- these are ambiguous on their own
+# (e.g. "discharged from clinic" can apply to any clinic) and only count
+# towards a benign_closure when accompanied by cancer-pathway context.
+_RE_GENERIC_BENIGN_PHRASE = re.compile(
+    r"\b(?:benign|reassured|"
+    r"discharge(?:d)? back to gp|discharge(?:d)? from clinic|"
+    r"reassur(?:e|ed|ance) given)\b",
+    re.IGNORECASE,
+)
+# Combined view -- any benign signal at all. Kept for callers that just
+# need a single "is there any 'no cancer' wording?" check.
+_RE_NO_CANCER = re.compile(
+    "(?:" + _RE_DEFINITIVE_BENIGN.pattern + ")|(?:"
+    + _RE_GENERIC_BENIGN_PHRASE.pattern + ")",
     re.IGNORECASE,
 )
 _RE_REFERRAL = re.compile(
@@ -402,6 +522,52 @@ _RE_REFERRAL_PRISM = re.compile(
     r".{0,80}?"
     r"\b(?:finalised|finalized|completed|submitted|sent|issued)\b",
     re.IGNORECASE | re.DOTALL,
+)
+# DI-LEO-AI-182: referral REJECTION and RESUBMISSION recognisers.
+# Captures the workflow-quality signal "Choose and book referral
+# rejected by service provider" / "Referral Marked in Error" /
+# "Referral re-submitted". These are not new pathways -- they are
+# audit events on an existing referral that introduce delay (6+ days
+# common in 2WW). Surfaced as referral_subtype values so DQ tooling
+# can measure rejection-to-resubmission delay without changing the
+# milestone-type schema.
+_RE_REFERRAL_REJECTED = re.compile(
+    r"\b(?:referral\s+rejected\s+by\s+service\s+provider|"
+    r"choose\s+and\s+book\s+referral\s+rejected|"
+    r"e-?referral\s+(?:service\s+)?referral\s+rejected|"
+    r"referral\s+(?:was\s+)?rejected\s+by\s+(?:the\s+)?(?:hospital|provider|service)|"
+    r"hospital\s+rejected\s+(?:the\s+)?referral|"
+    r"referral\s+returned\s+(?:by|from)\s+(?:hospital|provider|service))\b",
+    re.IGNORECASE,
+)
+# Marked-in-Error on a referral row counts as a rejection-equivalent
+# audit event (referral was withdrawn / amended). Match the referral-
+# specific phrasing only so we do not catch unrelated "Marked in Error"
+# notes (e.g. lab values).
+_RE_REFERRAL_MARKED_IN_ERROR = re.compile(
+    r"\b(?:referral\s+(?:out\s+)?(?:status\s+)?marked\s+in\s+error|"
+    r"e-?referral\s+(?:service\s+)?referral\s+marked\s+in\s+error|"
+    r"hospital\s+(?:fast\s+track\s+)?referral\s+(?:for\s+suspected\s+\w[\w\s]{0,40})?\s*"
+    r"marked\s+in\s+error)\b",
+    re.IGNORECASE,
+)
+_RE_REFERRAL_RESUBMITTED = re.compile(
+    r"\b(?:re-?submitted|resubmitted|referral\s+re-?sent|"
+    r"re-?referred|new\s+referral\s+sent|"
+    r"referral\s+(?:re-)?issued|amended\s+referral\s+sent)\b",
+    re.IGNORECASE,
+)
+# DI-LEO-AI-145: fast-track/2WW CLINIC ATTENDANCE (first_seen milestone).
+# Matches the secondary-care filing note that the patient WAS SEEN at the
+# clinic -- distinct from the GP-side referral ('Fast track referral for
+# suspected X') and from any diagnosis text.  Must not overlap _RE_REFERRAL.
+_RE_FIRST_SEEN = re.compile(
+    r"\bseen in (?:fast.?track|2WW|TWW|two.week.wait)"
+    r"(?:\s+suspected\s+\w[\w\s]{0,30})?\s*clinic\b|"
+    r"\battended (?:fast.?track|2WW|TWW)\b.{0,40}clinic\b|"
+    r"\b2WW\s+clinic\b|\bTWW\s+clinic\b|"
+    r"\bseen in 2WW\b",
+    re.IGNORECASE,
 )
 _RE_SPECIALIST = re.compile(
     r"\b(?:seen (?:in|at) (?:fast.?track|dermatol|oncol|urol|haematol|"
@@ -443,6 +609,12 @@ _TEXT_SENTINEL = {
     "specialist": {
         "concept_id": 306206005,
         "concept_name": "Text: specialist clinic attendance",
+    },
+    # DI-LEO-AI-145: SNOMED 308467007 "Patient seen by specialist" is the
+    # closest standard concept for a first fast-track/2WW clinic attendance.
+    "first_seen": {
+        "concept_id": 308467007,
+        "concept_name": "Text: first seen at fast-track/2WW clinic",
     },
     "treatment": {
         "concept_id": 401004,
@@ -488,6 +660,7 @@ def _classify_text_encounters(
     benign_closures: list[dict[str, Any]] = []
     specialist_letters: list[dict[str, Any]] = []
     first_presentations: list[dict[str, Any]] = []
+    first_seens: list[dict[str, Any]] = []  # DI-LEO-AI-145
 
     for row in text_rows:
         enc_id = row.get("encounter_id") or ""
@@ -515,17 +688,183 @@ def _classify_text_encounters(
             "evidence": text[:200],
             "assertion": "present",
         }
+        # DI-LEO-AI-155: derive a canonical NCDA cancer-site key from the
+        # encounter free text using the gold-mined dictionary, and stash
+        # it on every anchor produced from this row. Downstream
+        # _extract_condition_key_from_anchor prefers this over the
+        # generic "Text: ..." sentinel concept_name.
+        _site_match = match_cancer_site(text)
+        if _site_match is not None:
+            base["site_key"] = _site_match[0]
+            base["site_hits"] = _site_match[1]
 
         has_cancer = bool(_RE_CANCER_TERM.search(text))
         has_confirmed = bool(_RE_CONFIRMED_CANCER.search(text))
-        has_no_cancer = bool(_RE_NO_CANCER.search(text))
+        has_definitive_benign = bool(_RE_DEFINITIVE_BENIGN.search(text))
+        has_generic_benign_phrase = bool(_RE_GENERIC_BENIGN_PHRASE.search(text))
+        has_no_cancer = has_definitive_benign or has_generic_benign_phrase
+
+        # DI-LEO-AI-171: history-of-cancer guard. A problem line that
+        # encodes "personal history of cancer" must NOT fire a fresh
+        # diagnosis anchor, even if other malignancy patterns are
+        # present in the same encounter text.
+        _is_history = text_contains_history_of_cancer(text)
+
+        # DI-LEO-AI-159: problem-list Read/CTV3 code recognition
+        # DI-LEO-AI-171: free-text malignancy term + active-care code
+        _malignancy_hit = find_malignancy_code(text) if not _is_history else None
+        _malignancy_term_hit = (
+            find_malignancy_term_in_problem_line(text) if not _is_history else None
+        )
+        _active_care_hit = (
+            find_active_cancer_care_code(text) if not _is_history else None
+        )
+        _benign_code_hit = find_benign_explanation_code(text)
+        _benign_phrase_hit = match_benign_investigation_phrase(text)
+        _ftr_hit = find_fast_track_referral_site(text)
+        _spec_clinic_hit = find_specialist_clinic_site(text)
+        # DI-LEO-AI-175: treatment procedure code recognition
+        # (7G055 wide excision, X90PX biopsy action) - the existing
+        # _RE_TREATMENT path will OR with this below.
+        _treatment_proc_hit = find_cancer_treatment_procedure_code(text)
+        # DI-LEO-AI-177: cancer follow-up template recogniser. The
+        # history-of-cancer guard is applied inside the helper.
+        _follow_up_hit = find_cancer_follow_up_phrase(text)
+
+        # DI-LEO-AI-172: adjuvant cancer-therapy inference. A drug hit
+        # only counts as a diagnosis signal when EITHER the prescription
+        # is being newly issued OR the encounter co-mentions an active-
+        # cancer-care code or malignancy term. This avoids firing on
+        # routine repeat-prescription reviews.
+        _drug_hit = find_adjuvant_therapy_drug(text) if not _is_history else None
+        _drug_supports_diagnosis = False
+        if _drug_hit is not None:
+            if (
+                adjuvant_therapy_is_newly_issued(text)
+                or _active_care_hit is not None
+                or _malignancy_term_hit is not None
+                or _malignancy_hit is not None
+            ):
+                _drug_supports_diagnosis = True
+
+        if (
+            _malignancy_hit is not None
+            or _malignancy_term_hit is not None
+            or _active_care_hit is not None
+            or _drug_supports_diagnosis
+            or _follow_up_hit is not None
+        ):
+            has_cancer = True
+            has_confirmed = True
+
+        # DI-LEO-AI-178: benign-investigation phrase scope guard.
+        # Read-code hits always count. Phrase hits are gated when the
+        # phrase label is in BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT
+        # (broad phrases like "no further action", "discharged from
+        # care", "discharged from clinic"). For those labels we
+        # require the encounter to ALSO carry cancer-pathway context
+        # (cancer / 2WW / fast track regex hit OR a derived cancer
+        # site_key OR a benign Read-code hit) before firing
+        # has_no_cancer. This prevents the day-17 closure bug where
+        # an unrelated CKD note containing "no further action"
+        # silently closed a parallel skin-cancer episode (R-LEO-AI-173).
+        # NOTE: _site_match is deliberately NOT part of the gate.
+        # match_cancer_site() uses a gold-mined dictionary that
+        # includes incidental terms such as "chronic kidney disease
+        # stage 3" (renal site). Trusting it here would re-open the
+        # day-17 closure bug (R-LEO-AI-173). Only the strict
+        # cancer-pathway regex or a co-occurring benign Read code
+        # satisfy the gate.
+        _phrase_should_count = False
+        if _benign_phrase_hit is not None:
+            if _benign_phrase_hit not in BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT:
+                _phrase_should_count = True
+            elif (
+                _benign_code_hit is not None
+                or text_has_cancer_pathway_context(text)
+            ):
+                _phrase_should_count = True
+        if _benign_code_hit is not None or _phrase_should_count:
+            has_no_cancer = True
+
+        # Site reconciliation -- prefer the most explicit signal.
+        # Order: 2WW Read code > malignancy code > malignancy term >
+        # adjuvant drug > existing surface-form match.
+        if _ftr_hit is not None:
+            base["site_key"] = _ftr_hit[1]
+            base["site_hits"] = [_ftr_hit[0]]
+            base["site_source"] = "explicit_2ww_code"
+        elif _malignancy_hit is not None and "site_key" not in base:
+            base["site_key"] = _malignancy_hit[1]
+            base["site_hits"] = [_malignancy_hit[0]]
+            base["site_source"] = "explicit_malignancy_code"
+        elif _malignancy_term_hit is not None and "site_key" not in base:
+            base["site_key"] = _malignancy_term_hit[1]
+            base["site_hits"] = [_malignancy_term_hit[0]]
+            base["site_source"] = "malignancy_term_problem_line"
+        elif (
+            _drug_supports_diagnosis
+            and _drug_hit is not None
+            and _drug_hit[1] != "non_site_specific"
+            and "site_key" not in base
+        ):
+            base["site_key"] = _drug_hit[1]
+            base["site_hits"] = [_drug_hit[0]]
+            base["site_source"] = "adjuvant_therapy_drug"
+        elif (
+            _follow_up_hit is not None
+            and _follow_up_hit[1] not in ("non_site_specific", "")
+            and "site_key" not in base
+        ):
+            base["site_key"] = _follow_up_hit[1]
+            base["site_hits"] = [_follow_up_hit[0]]
+            base["site_source"] = "cancer_follow_up_template"
 
         if is_letter_transfer:
             s = _TEXT_SENTINEL["specialist_outcome_letter"]
             specialist_letters.append({**base, **s})
 
         # Referral (DI-LEO-AI-124: PRISM primacy over generic fast-track text)
-        if _RE_REFERRAL_PRISM.search(text):
+        # DI-LEO-AI-145: first_seen takes priority over generic fast-track so
+        # "Seen in fast track clinic" notes are not mis-labelled as referrals.
+        # DI-LEO-AI-182: rejection / marked-in-error / resubmission audit
+        # events take HIGHEST priority -- the encounter is about a referral
+        # but represents a workflow status change, not a fresh referral.
+        # This avoids double-counting a 6-day-delayed pathway as two
+        # separate referrals.
+        is_first_seen_note = bool(_RE_FIRST_SEEN.search(text))
+        is_referral_rejected = bool(
+            _RE_REFERRAL_REJECTED.search(text)
+            or _RE_REFERRAL_MARKED_IN_ERROR.search(text)
+        )
+        is_referral_resubmitted = (
+            bool(_RE_REFERRAL_RESUBMITTED.search(text))
+            and (
+                _RE_REFERRAL.search(text) is not None
+                or _RE_REFERRAL_PRISM.search(text) is not None
+            )
+        )
+        if is_referral_rejected:
+            s = _TEXT_SENTINEL["referral"]
+            referrals.append(
+                {
+                    **base,
+                    **s,
+                    "referral_subtype": "rejected",
+                    "confidence": 0.9,
+                }
+            )
+        elif is_referral_resubmitted:
+            s = _TEXT_SENTINEL["referral"]
+            referrals.append(
+                {
+                    **base,
+                    **s,
+                    "referral_subtype": "resubmitted",
+                    "confidence": 0.85,
+                }
+            )
+        elif _RE_REFERRAL_PRISM.search(text):
             s = _TEXT_SENTINEL["referral"]
             referrals.append(
                 {
@@ -535,7 +874,7 @@ def _classify_text_encounters(
                     "confidence": 0.9,
                 }
             )
-        elif _RE_REFERRAL.search(text):
+        elif _RE_REFERRAL.search(text) and not is_first_seen_note:
             s = _TEXT_SENTINEL["referral"]
             referrals.append(
                 {
@@ -546,25 +885,131 @@ def _classify_text_encounters(
             )
 
         # Diagnosis -- cancer
-        if has_cancer and has_confirmed and not has_no_cancer:
+        # DI-LEO-AI-145: skip if encounter is also a referral; "Fast track
+        # referral for suspected X" contains cancer terms but represents
+        # a suspected case only -- confirmed diagnosis comes later.
+        # DI-LEO-AI-182: rejection/resubmission encounters are also
+        # referral-class events; they must not emit benign or diagnosis.
+        _is_referral_enc = bool(
+            is_referral_rejected
+            or is_referral_resubmitted
+            or _RE_REFERRAL_PRISM.search(text)
+            or (_RE_REFERRAL.search(text) and not is_first_seen_note)
+        )
+        if has_cancer and has_confirmed and not has_no_cancer and not _is_referral_enc:
             s = _TEXT_SENTINEL["diagnosis_cancer"]
-            diagnoses.append({**base, **s})
+            extra: dict[str, Any] = {}
+            if _malignancy_hit is not None:
+                extra["diagnosis_source"] = "problem_list_code"
+                extra["diagnosis_code"] = _malignancy_hit[0]
+                extra["confidence"] = 0.9
+            elif _malignancy_term_hit is not None:
+                extra["diagnosis_source"] = "malignancy_term_problem_line"
+                extra["diagnosis_term"] = _malignancy_term_hit[0]
+                extra["confidence"] = 0.85
+                extra["hitl_required"] = True
+            elif _active_care_hit is not None:
+                extra["diagnosis_source"] = "active_cancer_care_code"
+                extra["diagnosis_code"] = _active_care_hit
+                extra["confidence"] = 0.85
+                extra["hitl_required"] = True
+            elif _drug_supports_diagnosis and _drug_hit is not None:
+                extra["diagnosis_source"] = "adjuvant_therapy_drug"
+                extra["diagnosis_drug"] = _drug_hit[0]
+                extra["diagnosis_drug_indication"] = _drug_hit[2]
+                extra["confidence"] = 0.75
+                extra["hitl_required"] = True
+            elif _follow_up_hit is not None:
+                # DI-LEO-AI-177: cancer follow-up template recogniser.
+                extra["diagnosis_source"] = "cancer_follow_up_template"
+                extra["diagnosis_term"] = _follow_up_hit[0]
+                extra["confidence"] = 0.8
+                extra["hitl_required"] = True
+                if "site_key" not in base and _follow_up_hit[1]:
+                    base["site_key"] = _follow_up_hit[1]
+                    base["site_hits"] = [_follow_up_hit[0]]
+                    base["site_source"] = "cancer_follow_up_template"
+            diagnoses.append({**base, **s, **extra})
 
-        # Benign closure
-        if has_no_cancer:
+        # Benign closure -- also guarded from referral encounters
+        # (DI-LEO-AI-145).
+        #
+        # DI-LEO-AI-178: do NOT emit a benign_closure when the only
+        # signal is a broad disposition phrase ("discharged from clinic",
+        # "no further action", "discharge back to GP" etc.) firing in an
+        # encounter with no cancer-pathway context. We split signals
+        # into definitive benign findings (inherently benign histology
+        # such as "lipoma", "fibroadenoma", "no malignant cells",
+        # "unremarkable histology") and generic disposition phrases.
+        # Definitive findings are always sufficient. Generic phrases
+        # require ONE of:
+        #   - a concrete benign Read code hit, OR
+        #   - a benign-investigation-phrase hit that passes the gate, OR
+        #   - cancer-pathway context in the same encounter.
+        _generic_benign_with_context = has_generic_benign_phrase and (
+            text_has_cancer_pathway_context(text)
+            or _benign_code_hit is not None
+            or (_benign_phrase_hit is not None and _phrase_should_count)
+        )
+        _emit_benign = (
+            has_definitive_benign
+            or _benign_code_hit is not None
+            or (_benign_phrase_hit is not None and _phrase_should_count)
+            or _generic_benign_with_context
+        )
+        if _emit_benign and not _is_referral_enc:
             s = _TEXT_SENTINEL["diagnosis_benign"]
-            row_copy = {**base, **s, "is_pathway_completion": True}
-            benign_closures.append(row_copy)
+            extra = {"is_pathway_completion": True}
+            if _benign_code_hit is not None:
+                extra["benign_source"] = "problem_list_code"
+                extra["benign_code"] = _benign_code_hit
+                extra["confidence"] = 0.85
+            elif _benign_phrase_hit is not None and _phrase_should_count:
+                extra["benign_source"] = "investigation_phrase"
+                extra["benign_phrase"] = _benign_phrase_hit
+                extra["confidence"] = 0.8
+            elif has_definitive_benign:
+                extra["benign_source"] = "definitive_benign_finding"
+                extra["confidence"] = 0.8
+            else:
+                extra["benign_source"] = "no_cancer_phrase_in_context"
+                extra["confidence"] = 0.7
+            benign_closures.append({**base, **s, **extra})
 
         # Specialist visit
         if _RE_SPECIALIST.search(text):
             s = _TEXT_SENTINEL["specialist"]
             specialists.append({**base, **s})
 
-        # Treatment
-        if _RE_TREATMENT.search(text):
+        # DI-LEO-AI-145: first_seen -- clinic attendance AFTER referral.
+        # Detected separately from referral to avoid milestone confusion.
+        # Takes priority over generic fast-track referral (guarded above).
+        # DI-LEO-AI-175: an explicit specialist clinic Read code
+        # (e.g. XaPyd "Seen in fast track suspected skin cancer
+        # clinic") is also a first_seen signal even without the
+        # surface-form _RE_FIRST_SEEN match.
+        if is_first_seen_note or _spec_clinic_hit is not None:
+            s = _TEXT_SENTINEL["first_seen"]
+            fs_extra: dict[str, Any] = {"confidence": 0.85}
+            if _spec_clinic_hit is not None:
+                fs_extra["first_seen_source"] = "specialist_clinic_code"
+                fs_extra["first_seen_code"] = _spec_clinic_hit[0]
+                if "site_key" not in base:
+                    base["site_key"] = _spec_clinic_hit[1]
+                    base["site_hits"] = [_spec_clinic_hit[0]]
+                    base["site_source"] = "specialist_clinic_code"
+            first_seens.append({**base, **s, **fs_extra})
+
+        # Treatment - includes free-text patterns AND
+        # CANCER_TREATMENT_PROCEDURE_CODES (DI-LEO-AI-175 - 7G055
+        # wide excision, X90PX biopsy action).
+        if _RE_TREATMENT.search(text) or _treatment_proc_hit is not None:
             s = _TEXT_SENTINEL["treatment"]
-            treatments.append({**base, **s})
+            treatment_extra: dict[str, Any] = {}
+            if _treatment_proc_hit is not None:
+                treatment_extra["treatment_source"] = "procedure_code"
+                treatment_extra["treatment_code"] = _treatment_proc_hit
+            treatments.append({**base, **s, **treatment_extra})
 
     return (
         _dedupe_by_encounter(referrals),
@@ -574,6 +1019,7 @@ def _classify_text_encounters(
         _dedupe_by_encounter(benign_closures),
         _dedupe_by_encounter(specialist_letters),
         first_presentations,  # always empty -- coded path only
+        _dedupe_by_encounter(first_seens),  # DI-LEO-AI-145
     )
 
 
@@ -616,7 +1062,12 @@ def detect_anchors(
         benign_closures,
         specialist_letters,
         first_presentations,
+        _coded_first_seens,  # always empty from coded path; DI-LEO-AI-145
     ) = _classify_anchor_rows(coded_rows, buckets, pathway_completion_ids)
+    # DI-LEO-AI-145: coded path does not produce first_seen anchors; they
+    # come exclusively from text search.  Initialise empty here so the
+    # merge block below is uniform.
+    first_seens: list[dict[str, Any]] = []
     construct_map = _build_construct_anchor_map(coded_rows, registry)
     referrals = _merge_anchor_lists(referrals, construct_map.get("referral", []))
     diagnoses = _merge_anchor_lists(diagnoses, construct_map.get("diagnosis", []))
@@ -656,6 +1107,7 @@ def detect_anchors(
             t_benign,
             t_letters,
             _t_fp,  # always empty; first_presentation is coded-path only
+            t_first_seens,  # DI-LEO-AI-145
         ) = _classify_text_encounters(text_rows, already_coded_ids)
         # Merge: coded anchors first, then text-derived for encounters not
         # already represented in the coded set.
@@ -673,6 +1125,27 @@ def detect_anchors(
         specialist_letters += [
             r for r in t_letters if r["encounter_id"] not in seen_enc
         ]
+        seen_enc = {r["encounter_id"] for r in first_seens}
+        first_seens += [r for r in t_first_seens if r["encounter_id"] not in seen_enc]
+
+    # DI-LEO-AI-145: An encounter coded with BOTH a referral procedure AND a
+    # cancer finding was produced by the PRISM workflow: "Fast track referral
+    # for suspected X cancer".  The cancer concept is SUSPECTED, not confirmed.
+    # Allowing the same encounter to be both a referral anchor and a
+    # diagnosis/benign-closure anchor would fire diagnosis_confirmed on the
+    # GP referral day -- weeks before the histology letter arrives.
+    # Rule: referral encounter IDs are excluded from diagnoses and benign_closures.
+    _referral_enc_ids: set[str] = {
+        str(r.get("encounter_id") or "") for r in referrals
+    }
+    diagnoses = [
+        d for d in diagnoses
+        if str(d.get("encounter_id") or "") not in _referral_enc_ids
+    ]
+    benign_closures = [
+        b for b in benign_closures
+        if str(b.get("encounter_id") or "") not in _referral_enc_ids
+    ]
 
     has_anchors = any(
         (
@@ -683,6 +1156,7 @@ def detect_anchors(
             benign_closures,
             specialist_letters,
             first_presentations,
+            first_seens,
         )
     )
     detection_method = "concept+text" if has_anchors else "none"
@@ -698,6 +1172,7 @@ def detect_anchors(
         benign_closure_anchors=_dedupe_by_encounter(benign_closures),
         specialist_outcome_letter_anchors=_dedupe_by_encounter(specialist_letters),
         first_presentation_anchors=_dedupe_first_presentation(first_presentations),
+        first_seen_anchors=_dedupe_by_encounter(first_seens),  # DI-LEO-AI-145
         detection_method=detection_method,
     )
     all_refs = result.referral_anchors
