@@ -1,5 +1,5 @@
 /**
- * VT-LEO-AI-212 -- /care/encounters preview wrapper (DI-LEO-AI-212).
+ * VT-LEO-AI-214 -- /care/encounters preview wrapper (DI-LEO-AI-223).
  *
  * Static-source verification per ui-testing.mdc:
  *   - EncounterPreviewDialog is a thin wrapper that mounts the shared
@@ -24,7 +24,7 @@ function read(rel: string): string {
   return fs.readFileSync(path.join(UI_SRC, rel), "utf-8");
 }
 
-describe("VT-LEO-AI-212 -- /care/encounters preview wrapper", () => {
+describe("VT-LEO-AI-214 -- /care/encounters preview wrapper", () => {
   const PREVIEW_SRC = read(
     "components/mission-control/EncounterPreviewDialog.tsx",
   );

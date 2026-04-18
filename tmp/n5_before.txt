@@ -1,0 +1,31 @@
+================================================================================
+CARE_OBSTRUCTION COHORT SNAPSHOT
+--------------------------------------------------------------------------------
+Total IS_PART_OF edges (milestone=care_obstruction): 383
+Distinct EpisodeOfCare with obstruction:             92
+Distinct Encounter nodes implicated:                 383
+Distinct Patients implicated:                        73
+
+Top 10 patients by care_obstruction edge count:
+--------------------------------------------------------------------------------
+PID             edges   episodes
+4921442355         54          3
+4246897485         23          1
+4505618269         17          2
+4200797127         16          2
+6310920987         13          1
+4563706582         13          2
+6263830379         12          1
+7017599535         11          3
+4483039911         10          1
+4926916703         10          2
+
+Patient 4802892365 -- care_obstruction encounters:
+--------------------------------------------------------------------------------
+  2024-06-04  ep=495e8acd08a91773  site='breast'  eid=586992e5-55a8-4d3f-8ee1-5a3bc8191931
+    text: '09:42 - Surgery: KHATRI, Anjli (Pharmacist) \n Clinical Pharmacist\n   Clinical Pharmacist\n      Seen: Seen by clinical pharmacist (Y20a6)\n   Entries from previous template version\n      Failed encounte'
+  2024-06-04  ep=495e8acd08a91773  site='breast'  eid=870f6585-be3b-4b39-b5a9-b02419381642
+    text: '11:34 - Surgery: KHATRI, Anjli (Pharmacist) \n Clinical Pharmacist\n   Clinical Pharmacist\n      Seen: Seen by clinical pharmacist (Y20a6)\n   Entries from previous template version\n      Failed encounte'
+  2025-07-01  ep=1ecfb55618c2a6d2  site='breast'  eid=a5a8cac6-2382-4ed4-a670-3aec92aa59ab
+    text: '13:39 - Surgery: DAWSON, Claire (Nurse) (Nurse Access Role) \nProblem: Advice on foreign travel (67E..)\nHistory: Was scheduled for MMR booster today - see notes 03.06.25. \nPartner attended for vaccines'
+================================================================================

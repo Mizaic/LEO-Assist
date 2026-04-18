@@ -1,11 +1,11 @@
 /**
- * Thin shared API helpers for the GoldLabelEditorDialog (DI-LEO-AI-208).
+ * Thin shared API helpers for the GoldLabelEditorDialog (DI-LEO-AI-219).
  *
  * Routes:
  *   - patchGoldLabelEntities    -> existing PATCH on the gold label.
- *   - createGoldLabelFromDryRun -> Evaluate-stage seed (DI-LEO-AI-211).
- *   - createGoldLabelFromEncounter -> /care surfaces seed (DI-LEO-AI-209).
- *   - syncCodedLinksFromGold    -> /care surfaces dual save (DI-LEO-AI-210).
+ *   - createGoldLabelFromDryRun -> Evaluate-stage seed (DI-LEO-AI-222).
+ *   - createGoldLabelFromEncounter -> /care surfaces seed (DI-LEO-AI-220).
+ *   - syncCodedLinksFromGold    -> /care surfaces dual save (DI-LEO-AI-221).
  */
 import type { GoldLabel, SavedGoldEntity } from "./types";
 

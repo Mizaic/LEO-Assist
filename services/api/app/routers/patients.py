@@ -70,7 +70,7 @@ class AddCodedLinkRequest(BaseModel):
 
 
 class SyncCodedLinksFromGoldRequest(BaseModel):
-    """Dual-save request from the shared GoldLabelEditorDialog (DI-LEO-AI-210).
+    """Dual-save request from the shared GoldLabelEditorDialog (DI-LEO-AI-221).
 
     The reviewer's edits are sent in the GoldLabel ``entities`` shape.  The
     server diffs them against the live :DOCUMENTS edges, applies the diff
@@ -974,7 +974,7 @@ def recode_coded_link(
         client.close()
 
 
-# -- Dual-save sync (DI-LEO-AI-210) -------------------------------------------
+# -- Dual-save sync (DI-LEO-AI-221) -------------------------------------------
 # The shared GoldLabelEditorDialog opens against the de-identified text
 # (so PHI never enters the gold dataset).  When the reviewer saves on a
 # /care/* surface, the dialog's edits must also be applied back to the

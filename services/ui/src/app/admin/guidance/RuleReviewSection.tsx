@@ -21,7 +21,8 @@ import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import EditRuleDialog from "./EditRuleDialog";
+import EditRuleDialog, { type EditableRule } from "./EditRuleDialog";
+import type { LogicCriterion } from "./EditRuleDialog/types";
 import { compareIsoDateTimeAsc } from "@/lib/dateSort";
 
 interface Criterion {
@@ -118,6 +119,32 @@ interface DiffData {
 
 interface Props {
   refreshKey?: number;
+}
+
+// EditRuleDialog uses a narrower LogicCriterion shape (snomed_concept_id is
+// required and non-null) than the wire Rule shape (where actions can carry a
+// null SNOMED id while awaiting coding). Drop the action when it has no
+// concept id so the dialog never tries to render an uncoded recommendation.
+function ruleToEditable(rule: Rule): EditableRule {
+  let action: LogicCriterion | null = null;
+  if (rule.action && rule.action.snomed_concept_id) {
+    action = {
+      snomed_concept_id: rule.action.snomed_concept_id,
+      preferred_term: rule.action.preferred_term,
+      semantic_tag: rule.action.semantic_tag,
+      term: rule.action.term,
+    };
+  }
+  return {
+    rule_id: rule.rule_id,
+    name: rule.name,
+    strength: rule.strength,
+    guideline_id: rule.guideline_id,
+    chapter_title: rule.chapter_title,
+    recommendation_text: rule.recommendation_text,
+    logic_tree: rule.logic_tree,
+    action,
+  };
 }
 
 /** Colour-coded chip for a diff criterion. */
@@ -818,7 +845,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   return (
     <Box>
       <EditRuleDialog
-        rule={editRule}
+        rule={editRule ? ruleToEditable(editRule) : null}
         open={!!editRule}
         saving={editSaving}
         onClose={() => {

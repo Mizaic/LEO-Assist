@@ -1236,3 +1236,100 @@ def text_has_cancer_pathway_context(text: str) -> bool:
     if not text:
         return False
     return bool(CANCER_PATHWAY_CONTEXT_REGEX.search(text))
+
+
+# ---------------------------------------------------------------------------
+# DI-LEO-AI-219 (Pattern N5): off-pathway non-cancer Problem-header guard
+# ---------------------------------------------------------------------------
+# When a primary-care encounter has explicit ``Problem:`` header(s)
+# whose subject is unambiguously non-cancer (foreign travel, routine
+# vaccination, repeat prescription, sick-note request, hot flushes
+# without cancer context, etc.), incidental cancer mentions in the
+# History/Plan body must NOT fire cancer-pathway milestones such as
+# care_obstruction. The classic failure mode is patient 4802892365's
+# 2025-07-01 MMR/Mexico travel-vaccine encounter, whose body contained
+# "unable to attend for vaccine ... Scheduled for mastectomy on
+# 29.07.25". The care_obstruction regex matched "unable to attend" and
+# emitted a phantom obstruction milestone on the breast pathway, when
+# the encounter is in fact a routine travel-vaccine no-show.
+
+_PROBLEM_HEADER_RX = re.compile(r"(?im)^\s*Problem\s*:\s*(.+?)$")
+
+# Cancer / pathway tokens we look for INSIDE a Problem: header. If any
+# header carries one of these the encounter is treated as cancer-
+# pathway-relevant and the off-pathway guard does NOT fire.
+_PROBLEM_HEADER_CANCER_TOKEN_RX = re.compile(
+    r"\b(?:cancer|carcinoma|malignan\w+|tumou?r|melanoma|lymphoma|"
+    r"leuk(?:a|e)mia|sarcoma|adenocarcinoma|DCIS|LCIS|BCC|SCC|"
+    r"2WW|TWW|two[- ]week|fast[- ]?track|onco\w*|chemo\w*|"
+    r"radiotherap\w*|biops\w*|mastectom\w*|lumpectom\w*|"
+    r"prostatectom\w*|colectom\w*|gastrectom\w*|hysterectom\w*|"
+    r"orchidectom\w*|nephrectom\w*|cystectom\w*|lobectom\w*|"
+    r"pneumonectom\w*|sentinel\s+(?:lymph\s+)?node|"
+    r"MDT|metasta\w+|neoplas\w+|"
+    r"breast|prostate|colorectal|colon|rectal|bladder|kidney|renal|"
+    r"hepatic|pancreas|pancreatic|ovarian|cervical|"
+    r"uterine|endometrial|gastric|oesophageal|esophageal|"
+    r"thyroid|head\s+and\s+neck)\b",
+    re.IGNORECASE,
+)
+
+# Subjects we recognise as unambiguously non-cancer Problem headers.
+# Conservative list: only matches when the header subject is clearly
+# administrative, vaccination, travel, repeat-prescription, or a
+# common non-cancer review template. New subjects can be added here
+# as we encounter them. Order matters only for readability.
+_OFF_PATHWAY_PROBLEM_RX = re.compile(
+    r"(?:"
+    r"advice\s+on\s+foreign\s+travel|"
+    r"foreign\s+travel|"
+    r"travel\s+(?:advice|vaccin\w*|consultation)|"
+    r"(?:influenza|flu|MMR|hepatitis|covid|coronavirus|pneumococcal|"
+    r"shingles|HPV|tetanus|pertussis|meningococcal|yellow\s+fever|"
+    r"typhoid|cholera|rabies|polio|diphtheria|rotavirus|RSV)"
+    r"(?:\s+(?:vaccin\w*|booster|jab|imm\w*))?|"
+    r"(?:vaccin\w+|immunis\w+|immuniz\w+|booster|jab)|"
+    r"(?:repeat|acute|new)\s+(?:medication|prescription|script)|"
+    r"medication\s+review|"
+    r"hot\s+flush\w*|"
+    r"sick\s+note|"
+    r"MED3|"
+    r"fit\s+note|"
+    r"failed\s+encounter|"
+    r"telephone\s+(?:consultation|triage|encounter)|"
+    r"administration|"
+    r"summary\s+care\s+record"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def encounter_problem_is_off_pathway(text: str) -> bool:
+    """DI-LEO-AI-219 (Pattern N5): True when the encounter's Problem
+    header(s) are unambiguously non-cancer and so cancer-pathway
+    milestones should not be emitted from incidental body text.
+
+    Returns True only when ALL of:
+      1. ``text`` contains at least one ``Problem:`` header.
+      2. NONE of the Problem headers carry a cancer / pathway token
+         (cancer terms, 2WW, oncology, chemo/radio, sentinel node,
+         a known cancer-site word).
+      3. At least one Problem header matches the off-pathway list
+         (foreign travel, vaccination, repeat prescription, sick
+         note, hot flushes, etc.).
+
+    The narrow scope is deliberate -- the guard MUST NOT suppress
+    care_obstruction when the patient really does refuse / DNA a
+    cancer-pathway investigation. Encounters without an explicit
+    ``Problem:`` header (e.g. clinic letters, document_transfer
+    rows, free-text notes) are NOT treated as off-pathway and
+    continue to be evaluated normally.
+    """
+    if not text:
+        return False
+    headers = _PROBLEM_HEADER_RX.findall(text)
+    if not headers:
+        return False
+    if any(_PROBLEM_HEADER_CANCER_TOKEN_RX.search(h) for h in headers):
+        return False
+    return any(_OFF_PATHWAY_PROBLEM_RX.search(h) for h in headers)

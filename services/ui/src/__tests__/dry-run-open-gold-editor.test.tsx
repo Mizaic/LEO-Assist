@@ -1,6 +1,6 @@
 /**
- * VT-LEO-AI-192 / VT-LEO-AI-211 -- Dry-run row 'Open in gold editor'
- * mounts the shared GoldLabelEditorDialog inline (DI-LEO-AI-211).
+ * VT-LEO-AI-215 -- Dry-run row 'Open in gold editor'
+ * mounts the shared GoldLabelEditorDialog inline (DI-LEO-AI-222).
  *
  * Replaces the previous window.open / router.push deep-link contract.
  * The reviewer now stays on the console; clicking the pencil icon
@@ -23,7 +23,7 @@ const EVALUATE_SRC = readUI("components/console/EvaluateStage.tsx");
 const PANEL_SRC = readUI("components/gold-dataset/GoldDatasetPanel.tsx");
 const PAGE_SRC = readUI("app/gold-dataset/page.tsx");
 
-describe("VT-192/211 -- Dry-run row 'Open in gold editor' inline dialog", () => {
+describe("VT-LEO-AI-215 -- Dry-run row 'Open in gold editor' inline dialog", () => {
   // -- VT-192-TC-001 -- icon imports retained ------------------------------
   it("TC-001: EvaluateStage imports IconButton + EditNoteIcon for the row pencil", () => {
     expect(EVALUATE_SRC).toMatch(

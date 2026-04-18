@@ -1,0 +1,150 @@
+# -- R-LEO-AI-207 -- De-identification re-anchoring drops or shifts gold entities
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-207"
+  title: "De-identification or span re-anchoring on the live encounter -> gold seeding path silently drops or shifts entities, training the model on a corrupted version of the reviewer's correction"
+
+  hazard:
+    description: >
+      Both the dry-run gold path and the live-encounter gold seed
+      path run the encounter text through libs.utils.deidentify
+      before storing the gold copy. The de-id pass changes string
+      lengths (dates, names, NHS numbers, etc.) and the existing
+      live :DOCUMENTS rows have offsets keyed to the raw text.
+      Span re-anchoring via libs.ner.span_finder cannot always
+      relocate the original evidence in the de-identified text -- a
+      patient name overlapping the entity span, a date inside the
+      evidence sentence, or an NER false positive in deidentify()
+      can all destroy the anchor. If the dialog were to silently
+      use whatever re-anchoring produced, the saved gold record
+      would teach the model an incorrect sentence boundary or
+      drop a clinically-relevant entity altogether.
+    category: "data_protection"
+
+  hazardous_situation: >
+    A reviewer corrects a mis-coded entity on /care/patients. The
+    encounter text contains a patient name embedded in the
+    evidence sentence ("Mr Smith reports worsening chest pain
+    since Monday"). Server-side de-identification replaces "Mr
+    Smith" with a placeholder, shifting all downstream offsets.
+    The span finder cannot relocate the entity's evidence in the
+    de-identified text, so the dual-save endpoint either drops the
+    entity from the gold mirror or anchors it to an unrelated
+    sentence. The reviewer is unaware: the live :DOCUMENTS write
+    succeeded, but the gold mirror that drives future training is
+    incorrect.
+
+  harm:
+    description: >
+      Future model retraining is performed on a corrupted version
+      of the reviewer's correction. The model learns to ignore the
+      pattern the reviewer was trying to teach it (or, worse,
+      learns the wrong pattern) which propagates incorrect coding
+      decisions across many future encounters. A second harm is
+      auditability: a reviewer who later inspects the gold record
+      sees a different entity set from what they remember saving.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-220: the from-encounter endpoint runs span
+        re-anchoring server-side and counts every link that could
+        not be re-anchored (`dropped_link_count`). The dialog
+        surfaces this count to the reviewer in the dialog header
+        on first open so they know the gold copy is incomplete
+        before they edit; the dropped links are NOT silently
+        approximated.
+      implemented_by:
+        - "DI-LEO-AI-220"
+      verified_by:
+        - "VT-LEO-AI-211"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-220 + DI-LEO-AI-221: the gold mirror is a whole-
+        array overwrite (not a merge), so the reviewer's saved
+        entity set IS the gold record. Any entity that the
+        reviewer kept on screen when saving is what gets stored
+        -- there is no second silent re-anchoring step on the way
+        to the gold mirror.
+      implemented_by:
+        - "DI-LEO-AI-220"
+        - "DI-LEO-AI-221"
+      verified_by:
+        - "VT-LEO-AI-211"
+        - "VT-LEO-AI-212"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-220: candidate_id is sha256 of the de-identified
+        text, not the raw text. Repeated saves for the same
+        encounter therefore land on the same TrainingCandidate /
+        GoldLabel rather than producing duplicates with subtly
+        different anchors.
+      implemented_by:
+        - "DI-LEO-AI-220"
+      verified_by:
+        - "VT-LEO-AI-211"
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        QA sweep: a weekly job samples gold-mirror writes from the
+        sync-from-gold endpoint and compares them against the
+        live :DOCUMENTS rows on the same encounter. Drift outside
+        the expected dropped_link_count is flagged for manual
+        review.
+      implemented_by:
+        - "DI-LEO-AI-220"
+        - "DI-LEO-AI-221"
+      verified_by:
+        - "VT-LEO-AI-211"
+        - "VT-LEO-AI-212"
+      effectiveness: "pending"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The dropped-link counter exposes the lossy re-anchoring step
+      to the reviewer before they edit, so a corrupted gold copy
+      cannot be saved silently. The whole-array overwrite contract
+      means the reviewer's on-screen entities are what get stored
+      -- not a re-shifted approximation. Residual risk is limited
+      to (a) the reviewer ignoring a non-zero dropped_link_count
+      and saving anyway (procedural sweep), and (b) the de-id
+      function regressing in a way that causes high dropped_link
+      counts (visible in the QA sweep metric).
+
+  monitoring:
+    monitoring_plan: >
+      Track median and p95 dropped_link_count per call to
+      /training/gold-labels/from-encounter weekly. Investigate any
+      spike above baseline as a likely de-identification or span
+      finder regression.
+    metrics:
+      - "Median dropped_link_count per from-encounter call"
+      - "p95 dropped_link_count per from-encounter call"
+      - "Number of from-encounter calls returning empty entity sets after de-id"
+    review_frequency: "Weekly"
+
+  metadata:
+    identified_by: "Phase 3a design review of POST /training/gold-labels/from-encounter (April 2026)"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags:
+      - "deidentification"
+      - "span-re-anchoring"
+      - "gold-mirror"
+      - "training-data-quality"

@@ -1,5 +1,5 @@
 /**
- * Public surface for the shared gold-label editor (DI-LEO-AI-208).
+ * Public surface for the shared gold-label editor (DI-LEO-AI-219).
  *
  * Consumers should import only from this barrel:
  *

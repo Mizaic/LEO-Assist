@@ -1,7 +1,7 @@
 "use client";
 /**
  * useDualSaveAdapter -- bridges GoldLabelEditorDialog to the
- * dual-save backend (DI-LEO-AI-210).
+ * dual-save backend (DI-LEO-AI-221).
  *
  * Returns an entitySaver function that the dialog calls in place of
  * the default PATCH on the gold label. This adapter posts to

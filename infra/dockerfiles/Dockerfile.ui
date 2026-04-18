@@ -4,16 +4,27 @@ ARG BASE_IMAGE_NODE=node:22-bookworm-slim
 ARG BASE_IMAGE_RUNTIME=gcr.io/distroless/nodejs22-debian13:nonroot
 FROM ${BASE_IMAGE_NODE} AS deps
 WORKDIR /app
-COPY services/ui/package.json services/ui/package-lock.json* ./
-RUN npm ci --omit=dev
+# The UI is an npm workspace package that depends on @leo/design-system,
+# which is also a workspace package (services/design-system). npm ci must
+# run from the monorepo root with the workspace manifests in place,
+# otherwise the @leo/design-system reference is resolved against the public
+# registry and the install fails with a 404.
+COPY package.json package-lock.json ./
+COPY services/ui/package.json ./services/ui/package.json
+COPY services/design-system/package.json ./services/design-system/package.json
+RUN npm ci --omit=dev --workspaces --include-workspace-root
 
 # -- Stage 2: build Next.js standalone bundle ------------------------------
 ARG BASE_IMAGE_NODE
 FROM ${BASE_IMAGE_NODE} AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY services/ui/ .
+COPY --from=deps /app/services/ui/node_modules ./services/ui/node_modules
+COPY package.json package-lock.json ./
+COPY services/design-system ./services/design-system
+COPY services/ui ./services/ui
 ENV NEXT_TELEMETRY_DISABLED=1
+WORKDIR /app/services/ui
 RUN npm run build
 
 # -- Stage 3: distroless runtime (no shell, no npm, no package manager) ---
@@ -24,8 +35,12 @@ ENV NODE_ENV=production
 ENV NODE_OPTIONS=--max-http-header-size=65536
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+# Next.js standalone output for a workspace project lives under
+# .next/standalone/services/ui and references hoisted node_modules at
+# .next/standalone/node_modules. Copy the whole standalone tree so module
+# resolution still works at runtime.
+COPY --from=builder /app/services/ui/.next/standalone ./
+COPY --from=builder /app/services/ui/.next/static ./services/ui/.next/static
+COPY --from=builder /app/services/ui/public ./services/ui/public
 EXPOSE 3000
-CMD ["server.js"]
+CMD ["services/ui/server.js"]

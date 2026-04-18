@@ -1,0 +1,110 @@
+# -- VT-LEO-AI-212 -- POST /patients/.../coded-links/sync-from-gold (dual save)
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-212"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-221"
+    risks:
+      - "R-LEO-AI-206"
+      - "R-LEO-AI-207"
+
+  metadata:
+    title: "sync-from-gold endpoint -- dual save with optimistic concurrency"
+    description: >
+      Verifies the dual-save endpoint used by the shared dialog on
+      /care surfaces. Covers happy path (add/remove/update + gold
+      mirror), the optimistic-concurrency 409, the empty-entities
+      no-op, the no-concept-id skip on the live path, the
+      empty-label-id 422, and the missing-gold-label 502.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/api/tests/test_sync_coded_links_from_gold.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "FastAPI test client (httpx)"
+      - "PatientGraphWriter and KnowledgeGraphClient mocked at session level"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-212-TC-001"
+      case_name: "Happy path -- adds, removes, and updates live links and mirrors entities to GoldLabel"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST a saved entity set that adds one new link, removes one existing link, and updates one existing link; expected_baseline_concept_ids matches the live set"
+          expected_result: "Response live_links_added=1, live_links_removed=1, live_links_updated=1; UPDATE_GOLD_LABEL_ENTITIES called once with the full saved entity array; new baseline_concept_ids reflect the post-write state"
+          verification_method: "automated"
+
+    - case_id: "VT-212-TC-002"
+      case_name: "Optimistic concurrency 409 -- baseline drift blocks all writes"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST with expected_baseline_concept_ids that differs from the live concept_id set"
+          expected_result: "HTTP 409 with explanatory detail; PatientGraphWriter is NOT called; UPDATE_GOLD_LABEL_ENTITIES is NOT called"
+          verification_method: "automated"
+
+    - case_id: "VT-212-TC-003"
+      case_name: "Empty entities -- removes all live links and mirrors empty array to GoldLabel"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "POST with entities=[] and expected_baseline_concept_ids matching the live set"
+          expected_result: "live_links_removed equals the prior live link count; UPDATE_GOLD_LABEL_ENTITIES called with []"
+          verification_method: "automated"
+
+    - case_id: "VT-212-TC-004"
+      case_name: "No concept_id -- entity skipped on live path but persisted in gold mirror"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "POST with one entity that has no concept_id"
+          expected_result: "Entity is excluded from PatientGraphWriter writes; entity is included in the UPDATE_GOLD_LABEL_ENTITIES call"
+          verification_method: "automated"
+
+    - case_id: "VT-212-TC-005"
+      case_name: "Empty label_id -- 422"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "POST with label_id=''"
+          expected_result: "HTTP 422 (Pydantic validation); no writes attempted"
+          verification_method: "automated"
+
+    - case_id: "VT-212-TC-006"
+      case_name: "Missing gold label -- 502 surfaces clearly to the dialog"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "POST when GET_GOLD_LABEL_BY_ID returns no rows"
+          expected_result: "HTTP 502 with detail explaining the missing label; live writes still committed (baseline already validated upstream)"
+          verification_method: "automated"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-212/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-212-EXEC-001"
+      timestamp: "2026-04-18T17:10:00Z"
+      executor: "Rob Smith (developer)"
+      result: "pass"
+      notes: "All cases pass under pytest with KnowledgeGraphClient session.execute_write mocked to invoke the txn callable; mock differentiates GET_GOLD_LABEL_BY_ID from UPDATE_GOLD_LABEL_ENTITIES via 'SET g.entities_json' substring check."

@@ -1,0 +1,81 @@
+# -- DI-LEO-AI-222 -- Evaluate stage mounts the shared editor inline
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-222"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-088"
+  requirement: >
+    The /admin/console "Evaluate" stage SHALL let reviewers open
+    any dry-run row in the shared `GoldLabelEditorDialog` without
+    leaving the console. Clicking the row's "Open in gold editor"
+    icon SHALL POST the dry-run extraction to
+    /training/candidates/from-dry-run, take the full `gold_label`
+    payload from the response, and mount the shared dialog inline
+    above the dry-run table; the table SHALL stay mounted in the
+    background so the reviewer keeps their place.
+  rationale: >
+    Earlier iterations either navigated away to the candidates tab
+    (losing the dry-run context) or opened a new browser window
+    (breaking the back button and losing per-document weight
+    context). An inline mount keeps the reviewer in the evaluation
+    loop while still giving them the full editor surface.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          POST /training/candidates/from-dry-run MUST return a
+          `gold_label` field containing the full GoldLabel payload
+          (label_id, candidate_id, text, entities_json, ...) so the
+          UI can mount the dialog without a second round-trip.
+      - type: "functional"
+        spec: >
+          EvaluateStage MUST mount `GoldLabelEditorDialog` inline
+          when a row is selected (`data-testid="dry-run-gold-editor"`),
+          MUST NOT call `window.open` or `router.push`, and MUST
+          surface the per-row error in the row banner if the seed
+          POST fails.
+      - type: "functional"
+        spec: >
+          The dialog MUST be mounted with `saveMode='gold'` (the
+          dry-run write produces a de-identified gold record only;
+          there is no live encounter to update) and the default
+          `entitySaver` (PATCH on the gold label).
+    constraints:
+      - type: "safety"
+        spec: >
+          PHI MUST never appear in the dry-run gold record.
+          De-identification MUST happen server-side before the
+          candidate is hashed or persisted (already enforced by the
+          existing `from-dry-run` endpoint).
+    dependencies:
+      - "DI-LEO-AI-219"
+    downstream_impacts:
+      - "Reviewer wall-clock per dry-run correction"
+      - "Console session continuity"
+    technical_details:
+      language: "TypeScript + Python"
+      framework: "React + FastAPI"
+      file_structure:
+        - "services/ui/src/components/console/EvaluateStage.tsx"
+        - "services/api/app/routers/training.py"
+      estimated_loc: 120
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-215 verifies the inline mount, the absence of
+      `window.open`/`router.push`, the gold_label payload contract,
+      and the per-row error banner.
+    test_protocol: "VT-LEO-AI-215"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-207"
+  tags:
+    - "ui"
+    - "training-data"
+    - "evaluate"
+    - "console"

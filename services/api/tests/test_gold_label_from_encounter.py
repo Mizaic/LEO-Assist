@@ -1,4 +1,4 @@
-"""VT-LEO-AI-192 -- POST /training/gold-labels/from-encounter.
+"""VT-LEO-AI-211 -- POST /training/gold-labels/from-encounter.
 
 Pins the live-encounter -> draft-GoldLabel seeding contract:
 

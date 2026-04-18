@@ -1,0 +1,22 @@
+{
+  "workshop_id": "fdb999d8-27c3-4e22-b871-5d5d4d2a49d7",
+  "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
+  "fired": {
+    "MR-001": {"fmea_item_id": "63ae272c-63f6-417e-a6f0-2fa2a1f585e8", "risk_id": "R-25D42C4D", "risk_uuid": "25d42c4d-7e02-4678-a607-5acd128db147", "step1_add": "ok", "step2_promote": "ok", "step3_update": "ok", "step4_product": "ok", "step5_un": "ok", "step6_di": "ok", "completed": true, "completed_at": "2026-04-18T12:47:00Z"},
+    "MR-002": {"fmea_item_id": "b3bd5a22-9ea5-4ba3-bad2-b9edbd6b6b84", "risk_id": "R-6FEF2A2F", "risk_uuid": "6fef2a2f-50a2-46da-98e3-df9721b2a973", "step1_add": "ok", "step2_promote": "ok", "step3_update": "ok", "step4_product": "ok", "step5_un": "ok", "step6_di": "ok", "completed": true, "completed_at": "2026-04-18T12:48:00Z"},
+    "MR-003": {"fmea_item_id": "79db0dd9-0e11-47e8-a08c-76c83f4eb2cb", "risk_id": "R-0B50DE56", "risk_uuid": "0b50de56-d747-4a5b-bdb3-01134bc64c0b", "step1_add": "ok", "step2_promote": "ok", "step3_update": "ok", "step4_product": "ok", "step5_un": "ok", "step6_di": "ok", "completed": true, "completed_at": "2026-04-18T12:49:00Z"}
+  },
+  "failed": {},
+  "metrics": {
+    "fmea_items_created": 3,
+    "risks_promoted": 3,
+    "risks_updated": 3,
+    "product_links_ok": 3,
+    "un_links_ok": 3,
+    "di_links_ok": 3,
+    "errors": 0
+  },
+  "started_at": "2026-04-18T12:46:00Z",
+  "last_updated_at": "2026-04-18T12:49:00Z",
+  "notes": "v2 state for bulk fire of 156 records via FMEA flow. Atlas DIs derived via di_matcher.py."
+}

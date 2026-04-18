@@ -7,7 +7,7 @@ interface Props {
   };
 }
 
-// DI-LEO-AI-209: the legacy /encounters/view/{id} route is retired
+// DI-LEO-AI-220: the legacy /encounters/view/{id} route is retired
 // alongside the EncounterCodedView page.  Redirect to the modern
 // patient encounters tab so the reviewer can re-open the shared
 // GoldLabelEditorDialog from the timeline.

@@ -73,8 +73,7 @@ describe("VT-LEO-AI-166 -- API client", () => {
 
   beforeEach(() => {
     fetchMock = jest.fn();
-    // @ts-expect-error -- override global fetch for the test env
-    global.fetch = fetchMock;
+    global.fetch = fetchMock as unknown as typeof fetch;
   });
 
   test("TC-004: listPatients hits the scoped guideline endpoint", async () => {
@@ -287,8 +286,7 @@ describe("VT-LEO-AI-168 -- Replay diagnostics use bitmap evaluator", () => {
         ok: true,
         json: async () => DIAGNOSE_RESPONSE,
       });
-      // @ts-expect-error -- override fetch for the test env
-      global.fetch = fetchMock;
+      global.fetch = fetchMock as unknown as typeof fetch;
 
       const rules: Record<string, RuleContext> = {
         "rule:NG12:lung": {
@@ -385,8 +383,7 @@ describe("VT-LEO-AI-168 -- Replay diagnostics use bitmap evaluator", () => {
         text: async () =>
           "Rule not found in active ruleset. The rule may need to be recompiled (POST /terminology/guidelines/bitmap/compile).",
       });
-      // @ts-expect-error -- override fetch for the test env
-      global.fetch = fetchMock;
+      global.fetch = fetchMock as unknown as typeof fetch;
 
       render(
         <ReplayResultsDialog
@@ -463,8 +460,7 @@ describe("VT-LEO-AI-176 -- Test patients can be edited in place", () => {
         expectations_written: 1,
       }),
     });
-    // @ts-expect-error -- override global fetch for the test env
-    global.fetch = fetchMock;
+    global.fetch = fetchMock as unknown as typeof fetch;
     const result = await updatePatient("tp1", {
       patient: {
         codes: ["100"],

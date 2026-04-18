@@ -1,5 +1,5 @@
 /**
- * VT-LEO-AI-208 -- Shared GoldLabelEditorDialog surface (DI-LEO-AI-208).
+ * VT-LEO-AI-213 -- Shared GoldLabelEditorDialog surface (DI-LEO-AI-219).
  *
  * Static-source verification per ui-testing.mdc:
  *   - The shared module re-exports the dialog under a stable name.
@@ -20,7 +20,7 @@ function read(rel: string): string {
   return fs.readFileSync(path.join(UI_SRC, rel), "utf-8");
 }
 
-describe("VT-LEO-AI-208 -- shared GoldLabelEditorDialog surface", () => {
+describe("VT-LEO-AI-213 -- shared GoldLabelEditorDialog surface", () => {
   const PANEL_SRC = read("components/gold-dataset/GoldDatasetPanel.tsx");
   const DIALOG_SRC = read("components/gold-editor/GoldLabelEditorDialog.tsx");
   const INDEX_SRC = read("components/gold-editor/index.ts");
@@ -50,7 +50,7 @@ describe("VT-LEO-AI-208 -- shared GoldLabelEditorDialog surface", () => {
     expect(PANEL_SRC).toMatch(
       /\{saveMode === "dual" && \([\s\S]{0,400}data-testid="dual-save-banner"/,
     );
-    expect(PANEL_SRC).toContain("R-LEO-AI-187");
+    expect(PANEL_SRC).toContain("R-LEO-AI-206");
   });
 
   it("TC-005: shared barrel re-exports the dialog as GoldLabelEditorDialog", () => {

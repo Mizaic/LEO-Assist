@@ -206,7 +206,7 @@ export default function EncounterMissionControl() {
 
   // The shared GoldLabelEditorDialog seeds itself from
   // /training/gold-labels/from-encounter, so the preview no longer needs
-  // a separate coded-links prefetch (DI-LEO-AI-212).
+  // a separate coded-links prefetch (DI-LEO-AI-223).
 
   const toggleSelection = (item: EncounterListItem) => {
     setSelected((prev) => {

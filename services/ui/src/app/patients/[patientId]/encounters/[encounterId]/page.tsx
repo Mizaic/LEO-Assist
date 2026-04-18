@@ -7,7 +7,7 @@ interface Props {
   };
 }
 
-// DI-LEO-AI-209: the dedicated EncounterCodedView page is retired in
+// DI-LEO-AI-220: the dedicated EncounterCodedView page is retired in
 // favour of the shared GoldLabelEditorDialog launched inline from the
 // patient encounters tab.  Any deep links that still hit this route
 // land on the patient page so the reviewer can re-open the encounter

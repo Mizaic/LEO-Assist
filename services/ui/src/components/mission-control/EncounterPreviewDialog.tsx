@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * EncounterPreviewDialog (DI-LEO-AI-212).
+ * EncounterPreviewDialog (DI-LEO-AI-223).
  *
  * Thin wrapper around the shared GoldLabelEditorDialog used on the
  * /care/encounters mission-control surface. It seeds a gold label from
@@ -13,7 +13,7 @@
  * Saving the dialog
  *   - updates :DOCUMENTS coded links on the live encounter, and
  *   - mirrors a de-identified copy onto the linked GoldLabel for
- *     training (DI-LEO-AI-209/210).
+ *     training (DI-LEO-AI-220/221).
  */
 
 import { useCallback, useEffect, useState } from "react";

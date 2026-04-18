@@ -1,4 +1,4 @@
-"""VT-LEO-AI-193 -- POST /patients/.../coded-links/sync-from-gold.
+"""VT-LEO-AI-212 -- POST /patients/.../coded-links/sync-from-gold.
 
 Pins the dual-save contract used by the shared GoldLabelEditorDialog
 on /care/* surfaces:

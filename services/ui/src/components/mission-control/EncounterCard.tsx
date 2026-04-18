@@ -41,7 +41,7 @@ interface EncounterCardProps {
   onRequestReset: () => void;
   /** Called after the editor dialog successfully syncs live coded
    *  links and the gold mirror, so the parent can refresh its cached
-   *  view of :DOCUMENTS for this encounter (DI-LEO-AI-209/210). */
+   *  view of :DOCUMENTS for this encounter (DI-LEO-AI-220/221). */
   onCodingChanged?: () => void;
 }
 
@@ -67,7 +67,7 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
     } = props;
     const encounterKey = String(enc.encounter_id);
 
-    // Inline shared editor state (DI-LEO-AI-209/210) -- replaces the
+    // Inline shared editor state (DI-LEO-AI-220/221) -- replaces the
     // legacy /care/patients/.../encounters/.../ deep-link page so the
     // reviewer never loses their place in the patient timeline.
     const [openingEditor, setOpeningEditor] = useState(false);

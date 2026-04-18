@@ -1,0 +1,105 @@
+# -- DI-LEO-AI-220 -- POST /training/gold-labels/from-encounter
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-220"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-088"
+  requirement: >
+    The system SHALL expose POST
+    /training/gold-labels/from-encounter that takes a (patient_id,
+    encounter_id) pair from a clinically-scoped caller, fetches the
+    live encounter text and its current :DOCUMENTS coded links,
+    de-identifies the text server-side, re-anchors the coded links
+    onto the de-identified text, creates (or returns) the matching
+    TrainingCandidate and a draft GoldLabel keyed by the de-id text
+    hash, and returns the full GoldLabel along with the live
+    `baseline_concept_ids` and the count of links that could not be
+    re-anchored after de-identification.
+  rationale: >
+    The shared dialog needs a single seeding endpoint for /care
+    surfaces. Doing the de-identification, re-anchoring, and
+    candidate/label upsert on the server keeps the security
+    boundary in one place: the UI never touches PHI, and the
+    candidate/label records are guaranteed to match what the next
+    dual-save call will see.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          The endpoint MUST require the caller to be in patient
+          scope (`require_patient_in_scope`) and 404 when the
+          encounter does not exist.
+      - type: "functional"
+        spec: >
+          The endpoint MUST de-identify the encounter text via
+          `libs.utils.deidentify.deidentify_text(text, ner=True)`
+          before it is hashed or persisted.
+      - type: "functional"
+        spec: >
+          `candidate_id` MUST be sha256(de-identified text) so that
+          repeated calls for the same encounter return the same
+          TrainingCandidate.
+      - type: "functional"
+        spec: >
+          Live :DOCUMENTS rows MUST be re-anchored by calling
+          `libs.ner.span_finder.find_span` against the de-identified
+          text; rows whose evidence cannot be re-anchored MUST be
+          dropped and counted in `dropped_link_count`.
+      - type: "functional"
+        spec: >
+          The response payload MUST include `candidate_id`,
+          `label_id`, `source` ('live_encounter_correction'),
+          `patient_id`, `encounter_id`, `source_coded_links_count`,
+          `entity_count`, `dropped_link_count`,
+          `baseline_concept_ids`, and the full `gold_label`
+          (canonical entity shape with snomed_concept_id, snomed_term,
+          semantic_tag, assertion, body_site_*).
+      - type: "functional"
+        spec: >
+          NER labels for synthesised gold entities MUST be derived
+          from the live link's semantic tag via
+          `_ner_label_for_semantic_tag` (reverse of
+          `LABEL_TO_SNOMED_TAG`); unknown tags MUST fall back to a
+          conservative default rather than failing the request.
+    constraints:
+      - type: "safety"
+        spec: >
+          The endpoint MUST refuse to create a candidate or label
+          when the de-identified text is empty (returns 400) so the
+          gold dataset never holds an empty-text record.
+      - type: "safety"
+        spec: >
+          The candidate/label upsert MUST be idempotent: a second
+          POST MUST NOT duplicate the candidate, the label, or the
+          entity rows.
+    dependencies: []
+    downstream_impacts:
+      - "Adds a new write path into the gold training dataset from /care surfaces"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI + Neo4j"
+      file_structure:
+        - "services/api/app/routers/training.py"
+      estimated_loc: 220
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-211 covers the happy path, idempotency on repeat
+      calls, the dropped-links accounting, the empty-text 400, the
+      missing-encounter 404, and the semantic-tag normalisation
+      fallback.
+    test_protocol: "VT-LEO-AI-211"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-206"
+    - "R-LEO-AI-207"
+  tags:
+    - "training-data"
+    - "deidentification"
+    - "gold-mirror"
+    - "live-encounters"

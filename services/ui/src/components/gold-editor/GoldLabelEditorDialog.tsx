@@ -1,6 +1,6 @@
 "use client";
 /**
- * GoldLabelEditorDialog -- shared editor surface (DI-LEO-AI-208).
+ * GoldLabelEditorDialog -- shared editor surface (DI-LEO-AI-219).
  *
  * Re-exports the canonical GoldLabelDetailDialog from
  * @/components/gold-dataset/GoldDatasetPanel under a stable name so
@@ -15,7 +15,7 @@
  *                       which writes both the live :DOCUMENTS rels
  *                       and the de-identified gold copy.
  *
- * R-LEO-AI-187 governs the safety controls on the dual-save path.
+ * R-LEO-AI-206 governs the safety controls on the dual-save path.
  */
 import { GoldLabelDetailDialog } from "@/components/gold-dataset/GoldDatasetPanel";
 

@@ -1,0 +1,78 @@
+# -- UN-LEO-AI-088 -- One editor for live encounter codes and gold training data
+# IEC 62304 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-088"
+  title: "Reviewers must be able to edit the codes on any encounter -- a dry-run row, a candidate, a search hit, or a live patient encounter -- using one editor that always feeds the model"
+
+  description: |
+    Today the codes attached to an encounter live in three different
+    places, each with its own editor:
+
+      - GoldLabel rows on /admin/training (the candidates tab) edit
+        only the de-identified gold training copy
+      - The /admin/console dry-run table can show errors but the
+        reviewer has to navigate away to fix them
+      - /care/patients and /care/encounters use a separate full-page
+        editor that updates live :DOCUMENTS edges in Neo4j and never
+        contributes back to training
+
+    The reviewer needs one editor that opens in place on every surface
+    and behaves correctly for that surface:
+
+      - On the candidates tab the editor saves only to the GoldLabel
+        (today's behaviour, unchanged).
+      - On the dry-run table the editor seeds itself from the dry-run
+        output, the reviewer corrects the entities, and saving
+        contributes a de-identified copy to the gold training data.
+      - On /care/patients and /care/encounters the editor seeds itself
+        from the live :DOCUMENTS edges, the reviewer corrects the
+        codes, and saving updates the live encounter AND mirrors a
+        de-identified copy onto the linked GoldLabel for training.
+
+    The reviewer must never have to navigate away from the surface
+    they are working on, must never have to copy/paste the encounter
+    text, and must never see PHI in the gold training copy.
+
+  stakeholder: "Clinical reviewers, training data curators, QA / RA lead"
+
+  priority: "MUST"
+
+  rationale: >
+    Reviewers told us that the cost of fixing a single mis-coded
+    encounter today is high enough that they leave most errors alone:
+    they would have to leave the search results, find the encounter
+    in another surface, edit it there, then find their place again.
+    The same reviewers also told us that they wanted every correction
+    they made on /care/* to feed the model, not just the explicit
+    training tab. Consolidating to a single editor with surface-aware
+    save semantics removes both blockers without changing what each
+    surface is allowed to write to.
+
+  acceptance_criteria:
+    - "The same dialog component is mounted on /admin/training (candidates tab), /admin/console (dry-run rows), /care/patients (encounter card), and /care/encounters (search results)"
+    - "On candidates the dialog continues to save only to the GoldLabel (no behavioural change for the existing flow)"
+    - "On dry-run rows the dialog seeds itself from the dry-run extraction and saves a de-identified copy to gold training"
+    - "On /care/* the dialog seeds itself from the live encounter, and saving (a) updates :DOCUMENTS coded links AND (b) mirrors a de-identified copy onto the linked GoldLabel"
+    - "On /care/* dual saves are atomic at the API level: the live write and the gold mirror either both succeed or both fail with a clear error message"
+    - "On /care/* the dialog refuses to overwrite live data when another writer has changed the encounter since the dialog opened (HTTP 409 surfaced as a human-readable banner)"
+    - "PHI never enters the gold training copy on any surface (de-identification happens server-side before the gold record is written)"
+    - "Match-rationale chips from the search are surfaced inside the dialog header on /care/encounters so the reviewer keeps the search context"
+    - "Legacy full-page editor routes (/patients/{id}/encounters/{eid} and /patients/{id}/encounters/view/{eid}) redirect to /care/patients?... so old bookmarks still work"
+
+  design_inputs:
+    - "DI-LEO-AI-219"
+    - "DI-LEO-AI-220"
+    - "DI-LEO-AI-221"
+    - "DI-LEO-AI-222"
+    - "DI-LEO-AI-223"
+
+  metadata:
+    identified_by: "Rob Smith - clinical reviewer feedback on /admin/console dry-run, /care/patients, and /care/encounters surfaces (April 2026)"
+    identified_date: "2026-04-18"
+    status: "approved"
+    tags:
+      - "training-data"
+      - "ui"
+      - "live-encounters"
+      - "gold-mirror"
+      - "safety-relevant"

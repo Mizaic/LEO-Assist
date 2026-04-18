@@ -6020,7 +6020,7 @@ def candidate_from_dry_run(
                     schema_version="v4",
                 )
 
-            # -- Surface the full GoldLabel payload (DI-LEO-AI-211) --
+            # -- Surface the full GoldLabel payload (DI-LEO-AI-222) --
             # Lets the Evaluate-stage UI mount the shared
             # GoldLabelEditorDialog inline without a second roundtrip.
             # Merge in AI first-pass audit fields the same way
@@ -6066,7 +6066,7 @@ def gold_label_from_encounter(
     payload: EncounterGoldLabelRequest,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    """Open the shared editor against a live patient encounter (DI-LEO-AI-209).
+    """Open the shared editor against a live patient encounter (DI-LEO-AI-220).
 
     Used by the EncounterCard "Edit codes" button on /care/patients and
     by the EncounterPreviewDialog on /care/encounters.  Returns a draft

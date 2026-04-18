@@ -1,0 +1,118 @@
+# -- VT-LEO-AI-211 -- POST /training/gold-labels/from-encounter
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-211"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-220"
+    risks:
+      - "R-LEO-AI-206"
+      - "R-LEO-AI-207"
+
+  metadata:
+    title: "from-encounter endpoint -- de-id, re-anchor, idempotent upsert"
+    description: >
+      Verifies the contract for the live encounter -> draft GoldLabel
+      seeding endpoint used by /care surfaces. Covers happy path,
+      idempotency, dropped-link accounting, empty-text rejection,
+      missing-encounter 404, and semantic-tag normalisation.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/api/tests/test_gold_label_from_encounter.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "FastAPI test client (httpx)"
+      - "KnowledgeGraphClient mocked at the session level"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-211-TC-001"
+      case_name: "Happy path -- de-identifies encounter, re-anchors links, returns full GoldLabel"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST {patient_id, encounter_id} for an encounter with raw text containing PHI and N coded links whose evidence is preserved after de-id"
+          expected_result: "Response includes label_id, candidate_id, source='live_encounter_correction', baseline_concept_ids matching the live concept_ids, source_coded_links_count=N, entity_count=N, dropped_link_count=0, and a populated gold_label payload"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "candidate_id == sha256(de-identified text)"
+        - "gold_label.entities[*] carries snomed_concept_id, snomed_term, semantic_tag, assertion"
+
+    - case_id: "VT-211-TC-002"
+      case_name: "Idempotent upsert -- second POST returns the same candidate and label"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST twice for the same (patient_id, encounter_id)"
+          expected_result: "Both responses return the same candidate_id and label_id; no duplicate gold rows are created"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "candidate_id and label_id are stable across calls"
+
+    - case_id: "VT-211-TC-003"
+      case_name: "Dropped link accounting -- links whose evidence cannot be re-anchored are dropped and counted"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST for an encounter where de-identification destroys at least one link's evidence anchor"
+          expected_result: "dropped_link_count > 0; the affected entity is excluded from gold_label.entities; the response still succeeds"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "dropped_link_count is the exact number of un-anchorable links"
+
+    - case_id: "VT-211-TC-004"
+      case_name: "Empty de-identified text -- 400 with explanatory message"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "POST for an encounter whose de-identified text is empty"
+          expected_result: "HTTP 400 with detail mentioning the empty text condition"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No candidate or label is created"
+
+    - case_id: "VT-211-TC-005"
+      case_name: "Missing encounter -- 404"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "POST for an encounter_id that does not exist"
+          expected_result: "HTTP 404"
+          verification_method: "automated"
+
+    - case_id: "VT-211-TC-006"
+      case_name: "Semantic tag normalisation -- unknown tags fall back to default"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "POST for an encounter whose live link carries a semantic tag absent from LABEL_TO_SNOMED_TAG"
+          expected_result: "The synthesised entity carries a conservative default NER label rather than failing the request"
+          verification_method: "automated"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-211/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-211-EXEC-001"
+      timestamp: "2026-04-18T16:55:00Z"
+      executor: "Rob Smith (developer)"
+      result: "pass"
+      notes: "All cases pass under pytest with KnowledgeGraphClient mocked at session level."

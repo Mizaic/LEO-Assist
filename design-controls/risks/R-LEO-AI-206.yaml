@@ -1,0 +1,138 @@
+# -- R-LEO-AI-206 -- Reviewer overwrites live encounter codes from the shared editor
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-206"
+  title: "Dual-save editor on /care surfaces silently overwrites pipeline writes or peer reviewer edits, causing loss of clinically-relevant coded data"
+
+  hazard:
+    description: >
+      The shared GoldLabelEditorDialog opens on /care/patients and
+      /care/encounters in saveMode='dual', meaning a save updates
+      live :DOCUMENTS coded links AND mirrors a de-identified copy
+      onto the linked GoldLabel. If two reviewers open the dialog
+      on the same encounter at roughly the same time, or a coding
+      pipeline run writes to the encounter while the dialog is
+      open, a naive "last writer wins" save would silently overwrite
+      the other writer's work. The same risk applies if a reviewer
+      opens the dialog, walks away, and saves much later.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A reviewer on /care/encounters opens an encounter to correct
+    one mis-coded entity. While the dialog is open, a coding
+    pipeline run finishes and writes a new safety-relevant code to
+    the same encounter. The reviewer clicks Save, which would
+    overwrite the pipeline write with the reviewer's older snapshot
+    -- removing the safety-relevant code from the live patient
+    record without any audit trail in the editor.
+
+  harm:
+    description: >
+      Loss of clinically-relevant coded information from a live
+      patient encounter. Downstream pipelines (dashboards,
+      escalations, safety alerts) that depend on the lost code
+      would fail to fire, delaying clinical action. Repeat
+      overwrites would also corrupt the gold training dataset,
+      teaching the model to ignore the dropped code.
+    severity: "serious"
+
+  hazardous_situation_likelihood: >
+    Medium. /care/patients and /care/encounters are accessed by
+    multiple reviewers concurrently and the coding pipeline runs
+    on a continuous schedule.
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-221: the dual-save endpoint
+        /patients/.../coded-links/sync-from-gold rejects the write
+        with HTTP 409 when the live concept_id set has drifted from
+        the dialog's `expected_baseline_concept_ids`. The dialog
+        surfaces the 409 as a "the encounter was changed elsewhere
+        - refresh and try again" banner; the reviewer's saved
+        entity set is preserved for the retry.
+      implemented_by:
+        - "DI-LEO-AI-221"
+      verified_by:
+        - "VT-LEO-AI-212"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-219: when mounted in saveMode='dual' the dialog
+        renders an unmistakable warning banner before any save
+        control is interactive, citing R-LEO-AI-206 directly so
+        reviewers understand the broader scope of writes.
+      implemented_by:
+        - "DI-LEO-AI-219"
+      verified_by:
+        - "VT-LEO-AI-213"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-221: the live diff/apply on the dual-save
+        endpoint goes through PatientGraphWriter so every add /
+        remove / update on a coded link is captured by the existing
+        audit trail; lost writes are recoverable from the audit
+        log.
+      implemented_by:
+        - "DI-LEO-AI-221"
+      verified_by:
+        - "VT-LEO-AI-212"
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Dashboard alert when 409 rate exceeds threshold so
+        contention spikes (e.g. a mis-scheduled pipeline run) are
+        surfaced quickly.
+      implemented_by:
+        - "DI-LEO-AI-221"
+      verified_by:
+        - "VT-LEO-AI-212"
+      effectiveness: "pending"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the optimistic-concurrency check on concept_id set, a
+      silent overwrite is structurally impossible: any drift since
+      the dialog opened is detected before the live write fires
+      and surfaced to the reviewer as a 409 banner. The residual
+      risk is limited to (a) drift on properties OTHER than
+      concept_id (e.g. assertion change with same code) which the
+      dialog still re-saves on top of -- monitored via the audit
+      trail, and (b) a future change that bypasses the
+      sync-from-gold endpoint, which is caught by VT-LEO-AI-212.
+
+  monitoring:
+    monitoring_plan: >
+      Track 409 rate on /coded-links/sync-from-gold weekly. Sample
+      audit-trail diffs for any encounter where the dual-save
+      endpoint fired more than three times in a week to confirm
+      reviewers are not papering over genuine pipeline conflicts.
+    metrics:
+      - "409 conflict rate on POST /coded-links/sync-from-gold"
+      - "Number of successful dual saves per reviewer per week"
+      - "Audit-trail diff sample count per encounter (target: median 1, p95 < 3)"
+    review_frequency: "Weekly"
+
+  metadata:
+    identified_by: "Phase 3b design review of POST /coded-links/sync-from-gold (April 2026)"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags:
+      - "live-encounters"
+      - "concurrency"
+      - "dual-save"
+      - "audit-trail"

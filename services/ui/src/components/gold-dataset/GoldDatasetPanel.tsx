@@ -1178,10 +1178,10 @@ function AnnotationGuidelinesPanel({
 // This is the wire shape produced by the dialog when persisting changes.
 // Default save mode posts it to PATCH /training/gold-labels/{id}/entities.
 // Dual-save consumers (e.g. /care/patients, /care/encounters in
-// DI-LEO-AI-210) pass a custom `entitySaver` that posts to
+// DI-LEO-AI-221) pass a custom `entitySaver` that posts to
 // /patients/{p}/encounters/{e}/coded-links/sync-from-gold so the live
 // :DOCUMENTS coded links are mirrored alongside the de-identified
-// gold training copy. R-LEO-AI-187 governs the safety controls on
+// gold training copy. R-LEO-AI-206 governs the safety controls on
 // the dual-save path.
 export interface SavedGoldEntity {
   text: string;
@@ -1233,7 +1233,7 @@ export function GoldLabelDetailDialog({
   onDeleteCandidate?: (suppressText: boolean) => void;
   markingGold?: boolean;
   annotationGuidelines?: string | null;
-  // -- Shared component plumbing (DI-LEO-AI-208) -----------------------
+  // -- Shared component plumbing (DI-LEO-AI-219) -----------------------
   // saveMode: 'gold' (default, candidates+evaluate) writes only to the
   //   GoldLabel via PATCH /training/gold-labels/{id}/entities.
   //   'dual' enables the explicit warning banner used on the /care
@@ -1245,7 +1245,7 @@ export function GoldLabelDetailDialog({
   //   resolves (in addition to onEntitiesChanged).
   // headerChrome: optional React node rendered just below the title
   //   strip, intended for surface-specific context like search match
-  //   rationale chips on /care/encounters (DI-LEO-AI-212).
+  //   rationale chips on /care/encounters (DI-LEO-AI-223).
   saveMode?: GoldDialogSaveMode;
   entitySaver?: GoldDialogEntitySaver;
   onAfterSave?: () => void;
@@ -2283,7 +2283,7 @@ export function GoldLabelDetailDialog({
               icon={<InfoOutlinedIcon fontSize="inherit" />}
             >
               Saving here updates the live coded data on this encounter and
-              records a de-identified copy in gold training (R-LEO-AI-187).
+              records a de-identified copy in gold training (R-LEO-AI-206).
             </Alert>
           )}
           {saveError && (

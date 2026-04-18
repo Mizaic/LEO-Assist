@@ -1,5 +1,5 @@
 /**
- * Shared types for the GoldLabelEditorDialog (DI-LEO-AI-208).
+ * Shared types for the GoldLabelEditorDialog (DI-LEO-AI-219).
  *
  * Re-exports the canonical GoldLabel + Entity shapes so consumers
  * (Evaluate stage, /care/patients, /care/encounters, candidates tab)
@@ -29,7 +29,7 @@ export type {
  * into the dialog wrapper alongside the GoldLabel that came back from
  * `POST /training/gold-labels/from-encounter` so the sync-from-gold
  * call can target the correct live encounter and detect optimistic
- * concurrency drift via baseline_concept_ids (R-LEO-AI-187).
+ * concurrency drift via baseline_concept_ids (R-LEO-AI-206).
  */
 export interface DualSaveEncounterContext {
   patient_id: string;

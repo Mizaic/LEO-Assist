@@ -21,6 +21,7 @@ from services.analysis_worker.app.analyzers.cancer_site_terms import (
 from libs.domains.code_inventories import (
     BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT,
     adjuvant_therapy_is_newly_issued,
+    encounter_problem_is_off_pathway,
     find_active_cancer_care_code,
     find_adjuvant_therapy_drug,
     find_benign_explanation_code,
@@ -1331,7 +1332,16 @@ def _classify_text_encounters(
         # rejection (workflow) and a care_obstruction (clinical refusal
         # / safeguarding). Emitted whenever the regex hits, regardless
         # of referral / diagnosis classification.
-        if _RE_CARE_OBSTRUCTION.search(text):
+        # DI-LEO-AI-219 (Pattern N5): off-pathway non-cancer Problem-
+        # header guard. When the encounter's Problem header is
+        # unambiguously non-cancer (foreign travel, vaccination, repeat
+        # prescription, sick note, etc.) and the body's cancer mention
+        # is incidental, do NOT emit care_obstruction even if the
+        # regex hits. Closes the patient 4802892365 2025-07-01 MMR /
+        # Mexico travel-vaccine misfire.
+        if _RE_CARE_OBSTRUCTION.search(text) and not encounter_problem_is_off_pathway(
+            text
+        ):
             s = _TEXT_SENTINEL["care_obstruction"]
             care_obstructions.append(
                 {

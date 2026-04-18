@@ -21,12 +21,19 @@ import json
 import re
 from pathlib import Path
 
+import di_matcher
+
 HERE = Path(__file__).parent
 PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
 WORKSHOP_ID = "fdb999d8-27c3-4e22-b871-5d5d4d2a49d7"
 CSV_PATH = HERE / "MASTER-RISK-LIST-FINAL.csv"
 YAML_INDEX = HERE / "all_yaml_risks_extracted.json"
+ATLAS_INDEX = HERE / "_atlas_index.json"
 OUT_PATH = HERE / "atlas_fmea_payloads.json"
+DI_REPORT_PATH = HERE / "di_mapping_report.csv"
+
+DI_MATCH_TOP_N = 5
+DI_MATCH_MIN_SCORE = 0.30
 
 SEV_LABEL_5 = {1: "negligible", 2: "minor", 3: "serious",
                4: "critical", 5: "catastrophic"}
@@ -365,21 +372,70 @@ def _mitigation_detail(row: dict) -> str:
     return base[:500]
 
 
-def _filter_ids(raw: str, prefix: str) -> list[str]:
-    return [tok for tok in (raw or "").split()
-            if tok.startswith(prefix) and "NEW_" not in tok
-            and "TBD" not in tok]
+ATLAS_ID_RE = re.compile(r"^[A-Z]+-[A-F0-9]{8}$")
 
 
-def build_links(row: dict) -> dict:
+def _atlas_form_only(raw: str) -> list[str]:
+    """Keep only Atlas-form IDs (PREFIX-XXXXXXXX), drop local DI-LEO-AI-NNN."""
+    return [tok for tok in (raw or "").split() if ATLAS_ID_RE.match(tok)]
+
+
+def _build_risk_fingerprint(row: dict, fmea_item: dict,
+                            update_body: dict) -> str:
+    return " ".join([
+        row.get("Title") or "",
+        fmea_item.get("failure_mode") or "",
+        fmea_item.get("failure_effect") or "",
+        fmea_item.get("failure_cause") or "",
+        update_body.get("hazard_description") or "",
+        update_body.get("harm_description") or "",
+    ])
+
+
+def _matched_dis(fingerprint: str, index: di_matcher.Index,
+                 workshop_dis: list[str]) -> tuple[list[str], list[dict]]:
+    matches = di_matcher.match(
+        fingerprint, index,
+        top_n=DI_MATCH_TOP_N, min_score=DI_MATCH_MIN_SCORE,
+    )
+    auto_ids = [m.dc_id for m in matches]
+    merged: list[str] = []
+    seen: set[str] = set()
+    for did in workshop_dis + auto_ids:
+        if did and did not in seen:
+            seen.add(did)
+            merged.append(did)
+    audit = [
+        {"dc_id": m.dc_id, "title": m.title, "score": m.score,
+         "overlap": m.overlap, "source": "auto"}
+        for m in matches
+    ]
+    for did in workshop_dis:
+        if did not in {a["dc_id"] for a in audit}:
+            audit.append({"dc_id": did, "title": "(workshop pick)",
+                          "score": None, "overlap": [], "source": "workshop"})
+    return merged, audit
+
+
+def build_links(row: dict, fmea_item: dict, update_body: dict,
+                index: di_matcher.Index) -> dict:
+    workshop_dis = _atlas_form_only(row.get("Mitigating_DIs", ""))
+    fingerprint = _build_risk_fingerprint(row, fmea_item, update_body)
+    di_ids, audit = _matched_dis(fingerprint, index, workshop_dis)
     return {
-        "un_ids": _filter_ids(row.get("UN_IDs", ""), "UN-"),
-        "di_ids": _filter_ids(row.get("Mitigating_DIs", ""), "DI-"),
+        "product_id": PRODUCT_ID,
+        "un_ids": _atlas_form_only(row.get("UN_IDs", "")),
+        "di_ids": di_ids,
+        "di_audit": audit,
     }
 
 
-def build_record(row: dict, yaml_index: dict) -> dict:
+def build_record(row: dict, yaml_index: dict,
+                 di_index: di_matcher.Index) -> dict:
     yaml_data = yaml_index.get(row.get("Atlas_R_ID"))
+    fmea_item = build_fmea_item(row, yaml_data)
+    update_body = build_update_risk(row, yaml_data)
+    links = build_links(row, fmea_item, update_body, di_index)
     return {
         "master_id": row["Master_ID"],
         "proposed_atlas_r_id": row.get("Atlas_R_ID"),
@@ -389,9 +445,9 @@ def build_record(row: dict, yaml_index: dict) -> dict:
         "needs_new_di": "NEW_DI_NEEDED" in (row.get("Mitigating_DIs") or ""),
         "production_blocker": row.get("Production_Blocker") == "yes",
         "promote_to_risk": True,
-        "add_fmea_item": build_fmea_item(row, yaml_data),
-        "update_risk": build_update_risk(row, yaml_data),
-        "links": build_links(row),
+        "add_fmea_item": fmea_item,
+        "update_risk": update_body,
+        "links": links,
     }
 
 
@@ -412,14 +468,45 @@ def _print_summary(records: list[dict]) -> None:
     print(f"  Needs new UN:        {needs_un}")
     print(f"  Needs new DI:        {needs_di}")
     print(f"  Will promote:        {promote}")
+    di_counts = [len(r["links"]["di_ids"]) for r in records]
+    avg_di = sum(di_counts) / max(len(di_counts), 1)
+    no_di = sum(1 for c in di_counts if c == 0)
+    print(f"  Avg DI links/risk:   {avg_di:.1f}")
+    print(f"  Risks with 0 DIs:    {no_di}")
     print(f"Output: {OUT_PATH.name}")
+    print(f"DI audit report: {DI_REPORT_PATH.name}")
+
+
+def _load_atlas_di_index() -> di_matcher.Index:
+    atlas = json.loads(ATLAS_INDEX.read_text())
+    return di_matcher.build_index(atlas["design_inputs"])
+
+
+def _write_di_report(records: list[dict]) -> None:
+    with DI_REPORT_PATH.open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["master_id", "title", "source", "atlas_di_id",
+                    "atlas_di_title", "score", "overlap_terms"])
+        for rec in records:
+            for entry in rec["links"]["di_audit"]:
+                w.writerow([
+                    rec["master_id"],
+                    rec["add_fmea_item"]["failure_mode"][:80],
+                    entry["source"],
+                    entry["dc_id"],
+                    entry["title"][:80],
+                    entry["score"] if entry["score"] is not None else "",
+                    "|".join(entry["overlap"]),
+                ])
 
 
 def main() -> None:
     yaml_index = _yaml_data()
+    di_index = _load_atlas_di_index()
     with CSV_PATH.open() as f:
         rows = list(csv.DictReader(f))
-    records = [build_record(r, yaml_index) for r in rows]
+    records = [build_record(r, yaml_index, di_index) for r in rows]
+    _write_di_report(records)
     with OUT_PATH.open("w") as f:
         json.dump({
             "workshop_id": WORKSHOP_ID,

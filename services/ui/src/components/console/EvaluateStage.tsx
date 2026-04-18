@@ -457,7 +457,7 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [openingGoldEditor, setOpeningGoldEditor] = useState<string | null>(null);
-  // -- Inline gold-editor dialog (DI-LEO-AI-211) -----------------------------
+  // -- Inline gold-editor dialog (DI-LEO-AI-222) -----------------------------
   // Replaces the previous window.open workaround so the reviewer never
   // loses their dry-run context. Holds the GoldLabel returned by
   // /training/candidates/from-dry-run; the shared dialog mounts when
@@ -898,7 +898,7 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
         if (!goldLabel || typeof goldLabel.label_id !== "string") {
           throw new Error("Gold editor did not return a gold label payload.");
         }
-        // -- Open the shared editor dialog inline (DI-LEO-AI-211) --
+        // -- Open the shared editor dialog inline (DI-LEO-AI-222) --
         // The reviewer stays on the console, keeps the dry-run table
         // mounted, and edits the GoldLabel right here. Save mode is
         // 'gold' so the dialog uses the default PATCH on the gold
@@ -2227,7 +2227,7 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
           </Button>
         </DialogActions>
       </Dialog>
-      {/* -- DI-LEO-AI-211: shared gold-editor dialog mounted inline ------ */}
+      {/* -- DI-LEO-AI-222: shared gold-editor dialog mounted inline ------ */}
       {goldEditorTarget && (
         <GoldLabelEditorDialog
           key={`evaluate-${goldEditorTarget.label_id}`}

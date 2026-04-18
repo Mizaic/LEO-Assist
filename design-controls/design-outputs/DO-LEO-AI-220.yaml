@@ -1,0 +1,105 @@
+# -- DO-LEO-AI-220 -- /care surfaces consume the shared dialog with dual save
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-220"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-223"]
+    user_needs: ["UN-LEO-AI-088"]
+    risks_addressed: ["R-LEO-AI-206", "R-LEO-AI-207"]
+    verification_tests: ["VT-LEO-AI-214"]
+
+  specification:
+    title: "/care/patients EncounterCard and /care/encounters preview wrapper consume the shared dialog"
+    description: |
+      Two /care surfaces switch from bespoke editors to the shared
+      GoldLabelEditorDialog mounted in saveMode='dual':
+
+        - /care/patients EncounterCard: the "Edit codes" button now
+          opens the shared dialog inline, seeds it via
+          createGoldLabelFromEncounter, and persists via
+          useDualSaveAdapter -> syncCodedLinksFromGold. The parent
+          EncounterTextTab refreshes the cached :DOCUMENTS rows on
+          successful save.
+        - /care/encounters EncounterPreviewDialog: replaced with a
+          thin wrapper that seeds the dialog via
+          createGoldLabelFromEncounter and mounts the shared dialog
+          with saveMode='dual'. Match-rationale chips (date, match
+          type, rationale terms) are passed in via the dialog's
+          headerChrome slot so the reviewer keeps the search
+          context. The legacy coded-links prefetch on
+          EncounterMissionControl is removed.
+
+      Both legacy full-page editor routes
+      (`/patients/{id}/encounters/{eid}` and
+      `/patients/{id}/encounters/view/{eid}`) are replaced with
+      Next.js redirect()s pointing at /care/patients?... and the
+      EncounterCodedView component is deleted.
+
+    acceptance_criteria:
+      - criterion: "EncounterCard mounts the shared dialog inline"
+        type: "functional"
+        measurement: "Test"
+        target: "Edit codes button opens GoldLabelEditorDialog with saveMode='dual', entitySaver from useDualSaveAdapter, onAfterSave that triggers a coded-links refresh"
+      - criterion: "EncounterPreviewDialog passes match rationale via headerChrome"
+        type: "functional"
+        measurement: "Test"
+        target: "headerChrome={<MatchRationaleHeader ... />} is rendered with data-testid='encounter-preview-rationale'"
+      - criterion: "Legacy routes redirect"
+        type: "functional"
+        measurement: "Inspection"
+        target: "Both legacy /encounters routes use redirect() to /care/patients?patient=...&tab=encounters&encounter=..."
+      - criterion: "Legacy editor component deleted"
+        type: "functional"
+        measurement: "Inspection"
+        target: "services/ui/src/components/EncounterCodedView.tsx no longer exists"
+      - criterion: "Mission-control no longer prefetches coded links for preview"
+        type: "functional"
+        measurement: "Test"
+        target: "EncounterMissionControl no longer references fetchEncounterCodedLinks, previewCodedLinks, previewLinksLoading, previewLinksError"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/EncounterCard.tsx"
+        description: "Inline shared-dialog mount + dual-save adapter wiring"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/EncounterTextTab.tsx"
+        description: "onCodingChanged -> per-encounter coded-links refresh"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/EncounterMissionControl.tsx"
+        description: "Drops the legacy coded-links prefetch; forwards onCodingChanged to the preview wrapper"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/EncounterPreviewDialog.tsx"
+        description: "Thin wrapper that seeds + mounts the shared dialog with headerChrome"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/patients/[patientId]/encounters/[encounterId]/page.tsx"
+        description: "redirect() to /care/patients?..."
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/patients/[patientId]/encounters/view/[encounterId]/page.tsx"
+        description: "redirect() to /care/patients?..."
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 280
+      key_functions:
+        - "EncounterCard"
+        - "EncounterPreviewDialog"
+        - "MatchRationaleHeader"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Editing the live :DOCUMENTS coded links that drive downstream pipelines"
+      - "Mirroring edits onto the gold dataset for future model retraining"
+    risk_control_measures:
+      - "saveMode='dual' shows the warning banner so reviewers always understand the broader scope of writes"
+      - "Optimistic concurrency surfaced as a banner; reviewer is prompted to refresh and re-edit"
+      - "Legacy editor surfaces are deleted so there is exactly one code path that can write to coded links from the UI"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

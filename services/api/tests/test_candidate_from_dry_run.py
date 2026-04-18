@@ -53,7 +53,7 @@ def _kg_session_capture(run_lookup: dict[str, Any]):
 
     A default fallback synthesises a GoldLabel row for
     `MATCH (g:GoldLabel {label_id: $label_id})` so the new
-    DI-LEO-AI-211 response shape (`gold_label` payload) can be
+    DI-LEO-AI-222 response shape (`gold_label` payload) can be
     populated without each test having to wire its own mock.
     """
 
@@ -267,7 +267,7 @@ def test_empty_encounter_text_returns_400(client, text):
 
 
 def test_response_carries_full_gold_label_payload(client):
-    """DI-LEO-AI-211: Evaluate-stage callers mount the shared dialog
+    """DI-LEO-AI-222: Evaluate-stage callers mount the shared dialog
     inline using the payload returned here, so the gold_label block
     must include the canonical GoldLabel fields plus the AI first-pass
     audit fields the dialog uses for its 'show original' toggle."""
