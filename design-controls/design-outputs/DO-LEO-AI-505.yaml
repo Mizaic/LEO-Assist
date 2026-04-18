@@ -1,0 +1,90 @@
+# -- DO-LEO-AI-505 -- Episode Engine: Idempotent Writer + Provenance Trace
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-505"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-505"]
+    user_needs: ["UN-LEO-AI-090"]
+    risks_addressed: ["R-LEO-AI-505"]
+    verification_tests: ["VT-LEO-AI-505", "VT-LEO-AI-506", "VT-LEO-AI-507"]
+
+  specification:
+    title: "Episode Engine Writer + Provenance Trace + LangGraph Chain"
+    description: |
+      Idempotent per-patient writer that wipes existing
+      EpisodeOfCare nodes and rewrites the engine output, plus the
+      EpisodeEngineTrace persistence and the LangGraph chain that
+      orchestrates load -> segmenter -> classifier -> milestone
+      extractor -> reconciler -> writer. Includes the
+      ``run_episode_engine`` sync wrapper used by spike scripts and
+      the cohort cutover script.
+    acceptance_criteria:
+      - criterion: "Deterministic episode_id"
+        type: "functional"
+        measurement: "Unit test"
+        target: "Same (patient, site, start) produces the same id; site is case-insensitive"
+      - criterion: "Idempotence"
+        type: "safety"
+        measurement: "Unit test"
+        target: "Apply run issues DETACH DELETE before writing; re-running on unchanged data produces the same episode_ids"
+      - criterion: "Dry-run safety"
+        type: "safety"
+        measurement: "Unit test"
+        target: "dry_run=True does not call client.run for any write"
+      - criterion: "Provenance persistence"
+        type: "safety"
+        measurement: "Unit test"
+        target: "EpisodeEngineTrace node is written with stages_json, errors_json, total_input_tokens, total_output_tokens, total_latency_ms"
+      - criterion: "Cohort regression baseline"
+        type: "safety"
+        measurement: "VT-LEO-AI-507"
+        target: "Engine output matches pinned baseline for 20 patients within tolerance"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/writer.py"
+        description: "write_episodes, deterministic_episode_id, _episode_status, _condition_type"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/tracing.py"
+        description: "new_trace_id, build_provenance, persist_trace"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/chain.py"
+        description: "build_episode_engine_subgraph, run_episode_engine, _node_* stage adapters"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/episode_engine.py"
+        description: "Subgraph wrapper for pipeline registry"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 470
+      key_functions:
+        - "write_episodes"
+        - "deterministic_episode_id"
+        - "persist_trace"
+        - "build_provenance"
+        - "build_episode_engine_subgraph"
+        - "run_episode_engine"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Single source of truth: every run replaces all prior EpisodeOfCare nodes for the patient"
+      - "Per-milestone link to source Encounter via :IS_PART_OF with evidence_quote and treatment_type"
+      - "EpisodeEngineTrace is append-only and survives independently of the EpisodeOfCare data so failed runs are still recorded"
+    risk_control_measures:
+      - "dry_run mode allows full validation without touching the graph"
+      - "Persist_trace failures are swallowed; episode write failures are not"
+      - "Milestone link failures are logged but do NOT abort the patient run"
+      - "engine_version pinned per release so cohort drift can be diagnosed"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

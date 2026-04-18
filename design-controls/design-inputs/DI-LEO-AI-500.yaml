@@ -1,0 +1,83 @@
+# -- DI-LEO-AI-500 -- Episode Engine: Timeline Loader
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-500"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-090"
+  requirement: >
+    The episode engine SHALL load every encounter for a given patient
+    from Neo4j (date, id, text, flags, coding_status), normalise the
+    text (collapse whitespace and newlines into ' / ' joins), produce
+    two views, and return them deterministically:
+      - a compact ``timeline_text`` for the segmenter and classifier
+        with same-day grouping headers (``== YYYY-MM-DD (N records) ==``)
+        and a per-encounter snippet capped at 240 characters, prefixed
+        with a short id ``[xxxxxxxx]`` to allow the LLM to refer back
+        to the encounter;
+      - a full ``encounter_index`` keyed by encounter_id with a
+        ``full_snippet`` capped at 1200 characters (sanitised through
+        ``libs.llm_client.prompt_safety.sanitise_for_prompt``) for the
+        milestone extractor to consult when it needs more context for
+        a specific window.
+    The loader SHALL skip rows with no encounter_id and SHALL return
+    ``("", {}, 0)`` when the patient has no encounters. The loader
+    SHALL never call an LLM and SHALL never write to Neo4j.
+  rationale: >
+    Per-stage prompt cost is dominated by the loader's choice of how
+    much per-encounter text to send. A single trunk view is too lossy
+    for milestone extraction (we lose the evidence quote) and a single
+    full view is too expensive for segmentation across long histories
+    (~500 encounters per patient). Two views give the engine cheap
+    coverage at the front of the chain and rich context at the
+    extraction step. Deterministic behaviour is required so that
+    re-running for the same patient on unchanged data is reproducible.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "_normalise collapses tabs, newlines, and runs of spaces; joins lines with ' / '."
+      - type: "functional"
+        spec: "_trunk_line caps each per-encounter snippet at 240 characters and prefixes the short id."
+      - type: "functional"
+        spec: "load_timeline groups encounters by date with header '== YYYY-MM-DD (N record(s)) =='."
+      - type: "functional"
+        spec: "load_timeline returns an encounter_index whose values include a ``full_snippet`` field capped at 1200 chars."
+      - type: "functional"
+        spec: "load_timeline returns ('', {}, 0) when no encounters are present."
+      - type: "safety"
+        spec: "Rows with missing encounter_id are skipped and never reach the LLM."
+      - type: "safety"
+        spec: "All per-encounter text is passed through sanitise_for_prompt prior to inclusion in the encounter_index."
+    constraints:
+      - type: "performance"
+        spec: "The loader SHALL be O(n) in encounter count; no quadratic scans."
+    dependencies: []
+    downstream_impacts:
+      - "Segmenter prompt token cost"
+      - "Classifier prompt token cost"
+      - "Milestone extractor accuracy (depends on full_snippet completeness)"
+    technical_details:
+      language: "Python"
+      framework: "Neo4j driver via libs.neo4j_client.client.PatientGraphClient"
+      file_structure:
+        - "services/analysis_worker/app/episode_engine/timeline_loader.py"
+      estimated_loc: 121
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-500 must pass on all critical and total cases:
+      whitespace normalisation, snippet capping, same-day grouping,
+      empty-input handling, missing encounter_id skipping, and
+      full_snippet inclusion in the encounter_index.
+    test_protocol: "VT-LEO-AI-500"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-500"
+  tags:
+    - "episode-engine"
+    - "timeline-loader"
+    - "haiku-engine-v1"

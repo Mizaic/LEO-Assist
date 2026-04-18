@@ -1,0 +1,90 @@
+# -- DI-LEO-AI-505 -- Episode Engine: Idempotent Writer + Provenance Trace
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-505"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-090"
+  requirement: >
+    The episode engine writer SHALL be idempotent per patient: each
+    run SHALL DETACH DELETE all existing EpisodeOfCare nodes for the
+    patient and write the engine output as the new source of truth.
+    Each EpisodeOfCare SHALL be keyed by a deterministic
+    ``episode_id`` of the form ``ep-<sha1(patient|site|start)[:16]>``
+    so re-runs produce stable ids per (patient, site, start). Each
+    Milestone SHALL be linked back to its source Encounter via
+    (Encounter)-[r:IS_PART_OF {milestone_type, treatment_type,
+    evidence_quote, confidence, engine, linked_by}]->(EpisodeOfCare).
+    The writer SHALL also produce one ``EpisodeEngineTrace`` node
+    per run holding trace_id, per-stage prompt_versions, model_ids,
+    tokens, latency, errors, and dry_run flag - linked to the
+    Patient via :HAS_ENGINE_TRACE. A ``dry_run=True`` mode SHALL
+    perform all id derivation and validation but SHALL NOT mutate
+    the graph.
+  rationale: >
+    Without idempotence, re-running the engine after a prompt
+    change would leave drift between runs (old episodes from one
+    run mixed with new from the next), making audit impossible.
+    Without provenance, an episode's reasoning could not be
+    re-read later when a clinician questions it. The engine
+    becomes the SINGLE source of episode state for each patient -
+    legacy rule-based episodes and prior engine episodes are both
+    cleared on each run. The trace node is append-only to support
+    drift monitoring queries (low-confidence rate over time,
+    cost-per-patient over time).
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "deterministic_episode_id MUST be stable for same (patient, site, start) and case-insensitive on site."
+      - type: "functional"
+        spec: "An apply run MUST issue DETACH DELETE for existing episodes BEFORE writing new ones."
+      - type: "functional"
+        spec: "Each EpisodeOfCare MUST carry engine_version, engine_trace_id, engine_provenance_json, status, and domain_id."
+      - type: "functional"
+        spec: "Each milestone MUST be linked via (Encounter)-[:IS_PART_OF {milestone_type, treatment_type, evidence_quote, confidence}]->(Episode)."
+      - type: "safety"
+        spec: "dry_run=True MUST NOT call client.run for any write Cypher (validated by mock)."
+      - type: "safety"
+        spec: "An apply run with zero episodes MUST still wipe existing episodes (correct delete-without-replace behaviour for patients the engine now considers episode-free)."
+      - type: "safety"
+        spec: "A failure to link one milestone MUST NOT abort the rest of the patient run; the failure MUST be logged at ERROR with the milestone type, episode_id and encounter_id."
+      - type: "safety"
+        spec: "EpisodeEngineTrace persistence is best-effort; failure MUST be logged but MUST NOT raise (the engine's primary output is the EpisodeOfCare graph state, not the trace node)."
+    constraints:
+      - type: "safety"
+        spec: "The writer MUST NOT touch Encounter nodes or any node other than the patient's EpisodeOfCare nodes and the new EpisodeEngineTrace."
+    dependencies:
+      - "DI-LEO-AI-504"
+    downstream_impacts:
+      - "All downstream queries (UI, analytics, cohort dashboards) read from the new EpisodeOfCare schema written by this engine"
+      - "EpisodeEngineTrace nodes feed the dq_episode_engine_* monitoring tools"
+    technical_details:
+      language: "Python"
+      framework: "Cypher via libs.neo4j_client.client.PatientGraphClient"
+      file_structure:
+        - "services/analysis_worker/app/episode_engine/writer.py"
+        - "services/analysis_worker/app/episode_engine/tracing.py"
+        - "services/analysis_worker/app/episode_engine/chain.py"
+      estimated_loc: 470
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-505 (writer), VT-LEO-AI-506 (tracing) and
+      VT-LEO-AI-507 (frozen-cohort regression) must pass on all
+      critical and total cases. Cohort apply run must complete
+      without partial writes (no episodes left without a trace and
+      no traces written without an attempt to write episodes).
+    test_protocol: "VT-LEO-AI-505"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-505"
+  tags:
+    - "episode-engine"
+    - "writer"
+    - "provenance"
+    - "idempotent"
+    - "engine-trace"

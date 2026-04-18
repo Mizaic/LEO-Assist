@@ -1,0 +1,67 @@
+# -- DO-LEO-AI-500 -- Episode Engine: Timeline Loader Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-500"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-500"]
+    user_needs: ["UN-LEO-AI-090"]
+    risks_addressed: ["R-LEO-AI-500"]
+    verification_tests: ["VT-LEO-AI-500"]
+
+  specification:
+    title: "Episode Engine Timeline Loader"
+    description: |
+      Pulls every encounter for a patient from Neo4j, normalises the
+      text, sanitises against prompt-injection vocabulary, and produces
+      two views: a same-day-grouped trunk view (240 chars / encounter)
+      for the segmenter and classifier, and a full encounter index
+      (1200 chars / encounter, sanitised) for the milestone extractor.
+    acceptance_criteria:
+      - criterion: "Whitespace normalisation"
+        type: "functional"
+        measurement: "Unit test"
+        target: "_normalise collapses tabs, runs of spaces and newlines into ' / '"
+      - criterion: "Same-day grouping"
+        type: "functional"
+        measurement: "Unit test"
+        target: "Output contains '== YYYY-MM-DD (N record(s)) ==' headers per date"
+      - criterion: "Snippet capping"
+        type: "functional"
+        measurement: "Unit test"
+        target: "Per-encounter snippet capped at 240 chars in trunk view, 1200 chars in encounter_index"
+      - criterion: "Empty input handling"
+        type: "safety"
+        measurement: "Unit test"
+        target: "load_timeline returns ('', {}, 0) when no encounters"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/timeline_loader.py"
+        description: "load_timeline, _normalise, _trunk_line, _full_snippet"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 121
+      key_functions:
+        - "load_timeline"
+        - "_normalise"
+        - "_trunk_line"
+        - "_full_snippet"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Sanitises encounter text via libs.llm_client.prompt_safety.sanitise_for_prompt before it ever reaches the LLM"
+      - "Skips rows with no encounter_id so they can never be referenced as milestone evidence"
+    risk_control_measures:
+      - "Deterministic, no LLM call; reproducible output for the same patient on unchanged data"
+      - "Read-only with respect to Neo4j; cannot corrupt patient data"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

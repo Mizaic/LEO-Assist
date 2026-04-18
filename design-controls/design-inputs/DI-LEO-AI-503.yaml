@@ -1,0 +1,94 @@
+# -- DI-LEO-AI-503 -- Episode Engine: Milestone Extractor Agent
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-503"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-090"
+  requirement: >
+    The milestone extractor agent SHALL extract canonical milestones
+    from each cancer / multi-site / benign window using a Bedrock
+    Haiku call with a forced ``submit_milestones`` tool. Each
+    Milestone MUST carry: a ``type`` from {referral, first_seen,
+    diagnosis_confirmed, treatment_started, treatment_completed,
+    benign_closure}; a date; a non-empty ``encounter_id`` referencing
+    the source encounter; an ``evidence_quote`` (>=3 chars) drawn
+    verbatim from the source encounter text; an optional
+    ``treatment_type`` from {surgery, endocrine, chemotherapy,
+    radiotherapy, immunotherapy, other} when ``type ==
+    treatment_started``; a ``confidence``; and a ``reasoning``. The
+    agent SHALL be allowed to return an empty milestone list AND
+    SHALL set ``needs_human_review = true`` when the evidence is
+    weak. The agent MUST NOT pick administrative-task encounters
+    (``Failed encounter``, receptionist call logs, SMS reminders) as
+    treatment_started.
+  rationale: >
+    The whole engine exists to fix the failure mode where patient
+    4802892365 had a "Failed encounter / pharmacist call -> letrozole"
+    admin task on 2025-05-02 mis-tagged as treatment_started, when
+    the real definitive treatment was a mastectomy on 2025-07-28.
+    Pinning every milestone to an encounter_id with an evidence
+    quote means the auditor can verify the AI's choice in one
+    click. Allowing empty milestones with needs_human_review
+    prevents the model from hallucinating events when the window
+    actually doesn't have them.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "submit_milestones tool MUST be forced via toolChoice."
+      - type: "functional"
+        spec: "MilestoneExtractorResult MUST parse with milestones[], needs_human_review, and reasoning."
+      - type: "functional"
+        spec: "Each milestone MUST include type, date, encounter_id, evidence_quote (>=3 chars), confidence, and reasoning."
+      - type: "functional"
+        spec: "treatment_started milestones MUST include treatment_type from the closed vocabulary."
+      - type: "safety"
+        spec: "Empty evidence_quote MUST be rejected by Pydantic (Field min_length=3)."
+      - type: "safety"
+        spec: "Invented milestone type MUST be rejected; invented treatment_type MUST be rejected."
+      - type: "safety"
+        spec: "Empty milestone list with needs_human_review=true MUST be a valid response (low-evidence window)."
+      - type: "safety"
+        spec: "Patient 4802892365 spike output MUST contain treatment_started (endocrine) on 2025-05-19 AND treatment_started (surgery) on 2025-07-28; MUST NOT contain a treatment_started anchored to encounter aa8d55b9 (the 2025-05-02 Failed encounter)."
+    constraints:
+      - type: "safety"
+        spec: "Milestone extractor MUST NOT see benign or non_cancer windows below confidence 0.4 (chain-level filter)."
+      - type: "safety"
+        spec: "encounter_id MUST be one that exists in the loader's encounter_index (verified at writer-time when the milestone is linked)."
+    dependencies:
+      - "DI-LEO-AI-500"
+      - "DI-LEO-AI-502"
+    downstream_impacts:
+      - "Reconciler uses milestone presence + treatment_type to decide merges"
+      - "Writer materialises (Encounter)-[:IS_PART_OF {milestone_type, treatment_type, evidence_quote}]->(Episode) edges"
+      - "UI displays evidence_quote for every milestone"
+    technical_details:
+      language: "Python"
+      framework: "libs.llm_client.factory.LLMClient (Bedrock Haiku) + Pydantic"
+      file_structure:
+        - "services/analysis_worker/app/episode_engine/agents/milestone_extractor.py"
+        - "libs/prompts/episode_engine/milestone_extractor_v1.py"
+      estimated_loc: 230
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-503 must pass on all critical and total cases:
+      multi-milestone parse, empty-milestone+HITL parse, invalid
+      milestone type rejection, invalid treatment_type rejection,
+      and empty-evidence-quote rejection. The frozen-cohort
+      regression test (VT-LEO-AI-507) must show treatment_started
+      surgery on 2025-07-28 for patient 4802892365.
+    test_protocol: "VT-LEO-AI-503"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-503"
+  tags:
+    - "episode-engine"
+    - "milestone-extractor"
+    - "haiku"
+    - "patient-4802892365"
+    - "treatment-started"

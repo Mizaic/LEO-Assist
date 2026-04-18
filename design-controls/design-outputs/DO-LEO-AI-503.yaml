@@ -1,0 +1,78 @@
+# -- DO-LEO-AI-503 -- Episode Engine: Milestone Extractor Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-503"
+  version: "1.0.0"
+  type: "Algorithm"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-503"]
+    user_needs: ["UN-LEO-AI-090"]
+    risks_addressed: ["R-LEO-AI-503"]
+    verification_tests: ["VT-LEO-AI-503", "VT-LEO-AI-507"]
+
+  specification:
+    title: "Episode Engine Milestone Extractor"
+    description: |
+      Bedrock Claude Haiku call that pulls canonical milestones from
+      a single cancer-ish window. Each milestone carries a date,
+      encounter_id, evidence_quote (>=3 chars, drawn verbatim from
+      the source encounter), optional treatment_type, confidence and
+      reasoning. The agent SHALL ignore administrative-task
+      encounters (Failed encounter, receptionist call logs, SMS
+      reminders) when they appear on the same date as the real
+      clinical event - the prompt's _shared.py rules-of-the-road
+      include patient 4802892365 as the canonical few-shot example.
+    acceptance_criteria:
+      - criterion: "Patient 4802892365 treatment_started accuracy"
+        type: "safety"
+        measurement: "Frozen-cohort regression VT (VT-LEO-AI-507)"
+        target: "Includes treatment_started endocrine on 2025-05-19 AND treatment_started surgery on 2025-07-28; excludes encounter aa8d55b9 (2025-05-02 Failed encounter)"
+      - criterion: "Closed vocabularies"
+        type: "safety"
+        measurement: "Unit test"
+        target: "Invented milestone type or treatment_type raises StageError"
+      - criterion: "Empty evidence quote rejected"
+        type: "safety"
+        measurement: "Unit test"
+        target: "Pydantic min_length=3 on evidence_quote enforced"
+      - criterion: "HITL on weak evidence"
+        type: "safety"
+        measurement: "Unit test"
+        target: "Empty milestones with needs_human_review=true is a valid response"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/agents/milestone_extractor.py"
+        description: "Milestone extractor agent run() entry point"
+        storage_location: "git"
+      - artifact_type: "configuration"
+        location: "libs/prompts/episode_engine/milestone_extractor_v1.py"
+        description: "SYSTEM, USER_TEMPLATE, SCHEMA, VERSION, TOOL_NAME for v1 - includes patient 4802892365 few-shot"
+        storage_location: "git"
+      - artifact_type: "configuration"
+        location: "libs/prompts/episode_engine/_shared.py"
+        description: "Shared rules-of-the-road and PATIENT_4802892365_REFERENCE example"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 230
+      key_functions:
+        - "milestone_extractor.run"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Pins every milestone to a specific encounter_id with an evidence_quote drawn from that encounter (auditable)"
+      - "Rejects admin-task encounters as treatment_started milestones"
+      - "Requires evidence_quote >= 3 characters (Pydantic enforced) so milestones cannot be unanchored"
+    risk_control_measures:
+      - "Patient 4802892365 included as a permanent few-shot example to prevent regression on the canonical failure mode"
+      - "Frozen-cohort VT (VT-LEO-AI-507) re-runs 20 patients including 4802892365 against pinned baseline"
+      - "Chain-level confidence gate (>= 0.4) prevents extraction on weak windows"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

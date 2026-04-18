@@ -1,0 +1,95 @@
+# -- R-LEO-AI-502 -- Episode Engine: Classifier mislabels a cancer window as non_cancer
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-502"
+  title: "Classifier labels a real cancer window as non_cancer or benign and milestones are not extracted"
+
+  hazard:
+    description: >
+      The classifier LLM may label a real cancer window as non_cancer
+      (false negative) or as benign with high confidence; the chain
+      will then skip milestone extraction for that window and the
+      patient's cancer episode will not be materialised.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A 2WW referral with no diagnosis_confirmed marker yet is labelled
+    non_cancer with confidence 0.6 because the visible evidence in the
+    window is symptomatic-only. Milestone extraction is skipped and no
+    EpisodeOfCare is written. The patient becomes invisible to cohort
+    reports relying on the new engine.
+
+  harm:
+    description: >
+      Cancer pathway is missed in cohort reporting; HITL reviewer is
+      not prompted to look at the patient.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Closed episode_type vocabulary includes ``uncertain`` so the
+        classifier is not forced to pick cancer / non_cancer when the
+        evidence is genuinely ambiguous; ``uncertain`` windows are
+        held for the reconciler to re-evaluate alongside other
+        windows.
+      implemented_by: ["DI-LEO-AI-502"]
+      verified_by: ["VT-LEO-AI-502"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Chain-level ``_CLASSIFIER_MIN_CONFIDENCE = 0.4`` means a
+        non_cancer label below 0.4 confidence does NOT short-circuit
+        extraction; the milestone extractor still gets a chance to
+        find evidence.
+      implemented_by: ["DI-LEO-AI-502"]
+      verified_by: ["VT-LEO-AI-502"]
+      effectiveness: "partially_effective"
+    - control_type: "procedural_control"
+      description: >
+        EpisodeEngineTrace records the classifier confidence and
+        episode_type per window so quality leads can audit a
+        sample of non_cancer verdicts each release.
+      implemented_by: ["DI-LEO-AI-505"]
+      verified_by: ["VT-LEO-AI-506"]
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+    acceptability: "conditionally_acceptable"
+    justification: >
+      False-negative cancer classification cannot be fully eliminated
+      with an LLM-only chain. The combination of an ``uncertain``
+      escape hatch, a low confidence-threshold for skipping, and
+      the ``Ask LEO`` Operations review path (independent rerun by
+      a human) keeps the residual risk in the conditionally
+      acceptable range. Quality leads SHALL audit a 5% sample of
+      non_cancer verdicts each release until 6 months of data show
+      no missed cancers.
+
+  monitoring:
+    monitoring_plan: >
+      Sample 5% of non_cancer classifier verdicts per release for
+      manual review; track the agreement rate. Alarm at <95%
+      agreement.
+    metrics:
+      - "Non-cancer agreement rate (sampled)"
+      - "Distribution of classifier confidence by episode_type"
+    review_frequency: "Per release for first 6 months, then monthly"
+
+  metadata:
+    identified_by: "Episode Engine v1 design review"
+    identified_date: "2026-04-18"
+    status: "analyzed"
+    tags: ["episode-engine", "classifier", "false-negative-cancer"]

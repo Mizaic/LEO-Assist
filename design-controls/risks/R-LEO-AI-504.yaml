@@ -1,0 +1,94 @@
+# -- R-LEO-AI-504 -- Episode Engine: Reconciler hallucinates merges or drops valid windows
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-504"
+  title: "Reconciler invents merges or drops candidate windows without supporting evidence"
+
+  hazard:
+    description: >
+      The Sonnet-tier reconciler operates over the structured
+      candidate windows + classifier verdicts + extracted milestones.
+      It may merge two genuinely separate cancer episodes (e.g. a
+      2019 BCC and a 2024 colorectal episode) into one, or drop a
+      validly-extracted episode it considers a duplicate, removing
+      the patient's pathway from the engine output.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A reviewer running the engine on a patient with two distinct
+    historical cancer episodes sees a single merged EpisodeOfCare
+    spanning the full multi-year window. The merged_from audit trail
+    is preserved but the reviewer trusts the headline output.
+
+  harm:
+    description: >
+      Distorted episode counts; lost evidence of an earlier cancer
+      pathway in cohort reports.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Reconciler prompt v1 (libs/prompts/episode_engine/
+        reconciler_v1.py) explicitly forbids merging windows whose
+        suspected_site differs unless milestone evidence supports a
+        single underlying disease, and forbids merging windows whose
+        date ranges are separated by more than 18 months without
+        evidence of a shared diagnosis.
+      implemented_by: ["DI-LEO-AI-504"]
+      verified_by: ["VT-LEO-AI-504"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        ReconciledEpisode.merged_from preserves the full provenance
+        trail of source CandidateWindow IDs; HITL reviewers can
+        inspect every merge in the trace UI.
+      implemented_by: ["DI-LEO-AI-504", "DI-LEO-AI-505"]
+      verified_by: ["VT-LEO-AI-504", "VT-LEO-AI-506"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Frozen-cohort VT asserts episode_count is within +/-1 of the
+        baseline per patient and that suspected_site multiset matches
+        baseline; spurious merges trip this assertion.
+      implemented_by: ["DI-LEO-AI-505"]
+      verified_by: ["VT-LEO-AI-507"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Reconciler operates on structured input (not raw text), reducing
+      the surface for hallucination. Frozen-cohort VT plus merged_from
+      audit trail give two independent ways to detect spurious merges.
+      Sonnet at temperature 0 makes the behaviour reproducible.
+
+  monitoring:
+    monitoring_plan: >
+      Track per-release distribution of merged_from length per
+      episode and the ratio of (input candidate windows / output
+      episodes). Alarm if median ratio drops below baseline by 30%
+      (engine merging too aggressively) or rises above baseline by
+      30% (engine dropping windows).
+    metrics:
+      - "Reconciler input/output ratio per release"
+      - "merged_from length distribution"
+    review_frequency: "Per release"
+
+  metadata:
+    identified_by: "Episode Engine v1 design review"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags: ["episode-engine", "reconciler", "merge-drop"]

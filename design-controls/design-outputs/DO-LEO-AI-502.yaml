@@ -1,0 +1,64 @@
+# -- DO-LEO-AI-502 -- Episode Engine: Classifier Agent Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-502"
+  version: "1.0.0"
+  type: "Algorithm"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-502"]
+    user_needs: ["UN-LEO-AI-090"]
+    risks_addressed: ["R-LEO-AI-502"]
+    verification_tests: ["VT-LEO-AI-502"]
+
+  specification:
+    title: "Episode Engine Classifier Agent"
+    description: |
+      Bedrock Claude Haiku call that classifies a single
+      CandidateWindow as cancer / multi_site / benign / non_cancer /
+      uncertain with a confidence score. Forced via the
+      ``submit_classification`` tool; ClassifierResult Pydantic
+      enforces the literal vocabulary and confidence range.
+    acceptance_criteria:
+      - criterion: "Closed vocabulary"
+        type: "safety"
+        measurement: "Unit test"
+        target: "Any episode_type outside the closed vocab raises StageError"
+      - criterion: "Confidence bounds"
+        type: "safety"
+        measurement: "Unit test"
+        target: "confidence outside [0,1] raises StageError"
+      - criterion: "Open-window prompt"
+        type: "functional"
+        measurement: "Unit test - inspects user message"
+        target: "user message contains 'open' when window_end is None"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/agents/classifier.py"
+        description: "Classifier agent run() entry point"
+        storage_location: "git"
+      - artifact_type: "configuration"
+        location: "libs/prompts/episode_engine/classifier_v1.py"
+        description: "SYSTEM, USER_TEMPLATE, SCHEMA, VERSION, TOOL_NAME for v1"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 130
+      key_functions:
+        - "classifier.run"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Acts as the confidence gate that blocks low-evidence windows from reaching the milestone extractor"
+      - "Forces structured output so unknown episode_type literals are rejected at parse time"
+    risk_control_measures:
+      - "Chain-level _CLASSIFIER_MIN_CONFIDENCE = 0.4 drops anything weaker before extraction"
+      - "needs_human_review propagates to the reconciler and final episode payload"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

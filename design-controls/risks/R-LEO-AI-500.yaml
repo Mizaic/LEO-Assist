@@ -1,0 +1,85 @@
+# -- R-LEO-AI-500 -- Episode Engine: Timeline loader leaks unsanitised text or skips real encounters
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-500"
+  title: "Timeline loader feeds unsanitised text or drops valid encounters into the LLM chain"
+
+  hazard:
+    description: >
+      The timeline loader assembles a patient's encounter history into the
+      prompt context fed to every downstream LLM stage. If raw text is
+      passed unsanitised, prompt-injection content embedded in clinical
+      notes (intentionally or via templated reminders) could steer the
+      model. If the loader silently skips encounters or truncates them
+      below the threshold needed to recognise a milestone, the engine
+      would reason about a partial timeline.
+    category: "data_protection"
+
+  hazardous_situation: >
+    A clinical note containing imperative language ("ignore previous
+    instructions") or copy-pasted system prompts is loaded verbatim and
+    influences segmenter / classifier output; or, the loader's row
+    filtering (skipping rows with missing encounter_id) accidentally
+    drops a real encounter the milestone extractor would otherwise have
+    used as evidence.
+
+  harm:
+    description: >
+      Wrong episode windows or wrong milestones are produced for the
+      patient; downstream reviewers act on a misleading summary.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 2
+    detectability: 3
+    rpn: 12
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        All per-encounter text passes through
+        libs.llm_client.prompt_safety.sanitise_for_prompt before being
+        added to the encounter_index; rows with no encounter_id are
+        skipped (verified by VT-LEO-AI-500).
+      implemented_by: ["DI-LEO-AI-500"]
+      verified_by: ["VT-LEO-AI-500"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        prompt_safety logs every injection-pattern strip at WARN with
+        the leading 80 characters; the spike runner surfaces the
+        warnings so reviewers see which patients had patterns stripped.
+      implemented_by: ["DI-LEO-AI-500"]
+      verified_by: ["VT-LEO-AI-500"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Sanitisation is automatic; logging makes any new injection
+      pattern visible at warn-level so the vocab can be extended.
+      Truncation (240 chars trunk / 1200 chars full) is documented
+      and reviewable from the loader unit tests.
+
+  monitoring:
+    monitoring_plan: >
+      Track prompt_safety strip counts per patient run via logs.
+      Alarm if the strip rate per cohort run exceeds the rolling
+      14-day baseline by more than 3x.
+    metrics:
+      - "prompt_safety strip count per run"
+      - "Encounters skipped per patient (logged)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Episode Engine v1 design review"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags: ["episode-engine", "timeline-loader", "prompt-safety"]

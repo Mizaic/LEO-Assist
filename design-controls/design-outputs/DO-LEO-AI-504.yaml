@@ -1,0 +1,68 @@
+# -- DO-LEO-AI-504 -- Episode Engine: Reconciler Agent Implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-504"
+  version: "1.0.0"
+  type: "Algorithm"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-504"]
+    user_needs: ["UN-LEO-AI-090"]
+    risks_addressed: ["R-LEO-AI-504"]
+    verification_tests: ["VT-LEO-AI-504", "VT-LEO-AI-507"]
+
+  specification:
+    title: "Episode Engine Reconciler"
+    description: |
+      Bedrock Claude Sonnet (tier="big") call that reconciles all
+      classified candidate windows for one patient into a final
+      ReconciledEpisode list. The reconciler can merge multi-site
+      referrals to one diagnosis, split incorrectly merged windows,
+      and drop low-confidence non_cancer windows. ``merged_from``
+      records the source window_ids on every emitted episode for
+      audit. needs_human_review propagates from any source window
+      flagged by the milestone extractor.
+    acceptance_criteria:
+      - criterion: "Single-window passthrough"
+        type: "functional"
+        measurement: "Unit test"
+        target: "A single classified window round-trips to one ReconciledEpisode without modification"
+      - criterion: "Multi-window merge audit"
+        type: "functional"
+        measurement: "Unit test"
+        target: "Merged episodes carry merged_from with the source window_ids"
+      - criterion: "Frozen-cohort merge correctness"
+        type: "safety"
+        measurement: "Frozen-cohort regression VT (VT-LEO-AI-507)"
+        target: "Episode counts per patient stay within +/-1 of pinned baseline; cancer / multi_site / benign / non_cancer types match"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/agents/reconciler.py"
+        description: "Reconciler agent run() entry point - defaults to tier='big'"
+        storage_location: "git"
+      - artifact_type: "configuration"
+        location: "libs/prompts/episode_engine/reconciler_v1.py"
+        description: "SYSTEM, USER_TEMPLATE, SCHEMA, VERSION, TOOL_NAME for v1"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 130
+      key_functions:
+        - "reconciler.run"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Cross-window reasoning prevents one patient appearing in two cancer episodes when the diagnosis was actually one"
+      - "Sonnet selected over Haiku because Haiku over-merged distinct cancers in spike runs"
+      - "merged_from is the audit trail for any merge or split decision"
+    risk_control_measures:
+      - "Cannot invent new milestones; operates only on the milestones extracted upstream"
+      - "needs_human_review propagates from milestone extractor flags"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

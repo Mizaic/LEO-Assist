@@ -1,0 +1,82 @@
+[
+  {
+    "patient": "4802892365",
+    "existing": 1,
+    "engine": 1,
+    "in_tok": 58764,
+    "out_tok": 4088,
+    "errors": 0
+  },
+  {
+    "patient": "4926916703",
+    "existing": 8,
+    "engine": 3,
+    "in_tok": 228750,
+    "out_tok": 5198,
+    "errors": 0
+  },
+  {
+    "patient": "4563706582",
+    "existing": 2,
+    "engine": 1,
+    "in_tok": 241331,
+    "out_tok": 4242,
+    "errors": 0
+  },
+  {
+    "patient": "4563591157",
+    "existing": 5,
+    "engine": 1,
+    "in_tok": 186949,
+    "out_tok": 3557,
+    "errors": 0
+  },
+  {
+    "patient": "4921442355",
+    "existing": 5,
+    "engine": 1,
+    "in_tok": 70522,
+    "out_tok": 3003,
+    "errors": 0
+  },
+  {
+    "patient": "4245132175",
+    "existing": 2,
+    "engine": 1,
+    "in_tok": 53675,
+    "out_tok": 2484,
+    "errors": 0
+  },
+  {
+    "patient": "6309359401",
+    "existing": 2,
+    "engine": 1,
+    "in_tok": 154842,
+    "out_tok": 4347,
+    "errors": 0
+  },
+  {
+    "patient": "4926940965",
+    "existing": 3,
+    "engine": 1,
+    "in_tok": 81993,
+    "out_tok": 3874,
+    "errors": 0
+  },
+  {
+    "patient": "6040304227",
+    "existing": 2,
+    "engine": 2,
+    "in_tok": 83209,
+    "out_tok": 4647,
+    "errors": 0
+  },
+  {
+    "patient": "4587360686",
+    "existing": 2,
+    "engine": 1,
+    "in_tok": 109492,
+    "out_tok": 2996,
+    "errors": 0
+  }
+]

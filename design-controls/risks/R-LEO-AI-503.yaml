@@ -1,0 +1,97 @@
+# -- R-LEO-AI-503 -- Episode Engine: Milestone extractor anchors to administrative noise
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-503"
+  title: "Milestone extractor picks an administrative event as the canonical milestone"
+
+  hazard:
+    description: >
+      The milestone extractor LLM may anchor a canonical milestone
+      (especially treatment_started or diagnosis_confirmed) to an
+      administrative encounter (failed task, booking note, pharmacist
+      reminder, secretary letter) rather than the clinical event.
+      This is the original failure mode that motivated replacing the
+      rule-based detector (patient 4802892365: 2025-05-02 failed
+      pharmacist task vs. 2025-07-28 mastectomy).
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    For a breast cancer patient, treatment_started is anchored to a
+    "Failed encounter" pharmacist task three months before the actual
+    surgery. Reviewers and waiting-time reports show a misleadingly
+    early treatment date.
+
+  harm:
+    description: >
+      Wrong waiting-time figures attributed to the patient and rolled
+      up into cohort metrics; reviewers reasoning about the timeline
+      reach the wrong conclusion about treatment timing.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 3
+    rpn: 27
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Milestone extractor prompt v1
+        (libs/prompts/episode_engine/milestone_extractor_v1.py)
+        carries the explicit patient 4802892365 reference example
+        showing the failed pharmacist task and the correct mastectomy
+        date, plus the ``never anchor on failed/cancelled tasks''
+        rule from _shared.py.
+      implemented_by: ["DI-LEO-AI-503"]
+      verified_by: ["VT-LEO-AI-503"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Each milestone in MilestoneExtractorResult MUST include
+        encounter_id and a verbatim evidence_quote (forced by tool
+        schema); reviewers can audit the chosen evidence before
+        accepting the milestone.
+      implemented_by: ["DI-LEO-AI-503"]
+      verified_by: ["VT-LEO-AI-503"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Patient 4802892365 is included in the frozen-cohort VT
+        (VT-LEO-AI-507); regression on this patient blocks release.
+      implemented_by: ["DI-LEO-AI-505"]
+      verified_by: ["VT-LEO-AI-507"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Spike on patient 4802892365 confirmed the engine now correctly
+      picks the mastectomy and the endocrine therapy as the
+      treatment_started milestones and explicitly rejects the failed
+      pharmacist task. Evidence quotes per milestone make detection
+      of remaining false anchors trivial during HITL review. The
+      frozen-cohort VT prevents regression.
+
+  monitoring:
+    monitoring_plan: >
+      Track distribution of milestone source encounter
+      categories (clinical letter / order / task / etc.) per
+      release. Audit any treatment_started milestone whose source
+      encounter is a Task or Reminder during HITL review.
+    metrics:
+      - "treatment_started source encounter category distribution"
+      - "Frozen-cohort VT pass rate for patient 4802892365"
+    review_frequency: "Per release"
+
+  metadata:
+    identified_by: "Patient 4802892365 incident review"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags: ["episode-engine", "milestone-extractor", "admin-noise", "patient-4802892365"]
