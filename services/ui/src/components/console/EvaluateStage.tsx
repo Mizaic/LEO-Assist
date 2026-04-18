@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -45,6 +44,10 @@ import { TrainingJob } from "./useConsoleState";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { renderNerSpans, themeForTag, type AnnotatedSpan, type TagTheme } from "@/lib/nerAnnotation";
 import { FONT_SIZES } from "@/theme/tokens";
+import {
+  GoldLabelEditorDialog,
+  type GoldLabel as SharedGoldLabel,
+} from "@/components/gold-editor";
 
 interface EvaluateStageProps {
   jobs: TrainingJob[];
@@ -448,13 +451,20 @@ function renderProvenanceAnnotatedText(text: string, entities: PipelineEntity[])
 }
 
 export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStageProps) {
-  const router = useRouter();
   const [versions, setVersions] = useState<ModelRecord[]>([]);
   const [activeModelVersion, setActiveModelVersion] = useState<string | null>(null);
   const [loadingRegistry, setLoadingRegistry] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [openingGoldEditor, setOpeningGoldEditor] = useState<string | null>(null);
+  // -- Inline gold-editor dialog (DI-LEO-AI-211) -----------------------------
+  // Replaces the previous window.open workaround so the reviewer never
+  // loses their dry-run context. Holds the GoldLabel returned by
+  // /training/candidates/from-dry-run; the shared dialog mounts when
+  // this is non-null.
+  const [goldEditorTarget, setGoldEditorTarget] = useState<SharedGoldLabel | null>(
+    null,
+  );
   const [approveTarget, setApproveTarget] = useState<{
     encounterId: string;
     text: string;
@@ -884,22 +894,16 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
         if (!res.ok) {
           throw new Error(detailToString(data.detail) || `Failed (${res.status})`);
         }
-        const labelId = typeof data.label_id === "string" ? data.label_id : "";
-        if (!labelId) {
-          throw new Error("Gold editor did not return a label id.");
+        const goldLabel = data?.gold_label as SharedGoldLabel | undefined;
+        if (!goldLabel || typeof goldLabel.label_id !== "string") {
+          throw new Error("Gold editor did not return a gold label payload.");
         }
-        const editorUrl =
-          `/admin/gold-dataset?labelId=${encodeURIComponent(labelId)}&from=dry_run`;
-        const opened = window.open(editorUrl, "_blank", "noopener,noreferrer");
-        if (!opened) {
-          // Pop-up blocker prevented opening - fall back to in-place navigation
-          // so the user still gets to the editor instead of seeing nothing.
-          router.push(editorUrl);
-          return;
-        }
-        setInfo(
-          "Opened this encounter in the gold editor in a new tab. Your dry-run results are still here.",
-        );
+        // -- Open the shared editor dialog inline (DI-LEO-AI-211) --
+        // The reviewer stays on the console, keeps the dry-run table
+        // mounted, and edits the GoldLabel right here. Save mode is
+        // 'gold' so the dialog uses the default PATCH on the gold
+        // label; no live-encounter mutation occurs from this surface.
+        setGoldEditorTarget(goldLabel);
       } catch (e: unknown) {
         setError(
           e instanceof Error
@@ -910,7 +914,7 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
         setOpeningGoldEditor(null);
       }
     },
-    [router],
+    [],
   );
 
   useEffect(() => {
@@ -1380,11 +1384,11 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                         <Typography variant="caption" color={row.entities.length > 0 ? "success.main" : "text.disabled"} sx={{ whiteSpace: "nowrap" }}>
                           {row.entities.length} {row.entities.length === 1 ? "entity" : "entities"}
                         </Typography>
-                        <Tooltip title="Open this encounter in the gold editor in a new tab so you can fix labels without losing your dry-run results.">
+                        <Tooltip title="Open this encounter in the gold editor without leaving the console.">
                           <span>
                             <IconButton
                               size="small"
-                              aria-label="Open in gold editor (new tab)"
+                              aria-label="Open in gold editor"
                               disabled={!text.trim() || openingGoldEditor === row.encounter_id}
                               onClick={() =>
                                 openInGoldEditor(row.encounter_id, text, row.entities)
@@ -1594,11 +1598,11 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                           color="success"
                           label={`${terminologyResolved} SNOMED resolved`}
                         />
-                        <Tooltip title="Open this encounter in the gold editor in a new tab so you can fix labels without losing your dry-run results.">
+                        <Tooltip title="Open this encounter in the gold editor without leaving the console.">
                           <span>
                             <IconButton
                               size="small"
-                              aria-label="Open in gold editor (new tab)"
+                              aria-label="Open in gold editor"
                               disabled={!text.trim() || openingGoldEditor === row.encounter_id}
                               onClick={() =>
                                 openInGoldEditor(
@@ -2223,6 +2227,18 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
           </Button>
         </DialogActions>
       </Dialog>
+      {/* -- DI-LEO-AI-211: shared gold-editor dialog mounted inline ------ */}
+      {goldEditorTarget && (
+        <GoldLabelEditorDialog
+          key={`evaluate-${goldEditorTarget.label_id}`}
+          item={goldEditorTarget}
+          saveMode="gold"
+          onClose={() => setGoldEditorTarget(null)}
+          onAfterSave={() =>
+            setInfo("Gold-label changes saved. Dry-run results are still here.")
+          }
+        />
+      )}
     </Box>
   );
 }

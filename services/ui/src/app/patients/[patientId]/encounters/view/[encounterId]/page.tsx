@@ -1,12 +1,20 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useParams } from "next/navigation";
-import EncounterCodedView from "@/components/EncounterCodedView";
+interface Props {
+  params: {
+    patientId: string;
+    encounterId: string;
+  };
+}
 
-export default function EncounterCodedPage() {
-  const { patientId, encounterId } = useParams<{ patientId: string; encounterId: string }>();
-  if (!patientId || !encounterId || Array.isArray(patientId) || Array.isArray(encounterId)) {
-    return <p style={{ padding: 24, color: "#64748b" }}>Invalid patient or encounter</p>;
-  }
-  return <EncounterCodedView patientId={patientId} encounterId={encounterId} />;
+// DI-LEO-AI-209: the legacy /encounters/view/{id} route is retired
+// alongside the EncounterCodedView page.  Redirect to the modern
+// patient encounters tab so the reviewer can re-open the shared
+// GoldLabelEditorDialog from the timeline.
+export default function LegacyEncounterCodedPage({ params }: Props) {
+  const patientId = encodeURIComponent(params.patientId);
+  const encounterId = encodeURIComponent(params.encounterId);
+  redirect(
+    `/care/patients?patient=${patientId}&tab=encounters&encounter=${encounterId}`,
+  );
 }

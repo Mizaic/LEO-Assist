@@ -1128,6 +1128,22 @@ and are still verified by VT-LEO-AI-180 and VT-LEO-AI-181 respectively.
 
 ---
 
+### 3.xx UI shell SSR session bootstrap and cache strategy (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-087 | approved | After signing in I must reach the LEO application immediately and never see a stale loading spinner cached by Cloudflare or the Next.js Full Route Cache. |
+| Design Input | DI-LEO-AI-218 | draft | UI root layout SHALL resolve the user's session on the server via fetchInitialSession() and forward it as initialSession to the AuthProvider; the layout segment SHALL declare force-dynamic, revalidate=0, and fetchCache=force-no-store so Next.js never caches the loading shell; /auth/login and /auth/callback route handlers SHALL set Cache-Control: no-store on every response. |
+| Design Output | DO-LEO-AI-215 | approved | services/ui/src/lib/serverSession.ts (fetchInitialSession), services/ui/src/app/layout.tsx (force-dynamic + SSR session resolve), services/ui/src/lib/authContext.tsx (initialSession prop), services/ui/src/components/AuthProviderWrapper.tsx (server -> client forwarding), services/ui/src/app/auth/login/route.ts + auth/callback/route.ts (Cache-Control: no-store on every response). |
+| Risk | R-LEO-AI-205 | mitigated | Cloudflare cached the build-time prerender of /care/dashboard (cache-control: s-maxage=31536000, x-nextjs-cache: HIT, x-nextjs-prerender: 1) so authenticated users were stuck on a loading spinner. Mitigated by force-dynamic on the root layout, server-side session bootstrap, and no-store on auth route handlers. |
+| Verification Test | VT-LEO-AI-210 | passed | 5/5 cases pass via `cd services/ui && npx jest --testPathPatterns "server-session-bootstrap" --no-coverage`: AuthProvider hydrates straight to authenticated/unauthenticated from initialSession, never reports loading; background refetch does not regress; layout.tsx static-source contains force-dynamic + revalidate=0 + fetchInitialSession; auth/login and auth/callback contain Cache-Control: no-store. |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-218 | UI shell SSR session bootstrap + cache strategy (UN-LEO-AI-087): root layout exports dynamic="force-dynamic"/revalidate=0/fetchCache="force-no-store" and calls await fetchInitialSession() before passing the resolved Session into AuthProviderWrapper as initialSession. fetchInitialSession (services/ui/src/lib/serverSession.ts) reads the leo_session cookie via next/headers, calls GET ${INTERNAL_API_BASE}/auth/session with cache: 'no-store', and returns Session | null - never throws. AuthProvider initialises status = 'authenticated' / 'unauthenticated' from initialSession on the very first render so consumers never see 'loading'; a background fetchSession() still runs after hydration so cross-tab role/density updates remain visible. /auth/login and /auth/callback route handlers continue to set response.headers.set('Cache-Control', 'no-store') on every redirect. Verified: 5/5 jest cases pass + 14/14 dependent tests stay green. | R-LEO-AI-205 | VT-LEO-AI-210 |
+
+---
+
 ## 4. Approval
 
 | Role | Name | Date | Signature |

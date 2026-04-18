@@ -467,7 +467,11 @@ def episode_timeline(
                 "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 f"WHERE toString(p.id) = $pid {merged_filter}"
                 "OPTIONAL MATCH (e:Encounter)-[r:IS_PART_OF]->(ep) "
-                "RETURN ep.episode_id AS episode_id, ep.cancer_type AS condition_type, "
+                "WITH ep, collect({encounter_id: e.id, "
+                "     date: toString(e.date), "
+                "     milestone: r.milestone_type}) AS milestones "
+                "RETURN ep.episode_id AS episode_id, "
+                "       ep.cancer_type AS condition_type, "
                 "       ep.status AS status, ep.agent_confidence AS confidence, "
                 "       ep.agent_reasoning AS agent_reasoning, "
                 "       ep.needs_review AS needs_review, "
@@ -482,8 +486,7 @@ def episode_timeline(
                 "       ep.inferred_outcome_date AS inferred_outcome_date, "
                 "       ep.inferred_confidence AS inferred_confidence, "
                 "       ep.inference_signals AS inference_signals, "
-                "       collect({encounter_id: e.id, date: toString(e.date), "
-                "       milestone: r.milestone_type}) AS milestones "
+                "       milestones "
                 "ORDER BY ep.referral_date",
                 pid=patient_id,
             )

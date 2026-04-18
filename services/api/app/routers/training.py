@@ -38,7 +38,11 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from libs.auth.org_scope import CallerScope, get_caller_scope
+from libs.auth.org_scope import (
+    CallerScope,
+    get_caller_scope,
+    require_patient_in_scope,
+)
 from libs.auth.service_auth import get_service_auth_header
 from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
 from app.deps import require_admin
@@ -149,6 +153,8 @@ from libs.cypher.post_processor_rule_queries import (
     UPSERT_POST_PROCESSOR_RULE,
     UPDATE_POST_PROCESSOR_RULE_ACTIVE,
 )
+from libs.cypher.documents_queries import LIST_ENCOUNTER_CODED_LINKS
+from app.models.neo4j_schema import GET_ENCOUNTER
 from libs.ner.schema_mapper import LABEL_TO_SNOMED_TAG
 from libs.ner.training_label_writer import bulk_upsert_training_labels
 from libs.ner.span_finder import find_span
@@ -467,6 +473,21 @@ class DryRunApproveRequest(BaseModel):
     expected_entity_count: int = Field(..., ge=0)
     source_hint: str | None = None
     quality_score: float = Field(default=1.0, ge=0.0, le=1.0)
+
+
+class EncounterGoldLabelRequest(BaseModel):
+    """Create or fetch a draft GoldLabel seeded from a live patient encounter.
+
+    The dialog opens against the de-identified text (so PHI never reaches
+    the gold dataset).  The reviewer's edits are persisted both to the
+    GoldLabel and -- via a separate sync endpoint -- back to the live
+    Encounter's :DOCUMENTS links.  The (patient_id, encounter_id) pair
+    must be carried by the client because the gold label itself is
+    GDPR-isolated and does not store live identifiers.
+    """
+
+    patient_id: str = Field(..., min_length=1)
+    encounter_id: str = Field(..., min_length=1)
 
 
 class PerEncounterWeightLookupRow(BaseModel):
@@ -5764,6 +5785,129 @@ _DRY_RUN_APPROVE_GOLD_SOURCE = "manual_gold_curated"
 _DRY_RUN_APPROVED_VIA = "dry_run_quick_approve"
 _DRY_RUN_SOURCE_HINT_MAX = 64
 
+# Source tag for GoldLabels seeded from a live patient encounter.  Lets
+# the reviewer dashboard surface "edited live encounter" provenance and
+# lets retraining filters distinguish dry-run audits from real clinical
+# corrections (the latter are higher-trust signal).
+_LIVE_ENCOUNTER_SOURCE = "live_encounter_correction"
+
+# Reverse lookup: SNOMED semantic tag (as stored on the concept node /
+# coded link, e.g. "disorder", "observable entity") -> NER stored label
+# (e.g. "disorder", "observable_entity").  Built once at import time so
+# the live -> gold mapping does not allocate a dict per call.
+_SNOMED_TAG_TO_LABEL: dict[str, str] = {
+    tag.lower(): label for label, tag in LABEL_TO_SNOMED_TAG.items()
+}
+
+
+def _ner_label_for_semantic_tag(semantic_tag: str | None) -> str:
+    """Map a SNOMED semantic tag onto the NER stored label.
+
+    Falls back to a sanitised lowercase form when the tag is not in the
+    canonical map (e.g. a custom semantic_tag from a manual coding fix).
+    Always returns a non-empty string so the gold label is loadable by
+    the editor dialog without raising.
+    """
+
+    if not semantic_tag:
+        return "concept"
+    key = semantic_tag.strip().lower()
+    if not key:
+        return "concept"
+    if key in _SNOMED_TAG_TO_LABEL:
+        return _SNOMED_TAG_TO_LABEL[key]
+    sanitised = "".join(
+        ch if ch.isalnum() else "_" for ch in key
+    ).strip("_") or "concept"
+    return sanitised
+
+
+def _sanitise_live_links(
+    deidentified_text: str,
+    links: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], int]:
+    """Re-anchor live :DOCUMENTS links onto de-identified encounter text.
+
+    Returns ``(entities, dropped_count)``.  Each surviving entity uses
+    the GoldLabel entity shape consumed by the editor dialog, with
+    SNOMED metadata (``snomed_concept_id``, ``snomed_term``,
+    ``body_site_*``) copied from the live link and assertion lifted out
+    of the per-link context blob.
+
+    Drops links whose evidence text can no longer be located after
+    de-identification (e.g. a PERSON token replaced a date inside the
+    evidence sentence).  Reviewers can re-add those in the editor.
+    """
+
+    sanitised: list[dict[str, Any]] = []
+    dropped = 0
+    for raw in links or []:
+        if not isinstance(raw, dict):
+            dropped += 1
+            continue
+        concept_id = str(raw.get("concept_id") or "").strip()
+        term = str(raw.get("term") or "").strip()
+        if not concept_id or not term:
+            dropped += 1
+            continue
+        # Prefer the evidence sentence the coder originally anchored on,
+        # then the longer evidence span, then the canonical term.  The
+        # span finder will normalise whitespace + casing.
+        candidates = [
+            str(raw.get("evidence_sentence") or "").strip(),
+            str(raw.get("evidence") or "").strip(),
+            term,
+        ]
+        span: tuple[int, int] | None = None
+        anchor_text = ""
+        for candidate in candidates:
+            if not candidate:
+                continue
+            located = find_span(deidentified_text, candidate)
+            if located is not None:
+                span = located
+                anchor_text = candidate
+                break
+        if span is None:
+            dropped += 1
+            continue
+        start, end = span
+        semantic_tag = str(raw.get("semantic_tag") or "").strip()
+        ctx_raw = raw.get("context")
+        if isinstance(ctx_raw, str):
+            try:
+                ctx = json.loads(ctx_raw) if ctx_raw else {}
+            except json.JSONDecodeError:
+                ctx = {}
+        elif isinstance(ctx_raw, dict):
+            ctx = ctx_raw
+        else:
+            ctx = {}
+        assertion = str(ctx.get("assertion") or "").strip() or "present"
+        entity: dict[str, Any] = {
+            "text": deidentified_text[start:end],
+            "label": _ner_label_for_semantic_tag(semantic_tag),
+            "start": start,
+            "end": end,
+            "semantic_tag": semantic_tag,
+            "snomed_concept_id": concept_id,
+            "snomed_term": term,
+            "assertion": assertion,
+        }
+        body_site_id = str(raw.get("body_site_concept_id") or "").strip()
+        body_site_term = str(raw.get("body_site_term") or "").strip()
+        if body_site_id:
+            entity["body_site_concept_id"] = body_site_id
+        if body_site_term:
+            entity["body_site_term"] = body_site_term
+        # Anchor evidence is useful for the dialog header chrome and for
+        # the sync-from-gold endpoint to detect "the reviewer changed
+        # what evidence backs this concept".
+        if anchor_text and anchor_text != entity["text"]:
+            entity["source_evidence"] = anchor_text
+        sanitised.append(entity)
+    return sanitised, dropped
+
 
 def _sanitise_dry_run_entities(
     deidentified_text: str,
@@ -5837,10 +5981,10 @@ def candidate_from_dry_run(
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
-            existing_candidate = session.run(
+            candidate_row = session.run(
                 GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id
             ).single()
-            if existing_candidate is None:
+            if candidate_row is None:
                 session.run(
                     UPSERT_TRAINING_CANDIDATE,
                     candidate_id=candidate_id,
@@ -5853,6 +5997,9 @@ def candidate_from_dry_run(
                     hitl_guidance=None,
                     schema_version="v4",
                 )
+                candidate_row = session.run(
+                    GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id
+                ).single()
 
             existing_label = session.run(
                 GET_GOLD_LABEL_BY_CANDIDATE_ID, candidate_id=candidate_id
@@ -5872,6 +6019,33 @@ def candidate_from_dry_run(
                     candidate_id=candidate_id,
                     schema_version="v4",
                 )
+
+            # -- Surface the full GoldLabel payload (DI-LEO-AI-211) --
+            # Lets the Evaluate-stage UI mount the shared
+            # GoldLabelEditorDialog inline without a second roundtrip.
+            # Merge in AI first-pass audit fields the same way
+            # ensure_gold_label_for_candidate does so the AI-suggested
+            # chip / show-original toggle work for dry-run rows that
+            # were already touched by an AI first pass.
+            label_row = session.run(
+                GET_GOLD_LABEL_BY_ID, label_id=label_id
+            ).single()
+            if not label_row:
+                raise HTTPException(
+                    status_code=500, detail="Failed to load draft GoldLabel"
+                )
+            ai_audit: dict[str, Any] = {}
+            if candidate_row is not None:
+                ai_audit = {
+                    "ai_first_pass_run_id": candidate_row.get(
+                        "ai_first_pass_run_id"
+                    ),
+                    "ai_first_pass_at": candidate_row.get("ai_first_pass_at"),
+                    "entities_json_original": candidate_row.get(
+                        "entities_json_original"
+                    ),
+                }
+            gold_label = {**dict(label_row), **ai_audit}
     finally:
         client.close()
 
@@ -5883,6 +6057,162 @@ def candidate_from_dry_run(
         "dropped_entity_count": max(
             0, len(payload.entities or []) - len(sanitised_entities)
         ),
+        "gold_label": gold_label,
+    }
+
+
+@router.post("/gold-labels/from-encounter")
+def gold_label_from_encounter(
+    payload: EncounterGoldLabelRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Open the shared editor against a live patient encounter (DI-LEO-AI-209).
+
+    Used by the EncounterCard "Edit codes" button on /care/patients and
+    by the EncounterPreviewDialog on /care/encounters.  Returns a draft
+    GoldLabel pre-populated from the live :DOCUMENTS links so the
+    reviewer's edits can be saved both back to Neo4j (via
+    sync-from-gold) and as a de-identified copy in the gold dataset.
+
+    Idempotent: candidate_id = sha256(deidentified_text), so two
+    reviewers opening the same encounter land on the same draft.
+    """
+
+    patient_id = payload.patient_id.strip()
+    encounter_id = payload.encounter_id.strip()
+    if not patient_id or not encounter_id:
+        raise HTTPException(
+            status_code=400,
+            detail="patient_id and encounter_id must not be empty",
+        )
+
+    patient_client = PatientGraphClient()
+    try:
+        require_patient_in_scope(patient_client, scope, patient_id)
+        with patient_client.session() as session:
+            encounter_row = session.run(
+                GET_ENCOUNTER,
+                patient_id=patient_id,
+                encounter_id=encounter_id,
+            ).single()
+            if encounter_row is None:
+                raise HTTPException(status_code=404, detail="Encounter not found")
+            raw_text = str(encounter_row.get("text") or "").strip()
+            if not raw_text:
+                raise HTTPException(
+                    status_code=400, detail="Encounter has no text to label"
+                )
+            link_rows = list(
+                session.run(
+                    LIST_ENCOUNTER_CODED_LINKS,
+                    patient_id=patient_id,
+                    encounter_id=encounter_id,
+                )
+            )
+    finally:
+        patient_client.close()
+
+    live_links: list[dict[str, Any]] = []
+    baseline_concept_ids: list[str] = []
+    for row in link_rows:
+        record = dict(row)
+        concept_id = str(record.get("concept_id") or "").strip()
+        if not concept_id:
+            # LIST_ENCOUNTER_CODED_LINKS emits a placeholder row when
+            # the encounter has no DOCUMENTS edges -- skip it so the
+            # editor opens cleanly on uncoded encounters.
+            continue
+        live_links.append(record)
+        baseline_concept_ids.append(concept_id)
+
+    deidentified = deidentify_text(raw_text, ner=True).strip()
+    if not deidentified:
+        raise HTTPException(
+            status_code=400,
+            detail="Encounter text is empty after de-identification",
+        )
+
+    sanitised_entities, dropped_link_count = _sanitise_live_links(
+        deidentified, live_links
+    )
+    candidate_id = hashlib.sha256(deidentified.encode("utf-8")).hexdigest()
+    entities_json = json.dumps(sanitised_entities, ensure_ascii=False)
+
+    kg_client = KnowledgeGraphClient()
+    try:
+        with kg_client.session() as session:
+            candidate_row = session.run(
+                GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id
+            ).single()
+            if candidate_row is None:
+                session.run(
+                    UPSERT_TRAINING_CANDIDATE,
+                    candidate_id=candidate_id,
+                    text=deidentified,
+                    entities_json=entities_json,
+                    relation_changes=None,
+                    source=_LIVE_ENCOUNTER_SOURCE,
+                    status="pending",
+                    hitl_reason=None,
+                    hitl_guidance=None,
+                    schema_version="v4",
+                )
+                candidate_row = session.run(
+                    GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id
+                ).single()
+
+            existing_label = session.run(
+                GET_GOLD_LABEL_BY_CANDIDATE_ID, candidate_id=candidate_id
+            ).single()
+            if existing_label:
+                label_id = existing_label.get("label_id")
+            else:
+                label_id = f"manual-{uuid.uuid4().hex}"
+                session.run(
+                    UPSERT_GOLD_LABEL,
+                    label_id=label_id,
+                    text=deidentified,
+                    entities_json=entities_json,
+                    quality_score=None,
+                    source=_LIVE_ENCOUNTER_SOURCE,
+                    verified_by="",
+                    candidate_id=candidate_id,
+                    schema_version="v4",
+                )
+
+            label_row = session.run(
+                GET_GOLD_LABEL_BY_ID, label_id=label_id
+            ).single()
+            if not label_row:
+                raise HTTPException(
+                    status_code=500, detail="Failed to load draft GoldLabel"
+                )
+            ai_audit: dict[str, Any] = {}
+            if candidate_row is not None:
+                ai_audit = {
+                    "ai_first_pass_run_id": candidate_row.get(
+                        "ai_first_pass_run_id"
+                    ),
+                    "ai_first_pass_at": candidate_row.get("ai_first_pass_at"),
+                    "entities_json_original": candidate_row.get(
+                        "entities_json_original"
+                    ),
+                }
+            gold_label = {**dict(label_row), **ai_audit}
+    finally:
+        kg_client.close()
+
+    return {
+        "candidate_id": candidate_id,
+        "label_id": label_id,
+        "source": _LIVE_ENCOUNTER_SOURCE,
+        "patient_id": patient_id,
+        "encounter_id": encounter_id,
+        "source_coded_links_count": len(live_links),
+        "entity_count": len(sanitised_entities),
+        "dropped_link_count": dropped_link_count,
+        "baseline_concept_ids": baseline_concept_ids,
+        "gold_label": gold_label,
     }
 
 

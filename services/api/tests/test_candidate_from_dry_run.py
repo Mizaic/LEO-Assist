@@ -50,6 +50,11 @@ def _kg_session_capture(run_lookup: dict[str, Any]):
     """Return a (MockKG, calls) pair that records every session.run call.
 
     `run_lookup` matches a query substring -> single() return value.
+
+    A default fallback synthesises a GoldLabel row for
+    `MATCH (g:GoldLabel {label_id: $label_id})` so the new
+    DI-LEO-AI-211 response shape (`gold_label` payload) can be
+    populated without each test having to wire its own mock.
     """
 
     calls: list[tuple[str, dict[str, Any]]] = []
@@ -59,6 +64,22 @@ def _kg_session_capture(run_lookup: dict[str, Any]):
         for needle, single_value in run_lookup.items():
             if needle in query:
                 return MagicMock(single=MagicMock(return_value=single_value))
+        if "MATCH (g:GoldLabel {label_id: $label_id})" in query:
+            label_id = kwargs.get("label_id", "manual-stub")
+            synth = {
+                "label_id": label_id,
+                "text": "",
+                "entities_json": "[]",
+                "quality_score": None,
+                "source": "manual_gold_draft",
+                "verified_by": "",
+                "verified_at": None,
+                "candidate_id": None,
+                "schema_version": "v4",
+                "created_at": None,
+                "updated_at": None,
+            }
+            return MagicMock(single=MagicMock(return_value=synth))
         return MagicMock(single=MagicMock(return_value=None))
 
     inner = MagicMock()
@@ -240,6 +261,81 @@ def test_empty_encounter_text_returns_400(client, text):
         )
     assert r.status_code == 400
     assert "encounter_text" in r.json()["detail"]
+
+
+# -- VT-LEO-AI-211 TC-001 -- response carries full gold_label payload -------
+
+
+def test_response_carries_full_gold_label_payload(client):
+    """DI-LEO-AI-211: Evaluate-stage callers mount the shared dialog
+    inline using the payload returned here, so the gold_label block
+    must include the canonical GoldLabel fields plus the AI first-pass
+    audit fields the dialog uses for its 'show original' toggle."""
+
+    deid = "patient reports cough"
+
+    candidate_row = {
+        "candidate_id": hashlib.sha256(deid.encode()).hexdigest(),
+        "text": deid,
+        "entities_json": "[]",
+        "source": "dry_run_correction",
+        "status": "pending",
+        "schema_version": "v4",
+        "ai_first_pass_run_id": "run-xyz",
+        "ai_first_pass_at": "2026-04-18T10:00:00",
+        "entities_json_original": "[]",
+    }
+    label_row = {
+        "label_id": "manual-existing-1234",
+        "text": deid,
+        "entities_json": "[]",
+        "quality_score": None,
+        "source": "manual_gold_draft",
+        "verified_by": "",
+        "verified_at": None,
+        "candidate_id": candidate_row["candidate_id"],
+        "schema_version": "v4",
+        "created_at": None,
+        "updated_at": "2026-04-18T10:01:00",
+    }
+    kg, _calls = _kg_session_capture(
+        {
+            "MATCH (c:TrainingCandidate {candidate_id: $candidate_id})": (
+                candidate_row
+            ),
+            "MATCH (g:GoldLabel {candidate_id: $candidate_id})": label_row,
+            "MATCH (g:GoldLabel {label_id: $label_id})": label_row,
+        }
+    )
+
+    with (
+        caller_scope_override(client.app),
+        patch("app.routers.training.deidentify_text", return_value=deid),
+        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+    ):
+        r = client.post(
+            "/training/candidates/from-dry-run",
+            json={"encounter_text": "raw", "entities": []},
+        )
+
+    assert r.status_code == 200, r.text
+    payload = r.json()
+    assert payload["label_id"] == label_row["label_id"]
+    gold_label = payload.get("gold_label")
+    assert isinstance(gold_label, dict)
+    for field in (
+        "label_id",
+        "text",
+        "entities_json",
+        "source",
+        "candidate_id",
+        "updated_at",
+    ):
+        assert field in gold_label, field
+    assert gold_label["label_id"] == label_row["label_id"]
+    assert gold_label["candidate_id"] == candidate_row["candidate_id"]
+    assert gold_label["ai_first_pass_run_id"] == "run-xyz"
+    assert gold_label["entities_json_original"] == "[]"
 
 
 # -- VT-191-TC-006 -- source_hint truncated to 64 chars ----------------------

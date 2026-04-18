@@ -20,6 +20,7 @@ Usage in FastAPI endpoints::
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import List, Literal, Optional
 
@@ -28,6 +29,19 @@ from fastapi import Header, HTTPException
 from libs.neo4j_client.client import PatientGraphClient
 
 logger = logging.getLogger("libs.auth.org_scope")
+
+# Local-dev only bypass for get_caller_scope. When set to "true" the dependency
+# returns an unrestricted admin CallerScope without consulting Redis sessions.
+# Mirrors the pattern in libs/auth/service_auth.py for inter-service auth.
+# MUST stay false in any deployed environment (dev/val/prod). Opt-in is
+# explicit and centralised here so a single grep finds every callsite.
+_LOCAL_DEV_BYPASS_ENV = "LEO_LOCAL_DEV_BYPASS"
+_LOCAL_DEV_BYPASS_EMAIL = "local-dev@leo.local"
+
+
+def _local_dev_bypass_enabled() -> bool:
+    return os.environ.get(_LOCAL_DEV_BYPASS_ENV, "").strip().lower() == "true"
+
 
 ScopeType = Literal["gp", "pcn", "icb", "alliance"]
 
@@ -254,7 +268,26 @@ def get_caller_scope(
     Prefer using app.deps.get_caller_scope_from_request in service routers,
     which reads from the secure session cookie. This function is kept for
     internal callers that pass the session token via X-Leo-Session header.
+
+    Local-dev bypass (off by default): when LEO_LOCAL_DEV_BYPASS=true is set
+    in the process environment the dependency short-circuits and returns an
+    unrestricted admin scope. This is intended for local MCP tooling and the
+    docker-compose dev stack only. The flag is never set in any deployed
+    env file -- see libs/auth/service_auth.py for the same pattern.
     """
+    if _local_dev_bypass_enabled():
+        logger.warning(
+            "get_caller_scope: %s=true -- returning admin bypass scope. "
+            "This MUST NOT appear in deployed environments.",
+            _LOCAL_DEV_BYPASS_ENV,
+        )
+        return CallerScope(
+            email=_LOCAL_DEV_BYPASS_EMAIL,
+            is_admin=True,
+            org_ids=[],
+            scope_type=None,
+            primary_org_id=None,
+        )
     if not leo_session:
         raise HTTPException(status_code=401, detail="Not authenticated")
     from libs.redis_client.session import load_session

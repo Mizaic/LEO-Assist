@@ -1,12 +1,21 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useParams } from "next/navigation";
-import EncounterCodedView from "@/components/EncounterCodedView";
+interface Props {
+  params: {
+    patientId: string;
+    encounterId: string;
+  };
+}
 
-export default function EncounterPage() {
-  const { patientId, encounterId } = useParams<{ patientId: string; encounterId: string }>();
-  if (!patientId || !encounterId || Array.isArray(patientId) || Array.isArray(encounterId)) {
-    return <p style={{ padding: 24, color: "#64748b" }}>Invalid patient or encounter</p>;
-  }
-  return <EncounterCodedView patientId={patientId} encounterId={encounterId} />;
+// DI-LEO-AI-209: the dedicated EncounterCodedView page is retired in
+// favour of the shared GoldLabelEditorDialog launched inline from the
+// patient encounters tab.  Any deep links that still hit this route
+// land on the patient page so the reviewer can re-open the encounter
+// from the timeline (and the dialog opens against live + de-id text).
+export default function EncounterPage({ params }: Props) {
+  const patientId = encodeURIComponent(params.patientId);
+  const encounterId = encodeURIComponent(params.encounterId);
+  redirect(
+    `/care/patients?patient=${patientId}&tab=encounters&encounter=${encounterId}`,
+  );
 }

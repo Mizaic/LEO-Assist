@@ -10,6 +10,15 @@ import AppShell from "@/components/AppShell";
 import AuthProviderWrapper from "@/components/AuthProviderWrapper";
 import RoleShellProvider from "@/components/RoleShellProvider";
 import { dmSans, jetBrainsMono } from "@/lib/fonts";
+import { fetchInitialSession } from "@/lib/serverSession";
+
+// All UI pages are authenticated and per-user. Disable Next.js Full Route
+// Cache so Cloudflare and the Next.js cache never serve a prerendered
+// "loading" tree for an authenticated user (root cause of the post-login
+// spinner observed in ACA / Cloudflare). See DI-LEO-AI-218.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
   title: "LEO by Mizaic",
@@ -17,11 +26,16 @@ export const metadata: Metadata = {
     "Clinical pathway audit intelligence by Mizaic -- for authorised Mizaic staff only",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Resolve the session on the server so the first paint already reflects
+  // the authenticated user. This eliminates the loading flash that was
+  // previously cached and served by Cloudflare.
+  const initialSession = await fetchInitialSession();
+
   return (
     <html
       lang="en"
@@ -32,7 +46,7 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
-        <AuthProviderWrapper>
+        <AuthProviderWrapper initialSession={initialSession}>
           <RoleShellProvider>
             <ThemeRegistry>
               <DensityProvider>

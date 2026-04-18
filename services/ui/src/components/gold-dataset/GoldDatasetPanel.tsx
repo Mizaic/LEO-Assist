@@ -1173,7 +1173,45 @@ function AnnotationGuidelinesPanel({
 
 // -- End annotation guidelines panel ---------------------------------------
 
-function GoldLabelDetailDialog({
+// -- Shared "saved" entity payload shape ---------------------------------
+//
+// This is the wire shape produced by the dialog when persisting changes.
+// Default save mode posts it to PATCH /training/gold-labels/{id}/entities.
+// Dual-save consumers (e.g. /care/patients, /care/encounters in
+// DI-LEO-AI-210) pass a custom `entitySaver` that posts to
+// /patients/{p}/encounters/{e}/coded-links/sync-from-gold so the live
+// :DOCUMENTS coded links are mirrored alongside the de-identified
+// gold training copy. R-LEO-AI-187 governs the safety controls on
+// the dual-save path.
+export interface SavedGoldEntity {
+  text: string;
+  label: string;
+  assertion?: string;
+  snomed_concept_id?: string;
+  snomed_term?: string;
+  semantic_tag?: string;
+  body_site_concept_id?: string;
+  body_site_term?: string;
+  relations: Array<{
+    type: string;
+    target_idx: number;
+    target_text?: string;
+    confidence?: number;
+  }>;
+  rejected_relations: Array<{
+    type: string;
+    target_text: string;
+    reason: string;
+  }>;
+}
+
+export type GoldDialogSaveMode = "gold" | "dual";
+
+export type GoldDialogEntitySaver = (
+  entities: SavedGoldEntity[],
+) => Promise<void>;
+
+export function GoldLabelDetailDialog({
   item,
   onClose,
   onEntitiesChanged,
@@ -1182,6 +1220,10 @@ function GoldLabelDetailDialog({
   onDeleteCandidate,
   markingGold,
   annotationGuidelines,
+  saveMode = "gold",
+  entitySaver,
+  onAfterSave,
+  headerChrome,
 }: {
   item: GoldLabel;
   onClose: () => void;
@@ -1191,6 +1233,23 @@ function GoldLabelDetailDialog({
   onDeleteCandidate?: (suppressText: boolean) => void;
   markingGold?: boolean;
   annotationGuidelines?: string | null;
+  // -- Shared component plumbing (DI-LEO-AI-208) -----------------------
+  // saveMode: 'gold' (default, candidates+evaluate) writes only to the
+  //   GoldLabel via PATCH /training/gold-labels/{id}/entities.
+  //   'dual' enables the explicit warning banner used on the /care
+  //   surfaces; the host MUST also pass a matching entitySaver.
+  // entitySaver: optional override for persistence. Default behaviour
+  //   calls patchGoldLabelEntities(item.label_id, entities). Hosts may
+  //   inject e.g. a sync-from-gold call for dual writes.
+  // onAfterSave: optional success callback fired after each persist
+  //   resolves (in addition to onEntitiesChanged).
+  // headerChrome: optional React node rendered just below the title
+  //   strip, intended for surface-specific context like search match
+  //   rationale chips on /care/encounters (DI-LEO-AI-212).
+  saveMode?: GoldDialogSaveMode;
+  entitySaver?: GoldDialogEntitySaver;
+  onAfterSave?: () => void;
+  headerChrome?: React.ReactNode;
 }) {
   const [entities, setEntities] = useState<Entity[]>(() => parseEntities(item.entities_json));
   const [saving, setSaving] = useState(false);
@@ -1806,34 +1865,37 @@ function GoldLabelDetailDialog({
     setSaveError(null);
     setSaveMsg(null);
     try {
-      await patchGoldLabelEntities(
-        item.label_id,
-        next.map((e) => ({
-          text: e.text,
-          label: e.label ?? "finding",
-          assertion: e.assertion,
-          snomed_concept_id: e.snomed_concept_id,
-          snomed_term: e.snomed_term,
-          semantic_tag: e.semantic_tag,
-          body_site_concept_id: e.body_site_concept_id,
-          body_site_term: e.body_site_term,
-          relations: (e.relations ?? []).map((relation) => ({
-            type: relation.type,
-            target_idx: relation.target_idx,
-            target_text: relation.target_text,
-            confidence: relation.confidence,
-          })),
-          rejected_relations: (e.rejected_relations ?? []).map((r) => ({
-            type: r.type,
-            target_text: r.target_text,
-            reason: r.reason,
-          })),
+      const payload: SavedGoldEntity[] = next.map((e) => ({
+        text: e.text,
+        label: e.label ?? "finding",
+        assertion: e.assertion,
+        snomed_concept_id: e.snomed_concept_id,
+        snomed_term: e.snomed_term,
+        semantic_tag: e.semantic_tag,
+        body_site_concept_id: e.body_site_concept_id,
+        body_site_term: e.body_site_term,
+        relations: (e.relations ?? []).map((relation) => ({
+          type: relation.type,
+          target_idx: relation.target_idx,
+          target_text: relation.target_text,
+          confidence: relation.confidence,
         })),
-      );
+        rejected_relations: (e.rejected_relations ?? []).map((r) => ({
+          type: r.type,
+          target_text: r.target_text,
+          reason: r.reason,
+        })),
+      }));
+      if (entitySaver) {
+        await entitySaver(payload);
+      } else {
+        await patchGoldLabelEntities(item.label_id, payload);
+      }
       setEntities(next);
       setTermDrafts({});
       setSaveMsg(successMsg);
       onEntitiesChanged?.();
+      onAfterSave?.();
       return true;
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Could not save changes");
@@ -2208,6 +2270,22 @@ function GoldLabelDetailDialog({
           onClose={onClose}
         />
         <DialogContent dividers sx={{ borderTopColor: "divider" }}>
+          {headerChrome && (
+            <Box sx={{ mb: 2 }} data-testid="gold-dialog-header-chrome">
+              {headerChrome}
+            </Box>
+          )}
+          {saveMode === "dual" && (
+            <Alert
+              severity="warning"
+              data-testid="dual-save-banner"
+              sx={{ mb: 2 }}
+              icon={<InfoOutlinedIcon fontSize="inherit" />}
+            >
+              Saving here updates the live coded data on this encounter and
+              records a de-identified copy in gold training (R-LEO-AI-187).
+            </Alert>
+          )}
           {saveError && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveError(null)}>
               {saveError}

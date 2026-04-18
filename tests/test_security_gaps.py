@@ -70,6 +70,64 @@ def test_gap001_get_caller_scope_from_request_ignores_x_user_email(monkeypatch):
     assert "email" not in param_names, "?email= query param must not exist (GAP-001)"
 
 
+def test_gap001_local_dev_bypass_off_by_default(monkeypatch):
+    """LEO_LOCAL_DEV_BYPASS must be OFF unless explicitly opted in.
+
+    The dev bypass in libs.auth.org_scope.get_caller_scope short-circuits
+    auth and returns admin scope. It is gated by LEO_LOCAL_DEV_BYPASS=true.
+    Any other value (including unset, empty, "false", "1", "yes") MUST keep
+    the bypass disabled so it cannot be accidentally enabled in deployed
+    environments by truthy-coercion bugs.
+    """
+    from libs.auth.org_scope import _local_dev_bypass_enabled
+
+    monkeypatch.delenv("LEO_LOCAL_DEV_BYPASS", raising=False)
+    assert _local_dev_bypass_enabled() is False
+    for value in ("", "false", "False", "0", "1", "yes", "on", "enabled"):
+        monkeypatch.setenv("LEO_LOCAL_DEV_BYPASS", value)
+        assert (
+            _local_dev_bypass_enabled() is False
+        ), f"bypass must stay disabled for value={value!r}"
+    for value in ("true", "TRUE", "True", " true ", "TRUE "):
+        monkeypatch.setenv("LEO_LOCAL_DEV_BYPASS", value)
+        assert (
+            _local_dev_bypass_enabled() is True
+        ), f"bypass must be enabled for value={value!r}"
+
+
+def test_gap001_local_dev_bypass_not_set_in_deployed_envs():
+    """LEO_LOCAL_DEV_BYPASS must not appear in any infra/env file.
+
+    Local opt-in only -- secrets/.env.config is excluded because it is the
+    developer's local file and is not deployed.
+    """
+    import pathlib
+
+    repo_root = pathlib.Path(__file__).parent.parent
+    forbidden_globs = [
+        "infra/**/*.bicep",
+        "infra/**/*.bicepparam",
+        "infra/**/*.yaml",
+        "infra/**/*.yml",
+        "infra/**/*.env*",
+        "deploy/**/*.yaml",
+        "deploy/**/*.yml",
+        "k8s/**/*.yaml",
+    ]
+    hits = []
+    for pattern in forbidden_globs:
+        for path in repo_root.glob(pattern):
+            try:
+                if "LEO_LOCAL_DEV_BYPASS" in path.read_text(errors="ignore"):
+                    hits.append(str(path.relative_to(repo_root)))
+            except (OSError, UnicodeDecodeError):
+                continue
+    assert not hits, (
+        "LEO_LOCAL_DEV_BYPASS leaked into deployed infra files: "
+        f"{hits}. This flag is local-dev only."
+    )
+
+
 # ---------------------------------------------------------------------------
 # GAP-002: JWKS JWT verification
 # ---------------------------------------------------------------------------

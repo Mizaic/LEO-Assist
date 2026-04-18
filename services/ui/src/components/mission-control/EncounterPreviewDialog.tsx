@@ -1,32 +1,48 @@
 "use client";
 
+/**
+ * EncounterPreviewDialog (DI-LEO-AI-212).
+ *
+ * Thin wrapper around the shared GoldLabelEditorDialog used on the
+ * /care/encounters mission-control surface. It seeds a gold label from
+ * the live encounter, mounts the shared editor in dual-save mode, and
+ * surfaces the search match rationale (date, match type, rationale
+ * chips) in the dialog header so reviewers retain the context that
+ * brought them to this encounter.
+ *
+ * Saving the dialog
+ *   - updates :DOCUMENTS coded links on the live encounter, and
+ *   - mirrors a de-identified copy onto the linked GoldLabel for
+ *     training (DI-LEO-AI-209/210).
+ */
+
+import { useCallback, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import Divider from "@mui/material/Divider";
-import Paper from "@mui/material/Paper";
-import Skeleton from "@mui/material/Skeleton";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import type { EncounterCodedLink, EncounterListItem } from "@/lib/missionControlApi";
-import { ASSERTION_CHIP } from "@/lib/types";
 
-type ChipColor = "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
+import {
+  GoldLabelEditorDialog,
+  createGoldLabelFromEncounter,
+  useDualSaveAdapter,
+  type DualSaveEncounterContext,
+  type GoldLabel,
+} from "@/components/gold-editor";
+import type { EncounterListItem } from "@/lib/missionControlApi";
 
-function chipPropsForAssertion(assertionRaw: string): {
-  color: ChipColor;
-  variant: "filled" | "outlined";
-} {
-  const key = assertionRaw.trim().toLowerCase();
-  const meta = ASSERTION_CHIP[key];
-  if (!meta) return { color: "default", variant: "outlined" };
-  const strong = meta.color === "error" || meta.color === "warning";
-  return { color: meta.color, variant: strong ? "filled" : "outlined" };
+interface Props {
+  item: EncounterListItem | null;
+  onClose: () => void;
+  /** Optional callback fired after a successful dual save so the host
+   *  can refresh its list (e.g. updated coded counts). */
+  onCodingChanged?: () => void;
 }
 
 function formatDateLong(dateStr: string | null): string {
@@ -39,178 +55,187 @@ function formatDateLong(dateStr: string | null): string {
   });
 }
 
-function toOneLine(value: string | null | undefined): string {
-  return (value || "").replace(/\s+/g, " ").trim();
-}
-
-function codedLinkTooltip(link: EncounterCodedLink): string {
-  const lines: string[] = [];
-  lines.push(`Concept: ${link.concept_id}`);
-  lines.push(`Assertion: ${link.assertion || "present"}`);
-  if (typeof link.confidence === "number") {
-    lines.push(`Confidence: ${Math.round(link.confidence * 100)}%`);
-  }
-  if (link.source) lines.push(`Source: ${link.source}`);
-  if (link.domain) lines.push(`Domain: ${link.domain}`);
-  if (link.model_name) {
-    lines.push(
-      `Model: ${link.model_name}${link.model_version ? ` v${link.model_version}` : ""}`
-    );
-  }
-  if (link.run_id) lines.push(`Run: ${link.run_id}`);
-  const evidence = toOneLine(link.evidence_sentence || link.evidence);
-  if (evidence) lines.push(`Evidence: ${evidence}`);
-  if (
-    typeof link.sentence_index === "number" ||
-    typeof link.evidence_start === "number" ||
-    typeof link.evidence_end === "number"
-  ) {
-    lines.push(
-      `Span: s${link.sentence_index ?? "?"} [${link.evidence_start ?? "?"}, ${link.evidence_end ?? "?"}]`
-    );
-  }
-  return lines.join("\n");
-}
-
-interface Props {
-  item: EncounterListItem | null;
-  codedLinks: EncounterCodedLink[];
-  loading: boolean;
-  error: string | null;
-  onClose: () => void;
-}
-
-function CodedTermsSkeleton() {
+function MatchRationaleHeader({
+  item,
+}: {
+  item: EncounterListItem;
+}) {
   return (
-    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-      {[90, 115, 80, 130, 75, 100].map((w) => (
-        <Skeleton key={w} width={w} height={28} sx={{ borderRadius: 4 }} />
-      ))}
+    <Stack spacing={1} data-testid="encounter-preview-rationale">
+      <Typography variant="body2" color="text.secondary">
+        {formatDateLong(item.encounter_date)} -- Patient{" "}
+        <Box
+          component="span"
+          sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}
+        >
+          {item.patient_id}
+        </Box>
+      </Typography>
+      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+        <Chip
+          size="small"
+          label={`ID: ${item.encounter_id}`}
+          variant="outlined"
+          sx={{ fontFamily: "monospace", fontSize: "0.72rem" }}
+        />
+        <Chip
+          size="small"
+          label={`Match: ${item.match_type}`}
+          variant="outlined"
+        />
+        <Chip
+          size="small"
+          label={`${item.coded_count} coded term${
+            item.coded_count !== 1 ? "s" : ""
+          }`}
+          color={item.coded_count > 0 ? "success" : "default"}
+          variant={item.coded_count > 0 ? "filled" : "outlined"}
+        />
+      </Stack>
+      {!!item.match_rationale?.length && (
+        <Box>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mb: 0.5 }}
+          >
+            Why this matched your search
+          </Typography>
+          <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+            {item.match_rationale.map((term, idx) => (
+              <Chip
+                key={`preview-${item.encounter_id}-mr-${idx}-${term}`}
+                size="small"
+                label={term}
+                variant="outlined"
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
     </Stack>
   );
 }
 
-export default function EncounterPreviewDialog({ item, codedLinks, loading, error, onClose }: Props) {
+export default function EncounterPreviewDialog({
+  item,
+  onClose,
+  onCodingChanged,
+}: Props) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [target, setTarget] = useState<GoldLabel | null>(null);
+  const [context, setContext] =
+    useState<DualSaveEncounterContext | null>(null);
+
+  const reset = useCallback(() => {
+    setTarget(null);
+    setContext(null);
+    setError(null);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!item) {
+      reset();
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setTarget(null);
+    setContext(null);
+    void createGoldLabelFromEncounter({
+      patient_id: item.patient_id,
+      encounter_id: item.encounter_id,
+    })
+      .then((seed) => {
+        if (cancelled) return;
+        setContext({
+          patient_id: item.patient_id,
+          encounter_id: item.encounter_id,
+          baseline_concept_ids: seed.baseline_concept_ids,
+        });
+        setTarget(seed.gold_label);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not open the encounter editor.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [item, reset]);
+
+  const dualSaver = useDualSaveAdapter({
+    labelId: target?.label_id ?? "",
+    context: context ?? {
+      patient_id: item?.patient_id ?? "",
+      encounter_id: item?.encounter_id ?? "",
+      baseline_concept_ids: [],
+    },
+    onSynced: () => {
+      onCodingChanged?.();
+    },
+  });
+
   if (!item) return null;
 
+  if (target && context) {
+    return (
+      <GoldLabelEditorDialog
+        item={target}
+        onClose={() => {
+          reset();
+          onClose();
+        }}
+        saveMode="dual"
+        entitySaver={dualSaver}
+        onAfterSave={() => {
+          onCodingChanged?.();
+        }}
+        headerChrome={<MatchRationaleHeader item={item} />}
+      />
+    );
+  }
+
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle sx={{ pb: 0.5 }}>
-        <Typography variant="h6" component="span">
-          Encounter detail
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-          {formatDateLong(item.encounter_date)} &mdash; Patient{" "}
-          <Box component="span" sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
-            {item.patient_id}
-          </Box>
-        </Typography>
-      </DialogTitle>
-
+    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle>Encounter detail</DialogTitle>
       <DialogContent dividers>
-        <Stack spacing={2.5}>
-          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-            <Chip
-              size="small"
-              label={`ID: ${item.encounter_id}`}
-              variant="outlined"
-              sx={{ fontFamily: "monospace", fontSize: "0.72rem" }}
-            />
-            <Chip size="small" label={`Match: ${item.match_type}`} variant="outlined" />
-            <Chip
-              size="small"
-              label={`${item.coded_count} coded term${item.coded_count !== 1 ? "s" : ""}`}
-              color={item.coded_count > 0 ? "success" : "default"}
-              variant={item.coded_count > 0 ? "filled" : "outlined"}
-            />
-          </Stack>
-
-          <Divider />
-
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.25 }}>
-              Coded terms
-            </Typography>
-            {loading && <CodedTermsSkeleton />}
-            {error && (
-              <Typography variant="body2" color="error">
-                {error}
-              </Typography>
-            )}
-            {!loading && !error && codedLinks.length === 0 && (
-              <Typography variant="body2" color="text.secondary">
-                No coded terms recorded for this encounter.
-              </Typography>
-            )}
-            {!loading && codedLinks.length > 0 && (
-              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                {codedLinks.map((link, index) => {
-                  const term = (link.term || link.concept_id || "unknown").trim();
-                  const assertion = (link.assertion || "present").trim();
-                  const { color, variant } = chipPropsForAssertion(assertion);
-                  return (
-                    <Tooltip
-                      key={`${item.encounter_id}-coded-${index}-${link.concept_id}`}
-                      title={
-                        <Typography
-                          component="pre"
-                          sx={{ m: 0, fontFamily: "monospace", fontSize: "0.72rem", whiteSpace: "pre-wrap" }}
-                        >
-                          {codedLinkTooltip(link)}
-                        </Typography>
-                      }
-                      placement="top"
-                      arrow
-                    >
-                      <Chip
-                        size="small"
-                        label={`${term} (${assertion})`}
-                        color={color}
-                        variant={variant}
-                      />
-                    </Tooltip>
-                  );
-                })}
-              </Stack>
-            )}
-          </Box>
-
-          <Divider />
-
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.25 }}>
-              Encounter text
-            </Typography>
-            <Paper
-              variant="outlined"
-              sx={{ p: 2, maxHeight: 340, overflow: "auto", bgcolor: "action.hover", borderRadius: 2 }}
+        <Stack spacing={2}>
+          <MatchRationaleHeader item={item} />
+          {loading && (
+            <Stack
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              data-testid="encounter-preview-loading"
             >
-              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
-                {item.text?.trim() || "No encounter text available."}
+              <CircularProgress size={20} />
+              <Typography variant="body2" color="text.secondary">
+                Preparing the editor for this encounter...
               </Typography>
-            </Paper>
-          </Box>
-
-          {!!item.match_rationale?.length && (
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1.25 }}>
-                Match rationale
-              </Typography>
-              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                {item.match_rationale.map((term, idx) => (
-                  <Chip
-                    key={`preview-${item.encounter_id}-mr-${idx}-${term}`}
-                    size="small"
-                    label={term}
-                    variant="outlined"
-                  />
-                ))}
-              </Stack>
-            </Box>
+            </Stack>
+          )}
+          {error && (
+            <Typography
+              variant="body2"
+              color="error"
+              data-testid="encounter-preview-error"
+            >
+              {error}
+            </Typography>
           )}
         </Stack>
       </DialogContent>
-
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
       </DialogActions>

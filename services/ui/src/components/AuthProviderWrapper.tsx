@@ -1,11 +1,13 @@
 "use client";
 
-import { AuthProvider } from "@/lib/authContext";
+import { AuthProvider, type Session } from "@/lib/authContext";
 
 export default function AuthProviderWrapper({
   children,
+  initialSession = null,
 }: {
   children: React.ReactNode;
+  initialSession?: Session | null;
 }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return <AuthProvider initialSession={initialSession}>{children}</AuthProvider>;
 }

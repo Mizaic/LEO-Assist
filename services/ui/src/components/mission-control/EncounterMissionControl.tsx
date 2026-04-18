@@ -8,10 +8,8 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { useOrgId } from "@/context/OrgContext";
 import {
-  fetchEncounterCodedLinks,
   fetchEncounterKPIs,
   fetchEncounterList,
-  type EncounterCodedLink,
   type EncounterKPIs,
   type EncounterListItem,
   type EncounterListResponse,
@@ -78,9 +76,6 @@ export default function EncounterMissionControl() {
   const [queryDiagnostics, setQueryDiagnostics] =
     useState<EncounterListResponse["query_diagnostics"]>(undefined);
   const [activePreview, setActivePreview] = useState<EncounterListItem | null>(null);
-  const [previewCodedLinks, setPreviewCodedLinks] = useState<EncounterCodedLink[]>([]);
-  const [previewLinksLoading, setPreviewLinksLoading] = useState(false);
-  const [previewLinksError, setPreviewLinksError] = useState<string | null>(null);
   const lastBatchRefreshKeyRef = useRef<string>("");
   const hasRowsRef = useRef(false);
 
@@ -209,24 +204,9 @@ export default function EncounterMissionControl() {
     setPage(1);
   }, []);
 
-  useEffect(() => {
-    if (!activePreview) {
-      setPreviewCodedLinks([]);
-      setPreviewLinksLoading(false);
-      setPreviewLinksError(null);
-      return;
-    }
-    let mounted = true;
-    setPreviewLinksLoading(true);
-    setPreviewLinksError(null);
-    void fetchEncounterCodedLinks(activePreview.patient_id, activePreview.encounter_id)
-      .then((links) => { if (mounted) setPreviewCodedLinks(links ?? []); })
-      .catch((err) => {
-        if (mounted) setPreviewLinksError(err instanceof Error ? err.message : "Could not load coded links.");
-      })
-      .finally(() => { if (mounted) setPreviewLinksLoading(false); });
-    return () => { mounted = false; };
-  }, [activePreview]);
+  // The shared GoldLabelEditorDialog seeds itself from
+  // /training/gold-labels/from-encounter, so the preview no longer needs
+  // a separate coded-links prefetch (DI-LEO-AI-212).
 
   const toggleSelection = (item: EncounterListItem) => {
     setSelected((prev) => {
@@ -443,10 +423,10 @@ export default function EncounterMissionControl() {
 
       <EncounterPreviewDialog
         item={activePreview}
-        codedLinks={previewCodedLinks}
-        loading={previewLinksLoading}
-        error={previewLinksError}
         onClose={() => setActivePreview(null)}
+        onCodingChanged={() => {
+          void loadAll(false);
+        }}
       />
     </Box>
   );

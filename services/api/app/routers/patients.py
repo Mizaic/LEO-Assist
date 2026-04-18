@@ -13,6 +13,12 @@ from typing import Optional
 
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
 from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
+from libs.neo4j_client.client import KnowledgeGraphClient
+from libs.cypher.documents_queries import _assertion_context
+from libs.cypher.gold_label_queries import (
+    GET_GOLD_LABEL_BY_ID,
+    UPDATE_GOLD_LABEL_ENTITIES,
+)
 from app.models.neo4j_schema import (
     DELETE_CODED_LINK,
     GET_ENCOUNTER,
@@ -61,6 +67,23 @@ class AddCodedLinkRequest(BaseModel):
     evidence: str = ""
     modifiers: dict[str, Any] | None = None
     context: dict[str, Any] | None = None
+
+
+class SyncCodedLinksFromGoldRequest(BaseModel):
+    """Dual-save request from the shared GoldLabelEditorDialog (DI-LEO-AI-210).
+
+    The reviewer's edits are sent in the GoldLabel ``entities`` shape.  The
+    server diffs them against the live :DOCUMENTS edges, applies the diff
+    in a single Neo4j tx, then mirrors the entities into the GoldLabel.
+    ``expected_baseline_concept_ids`` is the client's view of which
+    concepts were already coded when the dialog opened -- if it disagrees
+    with the live graph the request is rejected (409) so a stale tab
+    cannot silently overwrite another reviewer's writes.
+    """
+
+    label_id: str = Field(..., min_length=1)
+    expected_baseline_concept_ids: list[str] = Field(default_factory=list)
+    entities: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class InferRequest(BaseModel):
@@ -949,6 +972,244 @@ def recode_coded_link(
         return {"recode": True, "new_concept_id": body.new_concept_id}
     finally:
         client.close()
+
+
+# -- Dual-save sync (DI-LEO-AI-210) -------------------------------------------
+# The shared GoldLabelEditorDialog opens against the de-identified text
+# (so PHI never enters the gold dataset).  When the reviewer saves on a
+# /care/* surface, the dialog's edits must also be applied back to the
+# live Encounter's :DOCUMENTS edges -- otherwise the patient record would
+# silently disagree with what the reviewer just confirmed.  This endpoint
+# performs the diff/apply transactionally and then mirrors the gold-side
+# entities so retraining gets the same view the reviewer agreed to.
+
+_GOLD_SYNC_SOURCE = "manual_gold_sync"
+
+_SYNC_LIVE_DOMAIN = "clinical"
+
+_SYNC_LIVE_CONFIDENCE = 0.95
+
+
+def _coerce_str(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _build_link_payload_from_gold_entity(
+    *,
+    encounter_id: str,
+    entity: dict[str, Any],
+) -> SemanticLinkPayload | None:
+    """Map an editor-side gold entity onto a SemanticLinkPayload.
+
+    Returns ``None`` when the entity has no SNOMED concept (i.e. the
+    reviewer marked a span but has not yet linked it).  Such entities
+    are still persisted in the gold label but skipped from the live
+    Neo4j sync because :DOCUMENTS requires a concept node.
+    """
+
+    concept_id = _coerce_str(entity.get("snomed_concept_id"))
+    if not concept_id:
+        return None
+    semantic_tag = _coerce_str(entity.get("semantic_tag")) or _coerce_str(
+        entity.get("label")
+    ) or "SnomedConcept"
+    term = _coerce_str(entity.get("snomed_term")) or _coerce_str(
+        entity.get("text")
+    ) or concept_id
+    evidence = _coerce_str(entity.get("text"))
+    assertion = _coerce_str(entity.get("assertion")) or "present"
+    modifiers: dict[str, Any] = {}
+    body_site_concept_id = _coerce_str(entity.get("body_site_concept_id"))
+    body_site_term = _coerce_str(entity.get("body_site_term"))
+    if body_site_concept_id:
+        modifiers["body_site_concept_id"] = body_site_concept_id
+    if body_site_term:
+        modifiers["body_site_term"] = body_site_term
+    return SemanticLinkPayload(
+        encounter_id=encounter_id,
+        semantic_tag=semantic_tag,
+        concept_id=concept_id,
+        term=term,
+        read_code=None,
+        evidence=evidence,
+        confidence=_SYNC_LIVE_CONFIDENCE,
+        domain=_SYNC_LIVE_DOMAIN,
+        context=_assertion_context(assertion),
+        modifiers=modifiers,
+        source=_GOLD_SYNC_SOURCE,
+    )
+
+
+def _list_baseline_concept_ids(session, patient_id: str, encounter_id: str) -> list[str]:
+    """Return the current set of concept_ids coded on (patient, encounter)."""
+
+    rows = session.run(
+        LIST_ENCOUNTER_CODED_LINKS,
+        patient_id=patient_id,
+        encounter_id=encounter_id,
+    )
+    baseline: list[str] = []
+    for row in rows:
+        cid = row.get("concept_id")
+        if cid is None or cid == "":
+            continue
+        baseline.append(str(cid))
+    return baseline
+
+
+@router.post(
+    "/{patient_id}/encounters/{encounter_id}/coded-links/sync-from-gold"
+)
+def sync_coded_links_from_gold(
+    patient_id: str,
+    encounter_id: str,
+    body: SyncCodedLinksFromGoldRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Apply the dialog's gold edits to live :DOCUMENTS and the GoldLabel.
+
+    Optimistic concurrency: ``expected_baseline_concept_ids`` must match
+    the current live concept_ids.  If another writer has touched this
+    encounter since the dialog opened, the request is rejected with 409
+    so the reviewer can refresh and re-confirm.
+
+    Live writes are atomic (single Neo4j write tx).  The gold mirror is
+    written immediately after; if that step fails the live writes have
+    already been committed and the next save attempt will reconcile.
+    """
+
+    label_id = body.label_id.strip()
+    if not label_id:
+        raise HTTPException(status_code=400, detail="label_id must not be empty")
+
+    expected_baseline = sorted(
+        {
+            str(cid).strip()
+            for cid in (body.expected_baseline_concept_ids or [])
+            if str(cid).strip()
+        }
+    )
+
+    # Build the desired set of live links from the gold entities.  Last
+    # write wins on duplicate concept_ids (the dialog should not produce
+    # duplicates but be defensive).
+    desired_links: dict[str, SemanticLinkPayload] = {}
+    for entity in body.entities or []:
+        if not isinstance(entity, dict):
+            continue
+        link = _build_link_payload_from_gold_entity(
+            encounter_id=encounter_id,
+            entity=entity,
+        )
+        if link is None:
+            continue
+        desired_links[link.concept_id] = link
+    desired_ids = set(desired_links)
+
+    writer = PatientGraphWriter()
+    client = PatientGraphClient()
+    added = 0
+    removed = 0
+    updated = 0
+    new_baseline: list[str] = []
+    try:
+        require_patient_in_scope(client, scope, patient_id)
+        with client.session() as session:
+            # Single write tx -> add/remove/update all coded links.
+            def _apply(tx) -> tuple[int, int, int, list[str]]:
+                rows = tx.run(
+                    LIST_ENCOUNTER_CODED_LINKS,
+                    patient_id=patient_id,
+                    encounter_id=encounter_id,
+                )
+                current_ids: set[str] = set()
+                for row in rows:
+                    cid = row.get("concept_id")
+                    if cid is None or cid == "":
+                        continue
+                    current_ids.add(str(cid))
+                if sorted(current_ids) != expected_baseline:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            "Live coded links changed since the editor opened. "
+                            "Refresh the encounter and re-apply your edits."
+                        ),
+                    )
+                local_added = 0
+                local_updated = 0
+                for cid, payload in desired_links.items():
+                    writer.upsert_documents_link(payload, session=tx)
+                    if cid in current_ids:
+                        local_updated += 1
+                    else:
+                        local_added += 1
+                local_removed = 0
+                for cid in current_ids - desired_ids:
+                    try:
+                        writer.delete_documents_link(
+                            encounter_id=encounter_id,
+                            concept_id=cid,
+                            patient_id=patient_id,
+                            session=tx,
+                        )
+                        local_removed += 1
+                    except ValueError as exc:
+                        if str(exc) != "coded_link_not_found":
+                            raise
+                final_ids = sorted(desired_ids)
+                return local_added, local_removed, local_updated, final_ids
+
+            added, removed, updated, new_baseline = session.execute_write(_apply)
+    finally:
+        client.close()
+
+    # Mirror entities into the gold label.  Failure here means the live
+    # writes have committed but the gold view lags -- surface a 502 so
+    # the dialog can prompt the reviewer to retry without rolling back
+    # the clinical record.
+    entities_json = json.dumps(body.entities or [], ensure_ascii=False)
+    kg_client = KnowledgeGraphClient()
+    try:
+        with kg_client.session() as session:
+            existing = session.run(
+                GET_GOLD_LABEL_BY_ID, label_id=label_id
+            ).single()
+            if existing is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        "Gold label not found. Live coded links were updated "
+                        "but the gold mirror could not be located."
+                    ),
+                )
+            session.run(
+                UPDATE_GOLD_LABEL_ENTITIES,
+                label_id=label_id,
+                entities_json=entities_json,
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Live coded links were updated but the gold mirror write "
+                f"failed: {exc}. Press save again to retry the gold sync."
+            ),
+        ) from exc
+    finally:
+        kg_client.close()
+
+    return {
+        "gold_label_id": label_id,
+        "live_links_added": added,
+        "live_links_removed": removed,
+        "live_links_updated": updated,
+        "baseline_concept_ids": new_baseline,
+    }
 
 
 @router.put(

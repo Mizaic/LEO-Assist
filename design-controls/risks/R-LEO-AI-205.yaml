@@ -1,0 +1,125 @@
+# -- R-LEO-AI-205 -- Cached prerender hides the authenticated UI shell after sign-in
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-205"
+  title: "Stale prerendered HTML served from Cloudflare or the Next.js Full Route Cache leaves authenticated users staring at a permanent loading spinner instead of the LEO application"
+
+  hazard:
+    description: >
+      Next.js 16 statically prerenders any App Router segment that
+      does not opt out of the Full Route Cache. The build runs with
+      no leo_session cookie, so the AppShell renders only its
+      "loading" branch into the prerender. Cloudflare then sees the
+      response with `cache-control: s-maxage=31536000` and caches the
+      spinner HTML for one year. Every authenticated visit to that
+      route is served the cached spinner regardless of whether the
+      user actually has a valid session cookie. The page never
+      progresses past the spinner because the cached HTML has no
+      hydration marker that would force the client to re-render.
+    category: "software_defect"
+
+  hazardous_situation: >
+    A clinical reviewer signs in to LEO from clinic and lands on
+    /care/dashboard. The OAuth round-trip succeeds and the
+    leo_session cookie is set, but the browser receives the cached
+    prerender and shows only a spinner. The reviewer cannot complete
+    coding review, cannot see safety alerts, and cannot triage the
+    gold-dataset queue. Multiple users on the same Cloudflare PoP
+    are all served the same cached HTML so the issue affects the
+    whole site, not just one session.
+
+  harm:
+    description: >
+      Loss of availability of a SaMD that gates clinical review.
+      Reviewers cannot action coded encounters, cannot see safety
+      alerts, and may resort to acting on incomplete information from
+      other systems. Coding decisions and human-review gates back
+      up, which delays downstream pipeline runs and any audit work
+      that depends on them.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 3
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-218 forces the root layout segment to be fully
+        dynamic (force-dynamic, revalidate=0,
+        fetchCache=force-no-store) so Next.js never participates in
+        the Full Route Cache for any UI route. The root layout also
+        resolves the session on the server via fetchInitialSession()
+        and forwards it to the AuthProvider, so the very first HTML
+        already reflects the authenticated state.
+      implemented_by:
+        - "DI-LEO-AI-218"
+      verified_by:
+        - "VT-LEO-AI-210"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        The /auth/login and /auth/callback Next.js route handlers
+        explicitly set `Cache-Control: no-store` on every response so
+        Cloudflare and any other CDN cannot cache the OAuth
+        round-trip itself.
+      implemented_by:
+        - "DI-LEO-AI-218"
+      verified_by:
+        - "VT-LEO-AI-210"
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Post-deploy smoke check in cd-deploy.yml continues to curl
+        the UI ingress; an additional manual step inspects the
+        response headers for cache-control: no-store on / and
+        /care/dashboard before declaring the deploy healthy.
+      implemented_by:
+        - "DI-LEO-AI-218"
+      verified_by:
+        - "VT-LEO-AI-210"
+      effectiveness: "pending"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With force-dynamic on the root layout the Next.js Full Route
+      Cache is structurally unable to cache the loading shell, and
+      Cloudflare honours the resulting cache-control: no-store
+      header. Server-side session resolution removes the loading
+      state from the first paint entirely, so even a transient
+      Cloudflare misconfiguration would no longer expose a stale
+      spinner. Residual risk is limited to (a) a future regression
+      that re-introduces ISR/SSG on the root layout (caught by the
+      VT static-source assertion) and (b) a Cloudflare page rule
+      that overrides origin cache headers (procedural sweep).
+
+  monitoring:
+    monitoring_plan: >
+      After every UI deploy, run a curl -I against the live UI
+      origin for / and /care/dashboard and confirm
+      cache-control: no-store. CI runs the static-source VT
+      assertion that layout.tsx still declares force-dynamic.
+    metrics:
+      - "Count of successful sign-ins per day vs. count of unique users hitting /auth/session in the same period (sign-ins should produce session activity)"
+      - "p95 latency for the / and /care/dashboard ingress responses"
+    review_frequency: "Per UI deploy"
+
+  metadata:
+    identified_by: "Rob Smith - production debugging of post-login spinner on leo-ai-audit.healthcarecopilot.ai (April 2026); confirmed via curl -I returning x-nextjs-cache: HIT, x-nextjs-prerender: 1, cache-control: s-maxage=31536000"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags:
+      - "auth"
+      - "ssr"
+      - "cache"
+      - "availability"
+      - "deployment"

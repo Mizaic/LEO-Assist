@@ -346,6 +346,13 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
           setCollapsedEncounters((prev) => ({ ...prev, [encounterKey]: isExpanded }))
         }
         onRequestReset={() => setConfirmResetEncounterId(encounterKey)}
+        onCodingChanged={() => {
+          // Invalidate the cached coded links for this encounter so the
+          // next render re-fetches from /coded-links and shows the
+          // post-edit live state.  See DI-LEO-AI-210.
+          loadedRef.current.delete(encounterKey);
+          void fetchCodesForEncounter(encounterKey);
+        }}
       />
     );
   };

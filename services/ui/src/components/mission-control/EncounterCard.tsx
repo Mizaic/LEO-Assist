@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -8,10 +8,16 @@ import Collapse from "@mui/material/Collapse";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import type { CodedLink } from "@/lib/types";
 import CodesPanel from "./EncounterCodesPanel";
 import { highlightSearchMatches } from "./encounterTextUtils";
+import {
+  GoldLabelEditorDialog,
+  createGoldLabelFromEncounter,
+  useDualSaveAdapter,
+  type GoldLabel,
+  type DualSaveEncounterContext,
+} from "@/components/gold-editor";
 
 export interface EncounterCardData {
   encounter_id: string;
@@ -33,6 +39,10 @@ interface EncounterCardProps {
   codingError: string | undefined;
   onToggle: () => void;
   onRequestReset: () => void;
+  /** Called after the editor dialog successfully syncs live coded
+   *  links and the gold mirror, so the parent can refresh its cached
+   *  view of :DOCUMENTS for this encounter (DI-LEO-AI-209/210). */
+  onCodingChanged?: () => void;
 }
 
 // LONG FUNCTION: layout-dense card with collapse panel and inline
@@ -53,8 +63,57 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
       codingError,
       onToggle,
       onRequestReset,
+      onCodingChanged,
     } = props;
     const encounterKey = String(enc.encounter_id);
+
+    // Inline shared editor state (DI-LEO-AI-209/210) -- replaces the
+    // legacy /care/patients/.../encounters/.../ deep-link page so the
+    // reviewer never loses their place in the patient timeline.
+    const [openingEditor, setOpeningEditor] = useState(false);
+    const [editorError, setEditorError] = useState<string | null>(null);
+    const [editorTarget, setEditorTarget] = useState<GoldLabel | null>(null);
+    const [editorContext, setEditorContext] =
+      useState<DualSaveEncounterContext | null>(null);
+
+    const openEditor = useCallback(async () => {
+      setOpeningEditor(true);
+      setEditorError(null);
+      try {
+        const seed = await createGoldLabelFromEncounter({
+          patient_id: patientId,
+          encounter_id: encounterKey,
+        });
+        setEditorContext({
+          patient_id: patientId,
+          encounter_id: encounterKey,
+          baseline_concept_ids: seed.baseline_concept_ids,
+        });
+        setEditorTarget(seed.gold_label);
+      } catch (err) {
+        setEditorError(
+          err instanceof Error
+            ? err.message
+            : "Could not open the encounter editor.",
+        );
+      } finally {
+        setOpeningEditor(false);
+      }
+    }, [patientId, encounterKey]);
+
+    // Hook must be called unconditionally; passes a placeholder context
+    // when the dialog is closed to keep the hook order stable.
+    const dualSaver = useDualSaveAdapter({
+      labelId: editorTarget?.label_id ?? "",
+      context: editorContext ?? {
+        patient_id: patientId,
+        encounter_id: encounterKey,
+        baseline_concept_ids: [],
+      },
+      onSynced: () => {
+        onCodingChanged?.();
+      },
+    });
 
     return (
       <Box
@@ -147,12 +206,11 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
             <Button
               size="small"
               variant="outlined"
-              component={Link}
-              href={`/care/patients/${encodeURIComponent(
-                patientId
-              )}/encounters/${encodeURIComponent(encounterKey)}`}
+              data-testid="encounter-card-edit-codes"
+              disabled={openingEditor}
+              onClick={openEditor}
             >
-              Edit codes
+              {openingEditor ? "Opening..." : "Edit codes"}
             </Button>
             <Button
               size="small"
@@ -165,6 +223,33 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
             </Button>
           </Box>
         </Box>
+
+        {editorError && (
+          <Box sx={{ px: 1, pb: 0.5 }}>
+            <Typography
+              variant="caption"
+              color="error"
+              data-testid="encounter-card-editor-error"
+            >
+              {editorError}
+            </Typography>
+          </Box>
+        )}
+
+        {editorTarget && editorContext && (
+          <GoldLabelEditorDialog
+            item={editorTarget}
+            onClose={() => {
+              setEditorTarget(null);
+              setEditorContext(null);
+            }}
+            saveMode="dual"
+            entitySaver={dualSaver}
+            onAfterSave={() => {
+              onCodingChanged?.();
+            }}
+          />
+        )}
 
         <Collapse in={isExpanded} unmountOnExit>
           <Box sx={{ px: 1, pb: 1 }}>

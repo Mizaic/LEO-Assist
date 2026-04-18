@@ -51,9 +51,22 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+export function AuthProvider({
+  children,
+  initialSession = null,
+}: {
+  children: ReactNode;
+  initialSession?: Session | null;
+}) {
+  // When the server-rendered layout already resolved the session we hydrate
+  // straight into "authenticated" (or "unauthenticated") so the UI never
+  // shows a loading spinner on the very first paint. Only fall back to
+  // "loading" when we genuinely have no information yet (legacy callers
+  // that don't pass an initial session).
+  const [session, setSession] = useState<Session | null>(initialSession);
+  const [status, setStatus] = useState<
+    "loading" | "authenticated" | "unauthenticated"
+  >(initialSession ? "authenticated" : "unauthenticated");
 
   const fetchSession = useCallback(async () => {
     try {
@@ -91,6 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Always re-confirm the session on the client so role / density updates
+  // made in another tab become visible. When we already hydrated from the
+  // server this just refreshes the in-memory copy in the background.
   useEffect(() => {
     fetchSession();
   }, [fetchSession]);

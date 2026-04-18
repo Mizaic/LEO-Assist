@@ -1,0 +1,91 @@
+# -- DO-LEO-AI-215 -- UI shell server-side session resolver
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-215"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-218"]
+    user_needs: ["UN-LEO-AI-087"]
+    risks_addressed: ["R-LEO-AI-205"]
+    verification_tests: ["VT-LEO-AI-210"]
+
+  specification:
+    title: "Server-side session bootstrap for the Next.js UI shell"
+    description: |
+      Adds a server-only helper (services/ui/src/lib/serverSession.ts)
+      that the root layout calls on every request. The helper reads
+      the leo_session cookie via next/headers, asks core-api for the
+      current session shape, and returns either a fully-typed
+      Session object or null. The root layout then forwards the
+      result to the client AuthProvider as `initialSession` so the
+      first render already knows whether the user is authenticated.
+
+      To stop Cloudflare and the Next.js Full Route Cache from ever
+      serving a stale loading shell, the root layout segment is
+      declared as `dynamic = "force-dynamic"`, `revalidate = 0`, and
+      `fetchCache = "force-no-store"`. The /auth/login and
+      /auth/callback route handlers continue to set
+      `Cache-Control: no-store` on every redirect response.
+
+    acceptance_criteria:
+      - criterion: "Root layout disables the Full Route Cache"
+        type: "functional"
+        measurement: "Test"
+        target: "layout.tsx exports dynamic=force-dynamic and revalidate=0"
+      - criterion: "AuthProvider hydrates from server data"
+        type: "functional"
+        measurement: "Test"
+        target: "AuthProvider with initialSession=Session reports status=authenticated on first render; with null reports unauthenticated; never loading"
+      - criterion: "Auth route handlers are uncacheable"
+        type: "safety"
+        measurement: "Test"
+        target: "auth/login and auth/callback set Cache-Control: no-store on every response path"
+      - criterion: "fetchInitialSession is fail-soft"
+        type: "safety"
+        measurement: "Test"
+        target: "fetchInitialSession returns null and never throws when core-api is unreachable"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/lib/serverSession.ts"
+        description: "fetchInitialSession() server helper"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/layout.tsx"
+        description: "Root layout declares force-dynamic and bootstraps the session"
+      - artifact_type: "source_code"
+        location: "services/ui/src/lib/authContext.tsx"
+        description: "AuthProvider accepts initialSession prop"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/AuthProviderWrapper.tsx"
+        description: "Forwards initialSession from server to client provider"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/auth/login/route.ts"
+        description: "Sets Cache-Control: no-store on OAuth login redirect"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/auth/callback/route.ts"
+        description: "Sets Cache-Control: no-store on OAuth callback redirect"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 180
+      key_functions:
+        - "fetchInitialSession"
+        - "AuthProvider"
+        - "RootLayout"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Resolving the authenticated identity that the rest of the UI relies on for role-aware navigation and audit trail attribution"
+    risk_control_measures:
+      - "Disables the Next.js Full Route Cache for every UI route so cached loading HTML can never mask the authenticated shell"
+      - "Cache-Control: no-store on auth route handlers prevents Cloudflare from caching the OAuth round-trip"
+      - "fail-soft behaviour ensures core-api outages downgrade to an unauthenticated shell rather than a 5xx page"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true
