@@ -1,0 +1,130 @@
+# -- DI-LEO-AI-225 -- Off-pathway non-cancer Problem-header guard (Pattern N5)
+# IEC 62304 / ISO 13485 Design Input
+#
+# NOTE: This DI replaces the placeholder reference to DI-LEO-AI-219 in
+# the N5 traceability matrix rows. The original commit 2067a5f
+# inadvertently overwrote DI-LEO-AI-219.yaml / DO-LEO-AI-216.yaml /
+# R-LEO-AI-206.yaml / VT-LEO-AI-211.yaml with gold-editor (UN-LEO-AI-088)
+# content while the matrix rows still claimed Pattern N5 ownership of
+# those IDs. The implementation, helper, and tests are intact -- only
+# the design-control YAMLs were lost. This DI re-instates them at a
+# fresh, unoccupied ID (DI-LEO-AI-225).
+
+- id: "DI-LEO-AI-225"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-005"
+  requirement: >
+    The text-anchor detector SHALL NOT emit a ``care_obstruction``
+    milestone when the encounter contains at least one explicit
+    ``Problem:`` header AND none of those headers carry a cancer
+    or cancer-pathway token AND at least one header matches the
+    off-pathway allow-list (foreign travel; vaccination; repeat /
+    acute / new prescription; medication review; hot flushes;
+    sick note / MED3 / fit note; failed encounter; telephone
+    consultation; administration; summary care record). The new
+    helper ``encounter_problem_is_off_pathway(text)`` MUST be
+    AND'd into the existing Pattern G care_obstruction emission
+    gate so that incidental cancer-related phrases in the body
+    of an off-pathway primary-care encounter (e.g. "unable to
+    attend" inside a travel-vaccine note that also mentions an
+    upcoming mastectomy) do not emit a phantom obstruction. The
+    guard MUST be inert when no ``Problem:`` header is present
+    (clinic letters, document_transfer rows, free-text notes
+    continue to be evaluated by Pattern G as before) and MUST be
+    inert when ANY Problem header carries a cancer / pathway
+    token (mixed-headers cancer override).
+  rationale: >
+    Patient 4802892365's 2025-07-01 encounter had a "Problem:
+    Advice on foreign travel" header and a body mentioning the
+    MMR vaccine and the patient's upcoming mastectomy ("unable
+    to attend ... Scheduled for mastectomy on 29.07.25"). The
+    care_obstruction regex matched "unable to attend" and
+    emitted a phantom obstruction milestone on the breast cancer
+    pathway, even though the encounter is in fact a routine
+    travel-vaccine no-show with no clinical refusal of cancer
+    treatment. Without the guard, every routine off-pathway
+    primary-care encounter (foreign travel, vaccination, repeat
+    prescription, sick note, hot-flushes review, etc.) that
+    incidentally mentions an upcoming cancer event will fire a
+    phantom care_obstruction and erode reviewer trust.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Encounter with header "Problem: Advice on foreign
+          travel" and body "unable to attend ... Scheduled for
+          mastectomy on 29.07.25" MUST emit zero
+          care_obstruction anchors.
+      - type: "functional"
+        spec: >
+          Encounter with header "Problem: Repeat medication" and
+          incidental cancer-related text MUST emit zero
+          care_obstruction anchors.
+      - type: "safety"
+        spec: >
+          Encounter with header "Problem: Cancer of left breast"
+          and body "patient declined chemotherapy" MUST still
+          emit one care_obstruction anchor (no over-suppression).
+      - type: "safety"
+        spec: >
+          Encounter without any "Problem:" header (clinic
+          letter, document_transfer, free-text note) MUST be
+          evaluated by Pattern G unchanged.
+      - type: "safety"
+        spec: >
+          Encounter with TWO Problem headers, one off-pathway
+          ("Problem: Repeat medication") and one cancer-related
+          ("Problem: Suspected cancer breast"), MUST be treated
+          as cancer-pathway-relevant (mixed-headers cancer
+          override) and continue to emit care_obstruction if the
+          body matches the regex.
+      - type: "safety"
+        spec: >
+          Encounter with an unknown non-cancer Problem header
+          (e.g. "Problem: Routine review") that is NOT on the
+          off-pathway allow-list MUST default to the
+          conservative behaviour (guard inert, Pattern G
+          continues to evaluate).
+    constraints:
+      - type: "safety"
+        spec: >
+          The off-pathway allow-list is conservative -- only
+          subjects we have explicitly verified as administrative
+          / non-cancer are added. New subjects must be added
+          deliberately with a regression test.
+    dependencies:
+      - "DI-LEO-AI-204"
+    downstream_impacts:
+      - "Anchor detector (text path -- care_obstruction emission)"
+      - "EpisodeOfCare graph (eliminates phantom care_obstruction milestones from routine off-pathway primary-care encounters)"
+      - "Cohort care_obstruction counts (drops false positives)"
+    technical_details:
+      language: "Python"
+      framework: "Anchor detector (regex layer)"
+      file_structure:
+        - "libs/domains/code_inventories.py"
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+      estimated_loc: 97
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-217 must pass with 100% on all critical and
+      total cases, including the canonical patient 4802892365
+      2025-07-01 zero-emission case, the repeat-medication
+      zero-emission case, the genuine-cancer-refusal still-
+      fires case, and the clinic-letter-without-Problem-header
+      still-fires case.
+    test_protocol: "VT-LEO-AI-217"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-209"
+  tags:
+    - "anchor-detector"
+    - "off-pathway-guard"
+    - "patient-4802892365"
+    - "pattern-n5"

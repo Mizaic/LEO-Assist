@@ -7,14 +7,18 @@
  * KnowledgePageLayout when this page is mounted inside the Knowledge
  * tab system. The page itself contributes:
  *   - StatHero: active concepts / terms / IS_A relationships /
- *     ICD-10 mappings / Read code mappings (driven from Neo4j counts).
+ *     ICD-10 codes + maps / OPCS-4 codes + maps / Read code maps
+ *     (driven from Neo4j counts).
  *   - ToolbarActions: Refresh status.
  *   - Package status cards: tone-accented (success / warning / muted)
  *     with version + size + a single primary "Sync" action when
- *     updates are available.
+ *     updates are available. Cards render in a 2x2 grid for the
+ *     four supported packages (SNOMED, dm+d, NHS ICD-10, OPCS-4).
  *   - Streaming sync log panel (preserved, restyled).
  *
- * Design Controls: DI-LEO-AI-147, DO-LEO-AI-143, VT-LEO-AI-145.
+ * Design Controls: DI-LEO-AI-147, DO-LEO-AI-143, VT-LEO-AI-145
+ *                  + DI-LEO-AI-225 / DO-LEO-AI-222 / VT-LEO-AI-217 (ICD-10)
+ *                  + DI-LEO-AI-226 / DO-LEO-AI-223 / VT-LEO-AI-218 (OPCS-4).
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -62,6 +66,9 @@ interface Neo4jCounts {
   is_a_rels?: number;
   icd10_maps?: number;
   read_maps?: number;
+  icd10_codes?: number;
+  opcs4_codes?: number;
+  opcs4_maps?: number;
 }
 
 interface StatusResponse {
@@ -288,7 +295,7 @@ function LogPanel({ lines }: { lines: LogLine[] }) {
 // Main page
 // ---------------------------------------------------------------------------
 
-const PACKAGE_KEYS = ["snomed", "dmd"] as const;
+const PACKAGE_KEYS = ["snomed", "dmd", "icd10", "opcs4"] as const;
 type PkgKey = (typeof PACKAGE_KEYS)[number];
 
 function buildStatTiles(neo4j: Neo4jCounts): StatTile[] {
@@ -312,10 +319,28 @@ function buildStatTiles(neo4j: Neo4jCounts): StatTile[] {
       hint: "Hierarchy edges",
     },
     {
+      id: "icd10-codes",
+      label: "ICD-10 codes",
+      value: fmt(neo4j.icd10_codes),
+      hint: "Titled ICD-10 nodes",
+    },
+    {
       id: "icd10-maps",
       label: "ICD-10 maps",
       value: fmt(neo4j.icd10_maps),
-      hint: "Cross-mappings",
+      hint: "SNOMED -> ICD-10 cross-maps",
+    },
+    {
+      id: "opcs4-codes",
+      label: "OPCS-4 codes",
+      value: fmt(neo4j.opcs4_codes),
+      hint: "Titled OPCS-4 nodes",
+    },
+    {
+      id: "opcs4-maps",
+      label: "OPCS-4 maps",
+      value: fmt(neo4j.opcs4_maps),
+      hint: "SNOMED -> OPCS-4 cross-maps",
     },
     {
       id: "read-maps",
@@ -332,7 +357,7 @@ export default function TerminologyPage() {
   const [statusError, setStatusError] = useState<string | null>(null);
 
   const [selected, setSelected] = useState<Set<PkgKey>>(
-    new Set(["snomed", "dmd"]),
+    new Set(["snomed", "dmd", "icd10", "opcs4"]),
   );
   const [syncing, setSyncing] = useState(false);
   const [logLines, setLogLines] = useState<LogLine[]>([]);
@@ -478,26 +503,34 @@ export default function TerminologyPage() {
       </Stack>
 
       {loadingStatus ? (
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          sx={{ mb: 3 }}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+            mb: 3,
+          }}
         >
-          <Skeleton variant="rounded" height={140} sx={{ flex: 1 }} />
-          <Skeleton variant="rounded" height={140} sx={{ flex: 1 }} />
-        </Stack>
+          <Skeleton variant="rounded" height={168} />
+          <Skeleton variant="rounded" height={168} />
+          <Skeleton variant="rounded" height={168} />
+          <Skeleton variant="rounded" height={168} />
+        </Box>
       ) : status ? (
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          sx={{ mb: 3 }}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: 2,
+            mb: 3,
+          }}
         >
           {PACKAGE_KEYS.map((key) =>
             status.packages[key] ? (
               <PackageCard key={key} pkg={status.packages[key]} />
             ) : null,
           )}
-        </Stack>
+        </Box>
       ) : null}
 
       <Box

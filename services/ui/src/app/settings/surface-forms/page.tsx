@@ -764,7 +764,8 @@ export default function SurfaceFormsPage() {
                   <Typography variant="caption" color="text.secondary">
                     {group.concept_id}
                     {group.read_code && ` · Read: ${group.read_code}`}
-                    {group.icd10 && ` · ICD-10: ${group.icd10}`}
+                    {group.icd10 && ` · ICD-10: ${group.icd10}${group.icd10_term ? ` ${group.icd10_term}` : ""}`}
+                    {group.opcs4 && ` · OPCS-4: ${group.opcs4}${group.opcs4_term ? ` ${group.opcs4_term}` : ""}`}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", gap: 0.5 }}>

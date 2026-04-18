@@ -860,7 +860,8 @@ export default function TermSearch({
                         <Typography variant="caption" component="span" sx={{ fontFamily: "monospace" }}>
                           SNOMED: {r.snomed_concept_id}
                           {r.read_code && ` · Read: ${r.read_code}`}
-                          {r.icd10 && ` · ICD-10: ${r.icd10}`}
+                          {r.icd10 && ` · ICD-10: ${r.icd10}${r.icd10_term ? ` ${r.icd10_term}` : ""}`}
+                          {r.opcs4 && ` · OPCS-4: ${r.opcs4}${r.opcs4_term ? ` ${r.opcs4_term}` : ""}`}
                         </Typography>
                         {explain.missing.length > 0 && (
                           <Typography variant="caption" component="span" color="text.disabled" sx={{ display: "block" }}>

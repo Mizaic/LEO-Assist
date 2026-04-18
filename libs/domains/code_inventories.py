@@ -1304,6 +1304,135 @@ _OFF_PATHWAY_PROBLEM_RX = re.compile(
 )
 
 
+# ---------------------------------------------------------------------------
+# DI-LEO-AI-220 (Pattern N3): structured-form-field restatement guard
+# ---------------------------------------------------------------------------
+# Receptionists and administrators routinely update structured proforma
+# fields (``Date of First outpatient appointment: 07 Apr 2025``,
+# ``Seen in 2WW Clinic?: Seen in fast track suspected breast cancer
+# clinic (XaPyQ) 28 Apr 2025``) on encounters whose date is later than
+# the date carried INSIDE the field. The detector previously treated
+# these as fresh referrals / first_seens at the encounter date, opening
+# duplicate milestones weeks after the real event already fired from
+# the source encounter.
+
+import datetime as _dt  # noqa: E402  -- module-internal helper
+
+_DATE_DDMMMYYYY_RX = re.compile(
+    r"\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+    r"[a-z]*\s+(\d{4})\b",
+    re.IGNORECASE,
+)
+_DATE_NUMERIC_DMY_RX = re.compile(r"\b(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})\b")
+_DATE_ISO_RX = re.compile(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b")
+
+_MONTH_ABBREV_TO_NUM = {
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "apr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
+}
+
+
+def _parse_iso_date(value: str) -> _dt.date | None:
+    if not value:
+        return None
+    try:
+        return _dt.date.fromisoformat(value[:10])
+    except (ValueError, TypeError):
+        return None
+
+
+def _extract_form_field_dates(text: str) -> list[_dt.date]:
+    """Return the list of explicit calendar dates that appear inside a
+    structured form-field line (a line containing ``:`` AND an embedded
+    calendar date).  Lines without ``:`` are NOT considered form
+    fields, so a free-text clinic letter mentioning a past date does
+    not trip the guard.
+    """
+    if not text:
+        return []
+    out: list[_dt.date] = []
+    for line in text.splitlines():
+        if ":" not in line:
+            continue
+        for m in _DATE_DDMMMYYYY_RX.finditer(line):
+            try:
+                day = int(m.group(1))
+                month = _MONTH_ABBREV_TO_NUM[m.group(2).lower()[:3]]
+                year = int(m.group(3))
+                out.append(_dt.date(year, month, day))
+            except (ValueError, KeyError):
+                continue
+        for m in _DATE_NUMERIC_DMY_RX.finditer(line):
+            try:
+                day = int(m.group(1))
+                month = int(m.group(2))
+                year = int(m.group(3))
+                # UK convention: DD/MM/YYYY. If month > 12 the line is
+                # not a real date so skip.
+                if month > 12 or day > 31:
+                    continue
+                out.append(_dt.date(year, month, day))
+            except ValueError:
+                continue
+        for m in _DATE_ISO_RX.finditer(line):
+            try:
+                year = int(m.group(1))
+                month = int(m.group(2))
+                day = int(m.group(3))
+                out.append(_dt.date(year, month, day))
+            except ValueError:
+                continue
+    return out
+
+
+def encounter_restates_past_event(
+    text: str,
+    encounter_date: str,
+    *,
+    lookback_days: int = 14,
+) -> bool:
+    """DI-LEO-AI-220 (Pattern N3): True when the encounter body
+    contains at least one structured form-field line whose embedded
+    calendar date is ``lookback_days`` or more BEFORE the encounter
+    date.
+
+    Used to suppress fresh ``referral`` and ``first_seen`` milestone
+    emission from administrative form-field updates that restate a
+    past event (e.g. ``Date of First outpatient appointment: 07 Apr
+    2025`` entered on 13 May 2025, or ``Seen in 2WW Clinic?: ... 28
+    Apr 2025`` entered on 10 Jun 2025). The real event will already
+    have fired from the source encounter on its own date.
+
+    The guard is INERT when:
+
+      - The text has no ``:`` (no form-field shape).
+      - The text contains no parsable calendar date.
+      - The earliest embedded date is within ``lookback_days`` of the
+        encounter date (i.e. the field date matches the encounter
+        date, so it is a fresh event, not a restatement).
+    """
+    if not text or not encounter_date:
+        return False
+    enc_d = _parse_iso_date(encounter_date)
+    if enc_d is None:
+        return False
+    cutoff = enc_d - _dt.timedelta(days=lookback_days)
+    for d in _extract_form_field_dates(text):
+        if d <= cutoff:
+            return True
+    return False
+
+
 def encounter_problem_is_off_pathway(text: str) -> bool:
     """DI-LEO-AI-219 (Pattern N5): True when the encounter's Problem
     header(s) are unambiguously non-cancer and so cancer-pathway
@@ -1333,3 +1462,104 @@ def encounter_problem_is_off_pathway(text: str) -> bool:
     if any(_PROBLEM_HEADER_CANCER_TOKEN_RX.search(h) for h in headers):
         return False
     return any(_OFF_PATHWAY_PROBLEM_RX.search(h) for h in headers)
+
+
+# ---------------------------------------------------------------------------
+# DI-LEO-AI-227 (Pattern N1): narrative-restatement diagnosis guard
+# ---------------------------------------------------------------------------
+# Sick notes (eMED3 / fit notes) and "known X cancer" / "history of X"
+# narratives in routine GP encounters routinely cause Pattern K and the
+# soft diagnosis sources (cancer_follow_up_template, adjuvant_therapy_drug)
+# to fire `diagnosis_confirmed` on encounters that merely RESTATE an
+# existing cancer diagnosis. When such a diagnosis anchor has no
+# referral to attach to, the episode builder still synthesises a
+# floating diagnosis-led EpisodeOfCare, producing a phantom episode
+# with no real clinical events.
+#
+# The N1 guard tags a diagnosis_confirmed anchor as
+# ``is_narrative_restatement: True`` when the encounter body shows the
+# unambiguous shape of a sick note OR a "known cancer" narrative
+# restatement. The episode builder then rejects floating diagnosis-led
+# groups whose anchors are ALL narrative restatements (see
+# ``services/analysis_worker/app/analyzers/episode_builder/_grouping.py``).
+
+# Sick-note shape: eMED3 / MED3 statements, fit notes, sick certificates,
+# "not fit for work" phrases. The eMED3 form is the canonical NHS
+# electronic statement and almost never appears outside a sick-note
+# encounter, so a single hit is sufficient.
+_SICK_NOTE_RX = re.compile(
+    r"(?:"
+    r"\beMED3\b|"
+    r"\bMED3\b|"
+    r"\bfit\s+note\b|"
+    r"\bsick\s+note\b|"
+    r"\bsickness\s+(?:certificate|note)\b|"
+    r"\bunfit\s+for\s+work\b|"
+    r"\bnot\s+fit\s+for\s+work\b|"
+    r"\bfitness\s+(?:to|for)\s+work\b|"
+    r"\bstatement\s+of\s+fitness\s+for\s+work\b"
+    r")",
+    re.IGNORECASE,
+)
+
+# Cancer-site tokens used to anchor the "known X cancer" narrative.
+# Kept aligned with _PROBLEM_HEADER_CANCER_TOKEN_RX so we do not invent
+# new site vocabulary in the N1 path.
+_KNOWN_CANCER_SITE_TOKEN = (
+    r"breast|prostate|colorectal|colon|rectal|bladder|kidney|renal|"
+    r"hepatic|pancreas|pancreatic|ovarian|cervical|uterine|endometrial|"
+    r"gastric|oesophageal|esophageal|thyroid|head\s+and\s+neck|lung|"
+    r"skin|liver|gynaecological|melanoma|lymphoma|leuk(?:a|e)mia"
+)
+
+# "known breast ca", "known case of prostate cancer", "history of breast
+# carcinoma" -- the canonical narrative restatement shapes used in GP
+# routine notes, sick notes, and primary-care follow-up correspondence
+# AFTER a cancer diagnosis has already been recorded elsewhere.
+_KNOWN_CANCER_RESTATEMENT_RX = re.compile(
+    r"\b(?:"
+    rf"known\s+(?:case\s+of\s+|h(?:istor)?y\s+of\s+)?(?:{_KNOWN_CANCER_SITE_TOKEN})"
+    r"\s*(?:cancer|carcinoma|ca\b|tumou?r|malignancy)|"
+    rf"(?:PMH(?:x)?|past|previous)\s*:?\s*(?:medical\s+)?h(?:istor)?y\s+of\s+"
+    rf"(?:{_KNOWN_CANCER_SITE_TOKEN})\s*(?:cancer|carcinoma|ca\b)|"
+    rf"history\s+of\s+(?:{_KNOWN_CANCER_SITE_TOKEN})\s*(?:cancer|carcinoma|ca\b)|"
+    rf"previous(?:ly)?\s+(?:diagnosed|treated)\s+(?:with|for)\s+"
+    rf"(?:{_KNOWN_CANCER_SITE_TOKEN})\s*(?:cancer|carcinoma|ca\b)|"
+    r"post[-\s]+(?:mastectom\w+|prostatectom\w+|chemotherap\w+|radiotherap\w+)"
+    r"\s+(?:recovery|follow[-\s]+up|review)|"
+    rf"recovering\s+from\s+(?:{_KNOWN_CANCER_SITE_TOKEN})\s*(?:cancer|carcinoma|ca\b)|"
+    r"referred\s+by\s+me\s+(?:on\s+2ww\s+)?(?:earlier\s+this\s+year|previously|"
+    r"in\s+\d{4}|last\s+year)\s*(?:,?\s*confirmed\s+(?:breast|prostate|colorectal|"
+    r"colon|rectal|bladder|kidney|renal|hepatic|pancreas|pancreatic|ovarian|"
+    r"cervical|uterine|endometrial|gastric|oesophageal|esophageal|thyroid|"
+    r"head\s+and\s+neck|lung|skin|liver|gynaecological|melanoma|lymphoma|"
+    r"leuk(?:a|e)mia)?\s*(?:cancer|ca\b)?)?"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def encounter_diagnosis_is_narrative_restatement(text: str) -> bool:
+    """DI-LEO-AI-227 (Pattern N1): True when the encounter body has the
+    unambiguous shape of a sick note (eMED3, MED3, "not fit for work")
+    OR a "known X cancer" / "history of X" narrative restatement of an
+    existing cancer diagnosis.
+
+    Used by the diagnosis_confirmed anchor emission to tag the anchor
+    with ``is_narrative_restatement: True``. The episode builder then
+    rejects floating diagnosis-led EpisodeOfCare groups whose anchors
+    are ALL narrative restatements -- preventing phantom episodes built
+    from sick-note text and historical-mention text alone.
+
+    The guard is INERT when the text is empty or when neither the
+    sick-note nor the known-cancer pattern matches. It is intentionally
+    NARROW: a real fresh diagnosis encounter (Problem: ... cancer ...,
+    "newly diagnosed ...", "diagnosis confirmed today ...") will NOT
+    match, so genuine first-time diagnosis_confirmed anchors are not
+    suppressed.
+    """
+    if not text:
+        return False
+    return bool(
+        _SICK_NOTE_RX.search(text) or _KNOWN_CANCER_RESTATEMENT_RX.search(text)
+    )

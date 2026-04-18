@@ -181,15 +181,22 @@ CALL {
 }
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
+OPTIONAL MATCH (c)-[:MAPS_TO_OPCS4]->(op:OpcsCode)
 WITH c, max(weighted_score) AS best_score,
      collect(DISTINCT sf_match) AS sf_set,
      collect(DISTINCT rd.code)[0] AS read_code,
-     collect(DISTINCT icd.code)[0] AS icd10
+     collect(DISTINCT icd.code)[0] AS icd10,
+     collect(DISTINCT icd.title)[0] AS icd10_term,
+     collect(DISTINCT op.code)[0] AS opcs4,
+     collect(DISTINCT op.title)[0] AS opcs4_term
 RETURN c.id AS snomed_concept_id,
        c.fsn AS term,
        c.semantic_tag AS semantic_tag,
        c.module_id AS module_id,
        icd10,
+       icd10_term,
+       opcs4,
+       opcs4_term,
        read_code,
        best_score AS score,
        true IN sf_set AS from_surface_form
@@ -219,15 +226,22 @@ CALL {
 }
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
+OPTIONAL MATCH (c)-[:MAPS_TO_OPCS4]->(op:OpcsCode)
 WITH c, max(weighted_score) AS best_score,
      collect(DISTINCT sf_match) AS sf_set,
      collect(DISTINCT rd.code)[0] AS read_code,
-     collect(DISTINCT icd.code)[0] AS icd10
+     collect(DISTINCT icd.code)[0] AS icd10,
+     collect(DISTINCT icd.title)[0] AS icd10_term,
+     collect(DISTINCT op.code)[0] AS opcs4,
+     collect(DISTINCT op.title)[0] AS opcs4_term
 RETURN c.id AS snomed_concept_id,
        c.fsn AS term,
        c.semantic_tag AS semantic_tag,
        c.module_id AS module_id,
        icd10,
+       icd10_term,
+       opcs4,
+       opcs4_term,
        read_code,
        best_score AS score,
        true IN sf_set AS from_surface_form
@@ -373,14 +387,21 @@ WITH c,
      }) AS surface_forms
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
+OPTIONAL MATCH (c)-[:MAPS_TO_OPCS4]->(op:OpcsCode)
 WITH c, surface_forms,
      collect(DISTINCT rd.code)[0] AS read_code,
-     collect(DISTINCT icd.code)[0] AS icd10
+     collect(DISTINCT icd.code)[0] AS icd10,
+     collect(DISTINCT icd.title)[0] AS icd10_term,
+     collect(DISTINCT op.code)[0] AS opcs4,
+     collect(DISTINCT op.title)[0] AS opcs4_term
 RETURN c.id            AS concept_id,
        c.fsn           AS concept_fsn,
        c.semantic_tag  AS semantic_tag,
        read_code,
        icd10,
+       icd10_term,
+       opcs4,
+       opcs4_term,
        surface_forms
 ORDER BY c.fsn
 SKIP $offset

@@ -1,0 +1,125 @@
+# -- DI-LEO-AI-224 -- Structured-form-field restatement guard (Pattern N3)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-224"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-005"
+  requirement: >
+    The text-anchor detector SHALL NOT emit a fresh ``referral``
+    or ``first_seen`` milestone on the encounter date when the
+    encounter body contains a structured form-field line of the
+    shape ``<Field>: <value with embedded calendar date>`` whose
+    embedded date is at least 14 days BEFORE the encounter date.
+    The guard ``encounter_restates_past_event(text, encounter_date,
+    lookback_days=14)`` MUST recognise embedded dates in
+    ``DD MMM YYYY``, ``DD/MM/YYYY``, ``DD-MM-YYYY``, ``DD.MM.YYYY``
+    and ``YYYY-MM-DD`` formats and MUST require the date to appear
+    on a line that already contains a colon (so a free-text clinic
+    letter narrating a past date does not trip the guard --
+    DI-LEO-AI-216 / Pattern L handles narrative cases). The
+    guard SHALL apply to the text_generic referral path AND to the
+    first_seen emission path, including the specialist-clinic Read
+    code branch (so a XaPyQ ``Seen in 2WW Clinic?: ...`` form
+    field does not double-fire first_seen weeks after the real
+    clinic visit).
+  rationale: >
+    Patient 4802892365's 2025-05-13 receptionist note carried
+    ``Date of First outpatient appointment: 07 Apr 2025 Breast.
+    Awaiting needle biopsy.`` and the detector emitted a fresh
+    text_generic referral on 2025-05-13. The patient's 2025-06-10
+    receptionist note carried ``Seen in 2WW Clinic?: Seen in fast
+    track suspected breast cancer clinic (XaPyQ) 28 Apr 2025`` and
+    the detector emitted a duplicate first_seen on 2025-06-10 via
+    the XaPyQ specialist-clinic Read code. Both encounters are
+    structured proforma updates that RESTATE earlier events --
+    the real referral (2025-03-26) and the real first_seen
+    (2025-04-28) had already fired from their own source
+    encounters. Without the guard, every cancer pathway with a
+    receptionist-driven 2WW proforma will emit duplicate
+    milestones and inflate referral / first_seen counts.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Encounter text "2WW\\n   Date of First outpatient
+          appointment: 07 Apr 2025 Breast. Awaiting needle biopsy."
+          dated 2025-05-13 MUST emit zero referral anchors.
+      - type: "functional"
+        spec: >
+          Encounter text "2WW\\n   Seen in 2WW Clinic?: Seen in
+          fast track suspected breast cancer clinic (XaPyQ) 28 Apr
+          2025" dated 2025-06-10 MUST emit zero first_seen anchors
+          even though the encounter contains a XaPyQ specialist-
+          clinic Read code.
+      - type: "functional"
+        spec: >
+          The form-field date extractor MUST parse all five
+          formats: ``07 Apr 2025`` (DD MMM YYYY); ``07/05/2024``
+          and ``07-05-2024`` and ``07.05.2024`` (DD/MM/YYYY UK
+          convention); ``2025-03-26`` (ISO YYYY-MM-DD).
+      - type: "safety"
+        spec: >
+          Encounter text on 2025-04-28 carrying "Seen in 2WW
+          Clinic?: ... 28 Apr 2025" (form date == encounter date)
+          MUST still emit one first_seen anchor (no over-
+          suppression for fresh events).
+      - type: "safety"
+        spec: >
+          Encounter text on 2025-04-01 carrying "Refer via 2WW for
+          suspected breast cancer." MUST still emit one
+          text_generic referral (no over-suppression for fresh
+          referral notes).
+      - type: "safety"
+        spec: >
+          Encounter text "Patient was first seen by the breast
+          clinic on 28 Apr 2025 and biopsy was performed." (free-
+          text prose, no Field-shape colon) on 2025-06-10 MUST
+          NOT trip the N3 guard. Pattern L (DI-LEO-AI-216) is
+          responsible for narrative-referral suppression, not N3.
+    constraints:
+      - type: "safety"
+        spec: >
+          The guard requires the embedded date to be on a line
+          containing ``:`` so prose that mentions a past date is
+          not affected. Default lookback is 14 days; events
+          within the lookback are treated as fresh (e.g. an
+          appointment booked the same week).
+    dependencies:
+      - "DI-LEO-AI-145"
+      - "DI-LEO-AI-201"
+      - "DI-LEO-AI-216"
+    downstream_impacts:
+      - "Anchor detector (text path -- referral and first_seen emission)"
+      - "EpisodeOfCare graph (eliminates duplicate referral / first_seen milestones from receptionist 2WW proforma updates)"
+      - "Cohort referral / first_seen counts (drops false positives)"
+    technical_details:
+      language: "Python"
+      framework: "Anchor detector (regex layer)"
+      file_structure:
+        - "libs/domains/code_inventories.py"
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+      estimated_loc: 145
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-216 must pass with 100% on all critical and total
+      cases, including the canonical patient 4802892365
+      2025-05-13 referral suppression and 2025-06-10 first_seen
+      suppression, full date-format coverage, and three no-over-
+      suppression sanity cases (fresh first_seen on the same
+      date, fresh text_generic referral, and free-text prose with
+      a past date).
+    test_protocol: "VT-LEO-AI-216"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-208"
+  tags:
+    - "anchor-detector"
+    - "form-field-restatement"
+    - "patient-4802892365"
+    - "pattern-n3"

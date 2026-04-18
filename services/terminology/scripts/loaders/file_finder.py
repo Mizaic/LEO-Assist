@@ -206,3 +206,68 @@ class DmdFiles:
 
     def all_found(self) -> dict[str, Path | None]:
         return {"dmd_dir": self.dmd_dir()}
+
+
+ICD10_BASE = "trud-nhs-icd10"
+OPCS4_BASE = "trud-nhs-opcs4"
+
+
+class Icd10Files:
+    """Resolves the ClaML XML payload for the NHS ICD-10 5th Edition release."""
+
+    def __init__(self, external_content: Path):
+        self._dir = external_content / ICD10_BASE
+
+    def icd10_xml(self) -> Path | None:
+        if not self._dir.exists():
+            logger.warning("ICD-10 base directory not found: %s", self._dir)
+            return None
+        candidates = [
+            *self._dir.rglob("*ICD10*.xml"),
+            *self._dir.rglob("*icd10*.xml"),
+            *self._dir.rglob("*.xml"),
+        ]
+        seen: set[Path] = set()
+        unique: list[Path] = []
+        for c in candidates:
+            if c not in seen:
+                seen.add(c)
+                unique.append(c)
+        if not unique:
+            logger.warning("No ICD-10 XML found under %s", self._dir)
+            return None
+        return sorted(unique)[-1]
+
+    def all_found(self) -> dict[str, Path | None]:
+        return {"icd10_xml": self.icd10_xml()}
+
+
+class Opcs4Files:
+    """Resolves the codes-and-titles text file for the OPCS-4 release."""
+
+    def __init__(self, external_content: Path):
+        self._dir = external_content / OPCS4_BASE
+
+    def opcs4_codes(self) -> Path | None:
+        if not self._dir.exists():
+            logger.warning("OPCS-4 base directory not found: %s", self._dir)
+            return None
+        candidates = [
+            *self._dir.rglob("*CodesAndTitles*.txt"),
+            *self._dir.rglob("*codes*titles*.txt"),
+            *self._dir.rglob("OPCS*.txt"),
+            *self._dir.rglob("*.txt"),
+        ]
+        seen: set[Path] = set()
+        unique: list[Path] = []
+        for c in candidates:
+            if c not in seen:
+                seen.add(c)
+                unique.append(c)
+        if not unique:
+            logger.warning("No OPCS-4 codes file found under %s", self._dir)
+            return None
+        return sorted(unique)[-1]
+
+    def all_found(self) -> dict[str, Path | None]:
+        return {"opcs4_codes": self.opcs4_codes()}

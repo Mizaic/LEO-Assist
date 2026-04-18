@@ -1,0 +1,313 @@
+# -- VT-LEO-AI-216 -- Pattern N3: structured-form-field restatement guard
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-216"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-224"
+    risks:
+      - "R-LEO-AI-208"
+
+  metadata:
+    title: "Receptionist 2WW proforma updates emit no duplicate referral / first_seen milestones; fresh events still fire"
+    description: >
+      Verifies DI-LEO-AI-224. Cases TC-001..TC-008 cover the
+      ``_extract_form_field_dates`` parser across all five date
+      formats (DD MMM YYYY, DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY,
+      ISO YYYY-MM-DD), Field-shape detection (line must contain
+      ``:``), invalid date rejection, and multi-date extraction.
+      Cases TC-009..TC-016 cover the
+      ``encounter_restates_past_event`` predicate including the
+      two canonical patient 4802892365 receptionist notes,
+      lookback-window edge cases, prose without form-field
+      shape, empty input, malformed encounter date, and the
+      ``lookback_days`` parameter. Cases TC-017..TC-021 cover
+      the integration with ``_classify_text_encounters``: zero
+      referral on the canonical 2025-05-13 row, zero first_seen
+      on the canonical 2025-06-10 row, no over-suppression on
+      the source 2025-04-28 first_seen, no over-suppression on
+      a fresh text_generic referral, and the prose-without-
+      colon sanity check.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_pattern_n3_form_field_restatement_guard.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-216-TC-001"
+      case_name: "Extracts DD MMM YYYY from a Field: line"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call _extract_form_field_dates('Date of First outpatient appointment: 07 Apr 2025 Breast.')"
+          expected_result: "Returns [date(2025, 4, 7)]"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Canonical patient 4802892365 2025-05-13 form date is parsed"
+
+    - case_id: "VT-216-TC-002"
+      case_name: "Extracts DD MMM YYYY embedded mid-value with trailing text"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Parse 'Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 28 Apr 2025'"
+          expected_result: "Returns [date(2025, 4, 28)]"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Canonical patient 4802892365 2025-06-10 form date is parsed even with Read-code parens between value and date"
+
+    - case_id: "VT-216-TC-003"
+      case_name: "Extracts DD/MM/YYYY UK convention"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Parse 'Date of referral: 07/05/2024 - via 2WW'"
+          expected_result: "Returns [date(2024, 5, 7)]"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "UK numeric date convention (day first) is honoured"
+
+    - case_id: "VT-216-TC-004"
+      case_name: "Extracts ISO YYYY-MM-DD"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Parse 'Diagnosis date: 2025-03-26'"
+          expected_result: "Returns [date(2025, 3, 26)]"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "ISO date format is recognised"
+
+    - case_id: "VT-216-TC-005"
+      case_name: "Returns empty for prose without colon"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Parse 'Patient was seen on 07 Apr 2025 in clinic' (no colon)"
+          expected_result: "Returns []"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Free-text prose narrating a past date does not trip the guard"
+
+    - case_id: "VT-216-TC-006"
+      case_name: "Returns empty for Field: line without an embedded date"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Parse 'Problem: Repeat medication review'"
+          expected_result: "Returns []"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Field shape without a date does not produce a phantom date"
+
+    - case_id: "VT-216-TC-007"
+      case_name: "Skips invalid date components"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Parse 'Field: 32/13/2025 - garbage'"
+          expected_result: "Returns []"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Out-of-range day / month is rejected"
+
+    - case_id: "VT-216-TC-008"
+      case_name: "Extracts multiple dates from the same line"
+      priority: "medium"
+      test_steps:
+        - step_number: 1
+          action: "Parse 'Referral history: referred 07 Apr 2025, seen 28 Apr 2025'"
+          expected_result: "Both dates appear in the result"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Multi-date Field: lines are fully extracted"
+
+    - case_id: "VT-216-TC-009"
+      case_name: "Canonical 4802892365 2025-05-13 is recognised as a restatement"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call encounter_restates_past_event(text='2WW\\n   Date of First outpatient appointment: 07 Apr 2025 ...', encounter_date='2025-05-13')"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Canonical receptionist 2025-05-13 referral restatement is detected"
+
+    - case_id: "VT-216-TC-010"
+      case_name: "Canonical 4802892365 2025-06-10 is recognised as a restatement"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call encounter_restates_past_event(text='2WW\\n   Seen in 2WW Clinic?: ... 28 Apr 2025', encounter_date='2025-06-10')"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Canonical receptionist 2025-06-10 first_seen restatement is detected"
+
+    - case_id: "VT-216-TC-011"
+      case_name: "Field date within 14-day lookback is treated as a fresh event"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call encounter_restates_past_event('Date of appointment: 08 May 2025', '2025-05-13')"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Same-week appointments do not trigger over-suppression"
+
+    - case_id: "VT-216-TC-012"
+      case_name: "Field date equal to encounter date is not a restatement"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call encounter_restates_past_event('Seen in 2WW Clinic?: Attended on 13 May 2025', '2025-05-13')"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Encounter on the date the field describes still emits a fresh event"
+
+    - case_id: "VT-216-TC-013"
+      case_name: "Prose without form-field shape is not a restatement"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call encounter_restates_past_event('Patient was first seen by the breast clinic on 28 Apr 2025 ...', '2025-06-10')"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "N3 does not over-trigger on prose; Pattern L handles narrative cases"
+
+    - case_id: "VT-216-TC-014"
+      case_name: "Empty text returns False"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call encounter_restates_past_event('', '2025-06-10')"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Empty input does not trigger the guard"
+
+    - case_id: "VT-216-TC-015"
+      case_name: "Invalid encounter date returns False"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call encounter_restates_past_event('Date of appointment: 07 Apr 2025', 'not-a-date')"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Malformed encounter dates are handled defensively"
+
+    - case_id: "VT-216-TC-016"
+      case_name: "lookback_days parameter switches between fresh and restatement"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call encounter_restates_past_event('Field: 04 May 2025', '2025-05-13') -- default 14d lookback"
+          expected_result: "Returns False"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call encounter_restates_past_event('Field: 04 May 2025', '2025-05-13', lookback_days=7)"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "lookback_days parameter is honoured"
+
+    - case_id: "VT-216-TC-017"
+      case_name: "Canonical 2025-05-13 row emits zero referral via _classify_text_encounters"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Pass the canonical 2025-05-13 receptionist note through _classify_text_encounters"
+          expected_result: "refs == []"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "The duplicate text_generic referral is suppressed end-to-end"
+
+    - case_id: "VT-216-TC-018"
+      case_name: "Canonical 2025-06-10 row emits zero first_seen via _classify_text_encounters"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Pass the canonical 2025-06-10 receptionist note (XaPyQ Read code present) through _classify_text_encounters"
+          expected_result: "first_seens == []"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "The duplicate first_seen is suppressed even with a specialist-clinic Read code present"
+
+    - case_id: "VT-216-TC-019"
+      case_name: "Source 2025-04-28 first_seen still fires (no over-suppression)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Pass an encounter dated 2025-04-28 with text 'Seen in 2WW Clinic?: ... 28 Apr 2025' through _classify_text_encounters"
+          expected_result: "len(first_seens) == 1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "The original source-encounter first_seen is preserved"
+
+    - case_id: "VT-216-TC-020"
+      case_name: "Fresh text_generic referral still fires (no over-suppression)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Pass an encounter dated 2025-04-01 with text 'Refer via 2WW for suspected breast cancer.' through _classify_text_encounters"
+          expected_result: "len(refs) == 1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Fresh referral text on the encounter date is not suppressed"
+
+    - case_id: "VT-216-TC-021"
+      case_name: "Prose with past date does not trip N3 (Pattern L territory)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Verify encounter_restates_past_event() returns False for free-text prose mentioning a past date with no Field-shape colon"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "N3 stays inert on prose; narrative-referral suppression is owned by DI-LEO-AI-216"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-216/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-216-EXEC-2026-04-18-01"
+      run_date: "2026-04-18"
+      executor: "claude-opus-4-7-thinking-high (automated pytest run)"
+      environment: "development -- macOS darwin 25.3.0 / Python 3.12.13 / pytest 9.0.3"
+      command: "python -m pytest tests/test_pattern_n3_form_field_restatement_guard.py -v"
+      result: "pass"
+      cases_run: 21
+      cases_passed: 21
+      cases_failed: 0
+      notes: >
+        All 21 N3 verification cases passed. Regression sweep
+        across the existing anchor-detector and pattern test
+        suites (test_anchor_detector,
+        test_patient_4802892365_patterns,
+        test_patient_4643293950_patterns,
+        test_patient_4842019832_patterns,
+        test_stale_detector_fixes, test_pattern_n5_off_pathway_guard)
+        plus N3 reported 231 passed / 0 failed.

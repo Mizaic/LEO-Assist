@@ -21,7 +21,9 @@ from services.analysis_worker.app.analyzers.cancer_site_terms import (
 from libs.domains.code_inventories import (
     BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT,
     adjuvant_therapy_is_newly_issued,
+    encounter_diagnosis_is_narrative_restatement,
     encounter_problem_is_off_pathway,
+    encounter_restates_past_event,
     find_active_cancer_care_code,
     find_adjuvant_therapy_drug,
     find_benign_explanation_code,
@@ -1149,19 +1151,28 @@ def _classify_text_encounters(
             # DI-LEO-AI-211 (Pattern I): suppress when the only referral
             # text is conditional boilerplate guidance from an auto-
             # filed lab report.
-            # In every case, real STRUCTURAL evidence (PRISM/Outbound/
-            # Read code/Choose-and-book/Hospital row/"Refer via 2WW")
-            # overrides the suppression -- a real referral was issued.
+            # DI-LEO-AI-220 (Pattern N3): suppress when the encounter is
+            # a structured form-field restatement of a past event
+            # (e.g. "Date of First outpatient appointment: 07 Apr
+            # 2025" entered on 13 May 2025).
+            # In every case EXCEPT N3, real STRUCTURAL evidence
+            # (PRISM/Outbound/Read code/Choose-and-book/Hospital row/
+            # "Refer via 2WW") overrides the suppression -- a real
+            # referral was issued. N3 overrides even structural codes
+            # because a label of the shape "Field: ... <past date>"
+            # is by definition a restatement, not a fresh event.
             _has_structural = bool(_RE_STRUCTURAL_REFERRAL.search(text))
             _has_narrative = bool(_RE_NARRATIVE_REFERRAL_REFERENCE.search(text))
             _has_fh = bool(_RE_FAMILY_HISTORY_CANCER.search(text))
             _is_auto_filed = bool(_RE_AUTO_FILED_PREFIX.search(text))
             _has_boilerplate = bool(_RE_BOILERPLATE_REFERRAL_GUIDANCE.search(text))
+            _is_form_restatement = encounter_restates_past_event(text, date)
             _suppress = (
                 (_has_narrative and not _has_structural)
                 or (_has_fh and not _has_structural)
                 or (_is_auto_filed and not _has_structural)
                 or (_has_boilerplate and not _has_structural)
+                or _is_form_restatement
             )
             if _suppress:
                 pass  # suppressed: not a real referral event
@@ -1245,6 +1256,13 @@ def _classify_text_encounters(
                     base["site_key"] = _follow_up_hit[1]
                     base["site_hits"] = [_follow_up_hit[0]]
                     base["site_source"] = "cancer_follow_up_template"
+            # DI-LEO-AI-227 (Pattern N1): tag the diagnosis anchor when
+            # the encounter body is a sick note or a "known X cancer"
+            # narrative restatement. The episode builder uses this flag
+            # to reject floating diagnosis-led EpisodeOfCare groups
+            # whose anchors are ALL narrative restatements.
+            if encounter_diagnosis_is_narrative_restatement(text):
+                extra["is_narrative_restatement"] = True
             diagnoses.append({**base, **s, **extra})
 
         # Benign closure -- also guarded from referral encounters
@@ -1305,16 +1323,27 @@ def _classify_text_encounters(
         # clinic") is also a first_seen signal even without the
         # surface-form _RE_FIRST_SEEN match.
         if is_first_seen_note or _spec_clinic_hit is not None:
-            s = _TEXT_SENTINEL["first_seen"]
-            fs_extra: dict[str, Any] = {"confidence": 0.85}
-            if _spec_clinic_hit is not None:
-                fs_extra["first_seen_source"] = "specialist_clinic_code"
-                fs_extra["first_seen_code"] = _spec_clinic_hit[0]
-                if "site_key" not in base:
-                    base["site_key"] = _spec_clinic_hit[1]
-                    base["site_hits"] = [_spec_clinic_hit[0]]
-                    base["site_source"] = "specialist_clinic_code"
-            first_seens.append({**base, **s, **fs_extra})
+            # DI-LEO-AI-220 (Pattern N3): structured-form-field
+            # restatement guard. When the encounter body contains a
+            # form-field line of the shape "Field: ... <embedded date>"
+            # whose embedded date is >= 14 days BEFORE the encounter
+            # date (e.g. "Seen in 2WW Clinic?: Seen in fast track
+            # suspected breast cancer clinic (XaPyQ) 28 Apr 2025"
+            # entered on 10 Jun 2025), the encounter is restating the
+            # earlier first_seen event -- the real first_seen will
+            # already have fired from the source encounter. Suppress
+            # the duplicate.
+            if not encounter_restates_past_event(text, date):
+                s = _TEXT_SENTINEL["first_seen"]
+                fs_extra: dict[str, Any] = {"confidence": 0.85}
+                if _spec_clinic_hit is not None:
+                    fs_extra["first_seen_source"] = "specialist_clinic_code"
+                    fs_extra["first_seen_code"] = _spec_clinic_hit[0]
+                    if "site_key" not in base:
+                        base["site_key"] = _spec_clinic_hit[1]
+                        base["site_hits"] = [_spec_clinic_hit[0]]
+                        base["site_source"] = "specialist_clinic_code"
+                first_seens.append({**base, **s, **fs_extra})
 
         # Treatment - includes free-text patterns AND
         # CANCER_TREATMENT_PROCEDURE_CODES (DI-LEO-AI-175 - 7G055

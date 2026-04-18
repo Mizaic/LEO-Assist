@@ -17,6 +17,7 @@ CONSTRAINTS = [
     "CREATE CONSTRAINT concept_id IF NOT EXISTS FOR (c:Concept) REQUIRE c.id IS UNIQUE",
     "CREATE CONSTRAINT term_id IF NOT EXISTS FOR (t:Term) REQUIRE t.id IS UNIQUE",
     "CREATE CONSTRAINT icd10_code IF NOT EXISTS FOR (i:Icd10Code) REQUIRE i.code IS UNIQUE",
+    "CREATE CONSTRAINT opcs4_code IF NOT EXISTS FOR (o:OpcsCode) REQUIRE o.code IS UNIQUE",
     "CREATE CONSTRAINT read_code IF NOT EXISTS FOR (r:ReadCode) REQUIRE r.code IS UNIQUE",
     "CREATE CONSTRAINT drug_id IF NOT EXISTS FOR (d:DrugConcept) REQUIRE d.id IS UNIQUE",
     "CREATE CONSTRAINT surface_form_norm IF NOT EXISTS FOR (s:SurfaceForm) REQUIRE s.normalized IS UNIQUE",
@@ -26,6 +27,8 @@ INDEXES = [
     "CREATE INDEX term_normalized IF NOT EXISTS FOR (t:Term) ON (t.normalized_form)",
     "CREATE INDEX concept_active IF NOT EXISTS FOR (c:Concept) ON (c.active)",
     "CREATE INDEX surface_form_text IF NOT EXISTS FOR (s:SurfaceForm) ON (s.form)",
+    "CREATE INDEX icd10_level IF NOT EXISTS FOR (i:Icd10Code) ON (i.level)",
+    "CREATE INDEX opcs4_level IF NOT EXISTS FOR (o:OpcsCode) ON (o.level)",
 ]
 
 FULLTEXT_INDEXES = [

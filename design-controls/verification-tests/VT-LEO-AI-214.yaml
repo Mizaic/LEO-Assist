@@ -1,0 +1,119 @@
+# -- VT-LEO-AI-214 -- /care/encounters preview wrapper static surface
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-214"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-223"
+    risks:
+      - "R-LEO-AI-206"
+      - "R-LEO-AI-207"
+
+  metadata:
+    title: "EncounterPreviewDialog wrapper -- shared dialog mount, dual save, headerChrome"
+    description: >
+      Static-source verification per ui-testing.mdc. Confirms the
+      /care/encounters preview wrapper consumes the shared dialog
+      in saveMode='dual', seeds via createGoldLabelFromEncounter,
+      surfaces match-rationale chrome via headerChrome, and that
+      EncounterMissionControl no longer prefetches coded links for
+      the preview path.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/encounter-preview-dialog-chrome.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "services/ui jest harness (jest 30 + ts-jest)"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-214-TC-001"
+      case_name: "Wrapper imports shared editor and dual-save helpers from @/components/gold-editor"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterPreviewDialog.tsx"
+          expected_result: "Imports include GoldLabelEditorDialog, createGoldLabelFromEncounter, useDualSaveAdapter from @/components/gold-editor"
+          verification_method: "automated"
+
+    - case_id: "VT-214-TC-002"
+      case_name: "Wrapper seeds the gold label from the live encounter"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Search for createGoldLabelFromEncounter call"
+          expected_result: "Call passes patient_id and encounter_id from the item; baseline_concept_ids stored in context"
+          verification_method: "automated"
+
+    - case_id: "VT-214-TC-003"
+      case_name: "Wrapper mounts the shared editor in saveMode='dual'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Search for saveMode=dual and entitySaver"
+          expected_result: "Dialog props include saveMode='dual', entitySaver={dualSaver}, onAfterSave callback"
+          verification_method: "automated"
+
+    - case_id: "VT-214-TC-004"
+      case_name: "Match rationale is passed via headerChrome"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Search for headerChrome prop and rationale data-testid"
+          expected_result: "headerChrome={<MatchRationaleHeader item={item} />}; data-testid='encounter-preview-rationale' present; copy 'Why this matched your search' present"
+          verification_method: "automated"
+
+    - case_id: "VT-214-TC-005"
+      case_name: "GoldLabelDetailDialog renders headerChrome when provided"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read GoldDatasetPanel.tsx"
+          expected_result: "Source contains headerChrome?: React.ReactNode and data-testid='gold-dialog-header-chrome'"
+          verification_method: "automated"
+
+    - case_id: "VT-214-TC-006"
+      case_name: "EncounterMissionControl no longer prefetches coded links for the preview path"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterMissionControl.tsx"
+          expected_result: "fetchEncounterCodedLinks, previewCodedLinks, previewLinksLoading, previewLinksError are NOT present"
+          verification_method: "automated"
+
+    - case_id: "VT-214-TC-007"
+      case_name: "Mission-control forwards onCodingChanged to refresh the list after save"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterMissionControl.tsx"
+          expected_result: "EncounterPreviewDialog mounted with onCodingChanged that calls loadAll(false)"
+          verification_method: "automated"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-214/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-214-EXEC-001"
+      timestamp: "2026-04-18T17:35:00Z"
+      executor: "Rob Smith (developer)"
+      result: "pass"
+      notes: "7 cases pass under jest 30 + ts-jest."

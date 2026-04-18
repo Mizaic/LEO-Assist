@@ -42,6 +42,18 @@ PACKAGES: dict[str, dict] = {
         "dest": "trud-snomed-ct-drug-extension",
         "phases": {5},
     },
+    "icd10": {
+        "item_id": 259,
+        "label": "NHS ICD-10 5th Edition (XML)",
+        "dest": "trud-nhs-icd10",
+        "phases": {6},
+    },
+    "opcs4": {
+        "item_id": 119,
+        "label": "OPCS-4 (Procedural classification)",
+        "dest": "trud-nhs-opcs4",
+        "phases": {7},
+    },
 }
 
 
@@ -84,6 +96,9 @@ def get_neo4j_counts() -> dict:
         "is_a_rels": "MATCH ()-[:IS_A]->() RETURN count(*) AS n",
         "icd10_maps": "MATCH ()-[:MAPS_TO_ICD10]->() RETURN count(*) AS n",
         "read_maps": "MATCH ()-[:MAPS_TO_READ]->() RETURN count(*) AS n",
+        "icd10_codes": "MATCH (c:Icd10Code) RETURN count(c) AS n",
+        "opcs4_codes": "MATCH (c:OpcsCode) RETURN count(c) AS n",
+        "opcs4_maps": "MATCH ()-[:MAPS_TO_OPCS4]->() RETURN count(*) AS n",
     }
     driver = GraphDatabase.driver(uri, auth=(user, password))
     counts: dict = {}
@@ -167,14 +182,44 @@ def _dmd_up_to_date(local_date: str | None, release: dict | None) -> bool:
     return bool(trud_date and local_date >= trud_date)
 
 
+def _generic_local_date(external: Path, key: str) -> str | None:
+    """Most recent file mtime under a package's extracted directory.
+
+    Used for ICD-10 / OPCS-4 where the release does not stamp a date into
+    the filename or directory name.
+    """
+    pkg_dir = external / PACKAGES[key]["dest"]
+    if not pkg_dir.exists():
+        return None
+    latest_mtime = 0.0
+    for f in pkg_dir.rglob("*"):
+        if not f.is_file():
+            continue
+        latest_mtime = max(latest_mtime, f.stat().st_mtime)
+    if not latest_mtime:
+        return None
+    return time.strftime("%Y-%m-%d", time.gmtime(latest_mtime))
+
+
+def _generic_up_to_date(local_date: str | None, release: dict | None) -> bool:
+    """True when the local mtime is on or after the TRUD release date."""
+    if not local_date or not release:
+        return False
+    trud_date = release.get("releaseDate", "")
+    return bool(trud_date and local_date >= trud_date)
+
+
 def _package_status(key: str, external: Path, release: dict | None) -> dict:
     """Build the status dict for one package."""
     if key == "snomed":
         local_date = _snomed_local_date(external)
         up_to_date = _snomed_up_to_date(local_date, release)
-    else:
+    elif key == "dmd":
         local_date = _dmd_local_date(external)
         up_to_date = _dmd_up_to_date(local_date, release)
+    else:
+        local_date = _generic_local_date(external, key)
+        up_to_date = _generic_up_to_date(local_date, release)
 
     return {
         "label": PACKAGES[key]["label"],
@@ -340,10 +385,10 @@ def _sync_one_package(key: str, external: Path, emit: Emitter) -> bool:
     try:
         _download_file(url, tmp_path, emit)
         emit({"type": "download_done", "package": key})
-        if key == "dmd":
-            _extract_dmd(tmp_path, dest_dir, emit)
-        else:
+        if key == "snomed":
             _extract_snomed(tmp_path, dest_dir, emit)
+        else:
+            _extract_dmd(tmp_path, dest_dir, emit)
     finally:
         tmp_path.unlink(missing_ok=True)
 

@@ -32,6 +32,9 @@ ICD10_REFSET_IDS = {
 # refsetId for CTV3 simple map
 CTV3_REFSET_ID = "900000000000497000"
 
+# refsetId for the SNOMED CT to OPCS-4 procedural map (UK Clinical refset)
+OPCS4_REFSET_ID = "1126491000000109"
+
 MERGE_ICD10_MAP = """
 UNWIND $rows AS r
 MERGE (icd:Icd10Code {code: r.map_target})
@@ -50,6 +53,14 @@ SET rd.version = 'ctv3'
 WITH rd, r
 MERGE (c:Concept {id: r.concept_id})
 MERGE (c)-[:MAPS_TO_READ]->(rd)
+"""
+
+MERGE_OPCS4_MAP = """
+UNWIND $rows AS r
+MERGE (op:OpcsCode {code: r.map_target})
+WITH op, r
+MERGE (c:Concept {id: r.concept_id})
+MERGE (c)-[:MAPS_TO_OPCS4]->(op)
 """
 
 
@@ -85,14 +96,58 @@ async def load_simple_map(
     driver: AsyncDriver,
     filepath: Path,
     batch_size: int = 5_000,
+    refset_filter: str | None = None,
 ) -> int:
-    """Stream SimpleMap refset and create Read code mappings."""
+    """Stream SimpleMap refset and create Read code mappings.
+
+    The SNOMED SimpleMap file contains rows for many refsets in a single
+    file (CTV3, OPCS-4, ICD-O, etc.). When `refset_filter` is provided
+    only rows whose refsetId matches are loaded as ReadCode targets;
+    callers loading other classifications (e.g. OPCS-4 via
+    `load_opcs4_map`) should restrict this loader to CTV3.
+    """
     label = f"SimpleMap({filepath.name})"
-    logger.info("%s: starting", label)
+    logger.info("%s: starting (refset_filter=%s)", label, refset_filter or "ALL")
     async with driver.session() as session:
         writer = BatchWriter(session, MERGE_READ_MAP, batch_size, label)
         for row in stream_rf2(filepath):
             if row["active"] != "1":
+                continue
+            if refset_filter and row.get("refsetId") != refset_filter:
+                continue
+            target = row.get("mapTarget", "").strip()
+            if not target:
+                continue
+            await writer.add(
+                {
+                    "concept_id": row["referencedComponentId"],
+                    "map_target": target,
+                }
+            )
+        return await writer.finish()
+
+
+async def load_opcs4_map(
+    driver: AsyncDriver,
+    filepath: Path,
+    batch_size: int = 5_000,
+) -> int:
+    """Stream a SimpleMap refset and create SNOMED -> OPCS-4 mappings.
+
+    Filters on `OPCS4_REFSET_ID` so this function is safe to run against
+    the same file used by `load_simple_map` for CTV3. OpcsCode nodes are
+    MERGEd on `code` so titles already loaded by `opcs4.load_opcs4`
+    survive (and bare nodes left here are titled later when the OPCS-4
+    reference data loader runs).
+    """
+    label = f"OPCS4Map({filepath.name})"
+    logger.info("%s: starting", label)
+    async with driver.session() as session:
+        writer = BatchWriter(session, MERGE_OPCS4_MAP, batch_size, label)
+        for row in stream_rf2(filepath):
+            if row["active"] != "1":
+                continue
+            if row.get("refsetId") != OPCS4_REFSET_ID:
                 continue
             target = row.get("mapTarget", "").strip()
             if not target:

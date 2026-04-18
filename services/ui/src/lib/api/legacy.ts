@@ -560,6 +560,9 @@ export interface ConceptGroup {
   semantic_tag?: string;
   read_code?: string;
   icd10?: string;
+  icd10_term?: string;
+  opcs4?: string;
+  opcs4_term?: string;
   surface_forms: GroupedSurfaceForm[];
 }
 

@@ -6,9 +6,11 @@ Usage (from repo root):
 
 Phases:
     1  SNOMED core (Concept, Description, Language, Relationship)
-    2  SNOMED maps (ExtendedMap -> ICD-10, SimpleMap -> Read)
+    2  SNOMED maps (ExtendedMap -> ICD-10, SimpleMap -> CTV3, SimpleMap -> OPCS-4)
     3  SNOMED inferred attribute projections
     5  dm+d drug extension (VTM, VMP, AMP, VMPP, AMPP)
+    6  NHS ICD-10 5th Edition reference data (titles + chapter/block hierarchy)
+    7  OPCS-4 reference data (titles + chapter hierarchy)
 
 Neo4j connection comes from secrets/.env:
     KNOWLEDGE_GRAPH_NEO4J_URI
@@ -29,12 +31,19 @@ from dotenv import load_dotenv
 from neo4j import AsyncGraphDatabase
 
 from .dmd_drugs import load_dmd
-from .file_finder import DmdFiles, SnomedFiles
+from .file_finder import DmdFiles, Icd10Files, Opcs4Files, SnomedFiles
+from .icd10_xml import load_icd10_xml
+from .opcs4 import load_opcs4
 from .schema import ensure_schema
 from .snomed_concept import load_concepts
 from .snomed_description import load_descriptions
 from .snomed_language import load_language_refset
-from .snomed_map import load_extended_map, load_simple_map
+from .snomed_map import (
+    CTV3_REFSET_ID,
+    load_extended_map,
+    load_opcs4_map,
+    load_simple_map,
+)
 from .snomed_attribute_projection import load_inferred_attribute_relationships
 from .snomed_relationship import load_relationships
 
@@ -178,24 +187,16 @@ async def run_phase_2(driver, files: SnomedFiles) -> None:
         files.ukcr_extended_map(),
         "UKCR ExtendedMap (ICD-10 UK Clinical Refsets)",
     )
-    await _load_if_found(
-        load_simple_map,
-        driver,
-        files.int_simple_map(),
-        "INT SimpleMap (CTV3)",
-    )
-    await _load_if_found(
-        load_simple_map,
-        driver,
-        files.uked_simple_map(),
-        "UKED SimpleMap (CTV3 UK Edition)",
-    )
-    await _load_if_found(
-        load_simple_map,
-        driver,
-        files.ukcr_simple_map(),
-        "UKCR SimpleMap (CTV3 UK Clinical Refsets)",
-    )
+    for path, label in (
+        (files.int_simple_map(), "INT SimpleMap (CTV3)"),
+        (files.uked_simple_map(), "UKED SimpleMap (CTV3 UK Edition)"),
+        (files.ukcr_simple_map(), "UKCR SimpleMap (CTV3 UK Clinical Refsets)"),
+    ):
+        if path is None:
+            logger.warning("SKIP %s - file not found", label)
+            continue
+        await load_simple_map(driver, path, refset_filter=CTV3_REFSET_ID)
+        await load_opcs4_map(driver, path)
 
 
 async def run_phase_3(driver) -> None:
@@ -219,16 +220,46 @@ async def run_phase_5(driver, dmd: DmdFiles) -> None:
     await load_dmd(driver, dmd_dir)
 
 
+async def run_phase_6(driver, icd10: Icd10Files) -> None:
+    """Phase 6: NHS ICD-10 5th Edition reference data (titles + hierarchy)."""
+    logger.info("=" * 60)
+    logger.info("PHASE 6: NHS ICD-10 5th Edition")
+    logger.info("=" * 60)
+
+    xml_path = icd10.icd10_xml()
+    if xml_path is None:
+        logger.warning("SKIP ICD-10 - XML file not found")
+        return
+    await load_icd10_xml(driver, xml_path)
+
+
+async def run_phase_7(driver, opcs4: Opcs4Files) -> None:
+    """Phase 7: OPCS-4 reference data (titles + hierarchy)."""
+    logger.info("=" * 60)
+    logger.info("PHASE 7: OPCS-4 reference data")
+    logger.info("=" * 60)
+
+    codes_path = opcs4.opcs4_codes()
+    if codes_path is None:
+        logger.warning("SKIP OPCS-4 - codes file not found")
+        return
+    await load_opcs4(driver, codes_path)
+
+
 async def main(external_content: Path, phases: set[int]) -> None:
     uri, user, password = _load_neo4j_config()
     logger.info("Connecting to Neo4j at %s", uri)
 
     snomed_files = SnomedFiles(external_content)
     dmd_files = DmdFiles(external_content)
+    icd10_files = Icd10Files(external_content)
+    opcs4_files = Opcs4Files(external_content)
 
     all_found = {
         **snomed_files.all_found(),
         **dmd_files.all_found(),
+        **icd10_files.all_found(),
+        **opcs4_files.all_found(),
     }
     for name, path in all_found.items():
         status = str(path) if path else "NOT FOUND"
@@ -248,6 +279,10 @@ async def main(external_content: Path, phases: set[int]) -> None:
             await run_phase_3(driver)
         if 5 in phases:
             await run_phase_5(driver, dmd_files)
+        if 6 in phases:
+            await run_phase_6(driver, icd10_files)
+        if 7 in phases:
+            await run_phase_7(driver, opcs4_files)
         elapsed = time.monotonic() - t0
         logger.info("All phases complete in %.1fs", elapsed)
     finally:
@@ -266,8 +301,8 @@ def cli() -> None:
     )
     parser.add_argument(
         "--phases",
-        default="1,2,3,5",
-        help="Comma-separated phase numbers to run (default: 1,2,3,5)",
+        default="1,2,3,5,6,7",
+        help="Comma-separated phase numbers to run (default: 1,2,3,5,6,7)",
     )
     args = parser.parse_args()
 

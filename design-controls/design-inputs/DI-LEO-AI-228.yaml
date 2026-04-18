@@ -1,0 +1,91 @@
+# -- DI-LEO-AI-228 -- Ingest NHS ICD-10 5th Edition XML reference data
+# IEC 62304 / ISO 13485 Design Input
+#
+# NOTE: ID DI-LEO-AI-225 was originally proposed for this DI but was
+# already claimed in the same change window by Pattern N5 (off-pathway
+# Problem-header guard). This DI was reassigned to the next free ID.
+
+- id: "DI-LEO-AI-228"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-089"
+  requirement: >
+    The terminology service SHALL ingest the NHS ICD-10 5th Edition
+    XML release (TRUD pack 28, item 259) and materialise every
+    classified entity as an `Icd10Code` node in the knowledge graph,
+    carrying its title, chapter, block, age range, sex constraint,
+    edition, and level (chapter / block / category / code), with
+    `IS_A` parent edges that close the chapter -> block -> category
+    -> code hierarchy. The loader SHALL MERGE on `code` so existing
+    bare nodes left by the SNOMED ExtendedMap loader gain titles in
+    place, and SHALL be idempotent on rerun. The loader SHALL emit a
+    structured summary line every run including the count of nodes
+    that gained titles for the first time and the count of titles
+    that drifted from the prior load.
+
+  rationale: >
+    SNOMED -> ICD-10 map edges already exist via the SNOMED
+    ExtendedMap refset, but the `Icd10Code` nodes the map creates
+    are bare. Without titles, hierarchy, and edition metadata, the
+    map cannot be presented to clinical coders, finance teams, or
+    QA reviewers in any surface that expects a code AND its
+    human-readable meaning. Loading the standalone NHS ICD-10
+    package closes this gap and unblocks every downstream surface
+    (TermSearch, surface-forms admin, future coded-finding chips).
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "Every <Class> in the source XML produces exactly one Icd10Code node, MERGEd on code"
+      - type: "functional"
+        spec: "Title is set from the preferred Rubric label; falls back to the first non-preferred label when no preferred label exists"
+      - type: "functional"
+        spec: "level is one of {chapter, block, category, code} derived from ClaML kind plus code shape"
+      - type: "functional"
+        spec: "IS_A parent edge is created for every <SuperClass> reference"
+      - type: "functional"
+        spec: "Code I500 in the source is normalised to I50.0 in the graph so SNOMED ExtendedMap targets resolve"
+      - type: "performance"
+        spec: "Loader streams the XML via xml.etree.ElementTree.iterparse so peak memory stays bounded regardless of release size"
+    constraints:
+      - type: "safety"
+        spec: "MERGE on code is non-destructive: existing relationships from the SNOMED ExtendedMap loader survive a rerun"
+      - type: "safety"
+        spec: "If the standalone package is not on disk the loader is skipped and downstream UI surfaces degrade to bare-code rendering"
+    dependencies: []
+    downstream_impacts:
+      - "Settings -- Terminology page (new icd10 PackageCard + StatTile)"
+      - "TermSearch result row (renders title alongside code)"
+      - "Surface-forms admin page (renders title alongside code)"
+      - "TRUD sync orchestrator (new icd10 package entry pointing at item 259)"
+    technical_details:
+      language: "Python"
+      framework: "neo4j async driver + BatchWriter"
+      file_structure:
+        - "services/terminology/scripts/loaders/icd10_xml.py"
+        - "services/terminology/scripts/loaders/file_finder.py"
+        - "services/terminology/scripts/loaders/run_all.py"
+        - "services/terminology/scripts/loaders/schema.py"
+        - "services/api/app/services/trud_sync.py"
+      estimated_loc: 280
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      pytest VT-LEO-AI-219 covers normalisation, level classification,
+      ClaML parsing, end-to-end MERGE writes against a fake AsyncDriver,
+      idempotency, title backfill on bare nodes, drift detection, and
+      structured summary log shape. Static-source jest VTs cover the
+      Settings -- Terminology page chrome and the TermSearch / surface-
+      forms title rendering.
+    test_protocol: "VT-LEO-AI-219"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-210"
+  tags:
+    - "terminology"
+    - "icd10"
+    - "classifications"
+    - "reference-data"

@@ -62,6 +62,9 @@ export interface TermSearchResult {
   module_id?: string;
   score?: number;
   icd10?: string;
+  icd10_term?: string;
+  opcs4?: string;
+  opcs4_term?: string;
   from_surface_form?: boolean;
 }
 
