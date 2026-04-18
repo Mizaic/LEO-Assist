@@ -151,6 +151,33 @@ export const episodeBuild: ProbeStrategy = {
   },
 };
 
+export const episodeEngine: ProbeStrategy = {
+  icon: "🤖",
+  headline: (out) => {
+    const episodes = arr(out.written_episodes);
+    return episodes.length > 0
+      ? `AI found ${pl(episodes.length, "episode")}`
+      : "No episodes detected by the AI";
+  },
+  Detail: ({ output, openInspector }) => {
+    const episodes = arr(output.written_episodes).filter(isRec) as Record<string, unknown>[];
+    if (episodes.length === 0) {
+      return (
+        <div style={{ color: C.dim, fontSize: 10 }}>
+          The AI agent chain found no episodes for this patient.
+        </div>
+      );
+    }
+    return (
+      <MiniTable
+        cols={["episode_id", "episode_type", "suspected_site", "confidence"]}
+        rows={episodes}
+        onRow={(i) => openInspector(["written_episodes", i])}
+      />
+    );
+  },
+};
+
 export const safetyNet: ProbeStrategy = {
   icon: "🛡️",
   headline: (out) => {

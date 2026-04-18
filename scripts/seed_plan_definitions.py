@@ -299,6 +299,18 @@ ACTIVITY_DEFINITIONS = [
         "_subgraphId": "episode_build",
     },
     {
+        "id": "ad-episode-engine",
+        "resourceType": "ActivityDefinition",
+        "name": "Episode Engine (AI)",
+        "status": "active",
+        "description": (
+            "Read the patient timeline with a Haiku LangGraph agent chain "
+            "(segmenter -> classifier -> milestone extractor -> reconciler) "
+            "and write EpisodeOfCare nodes with milestone evidence."
+        ),
+        "_subgraphId": "episode_engine",
+    },
+    {
         "id": "ad-safety-net",
         "resourceType": "ActivityDefinition",
         "name": "Safety Netting",

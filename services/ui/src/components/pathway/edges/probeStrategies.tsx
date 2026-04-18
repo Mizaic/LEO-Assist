@@ -44,6 +44,7 @@ import {
   sbar,
   anchorDetect,
   episodeBuild,
+  episodeEngine,
   safetyNet,
   nextBestAction,
 } from "./probes/persist";
@@ -89,6 +90,7 @@ export const PROBE_STRATEGIES: Record<string, ProbeStrategy> = {
   sbar,
   anchor_detect: anchorDetect,
   episode_build: episodeBuild,
+  episode_engine: episodeEngine,
   staging_enrichment: stagingEnrichment,
   human_review_gate: humanReviewGate,
   encounter_coding_agent: encounterCodingAgent,
@@ -118,6 +120,7 @@ const CONFIG_INJECTED_FIELDS: Record<string, string[]> = {
   compliance:   ["prompt_config_id", "model_tier"],
   anchor_detect: ["prompt_config_id", "model_tier"],
   episode_build: ["prompt_config_id", "model_tier"],
+  episode_engine: ["model_tier", "dry_run"],
   next_best_action: ["prompt_config_id", "model_tier"],
   quality_check:    ["prompt_config_id", "model_tier"],
   guidance_rule_extraction: ["prompt_config_id", "model_tier"],

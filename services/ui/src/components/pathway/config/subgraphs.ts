@@ -16,6 +16,7 @@ const SUBGRAPH_OPTIONS_RAW = [
   { id: "sbar",              label: "Write SBAR Summary",     color: "#00BCD4", category: "Reports",         description: "Generate a Situation-Background-Assessment-Recommendation clinical summary." },
   { id: "anchor_detect",     label: "Detect Key Findings",    color: "#E91E63", category: "Reports",         description: "Identify the significant clinical findings that start a new episode of care." },
   { id: "episode_build",     label: "Build Episode",          color: "#3F51B5", category: "Reports",         description: "Group related encounters together into a timeline episode of care." },
+  { id: "episode_engine",    label: "Find Episodes (AI)",     color: "#1A237E", category: "Reports",         description: "Read the patient timeline with an AI agent chain and identify cancer episodes and their milestones." },
   { id: "safety_net",        label: "Safety Netting",         color: "#FF5722", category: "Safety",          description: "Flag overdue tests, missing referral replies, or follow-up actions that are past due." },
   { id: "next_best_action",  label: "Next Best Action",       color: "#673AB7", category: "Safety",          description: "Suggest the most appropriate next clinical action based on the patient context." },
   { id: "relation_linking",  label: "Link Entity Relations",  color: "#7B1FA2", category: "Clinical AI",     description: "Identify body-site and qualifier relations between extracted entities using a relation model and LLM." },
@@ -101,6 +102,10 @@ export const SUBGRAPH_IO: Record<string, {
     writes: ["episodes"],
     requiredFields: { entities: ["text", "semantic_tag", "assertion"] },
   },
+  episode_engine: {
+    reads: ["patient_id"],
+    writes: ["written_episodes", "trace_id"],
+  },
   safety_net: {
     reads: ["entities", "patient_id"],
     writes: ["safety_net_alerts"],
@@ -160,6 +165,7 @@ export const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
   sbar: "llm",
   anchor_detect: "llm",
   episode_build: "llm",
+  episode_engine: "llm",
   next_best_action: "llm",
   quality_check: "llm",
   compliance: "llm",

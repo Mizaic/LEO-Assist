@@ -232,10 +232,29 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         registry.register(
             "episode_build",
             build_episode_subgraph,
-            description="Episode of care construction",
+            description="Episode of care construction (legacy rule-based)",
         )
     except Exception as exc:
         logger.error("Failed to register subgraph 'episode_build': %s", exc)
+
+    try:
+        from libs.pipeline_graph.subgraphs.episode_engine import (
+            build_episode_engine_pipeline_subgraph,
+        )
+
+        registry.register(
+            "episode_engine",
+            build_episode_engine_pipeline_subgraph,
+            description=(
+                "AI-driven episode + milestone detection (Haiku LangGraph "
+                "chain): segmenter -> classifier -> milestone_extractor -> "
+                "reconciler -> writer."
+            ),
+            input_schema='{"patient_id": "Patient ID", "domain_id": "Domain ID", "dry_run": "bool"}',
+            output_schema='{"written_episodes": "Final Episode dicts", "trace_id": "Engine trace id"}',
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'episode_engine': %s", exc)
 
     try:
         from libs.pipeline_graph.subgraphs.staging_enrichment import (
