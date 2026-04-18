@@ -9,8 +9,8 @@
   traceability:
     design_inputs: ["DI-LEO-AI-226"]
     user_needs: ["UN-LEO-AI-089"]
-    risks_addressed: ["R-LEO-AI-210"]
-    verification_tests: ["VT-LEO-AI-218"]
+    risks_addressed: ["R-LEO-AI-301"]
+    verification_tests: ["VT-LEO-AI-302"]
 
   specification:
     title: "OPCS-4 reference data loader, SNOMED -> OPCS-4 map extension, TRUD package wiring, schema, and UI surfacing"

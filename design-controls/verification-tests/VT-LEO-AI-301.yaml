@@ -1,11 +1,11 @@
-# -- VT-LEO-AI-219 -- ICD-10 5th Edition XML loader and UI surfacing
+# -- VT-LEO-AI-301 -- ICD-10 5th Edition XML loader and UI surfacing
 # IEC 62304 Verification Test
 #
 # NOTE: Originally drafted at VT-LEO-AI-217 but reassigned to the next
 # free ID after Pattern N5 (off-pathway Problem-header guard) claimed
 # VT-LEO-AI-217 in the same change window.
 
-- id: "VT-LEO-AI-219"
+- id: "VT-LEO-AI-301"
   version: "1.0"
   status: "passed"
 
@@ -13,7 +13,7 @@
     design_inputs:
       - "DI-LEO-AI-228"
     risks:
-      - "R-LEO-AI-210"
+      - "R-LEO-AI-301"
 
   metadata:
     title: "NHS ICD-10 5th Edition XML loader writes titled, hierarchical Icd10Code nodes and the UI surfaces the title"
@@ -134,7 +134,7 @@
 
   evidence:
     evidence_types: ["automated_test_run"]
-    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-219/"
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-301/"
     retention_period: "7 years"
     immutability: true
 

@@ -1,7 +1,7 @@
-# -- VT-LEO-AI-218 -- OPCS-4 reference data loader, SNOMED -> OPCS-4 map, and UI surfacing
+# -- VT-LEO-AI-302 -- OPCS-4 reference data loader, SNOMED -> OPCS-4 map, and UI surfacing
 # IEC 62304 Verification Test
 
-- id: "VT-LEO-AI-218"
+- id: "VT-LEO-AI-302"
   version: "1.0"
   status: "passed"
 
@@ -9,7 +9,7 @@
     design_inputs:
       - "DI-LEO-AI-226"
     risks:
-      - "R-LEO-AI-210"
+      - "R-LEO-AI-301"
 
   metadata:
     title: "OPCS-4 reference data loader, SNOMED -> OPCS-4 map, and UI surfacing"
@@ -139,7 +139,7 @@
 
   evidence:
     evidence_types: ["automated_test_run"]
-    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-218/"
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-302/"
     retention_period: "7 years"
     immutability: true
 

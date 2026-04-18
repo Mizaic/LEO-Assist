@@ -1,11 +1,11 @@
-# -- DO-LEO-AI-224 -- ICD-10 5th Edition XML loader and UI surfacing
+# -- DO-LEO-AI-301 -- ICD-10 5th Edition XML loader and UI surfacing
 # ISO 13485 / IEC 62304 Design Output
 #
 # NOTE: Originally drafted at DO-LEO-AI-222 but reassigned to the next
 # free ID after Pattern N5 (off-pathway Problem-header guard) claimed
 # DO-LEO-AI-222 in the same change window.
 
-- id: "DO-LEO-AI-224"
+- id: "DO-LEO-AI-301"
   version: "1.0.0"
   type: "Software_Module"
   status: "draft"
@@ -13,8 +13,8 @@
   traceability:
     design_inputs: ["DI-LEO-AI-228"]
     user_needs: ["UN-LEO-AI-089"]
-    risks_addressed: ["R-LEO-AI-210"]
-    verification_tests: ["VT-LEO-AI-219"]
+    risks_addressed: ["R-LEO-AI-301"]
+    verification_tests: ["VT-LEO-AI-301"]
 
   specification:
     title: "NHS ICD-10 5th Edition XML loader, TRUD package wiring, schema, and UI surfacing"

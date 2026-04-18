@@ -1,11 +1,11 @@
-# -- R-LEO-AI-210 -- Stale or missing ICD-10/OPCS-4 reference data leads to incorrect downstream interpretation
+# -- R-LEO-AI-301 -- Stale or missing ICD-10/OPCS-4 reference data leads to incorrect downstream interpretation
 # ISO 14971 / IEC 62304 Risk
 #
 # NOTE: Originally drafted at R-LEO-AI-209 but reassigned to the next
 # free ID after Pattern N5 (off-pathway Problem-header guard) claimed
 # R-LEO-AI-209 in the same change window.
 
-- id: "R-LEO-AI-210"
+- id: "R-LEO-AI-301"
   title: "Stale, missing, or partially-loaded ICD-10 or OPCS-4 reference data causes UI surfaces to show wrong or no titles for codes that drive coding-revenue and downstream payer submissions"
 
   hazard:
@@ -72,8 +72,8 @@
         - "DI-LEO-AI-228"
         - "DI-LEO-AI-226"
       verified_by:
-        - "VT-LEO-AI-219"
-        - "VT-LEO-AI-218"
+        - "VT-LEO-AI-301"
+        - "VT-LEO-AI-302"
       effectiveness: "effective"
     - control_type: "design_feature"
       description: >
@@ -89,8 +89,8 @@
         - "DI-LEO-AI-228"
         - "DI-LEO-AI-226"
       verified_by:
-        - "VT-LEO-AI-219"
-        - "VT-LEO-AI-218"
+        - "VT-LEO-AI-301"
+        - "VT-LEO-AI-302"
       effectiveness: "effective"
     - control_type: "design_feature"
       description: >
@@ -106,8 +106,8 @@
         - "DI-LEO-AI-228"
         - "DI-LEO-AI-226"
       verified_by:
-        - "VT-LEO-AI-219"
-        - "VT-LEO-AI-218"
+        - "VT-LEO-AI-301"
+        - "VT-LEO-AI-302"
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: >
@@ -122,8 +122,8 @@
         - "DI-LEO-AI-228"
         - "DI-LEO-AI-226"
       verified_by:
-        - "VT-LEO-AI-219"
-        - "VT-LEO-AI-218"
+        - "VT-LEO-AI-301"
+        - "VT-LEO-AI-302"
       effectiveness: "pending"
 
   residual_risk_estimate:

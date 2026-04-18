@@ -18,7 +18,7 @@ Idempotent: MERGE on `code`. Re-running overwrites title and metadata
 (SET semantics) so existing bare nodes left by the SNOMED ExtendedMap
 loader gain titles in-place.
 
-Supports DI-LEO-AI-225, DO-LEO-AI-222.
+Supports DI-LEO-AI-228, DO-LEO-AI-301.
 """
 
 from __future__ import annotations

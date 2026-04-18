@@ -403,7 +403,7 @@ def _build_diagnosis_led_groups(
     for site_key, diags in floating_by_site.items():
         diags.sort(key=lambda a: str(a.get("encounter_date") or ""))
         for time_group in _group_referrals_by_time(diags):
-            # DI-LEO-AI-227 (Pattern N1): reject floating diagnosis-led
+            # DI-LEO-AI-401 (Pattern N1): reject floating diagnosis-led
             # groups whose anchors are ALL narrative restatements
             # (sick notes, "known X cancer" history). Without a
             # referral to attach to AND without any fresh-diagnosis

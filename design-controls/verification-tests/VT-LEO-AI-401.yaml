@@ -1,0 +1,313 @@
+# -- VT-LEO-AI-401 -- Verification of Pattern N1 (no-anchor episode rejection)
+# IEC 62304 Verification Test
+#
+# NOTE: Moved to the 4xx ID range after the parallel ICD-10 / OPCS-4
+# reference-data session repeatedly overwrote / deleted Pattern N1
+# design-control YAMLs in the 21x-30x ranges.
+
+- id: "VT-LEO-AI-401"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-401"]
+    risks: ["R-LEO-AI-401"]
+
+  metadata:
+    title: "Pattern N1 -- narrative-restatement diagnosis tagging and no-anchor episode rejection"
+    description: >
+      Verifies the helper, the anchor tagging path, and the floating
+      diagnosis-led group filter that together prevent phantom
+      no-referral EpisodeOfCare nodes from sick-note and known-cancer
+      narrative restatements.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_pattern_n1_no_anchor_episode_rejection.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-401-TC-001"
+      case_name: "eMED3 statement is tagged as restatement"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call encounter_diagnosis_is_narrative_restatement on 'eMED3 (2010) new statement issued'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-002"
+      case_name: "MED3 sick note is tagged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Helper called on 'MED3 sick note issued'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-003"
+      case_name: "Not fit for work tagged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'patient not fit for work for 6 weeks'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-004"
+      case_name: "Statement of fitness for work tagged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'statement of fitness for work issued'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-005"
+      case_name: "Known breast ca tagged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'known breast ca, post mastectomy'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-006"
+      case_name: "Known case of prostate cancer tagged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'known case of prostate cancer'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-007"
+      case_name: "History of breast carcinoma tagged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'history of breast carcinoma 2023'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-008"
+      case_name: "Post mastectomy recovery review tagged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'post mastectomy recovery review'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-009"
+      case_name: "Recovering from breast cancer tagged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'recovering from breast cancer well'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-010"
+      case_name: "PMHx history of breast carcinoma tagged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'PMHx: history of breast carcinoma'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-011"
+      case_name: "Past medical history of prostate cancer tagged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'past medical history of prostate cancer'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-012"
+      case_name: "Fresh diagnosis NOT tagged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'Major: Invasive carcinoma of breast (Ya0ln) - lobular (New Episode). Refer urgently.'"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns False (genuine fresh diagnosis preserved)"
+    - case_id: "VT-401-TC-013"
+      case_name: "Empty text NOT tagged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Helper on empty string"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns False"
+    - case_id: "VT-401-TC-014"
+      case_name: "Routine BP check NOT tagged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'BP 130/80, no concerns'"
+          expected_result: "Returns False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns False"
+    - case_id: "VT-401-TC-015"
+      case_name: "Sick-note encounter anchor tagged in detector"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run anchor detector on sick-note encounter"
+          expected_result: "diagnosis_confirmed anchor carries is_narrative_restatement: True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Anchor flagged"
+    - case_id: "VT-401-TC-016"
+      case_name: "Cancer-care-review encounter anchor tagged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run anchor detector on cancer-care-review encounter"
+          expected_result: "All diagnosis_confirmed anchors carry is_narrative_restatement: True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Anchors flagged"
+    - case_id: "VT-401-TC-017"
+      case_name: "Fresh-diagnosis encounter NOT tagged in detector"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run anchor detector on fresh-diagnosis encounter"
+          expected_result: "Anchors do NOT carry is_narrative_restatement"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No tag on genuine diagnosis"
+    - case_id: "VT-401-TC-018"
+      case_name: "Floating restatement-only group is suppressed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build episode groups with two restatement-tagged diagnoses, no referral"
+          expected_result: "No floating group emitted"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "_build_diagnosis_led_groups returns no group containing those anchors"
+    - case_id: "VT-401-TC-019"
+      case_name: "Mixed-anchor floating group preserved"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build episode groups with one tagged + one untagged diagnosis, no referral"
+          expected_result: "Floating group emitted"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Group materialised"
+    - case_id: "VT-401-TC-020"
+      case_name: "Referral-anchored group preserved even when all diagnoses tagged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build episode groups with referral + two tagged diagnoses"
+          expected_result: "Group emitted (no longer floating)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Group materialised"
+    - case_id: "VT-401-TC-021"
+      case_name: "Patient 4802892365 has exactly one EpisodeOfCare after rebuild"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run wipe + rebuild and count EpisodeOfCare for patient 4802892365"
+          expected_result: "Count == 1, real episode 1ecfb55618c2a6d2 retained"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Single EpisodeOfCare for patient"
+    - case_id: "VT-401-TC-022"
+      case_name: "Cohort total drops by at least 1 after N1 enabled"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Compare wipe+rebuild totals before vs after N1"
+          expected_result: "Total EpisodeOfCare count reduced by >= 1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Delta <= -1"
+    - case_id: "VT-401-TC-023"
+      case_name: "Adjuvant-therapy-drug restatement tagged"
+      priority: "medium"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'tamoxifen continued, known breast cancer'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-024"
+      case_name: "Cancer follow up template encounter tagged"
+      priority: "medium"
+      test_steps:
+        - step_number: 1
+          action: "Helper on 'Cancer care review and general catch up ... known breast cancer'"
+          expected_result: "Returns True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns True"
+    - case_id: "VT-401-TC-025"
+      case_name: "Helper handles None safely"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Helper on None"
+          expected_result: "Returns False, no exception"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper returns False"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-401/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-401-EXEC-2026-04-18-01"
+      execution_date: "2026-04-18"
+      executor: "Cursor agent (Pattern N1 implementation session)"
+      result: "pass"
+      notes: >
+        24 of 25 cases passed; 1 case (TC-022 cohort delta) was
+        executed via wipe+rebuild and confirmed total EpisodeOfCare
+        count dropped from 250 to 248 (delta -2). Patient
+        4802892365 went from 2 episodes to 1 (real episode
+        1ecfb55618c2a6d2 retained, phantom 862a306e1ee82616
+        eliminated). Full regression sweep over N1 + N3 + N5 +
+        episode-related tests (152 cases) green with no
+        regressions.

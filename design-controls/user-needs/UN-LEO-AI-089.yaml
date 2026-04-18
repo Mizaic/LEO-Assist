@@ -58,8 +58,8 @@
     - "If the TRUD packages have not been downloaded the UI degrades to the existing bare-code behaviour (no UI crash, no missing-data exception)"
 
   design_inputs:
-    - "DI-LEO-AI-225"
     - "DI-LEO-AI-226"
+    - "DI-LEO-AI-228"
 
   metadata:
     identified_by: "Rob Smith - terminology coverage gap surfaced during design-controls review (April 2026)"

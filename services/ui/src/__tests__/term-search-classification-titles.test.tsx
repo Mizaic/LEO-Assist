@@ -1,5 +1,5 @@
 /**
- * Static-source VT for VT-LEO-AI-217 / VT-LEO-AI-218.
+ * Static-source VT for VT-LEO-AI-301 (ICD-10) / VT-LEO-AI-302 (OPCS-4).
  *
  * Asserts that surfaces showing terminology results render the new
  * ICD-10 and OPCS-4 titles next to their codes (and that the OPCS-4

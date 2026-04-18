@@ -1,6 +1,6 @@
-"""VT-LEO-AI-217: NHS ICD-10 5th Edition XML loader.
+"""VT-LEO-AI-301: NHS ICD-10 5th Edition XML loader.
 
-Covers DI-LEO-AI-225, DO-LEO-AI-222, R-LEO-AI-209.
+Covers DI-LEO-AI-228, DO-LEO-AI-301, R-LEO-AI-301.
 
 Verifies:
   - Code normalisation (I500 -> I50.0; I50 unchanged; chapter unchanged)

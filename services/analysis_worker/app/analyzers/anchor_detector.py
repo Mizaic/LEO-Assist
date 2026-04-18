@@ -22,6 +22,7 @@ from libs.domains.code_inventories import (
     BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT,
     adjuvant_therapy_is_newly_issued,
     encounter_diagnosis_is_narrative_restatement,
+    encounter_is_cancer_care_review_restatement,
     encounter_problem_is_off_pathway,
     encounter_restates_past_event,
     find_active_cancer_care_code,
@@ -1218,11 +1219,27 @@ def _classify_text_encounters(
             or _active_care_hit is not None
         )
         _dx_referral_blocked = _is_referral_enc and not _has_hard_dx_evidence
+        # DI-LEO-AI-402 (Pattern N4): cancer-care-review restatement
+        # guard. When the encounter is a cancer-care-review template
+        # restating known history (the literal "Cancer care review"
+        # marker, OR the N1 known-cancer narrative shapes such as
+        # "known X cancer", "post mastectomy recovery review", "PMHx
+        # X carcinoma", "referred by me on 2ww earlier this year,
+        # confirmed X cancer") AND the encounter carries no fresh-
+        # diagnosis marker ("(New Episode)", "newly diagnosed", etc.),
+        # SUPPRESS the diagnosis_confirmed emission entirely. The
+        # active_cancer_care_code / problem_list_code / follow-up-
+        # template hits on these encounters are the GP keeping the
+        # problem list current, not a new diagnosis.
+        _dx_cancer_review_blocked = encounter_is_cancer_care_review_restatement(
+            text
+        )
         if (
             has_cancer
             and has_confirmed
             and not has_no_cancer
             and not _dx_referral_blocked
+            and not _dx_cancer_review_blocked
         ):
             s = _TEXT_SENTINEL["diagnosis_cancer"]
             extra: dict[str, Any] = {}
@@ -1256,7 +1273,7 @@ def _classify_text_encounters(
                     base["site_key"] = _follow_up_hit[1]
                     base["site_hits"] = [_follow_up_hit[0]]
                     base["site_source"] = "cancer_follow_up_template"
-            # DI-LEO-AI-227 (Pattern N1): tag the diagnosis anchor when
+            # DI-LEO-AI-401 (Pattern N1): tag the diagnosis anchor when
             # the encounter body is a sick note or a "known X cancer"
             # narrative restatement. The episode builder uses this flag
             # to reject floating diagnosis-led EpisodeOfCare groups

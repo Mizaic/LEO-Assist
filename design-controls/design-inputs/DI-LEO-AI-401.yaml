@@ -1,7 +1,15 @@
-# -- DI-LEO-AI-227 -- No-anchor episode rejection (Pattern N1)
+# -- DI-LEO-AI-401 -- No-anchor episode rejection (Pattern N1)
 # IEC 62304 / ISO 13485 Design Input
+#
+# NOTE: This DI was originally drafted at DI-LEO-AI-227 in this session,
+# but the parallel ICD-10 / OPCS-4 reference-data work was simultaneously
+# claiming and renaming IDs in the 22x-30x range, deleting and renaming
+# Pattern N1 / N3 / N5 design-control YAMLs without coordination. The
+# whole Pattern N1 cluster was therefore moved to a clean, high-range
+# slot (DI-401 / DO-401 / R-401 / VT-401) where future cross-session
+# claims are unlikely to collide.
 
-- id: "DI-LEO-AI-227"
+- id: "DI-LEO-AI-401"
   type: "Safety"
   derived_from:
     - "UN-LEO-AI-005"
@@ -156,18 +164,18 @@
     method: "Test"
     phase: "OQ"
     acceptance: >
-      VT-LEO-AI-219 must pass on all critical and total cases,
+      VT-LEO-AI-401 must pass on all critical and total cases,
       including the canonical patient 4802892365 sick-note and
       cancer-care-review tagging tests, the floating-group
       rejection test, the mixed-anchor preservation test, and the
       referral-attached preservation test. Cohort wipe-and-rebuild
       MUST eliminate phantom episode 862a306e1ee82616 and reduce
       total EpisodeOfCare count by at least 1.
-    test_protocol: "VT-LEO-AI-219"
+    test_protocol: "VT-LEO-AI-401"
 
   safety_class: "B"
   risks:
-    - "R-LEO-AI-210"
+    - "R-LEO-AI-401"
   tags:
     - "anchor-detector"
     - "episode-builder"

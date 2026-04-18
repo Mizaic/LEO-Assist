@@ -111,7 +111,7 @@
     method: "Test"
     phase: "OQ"
     acceptance: >
-      VT-LEO-AI-218 verifies the OPCS-4 reference data loader
+      VT-LEO-AI-302 verifies the OPCS-4 reference data loader
       against a fixture data-file snippet (chapter, category,
       4-character code), asserts idempotent MERGE behaviour,
       asserts IS_A edge creation, verifies that the extended
@@ -119,11 +119,11 @@
       OPCS-4 refset id and not for the existing CTV3 refset, and
       verifies the UI surfaces an OPCS-4 chip alongside the
       SNOMED concept where one exists.
-    test_protocol: "VT-LEO-AI-218"
+    test_protocol: "VT-LEO-AI-302"
 
   safety_class: "B"
   risks:
-    - "R-LEO-AI-210"
+    - "R-LEO-AI-301"
   tags:
     - "terminology"
     - "opcs4"

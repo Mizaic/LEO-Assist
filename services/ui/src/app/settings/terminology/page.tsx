@@ -17,8 +17,8 @@
  *   - Streaming sync log panel (preserved, restyled).
  *
  * Design Controls: DI-LEO-AI-147, DO-LEO-AI-143, VT-LEO-AI-145
- *                  + DI-LEO-AI-225 / DO-LEO-AI-222 / VT-LEO-AI-217 (ICD-10)
- *                  + DI-LEO-AI-226 / DO-LEO-AI-223 / VT-LEO-AI-218 (OPCS-4).
+ *                  + DI-LEO-AI-228 / DO-LEO-AI-301 / VT-LEO-AI-301 (ICD-10)
+ *                  + DI-LEO-AI-226 / DO-LEO-AI-223 / VT-LEO-AI-302 (OPCS-4).
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";

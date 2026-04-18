@@ -1,6 +1,6 @@
-"""VT-LEO-AI-219 -- Pattern N1 no-anchor episode rejection.
+"""VT-LEO-AI-401 -- Pattern N1 no-anchor episode rejection.
 
-Verifies DI-LEO-AI-227. Sick notes (eMED3 / fit notes) and "known X
+Verifies DI-LEO-AI-401. Sick notes (eMED3 / fit notes) and "known X
 cancer" / "history of X" narratives in routine GP encounters routinely
 cause Pattern K and the soft diagnosis sources
 (``cancer_follow_up_template``, ``adjuvant_therapy_drug``) to fire
@@ -195,12 +195,20 @@ class TestAnchorDetectorTagsRestatementDiagnoses:
             f"Got: {diagnoses}"
         )
 
-    def test_cancer_care_review_diagnosis_anchor_tagged_as_restatement(
+    def test_cancer_care_review_diagnosis_anchor_suppressed_by_n4(
         self, detector
     ):
         # Mirrors the canonical 2025-09-24 encounter for patient
         # 4802892365 -- a "Cancer care review and general catch up"
         # that restates the previous mastectomy and lobular carcinoma.
+        #
+        # Under N1 alone, the diagnosis_confirmed anchor would be
+        # emitted and tagged ``is_narrative_restatement: True`` so the
+        # floating-group filter could reject any phantom floating
+        # group. Under N4 (DI-LEO-AI-402) the emission itself is now
+        # suppressed -- N4 is the stronger emission-time guard, N1's
+        # tagging + floating-group filter remain the backstop for
+        # cases N4 doesn't trigger (sick-note-only encounters).
         text = (
             "08:30 - Surgery: BRIDGES, Kirstie (Dr) "
             "(Clinical Practitioner Access Role)\n"
@@ -215,21 +223,12 @@ class TestAnchorDetectorTagsRestatementDiagnoses:
         rows = [self._row(text, eid="E-N1-B", date="2025-09-24")]
         result = detector._classify_text_encounters(rows, set())
         diagnoses = result[1]
-        assert diagnoses, (
-            "Pattern K is expected to fire diagnosis_confirmed on this "
-            "encounter (problem-list malignancy code present). N1 then "
-            "tags it as a restatement so the episode builder can reject "
-            "any floating group built from it."
-        )
-        assert all(
-            bool(a.get("is_narrative_restatement")) for a in diagnoses
-        ), (
-            "Every diagnosis_confirmed anchor emitted from a cancer-"
-            "care-review narrative ('referred by me earlier this year, "
-            "confirmed breast cancer', 'post mastectomy recovery') must "
-            "carry is_narrative_restatement=True. Got: {0}".format(
-                diagnoses
-            )
+        assert diagnoses == [], (
+            "N4 (DI-LEO-AI-402) must suppress the diagnosis_confirmed "
+            "emission on the canonical 2025-09-24 cancer-care-review "
+            "encounter. The N1 tagging path is moot when N4 has "
+            "already prevented the anchor from being created. "
+            f"Got: {diagnoses}"
         )
 
     def test_fresh_diagnosis_anchor_not_tagged_as_restatement(self, detector):

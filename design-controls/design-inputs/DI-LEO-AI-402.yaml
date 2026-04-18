@@ -1,0 +1,230 @@
+# -- DI-LEO-AI-402 -- Cancer-care-review restatement guard (Pattern N4)
+# IEC 62304 / ISO 13485 Design Input
+#
+# NOTE: Created in the 4xx ID range alongside DI-401 / DO-401 / R-401 /
+# VT-401 (Pattern N1). The parallel ICD-10 / OPCS-4 reference-data
+# session was repeatedly claiming and overwriting design-control IDs
+# in the 21x-30x range, so all Pattern N work has moved to a clean
+# high-range slot.
+
+- id: "DI-LEO-AI-402"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-005"
+  requirement: >
+    The text-anchor detector SHALL suppress emission of any
+    ``diagnosis_confirmed`` anchor when the encounter body matches
+    the cancer-care-review restatement shape AND no fresh-diagnosis
+    marker is present. The cancer-care-review restatement shape is
+    defined as the encounter text containing EITHER:
+
+      (a) the literal "Cancer care review" / "Cancer review"
+          template marker (matched by ``_CANCER_CARE_REVIEW_RX``,
+          which mirrors the EMIS XaKHe / XaKI4 / XaIyc long names),
+          OR
+      (b) the N1 known-cancer narrative restatement regex
+          (``_KNOWN_CANCER_RESTATEMENT_RX`` from DI-LEO-AI-401:
+          "known X cancer", "history of X carcinoma", "PMHx X
+          cancer", "post-mastectomy recovery review", "recovering
+          from X cancer", "referred by me ... earlier this year,
+          confirmed X cancer").
+
+    The suppression is INERT (Pattern K continues to fire) when the
+    encounter carries an unambiguous fresh-diagnosis marker
+    (``encounter_has_new_episode_marker`` returns True). Recognised
+    fresh-diagnosis markers are: the EMIS "(New Episode)"
+    parenthetical on a problem-list line, "newly diagnosed", "new
+    diagnosis of", "diagnosis confirmed today", "first presentation
+    of", "new presentation of".
+
+    Two new helpers MUST exist in
+    ``libs/domains/code_inventories.py``:
+
+      - ``encounter_is_cancer_care_review_restatement(text)`` --
+        returns True when the suppression should fire.
+      - ``encounter_has_new_episode_marker(text)`` -- the
+        fresh-diagnosis-marker exception used by the helper above
+        (and reusable by future pattern guards that need the same
+        exception).
+
+    The guard MUST be wired into ``_classify_text_encounters`` in
+    ``services/analysis_worker/app/analyzers/anchor_detector.py``
+    BEFORE the ``diagnoses.append`` call in the
+    ``has_cancer and has_confirmed`` branch, in the same way as
+    DI-LEO-AI-145's ``_dx_referral_blocked`` gate.
+
+    The sick-note shape (``_SICK_NOTE_RX``) is intentionally NOT a
+    trigger for N4. Sick notes alone do not typically carry
+    problem-list malignancy codes, and a real fresh diagnosis
+    recorded inside a sick-note encounter would otherwise be lost.
+    N1's floating-group filter remains the safety net for
+    sick-note-only restatements.
+  rationale: >
+    Patient 4802892365's REAL referral-anchored episode
+    1ecfb55618c2a6d2 (2025-03-26 referral, 2025-04-28 first_seen,
+    2025-05-19 fresh diagnosis_confirmed, 2025-07-28 mastectomy
+    treatment) carried a phantom 2025-09-24 ``diagnosis_confirmed``
+    anchor on its timeline. The 2025-09-24 encounter was a routine
+    cancer-care-review template ("Cancer care review and general
+    catch up given recent events. Referred by me on 2ww earlier
+    this year, confirmed breast cancer. Post mastectomy recovery
+    review.") with the same problem-list malignancy codes that
+    were already on the patient's chart from the original
+    diagnosis. Pattern K's ``problem_list_code`` /
+    ``active_cancer_care_code`` paths fired ``diagnosis_confirmed``
+    on this restatement.
+
+    N1 (DI-LEO-AI-401) only protects against FLOATING phantom
+    EpisodeOfCare nodes built entirely from restatements -- it
+    cannot help when the restatement attaches to a real
+    referral-anchored episode and pollutes its timeline. N4 sits
+    one layer deeper and stops the restatement anchor from being
+    EMITTED in the first place. This is essential because the
+    timeline view shown to clinicians displays every milestone on
+    the episode -- a "diagnosis confirmed" event five months after
+    treatment started is misleading and erodes reviewer trust.
+
+    Without N4, every annual cancer-care review on every patient
+    with an active cancer diagnosis would emit a duplicate
+    ``diagnosis_confirmed`` milestone each year, inflating
+    diagnosis-count analytics and confusing pathway-explorer
+    investigations. The 2025-12-06 sick-note for patient 4802892365
+    ("eMED3 (2010) new statement issued, not fit for work ... known
+    breast ca") would similarly emit a duplicate ``diagnosis_confirmed``
+    on the real episode.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          ``encounter_is_cancer_care_review_restatement`` MUST
+          return True for "Cancer care review and general catch
+          up given recent events".
+      - type: "functional"
+        spec: >
+          ``encounter_is_cancer_care_review_restatement`` MUST
+          return True for "Annual cancer review completed today".
+      - type: "functional"
+        spec: >
+          ``encounter_is_cancer_care_review_restatement`` MUST
+          return True for "Phone consult. Patient has known
+          breast ca, on tamoxifen".
+      - type: "functional"
+        spec: >
+          ``encounter_is_cancer_care_review_restatement`` MUST
+          return True for "Post mastectomy recovery review going
+          well".
+      - type: "functional"
+        spec: >
+          ``encounter_is_cancer_care_review_restatement`` MUST
+          return True for "PMHx: history of breast carcinoma 2023".
+      - type: "safety"
+        spec: >
+          ``encounter_is_cancer_care_review_restatement`` MUST
+          return False on a fresh-diagnosis problem-list line:
+          "Major: Invasive carcinoma of breast (Ya0ln) - lobular
+          (New Episode)".
+      - type: "safety"
+        spec: >
+          ``encounter_is_cancer_care_review_restatement`` MUST
+          return False on a 2WW referral encounter ("Refer 2ww
+          breast. Lump on left breast. Fast track referral for
+          suspected breast cancer.").
+      - type: "safety"
+        spec: >
+          ``encounter_is_cancer_care_review_restatement`` MUST
+          return False on a sick-note-only encounter ("eMED3 (2010)
+          new statement issued, not fit for work").
+      - type: "safety"
+        spec: >
+          ``encounter_is_cancer_care_review_restatement`` MUST
+          return False when the encounter contains a "(New
+          Episode)", "newly diagnosed", "new diagnosis of",
+          "diagnosis confirmed today", "first presentation of",
+          or "new presentation of" marker -- even if a
+          cancer-care-review template phrase is also present
+          (the GP is recording a fresh diagnosis on the same day
+          as a review template).
+      - type: "safety"
+        spec: >
+          The diagnosis_confirmed emission for the canonical
+          patient 4802892365 2025-09-24 cancer-care-review
+          encounter (Problem: Ya0ln + X78WM + XacLJ; History:
+          "Cancer care review and general catch up ... post
+          mastectomy recovery review.") MUST be suppressed.
+      - type: "safety"
+        spec: >
+          A genuine fresh-diagnosis encounter ("Major: Invasive
+          carcinoma of breast (Ya0ln) - lobular (New Episode).
+          Plan: Refer to breast clinic urgently.") MUST continue
+          to emit ``diagnosis_confirmed`` -- N4 has no effect when
+          no review-template / known-cancer narrative is present.
+      - type: "performance"
+        spec: >
+          The wipe-and-rebuild after N4 lands MUST eliminate the
+          phantom 2025-09-24 ``diagnosis_confirmed`` from patient
+          4802892365's real episode 1ecfb55618c2a6d2 and reduce
+          total EpisodeOfCare count by at least 1 cohort-wide
+          (some restatement-only floating groups become unbuildable
+          when their only diagnosis evidence is suppressed).
+    constraints:
+      - type: "safety"
+        spec: >
+          The cancer-care-review marker vocabulary MUST be
+          conservative -- "Cancer care review" / "Cancer review"
+          and the existing N1 known-cancer site list. New
+          template phrases MUST be added deliberately with a
+          regression test.
+      - type: "safety"
+        spec: >
+          The fresh-diagnosis-marker list MUST be kept in sync
+          with the EMIS problem-list semantics ("(New Episode)"
+          is the canonical marker; new free-text equivalents must
+          be added when discovered in audit).
+      - type: "safety"
+        spec: >
+          N4 MUST NOT suppress emission on any encounter without
+          a cancer-care-review marker AND without a known-cancer
+          narrative. The 2WW referral encounter, the routine BP
+          check, the repeat prescription encounter must all be
+          unaffected.
+    dependencies:
+      - "DI-LEO-AI-145"
+      - "DI-LEO-AI-215"
+      - "DI-LEO-AI-401"
+    downstream_impacts:
+      - "Anchor detector (diagnosis_confirmed emission gate)"
+      - "EpisodeOfCare timelines (eliminates duplicate diagnosis_confirmed milestones on annual cancer-care review encounters)"
+      - "Cohort EpisodeOfCare counts (drops phantom restatement-only episodes whose only diagnosis evidence was suppressed)"
+      - "Reviewer trust (cancer-pathway timeline no longer shows a 'diagnosis confirmed' event five months after treatment started)"
+    technical_details:
+      language: "Python"
+      framework: "Anchor detector"
+      file_structure:
+        - "libs/domains/code_inventories.py"
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+      estimated_loc: 95
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-402 must pass on all critical and total cases
+      (33 cases covering the helper unit tests, the new-episode-
+      marker exception, the canonical patient 4802892365
+      2025-09-24 suppression, and the fresh-diagnosis safety
+      cases). Cohort wipe-and-rebuild MUST eliminate the
+      2025-09-24 phantom diagnosis_confirmed for patient
+      4802892365 and reduce total EpisodeOfCare count by at
+      least 1.
+    test_protocol: "VT-LEO-AI-402"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-402"
+  tags:
+    - "anchor-detector"
+    - "cancer-care-review"
+    - "narrative-restatement"
+    - "patient-4802892365"
+    - "pattern-n4"

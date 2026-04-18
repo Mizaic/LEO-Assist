@@ -93,15 +93,19 @@ class TestPatternKProblemListDxOverridesReferralGate:
         assert dx.get("diagnosis_code") in {"Ya0ln", "X78WM"}
 
     def test_active_care_code_with_referral_emits_diagnosis(self, detector):
+        # Use active-cancer-care Read codes that do NOT trigger N4
+        # (DI-LEO-AI-402) -- the literal phrase "Cancer care review"
+        # would now (correctly) suppress diagnosis emission as a
+        # restatement template.
         text = (
             "Fast track referral for suspected breast cancer (XaMeC)\n"
-            "Cancer care review (XaKHe)\n"
-            "Patient discussed at multidisciplinary team meeting (XaN5C)"
+            "Patient discussed at multidisciplinary team meeting (XaN5C)\n"
+            "Cancer multidisciplinary team meeting (XaJU6) (New Episode)"
         )
         rows = [self._row(text)]
         _, dxs, *_ = detector._classify_text_encounters(rows, set())
         assert len(dxs) == 1, (
-            "Active-cancer-care Read code (XaKHe / XaN5C) is hard "
+            "Active-cancer-care Read code (XaN5C / XaJU6) is hard "
             "evidence and must fire diagnosis even on a referral encounter"
         )
 
@@ -124,10 +128,15 @@ class TestPatternKProblemListDxOverridesReferralGate:
         )
 
     def test_problem_list_dx_without_referral_still_fires(self, detector):
+        # Pre-N4 this test used a "Cancer care review" + problem-list
+        # malignancy text. Under N4 (DI-LEO-AI-402) that case is now
+        # correctly suppressed (it's a follow-up restatement, not a
+        # new diagnosis). The Pattern K behaviour we still want to
+        # verify here is: a fresh problem-list malignancy code without
+        # a same-encounter referral fires diagnosis_confirmed.
         text = (
-            "Cancer care review and general catch up.\n"
-            "Major: Malignant tumour of breast (X78WM)\n"
-            "Plan: continue letrozole, see in 3 months."
+            "Major: Malignant tumour of breast (X78WM) (New Episode)\n"
+            "Plan: refer urgently. Biopsy result pending."
         )
         rows = [self._row(text)]
         _, dxs, *_ = detector._classify_text_encounters(rows, set())

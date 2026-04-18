@@ -1465,7 +1465,7 @@ def encounter_problem_is_off_pathway(text: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# DI-LEO-AI-227 (Pattern N1): narrative-restatement diagnosis guard
+# DI-LEO-AI-401 (Pattern N1): narrative-restatement diagnosis guard
 # ---------------------------------------------------------------------------
 # Sick notes (eMED3 / fit notes) and "known X cancer" / "history of X"
 # narratives in routine GP encounters routinely cause Pattern K and the
@@ -1540,7 +1540,7 @@ _KNOWN_CANCER_RESTATEMENT_RX = re.compile(
 
 
 def encounter_diagnosis_is_narrative_restatement(text: str) -> bool:
-    """DI-LEO-AI-227 (Pattern N1): True when the encounter body has the
+    """DI-LEO-AI-401 (Pattern N1): True when the encounter body has the
     unambiguous shape of a sick note (eMED3, MED3, "not fit for work")
     OR a "known X cancer" / "history of X" narrative restatement of an
     existing cancer diagnosis.
@@ -1562,4 +1562,115 @@ def encounter_diagnosis_is_narrative_restatement(text: str) -> bool:
         return False
     return bool(
         _SICK_NOTE_RX.search(text) or _KNOWN_CANCER_RESTATEMENT_RX.search(text)
+    )
+
+
+# ---------------------------------------------------------------------------
+# DI-LEO-AI-402 (Pattern N4): cancer-care-review restatement guard
+# ---------------------------------------------------------------------------
+# Pattern K (problem_list_code / malignancy_term_problem_line /
+# active_cancer_care_code) fires diagnosis_confirmed on routine annual
+# cancer-care-review encounters whose only "evidence" is the GP keeping
+# the problem list current and writing a narrative that restates the
+# already-known cancer history. The 2025-09-24 encounter for patient
+# 4802892365 ("Cancer care review and general catch up given recent
+# events. Referred by me on 2ww earlier this year, confirmed breast
+# cancer. Post mastectomy recovery review.") attached a phantom
+# diagnosis_confirmed anchor to the REAL referral-anchored episode
+# 1ecfb55618c2a6d2 -- polluting the timeline with a duplicate
+# diagnosis event five months after the genuine mid-May diagnosis.
+#
+# N1 only protects against FLOATING phantom episodes built entirely
+# from restatements. N4 sits one layer deeper and stops the
+# diagnosis_confirmed anchor from being EMITTED in the first place
+# whenever the encounter is a cancer-care-review restatement that
+# carries no fresh-diagnosis marker.
+#
+# The guard is INERT when the encounter explicitly marks a new
+# diagnosis ("(New Episode)" on a problem-list line, "newly
+# diagnosed", "new diagnosis of") so genuine fresh diagnoses on
+# review encounters are still emitted.
+
+# Cancer care review template marker. EMIS templates and free-text
+# notes use the literal phrase "Cancer care review" (codes XaKHe /
+# XaKI4 in ACTIVE_CANCER_CARE_CODES). Single hit is sufficient.
+_CANCER_CARE_REVIEW_RX = re.compile(
+    r"\bcancer\s+(?:care\s+)?review\b",
+    re.IGNORECASE,
+)
+
+# Fresh-diagnosis markers. When any of these appear in the encounter
+# the N4 guard is suppressed so a genuine new diagnosis on the same
+# day as a review template still emits diagnosis_confirmed. The
+# "(New Episode)" parenthetical is the canonical EMIS problem-list
+# marker for a freshly added problem.
+_NEW_EPISODE_MARKER_RX = re.compile(
+    r"(?:"
+    r"\(\s*new\s+episode\s*\)|"
+    r"\bnewly\s+diagnosed\b|"
+    r"\bnew\s+diagnosis\s+of\b|"
+    r"\bdiagnosis\s+confirmed\s+today\b|"
+    r"\bfirst\s+presentation\s+of\b|"
+    r"\bnew\s+presentation\s+of\b"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def encounter_has_new_episode_marker(text: str) -> bool:
+    """DI-LEO-AI-402 (Pattern N4): True when the encounter text carries
+    an unambiguous fresh-diagnosis marker -- the EMIS "(New Episode)"
+    parenthetical on a problem-list line, or a phrase like "newly
+    diagnosed", "new diagnosis of", "diagnosis confirmed today",
+    "first presentation of", "new presentation of".
+
+    Used by the cancer-care-review restatement guard to STAY INERT
+    when the encounter really is recording a fresh diagnosis. Without
+    this exception, a GP who runs a cancer care review template AND
+    also adds a brand-new cancer to the problem list on the same
+    encounter would lose the diagnosis_confirmed anchor.
+    """
+    if not text:
+        return False
+    return bool(_NEW_EPISODE_MARKER_RX.search(text))
+
+
+def encounter_is_cancer_care_review_restatement(text: str) -> bool:
+    """DI-LEO-AI-402 (Pattern N4): True when the encounter body is
+    clearly a cancer-care-review restatement of a known cancer
+    diagnosis and so any diagnosis_confirmed anchor emitted from a
+    soft source (problem_list_code, active_cancer_care_code,
+    cancer_follow_up_template, adjuvant_therapy_drug,
+    malignancy_term_problem_line) should be SUPPRESSED.
+
+    True when:
+      - The text contains the explicit "Cancer care review" /
+        "Cancer review" template marker, OR
+      - The text matches the N1 known-cancer narrative restatement
+        regex (``_KNOWN_CANCER_RESTATEMENT_RX``: "known X cancer",
+        "history of X cancer", "PMHx history of X cancer", "post-
+        mastectomy recovery review", etc.).
+
+    INERT when:
+      - Text is empty.
+      - Neither the cancer-care-review template marker NOR the known-
+        cancer narrative regex matches.
+      - The encounter carries an unambiguous fresh-diagnosis marker
+        (``encounter_has_new_episode_marker`` returns True). This
+        keeps the guard safe on legitimate "review + new diagnosis"
+        encounters where the GP runs the review template AND adds
+        a brand-new cancer to the problem list on the same day.
+
+    The sick-note signal is intentionally NOT included here -- N1
+    already handles sick-note-only restatements via the floating-
+    group filter, and a real fresh diagnosis recorded inside a sick-
+    note encounter would otherwise be lost.
+    """
+    if not text:
+        return False
+    if encounter_has_new_episode_marker(text):
+        return False
+    return bool(
+        _CANCER_CARE_REVIEW_RX.search(text)
+        or _KNOWN_CANCER_RESTATEMENT_RX.search(text)
     )

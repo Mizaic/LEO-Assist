@@ -1,0 +1,137 @@
+# -- R-LEO-AI-402 -- Phantom diagnosis_confirmed milestone on cancer-care-review restatements
+# ISO 14971 / IEC 62304 Risk
+#
+# NOTE: Created in the 4xx ID range alongside R-401 (Pattern N1) to escape
+# the recurring ID collisions in the 21x range during the parallel
+# ICD-10 / OPCS-4 work stream.
+
+- id: "R-LEO-AI-402"
+  title: >
+    Phantom ``diagnosis_confirmed`` milestone emitted on routine
+    cancer-care-review or known-cancer-narrative encounters
+    pollutes real episode timelines and inflates diagnosis-count
+    analytics.
+
+  hazard:
+    description: >
+      The text-anchor detector treats any encounter that mentions
+      a confirmed cancer code or active cancer care as a fresh
+      diagnosis event, including routine annual cancer-care-review
+      encounters and follow-up narratives ("known X cancer", "post
+      mastectomy recovery review", "PMHx X carcinoma") that are
+      restating an already-known diagnosis from earlier in the
+      patient's pathway.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    The annual cancer-care-review encounter for a patient with an
+    existing referral-anchored episode -- e.g. patient 4802892365's
+    2025-09-24 encounter on the real episode 1ecfb55618c2a6d2 --
+    emits a ``diagnosis_confirmed`` anchor five months after the
+    real fresh diagnosis (2025-05-19) and two months after
+    treatment_started (2025-07-28). The reviewer opens the
+    pathway-explorer timeline and sees a duplicate "diagnosis
+    confirmed" event in the wrong place. They either (a) lose
+    trust in the timeline and disengage from review, (b) waste
+    investigation time chasing the duplicate, or (c) misjudge
+    pathway timing and apply the wrong escalation rule.
+
+  harm:
+    description: >
+      Reviewer disengagement from the pathway-explorer timeline
+      (loss of trust); incorrect pathway-stage classification
+      leading to wrong action prioritisation; inflated
+      diagnosis-count analytics that misdirect service-improvement
+      decisions and capacity planning. Floating restatement-only
+      EpisodeOfCare nodes (the 2025-12-06 sick-note variant for
+      4802892365) further inflate cohort counts and confuse
+      cohort-by-site analysis.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 3
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Suppress the ``diagnosis_confirmed`` anchor emission when
+        the encounter matches the cancer-care-review restatement
+        shape AND no fresh-diagnosis marker is present (Pattern
+        N4 helper ``encounter_is_cancer_care_review_restatement``
+        wired into the detector via the ``_dx_cancer_review_blocked``
+        gate).
+      implemented_by: ["DI-LEO-AI-402"]
+      verified_by: ["VT-LEO-AI-402"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Pattern N1 floating-group rejection (DI-LEO-AI-401) remains
+        the safety net for any restatement encounter that N4 does
+        not catch (e.g. sick-note-only encounters whose problem
+        list still carries a malignancy code) -- the floating
+        restatement-only group cannot become an EpisodeOfCare even
+        if its anchors are emitted.
+      implemented_by: ["DI-LEO-AI-401"]
+      verified_by: ["VT-LEO-AI-401"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Cohort wipe-and-rebuild verification: monitor total
+        EpisodeOfCare count and per-patient milestone breakdowns
+        on the canonical patient 4802892365 after every release
+        that touches the anchor detector.
+      implemented_by: ["DI-LEO-AI-402"]
+      verified_by: ["VT-LEO-AI-402"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The N4 helper has explicit unit-test coverage for the 5
+      documented restatement shapes and the 7 documented
+      non-restatement / fresh-diagnosis-exception cases. The
+      anchor-detector integration test exercises the canonical
+      patient 4802892365 2025-09-24 encounter end-to-end. The
+      cohort wipe-and-rebuild before-and-after EpisodeOfCare
+      counts (248 -> 244, delta -4) confirm the suppression is
+      effective without over-suppressing. Real fresh diagnoses
+      recorded inside review-template encounters are still
+      emitted via the ``encounter_has_new_episode_marker``
+      exception. Residual probability is low; residual harm
+      severity remains "serious" because any anchor-detector
+      mistake on a cancer pathway carries baseline clinical
+      risk.
+
+  monitoring:
+    monitoring_plan: >
+      Run the wipe-and-rebuild script monthly and alert on any
+      sudden drop in cohort ``diagnosis_confirmed`` count > 5%
+      (would indicate the N4 vocabulary is over-matching and
+      suppressing real diagnoses). Alert on any new cancer-care-
+      review template wording observed in audit (the EMIS
+      template is stable but free-text equivalents may emerge).
+    metrics:
+      - "Cohort total EpisodeOfCare count delta"
+      - "Cohort total diagnosis_confirmed milestone count delta"
+      - "Patient 4802892365 episode count == 1 (canonical regression)"
+      - "Patient 4802892365 episode 1ecfb55618c2a6d2 milestone count == 6 (3 referral, 1 first_seen, 1 treatment_started, 1 diagnosis_confirmed)"
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Patient 4802892365 deep-dive (2025-09-24 phantom diagnosis_confirmed); reviewer trust audit"
+    identified_date: "2025-04-18"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "cancer-care-review"
+      - "patient-4802892365"
+      - "pattern-n4"

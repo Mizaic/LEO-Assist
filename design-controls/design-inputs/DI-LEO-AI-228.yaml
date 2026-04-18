@@ -73,17 +73,17 @@
     method: "Test"
     phase: "OQ"
     acceptance: >
-      pytest VT-LEO-AI-219 covers normalisation, level classification,
+      pytest VT-LEO-AI-301 covers normalisation, level classification,
       ClaML parsing, end-to-end MERGE writes against a fake AsyncDriver,
       idempotency, title backfill on bare nodes, drift detection, and
       structured summary log shape. Static-source jest VTs cover the
       Settings -- Terminology page chrome and the TermSearch / surface-
       forms title rendering.
-    test_protocol: "VT-LEO-AI-219"
+    test_protocol: "VT-LEO-AI-301"
 
   safety_class: "B"
   risks:
-    - "R-LEO-AI-210"
+    - "R-LEO-AI-301"
   tags:
     - "terminology"
     - "icd10"
