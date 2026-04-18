@@ -98,10 +98,9 @@ describe("VT-LEO-AI-184 SBAR playground chrome", () => {
   it("playground surfaces all four SBAR stages", () => {
     const src = read(FILES.playgroundComponent);
     expect(src).toContain("data-testid={`sbar-stage-${stage}`}");
-    for (const stage of ["situation", "background", "assessment", "recommendation"]) {
-      const label = stage.charAt(0).toUpperCase() + stage.slice(1);
-      expect(src).toContain(`${stage}: "${label}"`);
-    }
+    // STAGE_LABELS / STAGE_THEME live in the shared sbar-final
+    // module so other apps can reuse the same palette and copy.
+    expect(src).toMatch(/STAGE_LABELS,?\s*\n?\s*STAGE_THEME/);
   });
 
   it("hook posts to /api/sbar/jobs and subscribes to the events SSE", () => {
@@ -134,5 +133,37 @@ describe("VT-LEO-AI-184 SBAR playground chrome", () => {
     const src = read(FILES.assessmentRoute);
     expect(src).toMatch(/export async function GET/);
     expect(src).toMatch(/\/sbar\/assessments\//);
+  });
+
+  it("renders stage previews through the shared Markdown viewer with themed cards", () => {
+    const src = read(FILES.playgroundComponent);
+    // Tiptap-backed MarkdownEditor is the canonical viewer for any
+    // patient-readable Markdown surface; reuse it instead of
+    // pre-wrap monospace blobs.
+    expect(src).toContain(
+      'import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor"',
+    );
+    // No raw pre-wrap dump for stage previews.
+    expect(src).not.toMatch(/whiteSpace:\s*"pre-wrap"/);
+    expect(src).not.toMatch(/ui-monospace,\s*SFMono-Regular/);
+    // Per-stage themed cards (palette comes from the shared module).
+    expect(src).toMatch(/STAGE_THEME/);
+    // Stage previews render the markdown viewer in view mode.
+    const viewMatches = src.match(/<MarkdownEditor[\s\S]*?mode="view"/g) ?? [];
+    expect(viewMatches.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("delegates the final SBAR to the standalone SbarFinalDialog component", () => {
+    const src = read(FILES.playgroundComponent);
+    // Standalone view + dialog live in the shared module so other
+    // applications can embed them without depending on the playground.
+    expect(src).toMatch(/from\s+"@\/components\/sbar-final"/);
+    expect(src).toContain("SbarFinalDialog");
+    // No inline duplicate of the final cards in the playground itself.
+    expect(src).not.toContain("data-testid={`sbar-final-section-${stage}`}");
+    // The Done. status converts into a green "View full SBAR" action
+    // button when finalContent is available.
+    expect(src).toContain('data-testid="sbar-view-full-button"');
+    expect(src).toMatch(/color="success"/);
   });
 });

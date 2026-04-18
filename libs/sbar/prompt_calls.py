@@ -121,8 +121,18 @@ def _serialise_recommendation_context(
 PromptFetcher = Callable[[str], str]
 
 
+# SBAR prompts are pinned to v2 -- plain-English narrative with inline
+# [date] markers only (no encounter / document ids). v1 stays seeded for
+# audit / rollback. See DO-LEO-AI-191.
+_SBAR_PROMPT_VERSIONS: dict[str, int] = {
+    _PROMPT_NAME_SITUATION: 2,
+    _PROMPT_NAME_BACKGROUND: 2,
+    _PROMPT_NAME_RECOMMENDATION: 2,
+}
+
+
 def _default_prompt(name: str) -> str:
-    return get_prompt(name, version=1)
+    return get_prompt(name, version=_SBAR_PROMPT_VERSIONS.get(name, 1))
 
 
 async def call_situation(

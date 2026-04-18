@@ -31,6 +31,7 @@ const TAB_WIDTH: Record<KnowledgeTabKey, KnowledgeLayoutWidth> = {
   domains: "wide",
   terminology: "wide",
   "ai-summarisation": "wide",
+  "test-patients": "wide",
 };
 
 const GoldDatasetPage = dynamic(() => import("@/app/admin/gold-dataset/page"), { ssr: false });
@@ -43,6 +44,10 @@ const DomainsPage = dynamic(() => import("@/app/admin/domains/page"), { ssr: fal
 const TerminologyPage = dynamic(() => import("@/app/admin/terminology/page"), { ssr: false });
 const AiSummarisationPage = dynamic(
   () => import("@/app/admin/ai-summarisation/page"),
+  { ssr: false },
+);
+const TestPatientsPage = dynamic(
+  () => import("@/app/admin/knowledge/test-patients/page"),
   { ssr: false },
 );
 
@@ -60,6 +65,7 @@ export const TABS: Array<{ key: KnowledgeTabKey; label: string }> = [
   { key: "domains", label: "Domains" },
   { key: "terminology", label: "Terminology" },
   { key: "ai-summarisation", label: "AI Summarisation" },
+  { key: "test-patients", label: "Test Patients" },
 ];
 
 const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
@@ -72,6 +78,7 @@ const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
   domains: DomainsPage,
   terminology: TerminologyPage,
   "ai-summarisation": AiSummarisationPage,
+  "test-patients": TestPatientsPage,
 };
 
 function resolveRole(selectedRole: string | null): Role | null {

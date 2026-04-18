@@ -12,8 +12,13 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+// Core API runs on :8000 (terminology-api is :8001). Match the repo
+// convention used by services/ui/src/proxy.ts -- INTERNAL_API_BASE is
+// the canonical env var; CORE_API_URL is a backwards-compatible alias.
 const CORE_API_BASE = (
-  process.env.CORE_API_URL ?? "http://localhost:8001"
+  process.env.INTERNAL_API_BASE ??
+  process.env.CORE_API_URL ??
+  "http://localhost:8000"
 ).replace(/\/+$/, "");
 
 export async function POST(request: NextRequest) {

@@ -41,15 +41,15 @@ llm_transcript:
   situation:
     markdown: |
       45-year-old asymptomatic woman attending for a routine well
-      person review [SOURCE: text].
+      person review.
     actions: []
     error: null
   background:
     markdown: |
-      - BP 118/76, BMI 24.1, non-smoker, alcohol <14 units/week [SOURCE: enc-gs-06]
-      - FBC, U&E and LFTs normal [SOURCE: enc-gs-06]
-      - HbA1c 35 mmol/mol; lipids within target [SOURCE: enc-gs-06]
-      - No symptoms reported and no current medications [SOURCE: enc-gs-06]
+      - BP 118/76, BMI 24.1, non-smoker, alcohol <14 units/week
+      - FBC, U&E and LFTs normal
+      - HbA1c 35 mmol/mol; lipids within target
+      - No symptoms reported and no current medications
     error: null
   recommendation:
     markdown: |

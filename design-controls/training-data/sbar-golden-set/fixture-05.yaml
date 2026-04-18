@@ -36,19 +36,19 @@ resolved_background:
     text: "GP review: persistent haemoptysis 4 weeks. Ex-smoker."
     codes:
       - { concept_id: "66857006", term: "Haemoptysis", assertion: present }
-      - { concept_id: "8517006",  term: "Ex-smoker", assertion: present }
+      - { concept_id: "8517006", term: "Ex-smoker", assertion: present }
 
 llm_transcript:
   situation:
     markdown: |
       64-year-old female ex-smoker referred by GP with a 4-week history
-      of persistent haemoptysis [SOURCE: rr-gs-05].
+      of persistent haemoptysis.
     actions: []
     error: null
   background:
     markdown: |
-      - 4-week history of persistent haemoptysis [SOURCE: enc-gs-05]
-      - Ex-smoker [SOURCE: enc-gs-05]
+      - 4-week history of persistent haemoptysis
+      - Ex-smoker
     error: null
   recommendation:
     markdown: |

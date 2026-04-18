@@ -8,34 +8,102 @@
   requirement: >
     The platform SHALL provide a shared BackgroundSourcePicker UI
     primitive scoped to a single patient that lets a reviewer pick
-    SBAR Background sources via two tabs: Encounters (chronological
-    multi-select list) and Letters and documents (DocumentReference
-    list where each row expands to reveal child :Chunk nodes for
-    nested chunk selection). Selecting a chunk implicitly drops its
-    parent DocumentReference from the payload (the orchestrator
-    receives only the chunks).
+    SBAR Background sources via the SAME patient-record browsing
+    capability as the Mission Control patient detail Encounter
+    text drawer (DI-LEO-AI-179, DI-LEO-AI-213), extended with
+    selection. Specifically:
+    (a) The picker SHALL render a single unified chronological
+    feed mixing :Encounter nodes and :DocumentReference nodes
+    (no per-kind tabs);
+    (b) The picker SHALL render the same sticky histogram
+    timeline scrubber primitive
+    (`EncounterTimelineScrubber`) used by the Mission Control
+    drawer; the focus-band brush SHALL be the only spatial
+    filter and SHALL operate over the unified record set;
+    (c) The picker SHALL render the SAME "Coded only" switch and
+    "Search text in shown records" free-text field as the
+    Mission Control drawer, driven by the same shared filter
+    helper (`applyCommonFilters`);
+    (d) The picker SHALL render a single ToggleButtonGroup chip
+    row "All / Encounters / Letters" to filter the feed by
+    record kind; the chip group SHALL show per-kind counts and
+    SHALL NOT replace the shared scrubber + search + Coded-only
+    chrome;
+    (e) Each row in the feed SHALL carry a leading checkbox.
+    DocumentReference rows SHALL expand inline to reveal child
+    :Chunk checkboxes (loaded via
+    GET /document-references/{id}/chunks). Selecting any chunk
+    under a DocumentReference SHALL implicitly drop the parent
+    DocumentReference from the emitted payload (the orchestrator
+    receives only the chunks);
+    (f) The picker MUST NOT show the Mission Control "Edit codes"
+    or "Reset and recode" actions and MUST NOT trigger any recode
+    SSE -- it is a SELECTION surface only;
+    (g) Confirmation SHALL emit an array of
+    {type: 'encounter'|'document_reference'|'chunk', id,
+    parentDocumentReferenceId?} entries that map directly onto
+    SBARBackgroundSourceRef.
   rationale: >
-    The previous playground required a reviewer to type Neo4j ids
-    for encounters, document references and chunks. Reviewers do
-    not memorise these. Browsing patient-scoped lists is the
-    natural workflow and matches how clinicians review records in
-    care surfaces. Nesting chunks under their parent document
-    avoids a third "chunks" tab where the reviewer would lose the
-    document context.
+    The previous playground required a reviewer to type Neo4j
+    ids for encounters, document references and chunks.
+    Reviewers do not memorise these. The first iteration of
+    this DI introduced a tabbed picker, but reviewers reported
+    that switching tabs broke their sense of the patient's
+    timeline -- the very problem DI-LEO-AI-213 already solved
+    for the Mission Control encounter-text drawer by collapsing
+    scope chips and accordions into one chronological feed
+    driven by the histogram brush. Reusing the SAME scrubber,
+    SAME filter helper and SAME flat-feed pattern means there
+    is one canonical way to browse a patient's records on the
+    platform. Reviewers learn the gesture once and can apply it
+    in care surfaces and the SBAR builder. Mixing encounters
+    and DocumentReferences in one feed (with a kind chip filter
+    above) reflects the way a clinician thinks about "what
+    happened" -- consultations and letters interleave in real
+    time; tabs forced the reviewer to see them as separate
+    silos. The chunks-drop-parent rule keeps the orchestrator
+    contract precise: when a reviewer selects specific
+    sections of a letter, the SBAR engine receives only those
+    sections and not the full document.
 
   machine_spec:
     acceptance_criteria:
       - type: "functional"
         spec: >
-          BackgroundSourcePicker dialog renders two tabs
-          (Encounters, Letters and documents). Encounters tab calls
-          GET /patient-finder/{patient_id}/encounters; Documents
-          tab calls GET /patient-finder/{patient_id}/document-references.
+          BackgroundSourcePicker.tsx imports
+          EncounterTimelineScrubber from
+          services/ui/src/components/mission-control/EncounterTimelineScrubber
+          and applyCommonFilters from
+          services/ui/src/components/mission-control/encounterFilters,
+          and renders the scrubber over the combined record set.
       - type: "functional"
         spec: >
-          Each DocumentReference row expands to reveal child chunks
-          via GET /document-references/{id}/chunks. Chunk
-          checkboxes are nested inside the expanded row.
+          The picker exposes a ToggleButtonGroup with
+          data-testid="background-source-picker-kind-toggle"
+          containing three options
+          ("kind-toggle-all", "kind-toggle-encounters",
+          "kind-toggle-documents"). Selecting "encounters" hides
+          DocumentReference rows; selecting "documents" hides
+          Encounter rows; selecting "all" restores the full feed.
+      - type: "functional"
+        spec: >
+          The picker exposes a Coded-only Switch
+          (data-testid="background-source-picker-coded-only") and
+          a free-text Search field
+          (data-testid="background-source-picker-search"); both
+          are driven by the same applyCommonFilters helper used
+          by the Mission Control encounter-text drawer.
+      - type: "functional"
+        spec: >
+          The picker renders no <Tabs> element and no
+          per-kind tab data-testids. The flat feed is sorted
+          ascending by date and mixes encounters and
+          DocumentReferences.
+      - type: "functional"
+        spec: >
+          Each DocumentReference row expands to reveal child
+          chunks via GET /document-references/{id}/chunks.
+          Chunk checkboxes are nested inside the expanded row.
       - type: "functional"
         spec: >
           Confirmation emits an array of
@@ -47,33 +115,64 @@
           When at least one chunk under a DocumentReference is
           selected, the parent DocumentReference is implicitly
           dropped (only the chunks are emitted).
+      - type: "functional"
+        spec: >
+          GET /patient-finder/{patient_id}/encounters returns a
+          bounded text snippet (<= 240 chars + ellipsis) per
+          encounter so the picker can run free-text search
+          client-side without a second round-trip.
+      - type: "functional"
+        spec: >
+          GET /patient-finder/{patient_id}/document-references
+          returns a bounded text snippet per DocumentReference
+          (first chunk text, falling back to description / title)
+          for the same client-side search.
       - type: "safety"
         spec: >
           The picker is patient-scoped: the host MUST pass the
           PatientFinder-resolved patient_id and the picker MUST
           NOT call any cross-patient endpoint.
+      - type: "safety"
+        spec: >
+          The picker MUST NOT render the Mission Control
+          "Edit codes" or "Reset and recode" buttons and MUST
+          NOT subscribe to any recode SSE stream -- it is a
+          read-only selection surface.
     constraints:
       - type: "safety"
         spec: >
           Each row label MUST include human-readable context
-          (encounter date + class for encounters, document title +
-          date for DocumentReferences, chunk index + first-line
-          preview for chunks) so the reviewer is not picking from
-          a list of opaque ids.
+          (encounter date + class + top concept for encounters,
+          document date + type + source + first-chunk snippet
+          for DocumentReferences, chunk index + first-line
+          preview for chunks) so the reviewer is not picking
+          from a list of opaque ids.
+      - type: "performance"
+        spec: >
+          The combined record list SHALL render up to 500
+          encounters + 500 DocumentReferences without dropping
+          frames; record-derived memos MUST be guarded with
+          useMemo on the record set.
     dependencies:
+      - "DI-LEO-AI-179"
       - "DI-LEO-AI-194"
+      - "DI-LEO-AI-213"
       - "DI-LEO-AI-230"
     downstream_impacts:
       - "/admin/ai-summarisation SBAR Playground (consumer)"
       - "Future operations Ask LEO surface (potential consumer)"
+      - "services/ui/src/components/mission-control/timelineBins.ts (record-shape generalisation)"
     technical_details:
       language: "TypeScript + Python"
       framework: "Next.js + MUI (UI), FastAPI + Neo4j (backend)"
       file_structure:
         - "services/ui/src/components/sbar-playground/BackgroundSourcePicker.tsx"
+        - "services/ui/src/components/mission-control/timelineBins.ts"
+        - "services/ui/src/components/mission-control/EncounterTimelineScrubber.tsx"
+        - "services/ui/src/components/mission-control/encounterFilters.ts"
         - "services/ui/src/lib/analyticsApi.ts"
         - "services/analytics_api/app/routers/patient_finder.py"
-      estimated_loc: 700
+      estimated_loc: 800
 
   verification:
     method: "Test"

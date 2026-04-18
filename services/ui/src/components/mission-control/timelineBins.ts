@@ -5,6 +5,11 @@
 
 export type Granularity = "day" | "week" | "month" | "quarter" | "year";
 
+// The scrubber was originally encounter-only. The SBAR background-source
+// picker (DI-LEO-AI-232) reuses the same primitive but with a mixed
+// encounter + DocumentReference feed, so we keep the original
+// ScrubberEncounter / DatedEncounter aliases for back-compat with the
+// Mission Control encounter-text drawer (DI-LEO-AI-179, DI-LEO-AI-213).
 export interface ScrubberEncounter {
   encounter_id: string;
   date: string;
@@ -12,11 +17,15 @@ export interface ScrubberEncounter {
   coded_count: number;
 }
 
+export type ScrubberRecord = ScrubberEncounter;
+
 export interface DatedEncounter {
   enc: ScrubberEncounter;
   ts: number;
   isLinked: boolean;
 }
+
+export type DatedRecord = DatedEncounter;
 
 export interface TimelineBin {
   startMs: number;

@@ -46,12 +46,9 @@ describe("VT-LEO-AI-232 BackgroundSourcePicker chunk rules", () => {
     );
     const user = userEvent.setup();
 
-    await user.click(
-      await screen.findByTestId(
-        "background-source-picker-tab-documents",
-      ),
-    );
-
+    // No more tabs -- the unified feed shows documents directly. Click
+    // the document row to tick its parent checkbox, then expand and
+    // tick a chunk.
     const docRow = await screen.findByTestId("background-source-doc-doc-1");
     await user.click(docRow);
 

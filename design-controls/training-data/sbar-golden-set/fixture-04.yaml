@@ -45,17 +45,17 @@ llm_transcript:
     markdown: |
       65-year-old man referred by GP for a routine urology opinion on a
       6-month history of mild lower urinary tract symptoms with normal
-      PSA and benign DRE [SOURCE: rr-gs-04].
+      PSA and benign DRE.
     actions: []
     error: null
   background:
     markdown: |
-      - 6-month history of mild LUTS: slow stream and nocturia x 2 [SOURCE: enc-gs-04]
-      - PSA 1.4 ug/L, within age-adjusted normal range (03/2026) [SOURCE: enc-gs-04]
-      - DRE: benign-feeling prostate, no nodule [SOURCE: enc-gs-04]
-      - IPSS score 9 (mild category) [SOURCE: enc-gs-04]
-      - No haematuria, dysuria or weight loss [SOURCE: enc-gs-04]
-      - Patient declined medical therapy [SOURCE: enc-gs-04]
+      - 6-month history of mild LUTS: slow stream and nocturia x 2
+      - PSA 1.4 ug/L, within age-adjusted normal range (03/2026)
+      - DRE: benign-feeling prostate, no nodule
+      - IPSS score 9 (mild category)
+      - No haematuria, dysuria or weight loss
+      - Patient declined medical therapy
     error: null
   recommendation:
     markdown: |

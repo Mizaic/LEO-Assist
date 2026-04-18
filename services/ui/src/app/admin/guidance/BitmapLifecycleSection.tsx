@@ -356,7 +356,11 @@ export default function BitmapLifecycleSection() {
               label={`${latestReplay.total_count} patients`}
             />
             <Box sx={{ flex: 1 }} />
-            <Link href="/admin/guidance/test-patients" passHref legacyBehavior>
+            <Link
+              href="/admin/knowledge?tab=test-patients"
+              passHref
+              legacyBehavior
+            >
               <Button size="small" variant="text" component="a">
                 Open library
               </Button>

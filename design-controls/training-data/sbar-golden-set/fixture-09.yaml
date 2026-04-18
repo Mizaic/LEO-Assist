@@ -40,21 +40,21 @@ resolved_background:
     codes:
       - { concept_id: "44054006", term: "Type 2 diabetes mellitus", assertion: present }
       - { concept_id: "38341003", term: "Hypertension", assertion: present }
-      - { concept_id: "60106-9",  term: "Urine albumin/creatinine ratio raised", assertion: present }
+      - { concept_id: "60106-9", term: "Urine albumin/creatinine ratio raised", assertion: present }
 
 llm_transcript:
   situation:
     markdown: |
       72-year-old man with type 2 diabetes and hypertension referred to
-      nephrology for review of microalbuminuria [SOURCE: rr-gs-09].
+      nephrology for review of microalbuminuria.
     actions: []
     error: null
   background:
     markdown: |
-      - Type 2 diabetes (10 years) and hypertension on metformin 1 g BD and ramipril 5 mg OD [SOURCE: enc-gs-09]
-      - Urine ACR 12 mg/mmol (03/2026), consistent with microalbuminuria [SOURCE: enc-gs-09]
-      - HbA1c 58 mmol/mol, BP 138/84 [SOURCE: enc-gs-09]
-      - MISSING: most recent eGFR not on record at this visit; required to stage CKD and to confirm safety of metformin [SOURCE: enc-gs-09]
+      - Type 2 diabetes (10 years) and hypertension on metformin 1 g BD and ramipril 5 mg OD
+      - Urine ACR 12 mg/mmol (03/2026), consistent with microalbuminuria
+      - HbA1c 58 mmol/mol, BP 138/84
+      - MISSING: most recent eGFR not on record at this visit; required to stage CKD and to confirm safety of metformin
     error: null
   recommendation:
     markdown: |

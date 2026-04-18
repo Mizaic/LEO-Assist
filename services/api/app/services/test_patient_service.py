@@ -24,6 +24,7 @@ import httpx
 
 from app.db.neo4j_client import CodingGraphClient
 from libs.cypher.test_patient_queries import (
+    COUNT_TEST_PATIENTS_BY_ASPECT,
     CREATE_TEST_PATIENT,
     DELETE_TEST_PATIENT,
     FIND_BY_CONTENT_HASH,
@@ -33,6 +34,7 @@ from libs.cypher.test_patient_queries import (
     LIST_REPLAY_REPORTS,
     LIST_RULES_IN_SCOPE,
     LIST_TEST_PATIENTS,
+    TEST_PATIENT_ASPECTS,
     UPDATE_TEST_PATIENT,
     WRITE_EXPECTED_RESULT,
     WRITE_REPLAY_REPORT,
@@ -514,19 +516,52 @@ def confirm_and_save(
 def list_patients(
     client: CodingGraphClient,
     *,
+    aspect: str | None = None,
     guideline_id: str | None = None,
     rule_id: str | None = None,
     node_id: str | None = None,
     limit: int = 200,
 ) -> list[dict]:
+    """Return test patients matching the supplied filters.
+
+    `aspect` is one of {"nlp","episodes","guidelines","summarisation"}
+    or None / "all" for no aspect filter. Invalid aspect values fall
+    back to "all" rather than raising, so the UI never 500s on a
+    typo in a query string.
+    """
+    aspect_param: str | None
+    if aspect is None or aspect == "" or aspect == "all":
+        aspect_param = None
+    elif aspect in TEST_PATIENT_ASPECTS:
+        aspect_param = aspect
+    else:
+        aspect_param = None
     rows = client.run(
         LIST_TEST_PATIENTS,
+        aspect=aspect_param,
         guideline_id=guideline_id,
         rule_id=rule_id,
         node_id=node_id,
         limit=limit,
     )
     return [dict(r) for r in rows]
+
+
+def count_by_aspect(client: CodingGraphClient) -> dict[str, int]:
+    """Return totals per aspect for the four count tiles.
+
+    Always returns one entry per known aspect (zero when there are
+    no patients for it), so the UI can render a stable four-tile
+    layout without conditional rendering.
+    """
+    rows = client.run(COUNT_TEST_PATIENTS_BY_ASPECT)
+    counts: dict[str, int] = {a: 0 for a in TEST_PATIENT_ASPECTS}
+    for row in rows:
+        aspect = str(row.get("aspect") or "").lower()
+        if aspect in counts:
+            counts[aspect] = int(row.get("total") or 0)
+    counts["all"] = sum(counts.values())
+    return counts
 
 
 def get_patient(client: CodingGraphClient, *, patient_id: str) -> dict | None:

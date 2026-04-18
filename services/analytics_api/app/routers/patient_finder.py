@@ -64,19 +64,39 @@ class PatientSearchResponse(BaseModel):
 
 
 class EncounterSummary(BaseModel):
+    """Summary of an encounter shown in the SBAR record picker.
+
+    ``text`` is a short snippet of the encounter narrative so the
+    picker's free-text search can match against it client-side. The
+    snippet is bounded to keep the payload light when a patient has
+    hundreds of encounters; the full text is fetched on demand by
+    Mission Control.
+    """
+
     id: str
     date: Optional[str] = None
     encounter_type: Optional[str] = None
     top_concept: Optional[str] = None
     coded_count: int = 0
+    text: Optional[str] = None
 
 
 class DocumentReferenceSummary(BaseModel):
+    """Summary of a DocumentReference shown in the SBAR record picker.
+
+    ``text`` is a short snippet (first chunk text or the document
+    description) so the picker's free-text search can match against
+    document content the same way the Mission Control encounter feed
+    matches against encounter narrative. Bounded to 240 chars so the
+    payload stays small for patients with hundreds of letters.
+    """
+
     id: str
     date: Optional[str] = None
     document_type: Optional[str] = None
     source: Optional[str] = None
     chunk_count: int = 0
+    text: Optional[str] = None
 
 
 class ChunkSummary(BaseModel):
@@ -356,22 +376,28 @@ def list_patient_encounters(
             "       coalesce(e.encounter_type, e.classification_type, '') "
             "                             AS encounter_type, "
             "       coalesce(top_concept, '') AS top_concept, "
-            "       coded_count           AS coded_count "
+            "       coded_count           AS coded_count, "
+            "       coalesce(e.text, '')  AS text "
             "ORDER BY e.date DESC "
             "LIMIT $limit",
             pid=patient_id,
             limit=limit,
         )
-        return [
-            EncounterSummary(
-                id=str(r["id"]),
-                date=r.get("date") or None,
-                encounter_type=r.get("encounter_type") or None,
-                top_concept=r.get("top_concept") or None,
-                coded_count=int(r.get("coded_count") or 0),
+        out: List[EncounterSummary] = []
+        for r in rows:
+            text = (r.get("text") or "").strip()
+            snippet = text[:240] + ("..." if len(text) > 240 else "") if text else None
+            out.append(
+                EncounterSummary(
+                    id=str(r["id"]),
+                    date=r.get("date") or None,
+                    encounter_type=r.get("encounter_type") or None,
+                    top_concept=r.get("top_concept") or None,
+                    coded_count=int(r.get("coded_count") or 0),
+                    text=snippet,
+                )
             )
-            for r in rows
-        ]
+        return out
     finally:
         client.close()
 
@@ -389,32 +415,46 @@ def list_patient_document_references(
     client = PatientGraphClient()
     try:
         _check_patient_in_scope(client, patient_id, scope)
+        # We pull the first chunk's text as a search snippet. The
+        # ordering relies on r.ordinal where present, falling back to
+        # 0 so unordered chunks still produce a deterministic pick.
         rows = client.run(
             "MATCH (p:Patient)-[:HAS_DOCUMENT_REFERENCE]->(dr:DocumentReference) "
             "WHERE toString(p.id) = $pid "
-            "OPTIONAL MATCH (dr)-[:HAS_CHUNK]->(c:Chunk) "
-            "WITH dr, count(c) AS chunk_count "
+            "OPTIONAL MATCH (dr)-[hr:HAS_CHUNK]->(c:Chunk) "
+            "WITH dr, hr, c "
+            "ORDER BY coalesce(hr.ordinal, 0) ASC "
+            "WITH dr, "
+            "     count(c) AS chunk_count, "
+            "     head(collect(c.text)) AS first_chunk_text "
             "RETURN toString(dr.id)        AS id, "
             "       toString(coalesce(dr.date, dr.created_at, '')) AS date, "
             "       coalesce(dr.type, dr.category, dr.document_type, '') "
             "                              AS document_type, "
             "       coalesce(dr.source, '') AS source, "
-            "       chunk_count            AS chunk_count "
+            "       chunk_count            AS chunk_count, "
+            "       coalesce(first_chunk_text, dr.description, dr.title, '') "
+            "                              AS text "
             "ORDER BY date DESC "
             "LIMIT $limit",
             pid=patient_id,
             limit=limit,
         )
-        return [
-            DocumentReferenceSummary(
-                id=str(r["id"]),
-                date=r.get("date") or None,
-                document_type=r.get("document_type") or None,
-                source=r.get("source") or None,
-                chunk_count=int(r.get("chunk_count") or 0),
+        out: List[DocumentReferenceSummary] = []
+        for r in rows:
+            text = (r.get("text") or "").strip()
+            snippet = text[:240] + ("..." if len(text) > 240 else "") if text else None
+            out.append(
+                DocumentReferenceSummary(
+                    id=str(r["id"]),
+                    date=r.get("date") or None,
+                    document_type=r.get("document_type") or None,
+                    source=r.get("source") or None,
+                    chunk_count=int(r.get("chunk_count") or 0),
+                    text=snippet,
+                )
             )
-            for r in rows
-        ]
+        return out
     finally:
         client.close()
 

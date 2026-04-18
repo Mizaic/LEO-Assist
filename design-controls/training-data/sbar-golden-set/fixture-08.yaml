@@ -48,14 +48,14 @@ llm_transcript:
   situation:
     markdown: |
       55-year-old man attending pre-operative assessment for an
-      elective inguinal hernia repair [SOURCE: text].
+      elective inguinal hernia repair.
     actions: []
     error: null
   background:
     markdown: |
-      - CONFLICT: GP record states No Known Drug Allergies [SOURCE: enc-gs-08-gp]; hospital discharge summary documents penicillin allergy with rash [SOURCE: doc-gs-08-discharge]. Allergy status MUST be reconciled before any antibiotic is prescribed.
-      - Otherwise well, BP 128/82 at GP review [SOURCE: enc-gs-08-gp]
-      - Previous appendicectomy 09/2024 [SOURCE: doc-gs-08-discharge]
+      - CONFLICT: GP record states No Known Drug Allergies; hospital discharge summary documents penicillin allergy with rash. Allergy status MUST be reconciled before any antibiotic is prescribed.
+      - Otherwise well, BP 128/82 at GP review
+      - Previous appendicectomy 09/2024
     error: null
   recommendation:
     markdown: |

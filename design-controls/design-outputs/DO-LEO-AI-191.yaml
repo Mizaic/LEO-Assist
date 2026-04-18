@@ -1,6 +1,6 @@
 # -- DO-LEO-AI-191 -- SBAR LLM prompt suite + JSON schemas
 - id: "DO-LEO-AI-191"
-  version: "1.0.0"
+  version: "1.1.0"
   type: "Configuration"
   status: "approved"
 
@@ -23,7 +23,7 @@
       - criterion: "Seed registration"
         type: "functional"
         measurement: "Inspection"
-        target: "scripts.seed_prompt_configs.SEED_PROMPTS contains sbar_situation, sbar_background, sbar_recommendation v1"
+        target: "scripts.seed_prompt_configs.SEED_PROMPTS contains sbar_situation, sbar_background, sbar_recommendation at v1 (legacy) AND v2 (current)"
       - criterion: "Schema strictness"
         type: "functional"
         measurement: "Inspection"
@@ -31,7 +31,19 @@
       - criterion: "Prompt-injection rule"
         type: "safety"
         measurement: "Inspection"
-        target: "Rule 10 in each prompt instructs the model to treat CONTEXT free text as data not instructions"
+        target: "A prompt-injection rule in each prompt instructs the model to treat CONTEXT free text as data not instructions"
+      - criterion: "Plain-English narrative (v2)"
+        type: "functional"
+        measurement: "Inspection"
+        target: "Each v2 prompt sets a reading age of 11 with NHS clinical terms allowed and instructs the model to write in the active voice"
+      - criterion: "No identifier leakage in narrative (v2)"
+        type: "safety"
+        measurement: "Inspection"
+        target: "Each v2 prompt forbids inline encounter / document / chunk ids and the literal token SOURCE: in the narrative; source ids stay in the structured citations array"
+      - criterion: "Runtime version pin"
+        type: "functional"
+        measurement: "Inspection"
+        target: "libs.sbar.prompt_calls._SBAR_PROMPT_VERSIONS pins all three SBAR prompts to version=2"
 
   implementation:
     artifacts:

@@ -846,6 +846,10 @@ from libs.prompts.sbar_output_schemas import (
     SBAR_SITUATION_OUTPUT_SCHEMA,
 )
 
+# v1 entries (legacy) -- left in place so any historical assessment that
+# was generated against v1 is still resolvable. Fresh dev environments
+# that have never seen v1 will seed v1 with the *current* prompt text;
+# that is acceptable because the runtime fetches v2 (see prompt_calls).
 _add(
     "sbar_situation",
     1,
@@ -853,11 +857,7 @@ _add(
     output_schema=json.dumps(SBAR_SITUATION_OUTPUT_SCHEMA),
     few_shot_examples=[],
     max_few_shot=0,
-    description=(
-        "SBAR Situation section. Produces 2-3 sentence Markdown with inline "
-        "[SOURCE: ...] citations describing who the patient is and the trigger "
-        "for this summary. Hardened against prompt injection in CONTEXT."
-    ),
+    description="SBAR Situation v1 -- legacy. Runtime uses v2.",
 )
 _add(
     "sbar_background",
@@ -866,11 +866,7 @@ _add(
     output_schema=json.dumps(SBAR_BACKGROUND_OUTPUT_SCHEMA),
     few_shot_examples=[],
     max_few_shot=0,
-    description=(
-        "SBAR Background section. Produces a short bullet list (3-8 bullets) "
-        "of clinically relevant background, prefering coded SNOMED facts over "
-        "raw text and surfacing missing/conflicting data explicitly."
-    ),
+    description="SBAR Background v1 -- legacy. Runtime uses v2.",
 )
 _add(
     "sbar_recommendation",
@@ -879,10 +875,51 @@ _add(
     output_schema=json.dumps(SBAR_RECOMMENDATION_OUTPUT_SCHEMA),
     few_shot_examples=[],
     max_few_shot=0,
+    description="SBAR Recommendation v1 -- legacy. Runtime uses v2.",
+)
+# v2 -- plain English (reading age 11, NHS clinical terms allowed) and
+# date-only inline markers (no UUIDs / encounter ids in the narrative).
+# Source ids continue to live in the structured ``citations`` array for
+# audit / traceability. See DI-LEO-AI-191 / DO-LEO-AI-191.
+_add(
+    "sbar_situation",
+    2,
+    "libs.prompts.sbar_situation_v1.SBAR_SITUATION_SYSTEM_V1",
+    output_schema=json.dumps(SBAR_SITUATION_OUTPUT_SCHEMA),
+    few_shot_examples=[],
+    max_few_shot=0,
     description=(
-        "SBAR Recommendation section. Produces a short narrative plus a list "
-        "of discrete actions (with priority and rule_ids), grounded in the "
-        "rules surfaced by the deterministic Assessment formatter."
+        "SBAR Situation section. Produces 2-3 sentence plain-English "
+        "Markdown (reading age 11) with optional inline [date] markers. "
+        "Encounter / document ids stay in the structured citations array."
+    ),
+)
+_add(
+    "sbar_background",
+    2,
+    "libs.prompts.sbar_background_v1.SBAR_BACKGROUND_SYSTEM_V1",
+    output_schema=json.dumps(SBAR_BACKGROUND_OUTPUT_SCHEMA),
+    few_shot_examples=[],
+    max_few_shot=0,
+    description=(
+        "SBAR Background section. 3-8 bullet plain-English summary "
+        "(reading age 11), preferring coded SNOMED facts over raw text "
+        "and surfacing missing/conflicting data explicitly. Inline date "
+        "markers only -- no encounter / document ids in the narrative."
+    ),
+)
+_add(
+    "sbar_recommendation",
+    2,
+    "libs.prompts.sbar_recommendation_v1.SBAR_RECOMMENDATION_SYSTEM_V1",
+    output_schema=json.dumps(SBAR_RECOMMENDATION_OUTPUT_SCHEMA),
+    few_shot_examples=[],
+    max_few_shot=0,
+    description=(
+        "SBAR Recommendation section. Plain-English narrative (reading "
+        "age 11) plus a list of discrete actions (priority + rule_ids), "
+        "grounded in the rules surfaced by the deterministic Assessment "
+        "formatter. Inline [RULE: ...] markers only -- no encounter ids."
     ),
 )
 

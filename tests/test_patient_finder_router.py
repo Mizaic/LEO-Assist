@@ -164,6 +164,7 @@ def test_encounters_returns_summaries_when_in_scope() -> None:
             "encounter_type": "GP",
             "top_concept": "Cough",
             "coded_count": 3,
+            "text": "Patient seen with cough.",
         }
     ]
     with _patched_client([scope_check, encounter_rows]):
@@ -175,6 +176,99 @@ def test_encounters_returns_summaries_when_in_scope() -> None:
     assert rows[0]["id"] == "enc-1"
     assert rows[0]["coded_count"] == 3
     assert rows[0]["top_concept"] == "Cough"
+    assert rows[0]["text"] == "Patient seen with cough."
+
+
+def test_encounters_truncates_long_text_snippet_for_search() -> None:
+    """DI-LEO-AI-232: snippet bounded so the picker payload stays small."""
+    scope_check = [{"id": "pat-1"}]
+    long_text = "x" * 400
+    encounter_rows = [
+        {
+            "id": "enc-long",
+            "date": "2026-02-01",
+            "encounter_type": "GP",
+            "top_concept": "Review",
+            "coded_count": 0,
+            "text": long_text,
+        }
+    ]
+    with _patched_client([scope_check, encounter_rows]):
+        r = TestClient(_make_app(GP_SCOPE)).get(
+            "/patient-finder/pat-1/encounters"
+        )
+    assert r.status_code == 200
+    snippet = r.json()[0]["text"]
+    assert snippet.endswith("...")
+    assert len(snippet) == 243  # 240 chars + "..."
+
+
+def test_encounters_returns_null_text_when_no_narrative() -> None:
+    scope_check = [{"id": "pat-1"}]
+    encounter_rows = [
+        {
+            "id": "enc-empty",
+            "date": "2026-03-01",
+            "encounter_type": "GP",
+            "top_concept": "",
+            "coded_count": 0,
+            "text": "",
+        }
+    ]
+    with _patched_client([scope_check, encounter_rows]):
+        r = TestClient(_make_app(GP_SCOPE)).get(
+            "/patient-finder/pat-1/encounters"
+        )
+    assert r.status_code == 200
+    assert r.json()[0]["text"] is None
+
+
+# -- /patient-finder/{id}/document-references --------------------------------
+
+
+def test_document_references_returns_first_chunk_text_snippet() -> None:
+    """DI-LEO-AI-232: the picker needs document text for free-text search."""
+    scope_check = [{"id": "pat-1"}]
+    doc_rows = [
+        {
+            "id": "doc-1",
+            "date": "2026-01-15",
+            "document_type": "Letter",
+            "source": "GP",
+            "chunk_count": 3,
+            "text": "Outpatient letter from cardiology.",
+        }
+    ]
+    with _patched_client([scope_check, doc_rows]):
+        r = TestClient(_make_app(GP_SCOPE)).get(
+            "/patient-finder/pat-1/document-references"
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body[0]["id"] == "doc-1"
+    assert body[0]["chunk_count"] == 3
+    assert body[0]["text"] == "Outpatient letter from cardiology."
+
+
+def test_document_references_truncates_long_text_snippet() -> None:
+    scope_check = [{"id": "pat-1"}]
+    doc_rows = [
+        {
+            "id": "doc-long",
+            "date": "2026-02-01",
+            "document_type": "Letter",
+            "source": "Hospital",
+            "chunk_count": 1,
+            "text": "y" * 500,
+        }
+    ]
+    with _patched_client([scope_check, doc_rows]):
+        r = TestClient(_make_app(GP_SCOPE)).get(
+            "/patient-finder/pat-1/document-references"
+        )
+    snippet = r.json()[0]["text"]
+    assert snippet.endswith("...")
+    assert len(snippet) == 243
 
 
 # -- /document-references/{id}/chunks ---------------------------------------

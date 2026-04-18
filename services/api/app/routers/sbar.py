@@ -78,12 +78,17 @@ async def enqueue_sbar_job(
     from libs.message_bus.base import Message
     from libs.message_bus.factory import create_message_bus
 
+    # Message.body is a Dict[str, Any] -- the adapter does its own
+    # json.dumps when it places the message on the wire (Azure Service
+    # Bus or the in-memory dev adapter). Passing pre-serialised bytes
+    # here would cause the adapter to call json.dumps(<bytes>) and
+    # raise TypeError: Object of type bytes is not JSON serializable.
     bus = create_message_bus()
     try:
         await bus.send(
             PIPELINE_QUEUE,
             Message(
-                body=json.dumps(payload.model_dump(mode="json")).encode("utf-8"),
+                body=payload.model_dump(mode="json"),
                 correlation_id=payload.run_id,
                 subject="sbar-requested",
             ),

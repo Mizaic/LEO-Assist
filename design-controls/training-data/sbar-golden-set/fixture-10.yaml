@@ -48,16 +48,16 @@ llm_transcript:
     markdown: |
       68-year-old man referred by GP with a 5-week history of
       progressive dysphagia to solids and 4 kg unintentional weight
-      loss [SOURCE: rr-gs-10]. Triggering this SBAR primarily for the
-      upper GI 2WW pathway [SOURCE: rr-gs-10].
+      loss. Triggering this SBAR primarily for the
+      upper GI 2WW pathway.
     actions: []
     error: null
   background:
     markdown: |
-      - 5-week progressive dysphagia to solids [SOURCE: enc-gs-10]
-      - Unintentional weight loss 4 kg [SOURCE: enc-gs-10]
-      - No haematemesis, no anaemia [SOURCE: enc-gs-10]
-      - Long-standing mild right knee osteoarthritis (incidental) [SOURCE: enc-gs-10]
+      - 5-week progressive dysphagia to solids
+      - Unintentional weight loss 4 kg
+      - No haematemesis, no anaemia
+      - Long-standing mild right knee osteoarthritis (incidental)
     error: null
   recommendation:
     markdown: |

@@ -417,6 +417,9 @@ export interface PatientFinderEncounter {
   encounter_type?: string | null;
   top_concept?: string | null;
   coded_count: number;
+  /** Short snippet of the encounter narrative used by the picker's
+   *  free-text search. Bounded server-side; null if no narrative. */
+  text?: string | null;
 }
 
 export interface PatientFinderDocumentReference {
@@ -425,6 +428,9 @@ export interface PatientFinderDocumentReference {
   document_type?: string | null;
   source?: string | null;
   chunk_count: number;
+  /** Short snippet of the document body (first chunk text or
+   *  description) used by the picker's free-text search. */
+  text?: string | null;
 }
 
 export interface PatientFinderChunk {

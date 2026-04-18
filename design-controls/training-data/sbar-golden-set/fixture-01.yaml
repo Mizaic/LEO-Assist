@@ -40,7 +40,7 @@ resolved_background:
     codes:
       - { concept_id: "66857006", term: "Haemoptysis", assertion: present }
       - { concept_id: "89362005", term: "Weight loss", assertion: present }
-      - { concept_id: "8517006",  term: "Ex-smoker", assertion: present }
+      - { concept_id: "8517006", term: "Ex-smoker", assertion: present }
       - { concept_id: "29857009", term: "Chest pain", assertion: present }
 
 llm_transcript:
@@ -48,17 +48,17 @@ llm_transcript:
     markdown: |
       64-year-old female ex-smoker referred by GP with a 4-week history
       of haemoptysis, 5 kg unintentional weight loss, and right-sided
-      chest pain [SOURCE: rr-gs-01]. Triggering this SBAR for the
-      respiratory 2WW suspected lung cancer pathway [SOURCE: rr-gs-01].
+      chest pain. Triggering this SBAR for the
+      respiratory 2WW suspected lung cancer pathway.
     actions: []
     error: null
   background:
     markdown: |
-      - 4-week history of haemoptysis [SOURCE: enc-gs-01]
-      - Unintentional weight loss 5 kg over 8 weeks [SOURCE: enc-gs-01]
-      - Ex-smoker, 35 pack-years, stopped 2018 [SOURCE: enc-gs-01]
-      - Right-sided pleuritic chest pain [SOURCE: enc-gs-01]
-      - Chest X-ray requested but result not yet available [SOURCE: enc-gs-01]
+      - 4-week history of haemoptysis
+      - Unintentional weight loss 5 kg over 8 weeks
+      - Ex-smoker, 35 pack-years, stopped 2018
+      - Right-sided pleuritic chest pain
+      - Chest X-ray requested but result not yet available
     error: null
   recommendation:
     markdown: |

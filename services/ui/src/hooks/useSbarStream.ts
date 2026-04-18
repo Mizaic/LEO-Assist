@@ -79,6 +79,41 @@ const STAGES: SbarStageName[] = [
   "recommendation",
 ];
 
+// -- Wire-format mappers ---------------------------------------------------
+//
+// libs/sbar/events.SituationArtifactType / BackgroundSourceType serialise
+// as PascalCase node labels ("Encounter", "DocumentReference",
+// "PatientContext", ...). The UI uses snake_case identifiers internally.
+// Translate at the boundary so neither side has to know about the other.
+const ARTIFACT_TYPE_WIRE: Record<SbarSituationArtifactInput["type"], string> = {
+  patient_context: "PatientContext",
+  referral_request: "ReferralRequest",
+  procedure_request: "ProcedureRequest",
+  summarisation_context: "SummarisationContext",
+  fixed_text: "FixedText",
+};
+
+const BACKGROUND_TYPE_WIRE: Record<SbarBackgroundSourceInput["type"], string> =
+  {
+    encounter: "Encounter",
+    document_reference: "DocumentReference",
+    chunk: "Chunk",
+  };
+
+function toWireArtifact(a: SbarSituationArtifactInput): Record<string, unknown> {
+  const out: Record<string, unknown> = { type: ARTIFACT_TYPE_WIRE[a.type] };
+  if (a.id !== undefined) out.id = a.id;
+  if (a.text !== undefined) out.text = a.text;
+  if (a.context_value !== undefined) out.context_value = a.context_value;
+  return out;
+}
+
+function toWireBackground(
+  b: SbarBackgroundSourceInput,
+): Record<string, unknown> {
+  return { type: BACKGROUND_TYPE_WIRE[b.type], id: b.id };
+}
+
 const initialStage: SbarStageState = { status: "pending", preview: null };
 
 function initialStages(): Record<SbarStageName, SbarStageState> {
@@ -254,9 +289,9 @@ export function useSbarStream() {
       const body: Record<string, unknown> = {
         situation: {
           patient_id: params.patientId,
-          artifacts: params.artifacts,
+          artifacts: params.artifacts.map(toWireArtifact),
         },
-        background: params.background,
+        background: params.background.map(toWireBackground),
         guideline_ids: params.guidelineIds ?? [],
       };
       if (concern.length > 0) {

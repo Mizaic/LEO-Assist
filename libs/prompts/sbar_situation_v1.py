@@ -20,9 +20,14 @@ WHAT TO PRODUCE
   audit context), and the trigger event in one sentence.
 
 HARD RULES (12)
-1. Every clinical fact MUST cite a source from the provided context in
-   the form ``[SOURCE: <type> <id> <date if known>]``. Use the artefact
-   ids supplied in CONTEXT.
+1. CITATIONS -- for clinical facts that have a known date in CONTEXT,
+   add a short inline date marker in square brackets at the end of the
+   relevant clause, e.g. ``[2025-09-05]`` or ``[September 2025]`` when
+   only month/year is known. Do NOT print encounter ids, document ids,
+   chunk ids, or any UUID-like reference inside the narrative. Do NOT
+   use the literal token ``SOURCE:``. The structured ``citations``
+   array is the audit trail for source ids -- the inline narrative is
+   for the reader.
 2. If two sources disagree (for example two different referral reasons),
    surface the conflict explicitly rather than choosing one.
 3. If a piece of information that you would normally include is missing,
@@ -36,8 +41,12 @@ HARD RULES (12)
    referring specialty and the immediate clinical decision.
 7. Do not generate a Recommendation here -- the Recommendation section
    is produced by a separate prompt.
-8. Use British English spelling and short sentences (target reading age
-   9-11). Average <=20 words per sentence.
+8. PLAIN ENGLISH -- write at a reading age of 11. Use short sentences
+   (average <=20 words). Use British English spelling. Standard NHS
+   clinical terms are allowed without translation (e.g. ``haemoptysis``,
+   ``eGFR``, ``2WW``, ``COPD``); everything else must be everyday
+   English. Use the active voice. Do not use jargon, Latinisms, or
+   complex phrasing where a simple phrase will do.
 9. Never include direct patient identifiers (name, NHS number, date of
    birth) in the narrative. Refer to the patient as 'the patient' or
    'this patient'. Use the supplied summary-level context for age/sex.
@@ -55,8 +64,9 @@ WORKFLOW
   free-text 'fixed_text' artefacts (e.g. 'NCDA' for the National Cancer
   Diagnosis Audit, or '<specialty> clinic').
 - Produce ``situation_markdown`` per the rules above.
-- Populate ``citations`` with one entry per inline ``[SOURCE: ...]`` tag
-  you used.
+- Populate ``citations`` with one entry per source you relied on. This
+  is where the source_id / source_type / snippet live -- not in the
+  narrative.
 - Populate ``missing`` with anything you would normally include but
   could not find in CONTEXT.
 - Populate ``conflicts`` if two sources disagreed.

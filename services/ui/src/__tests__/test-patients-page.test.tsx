@@ -28,45 +28,13 @@ import type {
   TestPatient,
 } from "@/app/admin/guidance/test-patients/types";
 
-const PAGE_SRC = path.resolve(
-  __dirname,
-  "..",
-  "app",
-  "admin",
-  "guidance",
-  "test-patients",
-  "page.tsx",
-);
-
-function read(): string {
-  return fs.readFileSync(PAGE_SRC, "utf8");
-}
-
-describe("VT-LEO-AI-166 -- Test patient library page chrome", () => {
-  test("TC-001: page wires Build, Generate, and Replay actions", () => {
-    const src = read();
-    expect(src).toMatch(/BuildPatientDialog/);
-    expect(src).toMatch(/GeneratePatientsDialog/);
-    expect(src).toMatch(/ReplayResultsDialog/);
-    expect(src).toMatch(/Build a patient/);
-    expect(src).toMatch(/Generate patients/);
-    expect(src).toMatch(/Replay scope/);
-  });
-
-  test("TC-002: page filters by guideline scope and supports 'All guidelines'", () => {
-    const src = read();
-    expect(src).toMatch(/All guidelines/);
-    expect(src).toMatch(/scopeGuideline/);
-  });
-
-  test("TC-003: page surfaces empty-state in plain English (reading age 9-11)", () => {
-    const src = read();
-    // Avoid jargon like 'fixture' / 'corpus' in the empty state.
-    expect(src).not.toMatch(/fixture/i);
-    expect(src).not.toMatch(/corpus/i);
-    expect(src).toMatch(/No saved patients yet/);
-  });
-});
+// NOTE: VT-LEO-AI-166 TC-001/002/003 (legacy /admin/guidance/test-patients
+// page chrome) and VT-LEO-AI-176 TC-016 (legacy library Edit row) were
+// retired when the centralised library moved to /admin/knowledge?tab=
+// test-patients. The new chrome is covered by VT-5BDFE5F7 in
+// test-patient-library-knowledge-tab.test.tsx. The dialog/API/edit
+// tests below remain because those components are still used by the
+// per-rule TestPatientsPanel inside EditRuleDialog.
 
 describe("VT-LEO-AI-166 -- API client", () => {
   let fetchMock: jest.Mock;
@@ -441,16 +409,6 @@ describe("VT-LEO-AI-176 -- Test patients can be edited in place", () => {
     "test-patients",
     "BuildPatientDialog.tsx",
   );
-  const PAGE_SRC2 = path.resolve(
-    __dirname,
-    "..",
-    "app",
-    "admin",
-    "guidance",
-    "test-patients",
-    "page.tsx",
-  );
-
   test("TC-013: api.updatePatient PATCHes /test-patients/{id} with JSON + CSRF", async () => {
     const fetchMock = jest.fn().mockResolvedValueOnce({
       ok: true,
@@ -515,15 +473,6 @@ describe("VT-LEO-AI-176 -- Test patients can be edited in place", () => {
     expect(src).toMatch(/matched_branch_node_ids:\s*saved\?\.matched_branch_node_ids\s*\|\|\s*\[\]/);
   });
 
-  test("TC-016: library page exposes an Edit action that opens BuildPatientDialog in edit mode", () => {
-    const src = fs.readFileSync(PAGE_SRC2, "utf8");
-    expect(src).toMatch(/editingPatient/);
-    expect(src).toMatch(/setEditingPatient/);
-    // The Edit button row exists alongside Delete.
-    expect(src).toMatch(/Edit test patient \$\{/);
-    // The dialog is mounted with editingPatient prop.
-    expect(src).toMatch(/editingPatient=\{editingPatient\}/);
-  });
 });
 
 describe("VT-LEO-AI-166 -- Regression alert exposes the report", () => {

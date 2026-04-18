@@ -38,6 +38,12 @@ import {
   type SbarStageName,
   useSbarStream,
 } from "@/hooks/useSbarStream";
+import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor";
+import {
+  SbarFinalDialog,
+  STAGE_LABELS,
+  STAGE_THEME,
+} from "@/components/sbar-final";
 
 import {
   PatientFinder,
@@ -53,12 +59,9 @@ import {
   type SummarisationContextValue,
 } from "@/components/sbar-playground/SummarisationContextSelect";
 
-const STAGE_LABELS: Record<SbarStageName, string> = {
-  situation: "Situation",
-  background: "Background",
-  assessment: "Assessment",
-  recommendation: "Recommendation",
-};
+// STAGE_LABELS, STAGE_THEME, splitFinalSbar are sourced from the
+// shared sbar-final module so other applications can render the same
+// SBAR view without depending on the playground.
 
 // QSIR-aligned framing -- give the reviewer a tight 500-char box for a
 // "what is the worry today?" note. Mirrors the backend `concern` cap.
@@ -91,6 +94,7 @@ export default function SbarPlayground() {
   const [guidelineCodes, setGuidelineCodes] = useState<string[]>([]);
 
   const sbar = useSbarStream();
+  const [finalDialogOpen, setFinalDialogOpen] = useState(false);
 
   const sourceCounts = useMemo(() => {
     const counts = { encounter: 0, document_reference: 0, chunk: 0 };
@@ -366,19 +370,68 @@ export default function SbarPlayground() {
             </Stack>
             {sbar.running && <LinearProgress />}
             {sbar.status && (
-              <Typography variant="body2" color="text.secondary">
-                {sbar.status}
-              </Typography>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                flexWrap="wrap"
+              >
+                {!sbar.running && sbar.finalContent ? (
+                  <Button
+                    variant="contained"
+                    color="success"
+                    size="small"
+                    onClick={() => setFinalDialogOpen(true)}
+                    data-testid="sbar-view-full-button"
+                  >
+                    {sbar.status === "Done." ? "View full SBAR" : sbar.status}
+                  </Button>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    {sbar.status}
+                  </Typography>
+                )}
+                {!sbar.running && sbar.finalContent && (
+                  <Typography variant="caption" color="text.secondary">
+                    {sbar.status === "Done."
+                      ? "Click to open the full SBAR in a dialog."
+                      : null}
+                  </Typography>
+                )}
+              </Stack>
             )}
-            <Stack spacing={1}>
+            <Stack spacing={1.5}>
               {(Object.keys(STAGE_LABELS) as SbarStageName[]).map((stage) => {
                 const s = sbar.stages[stage];
+                const theme = STAGE_THEME[stage];
                 return (
-                  <Box key={stage} data-testid={`sbar-stage-${stage}`}>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                  <Box
+                    key={stage}
+                    data-testid={`sbar-stage-${stage}`}
+                    sx={{
+                      borderRadius: 1.5,
+                      overflow: "hidden",
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderLeft: `4px solid ${theme.accent}`,
+                      bgcolor: "background.paper",
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      alignItems="center"
+                      sx={{ px: 1.5, py: 1, bgcolor: theme.tint }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ color: theme.ink, fontWeight: 700 }}
+                      >
+                        {STAGE_LABELS[stage]}
+                      </Typography>
                       <Chip
                         size="small"
-                        label={STAGE_LABELS[stage]}
+                        label={s.status ?? "queued"}
                         color={
                           s.status === "completed"
                             ? "success"
@@ -388,12 +441,14 @@ export default function SbarPlayground() {
                                 ? "error"
                                 : "default"
                         }
+                        sx={{ height: 20, fontSize: "0.65rem" }}
                       />
                       {typeof s.ruleCount === "number" && (
                         <Chip
                           size="small"
                           variant="outlined"
                           label={`${s.ruleCount} rules`}
+                          sx={{ height: 20, fontSize: "0.65rem" }}
                         />
                       )}
                       {typeof s.actionCount === "number" && (
@@ -401,21 +456,31 @@ export default function SbarPlayground() {
                           size="small"
                           variant="outlined"
                           label={`${s.actionCount} actions`}
+                          sx={{ height: 20, fontSize: "0.65rem" }}
                         />
                       )}
                     </Stack>
                     {s.preview && (
-                      <Typography
-                        variant="body2"
+                      <Box
                         sx={{
-                          mt: 0.5,
-                          ml: 0.5,
-                          color: "text.secondary",
-                          whiteSpace: "pre-wrap",
+                          px: 1,
+                          py: 0.5,
+                          "& .md-editor": {
+                            border: "none",
+                            background: "transparent",
+                          },
+                          "& .md-editor .tiptap": {
+                            padding: "8px 8px",
+                            fontSize: "0.85rem",
+                          },
                         }}
                       >
-                        {s.preview}
-                      </Typography>
+                        <MarkdownEditor
+                          mode="view"
+                          initialContent={s.preview}
+                          minHeight={0}
+                        />
+                      </Box>
                     )}
                   </Box>
                 );
@@ -425,25 +490,21 @@ export default function SbarPlayground() {
         </Paper>
       )}
 
-      {sbar.finalContent && (
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            SBAR (final)
-          </Typography>
-          <Box
-            data-testid="sbar-final-content"
-            sx={{
-              fontFamily:
-                "ui-monospace, SFMono-Regular, Menlo, monospace",
-              whiteSpace: "pre-wrap",
-              fontSize: "0.875rem",
-              lineHeight: 1.5,
-            }}
-          >
-            {sbar.finalContent}
-          </Box>
-        </Paper>
-      )}
+      <SbarFinalDialog
+        open={finalDialogOpen && !!sbar.finalContent}
+        onClose={() => setFinalDialogOpen(false)}
+        markdown={sbar.finalContent ?? ""}
+        subtitle={
+          [
+            sbar.runId ? `run ${sbar.runId.slice(0, 8)}` : null,
+            sbar.assessmentId
+              ? `assessment ${sbar.assessmentId.slice(0, 8)}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join("  --  ") || undefined
+        }
+      />
     </Box>
   );
 }

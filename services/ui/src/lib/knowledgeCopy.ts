@@ -18,7 +18,8 @@ export type KnowledgeTabKey =
   | "pathways"
   | "domains"
   | "terminology"
-  | "ai-summarisation";
+  | "ai-summarisation"
+  | "test-patients";
 
 export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
   "training-data": {
@@ -282,6 +283,39 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       lede: "Direct enqueue to the pipeline-jobs queue with the SBAR contract.",
       how: "Submit a payload and watch the worker pick it up.",
       what: "Useful for smoke-testing worker scale-out and Redis relay.",
+    },
+  },
+
+  "test-patients": {
+    default: {
+      title: "Test Patients",
+      lede: "Fake patients you can use to check the AI before a change goes live.",
+      how: "Pick what you want to test, then build or copy a patient.",
+      what: "You can replay them any time to see if the AI still works.",
+    },
+    clinician: {
+      title: "Test patients",
+      lede: "Pretend patients used to check the tool, never real people.",
+      how: "Open one to see what notes and codes it carries.",
+      what: "Test patients are tagged with test_ so they cannot be mistaken for real ones.",
+    },
+    staff: {
+      title: "Test patient library",
+      lede: "One place to keep test patients for every part of the AI.",
+      how: "Pick which part of the AI to test, then build a patient or copy a real one.",
+      what: "Replay any time to spot a change in how the AI behaves.",
+    },
+    qa_ra_lead: {
+      title: "Test patient library (regression bench)",
+      lede: "Centralised fixtures for NLP, episode build, guideline firing and SBAR generation.",
+      how: "Filter by aspect, replay before sign-off, and review per-aspect drift in one place.",
+      what: "Each fixture carries an is_test flag and a separate :TestPatient label so leakage into clinician surfaces is structurally impossible (R-8C0CC94B).",
+    },
+    platform_admin: {
+      title: "Test patient graph",
+      lede: "Synthetic :TestPatient subgraph next to real :Patient rows.",
+      how: "Use the clone-from-real action to seed a fixture from a real patient with PII stripped.",
+      what: "All cloned encounters and documents carry is_test = true so any property-level filter can also exclude them.",
     },
   },
 

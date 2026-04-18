@@ -27,9 +27,15 @@ from pydantic import BaseModel, Field
 
 from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
-from app.services import test_patient_generator, test_patient_service
+from app.services import (
+    test_patient_clone,
+    test_patient_generator,
+    test_patient_service,
+)
+from app.services.test_patient_clone import CloneError
 from app.services.test_patient_service import PatientPayload
 from libs.auth.org_scope import CallerScope
+from libs.cypher.test_patient_queries import TEST_PATIENT_ASPECTS
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/guidance", tags=["test-patients"])
@@ -140,6 +146,21 @@ class ReplayRequest(BaseModel):
     persist_report: bool = True
 
 
+class CloneFromRealRequest(BaseModel):
+    """Body for ``POST /test-patients/clone``.
+
+    Copies a real :Patient subgraph to a new :TestPatient, removes
+    identifiable details and tags the new record with the supplied
+    aspect. Per DI-59824215 / R-8C0CC94B (Atlas) the resulting node
+    always carries a "test_" display-name prefix and an `is_test = true`
+    flag. The original real patient is never modified.
+    """
+
+    source_patient_id: str
+    aspect: Literal["nlp", "episodes", "guidelines", "summarisation"]
+    description: str = ""
+
+
 class SandboxReplayRequest(BaseModel):
     """Compile UNSAVED draft rules and replay saved patients against them.
 
@@ -230,6 +251,13 @@ def save_patient(
 
 @router.get("/test-patients")
 def list_patients(
+    aspect: str | None = Query(
+        default=None,
+        description=(
+            "Filter by AI aspect. One of nlp / episodes / guidelines / "
+            "summarisation, or 'all' / omitted to return every aspect."
+        ),
+    ),
     guideline_id: str | None = Query(default=None),
     rule_id: str | None = Query(default=None),
     node_id: str | None = Query(default=None),
@@ -242,11 +270,82 @@ def list_patients(
     try:
         return test_patient_service.list_patients(
             client,
+            aspect=aspect,
             guideline_id=guideline_id,
             rule_id=rule_id,
             node_id=node_id,
             limit=limit,
         )
+    finally:
+        client.close()
+
+
+@router.get("/test-patients/aspect-counts")
+def get_aspect_counts(
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, int]:
+    """Return counts per aspect for the four count tiles.
+
+    Always returns one entry per known aspect (zero when there are no
+    patients for it) plus a synthetic "all" total. The Knowledge tab
+    uses this to render a stable four-tile layout.
+    """
+    _ = scope
+    client = _client()
+    try:
+        return test_patient_service.count_by_aspect(client)
+    finally:
+        client.close()
+
+
+@router.get("/test-patients/source-patients")
+def list_source_patients(
+    limit: int = Query(default=50, ge=1, le=500),
+    scope: CallerScope = Depends(require_admin),
+) -> list[dict]:
+    """Return real patients available as a clone source.
+
+    Filters out :TestPatient rows so only true production patients
+    appear. Used by the Knowledge > Test Patients > Clone-from-real
+    dialog.
+    """
+    _ = scope
+    client = _client()
+    try:
+        return test_patient_clone.list_source_patients(client, limit=limit)
+    finally:
+        client.close()
+
+
+@router.post("/test-patients/clone")
+def clone_from_real_patient(
+    body: CloneFromRealRequest, scope: CallerScope = Depends(require_admin)
+) -> dict:
+    """Copy a real patient to a new de-identified :TestPatient.
+
+    Returns the new test patient summary including counts of cloned
+    encounters, documents and concept relationships, so the UI can
+    display "X encounters, Y documents copied" feedback.
+
+    Raises HTTP 400 when the aspect is unknown or the source patient
+    does not exist.
+    """
+    if body.aspect not in TEST_PATIENT_ASPECTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"aspect must be one of {sorted(TEST_PATIENT_ASPECTS)}",
+        )
+    client = _client()
+    try:
+        return test_patient_clone.clone_patient_as_test_patient(
+            client,
+            source_patient_id=body.source_patient_id,
+            aspect=body.aspect,
+            created_by=getattr(scope, "user_email", "") or "unknown",
+            description=body.description,
+        )
+    except CloneError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     finally:
         client.close()
 
