@@ -20,6 +20,7 @@ from ._grouping import (
     _claim_specialists_for_episodes,
     _detect_phantom_sites,
 )
+from ._milestone_dedup import collapse_same_day_referrals
 from ._persistence import (
     _benign_closure_for_episode,
     _benign_qualifier_closure_for_episode,
@@ -595,6 +596,10 @@ def _build_closed_episode(
         ],
         ctx.claimed_encounters,
     )
+    # DI-LEO-AI-403 (Pattern N2): collapse same-day referral
+    # duplicates so the timeline shows ONE referral milestone per
+    # day per episode (highest-fidelity subtype kept).
+    _closed_link_groups = collapse_same_day_referrals(_closed_link_groups)
     _link_encounters_to_episode(
         ctx.patient_client,
         ep_id,
@@ -788,6 +793,9 @@ def _build_open_episode(
     link_groups = _filter_unclaimed_link_groups(
         link_groups, ctx.claimed_encounters
     )
+    # DI-LEO-AI-403 (Pattern N2): collapse same-day referral
+    # duplicates on the open-episode path too.
+    link_groups = collapse_same_day_referrals(link_groups)
     _link_encounters_to_episode(
         ctx.patient_client,
         ep_id,

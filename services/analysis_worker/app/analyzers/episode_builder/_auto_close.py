@@ -44,7 +44,17 @@ def _apply_merge_decision(
     """DI-LEO-AI-137: move IS_PART_OF edges onto the primary, then mark
     duplicates as merged. Both Cypher calls are wrapped in retry and
     failure of either aborts the remaining duplicates in the cluster
-    only -- other clusters are unaffected."""
+    only -- other clusters are unaffected.
+
+    DI-LEO-AI-403 (Pattern N2): after all moves for this decision
+    complete, sweep the primary's referral edges to collapse same-
+    date duplicates. The build-time collapse in _builder.py only
+    sees one episode at a time -- when two episodes are merged into
+    a single primary, both can contribute a same-day referral edge,
+    and only this post-merge sweep can resolve the resulting
+    duplicate.
+    """
+    moved_any = False
     for dup_id in decision.duplicates:
         try:
             _run_with_retry(
@@ -61,6 +71,7 @@ def _apply_merge_decision(
                 decision.primary_id,
             )
             continue
+        moved_any = True
         try:
             _run_with_retry(
                 patient_client,
@@ -72,6 +83,20 @@ def _apply_merge_decision(
             )
         except Exception:  # noqa: BLE001
             logger.error("Failed to mark episode %s merged", dup_id)
+
+    if moved_any:
+        try:
+            _run_with_retry(
+                patient_client,
+                cypher.COLLAPSE_SAME_DAY_REFERRALS_Q,
+                f"N2 collapse same-day referrals on {decision.primary_id}",
+                primary_id=decision.primary_id,
+            )
+        except Exception:  # noqa: BLE001
+            logger.error(
+                "Failed to collapse same-day referrals on primary %s",
+                decision.primary_id,
+            )
 
 
 def _merge_duplicate_episodes(patient_id: str, patient_client: Any) -> None:

@@ -88,6 +88,25 @@ var modelInferenceUrl = 'http://model-inference'
 var pipelineWorkerUrl = 'http://pipeline-worker'
 var researchWorkerUrl = 'http://research-worker'
 
+// -- Session namespace ----------------------------------------------------
+// Every backend service that calls libs/redis_client/session.py::load_session
+// must use the same Redis key prefix, otherwise inter-service session lookups
+// (e.g. analytics-api validating an X-Leo-Session forwarded from core-api)
+// silently miss and return 401. The Python fallback derives the namespace
+// from the host of FRONTEND_URL when SESSION_KEY_NAMESPACE is unset, which
+// only works on services where FRONTEND_URL is also set -- in our cluster
+// only core-api has it. We therefore set SESSION_KEY_NAMESPACE explicitly
+// on every container so the value is independent of which env vars happen
+// to reach which service.
+//
+// Derivation matches Python's _detect_session_namespace(): take the host
+// part of frontendUrl, then the first dotted label.
+var _frontendHostPart = split(
+  replace(replace(frontendUrl, 'https://', ''), 'http://', ''),
+  '/'
+)[0]
+var sessionKeyNamespace = split(_frontendHostPart, '.')[0]
+
 var hasUiTlsCustomDomain = !empty(uiCustomDomainHost) && !empty(uiIngressCertificateName)
 // Inner ternary: managed free cert vs uploaded / imported cert on the environment.
 var uiIngressCertificateResourceId = hasUiTlsCustomDomain
@@ -192,6 +211,7 @@ var sharedEnv = [
   // Security / session
   { name: 'COOKIE_SECURE', value: cookieSecure }
   { name: 'SESSION_TTL_HOURS', value: sessionTtlHours }
+  { name: 'SESSION_KEY_NAMESPACE', value: sessionKeyNamespace }
   { name: 'ALLOWED_ORIGINS', value: allowedOrigins }
   { name: 'CORS_ORIGINS', value: allowedOrigins }
 

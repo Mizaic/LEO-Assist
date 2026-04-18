@@ -1,0 +1,161 @@
+# -- DO-LEO-AI-403 -- Same-day referral collapse implementation (Pattern N2)
+# ISO 13485 / IEC 62304 Design Output
+#
+# NOTE: Created in the 4xx ID range alongside DO-401 / DO-402.
+
+- id: "DO-LEO-AI-403"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-403"]
+    user_needs: ["UN-LEO-AI-005"]
+    risks_addressed: ["R-LEO-AI-403"]
+    verification_tests: ["VT-LEO-AI-403"]
+
+  specification:
+    title: "Same-day same-event referral collapse (Pattern N2)"
+    description: |
+      Two-layer collapse of duplicate same-day referral
+      milestones inside a single EpisodeOfCare:
+
+      Layer 1 -- Build-time Python helper. New module
+      ``services/analysis_worker/app/analyzers/episode_builder/_milestone_dedup.py``
+      exposes ``collapse_same_day_referrals(link_groups, *,
+      milestone_types=("referral",))`` which transforms the
+      ``(anchors, milestone_type)`` link-group list emitted by
+      ``_filter_unclaimed_link_groups``. For each opted-in
+      milestone-type group, anchors are bucketed by
+      ``encounter_date``; each non-empty bucket is reduced to
+      one representative chosen by:
+      ``(referral_subtype_rank, created_at, input_index)``.
+      ``REFERRAL_SUBTYPE_PRIORITY = ("prism", "form_field",
+      "text_generic")``; unknown / empty subtypes fall to one
+      past the end. Anchors with no encounter_date are passed
+      through unchanged. The helper is wired into BOTH
+      ``_build_closed_episode`` and ``_build_open_episode`` in
+      ``_builder.py``, after ``_filter_unclaimed_link_groups``
+      and before ``_link_encounters_to_episode``.
+
+      Layer 2 -- Post-merge Cypher sweep. New query
+      ``COLLAPSE_SAME_DAY_REFERRALS_Q`` in
+      ``services/analysis_worker/app/analyzers/episode_builder/_cypher.py``
+      runs once on the surviving primary at the end of each
+      successful merge in ``_apply_merge_decision``
+      (``_auto_close.py``). The query uses the same ranking
+      rule directly in Cypher (``CASE r.referral_subtype WHEN
+      'prism' THEN 0 ... ELSE 3``), groups by
+      ``(episode_id, e.date)``, sorts (rank, created_at,
+      elementId), and ``DELETE``s every edge after the first.
+
+      ``MOVE_LINKS_Q`` is updated to set ``new.referral_subtype
+      = coalesce(old.referral_subtype, '')`` and
+      ``new.linked_by = 'merge_duplicate'`` on the migrated
+      edge so post-merge ranking sees the original subtype
+      and is non-lossy.
+    acceptance_criteria:
+      - criterion: "Helper unit-test coverage"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          ``collapse_same_day_referrals`` correctly collapses
+          the canonical 4802892365 three-anchor case (1 prism
+          + 2 text_generic -> 1 prism), preserves single
+          anchors, preserves distinct-date anchors, leaves
+          non-referral milestones untouched, and never
+          mutates the input list.
+      - criterion: "Subtype priority"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          ``_referral_subtype_rank`` returns 0 for ``prism``,
+          1 for ``form_field``, 2 for ``text_generic``, and
+          ``len(REFERRAL_SUBTYPE_PRIORITY)`` for unknown /
+          empty / None.
+      - criterion: "Build-time wiring"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          The closed-episode and open-episode paths in
+          ``_builder.py`` both call ``collapse_same_day_referrals``
+          on the link-group list immediately before
+          ``_link_encounters_to_episode``.
+      - criterion: "Post-merge sweep"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          ``COLLAPSE_SAME_DAY_REFERRALS_Q`` executes on every
+          successful merge decision (at least one
+          ``MOVE_LINKS_Q`` succeeded) and removes all but the
+          highest-ranked referral edge per (primary, date).
+      - criterion: "MOVE_LINKS_Q preserves subtype"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          A referral edge migrated by ``MOVE_LINKS_Q`` lands
+          on the primary with ``referral_subtype`` matching
+          the source edge (or empty string when source was
+          NULL/missing) and ``linked_by='merge_duplicate'``.
+      - criterion: "Cohort impact"
+        type: "performance"
+        measurement: "Test"
+        target: >
+          After wipe-and-rebuild: zero episodes show > 1
+          referral milestone on the same date; total cohort
+          referral milestone count drops by at least 5
+          versus pre-N2 baseline.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_milestone_dedup.py"
+        description: >
+          New module: ``REFERRAL_SUBTYPE_PRIORITY``,
+          ``_referral_subtype_rank``, ``_anchor_date_key``,
+          ``_anchor_created_at``, ``_select_representative``,
+          ``collapse_same_day_referrals``.
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+        description: >
+          Import ``collapse_same_day_referrals`` and call it
+          in ``_build_closed_episode`` and
+          ``_build_open_episode`` between
+          ``_filter_unclaimed_link_groups`` and
+          ``_link_encounters_to_episode``.
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_cypher.py"
+        description: >
+          Extend ``MOVE_LINKS_Q`` to set ``referral_subtype``
+          and ``linked_by`` on migrated edge; add new
+          ``COLLAPSE_SAME_DAY_REFERRALS_Q`` query.
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_auto_close.py"
+        description: >
+          Track ``moved_any`` across each decision's
+          ``MOVE_LINKS_Q`` calls; when any move succeeded,
+          run ``COLLAPSE_SAME_DAY_REFERRALS_Q`` once on
+          ``decision.primary_id``.
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 130
+      key_functions:
+        - "collapse_same_day_referrals"
+        - "_referral_subtype_rank"
+        - "_apply_merge_decision"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Episode timeline milestone canonicalisation"
+    risk_control_measures:
+      - "Default opt-in is referral-only -- other milestone types preserved unchanged."
+      - "Conservative subtype priority -- only the three documented EMIS-aligned subtypes are ranked; unknown subtypes fall to lowest priority and lose to any listed subtype."
+      - "Dateless anchors pass through untouched, so we never silently drop an anchor."
+      - "Post-merge sweep runs only when at least one MOVE_LINKS_Q succeeded -- failure-isolated per cluster."
+      - "Dropped anchors lose only the IS_PART_OF edge; underlying Encounter nodes remain in the graph."
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

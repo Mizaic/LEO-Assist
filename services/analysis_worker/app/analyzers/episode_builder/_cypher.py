@@ -267,9 +267,36 @@ WITH e, old, dup, primary, old.milestone_type AS mtype
 OPTIONAL MATCH (e)-[existing:IS_PART_OF {milestone_type: mtype}]->(primary)
 FOREACH (_ IN CASE WHEN existing IS NULL THEN [1] ELSE [] END |
   MERGE (e)-[new:IS_PART_OF {milestone_type: mtype}]->(primary)
-  SET new.created_at = coalesce(old.created_at, datetime())
+  SET new.created_at = coalesce(old.created_at, datetime()),
+      new.referral_subtype = coalesce(old.referral_subtype, ''),
+      new.linked_by = 'merge_duplicate'
 )
 DELETE old
+"""
+
+# DI-LEO-AI-403 (Pattern N2): post-merge same-day referral collapse.
+# After merges complete on a primary episode, sweep its referral
+# IS_PART_OF edges and keep only one per date. Subtype priority
+# matches the Python helper in _milestone_dedup.py:
+#     prism (0) -> form_field (1) -> text_generic (2) -> other (3).
+# Ties on rank are broken by earliest created_at, then stable
+# elementId. The kept edge survives; the rest are deleted.
+COLLAPSE_SAME_DAY_REFERRALS_Q = """
+MATCH (e:Encounter)-[r:IS_PART_OF {milestone_type: 'referral'}]
+      ->(ep:EpisodeOfCare {episode_id: $primary_id})
+WITH ep, e.date AS day, r,
+     CASE coalesce(r.referral_subtype, '')
+       WHEN 'prism' THEN 0
+       WHEN 'form_field' THEN 1
+       WHEN 'text_generic' THEN 2
+       ELSE 3
+     END AS rank,
+     coalesce(r.created_at, datetime()) AS ts,
+     elementId(r) AS rid
+ORDER BY rank, ts, rid
+WITH ep, day, collect(r) AS rels
+WHERE size(rels) > 1
+FOREACH (extra IN tail(rels) | DELETE extra)
 """
 
 MARK_MERGED_Q = (

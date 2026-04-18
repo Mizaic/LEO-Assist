@@ -1,0 +1,126 @@
+# -- R-LEO-AI-210 -- Inter-service session namespace mismatch
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-210"
+  title: "Session namespace drift between core-api and downstream services causes a silent post-login redirect loop"
+
+  hazard:
+    description: >
+      The Redis key prefix used by core-api to write sessions
+      (auth:<namespace>:session:<id>) differs from the prefix used
+      by analytics-api / fhir-api / terminology-api / training-worker
+      / pipeline-worker / research-worker / model-inference to look
+      them up. The downstream service finds nothing in Redis and
+      returns 401, which the UI treats as session expiry and
+      redirects to /auth/login, which loops as soon as the new
+      session is created.
+    category: "availability"
+
+  hazardous_situation: >
+    A clinician signs in at the start of a clinic session. The
+    Azure AD round-trip succeeds, the leo_session cookie is set,
+    /auth/session returns 200, and the dashboard renders for ~1 s.
+    The first analytics call (e.g. concept subdomain memberships,
+    cohort summary, mission-control aggregate) returns 401 because
+    analytics-api looks for the session under the wrong Redis
+    namespace. The UI auth interceptor in
+    services/ui/src/lib/api/client.ts treats every 401 as session
+    expiry and redirects the browser to /auth/login. Login
+    completes, the new cookie is set, the page renders, the next
+    analytics call 401s, and the loop repeats. The clinician cannot
+    perform any task that depends on a downstream service.
+
+  harm:
+    description: >
+      Total loss of access to the clinical pathway audit
+      application for the affected user. Clinician falls back to
+      manual review (no LEO assistance, no audit trail), which
+      defeats the purpose of the SaMD and may delay a coding
+      decision that drives downstream care (escalation, referral,
+      or QOF action).
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 3
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Set SESSION_KEY_NAMESPACE explicitly on every backend
+        container app via infra/bicep/modules/container-apps.bicep
+        sharedEnv, so namespace resolution does not depend on
+        FRONTEND_URL or other env vars being set on each service.
+      implemented_by:
+        - "DI-LEO-AI-229"
+      verified_by:
+        - "VT-LEO-AI-217"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Both Python namespace resolvers
+        (services/api/app/services/session_store.py and
+        libs/redis_client/session.py) follow the same precedence
+        rules and the same fallback chain, verified by an automated
+        parity test. Any change to one MUST be mirrored in the other.
+      implemented_by:
+        - "DI-LEO-AI-229"
+      verified_by:
+        - "VT-LEO-AI-217"
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Post-deploy smoke test in cd-deploy.yml issues a request
+        through /api/proxy/* to confirm a freshly issued session
+        survives the proxy round-trip and returns 200. A 401 from
+        the smoke check blocks the deployment from being marked
+        healthy. (Follow-up; not yet implemented in this change.)
+      implemented_by: []
+      verified_by: []
+      effectiveness: "pending"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With SESSION_KEY_NAMESPACE explicit on every container and
+      enforced by an automated parity test that runs in CI, the
+      failure mode can only re-emerge if a future change deletes the
+      env var from sharedEnv AND deletes both Python namespace
+      resolvers' fallback logic AND the parity test passes anyway.
+      The remaining low residual probability covers operational
+      drift (someone setting the env var manually on a single
+      service via az containerapp update with a different value),
+      which the planned post-deploy smoke check will catch.
+
+  monitoring:
+    monitoring_plan: >
+      Watch core-api and analytics-api logs for paired patterns of
+      "200 GET /auth/session" followed within seconds by "401 GET
+      /api/proxy/*" from the same source IP, which is the
+      fingerprint of this failure mode. Alert if the rate of post-
+      login 401s exceeds the baseline by 5x in a 10-minute window.
+    metrics:
+      - "Count of 401 responses on /api/proxy/* per minute"
+      - "Ratio of /auth/login redirects to /auth/callback completions per session"
+      - "Mean time between consecutive /auth/login hits from the same IP (a tight loop is < 5 s)"
+    review_frequency: "Quarterly"
+
+  metadata:
+    identified_by: "Rob Smith - production debugging on leo-ai-audit.healthcarecopilot.ai (April 2026), confirmed via container logs showing 200 /auth/session followed by 401 /api/proxy/analytics/concepts/*/subdomain-memberships and az containerapp env-var inspection across all 8 services"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags:
+      - "auth"
+      - "inter-service"
+      - "session"
+      - "availability"
+      - "deployment"
+      - "safety-relevant"

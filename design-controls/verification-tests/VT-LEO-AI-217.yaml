@@ -1,0 +1,120 @@
+- id: "VT-LEO-AI-217"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-229"
+    risks:
+      - "R-LEO-AI-210"
+
+  metadata:
+    title: "Inter-service session namespace parity"
+    description: >
+      Verifies that the two Python session-namespace resolvers and
+      the deployed Bicep template all agree on a single Redis key
+      prefix per environment. Closes the post-login redirect-loop
+      gap captured by R-LEO-AI-210.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_session_namespace_parity.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-217-TC-001"
+      case_name: "Explicit SESSION_KEY_NAMESPACE wins on both modules"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Set SESSION_KEY_NAMESPACE=leo-ai-audit, plus other env vars that would otherwise be picked up"
+          expected_result: "Both _detect_session_namespace functions return 'leo-ai-audit'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Explicit env var overrides every other source on both modules"
+
+    - case_id: "VT-217-TC-002"
+      case_name: "ENVIRONMENT / APP_ENV / LEO_ENV fallback parity"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Unset SESSION_KEY_NAMESPACE; set ENVIRONMENT only, then APP_ENV only, then LEO_ENV only"
+          expected_result: "Both modules pick the same value from each env var with the documented precedence (ENVIRONMENT > APP_ENV > LEO_ENV)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Three sub-cases: each env var alone yields the same namespace from both modules"
+
+    - case_id: "VT-217-TC-003"
+      case_name: "FRONTEND_URL host derivation parity"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Unset SESSION_KEY_NAMESPACE / ENVIRONMENT / APP_ENV / LEO_ENV; set FRONTEND_URL=https://leo-ai-audit.healthcarecopilot.ai"
+          expected_result: "Both modules return 'leo-ai-audit' (first label of host)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Both modules derive 'leo-ai-audit' from the FRONTEND_URL host"
+
+    - case_id: "VT-217-TC-004"
+      case_name: "AUTH_REDIRECT_URI fallback parity (no scheme prefix)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Set only AUTH_REDIRECT_URI=leo-ai-audit.healthcarecopilot.ai/auth/callback (no scheme)"
+          expected_result: "Both modules normalise scheme-less host and return 'leo-ai-audit'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Both modules tolerate a scheme-less AUTH_REDIRECT_URI without raising"
+
+    - case_id: "VT-217-TC-005"
+      case_name: "Total fallback to 'local'"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Unset every relevant env var"
+          expected_result: "Both modules return 'local' (deterministic non-empty fallback)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Both modules never produce an empty namespace"
+
+    - case_id: "VT-217-TC-006"
+      case_name: "Bicep sharedEnv injects SESSION_KEY_NAMESPACE on every backend container"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read infra/bicep/modules/container-apps.bicep as text"
+          expected_result: "The sharedEnv block declares SESSION_KEY_NAMESPACE bound to a Bicep variable that is non-empty"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Static-source check confirms the env var is in sharedEnv"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types:
+      - "automated_test_run"
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-217/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-217-RUN-001"
+      executed_by: "developer (Rob Smith)"
+      executed_date: "2026-04-18"
+      environment: "local development (macOS, Python 3.13)"
+      command: "pytest tests/test_session_namespace_parity.py -v"
+      result: "pass"
+      cases_passed: 6
+      cases_failed: 0
+      notes: "All 6 cases pass. Bicep static-source check (TC-006) confirms infra/bicep/modules/container-apps.bicep declares SESSION_KEY_NAMESPACE in sharedEnv."
