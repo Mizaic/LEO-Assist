@@ -1,8 +1,13 @@
-"""SBAR generation subgraph.
+"""SBAR generation subgraph (legacy heuristic).
+
+This subgraph is kept for the pipeline canvas test-runs that wire SBAR
+in as a step. The PRODUCTION SBAR flow is the dedicated pub/sub
+orchestrator -- see ``services.pipeline_worker.app.services.sbar_orchestrator``
+and DI-LEO-AI-186. Use ``POST /sbar/jobs`` to trigger a real run.
 
 Prompt resolution:
 1. ``prompt_configs`` list in state (from Neo4j PromptConfig nodes)
-2. ``libs.prompts.registry`` (Neo4j → hardcoded fallback)
+2. ``libs.prompts.registry`` (Neo4j -- hardcoded fallback)
 """
 
 from __future__ import annotations

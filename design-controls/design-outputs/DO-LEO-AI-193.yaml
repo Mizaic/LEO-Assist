@@ -1,0 +1,87 @@
+# -- DO-LEO-AI-193 -- AI Summarisation Playground (admin UI)
+- id: "DO-LEO-AI-193"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-194"]
+    user_needs: ["UN-LEO-AI-081"]
+    risks_addressed: ["R-LEO-AI-185"]
+    verification_tests: ["VT-LEO-AI-188"]
+
+  specification:
+    title: "AI Summarisation playground tab + UI proxy + SSE hook"
+    description: |
+      Adds the "AI Summarisation" tab to /admin/knowledge backed by
+      SbarPlayground (a reactive form for SBARRequestPayload), the
+      useSbarStream hook (POST /api/sbar/jobs + EventSource on
+      /api/sbar/jobs/{run_id}/events + final fetch of
+      /api/sbar/assessments/{id}), and three Next.js Route Handlers
+      that proxy to the Core API. Carries a permanent "test only"
+      banner and uses the standard KnowledgePageLayout chrome.
+    acceptance_criteria:
+      - criterion: "Tab registration"
+        type: "functional"
+        measurement: "Test"
+        target: "TABS in admin/knowledge/page.tsx contains ai-summarisation with the AiSummarisationPage panel"
+      - criterion: "Test-only banner"
+        type: "safety"
+        measurement: "Test"
+        target: "data-testid=sbar-test-only-banner is rendered in SbarPlayground"
+      - criterion: "Proxy fidelity"
+        type: "functional"
+        measurement: "Test"
+        target: "Three Route Handlers POST/GET to the Core API with the right paths and headers"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/ai-summarisation/page.tsx"
+        description: "Dynamic import wrapper for SbarPlayground"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx"
+        description: "Reactive form + per-stage progress + final Markdown render"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/hooks/useSbarStream.ts"
+        description: "useSbarStream hook"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/api/sbar/jobs/route.ts"
+        description: "POST proxy"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/api/sbar/jobs/[runId]/events/route.ts"
+        description: "GET SSE proxy"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/api/sbar/assessments/[assessmentId]/route.ts"
+        description: "GET proxy"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/knowledge/page.tsx"
+        description: "Adds ai-summarisation tab"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/lib/knowledgeCopy.ts"
+        description: "Adds ai-summarisation copy block"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 800
+      key_functions: ["SbarPlayground", "useSbarStream"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Always-visible 'test only' banner prevents reviewer mistaking output for production guidance"
+      - "Page sits behind /admin/* role gate; underlying API endpoints also enforce require_admin"
+    risk_control_measures:
+      - "Banner addresses R-LEO-AI-185 directly"
+      - "Submit gated until patient id + at least one background source are populated"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

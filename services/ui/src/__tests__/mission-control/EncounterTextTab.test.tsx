@@ -92,7 +92,7 @@ describe("EncounterTextTab milestone jump", () => {
     (fetchEncounterCodedLinks as jest.Mock).mockResolvedValue([]);
   });
 
-  test("renders milestone jump chips and switches to all encounters on jump", async () => {
+  test("renders milestone jump chips and clears the timeline filter on jump", async () => {
     render(<EncounterTextTab patientId="patient-1" episode={MOCK_EPISODE} />);
 
     await waitFor(() => {
@@ -107,9 +107,34 @@ describe("EncounterTextTab milestone jump", () => {
     fireEvent.click(diagnosisChip);
 
     await waitFor(() => {
-      const allEncountersChip = screen.getByText("All encounters (3)");
-      const chipRoot = allEncountersChip.closest('[role="button"]');
+      expect(screen.queryByTestId("timeline-filter-banner")).not.toBeInTheDocument();
+      const diagnosisChipAfter = screen.getByText("Diagnosed - 20 Jul 24");
+      const chipRoot = diagnosisChipAfter.closest('[role="button"]');
       expect(chipRoot?.className).toContain("MuiChip-colorPrimary");
+    });
+  });
+
+  test("scope chips and accordions are removed; Coded only + Search remain", async () => {
+    render(<EncounterTextTab patientId="patient-1" episode={MOCK_EPISODE} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Jump to milestone encounter:")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/^Episode linked \(/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Episode window \(/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^All encounters \(/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Other encounters in episode window/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/All other patient encounters/)).not.toBeInTheDocument();
+
+    expect(screen.getByText("Coded only")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search text in shown encounters")).toBeInTheDocument();
+  });
+
+  test("episode-linked encounters render an In episode chip", async () => {
+    render(<EncounterTextTab patientId="patient-1" episode={MOCK_EPISODE} />);
+    await waitFor(() => {
+      expect(screen.getAllByTestId("encounter-in-episode-chip").length).toBeGreaterThan(0);
     });
   });
 

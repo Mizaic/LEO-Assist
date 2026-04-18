@@ -1,0 +1,196 @@
+# -- VT-LEO-AI-182 -- candidate_prune service + endpoints
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-182"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-196"]
+    risks: ["R-LEO-AI-187", "R-LEO-AI-188"]
+
+  metadata:
+    title: "candidate_prune verdict ladder, safety rails, and FastAPI prune/preview + prune/execute endpoints"
+    description: >
+      Pins the verdict ladder defined by DI-LEO-AI-196 (zero-entity ->
+      review, blocked assertion -> review, manual_gold_seed* source ->
+      review, all-rejected -> delete, all-accepted -> keep, mixed ->
+      review) and the FastAPI surface (admin gating, preview returns
+      structured payload without mutation, execute re-checks status,
+      404 for unknown ids, audit log on every call).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_candidate_prune.py"
+      - "services/api/tests/test_candidate_prune_endpoint.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.11+ / pytest 8+"
+      - "FastAPI test client + dependency_overrides"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-182-TC-001"
+      case_name: "assess: zero entities -> verdict='review'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build candidate row with entities_json='[]', call assess_candidates with stub validator"
+          expected_result: "verdict == 'review'; rejection_reasons contains 'zero_entities_safety_rail'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Empty proposals never auto-deleted"
+
+    - case_id: "VT-182-TC-002"
+      case_name: "assess: any entity assertion in _AUTO_CODE_BLOCKED -> verdict='review'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build candidate with entity assertion='absent' even though validator would reject it"
+          expected_result: "verdict == 'review'; rejection_reasons contains 'blocked_assertion_safety_rail'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Negation/historical/family signal preserved"
+
+    - case_id: "VT-182-TC-003"
+      case_name: "assess: source startswith 'manual_gold_seed' -> verdict='review'"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Build candidate with source='manual_gold_seed_2026_04_17' and validator-rejected entities"
+          expected_result: "verdict == 'review'; rejection_reasons contains 'manual_seed_safety_rail'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Manual seed lineage never auto-deleted"
+
+    - case_id: "VT-182-TC-004"
+      case_name: "assess: every entity validator-rejected -> verdict='delete'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build candidate with two entities, stub validator returns accepted=False for both"
+          expected_result: "verdict == 'delete'; rejected_count == 2; accepted_count == 0"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All-rejected pathway exercised"
+
+    - case_id: "VT-182-TC-005"
+      case_name: "assess: every entity validator-accepted -> verdict='keep'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Stub validator returns accepted=True for both entities"
+          expected_result: "verdict == 'keep'; accepted_count == 2"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Already-codable candidates never deleted"
+
+    - case_id: "VT-182-TC-006"
+      case_name: "assess: mixed accept+reject -> verdict='review'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Stub validator returns accepted=True for entity-0 and accepted=False for entity-1"
+          expected_result: "verdict == 'review'; accepted_count == 1; rejected_count == 1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Mixed cases require human judgement"
+
+    - case_id: "VT-182-TC-007"
+      case_name: "execute_prune: status='completed' is skipped (TOCTOU re-check)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Mock GET_TRAINING_CANDIDATE_BY_ID to return status='completed' for the supplied candidate_id; call execute_prune"
+          expected_result: "skipped_completed contains the id; deleted does not; DELETE Cypher not invoked"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Race condition between preview and execute cannot delete a completed gold record"
+
+    - case_id: "VT-182-TC-008"
+      case_name: "execute_prune: not_found is reported when candidate has been removed between preview and execute"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Mock GET_TRAINING_CANDIDATE_BY_ID to return None"
+          expected_result: "not_found contains the id; deleted does not"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Idempotent under repeated execute"
+
+    - case_id: "VT-182-TC-009"
+      case_name: "POST /training/candidates/prune/preview requires admin"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Override get_caller_scope but NOT require_admin; POST preview"
+          expected_result: "HTTP 401/403"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Endpoint admin-gated"
+
+    - case_id: "VT-182-TC-010"
+      case_name: "POST /training/candidates/prune/preview returns assessment payload and does not delete"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Admin override + mock candidate fetch returning two candidates; POST preview with default params"
+          expected_result: "200; payload.summary has counts; payload.candidates is list; DELETE Cypher never invoked"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Preview is read-only"
+
+    - case_id: "VT-182-TC-011"
+      case_name: "POST /training/candidates/prune/execute deletes only the supplied ids and reports counts"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Admin override; POST execute with {candidate_ids:['cand-a','cand-b']}; mock GET status='pending' for both; mock DELETE Cypher returning {gold_labels_deleted:1,surface_form_tasks_deleted:0}"
+          expected_result: "200; payload {requested:2,deleted:2,skipped_completed:0,not_found:0}"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Execute is bounded to the explicit id list"
+
+    - case_id: "VT-182-TC-012"
+      case_name: "POST /training/candidates/prune/execute rejects empty id list with 400"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Admin override; POST execute with {candidate_ids:[]}"
+          expected_result: "HTTP 400; detail includes 'candidate_ids must be non-empty'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Cannot accidentally invoke a no-op destructive call"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-182/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-182-EXEC-2026-04-17-01"
+      executed_at: "2026-04-17T20:00:00Z"
+      executed_by: "automated:pytest"
+      command: ".venv/bin/python -m pytest tests/test_candidate_prune.py services/api/tests/test_candidate_prune_endpoint.py -v"
+      result: "pass"
+      cases_total: 20
+      cases_passed: 20
+      cases_failed: 0
+      notes: >
+        14 service-layer cases (verdict ladder, safety rails, summarise,
+        execute_prune TOCTOU re-check, fetch scope guard) +
+        6 endpoint cases (admin gating, preview read-only, execute
+        TOCTOU, empty id list 400, deleted/cascade counts, not_found
+        path). All pass on first run.

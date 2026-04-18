@@ -63,7 +63,9 @@ const mockFetchPatientRebuildStatus =
 const BASE_KPIS = {
   total_patients: 1,
   confirmed_cancer: 0,
+  confirmed_cancer_patients: 0,
   pathway_closures: 0,
+  pathway_closure_patients: 0,
   median_diagnostic_interval_days: null,
   safety_netting_rate: 0,
   needs_review_count: 1,

@@ -1,12 +1,14 @@
-import { inMsRange, inRange } from "./encounterTextUtils";
+import { inMsRange } from "./encounterTextUtils";
 
 // Encounter list filtering helpers used by the Mission Control
-// patient detail Encounter text tab. Pulled out so EncounterTextTab
-// can stay under the 500 LOC ceiling and so the timeline-driven
-// filter has a single source of truth.
+// patient detail Encounter text tab. The flat encounter list below
+// the histogram is filtered by Coded-only, free-text search, and
+// the histogram brush window. The brush is the only spatial filter
+// since DI-LEO-AI-213 replaced the scope chips with the histogram
+// overlay.
 //
-// Design Controls: UN-LEO-AI-077, DI-LEO-AI-179, DO-LEO-AI-178,
-// R-LEO-AI-174, VT-LEO-AI-173.
+// Design Controls: UN-LEO-AI-077, DI-LEO-AI-213, DO-LEO-AI-210,
+// R-LEO-AI-174, VT-LEO-AI-205.
 
 export interface FilterableEncounter {
   encounter_id: string;
@@ -36,39 +38,4 @@ export function applyCommonFilters<E extends FilterableEncounter>(
     }
     return true;
   });
-}
-
-export interface SplitArgs<E> {
-  encounters: E[];
-  linkedEncounterIds: Set<string>;
-  episodeFrom: string | null;
-  episodeTo: string | null;
-}
-
-export interface EncounterSplit<E> {
-  linked: E[];
-  windowOnly: E[];
-  other: E[];
-}
-
-export function splitEncounters<E extends FilterableEncounter>(
-  args: SplitArgs<E>
-): EncounterSplit<E> {
-  const { encounters, linkedEncounterIds, episodeFrom, episodeTo } = args;
-  const linked: E[] = [];
-  const windowOnly: E[] = [];
-  const other: E[] = [];
-  for (const e of encounters) {
-    const id = String(e.encounter_id);
-    if (linkedEncounterIds.has(id)) {
-      linked.push(e);
-      continue;
-    }
-    if (inRange(String(e.date).slice(0, 10), episodeFrom, episodeTo)) {
-      windowOnly.push(e);
-    } else {
-      other.push(e);
-    }
-  }
-  return { linked, windowOnly, other };
 }

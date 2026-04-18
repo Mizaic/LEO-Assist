@@ -18,11 +18,13 @@ GET_GOLDEN_SET_LABELS = """
 MATCH (g:GoldLabel)
 WHERE g.frozen_golden_set = true
   AND g.entities_json IS NOT NULL
+OPTIONAL MATCH (c:TrainingCandidate)-[:PRODUCED]->(g)
 RETURN
     g.label_id AS label_id,
     g.text AS text,
     g.entities_json AS entities_json,
-    g.source AS source
+    g.source AS source,
+    coalesce(g.candidate_id, c.candidate_id) AS candidate_id
 ORDER BY g.created_at ASC
 """
 

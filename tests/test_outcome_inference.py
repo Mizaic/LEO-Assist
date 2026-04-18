@@ -484,14 +484,25 @@ class TestSiteMapFixes:
             _extract_condition_key("Essential thrombocythaemia") in haematological
         )
 
-    def test_generic_cancer_maps_to_non_site_specific_not_unknown(self):
+    def test_generic_cancer_maps_to_unknown_not_nss(self):
+        """Strict NSS rule: only explicit '2WW NSS', 'NSS', or
+        'non-specific symptoms' phrases map to non_site_specific. Generic
+        malignancy mentions without a recognised site map to 'unknown'.
+        See DI-LEO-AI-202 (strict NSS classification)."""
         from services.analysis_worker.app.analyzers.episode_builder import (
             _extract_condition_key,
         )
 
-        assert _extract_condition_key("Malignant neoplasm") == "non_site_specific"
-        assert _extract_condition_key("Suspected malignancy") == "non_site_specific"
-        assert _extract_condition_key("Carcinoma NOS") == "non_site_specific"
+        assert _extract_condition_key("Malignant neoplasm") == "unknown"
+        assert _extract_condition_key("Suspected malignancy") == "unknown"
+        assert _extract_condition_key("Carcinoma NOS") == "unknown"
+        assert (
+            _extract_condition_key("2WW NSS pathway") == "non_site_specific"
+        )
+        assert (
+            _extract_condition_key("Non-specific symptoms referral")
+            == "non_site_specific"
+        )
 
     def test_truly_unknown_still_returns_unknown(self):
         from services.analysis_worker.app.analyzers.episode_builder import (

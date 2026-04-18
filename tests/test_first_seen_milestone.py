@@ -126,7 +126,7 @@ class TestClassifyTextEncountersFirstSeen:
     def test_first_seen_phrase_placed_in_8th_bucket(self):
         rows = [self._row("Seen in fast track suspected breast cancer clinic")]
         result = _classify_text_encounters(rows, already_coded_ids=set())
-        assert len(result) == 8, "Must return 8-tuple"
+        assert len(result) == 9, "Must return 9-tuple"
         first_seen_bucket = result[7]
         assert len(first_seen_bucket) == 1
         assert first_seen_bucket[0]["encounter_id"] == "enc-001"

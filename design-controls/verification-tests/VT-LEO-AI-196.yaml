@@ -1,0 +1,95 @@
+# -- VT-LEO-AI-196 -- PMHx history-of-cancer detection
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-196"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-203"
+    risks:
+      - "R-LEO-AI-193"
+
+  metadata:
+    title: "text_contains_history_of_cancer recognises malignancy mentions under PMHx / Past medical history sections"
+    description: >
+      Verifies the DI-LEO-AI-203 PMHx awareness rule. A
+      malignancy term that appears under a recognised
+      "Past medical history" section header MUST be treated
+      as historical context (history-of-cancer = True), so
+      the text classifier does not emit a phantom diagnosis
+      anchor against a PMHx line.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_patient_4643293950_patterns.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-196-TC-001"
+      case_name: "'Past medical history:\\nBowel cancer.' MUST be detected as history-of-cancer"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "text_contains_history_of_cancer('Past medical history:\\nCVA - no residual weakness.\\nHypertension.\\nBowel cancer.\\nFalls.')"
+          expected_result: "True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Returns True"
+
+    - case_id: "VT-196-TC-002"
+      case_name: "'PMH: HTN, T2DM, prostate cancer 2018' short-form MUST be detected as history-of-cancer"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "text_contains_history_of_cancer('PMH: HTN, T2DM, prostate cancer 2018 (in remission).')"
+          expected_result: "True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Returns True"
+
+    - case_id: "VT-196-TC-003"
+      case_name: "'Diagnosis: confirmed adenocarcinoma of caecum on biopsy' MUST NOT be detected as history-of-cancer"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "text_contains_history_of_cancer(active_diagnosis_text)"
+          expected_result: "False"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Returns False"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types:
+      - "automated_test_run"
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-196/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-LEO-AI-196-EXEC-001"
+      executed_at: "2026-04-18T11:30:00Z"
+      executor: "automated"
+      result: "pass"
+      summary: >
+        3 test cases (2 positive PMHx detection variants,
+        1 negative active-diagnosis case) executed via
+        TestPatternEPmhxBenignClosure in
+        tests/test_patient_4643293950_patterns.py. 3/3 passed.
+      pass_count: 3
+      fail_count: 0
+      notes: "Test command: pytest tests/test_patient_4643293950_patterns.py::TestPatternEPmhxBenignClosure -v"

@@ -1,0 +1,120 @@
+# -- DO-LEO-AI-198 -- Strict NSS classifier (regex + tightened keyword/concept maps)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-198"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-200"
+    user_needs:
+      - "UN-LEO-AI-005"
+      - "UN-LEO-AI-006"
+    risks_addressed:
+      - "R-LEO-AI-190"
+      - "R-LEO-AI-097"
+    verification_tests:
+      - "VT-LEO-AI-193"
+
+  specification:
+    title: "Strict NSS classification: word-boundary regex + tightened SNOMED/Read code maps"
+    description: |
+      Implements the DI-LEO-AI-200 strict-NSS rule across the
+      episode builder's site-resolution layer. Three coordinated
+      changes:
+
+      1. _NSS_PHRASE_RE (regex, word-boundary): the only text-path
+         signal that classifies an encounter as
+         cancer_type='non_site_specific'. Recognises:
+            - "non-site-specific" / "non site specific"
+            - "non-specific symptoms" / "non specific symptom"
+            - "2WW NSS", "NSS 2WW"
+            - "NSS referral"
+            - "fast track NSS"
+            - the full SNOMED guideline phrase
+              "fast track referral for suspected cancer due to
+              non-site-specific symptoms"
+
+      2. _SITE_MAP cleanup: removes the over-broad
+         ("fast", "non_site_specific") substring entry that
+         matched ANY text containing "fast" (including "fasting
+         bloods" and "fast turnaround"). Removes the legacy
+         substring entries for "non-site-specific" and "non site
+         specific" since they are now covered by the precise
+         _NSS_PHRASE_RE regex.
+
+      3. _extract_condition_key generic-term fallback returns
+         'unknown' instead of 'non_site_specific'. Generic cancer
+         words ("carcinoma", "neoplasm", "cancer", "tumour",
+         "suspected malignancy") without a recognisable site no
+         longer open a phantom NSS pathway; the episode builder's
+         NSS-absorption logic (DI-LEO-AI-196) folds them into a
+         temporally-overlapping typed pathway when one exists.
+
+      4. Read-code map corrections in code_inventories.py:
+            - XaMeD: 'non_site_specific' -> 'childrens_tumour'
+              ("Fast track referral for suspected children's
+              tumour")
+            - XaMeL: 'non_site_specific' -> 'testicular'
+              ("Malignant neoplasm of descended testis NOS")
+            - XaPyS: 'non_site_specific' -> 'childrens_tumour'
+              ("children's tumour clinic")
+            - XaPyg remains 'non_site_specific' (the canonical
+              NHS NSS clinic).
+
+    acceptance_criteria:
+      - criterion: "explicit_nss_surface_forms_classify_as_nss"
+        type: "functional"
+        measurement: "Test"
+        target: "All 9 _NSS_PHRASE_RE patterns from VT-LEO-AI-193 TC-001..009 return 'non_site_specific'"
+      - criterion: "non_nss_text_does_not_classify_as_nss"
+        type: "safety"
+        measurement: "Test"
+        target: "13 negative cases in VT-LEO-AI-193 TC-101..113 (fasting, fast turnaround, carcinoma of unknown primary, PRISM pathway names, oncology surveillance, etc.) all return 'unknown', not 'non_site_specific'"
+      - criterion: "specific_site_outranks_generic_nss_signals"
+        type: "functional"
+        measurement: "Test"
+        target: "'Fast track referral for suspected breast cancer' classifies as 'breast'; 'Fast track referral for suspected lung cancer (XaMeH)' classifies as 'lung'"
+      - criterion: "snomed_concept_id_for_nss_classifies_as_nss"
+        type: "functional"
+        measurement: "Test"
+        target: "_extract_condition_key_from_anchor({'concept_id':'1556551000000104'}) == 'non_site_specific'"
+      - criterion: "live_cohort_zero_phantom_nss"
+        type: "safety"
+        measurement: "Cypher inspection after wipe + rebuild"
+        target: "MATCH (ep:EpisodeOfCare {cancer_type:'non_site_specific'}) WHERE ep.status<>'merged' returns only episodes whose source encounters contain an explicit NSS surface form or NSS SNOMED/Read code"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_site_resolution.py"
+        description: "_NSS_PHRASE_RE, _SITE_MAP (with 'fast' removed), _extract_condition_key (generic-term fallback returns 'unknown'), _extract_condition_key_from_anchor"
+      - artifact_type: "source_code"
+        location: "libs/domains/code_inventories.py"
+        description: "FAST_TRACK_REFERRAL_READ_CODES (XaMeD->childrens_tumour, XaMeL->testicular), SPECIALIST_CLINIC_READ_CODES (XaPyS->childrens_tumour)"
+      - artifact_type: "test_code"
+        location: "tests/test_site_resolution_nss.py"
+        description: "TestNssExplicitSurfaceForms, TestNssNegativeFalsePositives, TestNssTypedSiteWins, TestNssAnchorResolution"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 60
+      key_functions:
+        - "_NSS_PHRASE_RE"
+        - "_extract_condition_key"
+        - "_extract_condition_key_from_anchor"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Cancer-type classification on EpisodeOfCare (drives NCDA pathway reporting and clinical-team episode review)"
+    risk_control_measures:
+      - "Word-boundary regex prevents sub-token matches (NSSF, fasting, etc.)"
+      - "Generic-term fallback returns 'unknown' so NSS-absorption (DI-LEO-AI-196) can fold the encounter into a typed pathway"
+      - "Explicit Read-code corrections eliminate three known mis-mappings (XaMeD, XaMeL, XaPyS) that previously routed children's-tumour and testicular cases into NSS"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

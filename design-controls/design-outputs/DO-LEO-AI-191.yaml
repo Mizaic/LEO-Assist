@@ -1,0 +1,73 @@
+# -- DO-LEO-AI-191 -- SBAR LLM prompt suite + JSON schemas
+- id: "DO-LEO-AI-191"
+  version: "1.0.0"
+  type: "Configuration"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-192"]
+    user_needs: ["UN-LEO-AI-080"]
+    risks_addressed: ["R-LEO-AI-181", "R-LEO-AI-184"]
+    verification_tests: ["VT-LEO-AI-189"]
+
+  specification:
+    title: "libs/prompts/sbar_*"
+    description: |
+      Three system prompts (sbar_situation_v1, sbar_background_v1,
+      sbar_recommendation_v1) and matching JSON output schemas
+      (SBAR_SITUATION_OUTPUT_SCHEMA, SBAR_BACKGROUND_OUTPUT_SCHEMA,
+      SBAR_RECOMMENDATION_OUTPUT_SCHEMA) plus the seed-script entries
+      that publish them to Neo4j as PromptConfig nodes editable from
+      /admin/prompts.
+    acceptance_criteria:
+      - criterion: "Seed registration"
+        type: "functional"
+        measurement: "Inspection"
+        target: "scripts.seed_prompt_configs.SEED_PROMPTS contains sbar_situation, sbar_background, sbar_recommendation v1"
+      - criterion: "Schema strictness"
+        type: "functional"
+        measurement: "Inspection"
+        target: "Schemas set additionalProperties=false and minLength=1 on the *_markdown fields"
+      - criterion: "Prompt-injection rule"
+        type: "safety"
+        measurement: "Inspection"
+        target: "Rule 10 in each prompt instructs the model to treat CONTEXT free text as data not instructions"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/prompts/sbar_situation_v1.py"
+        description: "SBAR_SITUATION_SYSTEM_V1"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/sbar_background_v1.py"
+        description: "SBAR_BACKGROUND_SYSTEM_V1"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/sbar_recommendation_v1.py"
+        description: "SBAR_RECOMMENDATION_SYSTEM_V1"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/sbar_output_schemas.py"
+        description: "Three JSON schemas"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "scripts/seed_prompt_configs.py"
+        description: "Three _add(...) calls for the SBAR prompts"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 600
+      key_functions: ["SBAR_*_SYSTEM_V1", "SBAR_*_OUTPUT_SCHEMA"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "12 hardening rules embedded in every prompt"
+      - "JSON schema validation rejects empty markdown before persistence"
+    risk_control_measures:
+      - "Versioned PromptConfig nodes give us rollback if a wording change regresses behaviour"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

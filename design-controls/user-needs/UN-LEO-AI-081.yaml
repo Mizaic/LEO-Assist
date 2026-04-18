@@ -1,0 +1,43 @@
+# -- UN-LEO-AI-081 -- Reviewers can interactively test SBAR generation
+# IEC 62366 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-081"
+  title: "Interactive playground for SBAR generation"
+  description: >
+    As a QA reviewer or prompt author, I need a playground in /admin/knowledge
+    where I can assemble the same payload the production pipeline uses,
+    submit it, and watch each SBAR stage stream back -- so I can validate
+    prompts, pipeline behaviour and rule coverage against fixture patients
+    before changes ship to clinicians.
+  stakeholder: "QA reviewer / prompt author / platform admin"
+  priority: "high"
+  rationale: >
+    Prompt and rule changes today have no end-to-end test surface short
+    of running the pipeline against a real patient. That is slow, leaks
+    PHI into review captures, and gives us no way to compare the SBAR
+    LEO would produce today against the SBAR it produced yesterday for
+    the same fixture. A playground that uses the production queue
+    contract closes the gap and ensures the prompts, the
+    deterministic Assessment formatter, and the SSE relay all behave
+    identically to production.
+
+  acceptance_criteria:
+    - "The playground lives under /admin/knowledge as a tab so it is reachable from the existing admin chrome"
+    - "The submitted payload uses the same SBARRequestPayload contract as production"
+    - "Per-stage output streams to the UI as it is generated"
+    - "Final SBAR Markdown is shown in full when complete"
+    - "Banner clearly labels output as test only -- not for clinical use"
+    - "Page passes WCAG 2.1 AA on the chrome"
+
+  design_inputs:
+    - "DI-LEO-AI-194"
+
+  metadata:
+    identified_by: "Conversation 2026-04-17 (prompt validation harness)"
+    identified_date: "2026-04-17"
+    status: "approved"
+    tags:
+      - "admin"
+      - "playground"
+      - "sbar"
+      - "qa-tooling"

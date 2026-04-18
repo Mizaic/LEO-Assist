@@ -1,0 +1,80 @@
+# -- DI-LEO-AI-191 -- SBAR HTTP API + SSE relay
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-191"
+  type: "Interface"
+  derived_from:
+    - "UN-LEO-AI-080"
+  requirement: >
+    The Core API SHALL expose an `/sbar` router with three admin-only
+    endpoints: POST /sbar/jobs (validate the SBAR payload, normalise
+    run_id/assessment_id/requested_by/tenant_id, and publish to the
+    pipeline-jobs queue), GET /sbar/jobs/{run_id}/events (Server-Sent
+    Events relay of the orchestrator progress stream from Redis
+    pub/sub), and GET /sbar/assessments/{assessment_id} (read the
+    persisted Assessment node).
+  rationale: >
+    Producers should not need to know about Service Bus or Redis to
+    request an SBAR. The HTTP API gives a uniform interface with
+    auth, scope and error mapping, and the SSE relay lets the
+    browser show live progress without polling.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          POST /sbar/jobs returns 422 on a malformed payload with
+          Pydantic error details; otherwise returns
+          {run_id, assessment_id, status='queued'}.
+      - type: "functional"
+        spec: >
+          GET /sbar/jobs/{run_id}/events streams text/event-stream
+          replaying the latest pipeline:last:{run_id} cached event
+          (if any) and then live messages from the pipeline:{run_id}
+          channel until a terminal event or _PROGRESS_IDLE_TIMEOUT_S
+          of silence.
+      - type: "functional"
+        spec: >
+          GET /sbar/assessments/{assessment_id} returns 404 if
+          unknown and otherwise the JSON-serialised Assessment node.
+      - type: "functional"
+        spec: >
+          All three endpoints require the require_admin dependency.
+    constraints:
+      - type: "safety"
+        spec: >
+          The SSE handler MUST emit a terminal close on
+          sbar_completed, sbar_failed or pipeline_error so the UI
+          stops rendering "running" against a finished job.
+    dependencies:
+      - "DI-LEO-AI-188"
+      - "DI-LEO-AI-189"
+      - "DI-LEO-AI-190"
+    downstream_impacts:
+      - "UI proxy routes for /api/sbar/*"
+      - "Admin authorisation policy"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI + Redis"
+      file_structure:
+        - "services/api/app/routers/sbar.py"
+        - "services/api/app/main.py"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-188 (UI side) verifies the proxy routes that
+      consume these endpoints. Live API tests for the three SBAR
+      endpoints are covered as part of VT-LEO-AI-188 in the
+      e2e Playwright harness.
+    test_protocol: "VT-LEO-AI-188"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-182"
+  tags:
+    - "sbar"
+    - "api"
+    - "sse"

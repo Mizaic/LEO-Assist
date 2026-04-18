@@ -1,0 +1,138 @@
+# -- VT-LEO-AI-201 -- AI first-pass reviewer UI verification
+# IEC 62304 Verification Test
+#
+# NOTE on numbering: replaces a now-clobbered VT-LEO-AI-195 used briefly
+# during development.
+
+- id: "VT-LEO-AI-201"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-209"
+    risks:
+      - "R-LEO-AI-197"
+
+  metadata:
+    title: "AI first-pass reviewer UI: dialog SSE consumption + AI-suggested chip + show-original toggle"
+    description: >
+      Verifies the reviewer-facing surfaces of the AI first-pass
+      workflow: GoldDatasetPanel registers the correct toolbar action
+      id, AIFirstPassDialog opens that action, the dialog consumes
+      the SSE stream into a live by_verdict tally, the
+      GoldLabelDetailDialog renders an AI-suggested chip on every
+      entity row when ai_first_pass_run_id is set, and the
+      show-original toggle flips the entity list between
+      entities_json and entities_json_original without dispatching a
+      save. Static-source jest VTs are the default surface here.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/ai-first-pass-dialog-chrome.test.tsx"
+      - "services/ui/src/__tests__/ai-first-pass-toolbar-id.test.tsx"
+      - "services/ui/src/__tests__/gold-label-detail-ai-chip-and-toggle.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-201-TC-001"
+      case_name: "GoldDatasetPanel toolbar registers an action with id='ai-first-pass'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Static-source read of GoldDatasetPanel; locate the ToolbarActions block; assert id='ai-first-pass' appears"
+          expected_result: "Match found in the constrained source slice"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "id='ai-first-pass' present in ToolbarActions"
+
+    - case_id: "VT-201-TC-002"
+      case_name: "AIFirstPassDialog opens an EventSource on the SSE endpoint and updates by_verdict counts"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render AIFirstPassDialog with a stub EventSource; emit two candidate.processed events (one pre_done, one delete)"
+          expected_result: "Dialog displays pre_done count == 1 and delete count == 1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "by_verdict.pre_done text == '1'"
+        - "by_verdict.delete text == '1'"
+
+    - case_id: "VT-201-TC-003"
+      case_name: "AIFirstPassDialog renders final summary on job.summary event"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Emit a job.summary event after candidate events"
+          expected_result: "Dialog shows final summary panel with the totals from the event"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Summary panel visible"
+        - "Final by_action counts match the emitted event"
+
+    - case_id: "VT-201-TC-004"
+      case_name: "GoldLabelDetailDialog renders 'AI suggested' chip per entity when ai_first_pass_run_id is non-null"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render GoldLabelDetailDialog with candidate.ai_first_pass_run_id set"
+          expected_result: "Each entity row contains an element with data-testid='ai-suggested-chip'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "ai-suggested-chip count == entity count"
+
+    - case_id: "VT-201-TC-005"
+      case_name: "Show-original toggle flips entity view to entities_json_original"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Click data-testid='show-original-toggle'"
+          expected_result: "Entity list re-renders from entities_json_original; chip disappears"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Entity texts match entities_json_original payload"
+        - "ai-suggested-chip count == 0 in original view"
+
+    - case_id: "VT-201-TC-006"
+      case_name: "Show-original toggle is read-only (no save dispatch)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Toggle to original then back to AI; assert no fetch / mutation handler invoked"
+          expected_result: "Mock save handler call_count == 0"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "save handler call_count == 0"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-201/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-LEO-AI-201-EXEC-001"
+      executed_at: "2026-04-17"
+      executed_by: "LEO AI agent"
+      environment: "development (services/ui)"
+      command: "npx jest --no-coverage --testPathPatterns 'ai-first-pass-toolbar-id|ai-first-pass-dialog-chrome|gold-label-detail-ai-chip-and-toggle'"
+      result: "pass"
+      summary: "3 suites / 15 tests passed (toolbar id, SSE wiring + safety defaults, AI chip + show-original toggle + read-only audit view + Candidate/GoldLabel type contract)."
+      notes: >
+        Static-source verifications across GoldDatasetPanel.tsx,
+        AIFirstPassDialog.tsx, CandidateReviewList.tsx and
+        goldDatasetTypes.ts. Every TC-001 through TC-006 has at least
+        one passing assertion in the run.

@@ -150,6 +150,33 @@ POSTCODE_RE = re.compile(
     r"\b(?:GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b", re.IGNORECASE
 )
 
+# CTV3 / Read v2 clinical code shape: exactly 5 alphanumeric characters
+# (e.g. "Ya03d", "B00zz", "X78HC", "8BAD0") with optional trailing dot padding
+# for Read v2 ("B0...", "B00..", "B000."). These collide with the compact-form
+# UK postcode regex (e.g. "B00zz" parses as letter-digit-digit-letter-letter).
+# Canonical UK postcodes in clinical text are written with a space between
+# outward and inward parts ("SW1A 1AA"), so any 5-char no-space match is far
+# more likely to be a clinical code than a postcode.
+READ_CODE_SHAPE_RE = re.compile(r"^[A-Za-z0-9]{1,5}\.{0,4}$")
+
+
+def _looks_like_read_code(token: str) -> bool:
+    """True if token looks like a CTV3 / Read v2 clinical code, not a postcode."""
+    s = token.strip()
+    if not s or " " in s or "\t" in s:
+        return False
+    if len(s) != 5:
+        return False
+    return bool(READ_CODE_SHAPE_RE.match(s))
+
+
+def _replace_postcode(match: re.Match[str]) -> str:
+    """Substitute [POSTCODE] but preserve clinical Read codes."""
+    matched = match.group(0)
+    if _looks_like_read_code(matched):
+        return matched
+    return "[POSTCODE]"
+
 # UK phone number (handles optional space/hyphen after +44)
 PHONE_RE = re.compile(r"(?:\+44[\s\-]?\d|\b0\d)[\d\s\-]{8,}\d\b")
 
@@ -252,7 +279,7 @@ def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     out = EMAIL_RE.sub("[EMAIL]", out)
     out = PHONE_RE.sub("[PHONE]", out)
     out = NHS_RE.sub("[NHS_NUMBER]", out)
-    out = POSTCODE_RE.sub("[POSTCODE]", out)
+    out = POSTCODE_RE.sub(_replace_postcode, out)
     out = DATE_SLASH_RE.sub("[DATE]", out)
     out = DATE_DOT_RE.sub("[DATE]", out)
     out = DATE_ISO_RE.sub("[DATE]", out)
@@ -319,7 +346,9 @@ def detect_phi(text: str) -> list[str]:
         found.append("phone")
     if NHS_RE.search(text):
         found.append("nhs_number")
-    if POSTCODE_RE.search(text):
+    if any(
+        not _looks_like_read_code(m.group(0)) for m in POSTCODE_RE.finditer(text)
+    ):
         found.append("postcode")
     if DATE_ISO_RE.search(text):
         found.append("iso_date")

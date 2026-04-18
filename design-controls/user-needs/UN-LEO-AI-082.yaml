@@ -1,0 +1,58 @@
+# -- UN-LEO-AI-082 -- Trustworthy gold-label review and self-consistent training data
+# IEC 62366 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-082"
+  title: "Trustworthy gold-label review UI and self-consistent persisted training data"
+  description: >
+    As a clinical reviewer or training data curator, I need the
+    GoldLabelDetailDialog to always render the entities that belong to
+    the GoldLabel I selected (never entities from a previously-viewed
+    record), AND I need every persisted GoldLabel to remain
+    self-consistent over time -- the SNOMED concept attached to each
+    entity must agree with the entity's clinical label, and any future
+    seed script or LLM augmentation that violates this contract must be
+    blocked at write time and detectable offline against the live
+    knowledge graph.
+  stakeholder: "Clinical reviewer / training data curator / QA lead"
+  priority: "critical"
+  rationale: >
+    On 2026-04-17 a reviewer reported the dialog showing
+    'Flexible cystoscopy' against an unrelated breast-USS sentence.
+    Investigation surfaced two distinct safety defects:
+    (1) the React GoldLabelDetailDialog mounted across four list
+    surfaces (gold / synonym / candidate / similar) reused component
+    instances without a stable `key`, so the lazy
+    useState(() => parseEntities(...)) initialiser captured the
+    previously-displayed label's entities -- reviewers approving such
+    a dialog implicitly signed off content they never inspected;
+    (2) the SNOMED proposal validator only ran against new LLM
+    additions, leaving 88 critical self-consistency issues across the
+    967 already persisted GoldLabels (including 7 records mapping
+    `(qualifier value)` SNOMED concepts onto clinical labels such as
+    `finding`). Both defects corrupt the gold training set and
+    propagate into the NER model.
+
+  acceptance_criteria:
+    - "Every JSX mount of <GoldLabelDetailDialog .../> carries a stable key prop derived from the rendered GoldLabel's label_id"
+    - "Distinct JSX mounts use distinct key namespace prefixes (gold-, syn-, cand-, sim-) to prevent accidental key collisions across surfaces"
+    - "The dialog body declares a useEffect with deps [item.label_id, item.entities_json] that re-derives entities and clears all entity-derived drafts when label_id changes"
+    - "An offline audit can sweep every persisted GoldLabel entity and flag self-consistency issues (missing concept_id, missing label, qualifier_value on clinical label, tag/label mismatch, stored tag drift, missing snomed_term, blocked assertion with concept) without calling the terminology service"
+    - "The audit is exposed as a CLI that writes JSONL + summary JSON to data/audit/ and supports filters by severity, source, and limit"
+    - "Manual gold-seed scripts derive semantic_tag authoritatively from the SNOMED preferred-term suffix and reject writes where the declared semantic_tag conflicts with the suffix outside the validator's _TAG_SYNONYMS table"
+    - "Manual gold-seed scripts reject writes where label is in _CLINICAL_LABELS but the authoritative semantic_tag is in _NON_CLINICAL_SEMANTIC_TAGS, naming R-LEO-AI-180 in the error"
+    - "Manual gold-seed scripts reject writes where snomed_concept_id is set but snomed_term is empty"
+
+  design_inputs:
+    - "DI-LEO-AI-185"
+    - "DI-LEO-AI-186"
+    - "DI-LEO-AI-187"
+
+  metadata:
+    identified_by: "Reviewer report 2026-04-17 (GL-d3ffb211468a5bcf rendered Flexible cystoscopy against breast-USS sentence) + audit_gold_label_entities sweep 2026-04-17"
+    identified_date: "2026-04-17"
+    status: "approved"
+    tags:
+      - "ui-safety"
+      - "gold-label"
+      - "training-data-quality"
+      - "snomed-validation"

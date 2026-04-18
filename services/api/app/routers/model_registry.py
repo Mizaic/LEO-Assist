@@ -37,6 +37,7 @@ from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.auth.service_auth import get_service_auth_header
 from libs.model_registry.registry import ModelRecord, ModelRegistry, get_registry
 from libs.model_store import ModelStore
+from libs.utils.deidentify import deidentify_text
 from app.deps import require_admin
 
 logger = logging.getLogger(__name__)
@@ -573,6 +574,7 @@ def _run_canary_gold_job(version: str, job_id: str, corpus: str = "full") -> Non
         tp: dict[str, int] = {}
         fp: dict[str, int] = {}
         fn: dict[str, int] = {}
+        per_document: list[dict[str, Any]] = []
         docs_scored = 0
 
         _set_canary_job(
@@ -635,19 +637,46 @@ def _run_canary_gold_job(version: str, job_id: str, corpus: str = "full") -> Non
                     for ent in pred_doc.ents
                 }
 
+            doc_tp = doc_fp = doc_fn = 0
             for span in pred:
                 lbl = span[2]
                 if span in gold:
                     tp[lbl] = tp.get(lbl, 0) + 1
+                    doc_tp += 1
                 else:
                     fp[lbl] = fp.get(lbl, 0) + 1
+                    doc_fp += 1
             for span in gold:
                 lbl = span[2]
                 if span not in pred:
                     fn[lbl] = fn.get(lbl, 0) + 1
+                    doc_fn += 1
+            doc_p = (doc_tp / (doc_tp + doc_fp)) if (doc_tp + doc_fp) else 0.0
+            doc_r = (doc_tp / (doc_tp + doc_fn)) if (doc_tp + doc_fn) else 0.0
+            doc_f1 = (
+                (2.0 * doc_p * doc_r) / (doc_p + doc_r) if (doc_p + doc_r) else 0.0
+            )
+            per_document.append(
+                {
+                    "candidate_id": str(row.get("candidate_id") or ""),
+                    "label_id": str(row.get("label_id") or ""),
+                    "gold_count": len(gold),
+                    "pred_count": len(pred),
+                    "tp": doc_tp,
+                    "fp": doc_fp,
+                    "fn": doc_fn,
+                    "doc_f1": doc_f1,
+                }
+            )
             docs_scored += 1
 
+        total_errors = sum(d["fp"] + d["fn"] for d in per_document)
+        for d in per_document:
+            d["error_contribution"] = (
+                ((d["fp"] + d["fn"]) / total_errors) if total_errors > 0 else 0.0
+            )
         metrics = _compute_metrics(tp, fp, fn)
+        metrics["per_document"] = per_document
         overall = metrics["overall"]
         reg.record_canary_result(
             version,
@@ -1083,13 +1112,35 @@ def get_canary_gold_job(
     return job
 
 
+def _deidentify_for_dry_run(raw: str) -> str:
+    """De-identify a dry-run encounter text the same way production does.
+
+    Production NER runs against de-identified text (Document.text is
+    written de-identified). Running dry-run NER on raw text would be
+    a misleading evaluation and would produce entities that contain
+    PHI, which the curator-facing approve/save flows then have to
+    refuse. De-identifying here keeps the evaluation faithful and
+    keeps the entity list consistent with what gets persisted.
+    """
+    text = (raw or "").strip()
+    if not text:
+        return ""
+    return (deidentify_text(text, ner=True) or "").strip()
+
+
 @router.post("/versions/{version}/canary/dry-run")
 def dry_run_canary_model(
     version: str,
     req: DryRunRequest,
     _: object = Depends(require_admin),
 ) -> dict[str, Any]:
-    """Run ad-hoc extraction on selected encounters using a specific model version."""
+    """Run ad-hoc extraction on selected encounters using a specific model version.
+
+    Encounter text is de-identified server-side before NER so the
+    dry-run faithfully mirrors production extraction behaviour and
+    the returned entities are anchored to the same text the curator
+    sees and approves.
+    """
     reg = get_registry()
     rec = reg.get(version)
     if not rec:
@@ -1108,19 +1159,19 @@ def dry_run_canary_model(
 
     results: list[dict[str, Any]] = []
     for enc in encounters:
-        raw_text = enc.text or ""
-        if not raw_text.strip():
+        text = _deidentify_for_dry_run(enc.text or "")
+        if not text:
             results.append(
                 {
                     "encounter_id": enc.encounter_id,
                     "patient_id": enc.patient_id,
                     "encounter_date": enc.encounter_date,
+                    "text": "",
                     "text_length": 0,
                     "entities": [],
                 }
             )
             continue
-        text = raw_text
         doc = nlp(text)
         entities = _extract_spacy_entities(doc)
         results.append(
@@ -1128,6 +1179,7 @@ def dry_run_canary_model(
                 "encounter_id": enc.encounter_id,
                 "patient_id": enc.patient_id,
                 "encounter_date": enc.encounter_date,
+                "text": text,
                 "text_length": len(text),
                 "entities": entities,
             }
@@ -1162,13 +1214,14 @@ def dry_run_pipeline_trace(
 
     results: list[dict[str, Any]] = []
     for enc in encounters:
-        raw_text = enc.text or ""
-        if not raw_text.strip():
+        text = _deidentify_for_dry_run(enc.text or "")
+        if not text:
             results.append(
                 {
                     "encounter_id": enc.encounter_id,
                     "patient_id": enc.patient_id,
                     "encounter_date": enc.encounter_date,
+                    "text": "",
                     "text_length": 0,
                     "ner_entities": [],
                     "final_entities": [],
@@ -1178,7 +1231,6 @@ def dry_run_pipeline_trace(
                 }
             )
             continue
-        text = raw_text
 
         doc = nlp(text)
         ner_entities = _extract_spacy_entities(doc)
@@ -1239,6 +1291,7 @@ def dry_run_pipeline_trace(
                 "encounter_id": enc.encounter_id,
                 "patient_id": enc.patient_id,
                 "encounter_date": enc.encounter_date,
+                "text": text,
                 "text_length": len(text),
                 "ner_entities": ner_entities,
                 "final_entities": final_entities,
@@ -1267,11 +1320,17 @@ async def dry_run_worker_trace(
     if not encounters:
         raise HTTPException(status_code=400, detail="Select at least one encounter")
 
+    deidentified_encounters: list[dict[str, Any]] = []
+    for enc in encounters:
+        enc_payload = enc.model_dump()
+        enc_payload["text"] = _deidentify_for_dry_run(enc.text or "")
+        deidentified_encounters.append(enc_payload)
+
     try:
         payload = {
             "version": version,
             "plan_definition_id": req.plan_definition_id,
-            "encounters": [enc.model_dump() for enc in encounters],
+            "encounters": deidentified_encounters,
         }
         headers = {
             "Content-Type": "application/json",

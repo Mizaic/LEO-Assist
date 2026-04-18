@@ -7,10 +7,32 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# DI-LEO-AI-200: explicit non-site-specific 2WW recogniser. The
+# "Fast track referral for suspected cancer due to non-site-specific
+# symptoms" SNOMED concept (1556551000000104) and its surface forms
+# are the ONLY signals that classify a referral / diagnosis as the
+# NCDA non_site_specific cancer type. Anything else that lacks a
+# clear site signal is classified as 'unknown' so the episode
+# builder can absorb it into a temporally-overlapping typed pathway
+# rather than opening a phantom NSS pathway.
+_NSS_PHRASE_RE = re.compile(
+    r"(?:"
+    r"\bnon[\s\-]?site[\s\-]?specific\b|"
+    r"\bnon[\s\-]?specific\s+symptoms?\b|"
+    r"\b2WW\s+NSS\b|"
+    r"\bNSS\s+2WW\b|"
+    r"\bNSS\s+referral\b|"
+    r"\bfast[\s\-]?track\s+NSS\b|"
+    r"\bfast[\s\-]?track\s+referral\s+for\s+suspected\s+cancer\s+due\s+to\s+non[\s\-]?site[\s\-]?specific\s+symptoms?\b"
+    r")",
+    re.IGNORECASE,
+)
 
 # -- IS_A descendant site map -----------------------------------------------
 # Maps IS_A-expanded SNOMED descendant concept IDs to their NCDA site key.
@@ -49,8 +71,12 @@ _SITE_MAP: list[tuple[str, str]] = [
     ("haematological", "haematological"),
     ("haematology", "haematological"),
     ("hematological", "haematological"),
-    ("non-site-specific", "non_site_specific"),
-    ("non site specific", "non_site_specific"),
+    # DI-LEO-AI-200: NSS detection is now done by _NSS_PHRASE_RE
+    # word-boundary regex above; substring entries here would
+    # match unrelated text like "non-site-specific advice". The
+    # explicit phrases ("non-site-specific symptoms" /
+    # "2WW NSS" / etc.) are still recognised, but only via the
+    # precise regex.
     ("childrens tumour", "childrens_tumour"),
     ("children's tumour", "childrens_tumour"),
     ("small intestin", "small_intestine"),
@@ -150,7 +176,12 @@ _SITE_MAP: list[tuple[str, str]] = [
     ("lung", "lung"),
     ("skin", "melanoma"),
     ("brain", "brain"),
-    ("fast", "non_site_specific"),
+    # DI-LEO-AI-200: removed ("fast", "non_site_specific"). The bare
+    # substring "fast" matched everywhere ("fasting bloods", "fast
+    # turnaround", "fast-track urology" etc.) and was the dominant
+    # source of false-positive NSS classifications. NSS is now only
+    # assigned via _NSS_PHRASE_RE or the explicit SNOMED concept ID
+    # 1556551000000104.
 ]
 
 _PATHWAY_GROUP_KEYS: frozenset[str] = frozenset(
@@ -284,13 +315,30 @@ def _referral_route_from_concept(concept_name: str) -> str:
 
 
 def _extract_condition_key(concept_name: str) -> str:
-    """Map a SNOMED concept name to a canonical cancer-site key."""
+    """Map a SNOMED concept name to a canonical cancer-site key.
+
+    DI-LEO-AI-200: NSS classification rule. Only return
+    'non_site_specific' when the concept name explicitly matches an
+    NSS surface form (see _NSS_PHRASE_RE) -- "non-site-specific
+    symptoms", "2WW NSS", "NSS referral", "fast track NSS", or the
+    full "Fast track referral for suspected cancer due to non-site-
+    specific symptoms" phrase. The explicit SNOMED concept ID
+    (1556551000000104) is handled in _SITE_BY_CONCEPT_ID.
+
+    Generic cancer terms ("carcinoma", "neoplasm", "cancer", etc.)
+    that lack any site signal now return 'unknown' so the episode
+    builder can absorb them into a temporally-overlapping typed
+    pathway, instead of opening a phantom NSS pathway that the
+    duplicate resolver would later merge away.
+    """
     name = concept_name.lower()
+    if _NSS_PHRASE_RE.search(name):
+        return "non_site_specific"
     for keyword, key in _SITE_MAP:
         if keyword in name:
             return key
     if any(term in name for term in _GENERIC_CANCER_TERMS):
-        return "non_site_specific"
+        return "unknown"
     return "unknown"
 
 

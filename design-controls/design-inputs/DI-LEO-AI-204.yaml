@@ -1,0 +1,98 @@
+# -- DI-LEO-AI-204 -- Care obstruction anchor and HITL escalation
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-204"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-005"
+    - "UN-LEO-AI-007"
+  requirement: >
+    The text-anchor classifier SHALL emit a new
+    care_obstruction milestone whenever an encounter contains
+    evidence of:
+      (a) a DNA accompanied by a mobility / transport / carer /
+          family / cancellation / refusal / safeguarding / capacity
+          token within 80 characters; OR
+      (b) a refusal or decline of a named investigation, referral,
+          appointment, clinic, admission, treatment, or assessment;
+          OR
+      (c) a safeguarding concern, "avoidable delay", "best
+          interest meeting", "failed to attend / engage", "unable
+          to access / reach patient"; OR
+      (d) a family / next-of-kin token co-occurring with a refusal,
+          aggression, terminated-call, or insulting-language token;
+          OR
+      (e) a hospital-cancelled or retracted referral.
+    The episode builder SHALL claim every care_obstruction
+    encounter that falls within the owning episode's
+    [referral_date, end_date + 90 days] window AND set the
+    parent episode's hitl_flag = True with a hitl_reason that
+    references the obstruction.
+  rationale: >
+    Patient 4643293950 had at least four distinct care
+    obstructions (DNA due to mobility, hospital retraction
+    of the original referral, family aggression toward the
+    2WW office, safeguarding lead involvement). The previous
+    pipeline had no first-class signal for any of these; the
+    episode looked superficially "in_progress" while the
+    actual care pathway had been blocked for 11 months.
+    Surfacing care_obstruction as a discrete anchor + HITL
+    flag lets the operations queue route these cases for
+    review before the stale-close pass swallows them.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "_RE_CARE_OBSTRUCTION matches 'not attended due to mobility issues - cannot get into car'"
+      - type: "functional"
+        spec: "_RE_CARE_OBSTRUCTION matches 'son is refusing to bring dad to LRI or appointment ... Told Sam to F off'"
+      - type: "functional"
+        spec: "_RE_CARE_OBSTRUCTION matches 'safeguarding concern raised'"
+      - type: "functional"
+        spec: "_RE_CARE_OBSTRUCTION matches 'we have decided to retract this Referral today'"
+      - type: "safety"
+        spec: "_RE_CARE_OBSTRUCTION does NOT match 'Patient attended fast track clinic on 18 Dec 2024 as planned'"
+      - type: "functional"
+        spec: "_classify_text_encounters returns care_obstructions as the 9th element of the tuple"
+      - type: "functional"
+        spec: "_care_obstruction_link_anchors keeps anchors in [referral_date, end_date + 90 days]"
+      - type: "functional"
+        spec: "_care_obstruction_hitl returns hitl_flag=True and a non-empty reason when at least one care_obstruction anchor is linked"
+    constraints:
+      - type: "safety"
+        spec: "care_obstruction anchors MUST be emitted independently of referral / diagnosis classification (an encounter can be BOTH a rejection and a care_obstruction)"
+      - type: "safety"
+        spec: "care_obstruction MUST NOT change cancer_type, episode_start_date, or episode_end_date"
+    dependencies:
+      - "DI-LEO-AI-145"
+    downstream_impacts:
+      - "Anchor detector (new milestone bucket)"
+      - "Episode builder (new link group + HITL stamping)"
+      - "Operations queue (new HITL reason category)"
+      - "Encounter -> Episode IS_PART_OF edges (milestone_type=care_obstruction)"
+    technical_details:
+      language: "Python"
+      framework: "Anchor detector + episode builder"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+        - "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+      estimated_loc: 110
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-198 must pass with 100% on all critical and
+      total cases, covering the four patient 4643293950
+      obstruction sub-types and a normal-attendance negative
+      case.
+    test_protocol: "VT-LEO-AI-198"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-194"
+  tags:
+    - "anchor-detector"
+    - "care-obstruction"
+    - "hitl"
+    - "patient-4643293950"

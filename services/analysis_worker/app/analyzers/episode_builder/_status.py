@@ -92,6 +92,68 @@ def _infer_completed_from_specialist_letter(
     return letter_date, reason
 
 
+def _has_followup_referral(
+    ref_anchors: list[dict[str, Any]],
+    rejection_date: date,
+    followup_window_days: int = 90,
+) -> bool:
+    """True when a non-rejected referral exists after the rejection date.
+
+    DI-LEO-AI-202 (Pattern A): used by the rejected_no_followup status
+    rule to distinguish (i) a referral that was rejected and the
+    practice resubmitted a working referral within 90 days, from
+    (ii) a referral that was rejected and never followed up.
+    """
+    for anchor in ref_anchors:
+        subtype = str(anchor.get("referral_subtype") or "")
+        if subtype in ("rejected", "marked_in_error"):
+            continue
+        a_date = _parse_date(anchor.get("encounter_date"))
+        if not a_date or a_date <= rejection_date:
+            continue
+        if (a_date - rejection_date).days <= followup_window_days:
+            return True
+    return False
+
+
+def _rejection_followup_status(
+    ref_anchors: list[dict[str, Any]],
+    has_diagnosis: bool,
+    benign_date: date | None,
+) -> tuple[str, bool, str | None] | None:
+    """Return (status, hitl, reason) when the open episode looks like a
+    rejected-no-followup, otherwise None.
+
+    DI-LEO-AI-202 (Pattern A): a referral marked ``rejected`` (Choose
+    & Book "Return to referrer with advice", "Hospital cancelled
+    referral", etc.) with NO subsequent working referral within 90
+    days is a workflow-quality failure -- the patient is left in
+    limbo. Prior behaviour kept these as ``in_progress`` and the
+    stale-close pass eventually filed them as ``stale_no_diagnosis``
+    months later. Surface them earlier so QA can act.
+    """
+    if has_diagnosis or benign_date:
+        return None
+    rejection_dates = [
+        _parse_date(a.get("encounter_date"))
+        for a in ref_anchors
+        if str(a.get("referral_subtype") or "") in ("rejected", "marked_in_error")
+    ]
+    rejection_dates_clean = [d for d in rejection_dates if d]
+    if not rejection_dates_clean:
+        return None
+    earliest_rejection = min(rejection_dates_clean)
+    if _has_followup_referral(ref_anchors, earliest_rejection):
+        return None
+    return (
+        "rejected_no_followup",
+        True,
+        "Referral was rejected by the receiving service and no working "
+        "referral was sent in the 90 days that followed. Patient may be "
+        "in pathway limbo -- review for resubmission.",
+    )
+
+
 def _determine_episode_status(
     has_diagnosis: bool,
     diag_anchors: list[dict[str, Any]],
@@ -100,6 +162,7 @@ def _determine_episode_status(
     treatment_anchors: list[dict[str, Any]],
     ref_date: date | None,
     is_phantom: bool,
+    ref_anchors: list[dict[str, Any]] | None = None,
 ) -> tuple[str, bool, str | None]:
     """Return (status, hitl_flag, hitl_reason)."""
     if is_phantom:
@@ -132,5 +195,14 @@ def _determine_episode_status(
             "Auto-closed: benign/normal qualifier on site-related finding within "
             "90 days and no coded cancer diagnosis. Verify from clinical records.",
         )
+
+    # DI-LEO-AI-202 (Pattern A): rejected-no-followup signal beats the
+    # default in_progress fallback so QA can find blocked pathways.
+    if ref_anchors:
+        rejection_status = _rejection_followup_status(
+            ref_anchors, has_diagnosis, benign_date
+        )
+        if rejection_status is not None:
+            return rejection_status
 
     return ("in_progress", False, None)

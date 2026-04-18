@@ -1,0 +1,47 @@
+# -- UN-LEO-AI-080 -- Generate an SBAR summary for a patient on demand
+# IEC 62366 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-080"
+  title: "Auto-draft SBAR summary for a patient encounter"
+  description: >
+    As a clinician preparing for a patient encounter, I need LEO to draft
+    a Situation-Background-Assessment-Recommendation summary from the
+    patient's referral, prior encounters and codings -- with explicit
+    source citations and clinical-guideline matches -- so I can review
+    the case in 30 seconds instead of reading every document.
+  stakeholder: "Clinician (consultant, GP, registrar)"
+  priority: "critical"
+  rationale: >
+    A clinician opening a complex referral or 2WW patient currently has
+    to read every prior letter, encounter note and code list to prepare.
+    For high-volume clinics this is the dominant cost of the encounter
+    and the largest source of "missed pertinent finding" near-misses.
+    A trustworthy SBAR draft -- with sources cited, conflicts surfaced,
+    and clinical-guideline rule outputs grounded in the patient's own
+    coded data -- lets the clinician confirm rather than reconstruct.
+
+  acceptance_criteria:
+    - "SBAR has all four sections (Situation, Background, Assessment, Recommendation)"
+    - "Every claim in Situation/Background carries a [SOURCE: ...] citation"
+    - "Assessment is a deterministic rendering of clinical-guideline rule matches (no LLM interpretation)"
+    - "Recommendation cites the rule ids that drove each suggested action"
+    - "The SBAR is persisted as an :Assessment node, linked to the patient and (where applicable) referral/procedure/encounter"
+    - "Per-stage progress is streamed back to the requester so partial output is visible"
+
+  design_inputs:
+    - "DI-LEO-AI-188"
+    - "DI-LEO-AI-189"
+    - "DI-LEO-AI-190"
+    - "DI-LEO-AI-191"
+    - "DI-LEO-AI-192"
+    - "DI-LEO-AI-193"
+
+  metadata:
+    identified_by: "Conversation 2026-04-17 (clinician triage workflow)"
+    identified_date: "2026-04-17"
+    status: "approved"
+    tags:
+      - "sbar"
+      - "clinical-decision-support"
+      - "triage"
+      - "llm"

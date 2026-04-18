@@ -1,0 +1,52 @@
+# -- DO-LEO-AI-185 -- :Chunk node Cypher module
+- id: "DO-LEO-AI-185"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-186"]
+    user_needs: ["UN-LEO-AI-082"]
+    risks_addressed: ["R-LEO-AI-180"]
+    verification_tests: ["VT-LEO-AI-185"]
+
+  specification:
+    title: "libs/cypher/chunk_queries.py"
+    description: |
+      Defines the :Chunk node schema constraints, deterministic chunk-id
+      generation (sha256 hash of document_reference_id + ordinal +
+      sha256(text)) and the UPSERT_CHUNK Cypher that MERGEs the Chunk by
+      id and the (DocumentReference)-[:HAS_CHUNK {ordinal, char_start,
+      char_end}]->(Chunk) edge in one round-trip.
+    acceptance_criteria:
+      - criterion: "Deterministic id"
+        type: "functional"
+        measurement: "Test"
+        target: "make_chunk_id() returns identical 64-char hex for identical inputs"
+      - criterion: "Idempotent MERGE"
+        type: "functional"
+        measurement: "Test"
+        target: "Re-running UPSERT_CHUNK with same params does not duplicate the node"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/cypher/chunk_queries.py"
+        description: "make_chunk_id, sha256_text, UPSERT_CHUNK, GET_CHUNK_WITH_CODES, CHUNK_CONSTRAINTS"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 150
+      key_functions: ["make_chunk_id", "sha256_text", "UPSERT_CHUNK"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Audit trail: Chunk.text + Chunk.sha256 + char offsets locate exact source for coded evidence"
+    risk_control_measures:
+      - "Deterministic id makes re-ingestion idempotent (R-LEO-AI-180)"
+      - "Schema constraint prevents duplicate ids"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

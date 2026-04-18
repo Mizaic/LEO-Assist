@@ -17,7 +17,8 @@ export type KnowledgeTabKey =
   | "clinical-guidelines"
   | "pathways"
   | "domains"
-  | "terminology";
+  | "terminology"
+  | "ai-summarisation";
 
 export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
   "training-data": {
@@ -248,6 +249,39 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       lede: "Which domain versions are live per tenant.",
       how: "Pick a tenant. Confirm the active version.",
       what: "Pinning stops a shared domain update from shifting their numbers.",
+    },
+  },
+
+  "ai-summarisation": {
+    default: {
+      title: "AI Summarisation",
+      lede: "Try out the SBAR summary that LEO writes for a patient.",
+      how: "Pick a patient, add a referral or a note, then run.",
+      what: "You see each section as it is written. Test only.",
+    },
+    clinician: {
+      title: "Try the SBAR helper",
+      lede: "Run a draft SBAR for a patient to see what LEO would write.",
+      how: "Choose the referral or note and click run.",
+      what: "Use it to give us feedback. Do not use it for care yet.",
+    },
+    staff: {
+      title: "SBAR generation playground",
+      lede: "Build a payload and see the live four-stage run.",
+      how: "Add the situation, background and any guideline ids.",
+      what: "Outputs help you tune prompts before they ship.",
+    },
+    qa_ra_lead: {
+      title: "SBAR generation harness",
+      lede: "Manual entry point to the production sbar_requested queue.",
+      how: "Compose a payload, watch SSE stages, inspect the persisted Assessment.",
+      what: "Use to verify prompt + roaring-bitmap behaviour against fixtures.",
+    },
+    platform_admin: {
+      title: "SBAR pipeline test surface",
+      lede: "Direct enqueue to the pipeline-jobs queue with the SBAR contract.",
+      how: "Submit a payload and watch the worker pick it up.",
+      what: "Useful for smoke-testing worker scale-out and Redis relay.",
     },
   },
 

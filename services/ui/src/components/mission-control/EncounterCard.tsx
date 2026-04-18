@@ -3,6 +3,7 @@
 import { forwardRef } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import IconButton from "@mui/material/IconButton";
@@ -25,6 +26,7 @@ interface EncounterCardProps {
   search: string;
   isExpanded: boolean;
   isFocused: boolean;
+  isLinkedToEpisode?: boolean;
   isResetting: boolean;
   codingLoading: boolean;
   codingLinks: CodedLink[];
@@ -44,6 +46,7 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
       search,
       isExpanded,
       isFocused,
+      isLinkedToEpisode = false,
       isResetting,
       codingLoading,
       codingLinks,
@@ -57,7 +60,9 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
       <Box
         ref={ref}
         data-encounter-card-id={encounterKey}
+        data-linked-to-episode={isLinkedToEpisode ? "true" : "false"}
         sx={{
+          position: "relative",
           mb: 1.5,
           border: "2px solid",
           borderColor: isFocused ? "primary.main" : "divider",
@@ -66,6 +71,20 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
           overflow: "hidden",
         }}
       >
+        {isLinkedToEpisode && (
+          <Box
+            aria-hidden="true"
+            data-testid="encounter-linked-accent"
+            sx={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 3,
+              bgcolor: "#2563eb",
+            }}
+          />
+        )}
         <Box
           sx={{
             display: "flex",
@@ -101,6 +120,20 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
               </Typography>
             )}
           </Typography>
+          {isLinkedToEpisode && (
+            <Chip
+              size="small"
+              label="In episode"
+              data-testid="encounter-in-episode-chip"
+              sx={{
+                height: 20,
+                fontSize: "0.65rem",
+                bgcolor: "#DBEAFE",
+                color: "#1E40AF",
+                fontWeight: 600,
+              }}
+            />
+          )}
 
           <Box
             sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}

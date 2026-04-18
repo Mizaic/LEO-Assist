@@ -9,11 +9,20 @@ import type { MissionKPIs } from "@/lib/missionControlApi";
 
 const BASE_KPIS: MissionKPIs = {
   total_patients: 100,
-  confirmed_cancer: 42,
-  pathway_closures: 15,
+  confirmed_cancer: 50,
+  confirmed_cancer_patients: 42,
+  pathway_closures: 18,
+  pathway_closure_patients: 15,
   median_diagnostic_interval_days: null,
   safety_netting_rate: 0.85,
   needs_review_count: 5,
+  cohort: {
+    total_patients: 120,
+    excluded_total: 20,
+    excluded_no_pathway: 8,
+    excluded_missing_referral_date: 9,
+    excluded_outside_window: 3,
+  },
 };
 
 describe("KPIStrip", () => {

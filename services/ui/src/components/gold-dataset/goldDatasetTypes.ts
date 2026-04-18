@@ -27,6 +27,14 @@ export interface Candidate {
   hitl_guidance?: string | null;
   created_at: string;
   updated_at: string;
+  // -- AI first-pass audit fields (DI-LEO-AI-208 / DI-LEO-AI-209) --
+  // Set when an AI first-pass run has overwritten this candidate's
+  // entities_json. The original snapshot is preserved write-once
+  // in entities_json_original so reviewers can flip back to see
+  // what the AI changed.
+  ai_first_pass_run_id?: string | null;
+  ai_first_pass_at?: string | null;
+  entities_json_original?: string | null;
 }
 
 export interface GoldLabel {

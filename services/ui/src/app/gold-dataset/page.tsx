@@ -1,7 +1,20 @@
+"use client";
+
+import { Suspense } from "react";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import GoldDatasetPanel from "@/components/gold-dataset/GoldDatasetPanel";
 
-export const metadata = { title: "Gold Dataset" };
-
 export default function GoldDatasetPage() {
-  return <GoldDatasetPanel />;
+  return (
+    <Suspense
+      fallback={
+        <Box sx={{ display: "flex", justifyContent: "center", p: 6 }}>
+          <CircularProgress aria-label="Loading" />
+        </Box>
+      }
+    >
+      <GoldDatasetPanel />
+    </Suspense>
+  );
 }

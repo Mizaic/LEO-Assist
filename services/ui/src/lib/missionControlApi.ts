@@ -112,13 +112,24 @@ export interface MissionPatientsResponse {
   patients: MissionPatient[];
 }
 
+export interface MissionKPICohort {
+  total_patients: number;
+  excluded_total: number;
+  excluded_no_pathway: number;
+  excluded_missing_referral_date: number;
+  excluded_outside_window: number;
+}
+
 export interface MissionKPIs {
   total_patients: number;
   confirmed_cancer: number;
+  confirmed_cancer_patients: number;
   pathway_closures: number;
+  pathway_closure_patients: number;
   median_diagnostic_interval_days: number | null;
   safety_netting_rate: number;
   needs_review_count: number;
+  cohort?: MissionKPICohort;
 }
 
 export interface ReviewPayload {

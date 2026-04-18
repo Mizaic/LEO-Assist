@@ -1,0 +1,138 @@
+# -- DO-LEO-AI-206 -- AI first-pass background job + reviewer UI implementation
+# ISO 13485 / IEC 62304 Design Output
+#
+# NOTE on numbering: replaces a now-clobbered DO-LEO-AI-200 used briefly
+# during development; that ID went to a parallel-shipping feature.
+
+- id: "DO-LEO-AI-206"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-209"
+    user_needs:
+      - "UN-LEO-AI-085"
+    risks_addressed:
+      - "R-LEO-AI-197"
+    verification_tests:
+      - "VT-LEO-AI-200"
+      - "VT-LEO-AI-201"
+
+  specification:
+    title: "AI first-pass background job, SSE relay, and reviewer dialog UI"
+    description: |
+      Three layers:
+
+        1. _job_runner.py (in-process job store)
+            - JobState dataclass (run_id, status, started/finished_at,
+              candidate_count, summary, sample_outcomes, error,
+              params).
+            - create_job spawns a daemon thread that calls
+              process_one over fetch_candidates(params.statuses,
+              params.limit) using a ThreadPoolExecutor of size
+              params.max_workers and pushes per-candidate events to a
+              bounded queue.Queue.
+            - subscribe_events yields events with timeout_s polling
+              and idle_timeout_s long-poll cap, formatted by the
+              router as text/event-stream.
+            - reset_for_tests clears in-process state.
+
+        2. _training_ai_first_pass.py (FastAPI router)
+            - POST /training/candidates/ai-first-pass/jobs (queue,
+              admin-gated).
+            - GET  /training/candidates/ai-first-pass/jobs/{run_id}/events
+              (SSE relay).
+            - GET  /training/candidates/ai-first-pass/jobs/{run_id}
+              (final summary).
+            - GET  /training/candidates/ai-first-pass/jobs (recent
+              jobs, in-process).
+            Mounted by training.py via register_ai_first_pass_routes
+              to keep the umbrella router slim.
+
+        3. AIFirstPassDialog (React, replaces CandidatePruneDialog)
+            - Live progress bar from the SSE stream.
+            - by_verdict tally (pre_done / delete / review) and
+              by_action counts updated on each candidate.processed
+              event.
+            - Final summary panel on job.summary.
+            - GoldLabelDetailDialog renders the "AI suggested" chip
+              (data-testid 'ai-suggested-chip') on every entity row
+              when ai_first_pass_run_id is non-null AND exposes a
+              "show original" toggle (data-testid
+              'show-original-toggle') that flips the entity list
+              between entities_json and entities_json_original
+              read-only.
+
+    acceptance_criteria:
+      - criterion: "admin_gating"
+        type: "safety"
+        measurement: "Test"
+        target: "All four endpoints return 401/403 without admin override"
+      - criterion: "queue_returns_run_id_immediately"
+        type: "functional"
+        measurement: "Test"
+        target: "POST returns 200 with run_id within 1s; worker runs in background"
+      - criterion: "sse_event_shape"
+        type: "functional"
+        measurement: "Test"
+        target: "Events of type 'candidate.processed' carry candidate_id, verdict, action, accepted, rejected"
+      - criterion: "ui_toolbar_action_id"
+        type: "functional"
+        measurement: "Test"
+        target: "GoldDatasetPanel toolbar registers an action with id='ai-first-pass'"
+      - criterion: "ai_chip_render"
+        type: "functional"
+        measurement: "Test"
+        target: "GoldLabelDetailDialog renders ai-suggested-chip per entity when ai_first_pass_run_id is non-null"
+      - criterion: "show_original_toggle_readonly"
+        type: "safety"
+        measurement: "Test"
+        target: "Toggling to original re-renders the entity list from entities_json_original without dispatching any save action"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/candidate_ai_first_pass/_job_runner.py"
+        description: "JobState, create_job, get_job, list_jobs, subscribe_events, reset_for_tests"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/_training_ai_first_pass.py"
+        description: "register_ai_first_pass_routes + queue/events/get/list endpoints"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
+        description: "Mount via register_ai_first_pass_routes(router)"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/gold-dataset/AIFirstPassDialog.tsx"
+        description: "Reviewer dialog with live SSE progress bar and final summary"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+        description: "Toolbar action id='ai-first-pass'"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/gold-dataset/GoldLabelDetailDialog/"
+        description: "AI-suggested chip + show-original toggle"
+    storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript/React"
+      loc: 600
+      key_functions:
+        - "create_job"
+        - "subscribe_events"
+        - "queue_ai_first_pass_job"
+        - "stream_ai_first_pass_events"
+        - "AIFirstPassDialog"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Admin gating on every endpoint prevents unauthorised mass writeback or delete"
+      - "AI-suggested chip prevents reviewer confusion between AI and human-curated entities"
+      - "Show-original toggle is read-only and never dispatches a save"
+    risk_control_measures:
+      - "404 on unknown run_id stops information leakage about other jobs"
+      - "Bounded queue prevents memory exhaustion on slow consumers"
+      - "Idle timeout closes abandoned SSE connections"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

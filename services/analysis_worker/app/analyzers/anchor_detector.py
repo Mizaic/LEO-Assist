@@ -28,6 +28,7 @@ from libs.domains.code_inventories import (
     find_cancer_treatment_procedure_code,
     find_fast_track_referral_site,
     find_malignancy_code,
+    find_malignancy_code_in_problem_line,
     find_malignancy_term_in_problem_line,
     find_specialist_clinic_site,
     match_benign_investigation_phrase,
@@ -56,6 +57,10 @@ class AnchorResult:
     first_presentation_anchors: list[dict[str, Any]] = field(default_factory=list)
     # DI-LEO-AI-145: "Seen in fast-track/2WW clinic" attendance encounters.
     first_seen_anchors: list[dict[str, Any]] = field(default_factory=list)
+    # DI-LEO-AI-204: care_obstruction encounters (DNA due to mobility,
+    # patient/family refusal of pathway investigations, hospital-cancelled
+    # referral, safeguarding block, avoidable delay).
+    care_obstruction_anchors: list[dict[str, Any]] = field(default_factory=list)
     detection_method: str = "none"
     expanded_start: str | None = None
     expanded_end: str | None = None
@@ -128,6 +133,7 @@ _AnchorBuckets = tuple[
     list[dict[str, Any]],
     list[dict[str, Any]],
     list[dict[str, Any]],  # DI-LEO-AI-145: first_seen
+    list[dict[str, Any]],  # DI-LEO-AI-204: care_obstruction (Pattern G)
 ]
 
 
@@ -359,6 +365,7 @@ def _classify_anchor_rows(
         _dedupe_by_encounter(specialist_letters),
         _dedupe_first_presentation(first_presentations),
         first_seens,  # DI-LEO-AI-145: always empty from coded path
+        [],  # DI-LEO-AI-204: care_obstruction is text-only (Pattern G)
     )
 
 
@@ -503,8 +510,11 @@ _RE_GENERIC_BENIGN_PHRASE = re.compile(
 # Combined view -- any benign signal at all. Kept for callers that just
 # need a single "is there any 'no cancer' wording?" check.
 _RE_NO_CANCER = re.compile(
-    "(?:" + _RE_DEFINITIVE_BENIGN.pattern + ")|(?:"
-    + _RE_GENERIC_BENIGN_PHRASE.pattern + ")",
+    "(?:"
+    + _RE_DEFINITIVE_BENIGN.pattern
+    + ")|(?:"
+    + _RE_GENERIC_BENIGN_PHRASE.pattern
+    + ")",
     re.IGNORECASE,
 )
 _RE_REFERRAL = re.compile(
@@ -513,15 +523,225 @@ _RE_REFERRAL = re.compile(
     r"straight to test|direct access|PRISM.*2WW)\b",
     re.IGNORECASE,
 )
-# DI-LEO-AI-124: PRISM is the Welsh 2WW digital proforma. A finalised /
-# submitted / completed PRISM questionnaire is the authoritative referral
-# trigger and outranks generic fast-track language that may appear in
-# clinic notes post-hoc.
+# DI-LEO-AI-201 (Pattern C+D): narrative-reference guard. The legacy
+# behaviour fired text_generic referral anchors any time _RE_REFERRAL
+# matched -- including phone consults that NARRATED past pathway
+# activity ("referred to 2WW clinic but not attended", "previous
+# positive FIT and 2WW", "explained 2WW referral requested again but
+# got rejected", "noted ongoing borderline anaemia and previous
+# positive FIT and 2WW and its outcome where pt did not want any
+# invasive investigation"). These mentions are historical or
+# descriptive, not new referral events, but they spawned phantom
+# in-progress / completed pathways that polluted the cohort.
+#
+# When a text_generic referral candidate matches _RE_REFERRAL but
+# (a) carries no STRUCTURAL referral evidence AND
+# (b) carries narrative-reference markers
+# we suppress the referral anchor. Encounters with structural
+# evidence (PRISM proforma, Outbound referral, Fast track Read code,
+# "Refer via 2WW" instruction, Choose-and-book line, Hospital fast-
+# track referral status row) still fire as before.
+_RE_NARRATIVE_REFERRAL_REFERENCE = re.compile(
+    r"\b(?:previous(?:ly)?\s+(?:positive\s+)?(?:FIT|2WW|TWW|fast.?track|"
+    r"referral)|"
+    r"had\s+(?:a\s+)?(?:previous\s+|prior\s+)?"
+    r"(?:2WW|TWW|fast.?track|referral|FIT)|"
+    r"history\s+of\s+(?:2WW|TWW|fast.?track|referral)|"
+    r"hx\s+of\s+(?:2WW|TWW|fast.?track|referral)|"
+    r"prior\s+(?:2WW|TWW|fast.?track|referral)|"
+    r"noted\s+(?:ongoing|previous|past|prior)|"
+    r"did\s+not\s+attend|not\s+attended|"
+    r"missed\s+(?:the\s+)?(?:2WW|TWW|fast.?track|appointment|"
+    r"referral|clinic)|"
+    r"\bDNA(?:'?d)?\b|"
+    r"explained\s+(?:that\s+)?(?:the\s+)?(?:2WW|TWW|referral)|"
+    r"discussed\s+(?:the\s+)?(?:2WW|TWW|referral)|"
+    r"outcome\s+where\s+(?:pt|patient)|"
+    r"(?:pt|patient)\s+did\s+not\s+want|"
+    r"(?:pt|patient)\s+declined|"
+    # DI-LEO-AI-212 (Pattern J): "was/were/has been seen by ENT under
+    # 2ww in Jan", "seen under 2WW last month", "seen in fast track
+    # clinic previously" -- past-tense seen-narrative referencing the
+    # historical 2WW pathway. The encounter is a follow-up describing
+    # what happened, not a new referral event.
+    r"(?:was|were|has\s+been|had\s+been)\s+seen\s+"
+    r"(?:by|under|in|at)\s+.{0,40}?"
+    r"\b(?:2WW|TWW|fast.?track|clinic|specialist)\b|"
+    r"\bseen\s+(?:by|under|in|at)\s+.{0,40}?"
+    r"\b(?:2WW|TWW|fast.?track)\b|"
+    # DI-LEO-AI-212 (Pattern J): "Write to ENT to clarify ...",
+    # "letter to ENT", "email to consultant" -- clinician-to-clinician
+    # clarification, not a new referral.
+    r"(?:write|writing|wrote|letter|email|message)\s+(?:to|back\s+to)\s+"
+    r"(?:ENT|consultant|specialist|hospital|registrar|clinic)|"
+    # DI-LEO-AI-216 (Pattern L): retrospective self-narration of the
+    # original referral inside a follow-up / cancer-care-review note,
+    # e.g. "Referred by me on 2ww earlier this year, confirmed breast
+    # cancer", "I referred her last month", "We referred him in Jan",
+    # "GP referred via 2WW back in March". These narrate a previous
+    # referral event and must not open a fresh EpisodeOfCare.
+    r"(?:referred|referral)\s+by\s+(?:me|us|GP|the\s+GP|"
+    r"(?:Dr|Mr|Mrs|Ms|Miss)\b)|"
+    r"\b(?:I|we)\s+referred\b|"
+    r"(?:^|\W)GP\s+referred\b|"
+    r"\breferred\s+(?:on\s+)?(?:2WW|TWW|fast.?track)\s+"
+    r"(?:earlier|last|previously|back|in\s+(?:Jan(?:uary)?|Feb(?:ruary)?|"
+    r"Mar(?:ch)?|Apr(?:il)?|May|Jun[e]?|Jul[y]?|Aug(?:ust)?|Sep(?:tember)?|"
+    r"Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|\d{4}))|"
+    r"\bpreviously\s+referred\b|"
+    r"refused\s+(?:to\s+)?(?:attend|come|engage|be\s+seen))\b",
+    re.IGNORECASE,
+)
+# DI-LEO-AI-211 (Pattern I): boilerplate referral guidance in
+# auto-filed lab results / standardised disclaimer text. Lab reports
+# (PSA, CA125, FIT, calprotectin, etc.) carry standardised guidance
+# such as "If the PSA value remains elevated above the age specific
+# threshold, refer as a 2WW (Please note that referrals made at the
+# time of UTI will be rejected)." This is conditional guidance, NOT
+# an actual referral; the patient may not breach the threshold.
+# When _RE_REFERRAL fires on text like this AND no structural
+# referral evidence is present, the candidate is suppressed.
+_RE_BOILERPLATE_REFERRAL_GUIDANCE = re.compile(
+    r"(?:"
+    r"\bif\s+(?:the\s+)?(?:PSA|CEA|CA[\s-]?125|FIT|calprotectin|"
+    r"value|level|result|reading|score|test)\b"
+    r".{0,160}?"
+    r"\b(?:elevated|above|over|exceeds?|raised|abnormal|positive|"
+    r"high|>=?|greater\s+than)\b"
+    r".{0,160}?"
+    r"\brefer(?:\s+as)?\b|"
+    r"\b(?:please\s+)?refer\s+(?:as\s+)?(?:a\s+|an\s+)?"
+    r"(?:2WW|TWW|two.week.wait|fast.?track)\s+if\b|"
+    r"\bshould\s+be\s+referred\s+(?:as\s+)?(?:a\s+|an\s+)?"
+    r"(?:2WW|TWW|fast.?track)\b|"
+    r"\bconsider\s+(?:a\s+|an\s+)?(?:2WW|TWW|fast.?track)\s+referral\s+if\b|"
+    r"\b(?:please\s+note\s+that\s+)?referrals?\s+made\s+(?:at\s+the\s+"
+    r"time\s+of|during|whilst)\b"
+    r")",
+    re.IGNORECASE | re.DOTALL,
+)
+# DI-LEO-AI-211 (Pattern I): auto-filed lab/result encounter prefix.
+# Practice EMRs prepend "Auto-filed" to results that arrived from the
+# lab without a clinician keystroke. Such encounters never represent
+# a new referral event -- they are read-only result drops carrying
+# standardised disclaimer text. We treat the "Auto-filed" prefix as
+# strong evidence the encounter is a result drop rather than a
+# clinical event.
+_RE_AUTO_FILED_PREFIX = re.compile(
+    r"(?im)^\s*\d{1,2}:\d{2}\s*-\s*Surgery:\s*Auto.?filed\b",
+)
+# DI-LEO-AI-210 (Pattern H): family-history-of-cancer markers. A
+# cancer mention that ONLY appears in a family-history context must
+# not classify the encounter as a patient cancer event. The classic
+# trigger is "FH prostate ca - father diagnosed at 75" appended to a
+# PSA request: the patient does not have prostate cancer; family
+# history is the indication for screening. The guard suppresses both
+# (a) text_generic referrals where _RE_REFERRAL matches solely from
+# disclaimer or family-history context and (b) downstream cancer-
+# type inference from FH-only encounter text.
+_RE_FAMILY_HISTORY_CANCER = re.compile(
+    r"(?:"
+    r"\bF[Hh][Xx]?\b\.?\s*(?:of\s+)?[A-Za-z\s]{0,40}?"
+    r"\b(?:cancer|ca\b|carcinoma|malignan\w+|tumou?r|melanoma|"
+    r"lymphoma|leuk(?:a|e)mia|sarcoma|adenocarcinoma)|"
+    r"\bfamily\s+history\s+(?:of\s+)?[A-Za-z\s]{0,40}?"
+    r"\b(?:cancer|ca\b|carcinoma|malignan\w+|tumou?r|melanoma|"
+    r"lymphoma|leuk(?:a|e)mia|sarcoma)|"
+    r"\b(?:father|mother|dad|mum|sister|brother|sibling|son|"
+    r"daughter|aunt|uncle|cousin|grandfather|grandmother|"
+    r"grandparent|relative|next\s+of\s+kin)\b"
+    r"[^.\n]{0,80}?"
+    r"\b(?:had|has|diagnosed\s+with|died\s+(?:from|of)|"
+    r"history\s+of)\b"
+    r"[^.\n]{0,40}?"
+    r"\b(?:cancer|ca\b|carcinoma|malignan\w+|tumou?r|melanoma|"
+    r"lymphoma|leuk(?:a|e)mia|sarcoma)"
+    r")",
+    re.IGNORECASE,
+)
+# DI-LEO-AI-201 (Pattern C+D): structural referral evidence. These are
+# tokens that only appear when the encounter is a real referral event
+# (workflow/template/Read-code/lab-instruction), not when the GP is
+# narrating past activity. A text_generic referral fires only when at
+# least one structural marker is present.
+_RE_STRUCTURAL_REFERRAL = re.compile(
+    r"(?:"
+    r"\bXa(?:Mep|Me[A-Z]|alp)\b|"
+    r"\bOutbound\s+referral\b|"
+    r"\bHospital\s+Fast\s+track\s+referral\b|"
+    r"\bChoose\s+and\s+book(?!\s+referral\s+rejected)|"
+    r"\bChoice\s+and\s+booking\b|"
+    r"\bPRISM\s+Pathway\s+&\s+Referral\b|"
+    r"PRISM\s+\w+.{0,40}Pathway\s+Accessed|"
+    r"\bRefer\s+via\s+2WW\b|"
+    r"\brefer\s+via\s+(?:2WW|TWW|fast.?track)\b|"
+    r"\bFast\s+track\s+referral\s+for\s+suspected\b"
+    r")",
+    re.IGNORECASE | re.DOTALL,
+)
+# DI-LEO-AI-204 (Pattern G): care-obstruction signals. These mark
+# encounters where care was actively impeded -- patient/family
+# refusing pathway investigations, hospital cancelling a referral
+# for procedural reasons, missed/avoidable delays, or safeguarding
+# concerns affecting access to care. They are NOT new referrals or
+# rejections (those have their own anchors); they are quality
+# signals the QA team needs to surface so blocked pathways can be
+# escalated. The anchor fires on the encounter where the
+# obstruction is documented; the episode builder attaches the
+# anchor as an IS_PART_OF edge with milestone_type=care_obstruction
+# and stamps a HITL flag on the parent episode.
+_RE_CARE_OBSTRUCTION = re.compile(
+    r"(?:"
+    r"\b(?:not\s+attended|did\s+not\s+attend|DNA(?:'?d)?)\b"
+    r".{0,80}\b(?:mobility|transport|carer|family|cancel|refuse|declin|"
+    r"unable|safeguard|capacity)\b|"
+    r"\b(?:refus(?:ed|ing|al)|declin(?:ed|ing|es))\b"
+    r".{0,80}\b(?:colonoscopy|gastroscopy|endoscopy|biopsy|ct|mri|"
+    r"scan|investigation|referral|2WW|TWW|fast.?track|appointment|"
+    r"clinic|admission|treatment|assessment)\b|"
+    r"\bsafeguard(?:ing)?\b|"
+    r"\bavoidable\s+delay\b|"
+    r"\bbest\s+interest\s+(?:meeting|decision)\b|"
+    r"\bfailed\s+(?:to\s+attend|encounter|engage)\b|"
+    r"\bunable\s+to\s+(?:attend|access|reach\s+patient)\b|"
+    r"\b(?:family|son|daughter|carer|next\s+of\s+kin)\b"
+    r".{0,80}\b(?:refus|declin|abusive|aggressive|terminated\s+"
+    r"the\s+call|hung\s+up|f\*+k\s+off|fk\s+off|F\s+off)\b|"
+    r"\bhospital\s+(?:cancel(?:l?ed)?|retract(?:ed)?|withdrew)\s+"
+    r"(?:the\s+)?referral\b|"
+    r"\bretract(?:ed|ing)?\s+(?:this\s+)?referral\b"
+    r")",
+    re.IGNORECASE | re.DOTALL,
+)
+# DI-LEO-AI-124: PRISM is the practice's digital proforma platform used
+# for many referral classes (2WW cancer, sexual health, MSK, IBD,
+# cardiology, ultrasound, hospice, advice & guidance, mental-health
+# crisis, etc.). A finalised / submitted / completed PRISM questionnaire
+# is the authoritative referral trigger ONLY when paired with cancer
+# context (see _RE_PRISM_CANCER_CONTEXT below); otherwise it is some
+# other specialty pathway and must not open a 2WW cancer episode.
 _RE_REFERRAL_PRISM = re.compile(
     r"\b(?:PRISM|2WW\s*proforma|2WW\s*questionnaire)\b"
     r".{0,80}?"
     r"\b(?:finalised|finalized|completed|submitted|sent|issued)\b",
     re.IGNORECASE | re.DOTALL,
+)
+# DI-LEO-AI-195: PRISM cancer-2WW context guard. A PRISM proforma is a
+# cancer 2WW only when the same encounter text also carries one of:
+#   - the literal 2WW / TWW / two-week wait token,
+#   - a "fast track referral for suspected ..." or "suspected cancer"
+#     clinical phrase,
+#   - a 2WW Read code (XaMeA-XaMeZ family covers fast-track referrals
+#     for suspected breast / dermatology / lung / lower GI / upper GI /
+#     urology / gynaecology / head and neck / haematology / NSS).
+# This is a generic, practice-agnostic discriminator -- across the
+# observed dataset every cancer-2WW PRISM template name contained
+# "2WW" while no non-cancer PRISM template did.
+_RE_PRISM_CANCER_CONTEXT = re.compile(
+    r"\b(?:2WW|TWW|two[- ]week[- ]wait|"
+    r"fast[- ]?track\s+referral\s+for\s+suspected|"
+    r"suspected\s+cancer|XaMe[A-Z])\b",
+    re.IGNORECASE,
 )
 # DI-LEO-AI-182: referral REJECTION and RESUBMISSION recognisers.
 # Captures the workflow-quality signal "Choose and book referral
@@ -561,11 +781,22 @@ _RE_REFERRAL_RESUBMITTED = re.compile(
 # Matches the secondary-care filing note that the patient WAS SEEN at the
 # clinic -- distinct from the GP-side referral ('Fast track referral for
 # suspected X') and from any diagnosis text.  Must not overlap _RE_REFERRAL.
+#
+# DI-LEO-AI-201 (Pattern B): the previous bare alternation
+# ``\b2WW\s+clinic\b`` matched any GP narrative phrase containing
+# "2WW clinic" (e.g. "referred to 2WW clinic but not attended due to
+# mobility issues") and emitted a phantom first_seen anchor on the
+# referring GP's home visit. Patient 4643293950 had a Nov 2024 home
+# visit narrative that fired first_seen on a DNA event; the episode
+# rescue path then promoted the open Jan 2024 referral to "completed"
+# with end_date = Nov, mass-claiming downstream encounters into the
+# wrong episode. Every alternation now requires an attestation verb
+# (seen|attended|reviewed) within proximity of the clinic token.
 _RE_FIRST_SEEN = re.compile(
     r"\bseen in (?:fast.?track|2WW|TWW|two.week.wait)"
     r"(?:\s+suspected\s+\w[\w\s]{0,30})?\s*clinic\b|"
     r"\battended (?:fast.?track|2WW|TWW)\b.{0,40}clinic\b|"
-    r"\b2WW\s+clinic\b|\bTWW\s+clinic\b|"
+    r"\breviewed in (?:fast.?track|2WW|TWW|two.week.wait)\b.{0,40}clinic\b|"
     r"\bseen in 2WW\b",
     re.IGNORECASE,
 )
@@ -625,6 +856,14 @@ _TEXT_SENTINEL = {
         "concept_id": 308470004,
         "concept_name": "Text: specialist outcome letter received",
     },
+    # DI-LEO-AI-204 (Pattern G): SNOMED 182888003 "Patient unable to
+    # comply with treatment" -- closest standard concept for a care-
+    # obstruction event (DNA due to mobility, refusal of pathway
+    # investigation, hospital-cancelled referral, safeguarding block).
+    "care_obstruction": {
+        "concept_id": 182888003,
+        "concept_name": "Text: care obstruction or pathway block",
+    },
 }
 
 
@@ -661,6 +900,7 @@ def _classify_text_encounters(
     specialist_letters: list[dict[str, Any]] = []
     first_presentations: list[dict[str, Any]] = []
     first_seens: list[dict[str, Any]] = []  # DI-LEO-AI-145
+    care_obstructions: list[dict[str, Any]] = []  # DI-LEO-AI-204 (Pattern G)
 
     for row in text_rows:
         enc_id = row.get("encounter_id") or ""
@@ -713,6 +953,16 @@ def _classify_text_encounters(
         # DI-LEO-AI-159: problem-list Read/CTV3 code recognition
         # DI-LEO-AI-171: free-text malignancy term + active-care code
         _malignancy_hit = find_malignancy_code(text) if not _is_history else None
+        # DI-LEO-AI-215 (Pattern K): the strict "code on a Major:/
+        # Problem: line" variant. Used as the safe override gate for
+        # the same-encounter referral suppression. Free-prose code
+        # mentions ("Considering malignant tumour of breast (X78WM)")
+        # MUST NOT override the gate -- only true problem-list
+        # additions like "Major: Invasive carcinoma of breast (Ya0ln)
+        # - lobular (New Episode)".
+        _malignancy_problem_hit = (
+            find_malignancy_code_in_problem_line(text) if not _is_history else None
+        )
         _malignancy_term_hit = (
             find_malignancy_term_in_problem_line(text) if not _is_history else None
         )
@@ -779,10 +1029,7 @@ def _classify_text_encounters(
         if _benign_phrase_hit is not None:
             if _benign_phrase_hit not in BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT:
                 _phrase_should_count = True
-            elif (
-                _benign_code_hit is not None
-                or text_has_cancer_pathway_context(text)
-            ):
+            elif _benign_code_hit is not None or text_has_cancer_pathway_context(text):
                 _phrase_should_count = True
         if _benign_code_hit is not None or _phrase_should_count:
             has_no_cancer = True
@@ -832,17 +1079,36 @@ def _classify_text_encounters(
         # but represents a workflow status change, not a fresh referral.
         # This avoids double-counting a 6-day-delayed pathway as two
         # separate referrals.
+        # DI-LEO-AI-195: PRISM cancer-context guard -- a PRISM proforma is
+        # only a cancer 2WW when the surrounding text carries an explicit
+        # 2WW / suspected-cancer / fast-track signal. Other PRISM templates
+        # (sexual health, MSK, IBD, cardiology, mental-health crisis, etc.)
+        # must NOT open a 2WW cancer pathway.
         is_first_seen_note = bool(_RE_FIRST_SEEN.search(text))
+        is_prism_cancer = bool(
+            _RE_REFERRAL_PRISM.search(text) and _RE_PRISM_CANCER_CONTEXT.search(text)
+        )
+        # DI-LEO-AI-195: "Marked in Error: Amended data" / "amendment" are
+        # administrative QOF / data-quality corrections to a referral row,
+        # NOT clinical rejections. Only treat marked-in-error as a
+        # rejection-equivalent event when no "amended data" / "amendment"
+        # qualifier is present.
+        _mie_match = _RE_REFERRAL_MARKED_IN_ERROR.search(text)
+        _is_admin_amendment = bool(
+            _mie_match
+            and re.search(
+                r"\b(?:amended\s+data|amendment|data\s+amendment|"
+                r"reason\s*[:\-]?\s*amended)\b",
+                text,
+                re.IGNORECASE,
+            )
+        )
         is_referral_rejected = bool(
             _RE_REFERRAL_REJECTED.search(text)
-            or _RE_REFERRAL_MARKED_IN_ERROR.search(text)
+            or (_mie_match and not _is_admin_amendment)
         )
-        is_referral_resubmitted = (
-            bool(_RE_REFERRAL_RESUBMITTED.search(text))
-            and (
-                _RE_REFERRAL.search(text) is not None
-                or _RE_REFERRAL_PRISM.search(text) is not None
-            )
+        is_referral_resubmitted = bool(_RE_REFERRAL_RESUBMITTED.search(text)) and (
+            _RE_REFERRAL.search(text) is not None or is_prism_cancer
         )
         if is_referral_rejected:
             s = _TEXT_SENTINEL["referral"]
@@ -864,7 +1130,7 @@ def _classify_text_encounters(
                     "confidence": 0.85,
                 }
             )
-        elif _RE_REFERRAL_PRISM.search(text):
+        elif is_prism_cancer:
             s = _TEXT_SENTINEL["referral"]
             referrals.append(
                 {
@@ -875,14 +1141,38 @@ def _classify_text_encounters(
                 }
             )
         elif _RE_REFERRAL.search(text) and not is_first_seen_note:
-            s = _TEXT_SENTINEL["referral"]
-            referrals.append(
-                {
-                    **base,
-                    **s,
-                    "referral_subtype": "text_generic",
-                }
+            # DI-LEO-AI-201 (Pattern C+D): suppress text_generic referral
+            # when the encounter only NARRATES past pathway activity.
+            # DI-LEO-AI-210 (Pattern H): suppress when the only cancer/
+            # referral context is family-history (FH prostate ca, etc.).
+            # DI-LEO-AI-211 (Pattern I): suppress when the only referral
+            # text is conditional boilerplate guidance from an auto-
+            # filed lab report.
+            # In every case, real STRUCTURAL evidence (PRISM/Outbound/
+            # Read code/Choose-and-book/Hospital row/"Refer via 2WW")
+            # overrides the suppression -- a real referral was issued.
+            _has_structural = bool(_RE_STRUCTURAL_REFERRAL.search(text))
+            _has_narrative = bool(_RE_NARRATIVE_REFERRAL_REFERENCE.search(text))
+            _has_fh = bool(_RE_FAMILY_HISTORY_CANCER.search(text))
+            _is_auto_filed = bool(_RE_AUTO_FILED_PREFIX.search(text))
+            _has_boilerplate = bool(_RE_BOILERPLATE_REFERRAL_GUIDANCE.search(text))
+            _suppress = (
+                (_has_narrative and not _has_structural)
+                or (_has_fh and not _has_structural)
+                or (_is_auto_filed and not _has_structural)
+                or (_has_boilerplate and not _has_structural)
             )
+            if _suppress:
+                pass  # suppressed: not a real referral event
+            else:
+                s = _TEXT_SENTINEL["referral"]
+                referrals.append(
+                    {
+                        **base,
+                        **s,
+                        "referral_subtype": "text_generic",
+                    }
+                )
 
         # Diagnosis -- cancer
         # DI-LEO-AI-145: skip if encounter is also a referral; "Fast track
@@ -890,13 +1180,38 @@ def _classify_text_encounters(
         # a suspected case only -- confirmed diagnosis comes later.
         # DI-LEO-AI-182: rejection/resubmission encounters are also
         # referral-class events; they must not emit benign or diagnosis.
+        # DI-LEO-AI-215 (Pattern K): a hard problem-list diagnosis
+        # signal -- a malignancy Read code (Ya0ln, X78WM, B-family),
+        # a malignancy term inside a "Major:/Problem:" line, or an
+        # active-cancer-care Read code -- represents an EMIS problem-
+        # list ADDITION ("Major: Invasive carcinoma of breast (Ya0ln)
+        # - lobular (New Episode)") and is the strongest possible
+        # confirmed-diagnosis signal. It MUST fire diagnosis_confirmed
+        # even on an encounter that ALSO carries the same-day 2WW
+        # referral row, because GPs routinely add the working
+        # diagnosis to the problem list at the same time they issue
+        # the fast-track referral. Soft signals (adjuvant drug only,
+        # follow-up template only, surface-form cancer mention only)
+        # still respect the referral gate to avoid the original
+        # DI-LEO-AI-145 trap.
         _is_referral_enc = bool(
             is_referral_rejected
             or is_referral_resubmitted
-            or _RE_REFERRAL_PRISM.search(text)
+            or is_prism_cancer
             or (_RE_REFERRAL.search(text) and not is_first_seen_note)
         )
-        if has_cancer and has_confirmed and not has_no_cancer and not _is_referral_enc:
+        _has_hard_dx_evidence = (
+            _malignancy_problem_hit is not None
+            or _malignancy_term_hit is not None
+            or _active_care_hit is not None
+        )
+        _dx_referral_blocked = _is_referral_enc and not _has_hard_dx_evidence
+        if (
+            has_cancer
+            and has_confirmed
+            and not has_no_cancer
+            and not _dx_referral_blocked
+        ):
             s = _TEXT_SENTINEL["diagnosis_cancer"]
             extra: dict[str, Any] = {}
             if _malignancy_hit is not None:
@@ -1011,6 +1326,23 @@ def _classify_text_encounters(
                 treatment_extra["treatment_code"] = _treatment_proc_hit
             treatments.append({**base, **s, **treatment_extra})
 
+        # DI-LEO-AI-204 (Pattern G): care_obstruction signals.
+        # Independent of other milestones -- an encounter can be both a
+        # rejection (workflow) and a care_obstruction (clinical refusal
+        # / safeguarding). Emitted whenever the regex hits, regardless
+        # of referral / diagnosis classification.
+        if _RE_CARE_OBSTRUCTION.search(text):
+            s = _TEXT_SENTINEL["care_obstruction"]
+            care_obstructions.append(
+                {
+                    **base,
+                    **s,
+                    "obstruction_source": "text_pattern",
+                    "confidence": 0.7,
+                    "hitl_required": True,
+                }
+            )
+
     return (
         _dedupe_by_encounter(referrals),
         _dedupe_by_encounter(diagnoses),
@@ -1020,6 +1352,7 @@ def _classify_text_encounters(
         _dedupe_by_encounter(specialist_letters),
         first_presentations,  # always empty -- coded path only
         _dedupe_by_encounter(first_seens),  # DI-LEO-AI-145
+        _dedupe_by_encounter(care_obstructions),  # DI-LEO-AI-204
     )
 
 
@@ -1063,11 +1396,13 @@ def detect_anchors(
         specialist_letters,
         first_presentations,
         _coded_first_seens,  # always empty from coded path; DI-LEO-AI-145
+        _coded_care_obstructions,  # always empty from coded path; DI-LEO-AI-204
     ) = _classify_anchor_rows(coded_rows, buckets, pathway_completion_ids)
     # DI-LEO-AI-145: coded path does not produce first_seen anchors; they
     # come exclusively from text search.  Initialise empty here so the
     # merge block below is uniform.
     first_seens: list[dict[str, Any]] = []
+    care_obstructions: list[dict[str, Any]] = []  # DI-LEO-AI-204
     construct_map = _build_construct_anchor_map(coded_rows, registry)
     referrals = _merge_anchor_lists(referrals, construct_map.get("referral", []))
     diagnoses = _merge_anchor_lists(diagnoses, construct_map.get("diagnosis", []))
@@ -1108,6 +1443,7 @@ def detect_anchors(
             t_letters,
             _t_fp,  # always empty; first_presentation is coded-path only
             t_first_seens,  # DI-LEO-AI-145
+            t_care_obstructions,  # DI-LEO-AI-204 (Pattern G)
         ) = _classify_text_encounters(text_rows, already_coded_ids)
         # Merge: coded anchors first, then text-derived for encounters not
         # already represented in the coded set.
@@ -1127,6 +1463,10 @@ def detect_anchors(
         ]
         seen_enc = {r["encounter_id"] for r in first_seens}
         first_seens += [r for r in t_first_seens if r["encounter_id"] not in seen_enc]
+        seen_enc = {r["encounter_id"] for r in care_obstructions}
+        care_obstructions += [
+            r for r in t_care_obstructions if r["encounter_id"] not in seen_enc
+        ]
 
     # DI-LEO-AI-145: An encounter coded with BOTH a referral procedure AND a
     # cancer finding was produced by the PRISM workflow: "Fast track referral
@@ -1135,15 +1475,15 @@ def detect_anchors(
     # diagnosis/benign-closure anchor would fire diagnosis_confirmed on the
     # GP referral day -- weeks before the histology letter arrives.
     # Rule: referral encounter IDs are excluded from diagnoses and benign_closures.
-    _referral_enc_ids: set[str] = {
-        str(r.get("encounter_id") or "") for r in referrals
-    }
+    _referral_enc_ids: set[str] = {str(r.get("encounter_id") or "") for r in referrals}
     diagnoses = [
-        d for d in diagnoses
+        d
+        for d in diagnoses
         if str(d.get("encounter_id") or "") not in _referral_enc_ids
     ]
     benign_closures = [
-        b for b in benign_closures
+        b
+        for b in benign_closures
         if str(b.get("encounter_id") or "") not in _referral_enc_ids
     ]
 
@@ -1157,6 +1497,7 @@ def detect_anchors(
             specialist_letters,
             first_presentations,
             first_seens,
+            care_obstructions,
         )
     )
     detection_method = "concept+text" if has_anchors else "none"
@@ -1173,6 +1514,7 @@ def detect_anchors(
         specialist_outcome_letter_anchors=_dedupe_by_encounter(specialist_letters),
         first_presentation_anchors=_dedupe_first_presentation(first_presentations),
         first_seen_anchors=_dedupe_by_encounter(first_seens),  # DI-LEO-AI-145
+        care_obstruction_anchors=_dedupe_by_encounter(care_obstructions),
         detection_method=detection_method,
     )
     all_refs = result.referral_anchors

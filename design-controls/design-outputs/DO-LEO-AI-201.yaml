@@ -1,0 +1,171 @@
+# -- DO-LEO-AI-201 -- Two-click 'Approve as gold' + per-encounter error weight on dry-run rows
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-201"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-205"
+      - "DI-LEO-AI-206"
+      - "DI-LEO-AI-207"
+    user_needs:
+      - "UN-LEO-AI-086"
+    risks_addressed:
+      - "R-LEO-AI-192"
+    verification_tests:
+      - "VT-LEO-AI-195"
+      - "VT-LEO-AI-196"
+
+  specification:
+    title: "Approve dry-run extractions as gold and surface per-encounter error weight"
+    description: |
+      Three coupled artefacts complete the dry-run review loop
+      started in DO-LEO-AI-197 (which only covered 'open in editor'):
+
+        1. POST /api/training/gold-labels/approve-from-dry-run
+           (services/api/app/routers/training.py): two-click
+           verified-approval endpoint. De-identifies the encounter
+           text, hashes to candidate_id, re-anchors entities via
+           the shared _sanitise_dry_run_entities helper, and
+           refuses with HTTP 409 when the sanitised entity count
+           does not match the reviewer's expected_entity_count
+           echo or when zero entities survive (so the audit trail
+           accurately reflects what the reviewer saw on the row
+           card). On success, upserts the GoldLabel with
+           source='manual_gold_curated', verified_by=<reviewer email>,
+           and a quality_score (default 1.0). Idempotent on
+           candidate_id.
+
+        2. metrics.per_document on canary jobs + POST
+           /api/training/per-encounter-weights/lookup
+           (services/api/app/routers/model_registry.py +
+           services/api/app/routers/training.py): the canary loop
+           now records per-document tp/fp/fn, doc_f1, and
+           error_contribution = (fp+fn)/total_errors alongside
+           the existing per-label aggregates. The lookup endpoint
+           accepts [{encounter_id, text}, ...], de-identifies +
+           sha256s server-side, joins to the most recent completed
+           canary job, and returns per_document entries keyed by
+           the caller's encounter_id (or null when the encounter
+           is not in the canary corpus). Two cypher queries
+           (GET_ALL_GOLD_LABELS_FOR_EXPORT, GET_GOLDEN_SET_LABELS)
+           additively return candidate_id so the canary loop can
+           attribute results.
+
+        3. EvaluateStage UI updates
+           (services/ui/src/components/console/EvaluateStage.tsx):
+           a green CheckCircleIcon IconButton with
+           aria-label='Approve dry-run extraction as gold' next to
+           the existing pencil in both row blocks; a Dialog that
+           lists every entity by surface text and label before the
+           reviewer commits; an useEffect that fires the
+           per-encounter-weights lookup after every dry-run; a
+           Chip with data-testid='encounter-weight-chip'
+           displaying 'error weight X.X%' next to the entity
+           count; and a 'Sort by error impact' Button (only when
+           any row has weight data) that re-orders both result
+           lists by descending error_contribution.
+
+    acceptance_criteria:
+      - criterion: "approve_endpoint_deid_before_hash"
+        type: "safety"
+        measurement: "Test"
+        target: "approve-from-dry-run candidate_id is sha256 of the de-identified text, not raw encounter text"
+      - criterion: "approve_endpoint_count_mismatch_409"
+        type: "safety"
+        measurement: "Test"
+        target: "When sanitised entity count != expected_entity_count, endpoint returns HTTP 409 and writes nothing to gold"
+      - criterion: "approve_endpoint_zero_entities_409"
+        type: "safety"
+        measurement: "Test"
+        target: "When zero entities survive de-identification, endpoint returns HTTP 409 and writes nothing to gold"
+      - criterion: "approve_endpoint_verified_by_set"
+        type: "functional"
+        measurement: "Test"
+        target: "Successful approve upserts GoldLabel with source='manual_gold_curated' and verified_by=<scope.email or 'unknown'>"
+      - criterion: "approve_endpoint_idempotent_label"
+        type: "functional"
+        measurement: "Test"
+        target: "Re-approving the same encounter reuses the existing label_id (no duplicate GoldLabel)"
+      - criterion: "per_document_attached_to_metrics"
+        type: "functional"
+        measurement: "Test"
+        target: "_run_canary_gold_job populates metrics['per_document'] with one entry per scored doc carrying candidate_id, tp, fp, fn, doc_f1, error_contribution"
+      - criterion: "error_contribution_sums_to_one"
+        type: "functional"
+        measurement: "Test"
+        target: "When total_errors > 0, sum of per_document[].error_contribution equals 1.0 within float tolerance"
+      - criterion: "lookup_maps_via_deid_sha256"
+        type: "safety"
+        measurement: "Test"
+        target: "/per-encounter-weights/lookup deidentifies each encounter text, hashes to candidate_id, and returns the matching per_document entry keyed by encounter_id; encounters not in canary return null"
+      - criterion: "lookup_no_canary_returns_empty"
+        type: "functional"
+        measurement: "Test"
+        target: "When no completed canary job exists, response is {job_id: None, version: None, weights: {}}"
+      - criterion: "ui_approve_icon_in_both_blocks"
+        type: "functional"
+        measurement: "Test"
+        target: "EvaluateStage.tsx renders aria-label='Approve dry-run extraction as gold' inside BOTH the dryRunResults and pipelineTraceResults map blocks"
+      - criterion: "ui_approve_dialog_pre_commit"
+        type: "safety"
+        measurement: "Test"
+        target: "EvaluateStage.tsx contains a Dialog open={!!approveTarget} that the IconButton opens; only the Dialog's confirm action POSTs to /api/training/gold-labels/approve-from-dry-run"
+      - criterion: "ui_weight_chip_with_testid"
+        type: "functional"
+        measurement: "Test"
+        target: "EvaluateStage.tsx renders Chip with data-testid='encounter-weight-chip' and label `error weight X.X%`"
+      - criterion: "ui_sort_toggle_conditional"
+        type: "functional"
+        measurement: "Test"
+        target: "EvaluateStage.tsx 'By error impact' Button only renders when hasPerEncounterWeights is true; toggle drives sortByWeight state"
+      - criterion: "ui_lookup_useeffect"
+        type: "functional"
+        measurement: "Test"
+        target: "EvaluateStage.tsx contains a useEffect depending on dryRunResults/pipelineTraceResults that POSTs to /api/training/per-encounter-weights/lookup"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
+        description: "approve_dry_run_extraction_as_gold, lookup_per_encounter_weights, DryRunApproveRequest, PerEncounterWeightLookupRequest"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/model_registry.py"
+        description: "_run_canary_gold_job per_document capture + error_contribution computation"
+      - artifact_type: "source_code"
+        location: "libs/cypher/gold_label_queries.py"
+        description: "GET_ALL_GOLD_LABELS_FOR_EXPORT additively returns candidate_id"
+      - artifact_type: "source_code"
+        location: "libs/cypher/golden_set_queries.py"
+        description: "GET_GOLDEN_SET_LABELS additively returns candidate_id"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/console/EvaluateStage.tsx"
+        description: "Approve IconButton + ConfirmDialog, per-encounter weight lookup + chip + sort toggle"
+    storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript"
+      loc: 460
+      key_functions:
+        - "approve_dry_run_extraction_as_gold"
+        - "lookup_per_encounter_weights"
+        - "_run_canary_gold_job (per_document branch)"
+        - "requestApproveAsGold / confirmApproveAsGold"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Server-side de-identification of every encounter text before any hashing, persistence, or canary lookup"
+      - "expected_entity_count integrity check refuses to write gold when reviewer-visible and persisted entity sets diverge"
+      - "verified_by stamp records the human accountable for every quick-approved gold label"
+    risk_control_measures:
+      - "Two-click flow: row IconButton opens a Dialog listing every entity; only the Dialog's confirm action triggers the POST"
+      - "HTTP 409 on entity-count mismatch or zero-survived forces the reviewer back into the editor for any non-clean row"
+      - "Lookup endpoint returns only candidate_id-scoped metrics + job metadata, never the de-identified text or PHI"
+      - "GoldLabel.source='manual_gold_curated' and approved_via='dry_run_quick_approve' allow targeted post-deployment audit of the quick-approve cohort"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

@@ -1,0 +1,118 @@
+# -- R-LEO-AI-200 -- Was-seen / write-to-clinician narrative misread as a fresh referral
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-200"
+  title: "Past-tense seen-narrative or inter-clinician clarification text is mis-classified as a new referral, opening phantom unknown-cancer episodes"
+
+  hazard:
+    description: >
+      A follow-up encounter that narrates a previous
+      pathway ("Was seen by ENT under 2ww in Jan", "had
+      been seen in fast track clinic last month") or
+      sends an inter-clinician clarification ("Write to
+      ENT to clarify that polyp requires no FU", "letter
+      to consultant requesting clarification of plan")
+      contains the same referral-shaped tokens as a real
+      referral. The text-anchor classifier may emit a
+      fresh text_generic referral and open a phantom
+      EpisodeOfCare even though no new pathway exists.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A GP follow-up review encounter discusses what
+    happened during a previously-completed pathway and
+    optionally requests a clarification from the
+    specialist. Without an extended narrative-reference
+    guard the encounter spawns a duplicate
+    EpisodeOfCare typically tagged "unknown" because
+    site resolution cannot disambiguate the historical
+    mention from the current encounter.
+
+  harm:
+    description: >
+      Phantom EpisodeOfCare nodes (often unknown
+      cancer_type) clutter the operations queue;
+      duplicate-resolver workload increases; per-
+      practice pathway counts inflate; reviewer trust in
+      the queue degrades.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 4
+    detectability: 3
+    rpn: 24
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-212 extends
+        _RE_NARRATIVE_REFERRAL_REFERENCE with two new
+        alternation groups: past-tense seen-narrative
+        ('(was|were|has been|had been) seen
+        (by|under|in|at) ... (2WW|TWW|fast.?track|
+        clinic|specialist)' and the bare 'seen
+        (by|under|in|at) ... (2WW|TWW|fast.?track)') and
+        inter-clinician clarification
+        ('(write|writing|wrote|letter|email|message)
+        (to|back to)
+        (ENT|consultant|specialist|hospital|registrar|
+        clinic)'). The Pattern C+D suppression hook in
+        _classify_text_encounters then drops the
+        text_generic referral when no structural
+        artefact is present.
+      implemented_by:
+        - "DI-LEO-AI-212"
+      verified_by:
+        - "VT-LEO-AI-204"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-206 exclusive encounter claiming
+        prevents the same encounter from being attached
+        to multiple episodes for non-referral
+        milestones, capping the impact of any residual
+        mis-classification.
+      implemented_by:
+        - "DI-LEO-AI-206"
+      verified_by:
+        - "VT-LEO-AI-199"
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The extended narrative shapes preserve the
+      existing C+D alternations and only suppress
+      text_generic. Real referrals carrying the new
+      narrative tokens still fire because the structural
+      keep-list overrides the suppression. 6
+      verification cases pass (VT-LEO-AI-204).
+
+  monitoring:
+    monitoring_plan: >
+      Per-rebuild compare the count of unknown-cancer
+      EpisodeOfCare nodes triggered by free-text
+      referrals. Investigate any rebuild where unknown-
+      cancer text_generic episodes are non-zero and
+      lack a structural referral artefact.
+    metrics:
+      - "Count of unknown-cancer EpisodeOfCare nodes triggered by text_generic with no structural artefact"
+      - "Per-rebuild reduction in phantom unknown-cancer episodes vs prior rebuild"
+    review_frequency: "Each rebuild"
+
+  metadata:
+    identified_by: "Patient 4842019832 investigation -- Pattern J (2025-06-30 follow-up 'Was seen by ENT under 2ww in Jan ... Write to ENT to clarify' spawned a phantom unknown-cancer EpisodeOfCare)"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "referral-classification"
+      - "narrative-guard"
+      - "patient-4842019832"

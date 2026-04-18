@@ -8,10 +8,12 @@ import {
 } from "@/lib/missionControlApi";
 import { fetchEncounterCodedLinks } from "@/lib/api";
 
-// VT-LEO-AI-173-TC-020 / TC-021: integration verification that the
-// timeline scrubber's zoom brush filters the encounter list and that
-// jumping to an encounter clears the filter so the target stays
-// visible.
+// VT-LEO-AI-205 (supersedes VT-LEO-AI-173 TC-020 / TC-021 / TC-022):
+// integration verification that the timeline brush is the sole
+// spatial filter for the flat encounter list, that the default
+// brush window is initialised to the padded episode window, and
+// that jumping to an encounter clears the brush so the target
+// stays visible.
 
 jest.mock("@/lib/missionControlApi", () => ({
   fetchPatientEncounters: jest.fn(),
@@ -68,6 +70,7 @@ const EPISODE: MissionEpisode = {
   reviewed_at: null,
   audit_notes: null,
   audit_flag: false,
+  linked_encounter_ids: ["enc-3", "enc-4", "enc-5"],
   milestones: [
     { milestone_type: "gp_referral", encounter_id: "enc-3", date: "2024-02-25" },
     { milestone_type: "specialist_visit", encounter_id: "enc-4", date: "2024-04-04" },
@@ -89,14 +92,6 @@ async function renderTab() {
   });
 }
 
-function clickAllScope(): void {
-  const allChip = screen
-    .getAllByRole("button")
-    .find((node) => /^All encounters \(\d+\)$/.test(node.textContent ?? ""));
-  if (!allChip) throw new Error("All encounters chip not found");
-  fireEvent.click(allChip);
-}
-
 function getFromHandle(): HTMLElement {
   const brush = screen.getByTestId("timeline-range-brush");
   const handle = within(brush)
@@ -106,72 +101,68 @@ function getFromHandle(): HTMLElement {
   return handle;
 }
 
-function countAllEncountersChip(): number {
-  const all = screen
-    .getAllByRole("button")
-    .find((node) => /^All encounters \(\d+\)$/.test(node.textContent ?? ""));
-  if (!all) throw new Error("All encounters chip not found");
-  const match = (all.textContent ?? "").match(/All encounters \((\d+)\)/);
-  return match ? Number(match[1]) : 0;
+function visibleCardIds(): string[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>("[data-encounter-card-id]")
+  ).map((node) => node.getAttribute("data-encounter-card-id") ?? "");
 }
 
-describe("EncounterTextTab + timeline brush filter - VT-LEO-AI-173", () => {
-  test("VT-173-TC-020: dragging the brush narrows the encounter list and shows a banner", async () => {
+describe("EncounterTextTab + timeline brush filter - VT-LEO-AI-205", () => {
+  test("VT-205-TC-001: default brush is initialised to the padded episode window", async () => {
     await renderTab();
-    clickAllScope();
-    await waitFor(() => {
-      expect(countAllEncountersChip()).toBe(SIX_ENCOUNTERS.length);
-    });
-    expect(screen.queryByTestId("timeline-filter-banner")).not.toBeInTheDocument();
-
-    const fromHandle = getFromHandle();
-    fromHandle.focus();
-    fireEvent.keyDown(fromHandle, { key: "ArrowRight", shiftKey: true });
-
     await waitFor(() => {
       expect(screen.getByTestId("timeline-filter-banner")).toBeInTheDocument();
-      expect(countAllEncountersChip()).toBeLessThan(SIX_ENCOUNTERS.length);
     });
+    const ids = visibleCardIds();
+    expect(ids).toEqual(expect.arrayContaining(["enc-3", "enc-4", "enc-5"]));
+    expect(ids).not.toContain("enc-6");
   });
 
-  test("VT-173-TC-021: clearing the timeline filter restores every encounter", async () => {
+  test("VT-205-TC-002: clearing the brush filter shows every patient encounter", async () => {
     await renderTab();
-    clickAllScope();
-    await waitFor(() => expect(countAllEncountersChip()).toBe(SIX_ENCOUNTERS.length));
-
-    const fromHandle = getFromHandle();
-    fromHandle.focus();
-    fireEvent.keyDown(fromHandle, { key: "ArrowRight", shiftKey: true });
-
     const banner = await screen.findByTestId("timeline-filter-banner");
     const clearButton = within(banner).getByRole("button", { name: /clear/i });
     fireEvent.click(clearButton);
 
     await waitFor(() => {
       expect(screen.queryByTestId("timeline-filter-banner")).not.toBeInTheDocument();
-      expect(countAllEncountersChip()).toBe(SIX_ENCOUNTERS.length);
     });
+    expect(visibleCardIds().sort()).toEqual(
+      SIX_ENCOUNTERS.map((e) => e.encounter_id).sort()
+    );
   });
 
-  test("VT-173-TC-022: jumping via the timeline (single-bin click) clears the filter", async () => {
+  test("VT-205-TC-003: dragging the brush narrows the encounter list", async () => {
     await renderTab();
-    clickAllScope();
-    await waitFor(() => expect(countAllEncountersChip()).toBe(SIX_ENCOUNTERS.length));
+    const banner = await screen.findByTestId("timeline-filter-banner");
+    const initialBefore = visibleCardIds();
 
     const fromHandle = getFromHandle();
     fromHandle.focus();
     fireEvent.keyDown(fromHandle, { key: "ArrowRight", shiftKey: true });
+    fireEvent.keyDown(fromHandle, { key: "ArrowRight", shiftKey: true });
+
+    await waitFor(() => {
+      expect(visibleCardIds().length).toBeLessThanOrEqual(initialBefore.length);
+    });
+    expect(banner).toBeInTheDocument();
+  });
+
+  test("VT-205-TC-004: jumping via the timeline (single-bin click) clears the filter", async () => {
+    await renderTab();
     await screen.findByTestId("timeline-filter-banner");
 
-    const aprBar = screen
+    // Aug 24 sits OUTSIDE the default padded episode window so the
+    // bar is dimmed but still clickable.
+    const augBar = screen
       .getAllByRole("button")
-      .find((node) => node.getAttribute("data-bin-label") === "Apr 24");
-    expect(aprBar).toBeDefined();
-    fireEvent.click(aprBar!);
+      .find((node) => node.getAttribute("data-bin-label") === "Aug 24");
+    expect(augBar).toBeDefined();
+    fireEvent.click(augBar!);
 
     await waitFor(() => {
       expect(screen.queryByTestId("timeline-filter-banner")).not.toBeInTheDocument();
-      expect(countAllEncountersChip()).toBe(SIX_ENCOUNTERS.length);
+      expect(visibleCardIds()).toContain("enc-6");
     });
   });
 });

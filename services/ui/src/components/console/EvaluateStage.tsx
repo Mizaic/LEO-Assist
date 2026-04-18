@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type JSX, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -31,8 +32,11 @@ import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Checkbox from "@mui/material/Checkbox";
+import IconButton from "@mui/material/IconButton";
 import LockIcon from "@mui/icons-material/Lock";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import EditNoteIcon from "@mui/icons-material/EditNote";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer,
@@ -97,6 +101,7 @@ interface DryRunEncounterRow {
   patient_id: string;
   encounter_date: string | null;
   text: string | null;
+  match_type?: string | null;
 }
 
 interface DryRunEntity {
@@ -110,7 +115,20 @@ interface DryRunResultRow {
   encounter_id: string;
   patient_id?: string | null;
   encounter_date?: string | null;
+  text?: string | null;
   entities: DryRunEntity[];
+}
+
+interface EncounterWeight {
+  candidate_id: string;
+  label_id?: string;
+  gold_count: number;
+  pred_count: number;
+  tp: number;
+  fp: number;
+  fn: number;
+  doc_f1: number;
+  error_contribution: number;
 }
 
 type DryRunMode = "ner_only" | "full_pipeline";
@@ -155,6 +173,7 @@ interface PipelineTraceResultRow {
   encounter_id: string;
   patient_id?: string | null;
   encounter_date?: string | null;
+  text?: string | null;
   final_entities: PipelineEntity[];
   suppressed_entities: PipelineEntity[];
   deduplicated_entities?: PipelineEntity[];
@@ -215,6 +234,72 @@ function canonicalWordType(raw: string): string {
 function pct(v: number | null | undefined): string {
   if (v === null || v === undefined) return "—";
   return `${(v * 100).toFixed(1)}%`;
+}
+
+const SEARCH_HIGHLIGHT_STOPWORDS = new Set([
+  "and", "or", "the", "a", "an", "of", "for", "to", "in", "on", "with",
+  "is", "are", "was", "were", "be", "been", "by", "at", "as", "this",
+  "that", "it", "from", "but", "not", "no",
+]);
+
+function buildHighlightTokens(
+  query: string,
+  expandedTerms: string[],
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const add = (raw: string) => {
+    const trimmed = raw.trim();
+    if (trimmed.length < 3) return;
+    const key = trimmed.toLowerCase();
+    if (SEARCH_HIGHLIGHT_STOPWORDS.has(key)) return;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(trimmed);
+  };
+  for (const term of expandedTerms) {
+    add(term);
+    for (const word of term.split(/\s+/)) add(word);
+  }
+  for (const word of query.split(/\s+/)) add(word);
+  // Sort longest-first so multi-word phrases match before their parts.
+  return out.sort((a, b) => b.length - a.length);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function renderHighlightedText(
+  text: string,
+  tokens: string[],
+): ReactNode {
+  if (!text) return text;
+  if (!tokens.length) return text;
+  const pattern = new RegExp(
+    `(${tokens.map(escapeRegExp).join("|")})`,
+    "gi",
+  );
+  const parts = text.split(pattern);
+  return parts.map((part, idx) => {
+    if (idx % 2 === 1) {
+      return (
+        <mark
+          key={`hl-${idx}`}
+          data-testid="encounter-search-highlight"
+          style={{
+            backgroundColor: "rgba(255, 213, 79, 0.6)",
+            color: "inherit",
+            padding: "0 1px",
+            borderRadius: 2,
+          }}
+        >
+          {part}
+        </mark>
+      );
+    }
+    return <span key={`txt-${idx}`}>{part}</span>;
+  });
 }
 
 function detailToString(detail: unknown): string | null {
@@ -363,11 +448,24 @@ function renderProvenanceAnnotatedText(text: string, entities: PipelineEntity[])
 }
 
 export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStageProps) {
+  const router = useRouter();
   const [versions, setVersions] = useState<ModelRecord[]>([]);
   const [activeModelVersion, setActiveModelVersion] = useState<string | null>(null);
   const [loadingRegistry, setLoadingRegistry] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [openingGoldEditor, setOpeningGoldEditor] = useState<string | null>(null);
+  const [approveTarget, setApproveTarget] = useState<{
+    encounterId: string;
+    text: string;
+    entities: DryRunEntity[];
+  } | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
+  const [perEncounterWeights, setPerEncounterWeights] = useState<
+    Record<string, EncounterWeight | null>
+  >({});
+  const [sortByWeight, setSortByWeight] = useState(false);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [goldJobId, setGoldJobId] = useState<string | null>(null);
   const [goldJob, setGoldJob] = useState<CanaryJob | null>(null);
@@ -377,6 +475,11 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
   const [canaryCorpus, setCanaryCorpus] = useState<CanaryCorpus>("full");
   const [holdbackCount, setHoldbackCount] = useState<number | null>(null);
   const [dryRunQuery, setDryRunQuery] = useState("");
+  const [dryRunSearchTerms, setDryRunSearchTerms] = useState<string[]>([]);
+  const dryRunHighlightTokens = useMemo(
+    () => buildHighlightTokens(dryRunQuery, dryRunSearchTerms),
+    [dryRunQuery, dryRunSearchTerms],
+  );
   const [dryRunRows, setDryRunRows] = useState<DryRunEncounterRow[]>([]);
   const [selectedDryRun, setSelectedDryRun] = useState<Record<string, DryRunEncounterRow>>({});
   const [dryRunLoading, setDryRunLoading] = useState(false);
@@ -538,6 +641,29 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
     [pipelineTraceResults],
   );
 
+  const hasPerEncounterWeights = useMemo(
+    () => Object.values(perEncounterWeights).some((w) => w !== null),
+    [perEncounterWeights],
+  );
+
+  const sortedDryRunResults = useMemo(() => {
+    if (!sortByWeight) return dryRunResults;
+    return [...dryRunResults].sort((a, b) => {
+      const wa = perEncounterWeights[a.encounter_id]?.error_contribution ?? -1;
+      const wb = perEncounterWeights[b.encounter_id]?.error_contribution ?? -1;
+      return wb - wa;
+    });
+  }, [dryRunResults, perEncounterWeights, sortByWeight]);
+
+  const sortedPipelineTraceResults = useMemo(() => {
+    if (!sortByWeight) return pipelineTraceResults;
+    return [...pipelineTraceResults].sort((a, b) => {
+      const wa = perEncounterWeights[a.encounter_id]?.error_contribution ?? -1;
+      const wb = perEncounterWeights[b.encounter_id]?.error_contribution ?? -1;
+      return wb - wa;
+    });
+  }, [pipelineTraceResults, perEncounterWeights, sortByWeight]);
+
   const canaryPerLabelRows = useMemo(() => {
     const rows = goldJob?.metrics?.per_label ?? [];
     const grouped = new Map<string, {
@@ -632,6 +758,7 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
     if (!q) {
       setDryRunRows([]);
       setSelectedDryRun({});
+      setDryRunSearchTerms([]);
       return;
     }
     setDryRunLoading(true);
@@ -658,7 +785,17 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
         patient_id: item.patient_id,
         encounter_date: item.encounter_date,
         text: item.text,
+        match_type: item.match_type ?? null,
       }));
+      const diagnostics = (data?.query_diagnostics ?? {}) as Record<string, unknown>;
+      const expanded = Array.isArray(diagnostics.expanded_terms)
+        ? (diagnostics.expanded_terms as unknown[]).map(String).filter(Boolean)
+        : [];
+      const synonyms = Array.isArray(diagnostics.clinical_synonyms)
+        ? (diagnostics.clinical_synonyms as unknown[]).map(String).filter(Boolean)
+        : [];
+      const allTerms = [...expanded, ...synonyms];
+      setDryRunSearchTerms(allTerms.length > 0 ? allTerms : [q]);
       setDryRunRows(rows);
       setSelectedDryRun({});
       setDryRunResults([]);
@@ -721,6 +858,182 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       setDryRunRunning(false);
     }
   }, [dryRunMode, selectedDryRun, selectedVersion]);
+
+  const openInGoldEditor = useCallback(
+    async (encounterId: string, text: string, entities: DryRunEntity[]) => {
+      if (!encounterId || !text.trim()) {
+        setError("This encounter has no text to send to the gold editor.");
+        return;
+      }
+      setOpeningGoldEditor(encounterId);
+      setError(null);
+      try {
+        const res = await fetchWithTimeout(
+          "/api/training/candidates/from-dry-run",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              encounter_text: text,
+              entities,
+              source_hint: `dry_run:${encounterId.slice(0, 12)}`,
+            }),
+          },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(detailToString(data.detail) || `Failed (${res.status})`);
+        }
+        const labelId = typeof data.label_id === "string" ? data.label_id : "";
+        if (!labelId) {
+          throw new Error("Gold editor did not return a label id.");
+        }
+        const editorUrl =
+          `/admin/gold-dataset?labelId=${encodeURIComponent(labelId)}&from=dry_run`;
+        const opened = window.open(editorUrl, "_blank", "noopener,noreferrer");
+        if (!opened) {
+          // Pop-up blocker prevented opening - fall back to in-place navigation
+          // so the user still gets to the editor instead of seeing nothing.
+          router.push(editorUrl);
+          return;
+        }
+        setInfo(
+          "Opened this encounter in the gold editor in a new tab. Your dry-run results are still here.",
+        );
+      } catch (e: unknown) {
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Could not open this encounter in the gold editor.",
+        );
+      } finally {
+        setOpeningGoldEditor(null);
+      }
+    },
+    [router],
+  );
+
+  useEffect(() => {
+    const rowsForLookup: Array<{ encounter_id: string; text: string }> = [];
+    const seen = new Set<string>();
+    const collect = (encounterId: string, text?: string | null) => {
+      const trimmed = (text ?? "").trim();
+      if (!encounterId || !trimmed || seen.has(encounterId)) return;
+      seen.add(encounterId);
+      rowsForLookup.push({ encounter_id: encounterId, text: trimmed });
+    };
+    for (const row of dryRunResults) {
+      collect(
+        row.encounter_id,
+        row.text ?? selectedDryRun[row.encounter_id]?.text,
+      );
+    }
+    for (const row of pipelineTraceResults) {
+      collect(
+        row.encounter_id,
+        row.text ?? selectedDryRun[row.encounter_id]?.text,
+      );
+    }
+    if (rowsForLookup.length === 0) {
+      setPerEncounterWeights({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetchWithTimeout(
+          "/api/training/per-encounter-weights/lookup",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              encounters: rowsForLookup,
+              version: selectedVersion || null,
+            }),
+          },
+        );
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        const weights = (data?.weights ?? {}) as Record<string, EncounterWeight | null>;
+        setPerEncounterWeights(weights);
+      } catch {
+        // Soft-fail: weights are an enhancement, not required.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dryRunResults, pipelineTraceResults, selectedDryRun, selectedVersion]);
+
+  const requestApproveAsGold = useCallback(
+    (encounterId: string, text: string, entities: DryRunEntity[]) => {
+      if (!encounterId || !text.trim()) {
+        setError("This encounter has no text to approve as gold.");
+        return;
+      }
+      if (!entities.length) {
+        setError("No entities to approve. Open in editor to add labels first.");
+        return;
+      }
+      setApproveError(null);
+      setApproveTarget({ encounterId, text, entities });
+    },
+    [],
+  );
+
+  const cancelApproveAsGold = useCallback(() => {
+    setApproveTarget(null);
+    setApproveError(null);
+  }, []);
+
+  const confirmApproveAsGold = useCallback(async () => {
+    if (!approveTarget) return;
+    const { encounterId, text, entities } = approveTarget;
+    setApproving(true);
+    setApproveError(null);
+    try {
+      const res = await fetchWithTimeout(
+        "/api/training/gold-labels/approve-from-dry-run",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            encounter_text: text,
+            entities,
+            expected_entity_count: entities.length,
+            source_hint: `dry_run:${encounterId.slice(0, 12)}`,
+          }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          detailToString(data.detail) ||
+          `Could not approve as gold (${res.status}).`;
+        if (res.status === 409) {
+          throw new Error(
+            `${msg} Use the pencil button to open this row in the editor.`,
+          );
+        }
+        throw new Error(msg);
+      }
+      setApproveTarget(null);
+      const count =
+        typeof data.entity_count === "number" ? data.entity_count : entities.length;
+      setInfo(
+        `Approved ${count} ${count === 1 ? "entity" : "entities"} as gold for encounter ${encounterId.slice(0, 8)}...`,
+      );
+    } catch (e: unknown) {
+      setApproveError(
+        e instanceof Error
+          ? e.message
+          : "Could not approve this encounter as gold.",
+      );
+    } finally {
+      setApproving(false);
+    }
+  }, [approveTarget]);
 
   const promote = useCallback(async (version: string, force = false) => {
     setBusyAction(`promote:${version}`);
@@ -1008,10 +1321,29 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                 </Box>
               )}
 
-              {/* Per-encounter annotated text */}
-              {dryRunResults.map((row) => {
+              {/* Sort by error impact (only when canary weights are available) */}
+              {hasPerEncounterWeights && (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Sort:
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant={sortByWeight ? "contained" : "outlined"}
+                    onClick={() => setSortByWeight((v) => !v)}
+                    aria-pressed={sortByWeight}
+                    aria-label="Sort dry-run rows by error impact on the latest canary"
+                  >
+                    {sortByWeight ? "By error impact (on)" : "By error impact"}
+                  </Button>
+                </Box>
+              )}
+
+              {/* Per-encounter annotated text (de-identified server-side) */}
+              {sortedDryRunResults.map((row) => {
                 const originalRow = selectedDryRun[row.encounter_id];
-                const text = originalRow?.text ?? "";
+                const text = (row.text ?? originalRow?.text ?? "");
+                const weight = perEncounterWeights[row.encounter_id] ?? null;
                 const entityCountByLabel = row.entities.reduce<Record<string, number>>((acc, e) => {
                   acc[e.label] = (acc[e.label] ?? 0) + 1;
                   return acc;
@@ -1031,9 +1363,62 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                           <Typography variant="caption" color="text.secondary">Patient {row.patient_id}</Typography>
                         )}
                       </Box>
-                      <Typography variant="caption" color={row.entities.length > 0 ? "success.main" : "text.disabled"} sx={{ whiteSpace: "nowrap" }}>
-                        {row.entities.length} {row.entities.length === 1 ? "entity" : "entities"}
-                      </Typography>
+                      <Stack direction="row" spacing={0.75} alignItems="center">
+                        {weight && (
+                          <Tooltip
+                            title={`Latest canary: ${weight.tp} correct, ${weight.fp} extra, ${weight.fn} missed. Fixing this row contributes ${(weight.error_contribution * 100).toFixed(1)}% of the model's measured errors.`}
+                          >
+                            <Chip
+                              size="small"
+                              data-testid="encounter-weight-chip"
+                              label={`error weight ${(weight.error_contribution * 100).toFixed(1)}%`}
+                              color={weight.error_contribution >= 0.05 ? "warning" : "default"}
+                              sx={{ height: 18, fontSize: "0.65rem" }}
+                            />
+                          </Tooltip>
+                        )}
+                        <Typography variant="caption" color={row.entities.length > 0 ? "success.main" : "text.disabled"} sx={{ whiteSpace: "nowrap" }}>
+                          {row.entities.length} {row.entities.length === 1 ? "entity" : "entities"}
+                        </Typography>
+                        <Tooltip title="Open this encounter in the gold editor in a new tab so you can fix labels without losing your dry-run results.">
+                          <span>
+                            <IconButton
+                              size="small"
+                              aria-label="Open in gold editor (new tab)"
+                              disabled={!text.trim() || openingGoldEditor === row.encounter_id}
+                              onClick={() =>
+                                openInGoldEditor(row.encounter_id, text, row.entities)
+                              }
+                            >
+                              {openingGoldEditor === row.encounter_id ? (
+                                <CircularProgress size={16} aria-label="Loading" />
+                              ) : (
+                                <EditNoteIcon fontSize="small" />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Approve this extraction as gold training data without opening the editor. A confirmation dialog will show every entity first.">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              aria-label="Approve dry-run extraction as gold"
+                              disabled={
+                                !text.trim() ||
+                                row.entities.length === 0 ||
+                                approving ||
+                                approveTarget?.encounterId === row.encounter_id
+                              }
+                              onClick={() =>
+                                requestApproveAsGold(row.encounter_id, text, row.entities)
+                              }
+                            >
+                              <CheckCircleIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Stack>
                     </Box>
 
                     {/* Annotated text or fallback */}
@@ -1137,9 +1522,10 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                   </Box>
                 )}
               </Box>
-              {pipelineTraceResults.map((row) => {
+              {sortedPipelineTraceResults.map((row) => {
                 const originalRow = selectedDryRun[row.encounter_id];
-                const text = originalRow?.text ?? "";
+                const text = (row.text ?? originalRow?.text ?? "");
+                const weight = perEncounterWeights[row.encounter_id] ?? null;
                 const terminologyResolved = row.final_entities.filter((e) => !!e.concept_id).length;
                 const extractedVersions = Array.from(
                   new Set(
@@ -1184,7 +1570,20 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                           <Typography variant="caption" color="text.secondary">Patient {row.patient_id}</Typography>
                         )}
                       </Box>
-                      <Stack direction="row" spacing={0.5}>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        {weight && (
+                          <Tooltip
+                            title={`Latest canary: ${weight.tp} correct, ${weight.fp} extra, ${weight.fn} missed. Fixing this row contributes ${(weight.error_contribution * 100).toFixed(1)}% of the model's measured errors.`}
+                          >
+                            <Chip
+                              size="small"
+                              data-testid="encounter-weight-chip"
+                              label={`error weight ${(weight.error_contribution * 100).toFixed(1)}%`}
+                              color={weight.error_contribution >= 0.05 ? "warning" : "default"}
+                              sx={{ height: 18, fontSize: "0.65rem" }}
+                            />
+                          </Tooltip>
+                        )}
                         <Chip
                           size="small"
                           color="info"
@@ -1195,6 +1594,52 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                           color="success"
                           label={`${terminologyResolved} SNOMED resolved`}
                         />
+                        <Tooltip title="Open this encounter in the gold editor in a new tab so you can fix labels without losing your dry-run results.">
+                          <span>
+                            <IconButton
+                              size="small"
+                              aria-label="Open in gold editor (new tab)"
+                              disabled={!text.trim() || openingGoldEditor === row.encounter_id}
+                              onClick={() =>
+                                openInGoldEditor(
+                                  row.encounter_id,
+                                  text,
+                                  row.final_entities,
+                                )
+                              }
+                            >
+                              {openingGoldEditor === row.encounter_id ? (
+                                <CircularProgress size={16} aria-label="Loading" />
+                              ) : (
+                                <EditNoteIcon fontSize="small" />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Approve this extraction as gold training data without opening the editor. A confirmation dialog will show every entity first.">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              aria-label="Approve dry-run extraction as gold"
+                              disabled={
+                                !text.trim() ||
+                                row.final_entities.length === 0 ||
+                                approving ||
+                                approveTarget?.encounterId === row.encounter_id
+                              }
+                              onClick={() =>
+                                requestApproveAsGold(
+                                  row.encounter_id,
+                                  text,
+                                  row.final_entities,
+                                )
+                              }
+                            >
+                              <CheckCircleIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                       </Stack>
                     </Box>
                     {(requestedModelVersion || extractedModelVersion) && (
@@ -1373,9 +1818,43 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
             )}
           </Box>
           {dryRunQuery && (
-            <Typography variant="caption" color="text.secondary">
-              Results for &ldquo;{dryRunQuery}&rdquo;
-            </Typography>
+            <Stack
+              direction="row"
+              spacing={0.75}
+              alignItems="center"
+              flexWrap="wrap"
+              sx={{ rowGap: 0.5 }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                Results for &ldquo;{dryRunQuery}&rdquo; (keyword + meaning).
+                Rows tagged &ldquo;semantic match&rdquo; matched by meaning,
+                not wording.
+              </Typography>
+              {dryRunHighlightTokens.length > 0 && (
+                <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" sx={{ rowGap: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Highlighting matches for:
+                  </Typography>
+                  {dryRunHighlightTokens.slice(0, 12).map((term) => (
+                    <Chip
+                      key={`hl-chip-${term}`}
+                      size="small"
+                      label={term}
+                      sx={{
+                        height: 18,
+                        fontSize: "0.65rem",
+                        bgcolor: "rgba(255, 213, 79, 0.6)",
+                      }}
+                    />
+                  ))}
+                  {dryRunHighlightTokens.length > 12 && (
+                    <Typography variant="caption" color="text.secondary">
+                      +{dryRunHighlightTokens.length - 12} more
+                    </Typography>
+                  )}
+                </Stack>
+              )}
+            </Stack>
           )}
         </DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
@@ -1422,12 +1901,37 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
                             <Typography variant="caption" color="text.secondary">{row.encounter_date}</Typography>
                           )}
                           <Typography variant="caption" color="text.secondary">Patient {row.patient_id}</Typography>
+                          {row.match_type === "semantic" && (
+                            <Tooltip title="This row matched by meaning, not by wording. The yellow highlights below show the closest related phrases we know about for your search.">
+                              <Chip
+                                size="small"
+                                data-testid="encounter-match-type-chip"
+                                label="semantic match"
+                                color="info"
+                                variant="outlined"
+                                sx={{ height: 18, fontSize: "0.65rem" }}
+                              />
+                            </Tooltip>
+                          )}
+                          {row.match_type === "hybrid" && (
+                            <Tooltip title="This row matched both your wording and the broader meaning of your search.">
+                              <Chip
+                                size="small"
+                                data-testid="encounter-match-type-chip"
+                                label="keyword + meaning"
+                                color="success"
+                                variant="outlined"
+                                sx={{ height: 18, fontSize: "0.65rem" }}
+                              />
+                            </Tooltip>
+                          )}
                         </Stack>
                         <Typography
                           variant="body2"
+                          component="div"
                           sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.65, color: "text.primary" }}
                         >
-                          {row.text ?? ""}
+                          {renderHighlightedText(row.text ?? "", dryRunHighlightTokens)}
                         </Typography>
                       </Box>
                     </Box>
@@ -1632,6 +2136,93 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
           onCancel={() => setRejectConfirmVersion(null)}
         />
       )}
+
+      <Dialog
+        open={!!approveTarget}
+        onClose={approving ? undefined : cancelApproveAsGold}
+        maxWidth="sm"
+        fullWidth
+        aria-labelledby="approve-as-gold-title"
+      >
+        <DialogTitle id="approve-as-gold-title">
+          Approve as gold training data?
+        </DialogTitle>
+        <DialogContent>
+          {approveTarget && (
+            <Stack spacing={1.5}>
+              <Typography variant="body2">
+                You are adding{" "}
+                <strong>
+                  {approveTarget.entities.length}{" "}
+                  {approveTarget.entities.length === 1 ? "entity" : "entities"}
+                </strong>{" "}
+                from encounter <code>{approveTarget.encounterId.slice(0, 12)}</code>
+                {" "}to the gold dataset as <strong>verified</strong>. This will be
+                used for model training and evaluation.
+              </Typography>
+              <Alert severity="info" sx={{ py: 0.5 }}>
+                The text shown above has already been de-identified
+                (names, dates and other patient details replaced with
+                placeholders). What you approve is exactly what will be
+                stored.
+              </Alert>
+              <Alert severity="info" sx={{ py: 0.5 }}>
+                If any entity is wrong, missing, or off by a few characters,
+                cancel and use the pencil icon to open the editor instead.
+              </Alert>
+              {approveError && (
+                <Alert
+                  severity="error"
+                  sx={{ py: 0.5 }}
+                  data-testid="approve-as-gold-error"
+                >
+                  {approveError}
+                </Alert>
+              )}
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                  Entities being approved:
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {approveTarget.entities.map((ent, idx) => {
+                    const { bg, fg } = labelColor(ent.label);
+                    return (
+                      <Chip
+                        key={`approve-ent-${idx}`}
+                        size="small"
+                        label={`${ent.text} (${ent.label})`}
+                        sx={{ bgcolor: bg, color: fg }}
+                      />
+                    );
+                  })}
+                </Box>
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelApproveAsGold} disabled={approving}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => void confirmApproveAsGold()}
+            variant="contained"
+            color="success"
+            disabled={approving}
+            startIcon={
+              approving ? (
+                <CircularProgress size={14} aria-label="Loading" />
+              ) : (
+                <CheckCircleIcon fontSize="small" />
+              )
+            }
+          >
+            {approving
+              ? "Approving..."
+              : `Approve ${approveTarget?.entities.length ?? 0} as gold`}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

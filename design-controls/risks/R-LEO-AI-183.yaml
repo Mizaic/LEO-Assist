@@ -1,0 +1,99 @@
+# -- R-LEO-AI-183 -- Rule evaluator outage masks unmatched safety rules
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-183"
+  title: "An outage of /terminology/guidelines/evaluate causes the SBAR Assessment to render an empty 'no rules matched' narrative when in fact safety-critical rules were unevaluated"
+
+  hazard:
+    description: >
+      The deterministic Assessment formatter calls
+      /terminology/guidelines/evaluate to find matched rules. If the
+      terminology API is unreachable, slow, or returns an error, the
+      formatter falls through to an empty matched-rules list and
+      derives "rtr=no, no relevant rules matched" -- which looks
+      identical to the legitimate "no rules matched" outcome.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinician opens an SBAR generated when the terminology API was
+    being redeployed. The Assessment shows no matched rules and the
+    Recommendation reflects that. The clinician concludes the patient
+    has no current pathway triggers and discharges them, when in
+    fact the rule evaluator would have surfaced a 2WW pathway had it
+    been available.
+
+  harm:
+    description: >
+      Missed urgent referral or missed safety-critical pathway
+      because the absence of rule output was indistinguishable from a
+      genuine "no match" outcome. Severity is critical because the
+      clinical decision could be irreversible.
+    severity: "critical"
+
+  initial_risk_estimate:
+    severity: 4
+    probability: 2
+    detectability: 4
+    rpn: 32
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The Assessment formatter distinguishes evaluator-success-no-
+        match from evaluator-failure: on evaluator failure the
+        narrative explicitly states the evaluator was unavailable and
+        the Assessment.errors[] list captures the failure. Pathway
+        hints (rtr/stt/alternative_pathway) are set to a degraded
+        "unknown" state, NOT to "no".
+      implemented_by: ["DI-LEO-AI-193"]
+      verified_by: ["VT-LEO-AI-189"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        On evaluator failure the orchestrator FINALISES the Assessment
+        with status='failed' (not 'completed'), so consumers that
+        check status (R-LEO-AI-182) will not surface it as a clean
+        SBAR.
+      implemented_by: ["DI-LEO-AI-189", "DI-LEO-AI-190"]
+      verified_by: ["VT-LEO-AI-187"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Operational alerting on terminology_api availability and
+        latency. If evaluator failure rate breaches threshold,
+        on-call paged.
+      implemented_by: ["DI-LEO-AI-193"]
+      verified_by: []
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 4
+    probability: 1
+    detectability: 2
+    rpn: 8
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Status='failed' + explicit "evaluator unavailable" markup +
+      operational alerting collectively make evaluator outages
+      visible at multiple layers. Any consumer surface that ignores
+      status is treated as a separate gap (see R-LEO-AI-182).
+
+  monitoring:
+    monitoring_plan: >
+      Track terminology_api error rate and Assessment.status='failed'
+      counts. Page if either exceeds threshold.
+    metrics:
+      - "terminology_api evaluate error rate (target <0.1%)"
+      - "Daily count of Assessment.status='failed' due to evaluator (target 0 sustained)"
+    review_frequency: "Daily ops review"
+
+  metadata:
+    identified_by: "Plan workshop 2026-04-17"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "sbar"
+      - "rule-evaluator"
+      - "operational-safety"

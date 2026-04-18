@@ -18,7 +18,11 @@ import "@testing-library/jest-dom";
 
 import ReplayResultsDialog from "@/app/admin/guidance/test-patients/ReplayResultsDialog";
 import type { RuleContext } from "@/app/admin/guidance/test-patients/ReplayResultsDialog";
-import { listPatients, dryRun } from "@/app/admin/guidance/test-patients/api";
+import {
+  listPatients,
+  dryRun,
+  updatePatient,
+} from "@/app/admin/guidance/test-patients/api";
 import type {
   DiagnoseResponse,
   TestPatient,
@@ -428,6 +432,102 @@ describe("VT-LEO-AI-168 -- Replay diagnostics use bitmap evaluator", () => {
       });
     },
   );
+});
+
+describe("VT-LEO-AI-176 -- Test patients can be edited in place", () => {
+  const BUILD_SRC = path.resolve(
+    __dirname,
+    "..",
+    "app",
+    "admin",
+    "guidance",
+    "test-patients",
+    "BuildPatientDialog.tsx",
+  );
+  const PAGE_SRC2 = path.resolve(
+    __dirname,
+    "..",
+    "app",
+    "admin",
+    "guidance",
+    "test-patients",
+    "page.tsx",
+  );
+
+  test("TC-013: api.updatePatient PATCHes /test-patients/{id} with JSON + CSRF", async () => {
+    const fetchMock = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id: "tp1",
+        updated: true,
+        expectations_written: 1,
+      }),
+    });
+    // @ts-expect-error -- override global fetch for the test env
+    global.fetch = fetchMock;
+    const result = await updatePatient("tp1", {
+      patient: {
+        codes: ["100"],
+        age: 71,
+        sex: "female",
+        pathway_id: null,
+        name: "Edited",
+        description: "",
+        generation_source: "manual",
+      },
+      expectations: [
+        { rule_id: "r1", fires: false, matched_branch_node_ids: [] },
+      ],
+      ruleset_version: null,
+    });
+    expect(result).toEqual({
+      id: "tp1",
+      updated: true,
+      expectations_written: 1,
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain("/api/guidance/test-patients/tp1");
+    expect((init as RequestInit).method).toBe("PATCH");
+    expect((init as RequestInit).headers).toMatchObject({
+      "X-Requested-With": "XMLHttpRequest",
+      "Content-Type": "application/json",
+    });
+    const body = JSON.parse(String((init as RequestInit).body));
+    expect(body.patient.name).toBe("Edited");
+    expect(body.expectations).toHaveLength(1);
+  });
+
+  test("TC-014: BuildPatientDialog branches into PATCH when editingPatient is set", () => {
+    const src = fs.readFileSync(BUILD_SRC, "utf8");
+    // PATCH branch is wired to the api.updatePatient client.
+    expect(src).toMatch(/import\s*\{[^}]*updatePatient[^}]*\}\s*from\s*"\.\/api"/);
+    expect(src).toMatch(/editingPatient\?:\s*TestPatient/);
+    expect(src).toMatch(/isEdit\s*=\s*!!editingPatient/);
+    expect(src).toMatch(/updatePatient\(editingPatient\.id,\s*\{/);
+    // Title + button copy switch on isEdit.
+    expect(src).toMatch(/Edit test patient/);
+    expect(src).toMatch(/Save changes/);
+    // Save is enabled in edit mode without a fresh dry run.
+    expect(src).toMatch(/canSave\s*=\s*\(isEdit\s*\|\|\s*!!dryRunResult\)/);
+  });
+
+  test("TC-015: edit-mode preserves matched_branch_node_ids when no fresh dry run was taken", () => {
+    const src = fs.readFileSync(BUILD_SRC, "utf8");
+    // The 'no dry run' branch must reuse the saved expectations'
+    // branch path ids so editing the name doesn't blank them out.
+    expect(src).toMatch(/buildExpectationsWithoutDryRun/);
+    expect(src).toMatch(/matched_branch_node_ids:\s*saved\?\.matched_branch_node_ids\s*\|\|\s*\[\]/);
+  });
+
+  test("TC-016: library page exposes an Edit action that opens BuildPatientDialog in edit mode", () => {
+    const src = fs.readFileSync(PAGE_SRC2, "utf8");
+    expect(src).toMatch(/editingPatient/);
+    expect(src).toMatch(/setEditingPatient/);
+    // The Edit button row exists alongside Delete.
+    expect(src).toMatch(/Edit test patient \$\{/);
+    // The dialog is mounted with editingPatient prop.
+    expect(src).toMatch(/editingPatient=\{editingPatient\}/);
+  });
 });
 
 describe("VT-LEO-AI-166 -- Regression alert exposes the report", () => {

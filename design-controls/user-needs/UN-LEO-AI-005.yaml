@@ -93,6 +93,18 @@
     - "DI-LEO-AI-173"
     - "DI-LEO-AI-175"
     - "DI-LEO-AI-177"
+    - "DI-LEO-AI-195"
+    - "DI-LEO-AI-200"
+    - "DI-LEO-AI-201"
+    - "DI-LEO-AI-202"
+    - "DI-LEO-AI-203"
+    - "DI-LEO-AI-204"
+    - "DI-LEO-AI-210"
+    - "DI-LEO-AI-211"
+    - "DI-LEO-AI-212"
+    - "DI-LEO-AI-215"
+    - "DI-LEO-AI-216"
+    - "DI-LEO-AI-217"
   validation_tests: ["VAL-LEO-AI-001"]
 
   tags: ["anchor-detection", "milestone", "core-capability", "pipeline", "episode-building"]

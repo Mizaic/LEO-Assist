@@ -1,0 +1,126 @@
+# -- R-LEO-AI-179 -- GoldLabelDetailDialog stale-state leak corrupts reviewer sign-off
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-179"
+  title: "Gold Label review dialog renders entities from a previously-viewed candidate against the next sentence, causing reviewers to sign off content they never inspected"
+
+  hazard:
+    description: >
+      The GoldLabelDetailDialog component initialises its
+      `entities` state via `useState(() => parseEntities(item
+      .entities_json))`. The lazy initialiser only runs on mount.
+      When the parent component flips `item` to a new GoldLabel
+      via onNextCandidate, candidate-row click, or similar-
+      candidate selection -- without unmounting the dialog
+      because no `key` prop is passed -- React reuses the same
+      component instance and the entities state stays bound to
+      the previous record. The dialog title, sentence text, and
+      quality badge update correctly because they read from
+      `item` directly each render, so the inconsistency is
+      visually subtle.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A reviewer opens the gold-dataset review dashboard, opens a
+    GoldLabel, signs it off, then clicks Next. The dialog now
+    shows a different record's title and sentence but the
+    entities pane still renders the previous record's entities.
+    The reviewer either (a) approves believing the entities
+    match -- attaching their consent to the wrong content -- or
+    (b) makes changes that are then persisted to the wrong
+    record's entities_json. Three confirmed cases were observed
+    on 2026-04-17 (one user-reported, two found in the audit
+    transcript).
+
+  harm:
+    description: >
+      Corrupted gold training data: GoldLabel records carry
+      entities the reviewer never actually inspected, with the
+      reviewer's verified_by signature and quality_score
+      attached. The next NER model generation is trained on
+      those entities. Downstream effects:
+        1. NER recall/precision degrade because the model is
+           taught to extract spans that don't exist in the
+           sentence (e.g. "Flexible cystoscopy" as a procedure
+           in a sentence about an US scan of breast).
+        2. Reviewer trust in the gold-dataset surface erodes;
+           reviewers begin spot-checking every record manually
+           against the sentence, which slows throughput and
+           pushes them to skip the dialog entirely.
+        3. Audit trail integrity: the verified_by /
+           verified_at fields are no longer reliable evidence
+           that the reviewer inspected the entities they
+           signed off.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Every <GoldLabelDetailDialog .../> JSX mount carries a
+        stable `key` prop derived from `label_id` (with a
+        per-surface namespace prefix to prevent collisions
+        across tabs). React unmounts and remounts the dialog
+        when the item changes, so the lazy useState
+        initialisers re-run from the new entities_json.
+      implemented_by: ["DI-LEO-AI-185"]
+      verified_by: ["VT-LEO-AI-179"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Belt-and-braces useEffect resync inside the dialog body
+        catches the case where a future contributor adds a new
+        dialog mount and forgets the key prop. When item.label_id
+        changes, the effect re-derives entities,
+        rejectedRelationKeys, and clears all
+        per-record drafts.
+      implemented_by: ["DI-LEO-AI-185"]
+      verified_by: ["VT-LEO-AI-179"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the key prop on every mount, React cannot reuse the
+      dialog instance across records -- the regression class is
+      structurally impossible at the React layer. The useEffect
+      safety net catches any future regression introduced by a
+      contributor who forgets the key prop. Detectability is
+      raised from 4 to 2 because the static-source VT
+      (VT-LEO-AI-179) fails fast if any new mount omits the
+      key, surfacing the regression at PR review rather than in
+      production.
+
+  monitoring:
+    monitoring_plan: >
+      VT-LEO-AI-179 runs in CI on every PR. Any new mount of
+      GoldLabelDetailDialog without a label_id-derived key prop
+      fails the build. The audit script (DO-185) provides a
+      post-hoc check on the persisted gold data; if reviewer
+      sign-off ever attaches to wrong-content entities, the
+      audit will surface the resulting label/tag inconsistencies
+      for triage.
+    metrics:
+      - "Number of <GoldLabelDetailDialog .../> mounts without label_id-keyed prop (target 0; CI-enforced)"
+      - "Number of new GoldLabel records flagged by audit critical issues per week (target trending down)"
+    review_frequency: "On every PR + monthly review of audit summary"
+
+  metadata:
+    identified_by: "User report 2026-04-17 + transcript 13b5e19d-a337-4ef4-8cba-cf67566dada4 investigation"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "ui-safety"
+      - "gold-label"
+      - "training-data-quality"

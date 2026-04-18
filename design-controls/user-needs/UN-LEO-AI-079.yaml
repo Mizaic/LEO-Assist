@@ -1,0 +1,42 @@
+# -- UN-LEO-AI-079 -- Make narrative document content queryable as discrete clinical evidence
+# IEC 62366 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-079"
+  title: "Capture coded evidence at sub-document granularity"
+  description: >
+    As a clinical reviewer triaging a referral, I need the SNOMED concepts
+    LEO has extracted from a long referral letter (or any DocumentReference)
+    to be attached to the specific section of text they came from --
+    not just to the document as a whole -- so that I can audit, override
+    or weigh evidence at the right level when the document covers
+    multiple presenting complaints.
+  stakeholder: "Clinical reviewer"
+  priority: "high"
+  rationale: >
+    Today coded evidence from a DocumentReference is attached to either the
+    Patient or the parent DocumentReference, which makes it impossible to
+    answer "which paragraph said the patient has haemoptysis?". When
+    referral letters arrive (and shortly, when free-text encounter notes
+    are split into chunks for the SBAR pipeline), this granularity becomes
+    a safety prerequisite: a reviewer needs to see the exact text the
+    pipeline coded from before relying on that code in a 2WW decision.
+
+  acceptance_criteria:
+    - "Coded entities can be linked at the chunk level, not just the document level"
+    - "Each chunk carries enough metadata (ordinal, char offsets, sha256) for a reviewer to locate the source text"
+    - "Existing Encounter -> :DOCUMENTS -> Concept paths continue to work"
+    - "Schema constraints prevent duplicate chunks for the same document/ordinal"
+
+  design_inputs:
+    - "DI-LEO-AI-186"
+    - "DI-LEO-AI-187"
+
+  metadata:
+    identified_by: "Workshop minute 2026-04-17 (referral letter ingest)"
+    identified_date: "2026-04-17"
+    status: "approved"
+    tags:
+      - "documents"
+      - "chunks"
+      - "referral-letters"
+      - "audit-trail"

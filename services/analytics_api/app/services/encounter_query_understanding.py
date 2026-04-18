@@ -49,6 +49,8 @@ class QueryUnderstanding:
     fulltext_query: str
     expanded_terms: list[str]
     reasoning: str | None
+    clinical_synonyms: list[str]
+    clinical_synonyms_source: str
 
 
 def _normalise_tokens(raw_query: str) -> list[str]:
@@ -128,6 +130,173 @@ def _try_haiku_rewrite(normalized_query: str) -> tuple[str, float | None, str | 
         return normalized_query, None, None
 
 
+_CLINICAL_SYNONYM_CACHE: dict[str, tuple[list[str], str]] = {}
+_CLINICAL_SYNONYM_CACHE_MAX = 256
+_CLINICAL_SYNONYM_LIMIT = 12
+
+_CLINICAL_SYNONYM_TOOL_CONFIG: dict[str, Any] = {
+    "tools": [
+        {
+            "toolSpec": {
+                "name": "submit_clinical_synonyms",
+                "description": (
+                    "Submit clinical synonyms / equivalent phrases for a "
+                    "clinician encounter search query. Used to highlight "
+                    "matching wording in retrieved encounter notes."
+                ),
+                "inputSchema": {
+                    "json": {
+                        "type": "object",
+                        "properties": {
+                            "synonyms": {
+                                "type": "array",
+                                "minItems": 0,
+                                "maxItems": _CLINICAL_SYNONYM_LIMIT,
+                                "items": {"type": "string"},
+                                "description": (
+                                    "Up to 12 short phrases or single "
+                                    "terms a clinician might write in "
+                                    "free-text notes for the SAME "
+                                    "finding. Include UK and US "
+                                    "spellings, common abbreviations, "
+                                    "lay wording, and tightly related "
+                                    "findings. Do NOT include broader "
+                                    "categories or unrelated concepts."
+                                ),
+                            }
+                        },
+                        "required": ["synonyms"],
+                    }
+                },
+            }
+        }
+    ],
+    "toolChoice": {"tool": {"name": "submit_clinical_synonyms"}},
+}
+
+
+def _clinical_synonyms_enabled() -> bool:
+    """Default ON. Disable explicitly with ENCOUNTER_QUERY_SYNONYMS_ENABLED=false."""
+    return str(
+        os.getenv("ENCOUNTER_QUERY_SYNONYMS_ENABLED", "true")
+    ).lower() in {"1", "true", "yes", "on"}
+
+
+def _clean_synonym_list(raw_synonyms: list[Any]) -> list[str]:
+    seen: set[str] = set()
+    cleaned: list[str] = []
+    for entry in raw_synonyms:
+        if not isinstance(entry, str):
+            continue
+        term = entry.strip()
+        if not term or len(term) < 3:
+            continue
+        key = term.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(term)
+        if len(cleaned) >= _CLINICAL_SYNONYM_LIMIT:
+            break
+    return cleaned
+
+
+def _extract_synonyms_from_response(response: Any) -> list[str]:
+    """Pull a synonyms list from a Bedrock LLMResponse.
+
+    Prefers the structured tool_use input (guaranteed-shape JSON
+    against the toolSpec schema). Falls back to parsing JSON out of
+    free text in case the model bypassed the tool.
+    """
+    tool_uses = list(getattr(response, "tool_uses", []) or [])
+    for tu in tool_uses:
+        if not isinstance(tu, dict):
+            continue
+        if tu.get("name") != "submit_clinical_synonyms":
+            continue
+        payload = tu.get("input") or {}
+        raw = payload.get("synonyms")
+        if isinstance(raw, list):
+            return _clean_synonym_list(raw)
+    text = (getattr(response, "text", "") or "").strip()
+    if not text:
+        return []
+    cleaned_text = re.sub(r"^```(?:json)?\s*", "", text)
+    cleaned_text = re.sub(r"\s*```$", "", cleaned_text)
+    try:
+        payload = json.loads(cleaned_text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", cleaned_text, re.DOTALL)
+        if not match:
+            return []
+        try:
+            payload = json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return []
+    raw = payload.get("synonyms") if isinstance(payload, dict) else None
+    if not isinstance(raw, list):
+        return []
+    return _clean_synonym_list(raw)
+
+
+def _expand_clinical_synonyms(normalized_query: str) -> tuple[list[str], str]:
+    """Return clinical synonyms / equivalent phrases for highlighting.
+
+    The output is intentionally separate from `expanded_terms` so it
+    does not affect ranking. It is used by the curator UI to highlight
+    rows that matched semantically (e.g. "swollen abdomen" should also
+    highlight "abdominal distension", "distended abdomen", "ascites").
+
+    Uses a Bedrock toolConfig to force structured JSON output (the
+    model can only return via the submit_clinical_synonyms tool).
+    Cached in-process by normalised query; fail-open to an empty list.
+    """
+    query = normalized_query.strip()
+    if not query:
+        return [], "empty"
+    cached = _CLINICAL_SYNONYM_CACHE.get(query)
+    if cached is not None:
+        return list(cached[0]), cached[1]
+    if not _clinical_synonyms_enabled():
+        return [], "disabled"
+    try:
+        client = create_llm(provider="aws", tier="small")
+        system = (
+            "You generate clinical synonyms for a UK general-practice "
+            "encounter search. You MUST call the "
+            "submit_clinical_synonyms tool exactly once with up to 12 "
+            "short clinical synonyms for the user's query. Include UK "
+            "and US spellings, common abbreviations, lay wording, and "
+            "tightly related findings. Do NOT include broader "
+            "categories or unrelated concepts."
+        )
+        user = (
+            f"Query: {query}\n\n"
+            "Return synonyms via the submit_clinical_synonyms tool."
+        )
+        response = client.converse(
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            max_tokens=400,
+            temperature=0.0,
+            tool_config=_CLINICAL_SYNONYM_TOOL_CONFIG,
+            json_mode=True,
+        )
+        cleaned = _extract_synonyms_from_response(response)
+        source = "haiku" if cleaned else "no_synonyms"
+        if len(_CLINICAL_SYNONYM_CACHE) >= _CLINICAL_SYNONYM_CACHE_MAX:
+            _CLINICAL_SYNONYM_CACHE.pop(next(iter(_CLINICAL_SYNONYM_CACHE)))
+        _CLINICAL_SYNONYM_CACHE[query] = (cleaned, source)
+        return list(cleaned), source
+    except Exception:
+        logger.warning(
+            "Clinical synonym expansion unavailable -- highlighting will use "
+            "deterministic terms only",
+            exc_info=True,
+        )
+        return [], "error"
+
+
 def understand_query(raw_query: str) -> QueryUnderstanding:
     original = raw_query.strip()
     tokens = _normalise_tokens(original)
@@ -136,6 +305,7 @@ def understand_query(raw_query: str) -> QueryUnderstanding:
     expanded_terms = _expand_terms(_normalise_tokens(rewritten))
     fulltext_query = _build_fulltext_query(expanded_terms, rewritten)
     rewrite_applied = rewritten.strip().lower() != normalized.strip().lower()
+    clinical_synonyms, synonyms_source = _expand_clinical_synonyms(normalized)
     return QueryUnderstanding(
         original_query=original,
         normalized_query=normalized,
@@ -146,6 +316,8 @@ def understand_query(raw_query: str) -> QueryUnderstanding:
         fulltext_query=fulltext_query,
         expanded_terms=expanded_terms,
         reasoning=reasoning,
+        clinical_synonyms=clinical_synonyms,
+        clinical_synonyms_source=synonyms_source,
     )
 
 

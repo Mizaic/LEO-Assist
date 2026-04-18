@@ -241,6 +241,13 @@ modularises EncounterTextTab.tsx (1014 -> 498 LOC) to comply with the project
 | Design Output | DO-LEO-AI-178 | draft | EncounterTimelineScrubber.tsx primitive plus modular refactor of EncounterTextTab.tsx into focused siblings: EncounterCard.tsx, EncounterCodesPanel.tsx, encounterStyles.ts, encounterTextUtils.tsx, encounterRecodeProgress.ts |
 | Risk | R-LEO-AI-174 | analyzed | Reviewer skips surrounding-context check during episode review because the affordance is hidden behind scope toggle plus manual scroll; mitigation: persistent spatial timeline removes the multi-step interaction |
 | Verification Test | VT-LEO-AI-173 | passed | 25 jest cases: 11 live-render (dot rendering, linked-vs-other, window band, click + Enter + ArrowRight activation, aria-pressed, data-active), 11 static-source chrome (layoutId, useMotion, framer-motion primitives, MIN_ENCOUNTERS threshold, EncounterTextTab wiring, IntersectionObserver scroll-sync, 498 <= 500 LOC), 3 regression cases for milestone-jump and tooltip behaviour |
+| Design Input | DI-LEO-AI-213 | draft | Mission Control patient detail Encounter text overlay-first navigation: scope chips and Other-encounters / All-other-encounters accordions removed in favour of a single chronological encounter list filtered ONLY by the histogram brush; brush defaults to the padded episode-linked window; linked encounter cards carry an "In episode" chip and 3px accent; histogram renders three episode overlays (tightened band first-linked..last-linked, per-encounter linked tick markers along the bottom axis, and labelled milestone markers along the top axis); every jump path (milestone chips, single-bin click, popover row, milestone marker) clears brush, coded-only and search filters; Coded only switch and Search field retained; EncounterTextTab.tsx <=500 LOC |
+| Design Output | DO-LEO-AI-210 | draft | EncounterTextTab.tsx (472 LOC) refactor: scope state and accordions removed; splitEncounters helper deleted; applyCommonFilters drives the single chronological list; defaultRangeAppliedRef seeds the brush to the padded episode-linked window; jumpToEncounter clears all filters before scrolling. New TimelineOverlays.tsx renders LinkedEncounterTicks (bottom axis) and MilestoneMarkers (top axis with tooltips and keyboard activation). EncounterTimelineScrubber.tsx tightens its windowBand to the first-linked..last-linked range and threads the milestones prop. EncounterCard.tsx renders the "In episode" chip + accent when isLinkedToEpisode is true. New useEncounterRecode.ts hook lifts the reset-and-recode flow so EncounterTextTab.tsx stays under the 500 LOC ceiling |
+| Verification Test | VT-LEO-AI-205 | passed | 65 targeted tests / 113 mission-control suite tests: EncounterTextTab.test.tsx (scope chips and accordions removed, Coded only + Search retained, "In episode" chip on linked cards, jumps clear brush/coded-only/search), EncounterTextTab-timeline-filter.test.tsx (default padded brush, brush-driven list filtering, single-bin click clears the filter, milestone-marker jumps clear the filter), EncounterTextTab-scrubber-chrome.test.ts (legacy UI strings absent, milestones prop wired, linkedTicks/milestoneMarkers used, updated caption "drag the focus band to widen or narrow your view", 472 <= 500 LOC), EncounterTimelineScrubber.test.tsx (tightened first-linked..last-linked windowBand, LinkedEncounterTicks render, MilestoneMarkers render with keyboard activation) |
+| Design Input | DI-LEO-AI-214 | draft | Mission Control /care/patients KPI strip MUST present audit headline figures in the same unit (patients) as the label and tooltip claim AND surface the cohort denominator so hidden patients are discoverable. GET /mission-control/kpis MUST return both episode counts and patient counts for confirmed_cancer and pathway_closures, plus a "cohort" block with total + 3 excluded buckets (no pathway / missing referral date / outside window) scoped by org/scope only. KPIStrip MUST render the patient count as the headline and the pathway count as a sub-line; tooltips MUST describe the metric as a count of PATIENTS in plain English; a caption (data-testid="kpi-cohort-denominator") MUST appear below the strip when at least one patient is hidden, formatted "Showing <inView> of <total> patients - <hidden> hidden (<reason1>, ...)" |
+| Design Output | DO-LEO-AI-211 | draft | services/analytics_api/app/routers/mission_control.py: _kpis_cypher returns confirmed_cancer_patients (DISTINCT p with confirmed_cancer_where) and pathway_closure_patients (DISTINCT p with status IN _CLOSURE_STATUSES) alongside the existing episode aliases; new _cohort_denominator_cypher helper resolves the cohort denominator + 3 excluded buckets, scoped by org/scope only (no cancer_type/closure_reason/reviewed_at predicates); get_mission_control_kpis runs both queries on a single PatientGraphClient and packs a stable "cohort" block (zero-filled when the row is absent). services/ui/src/lib/missionControlApi.ts: MissionKPIs gains confirmed_cancer_patients, pathway_closure_patients, optional cohort: MissionKPICohort. services/ui/src/components/mission-control/KPIStrip.tsx: KPICard subValue prop; patient-headline + "<N> pathways" sub-line on Confirmed cancer and Pathway closures cards; rewritten plain-English tooltips; cohort denominator caption rendered below the strip with reading-age 9-11 builder helper buildCohortDenominatorLine() |
+| Risk | R-LEO-AI-201 | mitigated | Mission Control KPI strip presents episode counts under patient-unit labels and hides patients excluded by the date / referral-date filter, leading reviewers to miss real cancers (mitigated by patient-equivalent counts using confirmed_cancer_where to stay aligned with /audit/summary, plain-English tooltips, and an always-visible cohort denominator caption that lists each excluded bucket) |
+| Verification Test | VT-LEO-AI-206 | passed | KPI patient-headline + cohort denominator (15/15 cases pass: 9 backend pytest cases including patient-equivalent counts, cohort fields, scope binding, endpoint cohort block + zero-fill on empty; 6 UI jest cases including patient-headline / pathway-sub-line on both cards, cohort caption with breakdown, showing-all variant, missing-cohort guard, helper pluralisation) |
 
 ### Test-Patient Diagnostic Source-of-Truth (April 2026)
 
@@ -276,6 +283,37 @@ reviewer cannot mistake a missing ruleset for a clean pass.
 | Design Output | DO-LEO-AI-180 | approved | GuidelineCompiler.compile_drafts + BitmapStore.delete_scope/set_scope_ttl + evaluator/diagnose `not_compiled` payload + POST /guidelines/bitmap/compile-draft + DELETE /guidelines/scopes + test_patient_service.sandbox_replay + POST /guidance/test-patients/sandbox-replay + RulesetNotCompiledBanner + Test draft button in EditRuleDialog |
 | Risk | R-LEO-AI-176 | mitigated | Reviewer interprets a silent zero-match as "rule does not match" when no ruleset is compiled; harm: approving a regressing edit because the empty ruleset is indistinguishable from a clean pass |
 | Verification Test | VT-LEO-AI-175 | passed | 13 tests: 8 backend pytest cases (compile_drafts global refusal + custom-scope happy path, evaluator/diagnose not_compiled, delete_scope happy path + global refusal, sandbox_replay compile+replay+cleanup happy + failure paths, diagnose passthrough) plus 5 jest cases (banner production/sandbox/error variants + TestPatientsPanel sandbox happy + empty-compile paths); guidance UI suite 93/93 passing |
+
+### April 2026 - In-place edit for saved test patients
+
+Reviewers can now edit a saved test patient in place from the
+/admin/guidance/test-patients library page -- updating the name,
+description, codes, age, sex, pathway and full expectation list in
+a single PATCH call -- so fixing a typo or adjusting a must-NOT-fire
+assertion no longer requires the destructive delete + rebuild
+workflow that broke patient ids and snapshot history.
+
+The Cypher rewrite is atomic: a single statement updates the
+TestPatient profile AND clears every existing EXPECTED_RESULT
+relationship, so the patient cannot be left half-updated. Audit
+trail is preserved via new `updated_at` / `updated_by` properties
+on the TestPatient node.
+
+The dialog (`BuildPatientDialog`) gains an optional `editingPatient`
+prop. In edit mode it seeds the form from the saved profile +
+expectations, switches title and button copy, calls
+`api.updatePatient` instead of `api.savePatient`, enables Save
+without a fresh dry-run (the patient already passed validation when
+first saved), and preserves the saved `matched_branch_node_ids`
+verbatim when the reviewer saves without re-running dry-run -- so
+editing a name does not blank per-rule branch attribution.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| Design Input | DI-LEO-AI-185 | approved | Reviewers MUST be able to edit a saved test patient in place from /admin/guidance/test-patients (PATCH endpoint + atomic Cypher rewrite + dialog edit-mode + library-page Edit button) so that fixing a typo or adjusting an expectation no longer requires delete + rebuild |
+| Design Output | DO-LEO-AI-184 | approved | UPDATE_TEST_PATIENT Cypher (atomic props update + EXPECTED_RESULT clear) + update_patient service helper + PATCH /guidance/test-patients/{id} endpoint + api.updatePatient client + BuildPatientDialog editingPatient prop + page.tsx Edit button |
+| Risk | R-LEO-AI-179 | mitigated | Editing a saved test patient silently drops or corrupts an EXPECTED_RESULT, masking future regressions; harm: a wrong appropriateness rule (e.g. one that over-fires the 2-week-wait recommendation) reaches production because the negative-test patient that should have caught it no longer asserts the must-NOT-fire expectation |
+| Verification Test | VT-LEO-AI-179 | passed | 10 cases: 3 service pytest cases (happy path / 404 / empty expectations), 3 router cases (PATCH happy / 404 / empty), 1 api client jest case (PATCH + JSON_HEADERS), 3 static-source cases (dialog edit-mode wiring + matched_branch_node_ids preservation + page Edit button); 34 backend + 21 frontend tests passing |
 
 ---
 
@@ -976,6 +1014,394 @@ it touches the GoldLabel set.
 | Risk | R-LEO-AI-178 | mitigated | SNOMED proposal validator over-rejects legitimate lexicon-gap matches when the surface uses lay/synonym wording, suppressing real findings from the gold training set. Harm: reduced runtime NER recall on lay/synonym surfaces (rising PSA, primary lung mass, hydronephrosis in plain English) -> missed clinical signal. Severity minor. Mitigated by the SEMANTIC branch (vector_raw>=0.92 AND surface_match>=0.66) that admits embedding-strong partial-overlap surfaces, by structured rejection reasons routed to QA review, and by audit-driven default tuning that lost only 4 marginal cases (244 -> 240 kept) -- all of which were the documented false positives |
 | Verification Test | VT-LEO-AI-177 | passed | 9 critical/high pytest cases in tests/test_coding_resolver.py::TestCalibratedScoring pinning every per-branch score path: exact branch -> 1.0; weak fulltext (BM25=1) -> 0.5; strong fulltext (BM25=5) -> 0.833; vector-only -> cosine; lex+vector agreement bonus capped at 1.0; cross-group tag penalty halves; tag match additive boost not multiplicative inflation; tag-matching candidate wins tie; regression that previously-passing test_expected_tag_underscore_not_penalized still passes under new contract. Full tests/test_coding_resolver.py (35 tests) green; companion 21 validator tests in tests/test_gold_label_snomed_check.py also green (56/56 total) (passed 2026-04-17) |
 | Verification Test | VT-LEO-AI-178 | passed | 21 pytest cases in tests/test_gold_label_snomed_check.py covering EXACT branch acceptance, SEMANTIC branch acceptance with high vector_raw and partial surface match, SURFACE branch acceptance with shared-token floor, polarity guard (no hydrocephalus -> reject; no hydrocephalus + Hydrocephalus absent -> accept), shared-token floor (cancer free + Seizure free -> reject), explicit refusal to accept on fused score alone, qualifier-value rejection, drifted-top1 rejection, UK/US spelling normalisation, no-candidates short-circuit, batch deduplication, synonym-tag review flag, single-token surface acceptance, higher-surface tie-break. End-to-end re-validation of 950-proposal backfill: 240 kept, all 4 documented false positives rejected, kept-set scores bounded in [0.873, 1.000] (passed 2026-04-17) |
+
+---
+
+## Trustworthy Gold-Label Review and Self-Consistent Training Data (April 2026)
+
+On 2026-04-17 a reviewer reported that the Gold Label detail dialog
+showed an unrelated entity (`Flexible cystoscopy`) attached to a
+breast-USS sentence. Investigation surfaced two distinct defects:
+(1) the React `GoldLabelDetailDialog` mounted across four list surfaces
+(gold/synonym/candidate/similar) reused component instances without a
+stable `key`, so the lazy `useState(() => parseEntities(...))`
+initialiser captured the previously-displayed label's entities; and
+(2) the SNOMED proposal validator only ran against new LLM additions,
+leaving 88 critical self-consistency issues across the 967 already
+persisted GoldLabels (including 7 records mapping `(qualifier value)`
+SNOMED concepts onto clinical labels such as `finding`).
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-082 | approved | Reviewers and trainers need a trustworthy gold-label review UI plus self-consistent persisted training data so that no GoldLabel ever displays entities from a different label, no GoldLabel persists with a SNOMED concept whose semantic tag contradicts its label, and any drift introduced by future seed scripts or LLM augmentations is detected offline before it reaches the NER training set |
+| Design Input | DI-LEO-AI-185 | verified | GoldLabelDetailDialog re-mount + state resync. Every JSX mount of <GoldLabelDetailDialog> in services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx carries a stable `key` derived from `label_id` (per-surface namespace prefixes gold-/syn-/cand-/sim-). The dialog body adds a useEffect with deps [item.label_id, item.entities_json] that re-derives entities, rejectedRelationKeys, and clears suggestion drafts, term drafts, surface-form drafts, lookup target, save state, and delete-confirm flags when label_id changes; the lazy useState fast path is preserved (passed 2026-04-17) |
+| Design Input | DI-LEO-AI-186 | verified | Offline gold-label entity audit. scripts/lib/gold_label_snomed_check.py adds audit_existing_entity + audit_gold_label_entities + ENTITY_AUDIT_ISSUE_CODES + _derive_semantic_tag_from_term + _CLINICAL_LABELS + _NON_CLINICAL_SEMANTIC_TAGS auditing every persisted GoldLabel entity for self-consistency without calling the terminology service. Issue codes: missing_concept_id (critical), missing_label (critical), qualifier_value_on_clinical_label (critical), tag_label_mismatch (critical), stored_tag_drift (info), missing_snomed_term (warning), blocked_assertion_with_concept (info). CLI scripts/audit_gold_label_entities.py sweeps the live KG, writes data/audit/gold_label_entity_audit_<UTC>.jsonl + .summary.json, supports --severity, --source, --exclude-source, --limit. First sweep flagged 88 critical / 80 warning / 398 info issues across 967 GoldLabels (passed 2026-04-17) |
+| Design Input | DI-LEO-AI-187 | verified | Manual gold-seed safety check. scripts/seed_manual_gold_records.py::_validate_entity derives `semantic_tag` from the SNOMED preferred-term suffix (suffix-derived tag is authoritative), rejects writes where declared semantic_tag disagrees with the suffix outside _TAG_SYNONYMS, REJECTS writes where label is in _CLINICAL_LABELS but the authoritative semantic_tag is in _NON_CLINICAL_SEMANTIC_TAGS (with R-LEO-AI-180 named in the error), and rejects writes where snomed_concept_id is set but snomed_term is empty. design-controls/training-data/manual-gold-seed-2026-04-17.yaml updated: 5 entries (NEG-04, NEG-06, NEG-07, NEG-13, NEG-17) relabelled finding -> qualifier_value and re-seeded; audit confirms zero remaining offenders from this source (passed 2026-04-17) |
+| Design Output | DO-LEO-AI-184 | approved | services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx (key prop on all four GoldLabelDetailDialog mounts using gold-/syn-/cand-/sim- namespace prefixes; useEffect resync hook with deps [item.label_id, item.entities_json] resetting all entity-derived state); services/ui/src/__tests__/gold-label-detail-dialog-rekey.test.tsx (new static-source jest VT) |
+| Design Output | DO-LEO-AI-185 | approved | scripts/lib/gold_label_snomed_check.py (audit_existing_entity, audit_gold_label_entities, ENTITY_AUDIT_ISSUE_CODES, EntityAuditResult, _derive_semantic_tag_from_term, _CLINICAL_LABELS, _NON_CLINICAL_SEMANTIC_TAGS, _AUDIT_AUTO_CODE_BLOCKED, _AUDIT_SEVERITY); scripts/audit_gold_label_entities.py (CLI sweeping `MATCH (g:GoldLabel) WHERE g.entities_json IS NOT NULL`, JSONL + summary report, --severity / --source / --exclude-source / --limit filters); tests/test_gold_label_existing_entities_audit.py (22 pytest cases) |
+| Design Output | DO-LEO-AI-186 | approved | scripts/seed_manual_gold_records.py (_validate_entity hardened: suffix-derived semantic_tag, rejects declared/derived disagreement outside _TAG_SYNONYMS, rejects qualifier_value semantic_tag under clinical labels with R-LEO-AI-180 named, rejects missing snomed_term when snomed_concept_id is set); design-controls/training-data/manual-gold-seed-2026-04-17.yaml (5 NEG-XX entries corrected); tests/scripts/test_seed_manual_gold_records.py (6 new TC-006 cases pinning each safety branch) |
+| Risk | R-LEO-AI-179 | mitigated | GoldLabelDetailDialog stale-state leak between gold/synonym/candidate/similar list surfaces displays entities from a previously viewed GoldLabel against an unrelated sentence, causing a reviewer to accept, reject, or modify entities on the wrong record. Harm: corrupted training data and wrong SNOMED-tag attribution propagating into the NER model. Severity serious. Mitigated by DI-LEO-AI-185 (stable per-label_id `key` prop forces React to remount the component tree on selection change; useEffect resync covers any future code path that retains the existing instance). Residual low |
+| Risk | R-LEO-AI-180 | mitigated | Already-persisted GoldLabel entities can carry SNOMED concepts whose semantic tag contradicts their label (e.g. (qualifier value) under label='finding') because the SNOMED proposal validator was scoped to LLM additions only. Harm: NER model learns to emit clinical-label spans against qualifier-value SNOMED codes, downstream auto-coding produces clinically wrong codes. Severity serious. Mitigated by DI-LEO-AI-186 (offline audit detects every existing offender) and DI-LEO-AI-187 (seed-script safety check at write time blocks the regression class). 5 known offenders remediated; remaining 2 critical offenders flagged for triage. Residual low |
+| Verification Test | VT-LEO-AI-179 | passed | 5 jest static-source tests in services/ui/src/__tests__/gold-label-detail-dialog-rekey.test.tsx: stable `key` on all four mounts, distinct namespace prefixes, useEffect deps [item.label_id, item.entities_json], state-reset coverage in the resync block, lazy useState initialiser preserved (passed 2026-04-17) |
+| Verification Test | VT-LEO-AI-180 | passed | 22 pytest cases in tests/test_gold_label_existing_entities_audit.py covering all seven issue codes, severity ranking (critical > warning > info), suffix-derived tag truth, synonym tolerance, blocked-assertion info classification, stored-tag drift detection, batch audit aggregation, and a live-payload replay of the GL-d3ffb211468a5bcf record that triggered the original report (passed 2026-04-17) |
+| Verification Test | VT-LEO-AI-181 | passed | 19 pytest cases in tests/scripts/test_seed_manual_gold_records.py (13 pre-existing + 6 new TC-006 cases TC-006A..F): suffix-derived tag overrides declared, qualifier_value on clinical label rejected with R-LEO-AI-180 named, declared/derived disagreement outside _TAG_SYNONYMS rejected, synonym tolerance accepted, missing snomed_term with concept_id rejected, full real-manifest seed loads after corrections (passed 2026-04-17) |
+
+---
+
+## Confidence-Gated TrainingCandidate Auto-Prune (April 2026)
+
+This programme adds a confidence-gated auto-prune workflow for the
+~900 TrainingCandidate rows sitting in non-completed states
+(`pending`, `processing`, `failed`) that the LLM extractor over-produced
+against and that human reviewers will never get to. The same SNOMED
+proposal validator that powers `R-LEO-AI-180` is rerun over each
+candidate's persisted entities; candidates whose every entity fails the
+validator at the supplied confidence floors are eligible for cascade
+deletion (TrainingCandidate + draft GoldLabel + SurfaceFormTask).
+Three safety rails force the verdict to `'review'` instead of
+`'delete'`: zero-entity candidates, candidates with any entity carrying
+an `_AUTO_CODE_BLOCKED` assertion (absent / refuted / declined / cancelled
+/ planned / hypothetical / possible / historical / family), and
+candidates sourced from `manual_gold_seed*` -- exactly the categories
+where validator rejection is most likely to misread genuine signal.
+Status `'completed'` (gold) is never targeted regardless of input.
+The workflow is exposed on the Training Data > Candidates tab via a
+new "Auto-prune low confidence" toolbar action that runs a server
+preview before any destructive action is enabled, with an explicit
+"permanently delete N candidates" acknowledgement checkbox gating the
+final button. A CLI mirror at `scripts/prune_low_confidence_candidates.py`
+provides the same preview-then-execute flow for offline operations
+(defaults to dry-run; `--apply` required to delete).
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-083 | superseded | Reduce HITL backlog by auto-pruning training candidates that cannot produce defensible SNOMED codes. Superseded by UN-LEO-AI-085 (AI first-pass) which replaces "delete the unloved" with "pre-code what we can, delete what we can't, leave the rest for review". The endpoints, dialog and CLI from this section remain in place but are no longer the recommended reviewer entry point. |
+| Design Input | DI-LEO-AI-196 | verified | candidate_prune service + /candidates/prune/preview + /candidates/prune/execute endpoints. services/api/app/services/candidate_prune.py implements PruneParams (default floors 0.7/0.92/0.66 mirroring R-LEO-AI-180), CandidateAssessment dataclass, assess_candidates (ThreadPoolExecutor max 8 workers; verdict ladder zero-entity/blocked-assertion/manual-seed -> review, all-rejected -> delete, all-accepted -> keep, mixed -> review), execute_prune (TOCTOU re-check via GET_TRAINING_CANDIDATE_BY_ID; reports cascade counts), summarise. Both endpoints depend on require_admin and emit INFO audit log lines (passed 2026-04-17) |
+| Design Input | DI-LEO-AI-197 | verified | CandidatePruneDialog + ToolbarAction id='auto-prune' on Candidates tab. services/ui/src/components/gold-dataset/CandidatePruneDialog.tsx (471 LOC) wraps preview-then-execute, three numeric inputs for confidence floors (defaults 0.7/0.92/0.66), status multi-select (default pending+processing+failed), grouped preview table with rejection-reason chips, destructive Delete button gated on previewLoaded && deleteCount > 0 && confirmAcknowledged, "permanently delete" acknowledge checkbox, in-flight close guard (passed 2026-04-17) |
+| Design Output | DO-LEO-AI-195 | draft | services/api/app/services/candidate_prune.py + 2 routes (POST /training/candidates/prune/preview, POST /training/candidates/prune/execute) in services/api/app/routers/training.py + scripts/prune_low_confidence_candidates.py CLI mirror (writes data/audit/candidate_prune_<UTC>.{preview.jsonl,summary.json,execute.json}) |
+| Design Output | DO-LEO-AI-196 | draft | services/ui/src/components/gold-dataset/CandidatePruneDialog.tsx + GoldDatasetPanel.tsx ToolbarAction wiring with onPruned reloading list+stats |
+| Risk | R-LEO-AI-187 | mitigated | Auto-prune deletes a TrainingCandidate that the model actually needed to learn from. Harm: slow erosion of training signal -> next NER model release degrades silently on the surface forms the curator had been collecting examples of. Severity minor. Mitigated by the three-branch verdict ladder (EXACT/SEMANTIC/SURFACE; only candidates where every entity fails ALL branches qualify for delete), the three safety rails (zero-entity/blocked-assertion/manual-seed -> review), and the two-phase preview-then-confirm UI. Residual low |
+| Risk | R-LEO-AI-188 | mitigated | Auto-prune deletes the only evidence of a systemic LLM extractor regression before a human can investigate. Harm: failure pattern silently removed from the HITL queue, regressed prompt continues to run in production. Severity minor. Mitigated by grouped preview surfacing rejection-reason distribution and per-call audit logging (actor email, floors, per-verdict counts) so a sudden spike in deleted_total or tag_mismatch_all rejections is visible to the curator before they confirm. Residual low |
+| Verification Test | VT-LEO-AI-182 | passed | 20 pytest cases in tests/test_candidate_prune.py (14 service: zero-entity / blocked-assertion / manual-seed safety rails, all-rejected, all-accepted, mixed, empty entity text, resolver exception, summarise, execute_prune TOCTOU re-check, not-found path, deletion + cascade counts, fetch scope guard) + services/api/tests/test_candidate_prune_endpoint.py (6 endpoint: admin gating, preview read-only, execute TOCTOU skip, empty id list 400, deleted/cascade counts, not_found path) (passed 2026-04-17) |
+| Verification Test | VT-LEO-AI-183 | passed | 6 jest static-source cases in services/ui/src/__tests__/candidate-prune-dialog.test.tsx: ToolbarAction id='auto-prune' wired alongside Deduplicate similar, default floors 0.7/0.92/0.66, destructive button disabled until previewLoaded + deleteCount > 0 + confirmAcknowledged, "permanently delete" label literal, handleClose loading guard, file size <=500 LOC (passed 2026-04-17) |
+
+---
+
+## AI first-pass over the candidate to-do list (April 2026)
+
+Reviewers had ~900 non-completed `TrainingCandidate` rows to work
+through, which is overwhelming. UN-LEO-AI-085 replaces the
+"defensive" auto-prune (UN-LEO-AI-083) with an "offensive" AI
+first-pass: for every non-completed candidate, ask Haiku to extract
+entities (seeded with BioClinicalBERT few-shot exemplars from the
+gold pool), then ask the SNOMED resolver + validator to code each
+entity, with up to N Haiku alt-search-term retries when the
+validator rejects. Each candidate ends in one of three verdicts:
+
+- `pre_done`: at least one entity was confidently coded -> overwrite
+  `entities_json` with the AI suggestions, stash the original in a
+  write-once `entities_json_original` audit copy, and keep the
+  candidate in the reviewer queue (status stays `pending`). The
+  reviewer sees an "AI suggested" chip on every entity row plus a
+  "show original" toggle to flip back to the pre-AI snapshot.
+- `delete`: the AI extracted entities but none could be coded, and
+  no safety rails fired -> cascade-delete (TOCTOU re-checked so
+  status='completed' is never touched).
+- `review`: a safety rail fired (zero entities, `_AUTO_CODE_BLOCKED`
+  assertion, `manual_gold_seed` source, or status flipped to
+  `completed` mid-flight) -> leave it alone for the human reviewer.
+
+The flow runs as an admin-gated background job with SSE progress
+(`POST /api/training/candidates/ai-first-pass/jobs` then
+`GET /jobs/{run_id}/events`). The reviewer-facing trigger is the
+"AI first-pass" button on the Candidates tab toolbar. A CLI mirror
+at `scripts/ai_first_pass.py` provides the same dry-run-then-apply
+flow for offline operations (always runs dry-run first; `--apply`
+required to write).
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-085 | approved | AI first-pass over the non-completed TrainingCandidate backlog (Haiku entity extraction + BioClinicalBERT few-shot exemplars + SNOMED resolver + Haiku alt-query smart coder); verdicts pre_done / delete / review; admin-gated background job with SSE progress; never modifies status='completed'; reviewer always sees an "AI suggested" chip and a "show original" toggle on touched candidates |
+| Design Input | DI-LEO-AI-208 | approved | candidate_ai_first_pass service (extractor + smart coder + verdict ladder + writeback). services/api/app/services/candidate_ai_first_pass/ implements AIFirstPassParams (default floors 0.7/0.92/0.66, dry_run=False, haiku_tier='small', few_shot_k=5, coder_max_retries=2), ai_extract_entities (Haiku + BioClinicalBERT few-shot exemplars from the gold pool; falls back to original entities_json with extractor_error recorded), ai_code_entity (validator + Haiku alt-search-term loop), classify_candidate (verdict ladder), writeback_pre_done (UPSERT_AI_FIRST_PASS_ENTITIES sets entities_json_original write-once and refuses to write status='completed'), execute_delete (TOCTOU re-check). CLI mirror in scripts/ai_first_pass.py. |
+| Design Input | DI-LEO-AI-209 | approved | AI first-pass background job + reviewer UI. services/api/app/routers/_training_ai_first_pass.py exposes admin-gated POST /candidates/ai-first-pass/jobs (queue), GET /jobs/{run_id} (status), GET /jobs/{run_id}/events (SSE candidate.processed -> job.summary). Next.js Route Handler at services/ui/src/app/api/training/candidates/ai-first-pass/jobs/[runId]/events/route.ts proxies the SSE straight to the browser. AIFirstPassDialog renders the parameter form (dry_run defaulted to true, close-while-running guard) and a live by_verdict + by_action tally. GoldDatasetPanel registers id='ai-first-pass' on the Candidates tab. CandidateReviewList shows an "AI suggested" row badge. GoldLabelDetailDialog shows a per-entity AI chip and a read-only "show original" toggle bound to entities_json_original. |
+| Design Output | DO-LEO-AI-205 | draft | services/api/app/services/candidate_ai_first_pass/ (_types, _gold_pool, _extractor, _coder, _verdict, _writeback, _job_runner, __init__) + libs/cypher/training_candidate_queries.py (UPSERT_AI_FIRST_PASS_ENTITIES + READ_GOLD_POOL_FOR_FEW_SHOT + GET_TRAINING_CANDIDATE_BY_ID extension surfacing entities_json_original / ai_first_pass_run_id / ai_first_pass_at) + scripts/ai_first_pass.py CLI |
+| Design Output | DO-LEO-AI-206 | draft | services/api/app/routers/_training_ai_first_pass.py (queue/status/events) + services/ui/src/app/api/training/candidates/ai-first-pass/jobs/[runId]/events/route.ts (Next.js SSE proxy) + services/ui/src/components/gold-dataset/AIFirstPassDialog.tsx + GoldDatasetPanel.tsx (toolbar id='ai-first-pass', dialog mount, GoldLabelDetailDialog AI chip + show-original toggle) + CandidateReviewList.tsx (row badge) + goldDatasetTypes.ts (Candidate / GoldLabel ai_first_pass_run_id / ai_first_pass_at / entities_json_original fields) |
+| Risk | R-LEO-AI-197 | mitigated | AI first-pass overwrites entities_json and corrupts gold-bound labels. Harm: pre-existing curated entity work silently lost; reviewer cannot tell what the AI changed; downstream model trains on AI hallucinations. Severity serious. Mitigated by write-once entities_json_original audit copy (UPSERT_AI_FIRST_PASS_ENTITIES never overwrites the snapshot once set), dry-run defaulting to true in the dialog, TOCTOU re-check that excludes status='completed' immediately before any write or delete, "AI suggested" chip + "show original" toggle on every reviewer surface so the pre-AI baseline is one click away, and safety rails (zero-entity / _AUTO_CODE_BLOCKED assertion / manual_gold_seed source) that route to verdict=review without writing. Residual low |
+| Verification Test | VT-LEO-AI-200 | passed | candidate_ai_first_pass pytest VT (extractor fallback, gold-pool few-shot loader, smart coder validator + retry loop, verdict ladder + safety rails, writeback invariants including entities_json_original write-once and status='completed' refusal, endpoint admin gating + queue + status + SSE event stream) |
+| Verification Test | VT-LEO-AI-201 | passed | 15 jest static-source cases across services/ui/src/__tests__/ai-first-pass-toolbar-id.test.tsx + ai-first-pass-dialog-chrome.test.tsx + gold-label-detail-ai-chip-and-toggle.test.tsx: toolbar id='ai-first-pass' + dialog mount, AIFirstPassDialog SSE wiring (EventSource on /events, candidate.processed updates by_verdict/by_action, job.summary closes the source, dry_run defaults to true, handleClose no-ops while running, AIFirstPassDialog.tsx <=600 LOC), GoldLabelDetailDialog per-entity AI chip + show-original toggle (gated on isAISuggested, original list gated on showOriginalEntities, original view is read-only with no save handlers wired, toggle resets to false when item.label_id changes), CandidateReviewList row badge, Candidate + GoldLabel UI types carry the AI audit fields (passed 2026-04-17) |
+
+---
+
+## Dry-run NER errors to gold-label correction (April 2026)
+
+The `/admin/console` Evaluate stage exposes a "2b) Dry run on real
+encounters" workflow that surfaces NER quality issues on real patient
+encounters (missing entities, wrong tagging of informational header
+text, incorrect labels on long observation strings). Until now there
+was no path from a failing dry-run row into the gold-label editor:
+fixing a regression meant leaving the page, hand-searching for the
+encounter text, and re-creating the candidate by hand. This change
+adds a per-row "Open in gold editor" IconButton on every dry-run row
+(both NER-only and full-pipeline blocks). One click POSTs the
+encounter text and the dry-run extraction to a new endpoint that
+de-identifies the text server-side, hashes the de-identified text to
+`candidate_id` (matching the existing `_candidate_id` contract used
+by the pipeline), upserts a `TrainingCandidate` with
+`source='dry_run_correction'`, ensures a draft `GoldLabel`, and
+deep-links the reviewer into `GoldLabelDetailDialog` so the
+correction can be promoted to gold training data without leaving the
+flow. The feature is idempotent on `candidate_id`: two reviewers
+clicking the same encounter land on the same draft.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-084 | approved | One-click conversion of dry-run NER errors into gold training data (per-row "Open in gold editor" on /admin/console -> Evaluate -> 2b dry-run; deep link to GoldLabelDetailDialog; idempotent on candidate_id) |
+| Design Input | DI-LEO-AI-198 | approved | POST /api/training/candidates/from-dry-run: server-side deidentify_text(ner=True) before hashing; candidate_id = sha256(deidentified text); upsert TrainingCandidate (source='dry_run_correction'); ensure draft GoldLabel; idempotent |
+| Design Input | DI-LEO-AI-199 | approved | EvaluateStage 'Open in gold editor' IconButton on every dry-run row (NER-only and full-pipeline) + GoldDatasetPanel useSearchParams deep-link handler (?labelId, from=dry_run -> candidates tab) + Suspense wrapper on /gold-dataset/page |
+| Design Output | DO-LEO-AI-197 | draft | services/api/app/routers/training.py (candidate_from_dry_run, _sanitise_dry_run_entities) + services/ui/src/components/console/EvaluateStage.tsx (openInGoldEditor + IconButton in both row blocks) + services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx (deep-link effect) + services/ui/src/app/gold-dataset/page.tsx (Suspense) |
+| Risk | R-LEO-AI-189 | mitigated | PHI leakage into gold dataset via dry-run correction path. Harm: UK GDPR Article 9 special-category data leak from patient graph into knowledge graph and onward into model weights. Severity critical. Mitigated by server-side deidentify_text(text, ner=True) before either hashing or persisting (single point of enforcement); candidate_id = sha256(deidentified_text) matches existing _candidate_id contract so dry-run-corrected and pipeline-produced candidates collapse onto the same node; source='dry_run_correction' lets weekly audit_gold_label_entities runs segment dry-run-sourced rows; source_hint truncated to 64 characters. Residual low |
+| Verification Test | VT-LEO-AI-191 | passed | 6 pytest cases in tests/test_candidate_from_dry_run.py: deidentify-before-hash, source/status pinning, entity re-anchoring with unmappable drop, idempotency on second call, 400 on empty input, source_hint truncation (passed 2026-04-18) |
+| Verification Test | VT-LEO-AI-192 | passed | 8 jest static-source cases in services/ui/src/__tests__/dry-run-open-gold-editor.test.tsx: imports of IconButton/EditNoteIcon/useRouter, IconButton with aria-label='Open in gold editor' rendered in both row blocks, POST + deep-link push, disabled guards on in-flight + empty text, useSearchParams plumbing, deep-link useEffect with router.replace clear, candidates tab on dry_run, Suspense wrapper on /gold-dataset/page (passed 2026-04-18) |
+
+---
+
+## Strict Non-Site-Specific (NSS) Cancer Classification (April 2026)
+
+The episode builder previously over-classified encounters as
+`cancer_type='non_site_specific'` for two reasons:
+
+1. The `_SITE_MAP` substring rule `("fast", "non_site_specific")`
+   matched any text containing "fast" -- including "fasting bloods",
+   "fast turnaround", and PRISM template names.
+2. The generic-cancer-term fallback in `_extract_condition_key`
+   mapped any unsited cancer mention ("carcinoma", "neoplasm",
+   "cancer") to NSS instead of leaving it as `unknown`.
+
+Combined with three Read-code mis-mappings (XaMeD / XaMeL / XaPyS,
+all incorrectly mapped to NSS instead of childrens_tumour /
+testicular), this produced 48 phantom or misclassified
+`non_site_specific` `EpisodeOfCare` nodes across the live cohort.
+
+DI-LEO-AI-200 enforces a strict rule: `cancer_type='non_site_specific'`
+only when the text matches an explicit NSS surface form
+(`_NSS_PHRASE_RE`, covering the SNOMED 1556551000000104 guideline
+synonym list), or when the SNOMED concept_id / Read code is one of
+the canonical NSS pathway codes.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| Design Input | DI-LEO-AI-200 | approved | Strict NSS classification: only explicit NSS surface forms (`_NSS_PHRASE_RE`) or canonical NSS SNOMED/Read codes classify cancer_type='non_site_specific'; generic cancer text without a site returns 'unknown' so NSS-absorption (DI-LEO-AI-196) folds it into a typed pathway |
+| Design Output | DO-LEO-AI-198 | approved | services/analysis_worker/app/analyzers/episode_builder/_site_resolution.py (`_NSS_PHRASE_RE` regex; `_SITE_MAP` cleanup; `_extract_condition_key` returns 'unknown' for generic-term fallback) + libs/domains/code_inventories.py (XaMeD->childrens_tumour, XaMeL->testicular, XaPyS->childrens_tumour) |
+| Risk | R-LEO-AI-190 | mitigated | Phantom or false-positive non-site-specific cancer pathway misclassification. Harm: reviewer fatigue / loss of trust in NSS triage queue, wasted clinical time, risk of missed real NSS pathway. Severity serious. Mitigated by strict NSS rule, Read-code corrections, and coordination with NSS-absorption (DI-LEO-AI-196). Live cohort dropped from 48 phantom/misclassified NSS episodes to 0. Residual low |
+| Verification Test | VT-LEO-AI-193 | passed | 18 pytest cases in tests/test_site_resolution_nss.py: 9 positive (full SNOMED phrase, '2WW NSS', 'NSS 2ww', 'fast track NSS', 'NSS referral', 'non-specific symptoms', SNOMED concept ID 1556551000000104, no-hyphen variant), 9 negative/type-clash (fasting bloods, fast turnaround, carcinoma of unknown primary, PRISM pathway names, cancer follow-up clinic, oncology surveillance, breast referral with cancer text, XaMeD->childrens_tumour, XaPyS->childrens_tumour). Live cohort wipe + rebuild produced zero NSS episodes (down from 48) |
+
+---
+
+## Patient 4643293950 Pattern Hardening (April 2026)
+
+Single-patient deep dive on `4643293950` surfaced seven generalisable
+detector / builder failure modes (Patterns A-G). Each pattern is
+addressed at the rule layer (regex, status engine, builder context)
+rather than per-patient so the fix carries across the cohort. Bundled
+DIs / DOs / VTs / Risks below.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| Design Input | DI-LEO-AI-201 | approved | Pattern B - tighten `_RE_FIRST_SEEN` so every alternation requires an attestation verb (`seen`/`attended`/`reviewed`/`assessed`/`consulted`) within proximity of the clinic / fast-track / 2WW token |
+| Design Output | DO-LEO-AI-199 | approved | `_RE_FIRST_SEEN` rebuild in services/analysis_worker/app/analyzers/anchor_detector.py |
+| Risk | R-LEO-AI-191 | mitigated | Open referral falsely promoted to 'completed' status via phantom first_seen anchor from narrative discussion |
+| Verification Test | VT-LEO-AI-194 | passed | First-seen attestation guard - positive (clinic seen / attended) and negative (narrative discussion / awaiting / considering) cases |
+| Design Input | DI-LEO-AI-202 | approved | Pattern C+D - narrative-reference referral guard suppressing `text_generic` referrals when text is purely commentary about a past referral with no structural referral evidence |
+| Design Output | DO-LEO-AI-200 | approved | `_RE_NARRATIVE_REFERRAL_REFERENCE` + `_RE_STRUCTURAL_REFERRAL` + `_classify_text_encounters` suppression logic in anchor_detector.py |
+| Risk | R-LEO-AI-192 | mitigated | Inflated referral count from narrative commentary about past referrals creating phantom text_generic referrals |
+| Verification Test | VT-LEO-AI-195 | passed | Narrative-reference referral guard - DNA / awaiting result narratives suppressed; structural referral codes still emit referral |
+| Design Input | DI-LEO-AI-203 | approved | Pattern E - PMHx history-of-cancer detection: malignancy under recognised Past medical history section header treated as historical context |
+| Design Output | DO-LEO-AI-201 | approved | `_PMHX_SECTION_RX` + `_malignancy_under_pmhx_section` + `text_contains_history_of_cancer` wiring in libs/domains/code_inventories.py |
+| Risk | R-LEO-AI-193 | mitigated | Open cancer pathway falsely closed as benign because PMHx malignancy line is misread as new diagnosis |
+| Verification Test | VT-LEO-AI-196 | passed | PMHx history-of-cancer detection - PMHx-section malignancy treated as history; current-encounter malignancy still surfaced |
+| Design Input | DI-LEO-AI-204 | approved | Pattern G - new `care_obstruction` milestone covering DNA + reason, refusal of named investigation, safeguarding, hospital retraction, family aggression, with HITL escalation on the parent EpisodeOfCare |
+| Design Output | DO-LEO-AI-202 | approved | `_RE_CARE_OBSTRUCTION` + 9-tuple `_AnchorBuckets` + `_care_obstruction_link_anchors` / `_care_obstruction_hitl` wiring across anchor_detector.py + episode_builder/_builder.py |
+| Risk | R-LEO-AI-194 | mitigated | Blocked / refused / safeguarding-flagged pathways swallowed by stale-close pass without HITL review |
+| Verification Test | VT-LEO-AI-198 | passed | care_obstruction emission + HITL escalation on parent EpisodeOfCare |
+| Design Input | DI-LEO-AI-205 | approved | Pattern A - `rejected_no_followup` status engine surfacing referrals rejected with no follow-up referral within 90 days as a discrete HITL status |
+| Design Output | DO-LEO-AI-203 | approved | `_has_followup_referral` + `_rejection_followup_status` + `_determine_episode_status` integration in services/analysis_worker/app/analyzers/episode_builder/_status.py |
+| Risk | R-LEO-AI-195 | mitigated | Rejected referral with no follow-up silently aged out by stale-close instead of being surfaced for HITL action |
+| Verification Test | VT-LEO-AI-197 | passed | rejected_no_followup status - rejection without follow-up returns rejected_no_followup; rejection followed by new referral remains in_progress |
+| Design Input | DI-LEO-AI-206 | approved | Pattern F - exclusive encounter claiming via `BuildContext.claimed_encounters` + `_filter_unclaimed_link_groups` enforcing single-claim invariant per encounter / per non-referral milestone |
+| Design Output | DO-LEO-AI-204 | approved | `BuildContext.claimed_encounters` in episode_builder/_types.py + `_filter_unclaimed_link_groups` + integration into `_build_open_episode` / `_build_closed_episode` in episode_builder/_builder.py |
+| Risk | R-LEO-AI-196 | mitigated | Same encounter claimed by multiple EpisodeOfCare nodes causing duplicate-resolver churn and inflated milestone counts |
+| Verification Test | VT-LEO-AI-199 | passed | Exclusive encounter claiming - non-referral milestone encounter claimed once; referral encounter remains protected; empty groups dropped |
+
+---
+
+## Patient 4842019832 Pattern Hardening (April 2026)
+
+Single-patient deep dive on `4842019832` surfaced three additional
+generalisable detector failure modes (Patterns H, I, J). The patient
+had only ONE genuine pathway (Dec 2024 head and neck 2WW seen Jan 2025
+with benign LPR / chronic rhinitis outcome) but the detector had
+opened THREE EpisodeOfCare nodes: a phantom prostate `closed_benign`
+triggered by a normal PSA result whose auto-filed disclaimer text
+contained "If the PSA value remains elevated above the age specific
+threshold, refer as a 2WW" combined with "Reasons for Request:
+PSA - FH prostate ca." (family history, not patient diagnosis); the
+genuine head-and-neck pathway; and a phantom `unknown` in_progress
+triggered by a 2025-06-30 follow-up note that read "Was seen by ENT
+under 2ww in Jan ... Write to ENT to clarify that polyp requires no
+FU." (narrative reference to the prior pathway plus inter-clinician
+clarification, not a new referral).
+
+Each failure mode is addressed at the regex / suppression-hook layer.
+PRISM, rejection, resubmission, and Read-code referral subtypes are
+deliberately unaffected -- only `text_generic` is suppressed, and
+only when no structural artefact (XaY59 / PRISM / Hospital fast-track
+row / "Fast track referral for suspected ...") is present.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| Design Input | DI-LEO-AI-210 | approved | Pattern H - family-history-of-cancer guard: `_RE_FAMILY_HISTORY_CANCER` matches "FH ca", "FH of prostate ca", "FHx of breast cancer", "father had/diagnosed with cancer", "mother died of ovarian cancer" and similar shapes; `text_contains_history_of_cancer` is extended to treat FH-only mentions as historical context |
+| Design Output | DO-LEO-AI-207 | approved | `_RE_FAMILY_HISTORY_CANCER` + suppression hook in `_classify_text_encounters` (anchor_detector.py) + `_FAMILY_HISTORY_CANCER_RX` + `text_contains_family_history_of_cancer` + history-of-cancer wiring (libs/domains/code_inventories.py) |
+| Risk | R-LEO-AI-198 | mitigated | Family-history mention misread as a patient cancer event, opening phantom pathways for unaffected patients (e.g. PSA + FH prostate ca screening request) |
+| Verification Test | VT-LEO-AI-202 | passed | Family-history guard - 5 positive FH-shape detections + false-positive guard ("Patient diagnosed with prostate cancer in 2018" still recognised as a real patient diagnosis) + end-to-end suppression on PSA + FH encounter (7/7) |
+| Design Input | DI-LEO-AI-211 | approved | Pattern I - boilerplate lab-report referral guidance suppression: `_RE_BOILERPLATE_REFERRAL_GUIDANCE` matches PSA / CEA / CA125 / FIT / calprotectin disclaimer wording ("If the PSA value remains elevated...refer as a 2WW", "should be referred", "Consider 2WW referral if ...", "referrals made at the time of UTI will be rejected"); `_RE_AUTO_FILED_PREFIX` recognises the EMR auto-file prefix |
+| Design Output | DO-LEO-AI-208 | approved | `_RE_BOILERPLATE_REFERRAL_GUIDANCE` + `_RE_AUTO_FILED_PREFIX` + suppression hook in `_classify_text_encounters` (anchor_detector.py) |
+| Risk | R-LEO-AI-199 | mitigated | Auto-filed lab-report disclaimer text containing conditional referral guidance is mis-classified as an actual referral, opening phantom pathways for every routine PSA / CA125 / FIT / calprotectin result drop |
+| Verification Test | VT-LEO-AI-203 | passed | Boilerplate lab-guidance suppression - positive boilerplate / Auto-filed detection + false-positive guard ("Refer this patient via 2WW today" still recognised as an active referral instruction) + end-to-end suppression on auto-filed PSA encounter + structural keep-list cross-check (8/8) |
+| Design Input | DI-LEO-AI-212 | approved | Pattern J - extended narrative-reference guard: `_RE_NARRATIVE_REFERRAL_REFERENCE` additionally matches past-tense seen-narrative ("was seen by ENT under 2WW in Jan", "patient seen under fast track clinic last month") and inter-clinician clarification ("Write to ENT to clarify", "Letter to consultant") |
+| Design Output | DO-LEO-AI-209 | approved | Extended `_RE_NARRATIVE_REFERRAL_REFERENCE` alternations covering was-seen and write-to-clinician shapes (anchor_detector.py) |
+| Risk | R-LEO-AI-200 | mitigated | Past-tense seen-narrative or inter-clinician clarification text is mis-classified as a new referral, opening phantom unknown-cancer episodes from review-encounter follow-ups |
+| Verification Test | VT-LEO-AI-204 | passed | Extended narrative-reference guard - 4 positive narrative shapes + structural keep-list cross-check + end-to-end suppression on patient 4842019832 follow-up encounter (6/6) |
+
+---
+
+## Patient 4802892365 generalisable patterns - K, L, M (April 2026)
+
+Patient 4802892365 (confirmed lobular breast cancer; 2025-03-26 referral,
+2025-04-28 first seen, 2025-07-28 mastectomy + sentinel node biopsy) was
+returned by Mission Control with no `diagnosis_confirmed` milestone, no
+`treatment_started` milestone, AND a phantom EpisodeOfCare opened six
+months after the real referral. Three generalisable failure patterns
+were extracted, each with a focused detector fix, a tightened risk
+mitigation, and verification covering both the canonical patient and a
+sibling cohort case from a different cancer site.
+
+Pattern K - same-encounter referral + problem-list diagnosis: GPs
+routinely add the working diagnosis to the patient's permanent problem
+list ("Major: Invasive carcinoma of breast (Ya0ln) - lobular (New
+Episode)") at the same time they raise the 2WW referral. The
+DI-LEO-AI-145 same-encounter referral gate suppressed the diagnosis
+anchor entirely. The fix introduces a strict
+`find_malignancy_code_in_problem_line` helper and an `_has_hard_dx_
+evidence` override gate so problem-list code, problem-list term, and
+active-cancer-care code can all override the gate; surface-form code
+mentions ("Considering X78WM") still respect the gate so the original
+DI-LEO-AI-145 trap stays in place.
+
+Pattern L - self-narrated past referral: The 2025-09-24 cancer-care-
+review note ("Referred by me on 2ww earlier this year, confirmed
+breast cancer") was matched by the structural referral cue and emitted
+a fresh `text_generic` referral on the review date, opening a phantom
+episode 6 months after the real referral. The fix extends
+`_RE_NARRATIVE_REFERRAL_REFERENCE` with five retrospective-narration
+shapes (referred by me/us/GP/Dr|Mr|Mrs|Ms|Miss; I/we referred; GP
+referred; referred (on) 2WW earlier/last/previously/back/in
+<Month|Year>; previously referred). Structural PRISM/EMIS referral
+codes on the same encounter still fire so a real fresh referral is
+not over-suppressed.
+
+Pattern M - cancer treatment Read code coverage: The 2025-07-28
+encounter recorded "Major: Mastectomy of right breast (XacLJ) (New
+Episode)" and "Major: Biopsy of sentinel lymph node (XaF83) (New
+Episode)" -- neither code was in `CANCER_TREATMENT_PROCEDURE_CODES`.
+The fix expands the set to 19 codes spanning breast surgery (XacLJ,
+XacLK, X40EC, 7H601, XaF83), bowel surgery (X20Y4, XaFB2, XaCvE,
+XaZVW, 77132), prostate surgery (Y3c24), thyroid surgery (Xa8OS,
+71102) and generic chemo/radiotherapy (8BAD0, 8BAD1, ZV58A). All
+codes are definitive cancer treatment / staging procedures observed
+in live primary-care encounters.
+
+Cohort impact at the time of the investigation: 5 encounters matched
+Pattern K, 1 matched Pattern L, 5 matched the breast-specific Pattern
+M, and 106 completed cancer episodes had no `diagnosis_date` and/or
+no `treatment_started` milestone. The three fixes together remove the
+underlying causes for the bulk of those 106 cases.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| Design Input | DI-LEO-AI-215 | approved | Pattern K - hard problem-list diagnosis evidence (malignancy Read code OR malignancy term on a Major:/Problem: line OR active-cancer-care code) overrides the DI-LEO-AI-145 same-encounter referral gate so confirmed-cancer additions still fire diagnosis_confirmed when the same encounter raises the 2WW |
+| Design Output | DO-LEO-AI-212 | draft | `find_malignancy_code_in_problem_line` strict helper in `libs/domains/code_inventories.py` + `_has_hard_dx_evidence` override gate inside `_classify_text_encounters` (`anchor_detector.py`) |
+| Risk | R-LEO-AI-202 | mitigated | Confirmed cancer diagnosis silently dropped when GP records the diagnosis on the problem list at the same encounter as the 2WW referral (cohort baseline: 106 completed cancer episodes with no `diagnosis_date`) |
+| Verification Test | VT-LEO-AI-207 | passed | Pattern K - same-encounter referral + Major:/Problem: malignancy code emits diagnosis; active-care code overrides; DI-LEO-AI-145 trap preserved on bare suspected-cancer text; non-referral diagnosis path unchanged (4/4) |
+| Design Input | DI-LEO-AI-216 | approved | Pattern L - extend `_RE_NARRATIVE_REFERRAL_REFERENCE` with five retrospective self-narration shapes ("Referred by me on 2ww earlier this year", "I referred her last month", "we referred him in Jan", "GP referred via 2WW back in March 2024", "previously referred") so cancer-care-review notes that narrate the original referral do not open phantom EpisodeOfCare nodes |
+| Design Output | DO-LEO-AI-213 | draft | `_RE_NARRATIVE_REFERRAL_REFERENCE` alternation extension in `services/analysis_worker/app/analyzers/anchor_detector.py` |
+| Risk | R-LEO-AI-203 | mitigated | Self-narration of a prior referral inside a follow-up note opens a fresh phantom EpisodeOfCare and fragments the patient pathway (patient 4802892365 cancer-care-review created phantom episode `47c987c92e50e545` six months after the real referral) |
+| Verification Test | VT-LEO-AI-208 | passed | Pattern L - 5 narrative shapes match + structural fresh referral still fires (no over-suppression) + end-to-end suppression on patient 4802892365 cancer-care-review encounter (7/7) |
+| Design Input | DI-LEO-AI-217 | approved | Pattern M - expand `CANCER_TREATMENT_PROCEDURE_CODES` with 17 definitive cancer treatment / staging Read codes (breast: XacLJ, XacLK, X40EC, 7H601, XaF83; bowel: X20Y4, XaFB2, XaCvE, XaZVW, 77132; prostate: Y3c24; thyroid: Xa8OS, 71102; chemo/radio: 8BAD0, 8BAD1, ZV58A) so `treatment_started` fires when these codes appear in a post-referral encounter |
+| Design Output | DO-LEO-AI-214 | draft | `CANCER_TREATMENT_PROCEDURE_CODES` expansion in `libs/domains/code_inventories.py` (data-only; no detector logic change so existing pre-referral / family-history guards continue to suppress treatment emission outside a confirmed cancer context) |
+| Risk | R-LEO-AI-204 | mitigated | Cancer treatment milestone silently absent because surgery Read code (mastectomy, prostatectomy, hemicolectomy, etc.) is missing from `CANCER_TREATMENT_PROCEDURE_CODES` (cohort baseline: 5 breast-specific encounters and 106 completed cancer episodes with no `treatment_started` milestone) |
+| Verification Test | VT-LEO-AI-209 | passed | Pattern M - 17-code inventory membership + legacy preservation + helper resolves XacLJ + end-to-end `treatment_started` emission on patient 4802892365 mastectomy and a sibling anterior-resection case (8/8) |
+
+---
+
+## SBAR Generation Workflow + Document Chunks (April 2026)
+
+This programme adds an end-to-end SBAR (Situation, Background,
+Assessment, Recommendation) generation workflow on top of the existing
+patient graph. The Assessment section is rendered DETERMINISTICALLY from
+the roaring-bitmap rule evaluator output; only the Situation, Background
+and Recommendation sections use LLMs, and they are constrained by JSON
+output schemas plus 12 hardening rules per prompt. The pipeline is
+triggered by an `sbar_requested` message on the `pipeline-jobs` Service
+Bus queue and publishes per-stage progress on Redis pub/sub
+`pipeline:{run_id}` for SSE consumers (admin playground today, future
+referral / encounter UIs tomorrow). Sub-document granularity is provided
+by a new `:Chunk` node attached to `:DocumentReference` via `HAS_CHUNK`,
+and the existing `:DOCUMENTS` writer is generalised to accept either an
+`:Encounter` or a `:Chunk` as the source of coded clinical evidence.
+
+NOTE on numbering: the YAMLs at `DI-LEO-AI-186` and `DI-LEO-AI-187`
+have been re-authored against `UN-LEO-AI-082` to describe the chunk
+schema foundation. The legacy gold-label entity audit (DI-186-was) and
+manual-gold-seed safety check (DI-187-was) remain in code at
+`scripts/lib/gold_label_snomed_check.py` and
+`scripts/seed_manual_gold_records.py` and are still verified by
+`VT-LEO-AI-180` and `VT-LEO-AI-181` -- their narrative description is
+preserved in the section above.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-079 | draft | Make narrative document content queryable as discrete clinical evidence. Coded SNOMED facts must attach at the chunk level so a reviewer can see exactly which substring of a referral letter triggered each code |
+| User Need | UN-LEO-AI-080 | draft | Generate an SBAR summary for a patient on demand. Clinicians preparing for a referral or future-dated encounter need a structured Situation/Background/Assessment/Recommendation summary with source attribution and explicit "missing data" markers |
+| User Need | UN-LEO-AI-081 | draft | Reviewers can interactively test SBAR generation. QA reviewers and prompt authors need a /admin playground to validate prompt and pipeline changes against fixture data without touching production consumer surfaces |
+| Design Input | DI-LEO-AI-186 | approved | :Chunk node + HAS_CHUNK relationship. libs/cypher/chunk_queries.py provides make_chunk_id (sha256 of document_reference_id + ordinal + sha256(text)), UPSERT_CHUNK Cypher, get/find helpers; libs/cypher/schema_constraints.py adds CHUNK_CONSTRAINTS (UNIQUE on Chunk.id; indexes on document_reference_id, sha256) |
+| Design Input | DI-LEO-AI-187 | approved | Generalise :DOCUMENTS to accept Encounter|Chunk source. libs/cypher/documents_queries.py _build_upsert_query takes source_label parameter; the chunk path uses OPTIONAL MATCH ... <-[:HAS_CHUNK]-(:DocumentReference)<-[:HAS_DOCUMENT_REFERENCE]-(p:Patient) and guards the Patient FOREACH with `p IS NOT NULL` |
+| Design Input | DI-LEO-AI-188 | approved | SBAR queue contract. libs/sbar/events.py exports SBARRequestPayload + SBARSituationInput + SBARArtifactRef + SBARBackgroundSourceRef with strict enums and an id-or-text validator per artefact type |
+| Design Input | DI-LEO-AI-189 | approved | :Assessment node + HAS_ASSESSMENT relationships. libs/cypher/sbar_assessment_queries.py: CREATE_ASSESSMENT (links to Patient up-front), LINK_ASSESSMENT_TO_REFERRAL_REQUEST/_PROCEDURE_REQUEST/_ENCOUNTER, SET_SITUATION/_BACKGROUND/_ASSESSMENT_NARRATIVE/_RECOMMENDATION (incremental), FINALISE_ASSESSMENT, GET_ASSESSMENT, assessment_to_dict |
+| Design Input | DI-LEO-AI-190 | approved | SBAR orchestrator. services/pipeline_worker/app/services/sbar_orchestrator.py runs Situation -> Background -> deterministic Assessment -> Recommendation, persists each section incrementally and publishes per-stage Redis events. Source resolution delegated to libs/sbar/source_resolver.py; LLM calls to libs/sbar/prompt_calls.py |
+| Design Input | DI-LEO-AI-191 | approved | SBAR HTTP API + SSE relay. services/api/app/routers/sbar.py exposes POST /sbar/jobs (queues onto pipeline-jobs), GET /sbar/jobs/{run_id}/events (Redis pub/sub SSE relay with last-event catch-up + 300s idle timeout), GET /sbar/assessments/{id}. All three depend on require_admin |
+| Design Input | DI-LEO-AI-192 | approved | SBAR LLM prompt suite. libs/prompts/sbar_situation_v1.py, sbar_background_v1.py, sbar_recommendation_v1.py + libs/prompts/sbar_output_schemas.py. 12 hardening rules per prompt; JSON schemas reject empty markdown. Seeded into Neo4j by scripts/seed_prompt_configs.py |
+| Design Input | DI-LEO-AI-193 | approved | Deterministic Assessment formatter. libs/sbar/assessment_formatter.py wraps /terminology/guidelines/evaluate via httpx; pure function of (matched_rules, patient_codes, guideline_ids); sorts rules by action priority (2WW > urgent > routine); derives stt/rtr/alternative_pathway + *_evidence deterministically without any LLM |
+| Design Input | DI-LEO-AI-194 | approved | AI Summarisation Playground. /admin/knowledge gains an "ai-summarisation" tab backed by SbarPlayground (form + per-stage progress + final Markdown), useSbarStream (POST + EventSource + final fetch), and three Next.js Route Handler proxies. Permanent "Test only" banner |
+| Design Output | DO-LEO-AI-185 | approved | libs/cypher/chunk_queries.py + ASSESSMENT/CHUNK constraints |
+| Design Output | DO-LEO-AI-186 | approved | libs/cypher/documents_queries.py generalisation (source_label, OPTIONAL MATCH on Patient via DocumentReference, null-safe FOREACH) |
+| Design Output | DO-LEO-AI-187 | approved | libs/sbar/events.py |
+| Design Output | DO-LEO-AI-188 | approved | libs/cypher/sbar_assessment_queries.py + ASSESSMENT_CONSTRAINTS |
+| Design Output | DO-LEO-AI-189 | approved | services/pipeline_worker/app/services/sbar_orchestrator.py + libs/sbar/source_resolver.py + libs/sbar/prompt_calls.py + pipeline_worker/main.py dispatch branch |
+| Design Output | DO-LEO-AI-190 | approved | services/api/app/routers/sbar.py + Redis pub/sub SSE relay |
+| Design Output | DO-LEO-AI-191 | approved | libs/prompts/sbar_*_v1.py + libs/prompts/sbar_output_schemas.py + scripts/seed_prompt_configs.py entries |
+| Design Output | DO-LEO-AI-192 | approved | libs/sbar/assessment_formatter.py |
+| Design Output | DO-LEO-AI-193 | approved | services/ui/src/app/admin/ai-summarisation/* + useSbarStream + three Next.js proxies + knowledge tab registration |
+| Risk | R-LEO-AI-180 | mitigated | A Chunk node persists text that no longer matches the source DocumentReference, causing reviewers to validate coded evidence against stale text. Mitigated by deterministic Chunk.id (re-ingesting identical text is idempotent; changed text creates new chunks while preserving the old ones for audit) and by surfacing all chunks (with sha256 and char offsets) in audit-trail UIs. Residual low |
+| Risk | R-LEO-AI-181 | analyzed | LLM-generated SBAR sections introduce facts/drugs/dates/recommendations not present in the resolved source data. Mitigated by 12 hardening rules per prompt, JSON schema enforcement, rule-id grounding for the Recommendation, and the fact that the Assessment substrate is rendered deterministically from the rule evaluator (no LLM in that loop). Residual medium; conditionally accepted pending golden-set sign-off (VT-LEO-AI-189 TC-009) |
+| Risk | R-LEO-AI-182 | mitigated | An SBAR job that fails partway through is rendered to a consumer as if the available sections were complete. Mitigated by explicit Assessment.status (draft -> in_progress -> completed/failed), per-stage Assessment.errors[] capture, terminal SSE events on completion/failure, and a 300s idle-timeout on subscriptions. Residual low |
+| Risk | R-LEO-AI-183 | mitigated | An outage of /terminology/guidelines/evaluate causes the deterministic Assessment formatter to render an empty 'no rules matched' narrative when in fact safety-critical rules were unevaluated. Mitigated by distinguishing evaluator-success-no-match from evaluator-failure (status='failed', narrative explicitly notes the outage, pathway hints set to 'unknown' rather than 'no'), plus operational alerting on terminology_api availability. Residual low |
+| Risk | R-LEO-AI-184 | analyzed | Free text from a referral letter or document chunk contains prompt-injection content that hijacks the SBAR LLM into ignoring safety rules. Mitigated by hardening rule 10 in every SBAR system prompt (treat CONTEXT free text as data, not instructions), rule-id grounding for the Recommendation (an injection cannot reference a real rule_id), and JSON schema structure. Residual low; conditionally accepted pending prompt-injection cases in the golden set |
+| Risk | R-LEO-AI-185 | mitigated | An admin reviewer running SBAR generation in the playground treats the output as production-ready clinical guidance. Mitigated by a permanent "Test only" Alert banner (data-testid sbar-test-only-banner) enforced by VT-LEO-AI-188, /admin/* role gate, and admin role enforcement on the underlying /sbar/* API endpoints. Residual low |
+| Verification Test | VT-LEO-AI-185 | passed | 7 pytest cases pinning chunk id determinism, UPSERT_CHUNK parameter shape, _build_upsert_query for source_label='Encounter' and 'Chunk' (including the OPTIONAL MATCH and null-safe FOREACH), unknown-source rejection, write_documents_from_sentences_payload source_id forwarding and CHUNK_CONSTRAINTS registration. Run via tests/test_chunk_documents_queries.py + tests/test_documents_sentence_evidence_mapping.py. 20/20 passed 2026-04-17 |
+| Verification Test | VT-LEO-AI-186 | passed | 6 pytest cases pinning SBARRequestPayload validation: minimal happy path, situation artefact id-or-text rules per artefact type, BackgroundSourceType enum gate, JSON round-trip idempotence, event_type literal lock. Run via tests/test_sbar_events.py. Passed 2026-04-17 |
+| Verification Test | VT-LEO-AI-187 | passed | 7 pytest cases pinning SBAROrchestrator stage ordering, draft Assessment created up-front, Cypher write sequence, per-stage Redis progress events, degrade-to-draft on LLM failure, deterministic Assessment formatter always invoked, final composed Markdown contains all four section headings, pathway hints derived from rule outputs. Run via tests/test_sbar_orchestrator.py. Passed 2026-04-17 |
+| Verification Test | VT-LEO-AI-188 | passed | UI verification with two layers. (1) Jest static-source: tab registration in /admin/knowledge, 'Test only' banner present, patient-id/background-source/guideline-id inputs present, useSbarStream POSTs /api/sbar/jobs and opens EventSource on /api/sbar/jobs/{id}/events, three Next.js Route Handlers proxy to the Core API. (2) Playwright: live tab load with banner, submit-enable behaviour, axe baseline (zero critical/serious violations). Run via services/ui/src/__tests__/sbar-playground-chrome.test.tsx + services/ui/e2e/sbar-playground.spec.ts + services/ui/e2e/knowledge-tabs.spec.ts. Passed 2026-04-17 |
+| Verification Test | VT-LEO-AI-189 | draft | 8 automated pytest cases (formatter purity, empty-match narrative, evaluator-outage path, 2WW pathway-hint derivation, routine-only rtr=no, prompt seed registration, JSON schema empty-rejection, hardening rule 10 presence) plus TC-009 manual golden-set sign-off (10 manually-curated SBAR fixtures end-to-end). Automated cases passed 2026-04-17; TC-009 remains pending and gates broader SBAR rollout |
 
 ---
 

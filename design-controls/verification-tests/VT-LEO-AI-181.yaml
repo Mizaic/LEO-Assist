@@ -1,0 +1,119 @@
+# -- VT-LEO-AI-181 -- Manual gold seed safety check (R-LEO-AI-180 mitigation #2)
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-181"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-187"]
+    risks: ["R-LEO-AI-180"]
+
+  metadata:
+    title: "scripts/seed_manual_gold_records.py rejects qualifier-value-on-clinical-label seed writes; derives semantic_tag from SNOMED preferred-term suffix; preserves synonym tolerance"
+    description: >
+      Pins the second mitigation layer of R-LEO-AI-180: blocking
+      the regression class at seed-write time. Includes an
+      end-to-end check that the corrected manifest seeds cleanly
+      and that every (qualifier value) entity in the live
+      manifest carries label=qualifier_value.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/scripts/test_seed_manual_gold_records.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.11+ / pytest 8+"
+    test_data:
+      data_type: "synthetic + live-manifest"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-181-TC-006A"
+      case_name: "Qualifier-value SNOMED on finding label is rejected at seed time with R-LEO-AI-180 in the message"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "prepare_record on entity with label=finding + snomed_term='Normal (qualifier value)' (no declared semantic_tag)"
+          expected_result: "ValueError raised; message includes 'R-LEO-AI-180'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Curator can find authoritative remediation guidance via the error message"
+
+    - case_id: "VT-181-TC-006B"
+      case_name: "Qualifier-value SNOMED on qualifier_value label is accepted"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "prepare_record on entity with label=qualifier_value + snomed_term='Normal (qualifier value)'"
+          expected_result: "Entity persists with semantic_tag=qualifier_value"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Legitimate case is not over-blocked"
+
+    - case_id: "VT-181-TC-006C"
+      case_name: "Declared semantic_tag is overridden when it disagrees with term suffix outside synonym table"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "prepare_record with declared semantic_tag=procedure but term=(disorder)"
+          expected_result: "ValueError raised (disagreement detected)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Curator typo cannot mask SNOMED-truthful tag"
+
+    - case_id: "VT-181-TC-006D"
+      case_name: "finding label with (disorder) concept is accepted via synonym table"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "prepare_record with label=finding + snomed_term='Malignant tumor of prostate (disorder)'"
+          expected_result: "Persisted entity has semantic_tag=disorder; label remains finding"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Synonym tolerance preserved; persisted semantic_tag is SNOMED-truthful"
+
+    - case_id: "VT-181-TC-006E"
+      case_name: "concept_id without snomed_term is rejected"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "prepare_record with snomed_concept_id set but snomed_term empty"
+          expected_result: "ValueError raised; message mentions 'no snomed_term'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Cannot derive semantic_tag without the term suffix"
+
+    - case_id: "VT-181-TC-006F"
+      case_name: "Live manifest seeds cleanly under the new safety check after the 5 known offenders are relabelled"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "load_manifest + prepare_all on design-controls/training-data/manual-gold-seed-2026-04-17.yaml"
+          expected_result: "All 21 records prepare without error; every (qualifier value) entity has label=semantic_tag=qualifier_value"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "End-to-end manifest is regression-free"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run", "live_manifest_replay"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-181/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-LEO-AI-181-EXEC-001"
+      executed_at: "2026-04-17"
+      executor: "automated-pytest"
+      command: "python3 -m pytest tests/scripts/test_seed_manual_gold_records.py -q"
+      result: "pass"
+      summary: "19/19 cases passed (13 pre-existing + 6 new TC-006 cases); runtime 0.11s"

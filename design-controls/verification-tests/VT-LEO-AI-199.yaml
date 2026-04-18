@@ -1,0 +1,110 @@
+# -- VT-LEO-AI-199 -- Exclusive encounter claiming
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-199"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-206"
+    risks:
+      - "R-LEO-AI-196"
+
+  metadata:
+    title: "_filter_unclaimed_link_groups enforces single-claim invariant per encounter / per non-referral milestone"
+    description: >
+      Verifies the DI-LEO-AI-206 single-claim rule.
+      _filter_unclaimed_link_groups MUST drop anchors whose
+      encounter_id is already in the claimed set for non-
+      referral milestones, MUST remove link groups that
+      become empty after filtering, MUST keep referral
+      milestones unconditionally (referral is the episode
+      identity), and MUST pass through unchanged when the
+      claimed set is empty.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_patient_4643293950_patterns.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-199-TC-001"
+      case_name: "Already-claimed non-referral encounter is dropped from later groups"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "_filter_unclaimed_link_groups([(first_seen group with E1+E2), (treatment group with E3)], claimed={E2})"
+          expected_result: "E2 removed from first_seen group; E1 and E3 kept; both groups added to claimed"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Output groups exclude the already-claimed encounter id"
+        - "Newly-linked encounter ids are added to the shared claimed set"
+
+    - case_id: "VT-199-TC-002"
+      case_name: "Empty non-referral groups are dropped from output"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "_filter_unclaimed_link_groups([first_seen with E1, diagnosis with E2], claimed={E1, E2})"
+          expected_result: "Empty list (no spurious link writes)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "filtered == []"
+
+    - case_id: "VT-199-TC-003"
+      case_name: "Referral milestone is protected (kept even when encounter already claimed)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "_filter_unclaimed_link_groups([referral with E1], claimed={E1})"
+          expected_result: "Group preserved unchanged"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Referral group remains in output even when encounter_id is already claimed"
+
+    - case_id: "VT-199-TC-004"
+      case_name: "Empty claimed set passes input through unchanged"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "_filter_unclaimed_link_groups([first_seen with E1], claimed=set())"
+          expected_result: "Output equals input"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Output == input"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types:
+      - "automated_test_run"
+    storage_location: "/evidence-bundles/LEO-AI-CORE/verification/VT-LEO-AI-199/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-LEO-AI-199-EXEC-001"
+      executed_at: "2026-04-18T11:30:00Z"
+      executor: "automated"
+      result: "pass"
+      summary: >
+        4 test cases (drops claimed non-referral, drops
+        empty groups, protects referral milestone, passes
+        through when no claims) executed via
+        TestPatternFExclusiveEncounterClaiming in
+        tests/test_patient_4643293950_patterns.py. 4/4 passed.
+      pass_count: 4
+      fail_count: 0
+      notes: "Test command: pytest tests/test_patient_4643293950_patterns.py::TestPatternFExclusiveEncounterClaiming -v"

@@ -33,6 +33,10 @@ const defaultProps = {
   linkedEncounterIds: new Set(["enc-3", "enc-4"]),
   episodeFrom: "2024-03-01",
   episodeTo: "2024-05-31",
+  milestones: [
+    { milestone_type: "gp_referral", encounter_id: "enc-3", date: "2024-02-25" },
+    { milestone_type: "specialist_visit", encounter_id: "enc-4", date: "2024-04-04" },
+  ],
   activeEncounterId: null as string | null,
   onJumpToEncounter: jest.fn(),
 };
@@ -88,14 +92,48 @@ describe("EncounterTimelineScrubber - VT-LEO-AI-173", () => {
     expect(apr.querySelector('[data-segment="other"]')).toBeNull();
   });
 
-  test("VT-173-TC-004: episode window band rendered when both dates present", () => {
+  test("VT-173-TC-004: episode window band rendered when linked encounters present", () => {
     renderScrubber();
     expect(screen.getByTestId("timeline-window-band")).toBeInTheDocument();
   });
 
-  test("episode window band absent when no episode dates", () => {
-    renderScrubber({ episodeFrom: null, episodeTo: null });
+  test("episode window band absent when no linked encounters resolve", () => {
+    renderScrubber({ linkedEncounterIds: new Set<string>() });
     expect(screen.queryByTestId("timeline-window-band")).not.toBeInTheDocument();
+  });
+
+  test("VT-205-TC-OVERLAY-A: per-encounter linked tick is drawn for each linked encounter", () => {
+    renderScrubber();
+    const ticks = screen.getAllByTestId("timeline-linked-tick");
+    expect(ticks.length).toBe(2);
+    const ids = ticks
+      .map((node) => node.getAttribute("data-encounter-id"))
+      .sort();
+    expect(ids).toEqual(["enc-3", "enc-4"]);
+  });
+
+  test("VT-205-TC-OVERLAY-B: linked ticks are absent when no linked encounters", () => {
+    renderScrubber({ linkedEncounterIds: new Set<string>() });
+    expect(screen.queryAllByTestId("timeline-linked-tick").length).toBe(0);
+  });
+
+  test("VT-205-TC-OVERLAY-C: milestone markers render with accessible labels and jump on click", () => {
+    const onJump = jest.fn();
+    renderScrubber({ onJumpToEncounter: onJump });
+    const markers = screen.getAllByTestId("timeline-milestone-marker");
+    expect(markers.length).toBe(2);
+    const referral = markers.find(
+      (node) => node.getAttribute("data-milestone-type") === "gp_referral"
+    );
+    expect(referral).toBeDefined();
+    expect(referral!.getAttribute("aria-label")).toMatch(/^Milestone: Referred on /);
+    fireEvent.click(referral!);
+    expect(onJump).toHaveBeenCalledWith("enc-3");
+  });
+
+  test("VT-205-TC-OVERLAY-D: milestone markers absent when no milestones provided", () => {
+    renderScrubber({ milestones: [] });
+    expect(screen.queryAllByTestId("timeline-milestone-marker").length).toBe(0);
   });
 
   test("VT-173-TC-005: clicking a single-encounter bar jumps directly", () => {

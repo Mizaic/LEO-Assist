@@ -1,0 +1,106 @@
+# -- R-LEO-AI-203 -- Self-narrated past referral creates phantom episode
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-203"
+  title: "A retrospective narration of a prior referral inside a follow-up note opens a fresh phantom EpisodeOfCare and fragments the patient's pathway"
+
+  hazard:
+    description: >
+      The text-anchor detector matched the structural cue
+      "referred by me on 2WW" inside a cancer-care-review
+      narrative ("Referred by me on 2ww earlier this year,
+      confirmed breast cancer") and emitted a fresh
+      text_generic referral anchor on the date of the review,
+      not the date of the actual original referral. The
+      episode builder then opened a new EpisodeOfCare,
+      fragmenting the cancer pathway into two episodes (the
+      real one + a phantom rooted at the review date).
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    Patient 4802892365's 2025-09-24 cancer-care-review
+    encounter created a phantom episode (47c987c92e50e545)
+    rooted at the review date, six months after the real
+    referral on 2025-03-26. A clinical auditor opening the
+    patient sees two breast pathways and may believe the
+    patient was re-referred for a new lesion. Cohort-level
+    referral counts and time-to-diagnosis KPIs are inflated
+    and skewed.
+
+  harm:
+    description: >
+      Pathway fragmentation degrades reviewer trust in the
+      episode model and produces incorrect time-to-treatment
+      and time-to-diagnosis statistics. In the worst case the
+      reviewer triages the phantom episode as a new
+      suspected-cancer pathway and chases an outcome that
+      already exists on the original episode, wasting clinical
+      time and creating a confusing patient narrative.
+    severity: "minor"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 3
+    detectability: 3
+    rpn: 18
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-216 extends the
+        _RE_NARRATIVE_REFERRAL_REFERENCE regex with five new
+        retrospective-narration shapes: "referred by me/us/GP/
+        Dr|Mr|Mrs|Ms|Miss", "I/we referred", "GP referred",
+        "referred (on) 2WW earlier/last/previously/back/in
+        <Month|Year>", and "previously referred". Matches
+        suppress text_generic referral emission so cancer-
+        care-review notes that narrate the original referral
+        do not open phantom episodes. Structural PRISM/EMIS
+        referral codes (XaMeC, XaMeH, etc.) on the same
+        encounter still fire a referral.
+      implemented_by:
+        - "DI-LEO-AI-216"
+      verified_by:
+        - "VT-LEO-AI-208"
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Six verification cases (5 critical) cover all five new
+      narrative shapes plus a no-over-suppression sanity case
+      that confirms structural referral codes still fire.
+      Pattern L is narrowly scoped to retrospective narrative
+      cues and cannot suppress same-day structural referral
+      codes, so the only residual risk is a previously
+      unrecognised narrative phrasing -- managed by ongoing
+      cohort scans.
+
+  monitoring:
+    monitoring_plan: >
+      Per pipeline rebuild, scan for cohorts where the same
+      patient has more than one cancer-typed EpisodeOfCare
+      with referral_subtype = text_generic and the second
+      episode opens > 60 days after the first. Investigate
+      any new instances as Pattern L candidates.
+    metrics:
+      - "Count of patients with multiple text_generic cancer episodes opened > 60 days apart"
+      - "Phantom-episode rate per cohort rebuild"
+    review_frequency: "Per pipeline rebuild"
+
+  metadata:
+    identified_by: "Patient 4802892365 investigation -- 2025-09-24 cancer-care-review opened phantom episode 47c987c92e50e545 six months after the real 2025-03-26 referral"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "referral-classification"
+      - "phantom-episode"
+      - "patient-4802892365"
+      - "pattern-l"

@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from libs.utils.deidentify import deidentify_with_span
+from libs.utils.deidentify import (
+    _looks_like_read_code,
+    deidentify_text,
+    deidentify_with_span,
+    detect_phi,
+)
 
 
 class TestDeidentifyWithSpanNormalCase:
@@ -101,3 +106,71 @@ class TestDeidentifyWithSpanSentinel:
         # Even when sentinel fires, deident sentence must be returned.
         assert isinstance(deident, str)
         assert len(deident) > 0
+
+
+class TestPostcodePreservesReadCodes:
+    """Postcode redaction must not clobber CTV3 / Read v2 clinical codes.
+
+    UK postcodes in clinical text are written canonically with a space between
+    outward and inward parts ("SW1A 1AA"). 5-character no-space tokens that
+    match the compact-form postcode regex are overwhelmingly clinical Read
+    codes (e.g. "B00zz" malignant neoplasm of lip, "X78HC" disorder code),
+    not postcodes. They MUST be preserved unchanged.
+    """
+
+    @pytest.mark.parametrize(
+        "code",
+        [
+            "B00zz",  # Malignant neoplasm of lip, vermilion border NOS
+            "B06yz",
+            "X00ZA",
+            "X00ZB",
+            "X78HC",
+            "X78HI",
+            "Ya03d",  # CTV3: H/O gastrointestinal tract
+            "Y7JQI",
+        ],
+    )
+    def test_read_code_preserved(self, code: str) -> None:
+        sentence = f"Coded as {code} on review."
+        out = deidentify_text(sentence)
+        assert code in out, f"Read code {code} was incorrectly redacted: {out!r}"
+        assert "[POSTCODE]" not in out
+
+    def test_real_postcode_still_redacted_with_space(self) -> None:
+        sentence = "Address: 22 Main Street, SW1A 1AA."
+        out = deidentify_text(sentence)
+        assert "SW1A 1AA" not in out
+        assert "[POSTCODE]" in out
+
+    def test_real_postcode_compact_long_form_still_redacted(self) -> None:
+        # 7-char compact form contains the optional alphanumeric, so it is
+        # unambiguously a postcode (no Read code is 7 chars).
+        sentence = "Lives at SW1A1AA currently."
+        out = deidentify_text(sentence)
+        assert "SW1A1AA" not in out
+        assert "[POSTCODE]" in out
+
+    def test_detect_phi_does_not_flag_read_code_as_postcode(self) -> None:
+        assert "postcode" not in detect_phi("Coded as B00zz on review.")
+        assert "postcode" not in detect_phi("Term Ya03d added to record.")
+
+    def test_detect_phi_still_flags_real_postcode(self) -> None:
+        assert "postcode" in detect_phi("Address: 22 Main Street, SW1A 1AA.")
+
+    @pytest.mark.parametrize(
+        "token,expected",
+        [
+            ("B00zz", True),
+            ("X78HC", True),
+            ("Ya03d", True),
+            ("B0...", True),  # Read v2 with trailing dot padding
+            ("8BAD0", True),
+            ("SW1A 1AA", False),  # has space, real postcode
+            ("SW1A1AA", False),  # 7 chars, real compact postcode
+            ("LE114QH", False),  # 7 chars, real compact postcode
+            ("ABC", False),  # too short
+        ],
+    )
+    def test_looks_like_read_code(self, token: str, expected: bool) -> None:
+        assert _looks_like_read_code(token) is expected

@@ -57,6 +57,12 @@ from libs.cypher.training_candidate_queries import (  # noqa: E402
 from libs.ner.deid_validator import DeIdValidator  # noqa: E402
 from libs.ner.span_finder import find_span  # noqa: E402
 from libs.utils.deidentify import deidentify_text  # noqa: E402
+from scripts.lib.gold_label_snomed_check import (  # noqa: E402
+    _CLINICAL_LABELS,
+    _NON_CLINICAL_SEMANTIC_TAGS,
+    _TAG_SYNONYMS,
+    _derive_semantic_tag_from_term,
+)
 
 logger = logging.getLogger("seed_manual_gold_records")
 
@@ -135,13 +141,24 @@ def load_manifest(path: Path) -> dict[str, Any]:
 
 
 def _validate_entity(tag: str, text: str, ent: dict[str, Any]) -> dict[str, Any]:
+    """Validate one entity from the seed manifest.
+
+    Critical safety rule (added 2026-04-17 after the manual_gold_seed
+    qualifier-value regression): the entity's `semantic_tag` field is
+    derived from the SNOMED preferred-term suffix when one is present,
+    NOT from the human-typed label. If the human-typed label disagrees
+    with what the SNOMED concept actually IS (and the disagreement is
+    not a covered synonym), the seed write is rejected.
+
+    Otherwise we silently persist e.g. label="finding" backed by
+    "Normal (qualifier value)" -- the exact bug R-LEO-AI-180 mitigates.
+    """
     surface = str(ent.get("text", "")).strip()
     if not surface:
         raise ValueError(f"[{tag}] entity has empty text")
     label = str(ent.get("label", "")).strip().lower()
     if label not in VALID_LABELS:
         raise ValueError(f"[{tag}] entity label {label!r} not in VALID_LABELS")
-    semantic_tag = str(ent.get("semantic_tag", "")).strip().lower() or label
     assertion = str(ent.get("assertion", "present")).strip().lower()
     if assertion not in VALID_ASSERTIONS:
         raise ValueError(f"[{tag}] assertion {assertion!r} not in VALID_ASSERTIONS")
@@ -151,12 +168,68 @@ def _validate_entity(tag: str, text: str, ent: dict[str, Any]) -> dict[str, Any]
             f"[{tag}] cannot locate surface text {surface!r} in sentence text"
         )
     start, end = span
+
+    snomed_concept_id = str(ent.get("snomed_concept_id") or "")
+    raw_snomed_term = str(ent.get("snomed_term") or "").strip()
+    # Default the snomed_term to the surface ONLY if no concept is
+    # asserted. If the seed author asserted a concept_id, they MUST
+    # provide the canonical preferred term so we can derive the
+    # semantic_tag.
+    if snomed_concept_id and not raw_snomed_term:
+        raise ValueError(
+            f"[{tag}] entity {surface!r} has snomed_concept_id="
+            f"{snomed_concept_id!r} but no snomed_term -- cannot derive "
+            f"semantic_tag for safety check"
+        )
+    snomed_term = raw_snomed_term or surface
+
+    derived_tag = _derive_semantic_tag_from_term(snomed_term)
+    declared_tag = str(ent.get("semantic_tag", "")).strip().lower()
+
+    # Authoritative semantic_tag: SNOMED preferred-term suffix wins
+    # over the human-declared field. If neither is present, fall back
+    # to the declared label (for surfaces with no SNOMED mapping).
+    semantic_tag = derived_tag or declared_tag or label
+
+    if derived_tag and declared_tag and derived_tag != declared_tag:
+        synonyms = _TAG_SYNONYMS.get(declared_tag, frozenset())
+        if derived_tag not in synonyms:
+            raise ValueError(
+                f"[{tag}] entity {surface!r}: declared semantic_tag="
+                f"{declared_tag!r} disagrees with SNOMED preferred-term "
+                f"suffix derived_tag={derived_tag!r} (term={snomed_term!r})"
+            )
+
+    if (
+        label in _CLINICAL_LABELS
+        and semantic_tag in _NON_CLINICAL_SEMANTIC_TAGS
+    ):
+        raise ValueError(
+            f"[{tag}] entity {surface!r}: label={label!r} is clinical "
+            f"(finding/disorder/procedure/observable_entity) but the "
+            f"attached SNOMED concept is {semantic_tag!r} (term="
+            f"{snomed_term!r}). This is the R-LEO-AI-180 regression "
+            f"class; either re-code to a clinical concept or relabel "
+            f"the entity to qualifier_value."
+        )
+
+    if (
+        label != semantic_tag
+        and semantic_tag not in _TAG_SYNONYMS.get(label, frozenset())
+        and derived_tag  # only enforce when we have an authoritative tag
+    ):
+        raise ValueError(
+            f"[{tag}] entity {surface!r}: label={label!r} disagrees "
+            f"with SNOMED-derived semantic_tag={semantic_tag!r} "
+            f"(term={snomed_term!r}) and is not in the synonym table"
+        )
+
     return {
         "text": surface,
         "label": label,
         "semantic_tag": semantic_tag,
-        "snomed_concept_id": str(ent.get("snomed_concept_id") or ""),
-        "snomed_term": str(ent.get("snomed_term") or surface),
+        "snomed_concept_id": snomed_concept_id,
+        "snomed_term": snomed_term,
         "start": int(start),
         "end": int(end),
         "assertion": assertion,

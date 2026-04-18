@@ -1,0 +1,87 @@
+# -- DI-LEO-AI-205 -- POST /training/gold-labels/approve-from-dry-run endpoint
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-205"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-086"
+  requirement: >
+    The Knowledge API SHALL expose POST
+    /training/gold-labels/approve-from-dry-run that accepts a raw
+    encounter text, the entity list shown to the reviewer on the
+    dry-run row card, an expected_entity_count echo, an optional
+    source_hint and an optional quality_score (default 1.0). The
+    endpoint SHALL de-identify the text via deidentify_text(text,
+    ner=True), SHALL compute candidate_id =
+    sha256(deidentified_text), SHALL re-anchor and sanitise entities
+    via _sanitise_dry_run_entities (the same helper used by
+    /training/candidates/from-dry-run), SHALL refuse with HTTP 409
+    when the sanitised entity count differs from
+    expected_entity_count or when zero entities survive, SHALL
+    upsert the TrainingCandidate (idempotent, source='dry_run_correction',
+    status='pending') if it does not already exist, SHALL upsert
+    the GoldLabel for that candidate with source='manual_gold_curated',
+    verified_by=<scope.email or 'unknown'>, quality_score=<payload>,
+    schema_version='v4', and SHALL return {candidate_id, label_id,
+    source, verified_by, entity_count, approved_via='dry_run_quick_approve'}.
+  rationale: >
+    The dry-run row card is the only surface where the reviewer
+    sees the entity list before approval. If de-identification
+    silently drops or merges entities, the persisted gold set
+    would not match what the reviewer verified -- the audit trail
+    would be wrong. expected_entity_count is the integrity check
+    that closes that loop. Re-using the same de-identification +
+    sha256 contract as DI-LEO-AI-198 means the approved GoldLabel
+    is interchangeable with one produced via the editor path.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "Endpoint deidentifies encounter_text via libs.utils.deidentify.deidentify_text(text, ner=True) BEFORE hashing or persisting; candidate_id = sha256(deidentified)"
+      - type: "functional"
+        spec: "Entities are re-anchored via _sanitise_dry_run_entities; if len(sanitised) != expected_entity_count or sanitised is empty, return HTTP 409 with detail naming the discrepancy and the editor as the next step; do NOT write to gold"
+      - type: "functional"
+        spec: "TrainingCandidate is upserted only if it does not already exist (source='dry_run_correction', status='pending', schema_version='v4', text=deidentified, entities_json=sanitised)"
+      - type: "functional"
+        spec: "GoldLabel is upserted with source='manual_gold_curated', verified_by=getattr(scope,'email',None) or 'unknown', quality_score=float(payload.quality_score), schema_version='v4'; existing label_id is reused, otherwise label_id=manual-<uuid>"
+      - type: "safety"
+        spec: "Empty encounter_text and text empty after de-identification return HTTP 400"
+      - type: "safety"
+        spec: "source_hint is truncated to 64 characters before persistence; only candidate_id, label_id, source, verified_by, entity_count, approved_via are returned (no entity surface text, no encounter id back, no PHI)"
+      - type: "performance"
+        spec: "End-to-end latency target <= 1.5s for an encounter under 4 KB on a warm de-identifier"
+    constraints:
+      - type: "safety"
+        spec: "Endpoint is gated by get_caller_scope; verified_by uses scope.email so the audit trail records who approved"
+    dependencies:
+      - "DI-LEO-AI-198"
+    downstream_impacts:
+      - "Knowledge API /training/gold-labels"
+      - "GoldLabel.source distribution (manual_gold_curated)"
+      - "Training corpus selection (verified labels feed offline + canary eval)"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI + libs.neo4j_client.KnowledgeGraphClient"
+      file_structure:
+        - "services/api/app/routers/training.py"
+      estimated_loc: 105
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-195 covers the de-identification call, candidate_id
+      hash contract, the expected_entity_count integrity check
+      (success + 409 mismatch + 409 zero-survived paths), the
+      verified_by stamp, and the 400 path for empty input.
+    test_protocol: "VT-LEO-AI-195"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-192"
+  tags:
+    - "training-data-quality"
+    - "ner-accuracy"
+    - "gdpr"
+    - "active-learning"
+    - "gold-dataset"

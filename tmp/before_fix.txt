@@ -1,26 +1,26 @@
 
 View 1 - Episode counts by year by raw ep.status
 ============================================================================================
-Year           closed_benign           completed         in_progress              merged  reopened_for_rebui  stale_no_diagnosis  stale_post_special   TOTAL
+Year           closed_benign      closed_related           completed         in_progress              merged  stale_no_diagnosis  stale_post_special   TOTAL
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
-2024                      28                  64                   1                  72                   8                   4                   5     182
-2025                      21                  28                  21                  88                  19                   1                  12     190
+2024                      29                   1                  72                   1                  34                   1                   3     141
+2025                      34                   0                  45                  10                  28                   1                  21     139
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
-TOTAL                     49                  92                  22                 160                  27                   5                  17     372
+TOTAL                     63                   1                 117                  11                  62                   2                  24     280
 
 View 2 - Distinct patients by year by logical end status
 (merged duplicates excluded; a patient counts once per status per year)
 ==============================================================================================================
-Year              benign_outcome   diagnosed_and_treated  diagnosed_no_treatment             in_progress    reopened_for_rebuild      stale_no_diagnosis   stale_post_specialist   TOTAL
+Year              benign_outcome          closed_related   diagnosed_and_treated  diagnosed_no_treatment             in_progress      stale_no_diagnosis   stale_post_specialist   TOTAL
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-2024                          26                      25                      17                       1                       7                       4                       5      65
-2025                          20                      13                      12                      21                      14                       1                      11      78
+2024                          24                       1                      25                      21                       1                       1                       3      60
+2025                          28                       0                      14                      20                       9                       1                      16      75
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-TOTAL                         39                      35                      25                      22                      18                       5                      16     101
+TOTAL                         44                       1                      36                      36                      10                       2                      19      99
 
 View 3 - Headline: cancer cases by year (distinct patients)
 ================================================================================
 Year                referred             diagnosed               treated  diagnosed_or_treated        benign_outcome
 --------------------------------------------------------------------------------------------------------------------
-2024                      57                    37                    17                    38                    13
-2025                      85                    41                    21                    45                    28
+2024                      49                    37                    18                    38                    18
+2025                      79                    43                    22                    47                    31

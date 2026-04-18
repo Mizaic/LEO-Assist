@@ -68,10 +68,30 @@ function renderChips(
   uncodedCount: number,
   rareLabels: string[] | undefined,
   maps: ChipMaps,
+  isAISuggested: boolean,
 ) {
-  if (entities.length === 0) return null;
+  if (entities.length === 0 && !isAISuggested) return null;
   return (
     <>
+      {/* -- AI first-pass row badge (DI-LEO-AI-209 / R-LEO-AI-197) -- */}
+      {/* Surface AI provenance at the row level so reviewers can spot */}
+      {/* pre-done candidates without opening the detail dialog. */}
+      {isAISuggested && (
+        <Tooltip title="AI first-pass proposed these entities. Confirm before approving.">
+          <Chip
+            size="small"
+            label="AI suggested"
+            color="info"
+            data-testid="ai-suggested-chip"
+            sx={{
+              height: 20,
+              fontSize: "0.68rem",
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+            }}
+          />
+        </Tooltip>
+      )}
       {entities.slice(0, 4).map((entity, index) => (
         <EntityChipView
           key={`${entity.text}-${index}`}
@@ -144,6 +164,7 @@ function buildItem(
       uncodedCount,
       candidate.rare_labels ?? undefined,
       maps,
+      !!candidate.ai_first_pass_run_id,
     ),
     meta: <RelationRow triplets={relTriplets} missing={missingLinks} />,
     actions: (

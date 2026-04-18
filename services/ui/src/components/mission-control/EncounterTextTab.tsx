@@ -1,31 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Accordion from "@mui/material/Accordion";
-import AccordionDetails from "@mui/material/AccordionDetails";
-import AccordionSummary from "@mui/material/AccordionSummary";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import ExpandMore from "@mui/icons-material/ExpandMore";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { resetAndRecodeEncounter } from "@/lib/missionControlApi";
 import type { MissionEpisode } from "@/lib/missionControlApi";
 import { fetchEncounterCodedLinks } from "@/lib/api";
 import type { CodedLink } from "@/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { compareIsoDateTimeAsc, sortByIsoDateAsc } from "@/lib/dateSort";
+import { sortByIsoDateAsc } from "@/lib/dateSort";
 import EncounterCard from "./EncounterCard";
 import EncounterTimelineScrubber from "./EncounterTimelineScrubber";
 import { MILESTONE_LABELS, shortDate } from "./encounterTextUtils";
-import { applyCommonFilters, splitEncounters } from "./encounterFilters";
-import { waitForRecodeProgress } from "./encounterRecodeProgress";
+import { applyCommonFilters } from "./encounterFilters";
 import { useEncounterLoad, type Encounter } from "./useEncounterLoad";
+import { useEncounterRecode } from "./useEncounterRecode";
 
 interface Props {
   patientId: string;
@@ -39,14 +34,33 @@ interface MilestoneJump {
   date: string | null;
 }
 
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms));
+// Pads the episode-linked window by ~10% of the patient's full
+// history span on each side so the default brush opens with a bit of
+// "before / after" context visible. Clamped to the patient range.
+function padRange(
+  fromMs: number,
+  toMs: number,
+  fullMinMs: number,
+  fullMaxMs: number
+): { fromMs: number; toMs: number } | null {
+  if (
+    !Number.isFinite(fromMs) ||
+    !Number.isFinite(toMs) ||
+    !Number.isFinite(fullMinMs) ||
+    !Number.isFinite(fullMaxMs)
+  ) {
+    return null;
+  }
+  const span = Math.max(0, fullMaxMs - fullMinMs);
+  const pad = span > 0 ? span * 0.1 : 0;
+  return {
+    fromMs: Math.max(fullMinMs, fromMs - pad),
+    toMs: Math.min(fullMaxMs, toMs + pad),
+  };
+}
 
 export default function EncounterTextTab({ patientId, episode }: Props) {
-  const { encounters, setEncounters, loading, error, refresh } =
-    useEncounterLoad(patientId);
-  const [scope, setScope] = useState<"linked" | "window" | "all">("linked");
-  const [windowSectionExpanded, setWindowSectionExpanded] = useState(false);
+  const { encounters, loading, error, refresh } = useEncounterLoad(patientId);
   const [codedOnly, setCodedOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [codedByEncounter, setCodedByEncounter] = useState<Record<string, CodedLink[]>>({});
@@ -56,11 +70,6 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
   const [codingLoadingFor, setCodingLoadingFor] = useState<Record<string, boolean>>({});
   const [collapsedEncounters, setCollapsedEncounters] = useState<Record<string, boolean>>({});
   const [confirmResetEncounterId, setConfirmResetEncounterId] = useState<string | null>(null);
-  const [resettingEncounterId, setResettingEncounterId] = useState<string | null>(null);
-  const [recodeMessage, setRecodeMessage] = useState<string | null>(null);
-  const [recodeJobState, setRecodeJobState] = useState<
-    "queued" | "running" | "completed" | "failed" | null
-  >(null);
   const [focusedEncounterId, setFocusedEncounterId] = useState<string | null>(null);
   const [visibleEncounterId, setVisibleEncounterId] = useState<string | null>(null);
   const [timelineRange, setTimelineRange] = useState<
@@ -70,6 +79,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
 
   const loadedRef = useRef<Set<string>>(new Set());
   const loadingRef = useRef<Set<string>>(new Set());
+  const defaultRangeAppliedRef = useRef<string | null>(null);
 
   useEffect(() => {
     loadedRef.current = new Set();
@@ -78,11 +88,8 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
     setCodingErrorByEncounter({});
     setCodingLoadingFor({});
     setCollapsedEncounters({});
+    defaultRangeAppliedRef.current = null;
   }, [patientId, episode.episode_id]);
-
-  useEffect(() => {
-    if (scope === "window") setWindowSectionExpanded(true);
-  }, [scope]);
 
   const fetchCodesForEncounter = useCallback(
     async (encounterId: string) => {
@@ -122,72 +129,99 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
   const from = episode.referral_date ?? null;
   const to = episode.end_date ?? null;
 
-  const split = useMemo(
-    () => splitEncounters({ encounters, linkedEncounterIds, episodeFrom: from, episodeTo: to }),
-    [encounters, linkedEncounterIds, from, to]
-  );
+  // Patient-history bounds (used for default brush padding).
+  const { fullMinMs, fullMaxMs } = useMemo(() => {
+    let lo = Number.POSITIVE_INFINITY;
+    let hi = Number.NEGATIVE_INFINITY;
+    encounters.forEach((enc) => {
+      const t = Date.parse(enc.date ?? "");
+      if (!Number.isFinite(t)) return;
+      if (t < lo) lo = t;
+      if (t > hi) hi = t;
+    });
+    return { fullMinMs: lo, fullMaxMs: hi };
+  }, [encounters]);
+
+  // Tight episode footprint: min/max of dates of episode-linked
+  // encounters. Falls back to episode.referral_date / end_date when
+  // no linked encounters resolve.
+  const episodeLinkedRange = useMemo(() => {
+    let lo = Number.POSITIVE_INFINITY;
+    let hi = Number.NEGATIVE_INFINITY;
+    encounters.forEach((enc) => {
+      if (!linkedEncounterIds.has(String(enc.encounter_id))) return;
+      const t = Date.parse(enc.date ?? "");
+      if (!Number.isFinite(t)) return;
+      if (t < lo) lo = t;
+      if (t > hi) hi = t;
+    });
+    if (Number.isFinite(lo) && Number.isFinite(hi)) {
+      return { fromMs: lo, toMs: hi };
+    }
+    const fb = Date.parse(from ?? "");
+    const ft = Date.parse(to ?? "");
+    if (Number.isFinite(fb) && Number.isFinite(ft)) {
+      return { fromMs: fb, toMs: ft };
+    }
+    return null;
+  }, [encounters, linkedEncounterIds, from, to]);
+
+  // On first encounter load (or episode switch) initialise the brush
+  // to the padded episode window so the list opens already focused
+  // on the episode plus a bit of context.
+  useEffect(() => {
+    if (loading) return;
+    if (encounters.length === 0) return;
+    if (!episodeLinkedRange) return;
+    if (defaultRangeAppliedRef.current === episode.episode_id) return;
+    const padded = padRange(
+      episodeLinkedRange.fromMs,
+      episodeLinkedRange.toMs,
+      fullMinMs,
+      fullMaxMs
+    );
+    if (!padded) return;
+    setTimelineRange(padded);
+    defaultRangeAppliedRef.current = episode.episode_id;
+  }, [
+    loading,
+    encounters.length,
+    episodeLinkedRange,
+    fullMinMs,
+    fullMaxMs,
+    episode.episode_id,
+  ]);
+
+  const visibleEncounters = useMemo(() => {
+    const filtered = applyCommonFilters(encounters, {
+      codedOnly,
+      search,
+      timelineRange,
+    });
+    return sortByIsoDateAsc(filtered, (e) => e.date ?? null);
+  }, [encounters, codedOnly, search, timelineRange]);
 
   useEffect(() => {
     if (loading) return;
-    const targets =
-      scope === "linked"
-        ? split.linked
-        : scope === "window"
-          ? [...split.linked, ...split.windowOnly]
-          : encounters;
-    targets.forEach((enc) => {
+    visibleEncounters.forEach((enc) => {
       if ((enc.coded_count ?? 0) === 0) return;
       void fetchCodesForEncounter(String(enc.encounter_id));
     });
-  }, [encounters, scope, split, loading, fetchCodesForEncounter]);
+  }, [visibleEncounters, loading, fetchCodesForEncounter]);
 
-  const handleResetAndRecode = async (encounterId: string) => {
+  const handleRecodeCleared = useCallback((encounterId: string) => {
+    setCodedByEncounter((prev) => ({ ...prev, [encounterId]: [] }));
+    loadedRef.current.delete(String(encounterId));
+  }, []);
+  const recode = useEncounterRecode({
+    patientId,
+    refresh,
+    onCleared: handleRecodeCleared,
+  });
+  const handleResetAndRecode = (encounterId: string) => {
     setConfirmResetEncounterId(null);
-    setResettingEncounterId(encounterId);
-    setRecodeMessage(null);
-    try {
-      const result = await resetAndRecodeEncounter(patientId, encounterId, false, false);
-      setCodedByEncounter((prev) => ({ ...prev, [encounterId]: [] }));
-      loadedRef.current.delete(String(encounterId));
-      setRecodeJobState("queued");
-      setRecodeMessage(
-        `Queued: ${result.links_deleted} coded links cleared. Run ${result.run_id.slice(0, 8)} is waiting for worker pickup.`
-      );
-      await waitForRecodeProgress(result.run_id, setRecodeJobState, setRecodeMessage);
-      let latest = await refresh();
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const target = latest.find((e) => String(e.encounter_id) === String(encounterId));
-        if ((target?.coded_count ?? 0) > 0) {
-          setRecodeMessage(
-            `Completed: ${target?.coded_count ?? 0} coded concepts now linked to this encounter.`
-          );
-          break;
-        }
-        await sleep(2000);
-        latest = await refresh();
-      }
-    } catch (e) {
-      setRecodeJobState("failed");
-      setRecodeMessage(
-        e instanceof Error
-          ? `Reset and recode failed: ${e.message}`
-          : "Reset and recode failed."
-      );
-    } finally {
-      setResettingEncounterId(null);
-    }
+    void recode.start(encounterId);
   };
-
-  const { linkedVisible, windowVisible, otherVisible } = useMemo(() => {
-    const args = { codedOnly, search, timelineRange };
-    const dateOf = (e: Encounter) => e.date ?? null;
-    return {
-      linkedVisible: sortByIsoDateAsc(applyCommonFilters(split.linked, args), dateOf),
-      windowVisible: sortByIsoDateAsc(applyCommonFilters(split.windowOnly, args), dateOf),
-      otherVisible: sortByIsoDateAsc(applyCommonFilters(split.other, args), dateOf),
-    };
-  }, [split, codedOnly, search, timelineRange]);
-  const hasExplicitLinks = linkedEncounterIds.size > 0;
 
   const milestoneJumps = useMemo<MilestoneJump[]>(() => {
     const rows = (episode.milestones ?? [])
@@ -198,12 +232,16 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
         label: MILESTONE_LABELS[m.milestone_type] ?? m.milestone_type.replaceAll("_", " "),
         date: m.date ?? null,
       }));
-    rows.sort((a, b) => compareIsoDateTimeAsc(a.date, b.date));
-    return rows;
+    return rows.sort((a, b) => {
+      const ta = Date.parse(a.date ?? "");
+      const tb = Date.parse(b.date ?? "");
+      if (!Number.isFinite(ta)) return 1;
+      if (!Number.isFinite(tb)) return -1;
+      return ta - tb;
+    });
   }, [episode.milestones]);
 
   const jumpToEncounter = useCallback((encounterId: string) => {
-    setScope("all");
     setCodedOnly(false);
     setSearch("");
     setTimelineRange(null);
@@ -225,27 +263,17 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
     if (!focusedEncounterId) return;
     const target = encounterRefs.current[focusedEncounterId];
     if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (typeof target.scrollIntoView === "function") {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
     const timer = window.setTimeout(() => setFocusedEncounterId(null), 2200);
     return () => window.clearTimeout(timer);
-  }, [
-    focusedEncounterId,
-    scope,
-    codedOnly,
-    search,
-    linkedVisible.length,
-    windowVisible.length,
-    otherVisible.length,
-  ]);
+  }, [focusedEncounterId, codedOnly, search, visibleEncounters.length]);
 
-  const allVisibleIds = useMemo(() => {
-    if (scope === "linked") return linkedVisible.map((e) => String(e.encounter_id));
-    if (scope === "window")
-      return [...linkedVisible, ...windowVisible].map((e) => String(e.encounter_id));
-    return [...linkedVisible, ...windowVisible, ...otherVisible].map((e) =>
-      String(e.encounter_id)
-    );
-  }, [scope, linkedVisible, windowVisible, otherVisible]);
+  const allVisibleIds = useMemo(
+    () => visibleEncounters.map((e) => String(e.encounter_id)),
+    [visibleEncounters]
+  );
 
   const anyExpanded = allVisibleIds.some((id) => !collapsedEncounters[id]);
   const anyCollapsed = allVisibleIds.some((id) => !!collapsedEncounters[id]);
@@ -294,12 +322,13 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
     return <Alert severity="info">No encounter records found for this patient.</Alert>;
   }
 
-  const renderCard = (enc: Encounter, keyPrefix = "") => {
+  const renderCard = (enc: Encounter) => {
     const encounterKey = String(enc.encounter_id);
     const isExpanded = !collapsedEncounters[encounterKey];
+    const isLinked = linkedEncounterIds.has(encounterKey);
     return (
       <EncounterCard
-        key={`${keyPrefix}${encounterKey}`}
+        key={encounterKey}
         ref={(node) => {
           encounterRefs.current[encounterKey] = node;
         }}
@@ -308,7 +337,8 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
         search={search}
         isExpanded={isExpanded}
         isFocused={focusedEncounterId === encounterKey}
-        isResetting={resettingEncounterId === encounterKey}
+        isLinkedToEpisode={isLinked}
+        isResetting={recode.resettingEncounterId === encounterKey}
         codingLoading={!!codingLoadingFor[encounterKey]}
         codingLinks={codedByEncounter[encounterKey] ?? []}
         codingError={codingErrorByEncounter[encounterKey]}
@@ -323,21 +353,20 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <Typography variant="caption" color="text.secondary">
-        {hasExplicitLinks
-          ? "Default view shows only encounters linked to this episode. Use the timeline below or expand other sections when you need surrounding context."
-          : "No direct encounter links were found for this episode. Use the timeline below or All encounters while linkage is rebuilt."}
+        The patient timeline below shows every encounter. Drag the focus band to widen or narrow which encounters appear in the list.
       </Typography>
-      {recodeMessage && (
+      {recode.recodeMessage && (
         <Alert
           severity={
-            recodeJobState === "failed"
+            recode.recodeJobState === "failed"
               ? "error"
-              : recodeJobState === "running" || recodeJobState === "queued"
+              : recode.recodeJobState === "running" ||
+                  recode.recodeJobState === "queued"
                 ? "info"
                 : "success"
           }
         >
-          {recodeMessage}
+          {recode.recodeMessage}
         </Alert>
       )}
       {milestoneJumps.length > 0 && (
@@ -364,6 +393,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
         linkedEncounterIds={linkedEncounterIds}
         episodeFrom={from}
         episodeTo={to}
+        milestones={episode.milestones ?? []}
         activeEncounterId={focusedEncounterId ?? visibleEncounterId}
         onJumpToEncounter={jumpToEncounter}
         visibleFromMs={timelineRange?.fromMs ?? null}
@@ -391,29 +421,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
       )}
 
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
-        <Chip
-          label={`Episode linked (${linkedVisible.length})`}
-          size="small"
-          color={scope === "linked" ? "primary" : "default"}
-          variant={scope === "linked" ? "filled" : "outlined"}
-          onClick={() => setScope("linked")}
-        />
-        <Chip
-          label={`Episode window (${linkedVisible.length + windowVisible.length})`}
-          size="small"
-          color={scope === "window" ? "primary" : "default"}
-          variant={scope === "window" ? "filled" : "outlined"}
-          onClick={() => setScope("window")}
-        />
-        <Chip
-          label={`All encounters (${linkedVisible.length + windowVisible.length + otherVisible.length})`}
-          size="small"
-          color={scope === "all" ? "primary" : "default"}
-          variant={scope === "all" ? "filled" : "outlined"}
-          onClick={() => setScope("all")}
-        />
         <FormControlLabel
-          sx={{ ml: 0.5 }}
           control={
             <Switch
               size="small"
@@ -440,42 +448,14 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
-      {scope === "linked" && !hasExplicitLinks && (
-        <Alert severity="warning">
-          We could not find explicit encounter links for this episode.
-          This means Episode linked will be empty until those links are available.
+
+      {visibleEncounters.length === 0 && (
+        <Alert severity="info">
+          No encounters match this filter. Drag the focus band wider or clear Coded only / Search to see more.
         </Alert>
       )}
+      {visibleEncounters.map((enc) => renderCard(enc))}
 
-      {(scope === "linked" ? linkedVisible : []).map((enc) => renderCard(enc))}
-      {scope !== "linked" && windowVisible.length > 0 && (
-        <Accordion
-          expanded={windowSectionExpanded}
-          onChange={(_, expanded) => setWindowSectionExpanded(expanded)}
-          elevation={0}
-        >
-          <AccordionSummary expandIcon={<ExpandMore />}>
-            <Typography variant="body2" color="text.secondary">
-              Other encounters in episode window ({windowVisible.length})
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0 }}>
-            {windowVisible.map((enc) => renderCard(enc, "win-"))}
-          </AccordionDetails>
-        </Accordion>
-      )}
-      {scope === "all" && otherVisible.length > 0 && (
-        <Accordion elevation={0}>
-          <AccordionSummary expandIcon={<ExpandMore />}>
-            <Typography variant="body2" color="text.secondary">
-              All other patient encounters ({otherVisible.length})
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0 }}>
-            {otherVisible.map((enc) => renderCard(enc, "other-"))}
-          </AccordionDetails>
-        </Accordion>
-      )}
       {confirmResetEncounterId && (
         <ConfirmDialog
           title="Reset and recode this encounter?"
@@ -489,4 +469,3 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
     </Box>
   );
 }
-

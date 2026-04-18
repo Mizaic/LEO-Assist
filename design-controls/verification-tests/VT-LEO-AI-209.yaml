@@ -1,0 +1,152 @@
+# -- VT-LEO-AI-209 -- Pattern M: cancer treatment Read code coverage expansion
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-209"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-217"
+    risks:
+      - "R-LEO-AI-204"
+
+  metadata:
+    title: "CANCER_TREATMENT_PROCEDURE_CODES inventory contains the full Pattern M expansion and the detector emits treatment_started for the new codes"
+    description: >
+      Verifies DI-LEO-AI-217. Cases TC-001..TC-005 confirm
+      inventory membership grouped by anatomical class and
+      legacy preservation. TC-006 confirms the existing
+      find_active_cancer_care_code helper returns the new
+      breast surgery code. TC-007 and TC-008 are end-to-end
+      cases proving the detector emits a treatment_started
+      anchor for the canonical patient 4802892365 mastectomy
+      and a sibling anterior-resection case.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_patient_4802892365_patterns.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-209-TC-001"
+      case_name: "Breast surgery codes present (XacLJ, XacLK, X40EC, 7H601, XaF83)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert each of XacLJ, XacLK, X40EC, 7H601, XaF83 is in CANCER_TREATMENT_PROCEDURE_CODES"
+          expected_result: "All five present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Pattern M breast surgery codes added"
+
+    - case_id: "VT-209-TC-002"
+      case_name: "Bowel/colorectal surgery codes present (X20Y4, XaFB2, XaCvE, XaZVW, 77132)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Assert each of X20Y4, XaFB2, XaCvE, XaZVW, 77132 is in CANCER_TREATMENT_PROCEDURE_CODES"
+          expected_result: "All five present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Pattern M bowel codes added"
+
+    - case_id: "VT-209-TC-003"
+      case_name: "Other cancer surgery codes present (Y3c24, Xa8OS, 71102)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Assert each of Y3c24, Xa8OS, 71102 is in CANCER_TREATMENT_PROCEDURE_CODES"
+          expected_result: "All three present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Pattern M urology + thyroid codes added"
+
+    - case_id: "VT-209-TC-004"
+      case_name: "Generic chemo/radio codes present (8BAD0, 8BAD1, ZV58A)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Assert each of 8BAD0, 8BAD1, ZV58A is in CANCER_TREATMENT_PROCEDURE_CODES"
+          expected_result: "All three present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Pattern M oncology codes added"
+
+    - case_id: "VT-209-TC-005"
+      case_name: "Legacy DI-LEO-AI-175 codes preserved (7G055, X90PX)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Assert 7G055 and X90PX remain in CANCER_TREATMENT_PROCEDURE_CODES"
+          expected_result: "Both present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Skin pathway inventory not regressed"
+
+    - case_id: "VT-209-TC-006"
+      case_name: "find_active_cancer_care_code resolves XacLJ"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call find_active_cancer_care_code('Major: Mastectomy of right breast (XacLJ) (New Episode)')"
+          expected_result: "Returns a hit for XacLJ via the treatment-procedure branch"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper recognises the new mastectomy code"
+
+    - case_id: "VT-209-TC-007"
+      case_name: "Mastectomy problem-list line emits treatment_started"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on patient 4802892365 2025-07-28 encounter ('Major: Mastectomy of right breast (XacLJ) (New Episode); Major: Biopsy of sentinel lymph node (XaF83) (New Episode)')"
+          expected_result: "Returns at least one treatment anchor"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "End-to-end treatment milestone fires for the canonical patient"
+
+    - case_id: "VT-209-TC-008"
+      case_name: "Anterior resection problem-list line emits treatment_started"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on encounter containing 'Major: Anterior resection of rectum (X20Y4) (New Episode)'"
+          expected_result: "Returns at least one treatment anchor"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Bowel-cancer treatment milestone fires for the second anatomical class"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-209/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-LEO-AI-209-EXEC-001"
+      execution_date: "2026-04-17"
+      executor: "automated_pipeline"
+      result: "pass"
+      cases_run: 8
+      cases_passed: 8
+      cases_failed: 0
+      notes: >
+        Run via `python -m pytest tests/test_patient_4802892365_
+        patterns.py::TestPatternMCancerTreatmentReadCodeExpansion
+        -v`. All eight cases passed. Wider regression on 611
+        anchor/episode/detector/pattern/pathway/referral/
+        diagnosis-tagged tests stays green.

@@ -186,11 +186,12 @@ describe("EncounterTextTab scrubber wiring - VT-LEO-AI-173", () => {
     expect(src).toMatch(/<EncounterTimelineScrubber\s/);
   });
 
-  test("scrubber receives encounters, linked set, episode window and jump handler", () => {
+  test("scrubber receives encounters, linked set, episode window, milestones and jump handler", () => {
     expect(src).toMatch(/encounters=\{encounters\}/);
     expect(src).toMatch(/linkedEncounterIds=\{linkedEncounterIds\}/);
     expect(src).toMatch(/episodeFrom=\{from\}/);
     expect(src).toMatch(/episodeTo=\{to\}/);
+    expect(src).toMatch(/milestones=\{episode\.milestones\s*\?\?\s*\[\]\}/);
     expect(src).toMatch(/onJumpToEncounter=\{jumpToEncounter\}/);
   });
 
@@ -202,5 +203,74 @@ describe("EncounterTextTab scrubber wiring - VT-LEO-AI-173", () => {
   test("VT-173-TC-011: EncounterTextTab.tsx is at or under 500 LOC", () => {
     const lineCount = src.split("\n").length;
     expect(lineCount).toBeLessThanOrEqual(500);
+  });
+});
+
+describe("EncounterTextTab overlay-first chrome - VT-LEO-AI-205", () => {
+  const src = readSource(TAB_PATH);
+
+  test("VT-205-TC-CHROME-001: scope chips and accordions are gone", () => {
+    expect(src).not.toMatch(/Episode linked \(/);
+    expect(src).not.toMatch(/Episode window \(/);
+    expect(src).not.toMatch(/All encounters \(/);
+    expect(src).not.toMatch(/<Accordion[\s>]/);
+    expect(src).not.toMatch(/setScope/);
+    expect(src).not.toMatch(/splitEncounters/);
+  });
+
+  test("VT-205-TC-CHROME-002: Coded only switch and Search field are kept", () => {
+    expect(src).toMatch(/label=\{<Typography variant="caption">Coded only<\/Typography>\}/);
+    expect(src).toMatch(/Search text in shown encounters/);
+  });
+
+  test("VT-205-TC-CHROME-003: brush state defaults to padded episode-linked window", () => {
+    expect(src).toMatch(/episodeLinkedRange/);
+    expect(src).toMatch(/padRange/);
+    expect(src).toMatch(/defaultRangeAppliedRef/);
+  });
+
+  test("VT-205-TC-CHROME-004: visible encounters use applyCommonFilters with the brush range", () => {
+    expect(src).toMatch(/applyCommonFilters\(encounters,\s*\{[\s\S]*timelineRange[\s\S]*\}\)/);
+  });
+
+  test("VT-205-TC-CHROME-005: episode-linked encounters render an In episode chip", () => {
+    expect(src).toMatch(/isLinkedToEpisode=\{isLinked\}/);
+  });
+});
+
+const SCRUBBER_OVERLAYS_PATH = resolve(
+  __dirname,
+  "../../components/mission-control/TimelineOverlays.tsx"
+);
+
+describe("EncounterTimelineScrubber overlays - VT-LEO-AI-205", () => {
+  const src = readSource(SCRUBBER_PATH);
+  const overlaysSrc = readSource(SCRUBBER_OVERLAYS_PATH);
+
+  test("VT-205-TC-OVERLAY-001: scrubber accepts a milestones prop", () => {
+    expect(src).toMatch(/milestones\?:\s*Array<\{\s*milestone_type:\s*string;/);
+  });
+
+  test("VT-205-TC-OVERLAY-002: episode band is derived from linked-encounter dates (not referral_date / end_date)", () => {
+    expect(src).toMatch(/linkedTicks/);
+    expect(src).toMatch(/Tightened episode band/);
+    expect(src).not.toMatch(/toTimestamp\(episodeFrom\)/);
+  });
+
+  test("VT-205-TC-OVERLAY-003: per-encounter linked tick markers and milestone markers are rendered", () => {
+    expect(src).toMatch(/<LinkedEncounterTicks\s/);
+    expect(src).toMatch(/<MilestoneMarkers\s/);
+    expect(overlaysSrc).toMatch(/data-testid=["']timeline-linked-tick["']/);
+    expect(overlaysSrc).toMatch(/data-testid=["']timeline-milestone-marker["']/);
+  });
+
+  test("VT-205-TC-OVERLAY-004: caption copy reflects brush as a viewing tool", () => {
+    expect(src).toMatch(/widen or narrow your view/);
+    expect(src).not.toMatch(/drag the focus band to filter\b/);
+  });
+
+  test("VT-205-TC-OVERLAY-005: milestone markers expose accessible labels and keyboard activation", () => {
+    expect(overlaysSrc).toMatch(/aria-label=\{`Milestone:/);
+    expect(overlaysSrc).toMatch(/event\.key === "Enter"/);
   });
 });

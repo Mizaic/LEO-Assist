@@ -1,0 +1,126 @@
+# -- R-LEO-AI-204 -- Cancer treatment milestone missed because surgery Read code not in inventory
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-204"
+  title: "Cancer treatment milestone is silently absent because the procedure Read code (mastectomy, prostatectomy, hemicolectomy, etc.) is missing from CANCER_TREATMENT_PROCEDURE_CODES"
+
+  hazard:
+    description: >
+      The CANCER_TREATMENT_PROCEDURE_CODES inventory contained
+      only two skin-related codes (7G055, X90PX) before the
+      Pattern M expansion. Any encounter recording a definitive
+      cancer treatment using a Read code outside that pair
+      ("Major: Mastectomy of right breast (XacLJ)", "Robot
+      assisted laparoscopic radical prostatectomy (Y3c24)",
+      "Right hemicolectomy and anastomosis NEC (77132)") did
+      not fire a treatment_started anchor. The EpisodeOfCare
+      milestone chain showed referral -> first_seen ->
+      diagnosis but no treatment_started, even when surgery had
+      clearly happened.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    Patient 4802892365's 2025-07-28 mastectomy (XacLJ) +
+    sentinel lymph node biopsy (XaF83) recorded as Major:
+    problem-list additions did not produce any treatment_
+    started milestone. The episode reported treatment_started_
+    date = null. Cohort-level KPIs reported the patient as
+    "diagnosed but not yet treated" months after the surgery.
+    A clinical auditor reviewing time-to-treatment SLA
+    breaches would either miss this case (no treatment_started
+    so no SLA timer) or flag it incorrectly as a real breach.
+
+  harm:
+    description: >
+      The cohort time-to-treatment KPI under-reports treatment
+      coverage by a material fraction (5+ breast-specific
+      cases identified in a single cohort scan, 106 completed
+      cancer episodes with no treatment_started milestone).
+      Reviewers cannot reliably triage cancer pathways for
+      treatment completeness, and SLA/breach reporting is
+      systematically wrong.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 4
+    rpn: 48
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-217 expands CANCER_TREATMENT_PROCEDURE_CODES
+        to include 17 additional Read codes spanning breast
+        surgery (mastectomy L/R, wide local excision, axillary
+        node dissection, sentinel node biopsy), bowel surgery
+        (anterior resection, low anterior resection, loop
+        ileostomy, lap right hemicolectomy, right
+        hemicolectomy), prostate surgery (robot-assisted
+        radical prostatectomy), thyroid surgery (partial
+        thyroidectomy, hemithyroidectomy), and generic
+        chemo/radiotherapy (8BAD0, 8BAD1, ZV58A). Each code
+        is a definitive cancer treatment or staging procedure
+        sourced from observed live-cohort encounters.
+      implemented_by:
+        - "DI-LEO-AI-217"
+      verified_by:
+        - "VT-LEO-AI-209"
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        After the next pipeline rebuild, run the cohort scan
+        for "completed cancer episodes with no treatment_
+        started_date" and verify the count drops materially
+        from the current baseline of 106. Residual cases are
+        triaged as either further inventory gaps (Pattern N
+        candidates) or genuine pre-treatment / palliative
+        pathways.
+      implemented_by:
+        - "DI-LEO-AI-217"
+      verified_by:
+        - "VT-LEO-AI-209"
+      effectiveness: "pending"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Pattern M expansion only added definitive cancer
+      treatment codes observed in live primary-care
+      encounters; no diagnostic-only codes (e.g. plain
+      mammogram, plain colonoscopy without findings) were
+      added so false-positive treatment_started emission is
+      not introduced. Eight verification cases pass and the
+      wider 611-test regression suite stays green. Residual
+      risk is limited to surgical Read codes that exist in
+      the wider terminology but have not yet appeared in any
+      observed encounter -- managed by ongoing cohort scans.
+
+  monitoring:
+    monitoring_plan: >
+      Per pipeline rebuild, count completed cancer episodes
+      where treatment_started_date IS NULL but the source
+      encounters contain a procedure code on a problem-list
+      line. Compare to the inventory and add new codes via
+      DI-amendment as needed.
+    metrics:
+      - "Count of completed cancer episodes with no treatment_started_date AND a procedure Read code in source encounters"
+      - "Per-rebuild treatment_started recall on a gold-label sample"
+    review_frequency: "Per pipeline rebuild"
+
+  metadata:
+    identified_by: "Patient 4802892365 investigation -- 2025-07-28 mastectomy (XacLJ) and sentinel lymph node biopsy (XaF83) did not fire treatment_started; cohort scan found 5 breast-specific encounters with the same shape and 106 completed cancer episodes without a treatment_started milestone"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "treatment-classification"
+      - "code-inventory"
+      - "patient-4802892365"
+      - "pattern-m"

@@ -1,0 +1,87 @@
+# -- DI-LEO-AI-196 -- Confidence-gated TrainingCandidate pruning service + endpoints
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-196"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-083"
+  requirement: >
+    The Knowledge API SHALL expose a confidence-gated pruning service
+    for non-completed TrainingCandidate nodes. The service SHALL run
+    the existing SNOMED proposal validator
+    (scripts/lib/gold_label_snomed_check.validate_proposal) over each
+    candidate's persisted entities_json and SHALL classify each
+    candidate as one of three verdicts: 'delete' (every entity rejected
+    AND zero safety rails fired), 'review' (mixed verdicts OR a safety
+    rail fired), or 'keep' (every entity accepted by the validator).
+    The service SHALL NEVER mutate the graph from the verdict
+    computation path; deletion SHALL be performed only via a separate,
+    explicitly-invoked execute path that takes the list of candidate
+    IDs returned by a prior preview call.
+  rationale: >
+    Reuses the audit-grade validator from R-LEO-AI-180 / DI-LEO-AI-186
+    so the pruning verdict is the same signal a human reviewer would
+    use, and ensures we never DELETE on a stale or computed-on-the-fly
+    decision (TOCTOU). Two-phase preview/execute keeps the operation
+    auditable, reversible-by-careful-review, and amenable to dry-run
+    in CI.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "candidate_prune.assess_candidates(client, params) returns a list[CandidateAssessment] with verdict in {'keep','delete','review'} for every input candidate"
+      - type: "functional"
+        spec: "candidate_prune.execute_prune(client, candidate_ids) calls DELETE_TRAINING_CANDIDATE_AND_ARTIFACTS for each id and returns aggregate counts (deleted, missing, skipped_completed)"
+      - type: "safety"
+        spec: "execute_prune SHALL re-fetch each candidate before deletion and SHALL skip any that are now status='completed' (re-check guard against TOCTOU)"
+      - type: "safety"
+        spec: "assess_candidates SHALL classify candidates with zero entities as 'review', not 'delete'"
+      - type: "safety"
+        spec: "assess_candidates SHALL classify candidates with any entity carrying an _AUTO_CODE_BLOCKED assertion as 'review', not 'delete'"
+      - type: "safety"
+        spec: "assess_candidates SHALL classify candidates whose source startswith 'manual_gold_seed' as 'review', not 'delete'"
+      - type: "functional"
+        spec: "POST /training/candidates/prune/preview accepts {min_surface_match,semantic_vector_floor,semantic_min_surface,statuses,limit} and returns the assessment payload"
+      - type: "functional"
+        spec: "POST /training/candidates/prune/execute accepts {candidate_ids:list[str]} and returns {requested,deleted,skipped_completed,not_found}"
+      - type: "performance"
+        spec: "assess_candidates uses ThreadPoolExecutor with at most 8 worker threads to bound terminology load and SHALL complete <=900 candidates in under 5 minutes against the production resolver"
+    constraints:
+      - type: "safety"
+        spec: "Both endpoints require require_admin (admin scope only)"
+      - type: "safety"
+        spec: "Neither endpoint accepts a status='completed' candidate id; if supplied, the candidate is reported under skipped_completed and not deleted"
+    dependencies:
+      - "DI-LEO-AI-186"
+      - "DI-LEO-AI-187"
+    downstream_impacts:
+      - "Knowledge API /training/candidates"
+      - "TrainingCandidate, GoldLabel (draft), SurfaceFormTask nodes in Knowledge Graph"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI + libs.neo4j_client.KnowledgeGraphClient + libs.terminology.TerminologyClient"
+      file_structure:
+        - "services/api/app/services/candidate_prune.py"
+        - "services/api/app/routers/training.py"
+      estimated_loc: 320
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-182 covers the service-layer verdict ladder (zero
+      entities -> review, blocked assertion -> review, manual seed
+      source -> review, all-rejected -> delete, all-accepted -> keep,
+      mixed -> review) and the API endpoints (admin gating, preview
+      idempotency, execute re-check guard, completed skip path,
+      404 path for unknown ids).
+    test_protocol: "VT-LEO-AI-182"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-187"
+    - "R-LEO-AI-188"
+  tags:
+    - "training-data-quality"
+    - "snomed-validation"
+    - "hitl-backlog"

@@ -1,0 +1,104 @@
+# -- DO-LEO-AI-214 -- CANCER_TREATMENT_PROCEDURE_CODES inventory expansion
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-214"
+  version: "1.0.0"
+  type: "Configuration"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-217"]
+    user_needs: ["UN-LEO-AI-005", "UN-LEO-AI-006"]
+    risks_addressed: ["R-LEO-AI-204"]
+    verification_tests: ["VT-LEO-AI-209"]
+
+  specification:
+    title: "Pattern M: expand CANCER_TREATMENT_PROCEDURE_CODES with 17 definitive cancer treatment / staging Read codes"
+    description: |
+      Implements DI-LEO-AI-217. The CANCER_TREATMENT_PROCEDURE_
+      CODES set in libs/domains/code_inventories.py grows from 2
+      skin-related codes to 19 codes covering the principal
+      cancer surgery / staging procedures observed in the live
+      primary-care cohort:
+
+      Breast surgery:
+        - XacLJ Mastectomy of right breast
+        - XacLK Mastectomy of left breast
+        - X40EC Wide local excision of breast lesion
+        - 7H601 Block dissection of axillary lymph nodes
+        - XaF83 Biopsy of sentinel lymph node
+
+      Bowel / colorectal surgery:
+        - X20Y4 Anterior resection of rectum
+        - XaFB2 Low anterior resection of rectum
+        - XaCvE Loop ileostomy stoma
+        - XaZVW Laparoscopically assisted right hemicolectomy
+        - 77132 Right hemicolectomy and anastomosis NEC
+
+      Prostate / urology surgery:
+        - Y3c24 Robot-assisted laparoscopic radical prostatectomy
+
+      Thyroid surgery:
+        - Xa8OS Partial thyroidectomy
+        - 71102 Hemithyroidectomy
+
+      Generic chemotherapy / radiotherapy:
+        - 8BAD0 Cancer chemotherapy
+        - 8BAD1 Cancer radiotherapy
+        - ZV58A Antineoplastic chemotherapy encounter
+
+      Existing entries 7G055 (wide excision of skin lesion) and
+      X90PX (biopsy - action) are preserved unchanged so the
+      DI-LEO-AI-175 skin pathway is not affected.
+
+      The expansion is consumed by find_active_cancer_care_code
+      (existing helper) and propagated into _classify_text_
+      encounters via the existing treatment branch -- no logic
+      change is required in the detector.
+
+    acceptance_criteria:
+      - criterion: "All 17 codes present in inventory"
+        type: "functional"
+        measurement: "Unit test"
+        target: "TestPatternMCancerTreatmentReadCodeExpansion verifies each of the 17 new codes is a member of CANCER_TREATMENT_PROCEDURE_CODES grouped by anatomical class."
+      - criterion: "Legacy codes preserved"
+        type: "safety"
+        measurement: "Unit test"
+        target: "7G055 and X90PX remain in CANCER_TREATMENT_PROCEDURE_CODES."
+      - criterion: "Helper resolves new codes"
+        type: "functional"
+        measurement: "Unit test"
+        target: "find_active_cancer_care_code('Major: Mastectomy of right breast (XacLJ) (New Episode)') matches XacLJ via the treatment-procedure branch."
+      - criterion: "End-to-end treatment_started emission"
+        type: "functional"
+        measurement: "Unit test"
+        target: "An encounter containing 'Mastectomy of right breast (XacLJ)' on a problem-list line MUST produce a treatment_started anchor in _classify_text_encounters output (same for 'Anterior resection of rectum (X20Y4)' as a second anatomical site)."
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/domains/code_inventories.py"
+        description: "CANCER_TREATMENT_PROCEDURE_CODES set extended with 17 Read codes grouped by anatomical class with code-comment attribution"
+      - artifact_type: "test"
+        location: "tests/test_patient_4802892365_patterns.py"
+        description: "TestPatternMCancerTreatmentReadCodeExpansion class (8 cases)"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 30
+      key_functions:
+        - "CANCER_TREATMENT_PROCEDURE_CODES"
+        - "find_active_cancer_care_code"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Treatment anchor emission used to populate EpisodeOfCare treatment_started milestone and to drive time-to-treatment SLA reporting"
+    risk_control_measures:
+      - "All added codes are definitive cancer treatment / staging procedures observed in live encounters; no diagnostic-only codes (plain mammogram, plain colonoscopy without findings) are added"
+      - "Expansion is data-only; no detector logic change so the existing pre-referral / family-history guards continue to suppress treatment emission outside a confirmed cancer context"
+      - "Per-rebuild cohort scan compares treatment_started recall against the gold-label sample to detect any inventory regressions"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

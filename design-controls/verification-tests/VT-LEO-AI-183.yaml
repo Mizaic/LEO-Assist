@@ -1,0 +1,130 @@
+# -- VT-LEO-AI-183 -- CandidatePruneDialog static-source VT
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-183"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-197"]
+    risks: ["R-LEO-AI-187"]
+
+  metadata:
+    title: "GoldDatasetPanel registers the auto-prune ToolbarAction; CandidatePruneDialog gates destructive action behind preview + explicit confirmation"
+    description: >
+      Static-source jest VT (per ui-testing.mdc): asserts on the
+      source string of GoldDatasetPanel.tsx and
+      CandidatePruneDialog.tsx, not a live render. Pins the toolbar
+      action id and label, the default confidence-floor values, the
+      explicit confirmation checkbox, the disabled state of the
+      destructive button, and the in-flight close guard.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/candidate-prune-dialog.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "node 20 / jest 30 / ts-jest"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-183-TC-001"
+      case_name: "ToolbarAction id='auto-prune' is registered for the candidates tab"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read GoldDatasetPanel.tsx; assert it contains both 'auto-prune' and 'Auto-prune low confidence' inside the tab === \"candidates\" branch"
+          expected_result: "Both substrings present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Curators can find the action"
+
+    - case_id: "VT-183-TC-002"
+      case_name: "Default confidence floors are 0.7, 0.92, 0.66"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read CandidatePruneDialog.tsx; assert literal initial-state values for min_surface_match (0.7), semantic_vector_floor (0.92), semantic_min_surface (0.66)"
+          expected_result: "All three literals present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Defaults match the validator (R-LEO-AI-180)"
+
+    - case_id: "VT-183-TC-003"
+      case_name: "Destructive button is disabled until preview-loaded AND confirm-acknowledged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read CandidatePruneDialog.tsx; assert presence of expression combining previewLoaded, deleteCount > 0, and confirmAcknowledged in the disabled prop"
+          expected_result: "All three terms appear in the disabled expression"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No accidental one-click deletes"
+
+    - case_id: "VT-183-TC-004"
+      case_name: "Confirmation checkbox label includes 'permanently delete'"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read CandidatePruneDialog.tsx; assert string literal 'permanently delete' appears in a Checkbox/FormControlLabel section"
+          expected_result: "Literal present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewer is warned in plain language"
+
+    - case_id: "VT-183-TC-005"
+      case_name: "onClose is a no-op while loading is true"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read CandidatePruneDialog.tsx; assert that the Dialog's onClose handler returns early when loading is true (e.g. matches /if \\(loading\\)/ before any setOpen call)"
+          expected_result: "Guard present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "User cannot dismiss mid-request"
+
+    - case_id: "VT-183-TC-006"
+      case_name: "CandidatePruneDialog.tsx <= 500 LOC"
+      priority: "medium"
+      test_steps:
+        - step_number: 1
+          action: "Read CandidatePruneDialog.tsx; count lines"
+          expected_result: "Lines <= 500"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "code-quality.mdc hard limit respected"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-183/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-183-EXEC-2026-04-17-01"
+      executed_at: "2026-04-17T20:10:00Z"
+      executed_by: "automated:jest"
+      command: "cd services/ui && npx jest --testPathPatterns 'candidate-prune-dialog' --no-coverage"
+      result: "pass"
+      cases_total: 6
+      cases_passed: 6
+      cases_failed: 0
+      notes: >
+        Static-source assertions on GoldDatasetPanel.tsx (toolbar
+        action wired to setPruneDialogOpen and CandidatePruneDialog
+        mounted) and CandidatePruneDialog.tsx (default floors
+        0.7/0.92/0.66, destructive button gated on
+        previewLoaded + deleteCount + confirmAcknowledged, explicit
+        'permanently delete' label, handleClose loading guard,
+        file size 471 LOC <= 500 budget).

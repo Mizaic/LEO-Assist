@@ -1,0 +1,135 @@
+# -- VT-LEO-AI-187 -- :Assessment Cypher + SBAROrchestrator persistence and stage flow
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-187"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-189", "DI-LEO-AI-190"]
+    risks: ["R-LEO-AI-182", "R-LEO-AI-183"]
+
+  metadata:
+    title: "SBAROrchestrator runs all four stages in order, persists incrementally to :Assessment, captures per-stage errors, and degrades to draft on LLM failure"
+    description: >
+      Pins services/pipeline_worker/app/services/sbar_orchestrator.py
+      and libs/cypher/sbar_assessment_queries.py together. Verifies
+      that the orchestrator emits sbar_started -> 4x stage_started/
+      completed -> sbar_completed in the right order, that each
+      SET_* Cypher query is invoked exactly once per stage, that
+      FINALISE_ASSESSMENT runs after all stages, and that an LLM
+      failure on Situation degrades the Assessment status without
+      stopping the pipeline.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_sbar_orchestrator.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.11+ / pytest 8+ / pytest-asyncio"
+    test_data:
+      data_type: "synthetic + mocked Neo4j session"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-187-TC-001"
+      case_name: "Happy path: all four stages run in order and persist incrementally"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run orchestrator with mocked source resolver, LLM and evaluator returning canned values"
+          expected_result: "Final Assessment.status='completed'; CREATE_ASSESSMENT then SET_SITUATION -> SET_BACKGROUND -> SET_ASSESSMENT_NARRATIVE -> SET_RECOMMENDATION -> FINALISE_ASSESSMENT in that order"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Cypher write sequence preserved"
+
+    - case_id: "VT-187-TC-002"
+      case_name: "Draft Assessment created up-front and bound to Patient"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect first session.run call after start"
+          expected_result: "CREATE_ASSESSMENT runs before any LLM/evaluator call"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Draft pre-allocation gives downstream cleanup a node to find"
+
+    - case_id: "VT-187-TC-003"
+      case_name: "Per-stage progress events published on Redis pub/sub"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Capture publish() calls during run"
+          expected_result: "sbar_started, stage_started/completed for situation/background/assessment/recommendation, sbar_completed in order"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Event ordering correct"
+        - "All four stages emit start + complete"
+
+    - case_id: "VT-187-TC-004"
+      case_name: "LLM failure on Situation degrades to status='draft' with error captured"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inject LLM error in call_situation; let pipeline continue"
+          expected_result: "Assessment.errors includes the failure; subsequent stages still run; FINALISE_ASSESSMENT records degraded status"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Pipeline does not stop on per-stage failure"
+        - "Status reflects degradation"
+
+    - case_id: "VT-187-TC-005"
+      case_name: "Deterministic Assessment formatter is invoked even when no LLM stage produced output"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Force background LLM failure; observe assessment_formatter.format_assessment is still called"
+          expected_result: "format_assessment called with collected codes"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Rule-derived Assessment substrate is always rendered"
+
+    - case_id: "VT-187-TC-006"
+      case_name: "Final composed Markdown contains all four section headings"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Inspect the final Assessment.content sent to FINALISE_ASSESSMENT"
+          expected_result: "Includes '## Situation', '## Background', '## Assessment', '## Recommendation'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Composed SBAR has the canonical structure"
+
+    - case_id: "VT-187-TC-007"
+      case_name: "Pathway hints (stt, rtr, alternative_pathway) are derived from the rule outputs"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Stub matched_rules with a 2WW rule; assert SET_ASSESSMENT_NARRATIVE parameters set rtr='yes' and stt='2ww'"
+          expected_result: "Pathway hints reflect rule strength, not LLM output"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Hints derived deterministically"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-187/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-LEO-AI-187-EXEC-001"
+      executed_at: "2026-04-17"
+      executor: "automated-pytest"
+      command: "python3 -m pytest tests/test_sbar_orchestrator.py -v"
+      result: "pass"
+      summary: "All SBAROrchestrator cases passed"

@@ -168,7 +168,17 @@ def _claim_window_referrals(
 def _group_open_referrals(
     unclaimed: list[dict[str, Any]],
 ) -> list[tuple[str, list[dict[str, Any]]]]:
-    """Group unclaimed referrals into in-progress episodes by site and time."""
+    """Group unclaimed referrals into in-progress episodes by site and time.
+
+    DI-LEO-AI-196: NSS-absorption pattern. After bucketing by site key,
+    any non_site_specific / unknown group whose time window overlaps a
+    typed group (within SAME_EPISODE_DAYS) is absorbed into that typed
+    group at create time, so the episode builder no longer emits a
+    phantom NSS episode that the duplicate resolver immediately merges
+    away. The previous behaviour created two episodes per cluster (one
+    typed, one NSS) and relied on post-hoc merge cleanup -- correct,
+    but it polluted the graph with dozens of merged_into shadow nodes.
+    """
     by_site: dict[str, list[dict[str, Any]]] = {}
     for ref in unclaimed:
         key = _extract_condition_key_from_anchor(ref)
@@ -178,7 +188,82 @@ def _group_open_referrals(
         refs.sort(key=lambda a: str(a.get("encounter_date") or ""))
         for group in _group_referrals_by_time(refs):
             groups.append((site_key, group))
-    return groups
+    return _absorb_nss_into_typed_groups(groups)
+
+
+_NSS_KEYS = {"non_site_specific", "unknown", ""}
+
+
+def _group_window(
+    group: list[dict[str, Any]],
+) -> tuple[date | None, date | None]:
+    dates = [
+        d
+        for d in (_parse_date(a.get("encounter_date")) for a in group)
+        if d is not None
+    ]
+    if not dates:
+        return None, None
+    return min(dates), max(dates)
+
+
+def _absorb_nss_into_typed_groups(
+    groups: list[tuple[str, list[dict[str, Any]]]],
+) -> list[tuple[str, list[dict[str, Any]]]]:
+    """Merge each NSS group into a temporally-overlapping typed group.
+
+    Two groups overlap when the gap between their date windows is
+    <= SAME_EPISODE_DAYS. If multiple typed groups overlap, the NSS
+    encounters go to the closest typed group (smallest date gap). If
+    no typed group overlaps, the NSS group is preserved -- it is a
+    genuinely standalone unsited pathway.
+    """
+    typed: list[tuple[str, list[dict[str, Any]]]] = []
+    nss: list[tuple[str, list[dict[str, Any]]]] = []
+    for site_key, group in groups:
+        if site_key in _NSS_KEYS:
+            nss.append((site_key, group))
+        else:
+            typed.append((site_key, group))
+
+    if not typed or not nss:
+        return groups
+
+    typed_windows = [(_group_window(g), idx) for idx, (_, g) in enumerate(typed)]
+
+    for _nss_key, nss_group in nss:
+        nss_start, nss_end = _group_window(nss_group)
+        if nss_start is None:
+            typed.append((_nss_key, nss_group))
+            continue
+
+        best_idx: int | None = None
+        best_gap: int = cfg.SAME_EPISODE_DAYS + 1
+        for (t_start, t_end), idx in typed_windows:
+            if t_start is None or t_end is None:
+                continue
+            if nss_end < t_start:
+                gap = (t_start - nss_end).days
+            elif nss_start > t_end:
+                gap = (nss_start - t_end).days
+            else:
+                gap = 0
+            if gap <= cfg.SAME_EPISODE_DAYS and gap < best_gap:
+                best_gap = gap
+                best_idx = idx
+
+        if best_idx is None:
+            typed.append((_nss_key, nss_group))
+            continue
+
+        target_key, target_group = typed[best_idx]
+        target_group.extend(nss_group)
+        target_group.sort(key=lambda a: str(a.get("encounter_date") or ""))
+        typed[best_idx] = (target_key, target_group)
+        new_window = _group_window(target_group)
+        typed_windows[best_idx] = (new_window, best_idx)
+
+    return typed
 
 
 def _claim_strict_pass(

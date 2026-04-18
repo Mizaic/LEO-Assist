@@ -1,0 +1,144 @@
+# -- R-LEO-AI-201 -- Mission Control KPI mixes patient and episode units, hides cohort denominator
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-201"
+  title: "Mission Control KPI strip presents episode counts under patient-unit labels and hides patients excluded by the date / referral-date filter, leading reviewers to miss real cancers"
+
+  hazard:
+    description: >
+      The Mission Control /care/patients KPI strip currently
+      shows episode counts for "Confirmed cancer" and
+      "Pathway closures" while labelling and tooltipping them
+      as PATIENT counts. The same strip silently drops
+      patients whose only EpisodeOfCare nodes have a NULL
+      referral_date (typically a real cancer diagnosed via a
+      routine GP encounter rather than a 2WW pathway) or no
+      EpisodeOfCare at all. A clinical auditor sees a
+      headline ("Confirmed cancer 54", "89 patients in view")
+      that does not match the underlying truth (44 patients,
+      107 in the cohort) and there is no on-screen indication
+      that 18 patients have been hidden.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinical auditor opens Mission Control to review the
+    cancer pathway cohort for a quarter. They believe the
+    "89 patients in view" figure is the entire cohort and
+    that "Confirmed cancer 54" means 54 distinct patients
+    have a confirmed cancer diagnosis. In reality 18
+    patients are hidden (8 with no EpisodeOfCare, 7 with
+    only NULL-referral-date episodes including any cancer
+    diagnosed via routine GP encounter, 3 outside the date
+    window) and the headline 54 is an episode count that
+    overstates the patient figure by ~10 (e.g. real patient
+    count 44). The auditor closes their session believing
+    the cohort is reviewed when one or more real cancers
+    were never even visible.
+
+  harm:
+    description: >
+      A real cancer-confirmed patient is excluded from the
+      working list and is never reviewed; downstream audit
+      decisions (resource allocation, safety-netting follow-
+      up, escalation) rest on a headline that overstates
+      patient counts. Reviewer trust in the headline
+      degrades because numbers do not reconcile across the
+      tooltip, the strip, and the audit summary.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-214 splits the KPI Cypher so confirmed_
+        cancer and pathway_closures expose BOTH episode
+        counts (existing) and patient counts (new). The UI
+        renders the patient count as the headline so the
+        numeric value matches the tooltip ("Patients with at
+        least one pathway..."). The patient confirmed-cancer
+        count reuses confirmed_cancer_where so it cannot
+        drift from /audit/summary.confirmed_cancers.
+      implemented_by:
+        - "DI-LEO-AI-214"
+      verified_by:
+        - "VT-LEO-AI-206"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-214 adds a cohort denominator query
+        (_cohort_denominator_cypher) that is scoped by
+        org/scope only. The endpoint returns a "cohort"
+        block with the total patient count and three
+        excluded buckets (no pathway, missing referral date,
+        outside the window). The UI renders a plain-English
+        caption ("Showing 89 of 107 patients - 18 hidden:
+        8 no pathway, 7 missing referral date, 3 outside
+        the date range.") below the KPI strip so hidden
+        patients are always discoverable.
+      implemented_by:
+        - "DI-LEO-AI-214"
+      verified_by:
+        - "VT-LEO-AI-206"
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        Tooltips on Confirmed cancer and Pathway closures
+        rewritten in plain English so a non-clinical
+        reviewer immediately understands the metric is a
+        count of PATIENTS (with pathways as a sub-line for
+        clinicians who need both numbers).
+      implemented_by:
+        - "DI-LEO-AI-214"
+      verified_by:
+        - "VT-LEO-AI-206"
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Patient counts now match the tooltip wording so the
+      headline cannot be misread, and excluded patients are
+      surfaced via an always-visible caption with a clear
+      breakdown of the exclusion reason. The audit-summary
+      definition is reused so the headline cannot drift from
+      the audit endpoint. 11 verification cases pass (5
+      backend, 6 UI) and the existing KPIStrip /
+      MissionControl.polling tests were updated and remain
+      green.
+
+  monitoring:
+    monitoring_plan: >
+      Each release run sanity-check the KPI endpoint against
+      a Cypher count(DISTINCT p) for confirmed_cancer to
+      ensure the patient-count headline matches the audit
+      summary endpoint. Investigate any release where
+      MissionControl shows a "Confirmed cancer" headline that
+      diverges from /audit/summary.confirmed_cancers by more
+      than zero patients, or where the cohort denominator
+      caption is missing.
+    metrics:
+      - "Difference between KPIStrip Confirmed cancer headline and /audit/summary confirmed_cancers patient count"
+      - "Per-rebuild count of patients in the cohort that are excluded by missing referral_date"
+    review_frequency: "Per release"
+
+  metadata:
+    identified_by: "Mission Control discrepancy investigation -- /care/patients shows Confirmed cancer 54 / Pathway closures 76 / 89 patients in view but the underlying cohort is 107 patients with a real confirmed_cancer patient count of 44"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags:
+      - "mission-control"
+      - "kpi-strip"
+      - "cohort-denominator"
+      - "ncda"
+      - "ui-clarity"

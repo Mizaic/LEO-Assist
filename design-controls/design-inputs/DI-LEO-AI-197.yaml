@@ -1,0 +1,74 @@
+# -- DI-LEO-AI-197 -- Auto-prune dialog and toolbar action in Training Data UI
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-197"
+  type: "Usability"
+  derived_from:
+    - "UN-LEO-AI-083"
+  requirement: >
+    The Training Data > Candidates tab SHALL expose an
+    'Auto-prune low confidence' ToolbarAction (admin scope) that opens
+    a CandidatePruneDialog. The dialog SHALL accept the three
+    confidence-floor parameters (min_surface_match,
+    semantic_vector_floor, semantic_min_surface) with safe defaults
+    matching the validator (0.7 / 0.92 / 0.66), SHALL run a server
+    preview before any destructive action is enabled, SHALL display
+    candidates grouped by verdict (delete / review / keep) with the
+    rejection reason for each, and SHALL only enable the
+    'Delete N candidates' action after the user explicitly confirms a
+    checkbox acknowledging that draft GoldLabel and SurfaceFormTask
+    rows attached to each candidate will be cascade-deleted.
+  rationale: >
+    Putting the action in the UI keeps it discoverable to the curators
+    who own the HITL backlog, while the explicit preview-then-confirm
+    contract prevents accidental mass-deletion. Reusing the
+    ToolbarAction primitive keeps the placement consistent with the
+    adjacent 'Deduplicate similar' action and the design-system
+    surface chrome.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "GoldDatasetPanel registers a ToolbarAction id='auto-prune' label='Auto-prune low confidence' variant='secondary' on tab==='candidates'"
+      - type: "functional"
+        spec: "CandidatePruneDialog renders three numeric inputs (min_surface_match, semantic_vector_floor, semantic_min_surface) with default values 0.7, 0.92, 0.66 and a status multi-select defaulted to ['pending','processing','failed']"
+      - type: "safety"
+        spec: "The 'Delete N candidates' button is disabled until the preview has returned at least one candidate with verdict='delete' AND the user has ticked an explicit confirmation checkbox"
+      - type: "safety"
+        spec: "Closing the dialog while a request is in-flight SHALL be blocked"
+      - type: "functional"
+        spec: "After successful execution the dialog displays {deleted, skipped_completed, not_found} counts and the candidate list reloads"
+    constraints:
+      - type: "safety"
+        spec: "Component file SHALL stay under 500 LOC (code-quality.mdc hard limit)"
+    dependencies:
+      - "DI-LEO-AI-196"
+    downstream_impacts:
+      - "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+      - "services/ui/src/components/gold-dataset/CandidatePruneDialog.tsx"
+    technical_details:
+      language: "TypeScript"
+      framework: "React + MUI + design-system primitives"
+      file_structure:
+        - "services/ui/src/components/gold-dataset/CandidatePruneDialog.tsx"
+        - "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+      estimated_loc: 320
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-183 is a static-source jest VT pinning: presence of
+      the ToolbarAction id, default parameter values, the disabled
+      state of the destructive button until preview-and-confirm,
+      explicit confirmation checkbox, and the file-size budget.
+    test_protocol: "VT-LEO-AI-183"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-187"
+    - "R-LEO-AI-188"
+  tags:
+    - "ui-action"
+    - "training-data-quality"
+    - "hitl-backlog"

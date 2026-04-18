@@ -1,0 +1,246 @@
+# -- VT-LEO-AI-200 -- AI first-pass backend verification
+# IEC 62304 Verification Test
+#
+# NOTE on numbering: replaces a now-clobbered VT-LEO-AI-194 used briefly
+# during development.
+
+- id: "VT-LEO-AI-200"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-208"
+      - "DI-LEO-AI-209"
+    risks:
+      - "R-LEO-AI-197"
+
+  metadata:
+    title: "AI first-pass backend: extractor + smart coder + verdict + writeback + endpoint contract"
+    description: >
+      Verifies the candidate_ai_first_pass service package (DI-208)
+      and the FastAPI router (DI-209) end-to-end:
+      extractor fallback semantics, few-shot exemplar selection,
+      Haiku alternative-search-term retry loop, the three-verdict
+      ladder with all four safety rails, the write-once
+      entities_json_original audit invariant, the TOCTOU re-check
+      that defends gold candidates from accidental delete or
+      overwrite, and the admin-gated background job endpoints
+      including SSE 404 semantics.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_candidate_ai_first_pass_extractor.py"
+      - "tests/test_candidate_ai_first_pass_coder.py"
+      - "tests/test_candidate_ai_first_pass_verdict.py"
+      - "tests/test_candidate_ai_first_pass_writeback.py"
+      - "services/api/tests/test_ai_first_pass_endpoint.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-200-TC-001"
+      case_name: "Extractor falls back to original entities on Haiku call failure"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "ai_extract_entities with call_llm raising RuntimeError"
+          expected_result: "ExtractionResult.fallback_used is True; entities equal original entities_json"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "fallback_used == True"
+        - "len(entities) == len(original entities_json)"
+
+    - case_id: "VT-200-TC-002"
+      case_name: "Extractor passes top-k nearest-neighbour gold exemplars in the prompt"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "ai_extract_entities with k=3 against a stub FewShotSelector"
+          expected_result: "Captured user message contains exactly 3 exemplar markers"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Exemplar count in prompt == k"
+
+    - case_id: "VT-200-TC-003"
+      case_name: "Coder accepts on first validate_proposal hit"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "ai_code_entity with terminology stub returning a candidate that the validator accepts"
+          expected_result: "CodingOutcome.status == 'accepted', retries == 0"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "status == 'accepted'"
+        - "retries == 0"
+
+    - case_id: "VT-200-TC-004"
+      case_name: "Coder accepts after one Haiku alt_query retry"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "ai_code_entity where first validate_proposal rejects, ask_haiku returns viable alt_query, second validate_proposal accepts"
+          expected_result: "status == 'accepted', retries == 1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "status == 'accepted'"
+        - "retries == 1"
+
+    - case_id: "VT-200-TC-005"
+      case_name: "Coder retry cap exhausted yields 'rejected'"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "ai_code_entity where validator always rejects across max_retries+1 attempts"
+          expected_result: "status == 'rejected', retries == max_retries"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "status == 'rejected'"
+        - "retries == max_retries"
+
+    - case_id: "VT-200-TC-006"
+      case_name: "Verdict 'delete' when all entities rejected and no rail fires"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "classify_candidate with codings all rejected, no _AUTO_CODE_BLOCKED, source != 'manual_gold_seed'"
+          expected_result: "outcome.verdict == 'delete'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "verdict == 'delete'"
+
+    - case_id: "VT-200-TC-007"
+      case_name: "Verdict 'pre_done' when at least one entity accepted"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "classify_candidate with one accepted, one rejected, no rails"
+          expected_result: "outcome.verdict == 'pre_done'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "verdict == 'pre_done'"
+
+    - case_id: "VT-200-TC-008"
+      case_name: "Verdict 'review' on zero entities even after extraction"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "classify_candidate with empty extraction.entities"
+          expected_result: "outcome.verdict == 'review'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "verdict == 'review'"
+
+    - case_id: "VT-200-TC-009"
+      case_name: "Verdict 'review' overrides accepted count when any entity carries _AUTO_CODE_BLOCKED assertion"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "classify_candidate with one accepted entity whose assertion='absent'"
+          expected_result: "outcome.verdict == 'review' with rail_blocked_assertion reason"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "verdict == 'review'"
+        - "reason includes 'blocked_assertion'"
+
+    - case_id: "VT-200-TC-010"
+      case_name: "Verdict 'review' when source startswith 'manual_gold_seed'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "classify_candidate with candidate.source='manual_gold_seed_lab_triples'"
+          expected_result: "outcome.verdict == 'review' with manual_seed reason"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "verdict == 'review'"
+        - "reason includes 'manual_seed'"
+
+    - case_id: "VT-200-TC-011"
+      case_name: "writeback_pre_done is write-once on entities_json_original"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call writeback_pre_done twice on the same candidate"
+          expected_result: "First call sets entities_json_original; second call leaves it unchanged"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "entities_json_original equals first-call snapshot after second call"
+
+    - case_id: "VT-200-TC-012"
+      case_name: "Both writeback_pre_done and execute_delete refuse when re-fetched status='completed'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call writeback_pre_done and execute_delete with TOCTOU re-fetch returning status='completed'"
+          expected_result: "Both return action='skipped_completed'; no write or delete cypher executes"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "writeback returns 'skipped_completed'"
+        - "delete returns 'skipped_completed'"
+
+    - case_id: "VT-200-TC-013"
+      case_name: "POST /training/candidates/ai-first-pass/jobs requires admin"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST without admin override"
+          expected_result: "Status code in (401, 403)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "status_code in (401, 403)"
+
+    - case_id: "VT-200-TC-014"
+      case_name: "POST /jobs returns run_id and queues a worker"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST with admin override and a stub create_job"
+          expected_result: "200 with run_id; create_job called with run_in_background=True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "status_code == 200"
+        - "body.run_id present"
+        - "create_job kwargs.run_in_background is True"
+
+    - case_id: "VT-200-TC-015"
+      case_name: "GET /jobs/{run_id} returns final summary; 404 on unknown id"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "GET with admin override and a stub state.to_dict() summary"
+          expected_result: "200 body.status == 'completed' with by_verdict counts"
+          verification_method: "automated"
+        - step_number: 2
+          action: "GET with get_job returning None"
+          expected_result: "404 unknown run_id"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Existing run_id returns 200 with summary"
+        - "Unknown run_id returns 404"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-200/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-200-EXEC-2026-04-17"
+      date: "2026-04-17"
+      executor: "automation"
+      command: "pytest tests/test_candidate_ai_first_pass_extractor.py tests/test_candidate_ai_first_pass_coder.py tests/test_candidate_ai_first_pass_verdict.py tests/test_candidate_ai_first_pass_writeback.py services/api/tests/test_ai_first_pass_endpoint.py -v"
+      result: "pass"
+      summary: "27 passed (3 extractor + 4 coder + 7 verdict + 7 writeback + 5 endpoint + 1 endpoint missing-id 404)"
+      notes: "All 15 case IDs in test_cases covered; additional happy-path and 404-path assertions retained for regression value"

@@ -189,6 +189,96 @@ def _first_seen_link_anchors(
     return claimed, first_date
 
 
+def _filter_unclaimed_link_groups(
+    link_groups: list[tuple[list[dict[str, Any]], str]],
+    claimed: set[str],
+    protected_milestones: tuple[str, ...] = ("referral",),
+) -> list[tuple[list[dict[str, Any]], str]]:
+    """DI-LEO-AI-205 (Pattern F): drop already-claimed encounters from
+    each link group. Encounters tagged with a milestone in
+    ``protected_milestones`` are always kept -- the referral encounter
+    is the episode's identity, not a transferable signal. Adds new
+    encounter ids to the shared ``claimed`` set in place so subsequent
+    episodes within the same build see them as taken.
+    """
+    out: list[tuple[list[dict[str, Any]], str]] = []
+    for anchor_list, milestone_type in link_groups:
+        kept: list[dict[str, Any]] = []
+        for anchor in anchor_list:
+            eid = str(anchor.get("encounter_id") or "")
+            if not eid:
+                kept.append(anchor)
+                continue
+            if eid in claimed and milestone_type not in protected_milestones:
+                continue
+            claimed.add(eid)
+            kept.append(anchor)
+        if kept:
+            out.append((kept, milestone_type))
+    return out
+
+
+def _care_obstruction_link_anchors(
+    care_obstruction_anchors: list[dict[str, Any]],
+    ref_date: date | None,
+    end_date: str | None,
+) -> list[dict[str, Any]]:
+    """DI-LEO-AI-204 (Pattern G): claim care_obstruction anchors that fall
+    within an episode window so the QA UI can surface blocked pathways.
+
+    Returns at most one anchor per encounter id (anchor-detector
+    already de-duplicates) within ``[ref_date, end_date + 90 days]``.
+    """
+    if not care_obstruction_anchors:
+        return []
+    window_start = ref_date or date.min
+    try:
+        window_end = (
+            _parse_date(end_date) + timedelta(days=90)
+            if end_date
+            else date.max
+        )
+    except Exception:  # noqa: BLE001
+        window_end = date.max
+    claimed: list[dict[str, Any]] = []
+    for anchor in care_obstruction_anchors:
+        eid = str(anchor.get("encounter_id") or "")
+        if not eid:
+            continue
+        a_date = _parse_date(str(anchor.get("encounter_date") or ""))
+        if not a_date:
+            continue
+        if window_start <= a_date <= window_end:
+            claimed.append(anchor)
+    claimed.sort(key=lambda a: str(a.get("encounter_date") or ""))
+    return claimed
+
+
+def _care_obstruction_hitl(
+    care_links: list[dict[str, Any]],
+    existing_reason: str | None,
+) -> tuple[bool, str | None]:
+    """DI-LEO-AI-204 (Pattern G): combine HITL flag/reason for the
+    parent episode when one or more care_obstruction anchors are linked.
+    Preserves any existing HITL reason from prior status logic.
+    """
+    if not care_links:
+        return False, existing_reason
+    sample_text = ""
+    for anchor in care_links:
+        evidence = str(anchor.get("evidence") or "")
+        if evidence:
+            sample_text = evidence[:80].replace("\n", " ").strip()
+            break
+    suffix = (
+        f"Care obstruction signal on {care_links[0].get('encounter_date')}: "
+        f"{sample_text or 'see encounter'}. Review pathway block."
+    )
+    if existing_reason:
+        return True, f"{existing_reason} | {suffix}"
+    return True, suffix
+
+
 def _has_competing_confirmed_diagnosis(
     ref_date: date | None,
     diagnosis_anchors: list[dict[str, Any]],
@@ -414,7 +504,14 @@ def _build_closed_episode(
     )
     is_phantom = site_key in ctx.phantom_sites
     status, hitl_flag, hitl_reason = _determine_episode_status(
-        has_diag, diag_anchors, None, None, episode_treatments, ref_date, is_phantom
+        has_diag,
+        diag_anchors,
+        None,
+        None,
+        episode_treatments,
+        ref_date,
+        is_phantom,
+        ref_anchors=ref_anchors,
     )
 
     if status == "completed" and site_key == "unknown" and not hitl_flag:
@@ -442,6 +539,20 @@ def _build_closed_episode(
     fs_raw = ctx.anchors.first_seen_anchors if ctx.anchors else []
     ref_d = _parse_date(referral_date)
     fs_link_anchors, fs_date = _first_seen_link_anchors(fs_raw, ref_d, end_date)
+
+    # DI-LEO-AI-204 (Pattern G): attach care_obstruction signals.
+    co_raw = (
+        ctx.anchors.care_obstruction_anchors
+        if ctx.anchors and hasattr(ctx.anchors, "care_obstruction_anchors")
+        else []
+    )
+    co_link_anchors = _care_obstruction_link_anchors(co_raw, ref_d, end_date)
+    if co_link_anchors:
+        co_hitl_flag, co_hitl_reason = _care_obstruction_hitl(
+            co_link_anchors, hitl_reason
+        )
+        hitl_flag = hitl_flag or co_hitl_flag
+        hitl_reason = co_hitl_reason
 
     _write_episode(
         ctx.patient_client,
@@ -473,16 +584,21 @@ def _build_closed_episode(
     fp_anchors = ctx.anchors.first_presentation_anchors if ctx.anchors else []
     fp_link_anchors = _first_presentation_link_anchors(fp_anchors, fp_date)
     treatment_link_anchors = _treatment_started_link_anchors(episode_treatments)
-    _link_encounters_to_episode(
-        ctx.patient_client,
-        ep_id,
+    _closed_link_groups = _filter_unclaimed_link_groups(
         [
             (ref_anchors, "referral"),
             (diag_anchors, diag_milestone),
             (treatment_link_anchors, "treatment_started"),
             (fp_link_anchors, "first_presentation"),
             (fs_link_anchors, "first_seen"),
+            (co_link_anchors, "care_obstruction"),
         ],
+        ctx.claimed_encounters,
+    )
+    _link_encounters_to_episode(
+        ctx.patient_client,
+        ep_id,
+        _closed_link_groups,
     )
 
 
@@ -561,6 +677,7 @@ def _build_open_episode(
             episode_treatments,
             ref_date,
             is_phantom,
+            ref_anchors=group,
         )
         if benign_date:
             end_date = benign_date.isoformat()
@@ -583,6 +700,22 @@ def _build_open_episode(
     fs_link_anchors, fs_date = _first_seen_link_anchors(
         fs_raw, _parse_date(earliest_str), end_date
     )
+
+    # DI-LEO-AI-204 (Pattern G): attach care_obstruction signals.
+    co_raw = (
+        ctx.anchors.care_obstruction_anchors
+        if ctx.anchors and hasattr(ctx.anchors, "care_obstruction_anchors")
+        else []
+    )
+    co_link_anchors = _care_obstruction_link_anchors(
+        co_raw, _parse_date(earliest_str), end_date
+    )
+    if co_link_anchors:
+        co_hitl_flag, co_hitl_reason = _care_obstruction_hitl(
+            co_link_anchors, hitl_reason
+        )
+        hitl_flag = hitl_flag or co_hitl_flag
+        hitl_reason = co_hitl_reason
 
     # DI-LEO-AI-150: rescue diagnosis-aware completion. If the episode
     # would otherwise stay 'in_progress' AND a confirmed cancer diagnosis
@@ -639,6 +772,7 @@ def _build_open_episode(
         (group, "referral"),
         (fp_link_anchors, "first_presentation"),
         (fs_link_anchors, "first_seen"),
+        (co_link_anchors, "care_obstruction"),
     ]
     if diag_link_anchors:
         link_groups.append((diag_link_anchors, diag_milestone_open))
@@ -651,6 +785,9 @@ def _build_open_episode(
         )
         if bc_link_anchors:
             link_groups.append((bc_link_anchors, "benign_closure"))
+    link_groups = _filter_unclaimed_link_groups(
+        link_groups, ctx.claimed_encounters
+    )
     _link_encounters_to_episode(
         ctx.patient_client,
         ep_id,

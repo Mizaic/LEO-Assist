@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -78,6 +79,8 @@ import {
 import { renderNerSpans, themeForAssertion, type AnnotatedSpan } from "@/lib/nerAnnotation";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import CandidateReviewList from "@/components/gold-dataset/CandidateReviewList";
+import CandidatePruneDialog from "@/components/gold-dataset/CandidatePruneDialog";
+import AIFirstPassDialog from "@/components/gold-dataset/AIFirstPassDialog";
 import DatasetHealthPanel from "@/components/gold-dataset/DatasetHealthPanel";
 import DialogActionsBar from "@/components/gold-dataset/GoldLabelDetailDialog/DialogActionsBar";
 import DialogTitleStrip from "@/components/gold-dataset/GoldLabelDetailDialog/DialogTitleStrip";
@@ -157,6 +160,13 @@ interface Candidate {
   hitl_guidance?: string | null;
   created_at: string;
   updated_at: string;
+  // -- AI first-pass audit fields (DI-LEO-AI-208 / DI-LEO-AI-209) --
+  // Surfaced from GET_TRAINING_CANDIDATES_PAGE so the candidate row can
+  // render an "AI suggested" chip on pre_done items without having to
+  // re-fetch each row.
+  ai_first_pass_run_id?: string | null;
+  ai_first_pass_at?: string | null;
+  entities_json_original?: string | null;
 }
 
 interface GoldLabel {
@@ -169,6 +179,16 @@ interface GoldLabel {
   verified_at: string | null;
   candidate_id: string | null;
   updated_at: string;
+  // -- AI first-pass audit fields (DI-LEO-AI-208 / DI-LEO-AI-209) --
+  // Set when the candidate has been touched by a Haiku first-pass:
+  //   - ai_first_pass_run_id: non-null while the AI pass is the
+  //     latest writer of entities_json
+  //   - entities_json_original: the pre-AI entities_json snapshot
+  //     written once by UPSERT_AI_FIRST_PASS_ENTITIES so the
+  //     reviewer can always toggle back to the pre-AI baseline.
+  ai_first_pass_run_id?: string | null;
+  ai_first_pass_at?: string | null;
+  entities_json_original?: string | null;
 }
 
 interface Entity {
@@ -1217,6 +1237,20 @@ function GoldLabelDetailDialog({
     Array<{ path: string; relType: string; midX: number; midY: number }>
   >([]);
 
+  // -- AI first-pass: "show original" toggle (DI-LEO-AI-209 / R-LEO-AI-197) --
+  // When the candidate has been touched by an AI first-pass run,
+  // ai_first_pass_run_id is set and entities_json_original holds the
+  // pre-AI snapshot. The toggle lets the reviewer flip the entity
+  // list back to the original (read-only) so they can confirm what
+  // the AI actually changed before approving the candidate.
+  const [showOriginalEntities, setShowOriginalEntities] = useState(false);
+  const isAISuggested = !!item.ai_first_pass_run_id;
+  const originalEntities = useMemo(
+    () => parseEntities(item.entities_json_original ?? null),
+    [item.entities_json_original],
+  );
+  const hasOriginalSnapshot = originalEntities.length > 0;
+
   // Belt-and-braces resync: callers SHOULD pass `key={item.label_id}` so the
   // dialog remounts per record (the lazy useState initialisers above only
   // run on mount). If they forget, this effect re-derives `entities` and
@@ -1250,6 +1284,7 @@ function GoldLabelDetailDialog({
     setNewEntityText("");
     setShowDeleteConfirm(false);
     setSuppressOnDelete(false);
+    setShowOriginalEntities(false);
   }, [item.label_id, item.entities_json]);
 
   function copyToClipboard(text: string, key: string) {
@@ -2468,6 +2503,51 @@ function GoldLabelDetailDialog({
 
           {/* Terms */}
           <Box sx={{ mb: 1.5 }}>
+            {/* -- AI first-pass banner (DI-LEO-AI-209 / R-LEO-AI-197) -- */}
+            {/* When ai_first_pass_run_id is set, surface the AI provenance */}
+            {/* and let the reviewer toggle the read-only original snapshot. */}
+            {isAISuggested && (
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                sx={{
+                  mb: 1,
+                  px: 1,
+                  py: 0.5,
+                  borderRadius: 1,
+                  bgcolor: "info.50",
+                  border: "1px solid",
+                  borderColor: "info.200",
+                }}
+              >
+                <Chip
+                  size="small"
+                  label="AI suggested"
+                  color="info"
+                  data-testid="ai-suggested-banner"
+                  sx={{ fontWeight: 600 }}
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+                  These entities were proposed by the AI first-pass.
+                  Confirm before approving.
+                </Typography>
+                {hasOriginalSnapshot && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={showOriginalEntities}
+                        onChange={(e) => setShowOriginalEntities(e.target.checked)}
+                        data-testid="show-original-toggle"
+                      />
+                    }
+                    label="Show original"
+                    componentsProps={{ typography: { variant: "caption" } }}
+                  />
+                )}
+              </Stack>
+            )}
             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.75 }}>
               <Typography variant="overline" color="text.secondary" sx={{ fontSize: "0.68rem", lineHeight: 1 }}>
                 Terms ({entities.length})
@@ -2527,7 +2607,54 @@ function GoldLabelDetailDialog({
               }}
             />
 
-            {entities.map((e, i) => {
+            {/* -- Read-only original entities (R-LEO-AI-197 audit view) -- */}
+            {/* When the reviewer flips "Show original" we render the    */}
+            {/* pre-AI snapshot from entities_json_original. This view is */}
+            {/* deliberately read-only: no save handlers fire from here. */}
+            {showOriginalEntities && (
+              <Stack spacing={0.5} data-testid="original-entities-list">
+                {originalEntities.map((oe, oi) => (
+                  <Box
+                    key={`original-${oi}`}
+                    sx={{
+                      border: "1px dashed",
+                      borderColor: "divider",
+                      borderRadius: 1,
+                      px: 1.25,
+                      py: 0.75,
+                    }}
+                  >
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {oe.text}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={oe.label ?? oe.semantic_tag ?? "-"}
+                        sx={{ fontSize: "0.66rem", height: 18 }}
+                      />
+                      <Chip
+                        size="small"
+                        label={(oe.assertion ?? "present").toLowerCase()}
+                        sx={{ fontSize: "0.66rem", height: 18 }}
+                      />
+                      {oe.snomed_concept_id && (
+                        <Typography variant="caption" color="text.secondary">
+                          {oe.snomed_concept_id} {oe.snomed_term ?? ""}
+                        </Typography>
+                      )}
+                    </Stack>
+                  </Box>
+                ))}
+                {originalEntities.length === 0 && (
+                  <Typography variant="caption" color="text.secondary">
+                    No original snapshot recorded.
+                  </Typography>
+                )}
+              </Stack>
+            )}
+
+            {!showOriginalEntities && entities.map((e, i) => {
               const nonPresent = isNonPresent(e.assertion);
               const aColor = assertionColor(e.assertion);
               const hasSnomed = !!e.snomed_concept_id;
@@ -2556,6 +2683,22 @@ function GoldLabelDetailDialog({
                 >
                   {/* Row 1: term + type + assertion + actions */}
                   <Stack direction="row" spacing={0.75} alignItems="center">
+                    {isAISuggested && (
+                      <Chip
+                        size="small"
+                        label="AI"
+                        color="info"
+                        variant="outlined"
+                        data-testid="ai-suggested-chip"
+                        sx={{
+                          height: 18,
+                          fontSize: "0.62rem",
+                          fontWeight: 700,
+                          letterSpacing: "0.04em",
+                          "& .MuiChip-label": { px: 0.6 },
+                        }}
+                      />
+                    )}
                     <TextField
                       size="small"
                       value={termDrafts[i] ?? e.text}
@@ -3191,6 +3334,8 @@ export default function GoldDatasetPanel() {
   const [loadingReviewId, setLoadingReviewId] = useState<string | null>(null);
   const [similarCandidateLabel, setSimilarCandidateLabel] = useState<GoldLabel | null>(null);
   const [pendingNextCandidateId, setPendingNextCandidateId] = useState<string | null>(null);
+  const [pruneDialogOpen, setPruneDialogOpen] = useState(false);
+  const [aiFirstPassDialogOpen, setAiFirstPassDialogOpen] = useState(false);
   const [dedupeDialogOpen, setDedupeDialogOpen] = useState(false);
   const [dedupeStatus, setDedupeStatus] = useState("completed");
   const [dedupeThreshold, setDedupeThreshold] = useState(0.9);
@@ -3219,6 +3364,43 @@ export default function GoldDatasetPanel() {
   );
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const deepLinkLabelId = searchParams?.get("labelId") ?? null;
+  const deepLinkFrom = searchParams?.get("from") ?? null;
+  const handledDeepLinkRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (deepLinkFrom === "dry_run") {
+      setTab("candidates");
+    }
+  }, [deepLinkFrom]);
+
+  useEffect(() => {
+    if (!deepLinkLabelId) return;
+    if (handledDeepLinkRef.current === deepLinkLabelId) return;
+    handledDeepLinkRef.current = deepLinkLabelId;
+
+    const inMemory = items.find(
+      (it): it is GoldLabel => "label_id" in it && it.label_id === deepLinkLabelId,
+    );
+    const open = (record: GoldLabel) => {
+      setSelectedItem(record);
+      const basePath = pathname ?? "/admin/gold-dataset";
+      router.replace(basePath, { scroll: false });
+    };
+    if (inMemory) {
+      open(inMemory);
+      return;
+    }
+    fetchGoldLabel(deepLinkLabelId)
+      .then((rec) => open(rec as unknown as GoldLabel))
+      .catch(() => {
+        handledDeepLinkRef.current = null;
+      });
+  }, [deepLinkLabelId, items, pathname, router]);
 
   // Debounce search input
   useEffect(() => {
@@ -3844,6 +4026,18 @@ export default function GoldDatasetPanel() {
             const items: ToolbarAction[] = [];
             if (tab === "candidates") {
               items.push({
+                id: "ai-first-pass",
+                label: "AI first-pass",
+                variant: "primary",
+                onClick: () => setAiFirstPassDialogOpen(true),
+              });
+              items.push({
+                id: "auto-prune",
+                label: "Auto-prune low confidence",
+                variant: "secondary",
+                onClick: () => setPruneDialogOpen(true),
+              });
+              items.push({
                 id: "deduplicate",
                 label: "Deduplicate similar",
                 variant: "secondary",
@@ -4230,6 +4424,20 @@ export default function GoldDatasetPanel() {
           }}
         />
       )}
+      <CandidatePruneDialog
+        open={pruneDialogOpen}
+        onClose={() => setPruneDialogOpen(false)}
+        onPruned={() => {
+          void Promise.all([loadList(), loadStats()]);
+        }}
+      />
+      <AIFirstPassDialog
+        open={aiFirstPassDialogOpen}
+        onClose={() => setAiFirstPassDialogOpen(false)}
+        onJobComplete={() => {
+          void Promise.all([loadList(), loadStats()]);
+        }}
+      />
       <Dialog
         open={dedupeDialogOpen}
         onClose={() => !dedupeApplyLoading && setDedupeDialogOpen(false)}

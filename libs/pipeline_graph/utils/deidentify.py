@@ -29,13 +29,34 @@ _POSTCODE_RE = re.compile(r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b", re.IGNORECAS
 
 _NHS_NUMBER_RE = re.compile(r"\b\d{3}\s?\d{3}\s?\d{4}\b")
 
+# CTV3 / Read v2 clinical code shape: exactly 5 alphanumeric chars
+# (e.g. "Ya03d", "B00zz", "X78HC"), with optional trailing dot padding.
+# These collide with the compact UK postcode regex; canonical postcodes in
+# clinical text always include a space ("SW1A 1AA"), so 5-char no-space tokens
+# are treated as clinical codes and left intact.
+_READ_CODE_SHAPE_RE = re.compile(r"^[A-Za-z0-9]{1,5}\.{0,4}$")
+
+
+def _looks_like_read_code(token: str) -> bool:
+    s = token.strip()
+    if not s or " " in s or "\t" in s or len(s) != 5:
+        return False
+    return bool(_READ_CODE_SHAPE_RE.match(s))
+
+
+def _replace_postcode(match: re.Match[str]) -> str:
+    matched = match.group(0)
+    if _looks_like_read_code(matched):
+        return matched
+    return "[POSTCODE]"
+
 
 def deidentify_text(text: str) -> str:
     """Replace PII in text with safe placeholder tokens."""
     result = _NAME_RE.sub("[NAME]", text)
     result = _DATE_RE.sub("[DATE]", result)
     result = _NHS_NUMBER_RE.sub("[NHS_NUMBER]", result)
-    result = _POSTCODE_RE.sub("[POSTCODE]", result)
+    result = _POSTCODE_RE.sub(_replace_postcode, result)
     result = _NUMERIC_VALUE_RE.sub("[VALUE]", result)
     return result
 

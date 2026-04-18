@@ -130,7 +130,8 @@ RETURN
     g.entities_json AS entities_json,
     g.source AS source,
     g.quality_score AS quality_score,
-    toString(g.verified_at) AS verified_at
+    toString(g.verified_at) AS verified_at,
+    coalesce(g.candidate_id, c.candidate_id) AS candidate_id
 ORDER BY g.created_at ASC
 """
 

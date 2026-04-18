@@ -1,0 +1,101 @@
+# -- R-LEO-AI-192 -- Duplicate phantom referrals from narrative re-mention
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-192"
+  title: "Narrative encounters re-describing a single referral chain emit duplicate text_generic referrals and inflate referral counts"
+
+  hazard:
+    description: >
+      The text-anchor classifier may emit a fresh
+      text_generic referral anchor for any free-text
+      encounter mentioning a referral / 2WW / fast-track,
+      including encounters that are merely commentary about
+      a past referral ("explained 2WW referral was
+      rejected", "noted missed 2WW LGI appt"). Each
+      narrative re-mention of a single referral chain then
+      opens a new phantom episode.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A practice's referral count is inflated by phantom
+    referrals derived from narrative commentary. Practice-
+    level dashboards mis-attribute work, the duplicate
+    resolver works harder than it needs to, and reviewer
+    trust in the queue degrades.
+
+  harm:
+    description: >
+      Operational mis-attribution of referral activity;
+      reviewer fatigue from triaging duplicate phantom
+      episodes; potential mis-classification of cancer-type
+      when the commentary is mis-sited.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 3
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-202: text_generic referrals are suppressed
+        when _RE_NARRATIVE_REFERRAL_REFERENCE matches and
+        _RE_STRUCTURAL_REFERRAL does not. Structural
+        artefacts (XaY59, PRISM stub, "Refer via 2WW") are
+        the source of truth for whether a referral was
+        actually filed.
+      implemented_by:
+        - "DI-LEO-AI-202"
+      verified_by:
+        - "VT-LEO-AI-195"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-206: exclusive encounter claiming prevents
+        the same encounter from being attached to multiple
+        episodes for non-referral milestones, capping the
+        impact of any residual mis-classification.
+      implemented_by:
+        - "DI-LEO-AI-206"
+      verified_by:
+        - "VT-LEO-AI-199"
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Suppression only targets text_generic; PRISM, Read-
+      code, and rejection subtypes are unaffected, so any
+      structurally-evidenced referral still classifies. The
+      narrative regex was sized from the patient 4643293950
+      patterns and tested against three positive and three
+      negative cases (VT-LEO-AI-195). The exclusive-claim
+      invariant adds a second line of defence.
+
+  monitoring:
+    monitoring_plan: >
+      Compare per-practice text_generic referral counts vs
+      structural referral counts each rebuild. Investigate
+      any practice where text_generic > 50% of total
+      referrals for two consecutive runs.
+    metrics:
+      - "Ratio of text_generic to structural referrals per practice per rebuild"
+      - "Count of phantom EpisodeOfCare nodes auto-merged by the duplicate resolver per rebuild"
+    review_frequency: "Each rebuild"
+
+  metadata:
+    identified_by: "Patient 4643293950 investigation -- Patterns C+D (multiple narrative encounters re-describing one referral chain each emitted a text_generic referral)"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "referral-classification"
+      - "patient-4643293950"

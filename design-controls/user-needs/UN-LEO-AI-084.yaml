@@ -1,0 +1,56 @@
+# -- UN-LEO-AI-084 -- One-click conversion of dry-run NER errors into gold training data
+# IEC 62366 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-084"
+  title: "Convert NER errors visible in a dry-run on real encounters into a gold-label correction in one click"
+  description: >
+    On the /admin/console Evaluate stage I run '2b) Dry run on real
+    encounters' to inspect what a candidate model extracts from real
+    GP encounter text. The annotated output makes NER errors obvious
+    -- missing entities, mis-tagging of informational header text,
+    or wrong labels on long observation strings. Today there is no
+    path from a failing dry-run row into the gold-label editor, so
+    the only way to capture the correction as training data is to
+    open a separate page, search for the encounter text, and
+    re-create the candidate by hand. As a curator I need a per-row
+    'Open in gold editor' action that creates (or fetches) the
+    matching TrainingCandidate seeded with the dry-run extraction
+    and deep-links me into the existing GoldLabelDetailDialog so I
+    can fix the labels and add the encounter to gold training data.
+  stakeholder: "ML engineer / training-data curator / QA-RA reviewer"
+  priority: "high"
+  rationale: >
+    The dry-run surface is where NER quality issues are most
+    obvious -- side-by-side with the source text and the model's
+    own annotation. Forcing the curator to leave the page and
+    re-create the candidate by hand loses both the encounter
+    context and the entities the model already produced (which
+    are usually mostly right). Capturing the correction in one
+    click materially shortens the feedback loop from 'spot a
+    regression' to 'shipped gold label that fixes it', and keeps
+    every reviewer on the same draft via a deterministic
+    candidate_id (sha256 of the de-identified text).
+
+  acceptance_criteria:
+    - "Every dry-run result row in EvaluateStage (NER-only and full-pipeline modes) renders an 'Open in gold editor' icon button next to its entity-count badge"
+    - "Clicking the button POSTs the encounter text + extracted entities to a new endpoint, which de-identifies the text server-side, computes candidate_id = sha256(deidentified_text), upserts a TrainingCandidate (source='dry_run_correction'), ensures a draft GoldLabel and returns {candidate_id, label_id}"
+    - "On success the UI deep-links to /admin/gold-dataset?labelId=...&from=dry_run, GoldDatasetPanel switches to the Candidates tab and opens GoldLabelDetailDialog for the returned label"
+    - "Re-clicking the same encounter is idempotent: the existing candidate / draft GoldLabel is returned and the same dialog opens"
+    - "PHI never leaves the server boundary in the candidate text or the candidate_id (de-identification happens server-side before hashing or persisting)"
+    - "Entities whose offsets cannot be re-anchored on the de-identified text are dropped silently; the curator can re-add them in the editor"
+    - "All copy is plain English at reading age 9-11 ('Open in gold editor', tooltip 'Open this encounter in the gold editor to fix labels and add to gold training data.')"
+
+  design_inputs:
+    - "DI-LEO-AI-198"
+    - "DI-LEO-AI-199"
+
+  metadata:
+    identified_by: "Rob Smith - 2026-04-18 admin/console dry-run review session"
+    identified_date: "2026-04-18"
+    status: "approved"
+    tags:
+      - "training-data-quality"
+      - "ner-accuracy"
+      - "gold-dataset"
+      - "ui-action"
+      - "active-learning"

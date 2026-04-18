@@ -53,6 +53,9 @@ export default function TestPatientLibraryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openBuild, setOpenBuild] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<TestPatient | null>(
+    null,
+  );
   const [openGenerate, setOpenGenerate] = useState(false);
   const [openReplay, setOpenReplay] = useState(false);
   const [replayReport, setReplayReport] = useState<ReplayReport | null>(null);
@@ -244,13 +247,26 @@ export default function TestPatientLibraryPage() {
                       />
                     </TableCell>
                     <TableCell align="right">
-                      <Button
-                        size="small"
-                        color="error"
-                        onClick={() => handleDelete(p.id)}
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        justifyContent="flex-end"
                       >
-                        Delete
-                      </Button>
+                        <Button
+                          size="small"
+                          onClick={() => setEditingPatient(p)}
+                          aria-label={`Edit test patient ${p.name || p.id}`}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(p.id)}
+                        >
+                          Delete
+                        </Button>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -267,6 +283,19 @@ export default function TestPatientLibraryPage() {
           guidelineId={buildGuidelineId}
           onSaved={() => {
             setOpenBuild(false);
+            setRefreshKey((n) => n + 1);
+          }}
+        />
+      )}
+
+      {editingPatient && (
+        <BuildPatientDialog
+          open={!!editingPatient}
+          onClose={() => setEditingPatient(null)}
+          guidelineId={editingPatient.guideline_id}
+          editingPatient={editingPatient}
+          onSaved={() => {
+            setEditingPatient(null);
             setRefreshKey((n) => n + 1);
           }}
         />

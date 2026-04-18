@@ -1,0 +1,108 @@
+# -- VT-LEO-AI-207 -- Pattern K: problem-list diagnosis overrides referral gate
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-207"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-215"
+    risks:
+      - "R-LEO-AI-202"
+
+  metadata:
+    title: "Hard problem-list diagnosis evidence overrides DI-LEO-AI-145 same-encounter referral gate"
+    description: >
+      Verifies DI-LEO-AI-215. Cases TC-001 and TC-002 confirm
+      that explicit problem-list malignancy codes (Ya0ln, X78WM)
+      and active-cancer-care codes (XaIph) on a referral
+      encounter still emit a diagnosis. TC-003 confirms the
+      DI-LEO-AI-145 trap (suspected-cancer text in 2WW phrases)
+      remains in place when no hard evidence is present. TC-004
+      confirms the diagnosis path still works on a non-referral
+      encounter (no regression on the existing path).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_patient_4802892365_patterns.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-207-TC-001"
+      case_name: "Same-encounter referral + problem-list diagnosis fires diagnosis_confirmed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on patient 4802892365 2025-03-26 11:56 encounter (Fast track referral XaMeC + Major: Invasive carcinoma of breast (Ya0ln) + Major: Malignant tumour of breast (X78WM))"
+          expected_result: "Returns refs >= 1 (real referral) AND dxs == 1 with diagnosis_source='problem_list_code' and diagnosis_code in {Ya0ln, X78WM}"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Pattern K override fires diagnosis on the canonical patient 4802892365 case"
+
+    - case_id: "VT-207-TC-002"
+      case_name: "Active-cancer-care code on referral encounter still fires diagnosis"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on encounter with both 'Fast track referral for suspected breast cancer (XaMeC)' AND 'Cancer care review (XaIph)'"
+          expected_result: "Returns dxs >= 1"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Active-cancer-care code is recognised as hard diagnosis evidence"
+
+    - case_id: "VT-207-TC-003"
+      case_name: "DI-LEO-AI-145 trap preserved -- surface-form cancer in 2WW phrase does NOT fire dx"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on encounter containing only 'Fast track referral for suspected lung cancer (XaMeH)' with no problem-list diagnosis code"
+          expected_result: "Returns refs >= 1 AND dxs == 0"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Suspected-cancer text inside a referral phrase does NOT bypass the gate"
+
+    - case_id: "VT-207-TC-004"
+      case_name: "Problem-list diagnosis on non-referral encounter still fires"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run _classify_text_encounters on encounter containing only 'Major: Invasive carcinoma of breast (Ya0ln) (New Episode)' with no referral phrase"
+          expected_result: "Returns dxs == 1 with diagnosis_source='problem_list_code'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Existing non-referral diagnosis path is unchanged"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-207/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-LEO-AI-207-EXEC-001"
+      execution_date: "2026-04-17"
+      executor: "automated_pipeline"
+      result: "pass"
+      cases_run: 4
+      cases_passed: 4
+      cases_failed: 0
+      notes: >
+        Run via `python -m pytest tests/test_patient_4802892365_
+        patterns.py::TestPatternKProblemListDxOverridesReferralGate
+        -v`. All four cases passed. Wider regression on 611
+        anchor/episode/detector/pattern/pathway/referral/
+        diagnosis-tagged tests stays green.

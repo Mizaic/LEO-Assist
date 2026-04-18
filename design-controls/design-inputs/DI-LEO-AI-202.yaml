@@ -1,0 +1,75 @@
+# -- DI-LEO-AI-202 -- Narrative-reference referral guard
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-202"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-005"
+    - "UN-LEO-AI-006"
+  requirement: >
+    The text-anchor classifier SHALL suppress text_generic
+    referral anchors when the encounter text matches a
+    narrative-reference pattern (past-tense / DNA / discussion
+    of a previous referral) AND lacks any structural referral
+    artefact (XaY59 outbound referral, "PRISM Pathway
+    Accessed", "Hospital Fast track referral", "Refer via
+    2WW", "Choose and book referral", or an explicit
+    "Fast track referral for suspected" prefix).
+  rationale: >
+    Patient 4643293950 had multiple narrative encounters
+    that re-described a single referral chain ("explained
+    2WW referral was rejected", "noted missed 2WW LGI appt",
+    "DNA'd 2WW referral due to mobility"). Each was
+    classified as a fresh text_generic referral, producing
+    duplicate phantom episodes and inflating the apparent
+    referral count for the practice. Structural artefacts
+    (Read codes, PRISM outbound stubs) ARE the source of
+    truth for whether a referral was actually filed; the
+    narrative is commentary about it.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "_RE_NARRATIVE_REFERRAL_REFERENCE.search('explained 2WW referral was rejected') is not None"
+      - type: "functional"
+        spec: "_RE_STRUCTURAL_REFERRAL.search('Outbound referral (XaY59) PRISM 2WW Lower GI Pathway Accessed') is not None"
+      - type: "safety"
+        spec: "Narrative-only DNA text (no XaY59 / PRISM / Refer via) MUST NOT emit text_generic referral"
+      - type: "functional"
+        spec: "Text containing both narrative reference AND structural cue (e.g. 'Refer via 2WW LGI pathway. Outbound referral (XaY59)') MUST keep the referral anchor"
+    constraints:
+      - type: "safety"
+        spec: "Suppression MUST only apply to text_generic referrals; PRISM, Read-code, and rejection subtypes are unaffected"
+    dependencies:
+      - "DI-LEO-AI-124"
+      - "DI-LEO-AI-182"
+      - "DI-LEO-AI-195"
+    downstream_impacts:
+      - "Anchor detector (text path)"
+      - "Episode duplicate resolver (fewer phantom referrals)"
+      - "Practice-level referral count metrics"
+    technical_details:
+      language: "Python"
+      framework: "Anchor detector (regex layer)"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+      estimated_loc: 50
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-195 must pass with 100% on all critical and
+      total cases, including the three patient 4643293950
+      regression scenarios (DNA narrative, "explained
+      referral was rejected", structural keep-list).
+    test_protocol: "VT-LEO-AI-195"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-192"
+  tags:
+    - "anchor-detector"
+    - "referral-classification"
+    - "narrative-guard"
+    - "patient-4643293950"

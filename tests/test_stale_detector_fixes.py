@@ -158,7 +158,7 @@ class TestAnchorMalignancyFromProblemList:
 
     def test_breast_x78wm_emits_diagnosis_with_site(self):
         text = "Major: Malignant tumour of breast (X78WM) confirmed"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         d = diagnoses[0]
         assert d["site_key"] == "breast"
@@ -168,14 +168,14 @@ class TestAnchorMalignancyFromProblemList:
 
     def test_endometrial_bb5j2_emits_diagnosis(self):
         text = "Major: Endometrioid carcinoma (BB5j2) histology confirmed"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         assert diagnoses[0]["site_key"] == "endometrial"
         assert diagnoses[0]["diagnosis_code"] == "BB5j2"
 
     def test_endometrial_x78xo_emits_diagnosis(self):
         text = "Endometrial carcinoma (X78XO) reported on biopsy"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert any(d["site_key"] == "endometrial" for d in diagnoses)
 
     def test_no_diagnosis_on_referral_encounter_with_malignancy_code(self):
@@ -185,7 +185,7 @@ class TestAnchorMalignancyFromProblemList:
             "Fast track referral for suspected breast cancer (XaMeC). "
             "Considering malignant tumour of breast (X78WM)."
         )
-        referrals, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        referrals, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert referrals, "the encounter should still be a referral"
         # The referral guard removes diagnoses from this encounter
         for d in diagnoses:
@@ -201,7 +201,7 @@ class TestAnchorBenignFromProblemList:
 
     def test_xak99_lpr_emits_benign_closure(self):
         text = "Letter from ENT clinic. Major: Laryngopharyngeal reflux (XaK99) added."
-        _, _, _, _, benign, _, _, _ = _classify_one(text)
+        _, _, _, _, benign, _, _, _, _ = _classify_one(text)
         assert len(benign) == 1
         b = benign[0]
         assert b.get("benign_source") == "problem_list_code"
@@ -210,13 +210,13 @@ class TestAnchorBenignFromProblemList:
 
     def test_cancer_excluded_phrase_emits_benign_closure(self):
         text = "Breast clinic letter: cancer excluded - discharge to GP."
-        _, _, _, _, benign, _, _, _ = _classify_one(text)
+        _, _, _, _, benign, _, _, _, _ = _classify_one(text)
         assert len(benign) == 1
         assert benign[0].get("benign_source") == "investigation_phrase"
 
     def test_mammogram_m2_emits_benign_closure(self):
         text = "Mammogram - M2 (BIRADS benign), no further action."
-        _, _, _, _, benign, _, _, _ = _classify_one(text)
+        _, _, _, _, benign, _, _, _, _ = _classify_one(text)
         assert len(benign) == 1
 
 
@@ -234,7 +234,7 @@ class TestSiteReconciliation:
             "Fast track referral for suspected breast cancer (XaMeC). "
             "Note: previously seen in lung clinic for chronic cough."
         )
-        referrals, _, _, _, _, _, _, _ = _classify_one(text)
+        referrals, _, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(referrals) == 1
         r = referrals[0]
         assert r.get("site_source") == "explicit_2ww_code"
@@ -449,13 +449,13 @@ class TestHistoryOfCancerGuard:
         text = "Major: H/O carcinoma of breast (B934.)"
         assert text_contains_history_of_cancer(text)
         # Even though carcinoma of breast is on the line, the H/O guard wins
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert diagnoses == []
 
     def test_personal_history_text_blocks_diagnosis(self):
         text = "Personal history of malignant neoplasm of prostate"
         assert text_contains_history_of_cancer(text)
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert diagnoses == []
 
 
@@ -464,7 +464,7 @@ class TestActiveCancerCareCode:
 
     def test_xaiph_cancer_confirmed_emits_diagnosis(self):
         text = "Cancer confirmed (XaIph) on MDT review"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         d = diagnoses[0]
         assert d.get("diagnosis_source") == "active_cancer_care_code"
@@ -473,7 +473,7 @@ class TestActiveCancerCareCode:
 
     def test_mdt_meeting_emits_diagnosis(self):
         text = "Discussed at multidisciplinary team meeting (XaN5C)"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         assert diagnoses[0].get("diagnosis_code") == "XaN5C"
 
@@ -481,7 +481,7 @@ class TestActiveCancerCareCode:
         text = "Cancer follow-up (ZV67E). H/O malignant neoplasm of breast (B934.)"
         # ZV67E is in active-care set, but the history marker should suppress it
         assert find_active_cancer_care_code(text) is None
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert diagnoses == []
 
 
@@ -517,7 +517,7 @@ class TestMalignancyTermProblemLine:
         # match_cancer_site -- we want to see the malignancy_term path
         # claim site_source itself.
         text = "Major: Renal cell carcinoma documented today"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         d = diagnoses[0]
         assert d.get("site_key") == "renal"
@@ -527,7 +527,7 @@ class TestMalignancyTermProblemLine:
         # Even when the surface-form dictionary also matches, the
         # final site_key must be the term's site (or a compatible one).
         text = "Major: Carcinoma of prostate, on triptorelin"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         assert diagnoses[0].get("site_key") == "prostate"
         assert diagnoses[0].get("hitl_required") is True
@@ -540,12 +540,12 @@ class TestAdjuvantTherapyInference:
         # Routine repeat prescription with no issue marker and no
         # cancer co-text -- must NOT fire a diagnosis anchor.
         text = "Repeat prescription review: letrozole 2.5mg OD continues"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert diagnoses == []
 
     def test_drug_with_newly_issued_marker_fires(self):
         text = "Newly issued: tamoxifen 20mg OD initiated today"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         d = diagnoses[0]
         assert d.get("diagnosis_source") == "adjuvant_therapy_drug"
@@ -554,7 +554,7 @@ class TestAdjuvantTherapyInference:
 
     def test_drug_with_active_care_code_fires(self):
         text = "Cancer review (XaIyc). On letrozole 2.5mg daily."
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) >= 1
         # Active care code beats the drug as the source
         sources = {d.get("diagnosis_source") for d in diagnoses}
@@ -564,7 +564,7 @@ class TestAdjuvantTherapyInference:
         text = (
             "H/O cancer of breast (B934.). Routine letrozole repeat continues."
         )
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert diagnoses == []
 
     def test_triptorelin_maps_to_prostate(self):
@@ -630,14 +630,14 @@ class TestRegressionMissedCancers:
     def test_prostate_x78y6_problem_line(self):
         # eps a6c093d2702d379f / e7c8b99ad0ae77ab
         text = "Major: Carcinoma of prostate (X78Y6)"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         assert diagnoses[0]["site_key"] == "prostate"
 
     def test_invasive_breast_ya0ln_problem_line(self):
         # eps 1ecfb55618c2a6d2
         text = "Major: Invasive carcinoma of breast (Ya0ln)"
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         assert diagnoses[0]["site_key"] == "breast"
 
@@ -646,7 +646,7 @@ class TestRegressionMissedCancers:
             "Initiated letrozole 2.5mg OD per oncology recommendation. "
             "First prescription issued today."
         )
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         d = diagnoses[0]
         assert d["site_key"] == "breast"
@@ -784,14 +784,14 @@ class TestSkinMelanomaInventory:
         # without the "lesion" word being part of "excision of lesion".
         # The procedure-code path must still fire.
         text = "Wide excision of skin lesion (7G055) - right cheek"
-        _, _, treatments, _, _, _, _, _ = _classify_one(text)
+        _, _, treatments, _, _, _, _, _, _ = _classify_one(text)
         assert len(treatments) == 1
         assert treatments[0].get("treatment_source") == "procedure_code"
         assert treatments[0].get("treatment_code") == "7G055"
 
     def test_xapyd_emits_first_seen_with_site_key(self):
         text = "Seen in fast track suspected skin cancer clinic (XaPyd)"
-        _, _, _, _, _, _, _, first_seens = _classify_one(text)
+        _, _, _, _, _, _, _, first_seens, _ = _classify_one(text)
         assert len(first_seens) == 1
         fs = first_seens[0]
         assert fs.get("first_seen_source") == "specialist_clinic_code"
@@ -842,7 +842,7 @@ class TestCancerFollowUpTemplate:
             "Skin Cancer Follow Up: lesion on back 4x4mm seb k. "
             "No local recurrence."
         )
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         d = diagnoses[0]
         assert d.get("diagnosis_source") == "cancer_follow_up_template"
@@ -854,7 +854,7 @@ class TestCancerFollowUpTemplate:
             "Major: H/O cancer of breast (B934.). "
             "Skin Cancer Follow Up template attached."
         )
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert diagnoses == []
 
     def test_phrases_compile_with_site_keys(self):
@@ -924,7 +924,7 @@ class TestBenignPhraseScopeGuard:
 
     def test_harold_ckd_encounter_does_not_emit_benign_closure(self):
         # THE regression fixture - this is the exact bug.
-        _, _, _, _, benigns, _, _, _ = _classify_one(
+        _, _, _, _, benigns, _, _, _, _ = _classify_one(
             _HAROLD_CKD_TEXT, enc_id="3e80acf0", date="2024-11-18"
         )
         assert benigns == [], (
@@ -934,7 +934,7 @@ class TestBenignPhraseScopeGuard:
 
     def test_tier1_phrase_no_evidence_of_malignancy_still_fires(self):
         text = "Mole biopsy: no evidence of malignancy."
-        _, _, _, _, benigns, _, _, _ = _classify_one(text)
+        _, _, _, _, benigns, _, _, _, _ = _classify_one(text)
         assert len(benigns) >= 1
 
     def test_tier1_psa_no_further_action_still_fires(self):
@@ -945,7 +945,7 @@ class TestBenignPhraseScopeGuard:
         text = (
             "Prostate-specific antigen result normal, no further action."
         )
-        _, _, _, _, benigns, _, _, _ = _classify_one(text)
+        _, _, _, _, benigns, _, _, _, _ = _classify_one(text)
         assert len(benigns) >= 1
 
     def test_gated_phrase_with_cancer_context_fires(self):
@@ -956,7 +956,7 @@ class TestBenignPhraseScopeGuard:
             "Letter from oncology clinic: lesion benign, "
             "discharged from clinic."
         )
-        _, _, _, _, benigns, _, _, _ = _classify_one(text)
+        _, _, _, _, benigns, _, _, _, _ = _classify_one(text)
         assert len(benigns) == 1
         b = benigns[0]
         assert b.get("benign_phrase") == "discharged from clinic"
@@ -967,7 +967,7 @@ class TestBenignPhraseScopeGuard:
             "Mental health follow-up. Patient discharged from clinic. "
             "Continue current medication."
         )
-        _, _, _, _, benigns, _, _, _ = _classify_one(text)
+        _, _, _, _, benigns, _, _, _, _ = _classify_one(text)
         assert benigns == []
 
     def test_benign_read_code_path_unaffected_by_gate(self):
@@ -976,7 +976,7 @@ class TestBenignPhraseScopeGuard:
         # an encounter without any 2WW/fast-track tokens to avoid
         # the existing referral-encounter guard.
         text = "Problem: Laryngopharyngeal reflux (XaK99) - reviewed."
-        _, _, _, _, benigns, _, _, _ = _classify_one(text)
+        _, _, _, _, benigns, _, _, _, _ = _classify_one(text)
         assert len(benigns) == 1
         assert benigns[0].get("benign_source") == "problem_list_code"
 
@@ -985,7 +985,7 @@ class TestBenignPhraseScopeGuard:
         text = (
             "MDT review of melanoma case: low-risk, no further action."
         )
-        _, _, _, _, benigns, _, _, _ = _classify_one(text)
+        _, _, _, _, benigns, _, _, _, _ = _classify_one(text)
         assert len(benigns) == 1
 
     def test_gold_mined_renal_term_alone_does_not_satisfy_gate(self):
@@ -997,7 +997,7 @@ class TestBenignPhraseScopeGuard:
             "Problem: Chronic kidney disease stage 3 (XaLHI). "
             "Repeat bloods in 1 month. If stable, no further action."
         )
-        _, _, _, _, benigns, _, _, _ = _classify_one(text)
+        _, _, _, _, benigns, _, _, _, _ = _classify_one(text)
         assert benigns == [], (
             "Gold-mined renal term must not satisfy the cancer-context "
             "gate; only strict cancer-pathway tokens or benign Read codes "
@@ -1021,7 +1021,7 @@ class TestRegressionHaroldAllwyn:
             "Fast track referral for suspected skin cancer (XaMeA) "
             "- (Added from Questionnaire)"
         )
-        referrals, _, _, _, _, _, _, _ = _classify_one(text)
+        referrals, _, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(referrals) == 1
         assert referrals[0].get("site_key") == "melanoma"
         assert referrals[0].get("site_source") == "explicit_2ww_code"
@@ -1031,7 +1031,7 @@ class TestRegressionHaroldAllwyn:
             "Seen in fast track suspected skin cancer clinic (XaPyd). "
             "Approx 3 mm oval shaped lesion to right side cheek."
         )
-        _, _, _, _, _, _, _, first_seens = _classify_one(text)
+        _, _, _, _, _, _, _, first_seens, _ = _classify_one(text)
         assert len(first_seens) == 1
         assert first_seens[0].get("site_key") == "melanoma"
 
@@ -1039,7 +1039,7 @@ class TestRegressionHaroldAllwyn:
         text = (
             "Major: Lentigo maligna melanoma (Xa99Y) - excised April 2025"
         )
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         d = diagnoses[0]
         assert d.get("site_key") == "melanoma"
@@ -1052,7 +1052,7 @@ class TestRegressionHaroldAllwyn:
             "Operation note: Wide excision of skin lesion (7G055) - "
             "right cheek lentigo maligna, clear margins."
         )
-        _, _, treatments, _, _, _, _, _ = _classify_one(text)
+        _, _, treatments, _, _, _, _, _, _ = _classify_one(text)
         assert len(treatments) >= 1
 
     def test_skin_cancer_follow_up_template_emits_diagnosis(self):
@@ -1062,7 +1062,7 @@ class TestRegressionHaroldAllwyn:
             "Clinical management plan: fu 6 months as per surveillance, "
             "safety netting."
         )
-        _, diagnoses, _, _, _, _, _, _ = _classify_one(text)
+        _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         assert diagnoses[0].get("site_key") == "melanoma"
         assert diagnoses[0].get("diagnosis_source") == "cancer_follow_up_template"

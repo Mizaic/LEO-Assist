@@ -837,6 +837,56 @@ _add(
 )
 
 
+# -- SBAR (Situation, Background, Assessment, Recommendation) -----------------
+# Prompts are seeded so reviewers can edit the production wording at runtime
+# from /admin/prompts. Used by services/pipeline_worker SBAROrchestrator.
+from libs.prompts.sbar_output_schemas import (
+    SBAR_BACKGROUND_OUTPUT_SCHEMA,
+    SBAR_RECOMMENDATION_OUTPUT_SCHEMA,
+    SBAR_SITUATION_OUTPUT_SCHEMA,
+)
+
+_add(
+    "sbar_situation",
+    1,
+    "libs.prompts.sbar_situation_v1.SBAR_SITUATION_SYSTEM_V1",
+    output_schema=json.dumps(SBAR_SITUATION_OUTPUT_SCHEMA),
+    few_shot_examples=[],
+    max_few_shot=0,
+    description=(
+        "SBAR Situation section. Produces 2-3 sentence Markdown with inline "
+        "[SOURCE: ...] citations describing who the patient is and the trigger "
+        "for this summary. Hardened against prompt injection in CONTEXT."
+    ),
+)
+_add(
+    "sbar_background",
+    1,
+    "libs.prompts.sbar_background_v1.SBAR_BACKGROUND_SYSTEM_V1",
+    output_schema=json.dumps(SBAR_BACKGROUND_OUTPUT_SCHEMA),
+    few_shot_examples=[],
+    max_few_shot=0,
+    description=(
+        "SBAR Background section. Produces a short bullet list (3-8 bullets) "
+        "of clinically relevant background, prefering coded SNOMED facts over "
+        "raw text and surfacing missing/conflicting data explicitly."
+    ),
+)
+_add(
+    "sbar_recommendation",
+    1,
+    "libs.prompts.sbar_recommendation_v1.SBAR_RECOMMENDATION_SYSTEM_V1",
+    output_schema=json.dumps(SBAR_RECOMMENDATION_OUTPUT_SCHEMA),
+    few_shot_examples=[],
+    max_few_shot=0,
+    description=(
+        "SBAR Recommendation section. Produces a short narrative plus a list "
+        "of discrete actions (with priority and rule_ids), grounded in the "
+        "rules surfaced by the deterministic Assessment formatter."
+    ),
+)
+
+
 def _get_driver():
     """Return a Neo4j driver for the Knowledge Graph."""
     from neo4j import GraphDatabase

@@ -1,0 +1,109 @@
+# -- R-LEO-AI-198 -- Family-history mention misread as patient cancer
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-198"
+  title: "Family-history-of-cancer mention misread as a patient cancer event, opening phantom pathways for unaffected patients"
+
+  hazard:
+    description: >
+      The text-anchor classifier may treat a family-history
+      mention ("FH prostate ca", "father diagnosed at 75",
+      "family history of breast cancer") as a patient cancer
+      event when other text in the same encounter contains
+      conditional referral guidance or generic 2WW tokens.
+      The patient is then assigned a phantom cancer pathway
+      they do not actually have.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A patient with a family history of cancer (e.g. father
+    diagnosed at 75) gets a routine screening test (PSA,
+    mammography, FIT) ordered. The result is auto-filed with
+    a standardised disclaimer that includes "refer as a 2WW
+    if elevated". The detector reads the FH context plus the
+    boilerplate referral guidance and opens a phantom cancer
+    EpisodeOfCare for the patient even though they have no
+    diagnosis and no actual referral.
+
+  harm:
+    description: >
+      Mis-classification of a healthy patient as having a
+      cancer pathway. Reviewer fatigue from triaging phantom
+      closed_benign episodes; loss of trust in the queue;
+      possible mis-attribution of practice-level cancer
+      pathway counts; possible distress if the phantom
+      classification surfaces in a patient-facing report.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 3
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-210: text_generic referrals are suppressed
+        when _RE_FAMILY_HISTORY_CANCER matches and no
+        structural referral artefact (XaY59 / PRISM /
+        Hospital fast-track row / "Fast track referral for
+        suspected ...") is present. text_contains_history_of_cancer
+        is also extended to treat FH-only mentions as
+        historical context, defending the diagnosis path.
+      implemented_by:
+        - "DI-LEO-AI-210"
+      verified_by:
+        - "VT-LEO-AI-202"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-211 (Pattern I) suppresses the boilerplate
+        lab disclaimer text that almost always co-occurs with
+        FH context on routine screening result drops, giving
+        a second independent line of defence.
+      implemented_by:
+        - "DI-LEO-AI-211"
+      verified_by:
+        - "VT-LEO-AI-203"
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Suppression only targets text_generic; PRISM, Read-
+      code, and rejection subtypes are unaffected, so any
+      genuine structurally-evidenced referral still
+      classifies. The FH regex was sized from the patient
+      4842019832 record (PSA + FH prostate ca scenario),
+      verified against a false-positive guard ("Patient
+      diagnosed with prostate cancer in 2018" still matches
+      no FH), and tested against 7 cases (VT-LEO-AI-202).
+
+  monitoring:
+    monitoring_plan: >
+      Per-rebuild compare the count of cancer EpisodeOfCare
+      nodes whose source-encounter text matches
+      _RE_FAMILY_HISTORY_CANCER vs total cancer episodes.
+      Investigate any rebuild where FH-tagged episodes > 0
+      and lack a structural referral artefact.
+    metrics:
+      - "Count of cancer EpisodeOfCare nodes whose triggering text matches FH but lacks structural referral evidence"
+      - "Practice-level prostate / breast / colorectal phantom rate per rebuild"
+    review_frequency: "Each rebuild"
+
+  metadata:
+    identified_by: "Patient 4842019832 investigation -- Pattern H (PSA + FH prostate ca encounter spawned a phantom prostate cancer EpisodeOfCare)"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "referral-classification"
+      - "family-history"
+      - "patient-4842019832"

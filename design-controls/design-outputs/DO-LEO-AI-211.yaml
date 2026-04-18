@@ -1,0 +1,169 @@
+# -- DO-LEO-AI-211 -- Mission Control KPI patient counts + cohort denominator
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-211"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-214"]
+    user_needs: ["UN-LEO-AI-058"]
+    risks_addressed: ["R-LEO-AI-201"]
+    verification_tests: ["VT-LEO-AI-206"]
+
+  specification:
+    title: "Mission Control KPI strip: patient-headline + cohort denominator"
+    description: |
+      Implements DI-LEO-AI-214. Splits the existing six KPI
+      tile data so the headline value matches the tile label
+      (patients, not episodes) and adds a new cohort
+      denominator block so the user always knows which patients
+      sit behind the current filter context.
+
+      Backend (services/analytics_api/app/routers/mission_control.py):
+        - _kpis_cypher now returns BOTH the existing episode
+          counts (confirmed_cancer, pathway_closures) AND new
+          patient-equivalent counts (confirmed_cancer_patients,
+          pathway_closure_patients) computed by running the
+          same predicate against DISTINCT p instead of DISTINCT
+          ep. confirmed_cancer_patients reuses confirmed_cancer
+          _where('ep') so the patient figure agrees with
+          /audit/summary.confirmed_cancers (DI-LEO-AI-134).
+        - A new helper _cohort_denominator_cypher builds a
+          standalone query that resolves the cohort denominator
+          (patients in org scope) and three excluded buckets
+          (no pathway / missing referral date / outside the
+          selected window). The query intentionally accepts
+          only org_id, scope, date_from and date_to so it does
+          NOT inherit cancer-type, closure-reason or review-
+          status filters; the denominator must answer "of all
+          patients we have data for, how many are hidden by
+          the date / status filter and why".
+        - get_mission_control_kpis runs both Cypher queries on
+          the same PatientGraphClient (one open + close), packs
+          the cohort row into a stable "cohort" object (with
+          all values coerced to int and zero-filled when the
+          row is absent), and exposes confirmed_cancer_patients
+          and pathway_closure_patients alongside the existing
+          fields. The historical episode-count fields are
+          preserved unchanged for backward compatibility with
+          the audit summary chart.
+
+      UI types (services/ui/src/lib/missionControlApi.ts):
+        - MissionKPIs gains confirmed_cancer_patients,
+          pathway_closure_patients and an optional cohort:
+          MissionKPICohort block. MissionKPICohort is a new
+          interface with five integer fields (total_patients,
+          excluded_total, excluded_no_pathway, excluded_
+          missing_referral_date, excluded_outside_window).
+
+      UI rendering (services/ui/src/components/mission-control/
+      KPIStrip.tsx):
+        - The KPICard primitive now accepts an optional
+          subValue prop and renders it as a small caption
+          beneath the headline + label (data-testid="kpi-sub-
+          value").
+        - The Confirmed cancer card displays confirmed_cancer_
+          patients as the headline and "<N> pathways" as the
+          sub-line; the Pathway closures card mirrors this
+          pattern with pathway_closure_patients.
+        - Both tooltips have been rewritten in plain English
+          to describe the metric as a count of PATIENTS so the
+          numeric headline matches the tooltip text.
+        - When kpis.cohort is present and at least one patient
+          is excluded, a caption (data-testid="kpi-cohort-
+          denominator") sits below the KPI strip and reads
+          "Showing <inView> of <total> patients - <excluded>
+          hidden (<reason1>, ...).". When no patients are
+          excluded the caption reads "Showing all <N> patients
+          in the cohort." When kpis.cohort is undefined the
+          caption is not rendered at all (back-compat for any
+          consumer that has not yet adopted the new field).
+        - The line is built by a small exported helper
+          buildCohortDenominatorLine() that lists only the
+          non-zero excluded buckets in the order (no pathway,
+          missing referral date, outside the date range), so
+          the caption stays at reading age 9-11.
+
+      Tests (new + updated):
+        - services/analytics_api/tests/test_mission_control_
+          cohort_kpis.py exercises the five backend acceptance
+          criteria (TC-001..TC-005).
+        - services/ui/src/__tests__/mission-control/KPIStrip
+          CohortDenominator.test.tsx exercises the six UI
+          acceptance criteria (TC-001..TC-006) including the
+          showing-all and missing-cohort branches.
+        - services/ui/src/__tests__/mission-control/KPIStrip
+          .test.tsx and MissionControl.polling.test.tsx had
+          their MissionKPIs literals updated to include the
+          new fields.
+
+    acceptance_criteria:
+      - criterion: "Patient-equivalent counts in KPI Cypher"
+        type: "functional"
+        measurement: "Source inspection"
+        target: "_kpis_cypher returns confirmed_cancer_patients (DISTINCT p with confirmed_cancer_where) and pathway_closure_patients (DISTINCT p with status IN _CLOSURE_STATUSES) alongside the existing episode aliases."
+      - criterion: "Cohort denominator query"
+        type: "functional"
+        measurement: "Source inspection"
+        target: "_cohort_denominator_cypher returns cohort_total_patients, excluded_no_pathway, excluded_missing_referral_date and excluded_outside_window. The query contains no cancer_type / closure_reason / reviewed_at predicates."
+      - criterion: "Endpoint returns cohort block"
+        type: "functional"
+        measurement: "Live endpoint"
+        target: "GET /mission-control/kpis returns a top-level 'cohort' object with five integer fields. When the cohort Cypher returns no rows the block is zero-filled, not omitted."
+      - criterion: "Patient-headline rendering"
+        type: "functional"
+        measurement: "Live render"
+        target: "KPIStrip Confirmed cancer card shows kpis.confirmed_cancer_patients as the headline and '<N> pathways' as the sub-line. Pathway closures card shows kpis.pathway_closure_patients as headline with the same sub-line pattern."
+      - criterion: "Tooltip language matches headline unit"
+        type: "usability"
+        measurement: "Source inspection"
+        target: "Confirmed cancer tooltip: 'Patients with at least one pathway in the selected period where a cancer diagnosis was recorded (NCDA definition).' Pathway closures tooltip: 'Patients with at least one pathway in the selected period that closed without a cancer diagnosis (benign, no follow-up, or stale).'"
+      - criterion: "Cohort denominator caption"
+        type: "functional"
+        measurement: "Live render"
+        target: "Caption with data-testid='kpi-cohort-denominator' appears below the strip when kpis.cohort is present, formatted as either 'Showing <inView> of <total> patients - <hidden> hidden (...)' or 'Showing all <total> patients in the cohort'. Caption MUST NOT render when kpis.cohort is undefined."
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/mission_control.py"
+        description: "_kpis_cypher gains patient-equivalent counts; new _cohort_denominator_cypher helper; get_mission_control_kpis runs the cohort query and exposes the new cohort block."
+      - artifact_type: "source_code"
+        location: "services/ui/src/lib/missionControlApi.ts"
+        description: "MissionKPIs and the new MissionKPICohort interface for the cohort denominator block."
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/KPIStrip.tsx"
+        description: "KPICard subValue prop; patient-headline rendering for confirmed cancer + pathway closures; cohort denominator caption; buildCohortDenominatorLine helper."
+      - artifact_type: "test"
+        location: "services/analytics_api/tests/test_mission_control_cohort_kpis.py"
+        description: "Backend VT-LEO-AI-206 cases TC-001..TC-005."
+      - artifact_type: "test"
+        location: "services/ui/src/__tests__/mission-control/KPIStripCohortDenominator.test.tsx"
+        description: "UI VT-LEO-AI-206 cases TC-001..TC-006."
+    storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript"
+      loc: 280
+      key_functions:
+        - "_kpis_cypher"
+        - "_cohort_denominator_cypher"
+        - "get_mission_control_kpis"
+        - "KPIStrip"
+        - "buildCohortDenominatorLine"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Audit-facing KPI headline used to direct clinician review effort across the patient cohort"
+    risk_control_measures:
+      - "Confirmed cancer patient count reuses confirmed_cancer_where so it cannot drift from the audit summary headline"
+      - "Cohort denominator caption surfaces patients hidden by the current filter (no pathway / missing referral date / outside window) so they are not silently overlooked"
+      - "Both episode counts (existing) and patient counts (new) are returned so downstream consumers cannot accidentally compare patients to episodes"
+      - "Caption uses plain English (reading age 9-11) listing only non-zero excluded buckets so the message stays readable"
+      - "Cohort denominator query is org/scope-bounded so practice-level audits cannot leak cohort numbers across organisations"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

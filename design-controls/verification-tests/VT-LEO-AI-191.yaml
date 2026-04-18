@@ -1,0 +1,125 @@
+# -- VT-LEO-AI-191 -- POST /training/candidates/from-dry-run server-side VT
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-191"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-198"]
+    risks: ["R-LEO-AI-189"]
+
+  metadata:
+    title: "candidate_from_dry_run de-identifies, hashes, sanitises entities, and is idempotent"
+    description: >
+      pytest VT for the new POST
+      /training/candidates/from-dry-run endpoint. Mocks
+      KnowledgeGraphClient so no live Neo4j is needed. Verifies the
+      de-identifier is invoked before hashing or persisting,
+      candidate_id matches the sha256-of-deidentified-text
+      contract, entity offsets are re-anchored onto the
+      de-identified text, entities whose surface text cannot be
+      re-located are dropped, the call is idempotent on a second
+      hit, and empty input is rejected with HTTP 400.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/api/tests/test_candidate_from_dry_run.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.12 / pytest / fastapi TestClient"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-191-TC-001"
+      case_name: "deidentify_text is invoked before hashing"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST encounter_text containing 'NHS 123 456 7890' and a clinician name; assert that deidentify_text was called with the raw text and that the returned candidate_id equals sha256(deidentified_text)"
+          expected_result: "deidentify_text called once; candidate_id matches sha256 of the de-identified output"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "PHI never enters the candidate_id"
+
+    - case_id: "VT-191-TC-002"
+      case_name: "TrainingCandidate is upserted with source dry_run_correction and status pending"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST a fresh encounter_text with two valid entities; capture the upsert call kwargs"
+          expected_result: "session.run is called with UPSERT_TRAINING_CANDIDATE, source='dry_run_correction', status='pending', schema_version='v4', text=deidentified text"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Source string lets QA segment dry-run-sourced candidates"
+
+    - case_id: "VT-191-TC-003"
+      case_name: "Entities are re-anchored onto the de-identified text and unmappable ones are dropped"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST an encounter_text that, after de-identification, no longer contains the surface text of one of the supplied entities (e.g. an entity inside a redacted PERSON token); assert dropped_entity_count > 0 and that the persisted entities_json contains only entities whose start/end map to the de-identified text"
+          expected_result: "Re-anchored entities have offsets pointing into the de-identified text; unmappable entity is dropped"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No stale offsets reach the gold dataset"
+
+    - case_id: "VT-191-TC-004"
+      case_name: "Second call is idempotent (same candidate_id, same label_id)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "POST the same encounter_text twice; on the second call, GET_TRAINING_CANDIDATE_BY_ID returns the existing row and GET_GOLD_LABEL_BY_CANDIDATE_ID returns the existing label"
+          expected_result: "Both calls return the same {candidate_id, label_id}; UPSERT_TRAINING_CANDIDATE is NOT called on the second pass; UPSERT_GOLD_LABEL is NOT called on the second pass"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Two reviewers clicking the same encounter land on the same draft"
+
+    - case_id: "VT-191-TC-005"
+      case_name: "Empty encounter_text returns HTTP 400"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "POST {encounter_text: ''} and {encounter_text: '   '}"
+          expected_result: "Both calls return HTTP 400 with detail mentioning encounter_text"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Empty input does not create a hashed-empty candidate"
+
+    - case_id: "VT-191-TC-006"
+      case_name: "source_hint is truncated to 64 characters before persistence"
+      priority: "medium"
+      test_steps:
+        - step_number: 1
+          action: "POST with source_hint of 200 characters; assert the upsert call kwargs hitl_reason has length <= 64"
+          expected_result: "hitl_reason length <= 64"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No unbounded provenance strings reach the candidate"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-191/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-191-EXEC-001"
+      executed_date: "2026-04-18"
+      executed_by: "developer"
+      result: "pass"
+      environment: "development"
+      command: "python3 -m pytest services/api/tests/test_candidate_from_dry_run.py -v"
+      summary: "7 tests passed, 0 failed (TC-005 split into two parametrised cases for empty and whitespace-only inputs)"
+      notes: "All 6 acceptance criteria met. KnowledgeGraphClient mocked to avoid live Neo4j."

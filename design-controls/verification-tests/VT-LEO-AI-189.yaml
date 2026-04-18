@@ -1,0 +1,157 @@
+# -- VT-LEO-AI-189 -- SBAR LLM prompt suite + deterministic Assessment formatter
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-189"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-192", "DI-LEO-AI-193"]
+    risks: ["R-LEO-AI-181", "R-LEO-AI-183", "R-LEO-AI-184"]
+
+  metadata:
+    title: "SBAR prompts seeded; JSON schema enforces non-empty markdown; Assessment formatter is deterministic and rule-derived; golden-set regression"
+    description: >
+      Pins the LLM prompt suite (sbar_situation_v1, sbar_background_v1,
+      sbar_recommendation_v1) and the deterministic Assessment
+      formatter. Two layers: (1) unit tests on the formatter and on
+      prompt registration / schema validation, (2) a manually-curated
+      golden set of 10 SBAR cases that runs end-to-end through the
+      orchestrator with stubbed clinical data and a recorded LLM
+      transcript, asserting structural and content invariants.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "semi-automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_sbar_assessment_formatter.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.11+ / pytest 8+ / pytest-asyncio"
+    test_data:
+      data_type: "synthetic + manually-curated golden set (planned)"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-189-TC-001"
+      case_name: "format_assessment is a pure function of (matched_rules, patient_codes, guideline_ids)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call format_assessment twice with identical inputs"
+          expected_result: "Outputs are equal byte-for-byte"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Determinism guaranteed"
+
+    - case_id: "VT-189-TC-002"
+      case_name: "Empty matched_rules yields explicit 'no match' narrative and rtr=no"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Pass matched_rules=[]"
+          expected_result: "Narrative explicitly states no rules matched; rtr='no'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Distinguishable from evaluator outage path"
+
+    - case_id: "VT-189-TC-003"
+      case_name: "Evaluator outage yields 'evaluator unavailable' narrative and rtr='unknown'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Force evaluator HTTP error via mocked httpx"
+          expected_result: "Narrative notes evaluator unavailable; pathway hints set to 'unknown'; errors[] populated"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "R-LEO-AI-183 mitigation observable"
+
+    - case_id: "VT-189-TC-004"
+      case_name: "2WW rule wins priority sort and triggers rtr='yes' / stt='2ww'"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Stub matched_rules with both routine and 2WW; format_assessment"
+          expected_result: "2WW rule appears first; rtr='yes'; stt='2ww'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Priority sort honoured"
+
+    - case_id: "VT-189-TC-005"
+      case_name: "Routine-only rule set yields rtr='no'"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Stub matched_rules with routine-only entries"
+          expected_result: "rtr='no'; stt absent or 'routine'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Hint derivation correct"
+
+    - case_id: "VT-189-TC-006"
+      case_name: "All three SBAR prompts are registered by scripts/seed_prompt_configs.py"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect SEED_PROMPTS for sbar_situation, sbar_background, sbar_recommendation v1"
+          expected_result: "Three entries present with non-empty system prompt and JSON output schema"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Seed registration complete"
+
+    - case_id: "VT-189-TC-007"
+      case_name: "JSON output schemas reject empty markdown"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Validate {situation_markdown:''} against SBAR_SITUATION_OUTPUT_SCHEMA"
+          expected_result: "Validation fails on minLength"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Empty content cannot be persisted"
+
+    - case_id: "VT-189-TC-008"
+      case_name: "Hardening rule 10 (CONTEXT-as-data) appears in every SBAR system prompt"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Inspect each SBAR system prompt string for the prompt-injection guard rule"
+          expected_result: "All three prompts contain the rule"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "R-LEO-AI-184 mitigation observable in source"
+
+    - case_id: "VT-189-TC-009"
+      case_name: "Golden-set regression: 10 fixtures end-to-end (manual sign-off)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run orchestrator against 10 manually-curated SBAR fixtures with deterministic LLM transcript; reviewer signs off pass/fail"
+          expected_result: "All 10 pass with no hallucinated facts, all citations resolve, recommendations grounded in matched rule_ids"
+          verification_method: "manual"
+      acceptance_criteria:
+        - "100% golden-set pass before any prompt rollout"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run", "manual_review"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-189/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-LEO-AI-189-EXEC-001"
+      executed_at: "2026-04-17"
+      executor: "automated-pytest"
+      command: "python3 -m pytest tests/test_sbar_assessment_formatter.py -v"
+      result: "pass"
+      summary: "Formatter cases passed; golden-set TC-009 remains pending and is the gate for SBAR prompt rollout"
+      notes: |
+        Status remains 'draft' until golden-set TC-009 is signed off.
+        Automated formatter + prompt-registration cases (TC-001 through TC-008) all green.

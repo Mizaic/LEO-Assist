@@ -1,0 +1,99 @@
+# -- VT-LEO-AI-197 -- rejected_no_followup status engine
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-197"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-205"
+    risks:
+      - "R-LEO-AI-195"
+
+  metadata:
+    title: "Episode status engine assigns rejected_no_followup when every referral is rejected and no follow-up exists within 90 days"
+    description: >
+      Verifies the DI-LEO-AI-205 status rule. An open
+      episode whose every referral has subtype 'rejected'
+      / 'marked_in_error' AND no follow-up referral was
+      filed within 90 days AND no diagnosis or benign-
+      closure date exists MUST be assigned status
+      'rejected_no_followup' with hitl_flag=True. Diagnosis
+      and benign-closure evidence MUST short-circuit the
+      rule (they outrank the workflow signal).
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/test_patient_4643293950_patterns.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-197-TC-001"
+      case_name: "All-rejected referral chain returns ('rejected_no_followup', True, reason)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "_rejection_followup_status([rejected anchors with no follow-up], False, None)"
+          expected_result: "Tuple ('rejected_no_followup', True, non-empty reason)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Status == 'rejected_no_followup'"
+        - "hitl_flag is True"
+        - "hitl_reason is non-empty"
+
+    - case_id: "VT-197-TC-002"
+      case_name: "Rejection followed by working referral within 90 days returns None (episode keeps in_progress)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "_rejection_followup_status([rejected, prism_followup], False, None)"
+          expected_result: "None"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Result is None"
+
+    - case_id: "VT-197-TC-003"
+      case_name: "Rejection with diagnosis evidence returns None (diagnosis beats workflow signal)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "_rejection_followup_status([rejected anchor], True, None)"
+          expected_result: "None"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Result is None"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types:
+      - "automated_test_run"
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-197/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-LEO-AI-197-EXEC-001"
+      executed_at: "2026-04-18T11:30:00Z"
+      executor: "automated"
+      result: "pass"
+      summary: >
+        3 test cases (1 positive rejected_no_followup,
+        2 negative short-circuits) executed via
+        TestPatternARejectedNoFollowupStatus in
+        tests/test_patient_4643293950_patterns.py. 3/3 passed.
+      pass_count: 3
+      fail_count: 0
+      notes: "Test command: pytest tests/test_patient_4643293950_patterns.py::TestPatternARejectedNoFollowupStatus -v"

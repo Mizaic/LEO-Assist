@@ -1,0 +1,60 @@
+# -- DO-LEO-AI-190 -- SBAR HTTP API + SSE relay
+- id: "DO-LEO-AI-190"
+  version: "1.0.0"
+  type: "API_Contract"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-191"]
+    user_needs: ["UN-LEO-AI-080"]
+    risks_addressed: ["R-LEO-AI-182"]
+    verification_tests: ["VT-LEO-AI-188"]
+
+  specification:
+    title: "services/api/app/routers/sbar.py"
+    description: |
+      FastAPI router exposing POST /sbar/jobs, GET
+      /sbar/jobs/{run_id}/events (SSE relay backed by Redis pub/sub),
+      and GET /sbar/assessments/{assessment_id}. Each endpoint requires
+      admin role. The events relay reads pipeline:last:{run_id} for a
+      late subscriber catch-up, then subscribes to pipeline:{run_id}
+      until a terminal event or 300 s of silence.
+    acceptance_criteria:
+      - criterion: "Validation"
+        type: "functional"
+        measurement: "Test"
+        target: "POST returns 422 on Pydantic error, otherwise 200 with run_id/assessment_id"
+      - criterion: "Terminal close"
+        type: "functional"
+        measurement: "Test"
+        target: "SSE stream closes on sbar_completed/sbar_failed/pipeline_error"
+      - criterion: "Auth"
+        type: "safety"
+        measurement: "Inspection"
+        target: "All three endpoints depend on require_admin"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/sbar.py"
+        description: "router with three endpoints + Redis SSE generator"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/main.py"
+        description: "include_router(sbar_router)"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 250
+      key_functions: ["enqueue_sbar_job", "stream_sbar_events", "get_assessment"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "require_admin gate on every endpoint"
+    risk_control_measures:
+      - "_PROGRESS_IDLE_TIMEOUT_S bounds resource use of an abandoned subscription"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

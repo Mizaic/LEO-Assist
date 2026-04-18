@@ -12,7 +12,6 @@ import {
   clampRange,
   pctBetween,
   pickGranularity,
-  toTimestamp,
   type ScrubberEncounter,
   type TimelineBin,
 } from "./timelineBins";
@@ -22,6 +21,12 @@ import HistogramBar, {
   HoverPreview,
   type BarRect,
 } from "./TimelineHistogramBar";
+import {
+  LinkedEncounterTicks,
+  MilestoneMarkers,
+  buildMilestoneMarkers,
+  type LinkedTick,
+} from "./TimelineOverlays";
 
 // Sticky histogram timeline for the Mission Control patient detail
 // Encounter text tab. Bars represent date bins (auto-granularity).
@@ -42,6 +47,10 @@ interface Props {
   linkedEncounterIds: Set<string>;
   episodeFrom: string | null;
   episodeTo: string | null;
+  // Episode milestones (Referral, Diagnosis, Treatment, ...) drawn
+  // as labelled tabs along the top axis of the histogram. Falls
+  // back to an empty list when none provided.
+  milestones?: Array<{ milestone_type: string; encounter_id: string; date: string }>;
   activeEncounterId: string | null;
   onJumpToEncounter: (encounterId: string) => void;
   // Controlled visible range. When null, the scrubber shows the
@@ -111,8 +120,9 @@ function jumpFromBin({ bins, activeEncounterId, direction, onJump }: OnArrowFrom
 export default function EncounterTimelineScrubber({
   encounters,
   linkedEncounterIds,
-  episodeFrom,
-  episodeTo,
+  episodeFrom: _episodeFrom,
+  episodeTo: _episodeTo,
+  milestones = [],
   activeEncounterId,
   onJumpToEncounter,
   visibleFromMs: visibleFromMsProp,
@@ -185,16 +195,36 @@ export default function EncounterTimelineScrubber({
     }));
   }, [bins]);
 
+  const linkedTicks = useMemo<LinkedTick[]>(
+    () =>
+      dated
+        .filter((d) => d.isLinked)
+        .map((d) => ({ encounterId: String(d.enc.encounter_id), ts: d.ts })),
+    [dated]
+  );
+
+  // Tightened episode band: span only first-linked..last-linked
+  // encounter dates, so the band reflects the actual episode
+  // footprint (not the loose referral_date..end_date envelope).
   const windowBand = useMemo(() => {
-    if (bars.length === 0) return null;
-    const fromTs = toTimestamp(episodeFrom);
-    const toTs = toTimestamp(episodeTo);
+    if (bars.length === 0 || linkedTicks.length === 0) return null;
+    let fromTs = Number.POSITIVE_INFINITY;
+    let toTs = Number.NEGATIVE_INFINITY;
+    for (const tick of linkedTicks) {
+      if (tick.ts < fromTs) fromTs = tick.ts;
+      if (tick.ts > toTs) toTs = tick.ts;
+    }
     if (!Number.isFinite(fromTs) || !Number.isFinite(toTs)) return null;
     if (toTs < fullMinMs || fromTs > fullMaxMs) return null;
     const leftPct = pctBetween(Math.max(fromTs, fullMinMs), fullMinMs, fullMaxMs);
     const rightPct = pctBetween(Math.min(toTs, fullMaxMs), fullMinMs, fullMaxMs);
     return { leftPct, widthPct: Math.max(0.5, rightPct - leftPct) };
-  }, [bars.length, fullMinMs, fullMaxMs, episodeFrom, episodeTo]);
+  }, [bars.length, linkedTicks, fullMinMs, fullMaxMs]);
+
+  const milestoneMarkers = useMemo(
+    () => buildMilestoneMarkers(milestones),
+    [milestones]
+  );
 
   const focusBand = useMemo(() => {
     if (bars.length === 0 || !isZoomed) return null;
@@ -269,7 +299,7 @@ export default function EncounterTimelineScrubber({
             </Button>
           )}
           <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "0.65rem" }}>
-            Click a bar to jump - drag the focus band to filter
+            Click a bar to jump - drag the focus band to widen or narrow your view
           </Typography>
         </Box>
       </Box>
@@ -327,6 +357,12 @@ export default function EncounterTimelineScrubber({
             }}
           />
         )}
+        <MilestoneMarkers
+          markers={milestoneMarkers}
+          fullMinMs={fullMinMs}
+          fullMaxMs={fullMaxMs}
+          onJumpToEncounter={onJumpToEncounter}
+        />
         {bars.map((bar) => (
           <HistogramBar
             key={`bar-${bar.bin.label}`}
@@ -360,6 +396,11 @@ export default function EncounterTimelineScrubber({
             }
           />
         ))}
+        <LinkedEncounterTicks
+          ticks={linkedTicks}
+          fullMinMs={fullMinMs}
+          fullMaxMs={fullMaxMs}
+        />
         <AnimatePresence>
           {hoverBar && popoverBinKey === null && (
             <HoverPreview bar={hoverBar} trackHeight={TRACK_HEIGHT} />

@@ -1,0 +1,87 @@
+# -- DI-LEO-AI-215 -- Problem-list diagnosis overrides referral gate (Pattern K)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-215"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-005"
+    - "UN-LEO-AI-006"
+  requirement: >
+    The text-anchor classifier SHALL fire diagnosis_confirmed on a
+    referral encounter when the same encounter contains a malignancy
+    Read code (Ya0ln, X78WM, B-family) on a Major:/Problem:/Active
+    Problem: line, OR a malignancy term on a problem-list line, OR
+    an active-cancer-care Read code (XaIph, XaKHe, XaJU6, etc.).
+    These EMIS problem-list additions are the strongest possible
+    confirmed-diagnosis signal and MUST override the same-encounter
+    referral suppression introduced by DI-LEO-AI-145.
+  rationale: >
+    Patient 4802892365's 2025-03-26 11:56 Med Sec admin encounter
+    contained both "Fast track referral for suspected breast cancer
+    (XaMeC)" AND "Major: Invasive carcinoma of breast (Ya0ln) -
+    lobular (New Episode)" + "Major: Malignant tumour of breast
+    (X78WM) (New Episode)". The DI-LEO-AI-145 referral gate
+    suppressed the diagnosis anchor entirely, leaving the episode
+    with no diagnosis_date and no diagnosis_confirmed milestone. A
+    cohort scan found 5 encounters with the same shape and 106
+    completed cancer episodes with no diagnosis_date. The
+    "Major: <code> (New Episode)" prefix indicates the GP added the
+    code to the patient's permanent problem list -- this is not
+    suspected-cancer text in a referral phrase; it is a confirmed
+    diagnosis added at the same time the referral was issued
+    (extremely common when biopsy results return the same day, or
+    when the GP records a working diagnosis simultaneous with
+    raising the 2WW). The DI-LEO-AI-145 trap (suppress
+    surface-form cancer in suspected-referral phrases) MUST still
+    hold for free-prose mentions; the override only applies when
+    the malignancy code/term appears on an explicit problem-list
+    line.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "find_malignancy_code_in_problem_line('Major: Invasive carcinoma of breast (Ya0ln) - lobular (New Episode)') returns ('Ya0ln', 'breast')"
+      - type: "functional"
+        spec: "find_malignancy_code_in_problem_line('Considering malignant tumour of breast (X78WM)') returns None"
+      - type: "functional"
+        spec: "An encounter with both 'Fast track referral for suspected breast cancer (XaMeC)' AND 'Major: Invasive carcinoma of breast (Ya0ln) (New Episode)' MUST emit a diagnosis anchor with diagnosis_source='problem_list_code'"
+      - type: "safety"
+        spec: "An encounter with only surface-form 'Fast track referral for suspected lung cancer' MUST NOT emit a diagnosis anchor (DI-LEO-AI-145 trap preserved)"
+      - type: "safety"
+        spec: "Active-cancer-care Read codes (XaKHe, XaN5C) on a referral encounter MUST emit diagnosis"
+    constraints:
+      - type: "safety"
+        spec: "Override gate uses the strict find_malignancy_code_in_problem_line helper; free-prose code mentions ('Considering X78WM') do NOT override the referral gate"
+    dependencies:
+      - "DI-LEO-AI-145"
+      - "DI-LEO-AI-159"
+      - "DI-LEO-AI-171"
+    downstream_impacts:
+      - "Anchor detector (text path)"
+      - "Per-cohort diagnosis_date population (currently 106 confirmed cancer episodes have no diagnosis_date)"
+      - "Pathway completeness KPI (referral -> first_seen -> diagnosis -> treatment chain)"
+    technical_details:
+      language: "Python"
+      framework: "Anchor detector (regex layer) + code inventory helper"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+        - "libs/domains/code_inventories.py"
+      estimated_loc: 25
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-207 must pass with 100% on all critical and total
+      cases, including the patient 4802892365 same-encounter
+      regression and the DI-LEO-AI-145 trap preservation case.
+    test_protocol: "VT-LEO-AI-207"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-202"
+  tags:
+    - "anchor-detector"
+    - "diagnosis-classification"
+    - "problem-list"
+    - "patient-4802892365"

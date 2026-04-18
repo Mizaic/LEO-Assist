@@ -1,0 +1,121 @@
+# -- R-LEO-AI-202 -- Diagnosis suppressed when problem-list code co-occurs with referral on same encounter
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-202"
+  title: "Confirmed cancer diagnosis is silently dropped when the GP adds the diagnosis to the problem list on the same encounter as the 2WW referral"
+
+  hazard:
+    description: >
+      The DI-LEO-AI-145 same-encounter referral gate suppresses
+      ANY diagnosis_confirmed anchor on an encounter that also
+      carries a 2WW referral phrase. EMIS workflows routinely
+      add the working diagnosis to the patient's permanent
+      problem list ("Major: Invasive carcinoma of breast (Ya0ln)
+      - lobular (New Episode)") at the same time the GP raises
+      the fast-track referral. Without the Pattern K override,
+      the strongest possible diagnosis signal (a problem-list
+      Read code) is discarded and the EpisodeOfCare is left
+      with diagnosis_date = null and no diagnosis_confirmed
+      milestone.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    Patient 4802892365's 2025-03-26 encounter recorded a
+    confirmed breast cancer diagnosis (Ya0ln + X78WM problem-
+    list additions) at the same time as the 2WW referral. The
+    pathway shown to the clinical auditor reported "referral
+    only, no diagnosis" so the patient appeared as an
+    in-progress 2WW awaiting outcome rather than as a
+    confirmed cancer requiring active follow-up. A reviewer
+    relying on the diagnosis_confirmed flag to triage cohort
+    review would skip this patient.
+
+  harm:
+    description: >
+      A confirmed cancer patient is mis-classified as
+      suspected-only and is filtered out of the confirmed-
+      cancer working list. Downstream KPIs (time-to-diagnosis,
+      time-to-treatment) cannot be calculated. The cohort scan
+      identified 106 completed cancer episodes with no
+      diagnosis_date -- a substantial fraction is attributable
+      to this suppression.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 4
+    rpn: 48
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-215 introduces a strict
+        find_malignancy_code_in_problem_line helper that only
+        matches malignancy Read codes (Ya0ln, X78WM, B-family)
+        when they appear on a Major:/Problem:/Active Problem:
+        line. The anchor detector treats this -- plus a
+        malignancy term in a problem line, plus an active-
+        cancer-care code -- as hard diagnosis evidence that
+        overrides the same-encounter referral gate. Free-prose
+        mentions ("Considering X78WM") still respect the gate
+        so the DI-LEO-AI-145 trap (suspected-cancer in
+        referral phrases) is preserved.
+      implemented_by:
+        - "DI-LEO-AI-215"
+      verified_by:
+        - "VT-LEO-AI-207"
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        After the next pipeline rebuild, run the cohort scan
+        for "completed cancer episodes with no diagnosis_date"
+        and verify the count drops materially from the current
+        baseline of 106. Any residual cases are investigated
+        as either Pattern N candidates or genuine missing-
+        diagnosis episodes.
+      implemented_by:
+        - "DI-LEO-AI-215"
+      verified_by:
+        - "VT-LEO-AI-207"
+      effectiveness: "pending"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Problem-list additions are the strongest possible
+      diagnosis signal in EMIS primary care; overriding the
+      referral gate only on this strict signal preserves the
+      DI-LEO-AI-145 protection against false positives from
+      surface-form cancer text in 2WW referral phrases. Six
+      verification cases (3 critical) pass and 611-test wider
+      regression suite remains green.
+
+  monitoring:
+    monitoring_plan: >
+      Per pipeline rebuild, count completed cancer episodes
+      where diagnosis_date IS NULL but the source encounters
+      contain a malignancy Read code on a problem-list line.
+      The count should be zero. Any non-zero result is
+      escalated as a Pattern K regression.
+    metrics:
+      - "Count of completed cancer episodes with no diagnosis_date AND a problem-list malignancy Read code in source encounters"
+      - "Cohort-wide diagnosis_confirmed precision and recall (gold-label sample)"
+    review_frequency: "Per pipeline rebuild"
+
+  metadata:
+    identified_by: "Patient 4802892365 investigation -- breast cancer pathway showed referral on 2025-03-26 with no diagnosis_confirmed despite Ya0ln + X78WM problem-list additions on the same encounter"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "diagnosis-classification"
+      - "problem-list"
+      - "patient-4802892365"
+      - "pattern-k"

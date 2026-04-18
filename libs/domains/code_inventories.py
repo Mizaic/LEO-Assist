@@ -87,135 +87,135 @@ from typing import Pattern
 # (configs/read codes/readcode.md) and the deep-read of stale dumps.
 MALIGNANCY_READ_CODES: dict[str, str] = {
     # -- corpus-confirmed in deep-read --
-    "X78WM": "breast",          # Malignant tumour of breast (pid 4709023328)
-    "X78XO": "endometrial",     # Endometrial carcinoma (pid 6220044894)
-    "BB5j2": "endometrial",     # Endometrioid carcinoma (pid 6220044894)
+    "X78WM": "breast",  # Malignant tumour of breast (pid 4709023328)
+    "X78XO": "endometrial",  # Endometrial carcinoma (pid 6220044894)
+    "BB5j2": "endometrial",  # Endometrioid carcinoma (pid 6220044894)
     # -- corpus-confirmed in 2025 closed_benign audit (DI-LEO-AI-171) --
-    "X78Y6": "prostate",        # Carcinoma of prostate (eps a6c093d2702d379f, e7c8b99ad0ae77ab)
-    "Ya0ln": "breast",          # Invasive carcinoma of breast (eps 1ecfb55618c2a6d2)
+    "X78Y6": "prostate",  # Carcinoma of prostate (eps a6c093d2702d379f, e7c8b99ad0ae77ab)
+    "Ya0ln": "breast",  # Invasive carcinoma of breast (eps 1ecfb55618c2a6d2)
     # -- high-confidence siblings from Read code appendix --
-    "B00..": "head_and_neck",   # Malignant neoplasm of lip
-    "B01..": "head_and_neck",   # Malignant neoplasm of tongue
-    "B02..": "head_and_neck",   # Major salivary glands malignant
-    "B03..": "head_and_neck",   # Gum & mouth malignant
-    "B04..": "head_and_neck",   # Floor of mouth malignant
-    "B05..": "head_and_neck",   # Oropharynx malignant
-    "B06..": "head_and_neck",   # Nasopharynx malignant
-    "B07..": "head_and_neck",   # Hypopharynx malignant
-    "B10..": "oesophageal",     # Malignant neoplasm of oesophagus
-    "B11..": "stomach",         # Malignant neoplasm of stomach
-    "B12..": "small_intestine", # Malignant neoplasm of small intestine
-    "B13..": "colorectal",      # Malignant neoplasm of colon
-    "B14..": "colorectal",      # Malignant neoplasm of rectum
-    "B15..": "liver",           # Malignant neoplasm of liver
-    "B16..": "pancreatic",      # Malignant neoplasm of pancreas
-    "B22..": "lung",            # Malignant neoplasm of trachea/bronchus/lung
-    "B34..": "breast",          # Malignant neoplasm of female breast
-    "B40..": "cervical",        # Malignant neoplasm of cervix uteri
-    "B41..": "endometrial",     # Malignant neoplasm of body of uterus
-    "B43..": "ovarian",         # Malignant neoplasm of ovary
-    "B46..": "prostate",        # Malignant neoplasm of prostate
-    "B47..": "testicular",      # Malignant neoplasm of testis
-    "B49..": "bladder",         # Malignant neoplasm of bladder
-    "B4A..": "renal",           # Malignant neoplasm of kidney
+    "B00..": "head_and_neck",  # Malignant neoplasm of lip
+    "B01..": "head_and_neck",  # Malignant neoplasm of tongue
+    "B02..": "head_and_neck",  # Major salivary glands malignant
+    "B03..": "head_and_neck",  # Gum & mouth malignant
+    "B04..": "head_and_neck",  # Floor of mouth malignant
+    "B05..": "head_and_neck",  # Oropharynx malignant
+    "B06..": "head_and_neck",  # Nasopharynx malignant
+    "B07..": "head_and_neck",  # Hypopharynx malignant
+    "B10..": "oesophageal",  # Malignant neoplasm of oesophagus
+    "B11..": "stomach",  # Malignant neoplasm of stomach
+    "B12..": "small_intestine",  # Malignant neoplasm of small intestine
+    "B13..": "colorectal",  # Malignant neoplasm of colon
+    "B14..": "colorectal",  # Malignant neoplasm of rectum
+    "B15..": "liver",  # Malignant neoplasm of liver
+    "B16..": "pancreatic",  # Malignant neoplasm of pancreas
+    "B22..": "lung",  # Malignant neoplasm of trachea/bronchus/lung
+    "B34..": "breast",  # Malignant neoplasm of female breast
+    "B40..": "cervical",  # Malignant neoplasm of cervix uteri
+    "B41..": "endometrial",  # Malignant neoplasm of body of uterus
+    "B43..": "ovarian",  # Malignant neoplasm of ovary
+    "B46..": "prostate",  # Malignant neoplasm of prostate
+    "B47..": "testicular",  # Malignant neoplasm of testis
+    "B49..": "bladder",  # Malignant neoplasm of bladder
+    "B4A..": "renal",  # Malignant neoplasm of kidney
     # NOTE: B5... covers connective/soft tissue + skin + breast in the
     # Read appendix (B57.. is the brain sub-prefix). The previous
     # "B5..." -> head_and_neck mapping was a bug introduced when the
     # appendix was first transcribed; do NOT add a generic B5 entry. We
     # rely on the more specific sub-prefixes below to avoid mis-routing
     # connective-tissue sarcomas to head_and_neck.
-    "B57..": "brain",           # Malignant neoplasm of brain
-    "B62..": "thyroid",         # Malignant neoplasm of thyroid gland
+    "B57..": "brain",  # Malignant neoplasm of brain
+    "B62..": "thyroid",  # Malignant neoplasm of thyroid gland
     "B63..": "haematological",  # Hodgkin's disease
-    "B64..": "lymphoma",        # Non-Hodgkin's lymphoma
-    "B66..": "myeloma",         # Multiple myeloma
-    "B67..": "leukaemia",       # Lymphoid leukaemia
-    "B68..": "leukaemia",       # Myeloid leukaemia
-    "B69..": "leukaemia",       # Monocytic leukaemia
+    "B64..": "lymphoma",  # Non-Hodgkin's lymphoma
+    "B66..": "myeloma",  # Multiple myeloma
+    "B67..": "leukaemia",  # Lymphoid leukaemia
+    "B68..": "leukaemia",  # Myeloid leukaemia
+    "B69..": "leukaemia",  # Monocytic leukaemia
     # -- additional Xa-prefix carcinoma codes from the Read appendix --
     # (sourced from configs/read codes/readcode.md; kept conservative
     #  to avoid over-firing on rare or non-NCDA-relevant subtypes)
-    "Xa3eL": "breast",          # Carcinoma of breast - upper, inner quadrant
-    "Xa3eM": "breast",          # Carcinoma of breast - lower, inner quadrant
-    "Xa3eO": "breast",          # Carcinoma breast - lower, outer quadrant
-    "Xa3eP": "breast",          # Carcinoma of breast - axillary tail
-    "Xa3eQ": "breast",          # Carcinoma of breast NOS
-    "Xa0bQ": "breast",          # Sarcoma of breast
-    "Xa0bS": "breast",          # Malignant lymphoma of breast
-    "Xa0Ge": "head_and_neck",   # Carcinoma of larynx
-    "Xa1oQ": "head_and_neck",   # Carcinoma of vocal cord
-    "Xa97p": "head_and_neck",   # Malignant tumour of anterior two-thirds of tongue
-    "Xa97t": "head_and_neck",   # Malignant tumour of soft tissue of head/face/neck
-    "Xa9EA": "head_and_neck",   # Malignant tumour of posterior wall of hypopharynx
-    "Xa0KG": "lung",            # Malignant tumour of lung
-    "Xa0DF": "oesophageal",     # Adenocarcinoma of oesophagus
-    "Xa34F": "colorectal",      # Carcinoma of anal canal
-    "Xa34H": "colorectal",      # Carcinoma of sigmoid colon
-    "Xa84V": "colorectal",      # Adenocarcinoma of sigmoid colon
-    "XaA0C": "colorectal",      # Adenocarcinoma of ileum
-    "Xa97q": "liver",           # Malignant tumour of liver
-    "Xa3eF": "liver",           # Carcinoma liver/biliary system
-    "XaB1g": "pancreatic",      # Carcinoma of head of pancreas
-    "XaB1h": "pancreatic",      # Carcinoma of body of pancreas
-    "XaB1i": "pancreatic",      # Carcinoma of tail of pancreas
-    "Xa36r": "cervical",        # Carcinoma of cervix
-    "XaBmX": "endometrial",     # Adenocarcinoma of uterus
-    "Xa0Ei": "ovarian",         # Carcinoma of fallopian tube
-    "Xa0Eq": "ovarian",         # Carcinoma of Bartholin's gland
-    "Xa97y": "ovarian",         # Malignant tumour of vulva
-    "Xa059": "urological",      # Malignant tumour of corpus spongiosum
-    "Xa05A": "urological",      # Malignant tumour of corpus cavernosum
-    "Xa0bM": "bladder",         # Sarcoma of bladder
-    "Xa0bV": "testicular",      # Malignant Leydig cell tumour of testis
-    "Xa0U5": "testicular",      # Malignant lymphoma of testis
-    "Xa3eS": "testicular",      # Carcinoma of epididymis/spermatic cord
-    "Xa0Dp": "brain",           # Malignant glioma of brain
-    "XaC1Q": "brain",           # Malignant neoplasm, overlapping lesion of brain
-    "Xa0bR": "thyroid",         # Malignant lymphoma of thyroid gland
-    "Xa99k": "lymphoma",        # Malignant lymphoma
-    "Xa99l": "lymphoma",        # Malignant lymphoma - small lymphocytic
-    "Xa0T7": "lymphoma",        # Malignant lymphomatous polyposis
-    "Xa0TP": "lymphoma",        # Malignant lymphoma - lymphoblastic
+    "Xa3eL": "breast",  # Carcinoma of breast - upper, inner quadrant
+    "Xa3eM": "breast",  # Carcinoma of breast - lower, inner quadrant
+    "Xa3eO": "breast",  # Carcinoma breast - lower, outer quadrant
+    "Xa3eP": "breast",  # Carcinoma of breast - axillary tail
+    "Xa3eQ": "breast",  # Carcinoma of breast NOS
+    "Xa0bQ": "breast",  # Sarcoma of breast
+    "Xa0bS": "breast",  # Malignant lymphoma of breast
+    "Xa0Ge": "head_and_neck",  # Carcinoma of larynx
+    "Xa1oQ": "head_and_neck",  # Carcinoma of vocal cord
+    "Xa97p": "head_and_neck",  # Malignant tumour of anterior two-thirds of tongue
+    "Xa97t": "head_and_neck",  # Malignant tumour of soft tissue of head/face/neck
+    "Xa9EA": "head_and_neck",  # Malignant tumour of posterior wall of hypopharynx
+    "Xa0KG": "lung",  # Malignant tumour of lung
+    "Xa0DF": "oesophageal",  # Adenocarcinoma of oesophagus
+    "Xa34F": "colorectal",  # Carcinoma of anal canal
+    "Xa34H": "colorectal",  # Carcinoma of sigmoid colon
+    "Xa84V": "colorectal",  # Adenocarcinoma of sigmoid colon
+    "XaA0C": "colorectal",  # Adenocarcinoma of ileum
+    "Xa97q": "liver",  # Malignant tumour of liver
+    "Xa3eF": "liver",  # Carcinoma liver/biliary system
+    "XaB1g": "pancreatic",  # Carcinoma of head of pancreas
+    "XaB1h": "pancreatic",  # Carcinoma of body of pancreas
+    "XaB1i": "pancreatic",  # Carcinoma of tail of pancreas
+    "Xa36r": "cervical",  # Carcinoma of cervix
+    "XaBmX": "endometrial",  # Adenocarcinoma of uterus
+    "Xa0Ei": "ovarian",  # Carcinoma of fallopian tube
+    "Xa0Eq": "ovarian",  # Carcinoma of Bartholin's gland
+    "Xa97y": "ovarian",  # Malignant tumour of vulva
+    "Xa059": "urological",  # Malignant tumour of corpus spongiosum
+    "Xa05A": "urological",  # Malignant tumour of corpus cavernosum
+    "Xa0bM": "bladder",  # Sarcoma of bladder
+    "Xa0bV": "testicular",  # Malignant Leydig cell tumour of testis
+    "Xa0U5": "testicular",  # Malignant lymphoma of testis
+    "Xa3eS": "testicular",  # Carcinoma of epididymis/spermatic cord
+    "Xa0Dp": "brain",  # Malignant glioma of brain
+    "XaC1Q": "brain",  # Malignant neoplasm, overlapping lesion of brain
+    "Xa0bR": "thyroid",  # Malignant lymphoma of thyroid gland
+    "Xa99k": "lymphoma",  # Malignant lymphoma
+    "Xa99l": "lymphoma",  # Malignant lymphoma - small lymphocytic
+    "Xa0T7": "lymphoma",  # Malignant lymphomatous polyposis
+    "Xa0TP": "lymphoma",  # Malignant lymphoma - lymphoblastic
     "XaBAk": "haematological",  # Malignant mastocytosis
     "Xa0Ri": "haematological",  # Malignant white blood cell disorder
-    "Xa0Di": "melanoma",        # Malignant melanoma of anus
-    "Xa0Dj": "melanoma",        # Malignant melanoma of rectum
-    "XaBAw": "melanoma",        # Malignant blue naevus of skin
-    "XaCIv": "melanoma",        # Malignant melanoma of back
-    "Xa0CD": "skin",            # Malignant tumour of skin with pilar differentiation
+    "Xa0Di": "melanoma",  # Malignant melanoma of anus
+    "Xa0Dj": "melanoma",  # Malignant melanoma of rectum
+    "XaBAw": "melanoma",  # Malignant blue naevus of skin
+    "XaCIv": "melanoma",  # Malignant melanoma of back
+    "Xa0CD": "skin",  # Malignant tumour of skin with pilar differentiation
     # -- DI-LEO-AI-175: skin / melanoma vocabulary (2026-04-17 audit
     #    of patient 4921442355 - Lentigo maligna melanoma silently
     #    filed closed_benign because none of these were mapped) --
-    "Xa99Y": "melanoma",        # Lentigo maligna melanoma
+    "Xa99Y": "melanoma",  # Lentigo maligna melanoma
     # B32.. family - Malignant melanoma of skin (sourced verbatim
     # from configs/read codes/readcode.md). All map to "melanoma"
     # because the NCDA cancer_type vocabulary uses melanoma as the
     # umbrella site for cutaneous melanocytic malignancy.
-    "B32..": "melanoma",        # Malignant melanoma of skin (parent)
-    "B320.": "melanoma",        # Malignant melanoma of skin of lip
-    "B321.": "melanoma",        # Malignant melanoma of eyelid (incl canthus)
-    "B322.": "melanoma",        # Malignant melanoma of skin of ear/external auditory canal
-    "B3220": "melanoma",        # Malignant melanoma of skin of ear
-    "B3221": "melanoma",        # Malignant melanoma of skin of external auditory canal
-    "B323.": "melanoma",        # Malignant melanoma of skin of other and unspecified parts of face
-    "B3230": "melanoma",        # Malignant melanoma of skin of cheek (Mr Allwyn's site)
-    "B3231": "melanoma",        # Malignant melanoma of chin
-    "B324.": "melanoma",        # Malignant melanoma of scalp and neck
-    "B3240": "melanoma",        # Malignant melanoma of scalp
-    "B3241": "melanoma",        # Malignant melanoma of neck
-    "B325.": "melanoma",        # Malignant melanoma of trunk (excluding scrotum)
-    "B3250": "melanoma",        # Malignant melanoma of trunk NOS
-    "B3251": "melanoma",        # Malignant melanoma of breast
-    "B326.": "melanoma",        # Malignant melanoma of upper limb and shoulder
-    "B3260": "melanoma",        # Malignant melanoma of shoulder
-    "B3261": "melanoma",        # Malignant melanoma of arm
-    "B327.": "melanoma",        # Malignant melanoma of lower limb and hip
-    "B3270": "melanoma",        # Malignant melanoma of hip
-    "B3271": "melanoma",        # Malignant melanoma of leg
-    "B3280": "melanoma",        # Malignant melanoma of overlapping sites of skin
-    "B3281": "melanoma",        # Malignant melanoma of contiguous skin sites
-    "B32y.": "melanoma",        # Malignant melanoma of skin OS
-    "B32z.": "melanoma",        # Malignant melanoma of skin NOS
+    "B32..": "melanoma",  # Malignant melanoma of skin (parent)
+    "B320.": "melanoma",  # Malignant melanoma of skin of lip
+    "B321.": "melanoma",  # Malignant melanoma of eyelid (incl canthus)
+    "B322.": "melanoma",  # Malignant melanoma of skin of ear/external auditory canal
+    "B3220": "melanoma",  # Malignant melanoma of skin of ear
+    "B3221": "melanoma",  # Malignant melanoma of skin of external auditory canal
+    "B323.": "melanoma",  # Malignant melanoma of skin of other and unspecified parts of face
+    "B3230": "melanoma",  # Malignant melanoma of skin of cheek (Mr Allwyn's site)
+    "B3231": "melanoma",  # Malignant melanoma of chin
+    "B324.": "melanoma",  # Malignant melanoma of scalp and neck
+    "B3240": "melanoma",  # Malignant melanoma of scalp
+    "B3241": "melanoma",  # Malignant melanoma of neck
+    "B325.": "melanoma",  # Malignant melanoma of trunk (excluding scrotum)
+    "B3250": "melanoma",  # Malignant melanoma of trunk NOS
+    "B3251": "melanoma",  # Malignant melanoma of breast
+    "B326.": "melanoma",  # Malignant melanoma of upper limb and shoulder
+    "B3260": "melanoma",  # Malignant melanoma of shoulder
+    "B3261": "melanoma",  # Malignant melanoma of arm
+    "B327.": "melanoma",  # Malignant melanoma of lower limb and hip
+    "B3270": "melanoma",  # Malignant melanoma of hip
+    "B3271": "melanoma",  # Malignant melanoma of leg
+    "B3280": "melanoma",  # Malignant melanoma of overlapping sites of skin
+    "B3281": "melanoma",  # Malignant melanoma of contiguous skin sites
+    "B32y.": "melanoma",  # Malignant melanoma of skin OS
+    "B32z.": "melanoma",  # Malignant melanoma of skin NOS
     "Xa97z": "non_site_specific",  # Malignant tumour of unknown origin
 }
 
@@ -235,8 +235,40 @@ MALIGNANCY_READ_CODES: dict[str, str] = {
 #
 # Sourced verbatim from configs/read codes/readcode.md.
 CANCER_TREATMENT_PROCEDURE_CODES: set[str] = {
-    "7G055",   # Wide excision of skin lesion (DI-LEO-AI-175)
-    "X90PX",   # Biopsy - action (used for diagnostic / curative biopsy)
+    # -- DI-LEO-AI-175 (skin / general) --
+    "7G055",  # Wide excision of skin lesion
+    "X90PX",  # Biopsy - action (diagnostic / curative biopsy)
+    # -- DI-LEO-AI-217 (Pattern M): cancer-surgery Read codes
+    # observed in the live cohort (Major:/Problem: lines, "(New
+    # Episode)" markers). Each code below is a definitive cancer
+    # treatment / staging procedure -- presence in a post-referral
+    # encounter MUST fire treatment_started so the pathway shows
+    # an end-to-end milestone chain (referral -> first_seen ->
+    # diagnosis -> treatment_started). --
+    # Breast surgery
+    "XacLJ",  # Mastectomy of right breast (pid 4802892365)
+    "XacLK",  # Mastectomy of left breast (sibling code)
+    "X40EC",  # Wide local excision of breast lesion
+    "7H601",  # Block dissection of axillary lymph nodes
+    "XaF83",  # Biopsy of sentinel lymph node
+    # Bowel / colorectal surgery
+    "X20Y4",  # Anterior resection of rectum
+    "XaFB2",  # Low anterior resection of rectum
+    "XaCvE",  # Loop ileostomy stoma (cancer surgery accompaniment)
+    "XaZVW",  # Laparoscopically assisted right hemicolectomy
+    "77132",  # Right hemicolectomy and anastomosis NEC
+    # Prostate / urology surgery
+    "Y3c24",  # Robot assisted laparoscopic radical prostatectomy
+    # Thyroid surgery
+    "Xa8OS",  # Partial thyroidectomy
+    "71102",  # Hemithyroidectomy
+    # Generic chemotherapy / radiotherapy (also in
+    # ACTIVE_CANCER_CARE_CODES; included here so the treatment
+    # path fires on its own when present without any other
+    # active-care marker)
+    "8BAD0",  # Cancer chemotherapy
+    "8BAD1",  # Cancer radiotherapy
+    "ZV58A",  # Antineoplastic chemotherapy encounter
 }
 
 # ---------------------------------------------------------------------------
@@ -255,25 +287,25 @@ CANCER_TREATMENT_PROCEDURE_CODES: set[str] = {
 # Sourced verbatim from configs/read codes/readcode.md (Xa-prefix
 # supplemental terms) and the 2025 closed_benign audit (DI-LEO-AI-171).
 ACTIVE_CANCER_CARE_CODES: set[str] = {
-    "XaIph",   # Cancer confirmed
-    "XaIyc",   # Cancer review
-    "XaXEV",   # Cancer care plan
-    "XaJU6",   # Cancer multidisciplinary team meeting
-    "XaN5C",   # Discussed at multidisciplinary team meeting
-    "XaabR",   # Referral to cancer multidisciplinary team
-    "XaKHe",   # Cancer care review
-    "XaKI4",   # Cancer care review template
-    "XaIl4",   # Suspected cancer - patient informed
-    "XaIpL",   # Refer to cancer specialist
-    "XaIpM",   # Cancer specialist appointment
-    "XaIsg",   # Treatment for cancer started
-    "XaIsh",   # Treatment for cancer in progress
-    "8BAD0",   # Cancer chemotherapy
-    "8BAD1",   # Cancer radiotherapy (informational)
-    "ZV58A",   # Antineoplastic chemotherapy encounter
-    "ZV67E",   # Cancer follow-up
-    "8HBJ.",   # Discharge from cancer service
-    "8HHE.",   # Referral to oncologist
+    "XaIph",  # Cancer confirmed
+    "XaIyc",  # Cancer review
+    "XaXEV",  # Cancer care plan
+    "XaJU6",  # Cancer multidisciplinary team meeting
+    "XaN5C",  # Discussed at multidisciplinary team meeting
+    "XaabR",  # Referral to cancer multidisciplinary team
+    "XaKHe",  # Cancer care review
+    "XaKI4",  # Cancer care review template
+    "XaIl4",  # Suspected cancer - patient informed
+    "XaIpL",  # Refer to cancer specialist
+    "XaIpM",  # Cancer specialist appointment
+    "XaIsg",  # Treatment for cancer started
+    "XaIsh",  # Treatment for cancer in progress
+    "8BAD0",  # Cancer chemotherapy
+    "8BAD1",  # Cancer radiotherapy (informational)
+    "ZV58A",  # Antineoplastic chemotherapy encounter
+    "ZV67E",  # Cancer follow-up
+    "8HBJ.",  # Discharge from cancer service
+    "8HHE.",  # Referral to oncologist
 }
 
 
@@ -291,24 +323,24 @@ ACTIVE_CANCER_CARE_CODES: set[str] = {
 # closed_benign audit (DI-LEO-AI-171) where one episode carried "B934."
 # (history of breast cancer) inside the 2WW window.
 HISTORY_OF_CANCER_CODE_PREFIXES: tuple[str, ...] = (
-    "ZV10",    # Personal history of malignant neoplasm (V10.x family)
-    "XaXGk",   # H/O: malignancy template
-    "XE0q0",   # H/O: cancer template
-    "X71Eu",   # H/O: cancer of breast
-    "B934",    # History of malignant neoplasm of breast
-    "B937W",   # History of malignant neoplasm of prostate
-    "1421",    # H/O: cancer (legacy)
-    "1422",    # H/O: cancer of cervix
-    "1423",    # H/O: cancer of breast
-    "1424",    # H/O: cancer of bowel
-    "1425",    # H/O: cancer of lung
-    "1426",    # H/O: cancer of prostate
-    "1427",    # H/O: cancer of bladder
-    "1428",    # H/O: cancer of kidney
-    "1429",    # H/O: cancer of skin / melanoma
-    "142A",    # H/O: cancer of stomach
-    "142Z",    # H/O: cancer NOS
-    "XM1R8",   # H/O: malignancy questionnaire template
+    "ZV10",  # Personal history of malignant neoplasm (V10.x family)
+    "XaXGk",  # H/O: malignancy template
+    "XE0q0",  # H/O: cancer template
+    "X71Eu",  # H/O: cancer of breast
+    "B934",  # History of malignant neoplasm of breast
+    "B937W",  # History of malignant neoplasm of prostate
+    "1421",  # H/O: cancer (legacy)
+    "1422",  # H/O: cancer of cervix
+    "1423",  # H/O: cancer of breast
+    "1424",  # H/O: cancer of bowel
+    "1425",  # H/O: cancer of lung
+    "1426",  # H/O: cancer of prostate
+    "1427",  # H/O: cancer of bladder
+    "1428",  # H/O: cancer of kidney
+    "1429",  # H/O: cancer of skin / melanoma
+    "142A",  # H/O: cancer of stomach
+    "142Z",  # H/O: cancer NOS
+    "XM1R8",  # H/O: malignancy questionnaire template
 )
 
 
@@ -336,24 +368,35 @@ MALIGNANCY_TERM_PATTERNS: list[tuple[Pattern[str], str]] = [
     (re.compile(r"\binvasive (?:ductal|lobular) carcinoma\b", re.I), "breast"),
     (re.compile(r"\binvasive carcinoma of (?:the )?breast\b", re.I), "breast"),
     (re.compile(r"\bcarcinoma of (?:the )?breast\b", re.I), "breast"),
-    (re.compile(r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?breast\b", re.I),
-     "breast"),
+    (
+        re.compile(r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?breast\b", re.I),
+        "breast",
+    ),
     (re.compile(r"\bDCIS of (?:the )?breast\b", re.I), "breast"),
     (re.compile(r"\bcarcinoma of (?:the )?prostate\b", re.I), "prostate"),
-    (re.compile(r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?prostate\b", re.I),
-     "prostate"),
+    (
+        re.compile(r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?prostate\b", re.I),
+        "prostate",
+    ),
     (re.compile(r"\badenocarcinoma of (?:the )?prostate\b", re.I), "prostate"),
     (re.compile(r"\bcarcinoma of (?:the )?lung\b", re.I), "lung"),
-    (re.compile(r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?lung\b", re.I),
-     "lung"),
+    (re.compile(r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?lung\b", re.I), "lung"),
     (re.compile(r"\bnon[- ]small cell lung (?:cancer|carcinoma)\b", re.I), "lung"),
     (re.compile(r"\bsmall cell lung (?:cancer|carcinoma)\b", re.I), "lung"),
     (re.compile(r"\bcarcinoma of (?:the )?colon\b", re.I), "colorectal"),
     (re.compile(r"\bcarcinoma of (?:the )?rectum\b", re.I), "colorectal"),
-    (re.compile(r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?(?:colon|rectum|"
-                r"sigmoid|bowel)\b", re.I), "colorectal"),
-    (re.compile(r"\badenocarcinoma of (?:the )?(?:colon|rectum|sigmoid)\b", re.I),
-     "colorectal"),
+    (
+        re.compile(
+            r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?(?:colon|rectum|"
+            r"sigmoid|bowel)\b",
+            re.I,
+        ),
+        "colorectal",
+    ),
+    (
+        re.compile(r"\badenocarcinoma of (?:the )?(?:colon|rectum|sigmoid)\b", re.I),
+        "colorectal",
+    ),
     (re.compile(r"\bcarcinoma of (?:the )?(?:liver|hepat\w*)\b", re.I), "liver"),
     (re.compile(r"\bhepatocellular carcinoma\b", re.I), "liver"),
     (re.compile(r"\bcarcinoma of (?:the )?pancreas\b", re.I), "pancreatic"),
@@ -375,13 +418,25 @@ MALIGNANCY_TERM_PATTERNS: list[tuple[Pattern[str], str]] = [
     (re.compile(r"\bsquamous cell carcinoma of (?:the )?skin\b", re.I), "skin"),
     (re.compile(r"\bbasal cell carcinoma\b", re.I), "skin"),
     (re.compile(r"\bcarcinoma of (?:the )?larynx\b", re.I), "head_and_neck"),
-    (re.compile(r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?(?:larynx|"
-                r"oropharynx|nasopharynx|tongue|tonsil)\b", re.I), "head_and_neck"),
+    (
+        re.compile(
+            r"\bmalignant (?:tumou?r|neoplasm) of (?:the )?(?:larynx|"
+            r"oropharynx|nasopharynx|tongue|tonsil)\b",
+            re.I,
+        ),
+        "head_and_neck",
+    ),
     (re.compile(r"\bnon[- ]hodgkin'?s? lymphoma\b", re.I), "lymphoma"),
     (re.compile(r"\bhodgkin'?s? (?:disease|lymphoma)\b", re.I), "lymphoma"),
     (re.compile(r"\bmultiple myeloma\b", re.I), "myeloma"),
-    (re.compile(r"\b(?:acute|chronic) (?:myeloid|lymphoid|lymphocytic|"
-                r"myeloblastic) leuk(?:a|e)mia\b", re.I), "leukaemia"),
+    (
+        re.compile(
+            r"\b(?:acute|chronic) (?:myeloid|lymphoid|lymphocytic|"
+            r"myeloblastic) leuk(?:a|e)mia\b",
+            re.I,
+        ),
+        "leukaemia",
+    ),
     (re.compile(r"\bglioblastoma\b", re.I), "brain"),
     (re.compile(r"\bmalignant glioma\b", re.I), "brain"),
 ]
@@ -413,49 +468,109 @@ MALIGNANCY_TERM_PATTERNS: list[tuple[Pattern[str], str]] = [
 # guard separately.
 ADJUVANT_THERAPY_DRUG_PATTERNS: list[tuple[Pattern[str], str, str]] = [
     # -- Hormonal therapy: breast --
-    (re.compile(r"\b(?:letrozole|femara)\b", re.I), "breast",
-     "aromatase inhibitor - breast cancer adjuvant"),
-    (re.compile(r"\b(?:anastrozole|arimidex)\b", re.I), "breast",
-     "aromatase inhibitor - breast cancer adjuvant"),
-    (re.compile(r"\b(?:exemestane|aromasin)\b", re.I), "breast",
-     "aromatase inhibitor - breast cancer adjuvant"),
-    (re.compile(r"\b(?:tamoxifen|nolvadex)\b", re.I), "breast",
-     "SERM - breast cancer adjuvant"),
-    (re.compile(r"\b(?:fulvestrant|faslodex)\b", re.I), "breast",
-     "SERD - advanced breast cancer"),
+    (
+        re.compile(r"\b(?:letrozole|femara)\b", re.I),
+        "breast",
+        "aromatase inhibitor - breast cancer adjuvant",
+    ),
+    (
+        re.compile(r"\b(?:anastrozole|arimidex)\b", re.I),
+        "breast",
+        "aromatase inhibitor - breast cancer adjuvant",
+    ),
+    (
+        re.compile(r"\b(?:exemestane|aromasin)\b", re.I),
+        "breast",
+        "aromatase inhibitor - breast cancer adjuvant",
+    ),
+    (
+        re.compile(r"\b(?:tamoxifen|nolvadex)\b", re.I),
+        "breast",
+        "SERM - breast cancer adjuvant",
+    ),
+    (
+        re.compile(r"\b(?:fulvestrant|faslodex)\b", re.I),
+        "breast",
+        "SERD - advanced breast cancer",
+    ),
     # -- Hormonal therapy: prostate --
-    (re.compile(r"\b(?:bicalutamide|casodex)\b", re.I), "prostate",
-     "anti-androgen - prostate cancer"),
-    (re.compile(r"\b(?:flutamide|drogenil)\b", re.I), "prostate",
-     "anti-androgen - prostate cancer"),
-    (re.compile(r"\b(?:enzalutamide|xtandi)\b", re.I), "prostate",
-     "anti-androgen - prostate cancer"),
-    (re.compile(r"\b(?:abiraterone|zytiga)\b", re.I), "prostate",
-     "CYP17 inhibitor - prostate cancer"),
-    (re.compile(r"\b(?:goserelin|zoladex)\b", re.I), "prostate",
-     "LHRH agonist - prostate / breast cancer"),
-    (re.compile(r"\b(?:leuprorelin|prostap|lupron)\b", re.I), "prostate",
-     "LHRH agonist - prostate cancer"),
-    (re.compile(r"\b(?:triptorelin|decapeptyl)\b", re.I), "prostate",
-     "LHRH agonist - prostate cancer"),
-    (re.compile(r"\b(?:degarelix|firmagon)\b", re.I), "prostate",
-     "GnRH antagonist - prostate cancer"),
+    (
+        re.compile(r"\b(?:bicalutamide|casodex)\b", re.I),
+        "prostate",
+        "anti-androgen - prostate cancer",
+    ),
+    (
+        re.compile(r"\b(?:flutamide|drogenil)\b", re.I),
+        "prostate",
+        "anti-androgen - prostate cancer",
+    ),
+    (
+        re.compile(r"\b(?:enzalutamide|xtandi)\b", re.I),
+        "prostate",
+        "anti-androgen - prostate cancer",
+    ),
+    (
+        re.compile(r"\b(?:abiraterone|zytiga)\b", re.I),
+        "prostate",
+        "CYP17 inhibitor - prostate cancer",
+    ),
+    (
+        re.compile(r"\b(?:goserelin|zoladex)\b", re.I),
+        "prostate",
+        "LHRH agonist - prostate / breast cancer",
+    ),
+    (
+        re.compile(r"\b(?:leuprorelin|prostap|lupron)\b", re.I),
+        "prostate",
+        "LHRH agonist - prostate cancer",
+    ),
+    (
+        re.compile(r"\b(?:triptorelin|decapeptyl)\b", re.I),
+        "prostate",
+        "LHRH agonist - prostate cancer",
+    ),
+    (
+        re.compile(r"\b(?:degarelix|firmagon)\b", re.I),
+        "prostate",
+        "GnRH antagonist - prostate cancer",
+    ),
     # -- Cytotoxics / targeted (presence in primary care notes is
     #    almost always confirmation of cancer therapy) --
-    (re.compile(r"\b(?:capecitabine|xeloda)\b", re.I), "non_site_specific",
-     "fluoropyrimidine - GI / breast cancer"),
-    (re.compile(r"\b(?:imatinib|glivec|gleevec)\b", re.I), "haematological",
-     "tyrosine kinase inhibitor - CML / GIST"),
-    (re.compile(r"\b(?:dasatinib|sprycel)\b", re.I), "haematological",
-     "tyrosine kinase inhibitor - CML"),
-    (re.compile(r"\b(?:erlotinib|tarceva)\b", re.I), "lung",
-     "EGFR inhibitor - lung cancer"),
-    (re.compile(r"\b(?:gefitinib|iressa)\b", re.I), "lung",
-     "EGFR inhibitor - lung cancer"),
-    (re.compile(r"\b(?:trastuzumab|herceptin)\b", re.I), "breast",
-     "HER2 inhibitor - breast cancer"),
-    (re.compile(r"\b(?:rituximab|mabthera)\b", re.I), "lymphoma",
-     "CD20 inhibitor - NHL"),
+    (
+        re.compile(r"\b(?:capecitabine|xeloda)\b", re.I),
+        "non_site_specific",
+        "fluoropyrimidine - GI / breast cancer",
+    ),
+    (
+        re.compile(r"\b(?:imatinib|glivec|gleevec)\b", re.I),
+        "haematological",
+        "tyrosine kinase inhibitor - CML / GIST",
+    ),
+    (
+        re.compile(r"\b(?:dasatinib|sprycel)\b", re.I),
+        "haematological",
+        "tyrosine kinase inhibitor - CML",
+    ),
+    (
+        re.compile(r"\b(?:erlotinib|tarceva)\b", re.I),
+        "lung",
+        "EGFR inhibitor - lung cancer",
+    ),
+    (
+        re.compile(r"\b(?:gefitinib|iressa)\b", re.I),
+        "lung",
+        "EGFR inhibitor - lung cancer",
+    ),
+    (
+        re.compile(r"\b(?:trastuzumab|herceptin)\b", re.I),
+        "breast",
+        "HER2 inhibitor - breast cancer",
+    ),
+    (
+        re.compile(r"\b(?:rituximab|mabthera)\b", re.I),
+        "lymphoma",
+        "CD20 inhibitor - NHL",
+    ),
 ]
 
 # Markers that the prescription is being NEWLY ISSUED rather than
@@ -482,38 +597,38 @@ ADJUVANT_THERAPY_ISSUE_MARKERS: Pattern[str] = re.compile(
 # window. Outside the window they are irrelevant comorbidity.
 BENIGN_EXPLANATION_READ_CODES: set[str] = {
     # -- head & neck pathway --
-    "XaK99",   # Laryngopharyngeal reflux  (pid 4842019832)
-    "F5801",   # Presbyacusis              (pid 4866803525)
-    "X40Gg",   # Thyroid nodule (benign)
-    "XE104",   # Thyrotoxicosis
-    "XE0Xx",   # Chronic rhinitis
+    "XaK99",  # Laryngopharyngeal reflux  (pid 4842019832)
+    "F5801",  # Presbyacusis              (pid 4866803525)
+    "X40Gg",  # Thyroid nodule (benign)
+    "XE104",  # Thyrotoxicosis
+    "XE0Xx",  # Chronic rhinitis
     # -- breast pathway --
-    "XaYQ7",   # Cyst of breast            (pid 4246627143, 6509504022)
-    "Xa4ib",   # Lesion of breast (benign) (pid 7322946243)
-    "XE0Tg",   # Other viral warts         (pid 7322946243)
-    "1A8..",   # Breast lump symptom (without malignancy)
+    "XaYQ7",  # Cyst of breast            (pid 4246627143, 6509504022)
+    "Xa4ib",  # Lesion of breast (benign) (pid 7322946243)
+    "XE0Tg",  # Other viral warts         (pid 7322946243)
+    "1A8..",  # Breast lump symptom (without malignancy)
     # -- urological pathway --
-    "K276.",   # Balanitis xerotica obliterans (pid 4644882798)
-    "XE0e0",   # Urinary tract infection      (pid 7313758405)
-    "XaFqt",   # Suspected UTI                (pid 4822020479)
-    "K1A..",   # Benign prostatic hyperplasia (BPH)
+    "K276.",  # Balanitis xerotica obliterans (pid 4644882798)
+    "XE0e0",  # Urinary tract infection      (pid 7313758405)
+    "XaFqt",  # Suspected UTI                (pid 4822020479)
+    "K1A..",  # Benign prostatic hyperplasia (BPH)
     # -- colorectal / lower GI pathway --
-    "J5105",   # Diverticulosis of the colon (pid 4822020479)
-    "Xa98X",   # Tubular adenoma (benign polyp) (pid 4822020479)
-    "J5701",   # Rectal polyp (benign)
-    "XE0ag",   # Ulcerative colitis          (pid 4246428337)
-    "G84..",   # Haemorrhoid                 (pid 4926887169, 6519712760)
+    "J5105",  # Diverticulosis of the colon (pid 4822020479)
+    "Xa98X",  # Tubular adenoma (benign polyp) (pid 4822020479)
+    "J5701",  # Rectal polyp (benign)
+    "XE0ag",  # Ulcerative colitis          (pid 4246428337)
+    "G84..",  # Haemorrhoid                 (pid 4926887169, 6519712760)
     # -- renal / urological --
-    "PD10.",   # Single renal cyst           (pid 4926887169)
+    "PD10.",  # Single renal cyst           (pid 4926887169)
     # -- gynae --
-    "X406j",   # Ovarian cyst (benign)       (pid 7039607018)
-    "Xa6Yg",   # Atrophy of vagina           (pid 4245132175)
+    "X406j",  # Ovarian cyst (benign)       (pid 7039607018)
+    "Xa6Yg",  # Atrophy of vagina           (pid 4245132175)
     # -- general lymphadenopathy / non-malignant --
-    "Xa0Vr",   # Lymphadenopathy (NAD on 2WW) (pid 7343840665)
+    "Xa0Vr",  # Lymphadenopathy (NAD on 2WW) (pid 7343840665)
     # -- screening normal --
-    "68620",   # Breast neoplasm screening normal (pid 6220044894)
-    "XaPkd",   # BCSP faecal occult blood test normal (pid 4587360686)
-    "XaPVj",   # BCSP faecal occult blood result normal (pid 4587360686)
+    "68620",  # Breast neoplasm screening normal (pid 6220044894)
+    "XaPkd",  # BCSP faecal occult blood test normal (pid 4587360686)
+    "XaPVj",  # BCSP faecal occult blood result normal (pid 4587360686)
 }
 
 # ---------------------------------------------------------------------------
@@ -532,8 +647,15 @@ FAST_TRACK_REFERRAL_READ_CODES: dict[str, str] = {
     "XaMeK": "brain",
     "XaMeG": "haematological",
     "XaMeA": "melanoma",  # DI-LEO-AI-175: Fast track referral for suspected skin cancer
-    "XaMeD": "non_site_specific",
-    "XaMeL": "non_site_specific",  # malignant neoplasm of descended testis NOS
+    # DI-LEO-AI-200: XaMeD is "Fast track referral for suspected
+    # children's tumour", not NSS. Per the strict NSS rule, only the
+    # SNOMED 1556551000000104 referral / explicit NSS surface forms
+    # classify as non_site_specific.
+    "XaMeD": "childrens_tumour",
+    # XaMeL is "Malignant neoplasm of descended testis NOS" - this is
+    # a testicular cancer; the NOS suffix only marks histology, not
+    # site. Mapping it to non_site_specific was a bug.
+    "XaMeL": "testicular",
 }
 
 # ---------------------------------------------------------------------------
@@ -549,8 +671,11 @@ SPECIALIST_CLINIC_READ_CODES: dict[str, str] = {
     "XaPyc": "lung",
     "XaPyP": "brain",
     "XaPyd": "melanoma",  # DI-LEO-AI-175: Seen in fast track suspected skin cancer clinic
-    "XaPyS": "non_site_specific",  # children's tumour clinic
-    "XaPyg": "non_site_specific",  # generic suspected cancer clinic
+    # DI-LEO-AI-200: children's tumour clinic is NOT NSS.
+    "XaPyS": "childrens_tumour",
+    # Generic suspected cancer clinic IS the NSS clinic per the NHS
+    # NG12 NSS pathway -- this stays NSS.
+    "XaPyg": "non_site_specific",
 }
 
 # ---------------------------------------------------------------------------
@@ -562,51 +687,70 @@ BENIGN_INVESTIGATION_PHRASES: list[tuple[Pattern[str], str]] = [
     # -- ORDER MATTERS: more specific phrases come first because
     # match_benign_investigation_phrase returns the first hit --
     # BIRADS / mammogram codes
-    (re.compile(r"mammogram[^.\n]{0,80}\bnormal\b", re.I),
-     "mammogram normal"),
-    (re.compile(r"mammogram[^.\n]{0,80}\bm[12]\b", re.I),
-     "mammogram M1/M2 (BIRADS benign)"),
+    (re.compile(r"mammogram[^.\n]{0,80}\bnormal\b", re.I), "mammogram normal"),
+    (
+        re.compile(r"mammogram[^.\n]{0,80}\bm[12]\b", re.I),
+        "mammogram M1/M2 (BIRADS benign)",
+    ),
     # Breast USS
-    (re.compile(r"us scan of breast[^.\n]{0,80}\bnormal\b", re.I),
-     "breast USS normal"),
-    (re.compile(r"us scan of breast[^.\n]{0,80}\bu[12]\b", re.I),
-     "breast USS U1/U2 (benign)"),
+    (re.compile(r"us scan of breast[^.\n]{0,80}\bnormal\b", re.I), "breast USS normal"),
+    (
+        re.compile(r"us scan of breast[^.\n]{0,80}\bu[12]\b", re.I),
+        "breast USS U1/U2 (benign)",
+    ),
     # Cystoscopy / urology
-    (re.compile(r"flexible cystoscopy[^.\n]{0,80}\bnormal\b", re.I),
-     "flexible cystoscopy normal"),
-    (re.compile(r"\bcystoscop\w*[^.\n]{0,80}\bnormal\b", re.I),
-     "cystoscopy normal"),
+    (
+        re.compile(r"flexible cystoscopy[^.\n]{0,80}\bnormal\b", re.I),
+        "flexible cystoscopy normal",
+    ),
+    (re.compile(r"\bcystoscop\w*[^.\n]{0,80}\bnormal\b", re.I), "cystoscopy normal"),
     # Colorectal screening
     (re.compile(r"\bfobt normal\b", re.I), "FOBT normal"),
     (re.compile(r"\bbcsp[^.\n]{0,80}\bnormal\b", re.I), "BCSP normal"),
     (re.compile(r"\bfit (?:test )?(?:result )?normal\b", re.I), "FIT normal"),
     # Nasendoscopy
-    (re.compile(r"diagnostic nasendoscopy[^.\n]{0,80}\bnormal\b", re.I),
-     "nasendoscopy normal"),
+    (
+        re.compile(r"diagnostic nasendoscopy[^.\n]{0,80}\bnormal\b", re.I),
+        "nasendoscopy normal",
+    ),
     # Colonoscopy with benign result keywords
-    (re.compile(r"colonoscopy[^.\n]{0,200}\b(?:diverticular|haemorrhoid|polyp removed[^.\n]{0,40}no cancer|no malignancy)\b", re.I),
-     "colonoscopy benign finding"),
+    (
+        re.compile(
+            r"colonoscopy[^.\n]{0,200}\b(?:diverticular|haemorrhoid|polyp removed[^.\n]{0,40}no cancer|no malignancy)\b",
+            re.I,
+        ),
+        "colonoscopy benign finding",
+    ),
     # Brain / triage explicit exclusion
-    (re.compile(r"brain triage[^.\n]{0,80}cancer excluded", re.I),
-     "brain triage - cancer excluded"),
+    (
+        re.compile(r"brain triage[^.\n]{0,80}cancer excluded", re.I),
+        "brain triage - cancer excluded",
+    ),
     # PSA monitoring (low PSA explicitly noted as no further action)
-    (re.compile(r"prostate[- ]specific antigen[^.\n]{0,200}normal[, ]+no further action", re.I),
-     "PSA normal, no further action"),
+    (
+        re.compile(
+            r"prostate[- ]specific antigen[^.\n]{0,200}normal[, ]+no further action",
+            re.I,
+        ),
+        "PSA normal, no further action",
+    ),
     # -- General pathway-exclusion language (less specific, last) --
-    (re.compile(r"\bcancer excluded\b", re.I),
-     "cancer excluded - discharge to GP"),
-    (re.compile(r"\bdischarged from care\b", re.I),
-     "discharged from care"),
-    (re.compile(r"\bdischarged from (?:clinic|hospital)\b", re.I),
-     "discharged from clinic"),
-    (re.compile(r"\bdischarged from (?:2ww|two[- ]week|cancer) pathway\b", re.I),
-     "discharged from 2WW pathway"),
-    (re.compile(r"\bno (?:evidence of )?(?:malignancy|cancer)\b", re.I),
-     "no evidence of malignancy"),
-    (re.compile(r"\bnegative for malignancy\b", re.I),
-     "negative for malignancy"),
-    (re.compile(r"\bno further (?:action|follow[- ]up)\b", re.I),
-     "no further action"),
+    (re.compile(r"\bcancer excluded\b", re.I), "cancer excluded - discharge to GP"),
+    (re.compile(r"\bdischarged from care\b", re.I), "discharged from care"),
+    (
+        re.compile(r"\bdischarged from (?:clinic|hospital)\b", re.I),
+        "discharged from clinic",
+    ),
+    (
+        re.compile(r"\bdischarged from (?:2ww|two[- ]week|cancer) pathway\b", re.I),
+        "discharged from 2WW pathway",
+    ),
+    (
+        re.compile(r"\bno (?:evidence of )?(?:malignancy|cancer)\b", re.I),
+        "no evidence of malignancy",
+    ),
+    (re.compile(r"\bnegative for malignancy\b", re.I), "negative for malignancy"),
+    (re.compile(r"\bno further (?:action|follow[- ]up)\b", re.I), "no further action"),
 ]
 
 
@@ -729,6 +873,93 @@ def is_history_of_cancer_code(code: str) -> bool:
     return any(code.startswith(prefix) for prefix in HISTORY_OF_CANCER_CODE_PREFIXES)
 
 
+_PMHX_SECTION_RX = re.compile(
+    r"(?im)^\s*(?:past\s+medical\s+history|past\s+medical\s+hx|"
+    r"PMHx|PMH|background)\s*:\s*",
+)
+
+
+def _malignancy_under_pmhx_section(text: str) -> bool:
+    """True when a malignancy term appears within a PMHx section.
+
+    DI-LEO-AI-203 (Pattern E): community-care holistic assessments
+    (and similar long-form templates) carry a PMHx bullet list
+    beneath a 'Past medical history:' header. A bare entry like
+    'Bowel cancer.' or 'Hypertension. Bowel cancer. Falls.' is a
+    historical record, not a fresh diagnosis. The line does not
+    carry a Read code so the existing problem-list code guard does
+    not catch it.
+
+    We treat any malignancy / cancer term that appears within ~600
+    characters after a PMHx header (and before the next section
+    header) as historical context.
+    """
+    if not text:
+        return False
+    matches = list(_PMHX_SECTION_RX.finditer(text))
+    if not matches:
+        return False
+    cancer_word_rx = re.compile(
+        r"\b(?:cancer|carcinoma|malignan\w+|tumou?r|melanoma|lymphoma|"
+        r"leuk(?:a|e)mia|sarcoma|adenocarcinoma|DCIS|LCIS|BCC|SCC)\b",
+        re.IGNORECASE,
+    )
+    for match in matches:
+        start = match.end()
+        next_header = re.search(
+            r"(?im)^\s*(?:plan|examination|history|diagnosis|"
+            r"treatment|impression|assessment|reason\s+for\s+referral|"
+            r"observation|advice)\s*:\s*",
+            text[start:],
+        )
+        end = start + (next_header.start() if next_header else 600)
+        section = text[start:end]
+        if cancer_word_rx.search(section):
+            return True
+    return False
+
+
+# DI-LEO-AI-210 (Pattern H): family-history cancer markers used to
+# block fresh-diagnosis emission when the only cancer mention is a
+# relative's history (FH prostate ca - father diagnosed at 75). The
+# regex is duplicated in anchor_detector.py for the referral
+# suppression hook; keeping a copy here keeps code_inventories.py
+# import-safe (no upstream dependencies on anchor_detector).
+_FAMILY_HISTORY_CANCER_RX = re.compile(
+    r"(?:"
+    r"\bF[Hh][Xx]?\b\.?\s*(?:of\s+)?[A-Za-z\s]{0,40}?"
+    r"\b(?:cancer|ca\b|carcinoma|malignan\w+|tumou?r|melanoma|"
+    r"lymphoma|leuk(?:a|e)mia|sarcoma|adenocarcinoma)|"
+    r"\bfamily\s+history\s+(?:of\s+)?[A-Za-z\s]{0,40}?"
+    r"\b(?:cancer|ca\b|carcinoma|malignan\w+|tumou?r|melanoma|"
+    r"lymphoma|leuk(?:a|e)mia|sarcoma)|"
+    r"\b(?:father|mother|dad|mum|sister|brother|sibling|son|"
+    r"daughter|aunt|uncle|cousin|grandfather|grandmother|"
+    r"grandparent|relative|next\s+of\s+kin)\b"
+    r"[^.\n]{0,80}?"
+    r"\b(?:had|has|diagnosed\s+with|died\s+(?:from|of)|"
+    r"history\s+of)\b"
+    r"[^.\n]{0,40}?"
+    r"\b(?:cancer|ca\b|carcinoma|malignan\w+|tumou?r|melanoma|"
+    r"lymphoma|leuk(?:a|e)mia|sarcoma)"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def text_contains_family_history_of_cancer(text: str) -> bool:
+    """True when `text` mentions a family history of cancer.
+
+    DI-LEO-AI-210 (Pattern H): used as a guard alongside the
+    history-of-cancer check so that "FH prostate ca - father
+    diagnosed at 75" does not get treated as a fresh patient
+    diagnosis.
+    """
+    if not text:
+        return False
+    return bool(_FAMILY_HISTORY_CANCER_RX.search(text))
+
+
 def text_contains_history_of_cancer(text: str) -> bool:
     """True when `text` contains any history-of-cancer Read code.
 
@@ -746,8 +977,11 @@ def text_contains_history_of_cancer(text: str) -> bool:
         return True
     if re.search(r"\bhistory of (?:cancer|malignan|carcinoma)", text, re.I):
         return True
-    if re.search(r"\bpersonal history of (?:cancer|malignan|carcinoma)",
-                 text, re.I):
+    if re.search(r"\bpersonal history of (?:cancer|malignan|carcinoma)", text, re.I):
+        return True
+    if _malignancy_under_pmhx_section(text):
+        return True
+    if text_contains_family_history_of_cancer(text):
         return True
     return False
 
@@ -805,6 +1039,37 @@ def find_malignancy_term_in_problem_line(
             match = rx.search(line)
             if match is not None:
                 return match.group(0), site
+    return None
+
+
+def find_malignancy_code_in_problem_line(
+    text: str,
+) -> tuple[str, str] | None:
+    """DI-LEO-AI-215 (Pattern K): return (code, site_key) for the first
+    malignancy Read code that appears on a problem-list line in
+    `text`, or None.
+
+    Stricter than `find_malignancy_code` -- only matches when the
+    code is added as part of an EMIS "Major:/Problem:/Active Problem:"
+    addition, not when it appears inline as a free-prose qualifier
+    ("Considering malignant tumour of breast (X78WM)") inside a
+    referral note. This stricter form is the safe override for the
+    DI-LEO-AI-145 same-encounter referral gate: only Major:/Problem:
+    additions are strong enough evidence to fire diagnosis_confirmed
+    on an encounter that ALSO carries a 2WW row.
+
+    History-of-cancer markers in the SAME line short-circuit the
+    match (same guard as the term-based variant).
+    """
+    if not text:
+        return None
+    for line in _get_problem_list_lines(text):
+        if text_contains_history_of_cancer(line):
+            continue
+        for code in extract_read_codes(line):
+            site = MALIGNANCY_READ_CODES.get(code)
+            if site:
+                return code, site
     return None
 
 
@@ -874,15 +1139,27 @@ CANCER_FOLLOW_UP_PHRASES: list[tuple[Pattern[str], str]] = [
     (re.compile(r"\bprostate cancer follow[- ]?up\b", re.I), "prostate"),
     (re.compile(r"\bcolorectal cancer follow[- ]?up\b", re.I), "colorectal"),
     (re.compile(r"\blung cancer follow[- ]?up\b", re.I), "lung"),
-    (re.compile(
-        r"\b(?:haem|hem)atology cancer follow[- ]?up\b", re.I,
-    ), "haematological"),
-    (re.compile(
-        r"\bgynaecolog\w* cancer follow[- ]?up\b", re.I,
-    ), "gynaecological"),
-    (re.compile(
-        r"\bhead and neck cancer follow[- ]?up\b", re.I,
-    ), "head_and_neck"),
+    (
+        re.compile(
+            r"\b(?:haem|hem)atology cancer follow[- ]?up\b",
+            re.I,
+        ),
+        "haematological",
+    ),
+    (
+        re.compile(
+            r"\bgynaecolog\w* cancer follow[- ]?up\b",
+            re.I,
+        ),
+        "gynaecological",
+    ),
+    (
+        re.compile(
+            r"\bhead and neck cancer follow[- ]?up\b",
+            re.I,
+        ),
+        "head_and_neck",
+    ),
     (re.compile(r"\bcancer follow[- ]?up clinic\b", re.I), "non_site_specific"),
     (re.compile(r"\boncology surveillance\b", re.I), "non_site_specific"),
 ]
@@ -924,11 +1201,13 @@ def find_cancer_follow_up_phrase(
 # The Read-code path (find_benign_explanation_code) and the
 # tier-1 cancer-specific phrases (mammogram normal, FOBT normal,
 # breast USS normal, etc.) remain unconditional.
-BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT: frozenset[str] = frozenset({
-    "discharged from care",
-    "discharged from clinic",
-    "no further action",
-})
+BENIGN_PHRASE_REQUIRES_CANCER_CONTEXT: frozenset[str] = frozenset(
+    {
+        "discharged from care",
+        "discharged from clinic",
+        "no further action",
+    }
+)
 
 
 # Compiled regex used by the anchor detector to decide whether the

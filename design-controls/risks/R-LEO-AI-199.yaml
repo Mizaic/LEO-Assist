@@ -1,0 +1,117 @@
+# -- R-LEO-AI-199 -- Lab-result boilerplate guidance misread as a referral
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-199"
+  title: "Auto-filed lab-report disclaimer text containing conditional referral guidance is mis-classified as an actual referral, opening phantom pathways"
+
+  hazard:
+    description: >
+      Auto-filed lab/imaging result encounters carry
+      standardised disclaimer text such as "If the PSA
+      value remains elevated above the age specific
+      threshold, refer as a 2WW (Please note that
+      referrals made at the time of UTI will be
+      rejected)." The text-anchor classifier matches
+      _RE_REFERRAL on this conditional guidance and
+      emits a text_generic referral anchor even when the
+      actual result is normal and no clinical referral
+      decision was made.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    Every PSA / CEA / CA125 / FIT / calprotectin
+    auto-filed result drop in the practice's EMR carries
+    the same standardised disclaimer. Without
+    suppression every such encounter risks opening a
+    phantom cancer EpisodeOfCare for the patient. At
+    practice scale this generates many false positives
+    and corrupts cancer-pathway prevalence metrics.
+
+  harm:
+    description: >
+      Mis-classification of healthy patients as having a
+      cancer pathway. Reviewer fatigue from triaging
+      phantom episodes; loss of trust in the queue;
+      mis-attribution of practice-level cancer activity;
+      and possible distress if the phantom classification
+      surfaces in a patient-facing report.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 5
+    detectability: 3
+    rpn: 45
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-211: text_generic referrals are
+        suppressed when (_has_boilerplate AND not
+        _has_structural) OR (_is_auto_filed AND not
+        _has_structural). Standard disclaimer wording
+        ("If the PSA value remains elevated", "should be
+        referred as a 2WW", "Consider 2WW referral if
+        ...", "referrals made at the time of UTI will be
+        rejected") is recognised explicitly, and the EMR
+        "Auto-filed" prefix is treated as strong evidence
+        the encounter is a result drop rather than a
+        clinical event.
+      implemented_by:
+        - "DI-LEO-AI-211"
+      verified_by:
+        - "VT-LEO-AI-203"
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-210 (Pattern H) suppresses the FH
+        context that frequently accompanies routine
+        screening result drops, giving a second line of
+        defence.
+      implemented_by:
+        - "DI-LEO-AI-210"
+      verified_by:
+        - "VT-LEO-AI-202"
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Suppression is conditional on the absence of any
+      structural referral artefact; a genuine referral
+      filed alongside a lab result still fires. The
+      boilerplate regex was sized from the patient
+      4842019832 PSA disclaimer text and verified against
+      a false-positive guard ("Refer this patient via
+      2WW today for suspected lung cancer" still does
+      NOT match the boilerplate regex). 8 verification
+      cases pass (VT-LEO-AI-203).
+
+  monitoring:
+    monitoring_plan: >
+      Per-rebuild compare the count of EpisodeOfCare
+      nodes whose triggering encounter matches
+      _RE_AUTO_FILED_PREFIX. Investigate any episode
+      where the trigger encounter is auto-filed and the
+      structural referral artefact set is empty.
+    metrics:
+      - "Count of EpisodeOfCare nodes triggered by Auto-filed encounters with no structural referral evidence"
+      - "Per-result-type phantom rate (PSA / CEA / CA125 / FIT / calprotectin) per rebuild"
+    review_frequency: "Each rebuild"
+
+  metadata:
+    identified_by: "Patient 4842019832 investigation -- Pattern I (auto-filed PSA result with disclaimer text spawned a phantom prostate cancer EpisodeOfCare)"
+    identified_date: "2026-04-18"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "referral-classification"
+      - "boilerplate-guard"
+      - "auto-filed-lab"
+      - "patient-4842019832"

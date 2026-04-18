@@ -1,0 +1,87 @@
+# -- DO-LEO-AI-213 -- Self-narrated past-referral guard regex extension
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-213"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-216"]
+    user_needs: ["UN-LEO-AI-005", "UN-LEO-AI-006"]
+    risks_addressed: ["R-LEO-AI-203"]
+    verification_tests: ["VT-LEO-AI-208"]
+
+  specification:
+    title: "Pattern L: extend _RE_NARRATIVE_REFERRAL_REFERENCE with five retrospective narrative shapes"
+    description: |
+      Implements DI-LEO-AI-216. The narrative-referral-reference
+      regex in services/analysis_worker/app/analyzers/anchor_
+      detector.py (used by the text_generic referral suppression
+      path) gains five new alternation arms so cancer-care-
+      review notes that narrate the original referral do not
+      open phantom EpisodeOfCare nodes:
+
+        1. (?:referred|referral)\s+by\s+(?:me|us|GP|the\s+GP|
+           (?:Dr|Mr|Mrs|Ms|Miss)\b)
+        2. \b(?:I|we)\s+referred\b
+        3. (?:^|\W)GP\s+referred\b
+        4. \breferred\s+(?:on\s+)?(?:2WW|TWW|fast.?track)\s+
+           (?:earlier|last|previously|back|in\s+(?:Jan(?:uary)?|
+           Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun[e]?|
+           Jul[y]?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|
+           Nov(?:ember)?|Dec(?:ember)?|\d{4}))
+        5. \bpreviously\s+referred\b
+
+      Existing narrative-suppression cases ("write to ENT",
+      "letter back to consultant", "refused to attend") are
+      preserved unchanged.
+
+      Pattern L only suppresses text_generic emission. Same-
+      encounter structural PRISM/EMIS referral codes (XaMeC,
+      XaMeH, XaMcg, etc.) continue to fire a referral via the
+      structural-code path so a fresh referral that ALSO carries
+      a retrospective-narration phrase is not over-suppressed.
+
+    acceptance_criteria:
+      - criterion: "All five new narrative shapes match"
+        type: "functional"
+        measurement: "Unit test"
+        target: "TestPatternLSelfNarratedPastReferralGuard - all five new shapes (referred-by-me-on-2ww-earlier, I-referred-last-month, we-referred-in-Jan, GP-referred-back-in-March, previously-referred) match _RE_NARRATIVE_REFERRAL_REFERENCE."
+      - criterion: "End-to-end suppression on cancer-care-review note"
+        type: "functional"
+        measurement: "Unit test"
+        target: "_classify_text_encounters on a cancer-care-review encounter containing 'Referred by me on 2ww earlier this year, confirmed breast cancer' returns zero referral anchors."
+      - criterion: "No over-suppression of structural referrals"
+        type: "safety"
+        measurement: "Unit test"
+        target: "An encounter with 'Fast track referral for suspected breast cancer (XaMeC)' continues to emit a referral anchor."
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/anchor_detector.py"
+        description: "_RE_NARRATIVE_REFERRAL_REFERENCE alternation extended with the five Pattern L arms"
+      - artifact_type: "test"
+        location: "tests/test_patient_4802892365_patterns.py"
+        description: "TestPatternLSelfNarratedPastReferralGuard class (7 cases)"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 18
+      key_functions:
+        - "_RE_NARRATIVE_REFERRAL_REFERENCE"
+        - "_classify_text_encounters"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Referral anchor emission used to open EpisodeOfCare nodes; over-firing fragments pathways and inflates cohort referral counts"
+    risk_control_measures:
+      - "Pattern L extension is narrowly scoped to retrospective narrative cues; structural referral codes still trigger the structural path"
+      - "Sanity test verifies that a real fresh referral still fires after the regex extension"
+      - "Five separate arms allow targeted regression on any single phrase without disabling the wider suppression"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

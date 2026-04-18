@@ -1,0 +1,73 @@
+# -- DI-LEO-AI-201 -- _RE_FIRST_SEEN attestation guard
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-201"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-005"
+    - "UN-LEO-AI-006"
+  requirement: >
+    The text-anchor classifier SHALL only emit a first_seen
+    milestone when the encounter text contains an attestation
+    verb ("seen", "attended", "reviewed") within proximity of
+    a fast-track / 2WW / two-week-wait clinic token. A bare
+    narrative reference ("referred to 2WW clinic but not
+    attended", "was referred on lower gi 2ww") MUST NOT emit
+    a first_seen anchor.
+  rationale: >
+    The previous regex ``\b2WW\s+clinic\b`` matched any GP
+    note that mentioned a 2WW clinic, including narratives
+    describing why a patient never attended. Patient
+    4643293950 had a Nov 2024 home-visit note ("referred to
+    2WW clinic but not attended due to mobility issues")
+    that fired a phantom first_seen anchor. The episode
+    rescue path then promoted the open Jan 2024 referral to
+    "completed" with end_date = Nov, mass-claiming downstream
+    encounters into the wrong episode and silently masking
+    a 10-month avoidable delay.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "_RE_FIRST_SEEN.search('Seen in fast track suspected colorectal cancer clinic') is not None"
+      - type: "functional"
+        spec: "_RE_FIRST_SEEN.search('attended 2WW lower GI clinic on 18 Dec 2024') is not None"
+      - type: "functional"
+        spec: "_RE_FIRST_SEEN.search('Seen in 2WW clinic? Yes') is not None"
+      - type: "safety"
+        spec: "_RE_FIRST_SEEN.search('referred to 2WW clinic but not attended due to mobility issues') is None"
+      - type: "safety"
+        spec: "_RE_FIRST_SEEN.search('was referred on lower gi 2ww, however was not seen due to transport') is None"
+    constraints:
+      - type: "safety"
+        spec: "Each alternation in _RE_FIRST_SEEN MUST anchor on an attestation verb (seen|attended|reviewed) within 40 chars of the clinic token"
+    dependencies:
+      - "DI-LEO-AI-145"
+    downstream_impacts:
+      - "Anchor detector (text path)"
+      - "Episode builder rescue / completion logic"
+      - "Encounter claim window for completed episodes"
+    technical_details:
+      language: "Python"
+      framework: "Anchor detector (regex layer)"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+      estimated_loc: 12
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-194 must pass with 100% on all critical and
+      total cases, including the patient 4643293950 narrative
+      regression cases.
+    test_protocol: "VT-LEO-AI-194"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-191"
+  tags:
+    - "anchor-detector"
+    - "first-seen"
+    - "regex-guard"
+    - "patient-4643293950"

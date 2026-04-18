@@ -1,0 +1,52 @@
+# -- DO-LEO-AI-186 -- DOCUMENTS writer generalisation
+- id: "DO-LEO-AI-186"
+  version: "1.1.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-187"]
+    user_needs: ["UN-LEO-AI-082"]
+    risks_addressed: ["R-LEO-AI-180"]
+    verification_tests: ["VT-LEO-AI-185"]
+
+  specification:
+    title: "libs/cypher/documents_queries.py (generalised source)"
+    description: |
+      Updates _build_upsert_query and write_documents_from_sentences_payload
+      so the :DOCUMENTS writer accepts source_label="Encounter" (default,
+      preserves the legacy behaviour) or source_label="Chunk" (uses
+      OPTIONAL MATCH to find the Patient via the parent DocumentReference,
+      with a null-safe FOREACH guard for the Patient-level shortcut).
+    acceptance_criteria:
+      - criterion: "Encounter path unchanged"
+        type: "functional"
+        measurement: "Test"
+        target: "Existing call sites that pass encounter_id continue to write the same edges"
+      - criterion: "Chunk path"
+        type: "functional"
+        measurement: "Test"
+        target: "Calling with source_label='Chunk' writes (Chunk)-[:DOCUMENTS]->(Concept) and a Patient shortcut only when the patient is reachable"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/cypher/documents_queries.py"
+        description: "_build_upsert_query, write_documents_from_sentences_payload"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 80
+      key_functions: ["_build_upsert_query", "write_documents_from_sentences_payload"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Patient-level :IS_DOCUMENTED shortcut is gated by assertion in {present, historical}"
+    risk_control_measures:
+      - "Null-safe FOREACH prevents writing edges from a missing Patient"
+      - "Unknown source_label rejected with ValueError before query build"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

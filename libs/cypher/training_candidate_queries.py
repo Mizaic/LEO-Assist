@@ -46,12 +46,57 @@ SET c.status = $status,
 RETURN c.candidate_id AS candidate_id, c.status AS status
 """
 
+# Atomic write of an AI first-pass result (DI-LEO-AI-208, R-LEO-AI-197).
+# - entities_json is overwritten with the AI pass.
+# - entities_json_original is set ONCE: the existing entities_json is moved
+#   into entities_json_original ONLY IF entities_json_original is currently
+#   null (write-once audit copy invariant).
+# - Refuses to write when c.status = 'completed' (TOCTOU defence; gold
+#   records are never modified by the AI first-pass).
+UPSERT_AI_FIRST_PASS_ENTITIES = """
+MATCH (c:TrainingCandidate {candidate_id: $candidate_id})
+WHERE c.status <> 'completed'
+SET c.entities_json_original = CASE
+        WHEN c.entities_json_original IS NULL THEN c.entities_json
+        ELSE c.entities_json_original
+    END,
+    c.entities_json = $entities_json,
+    c.ai_first_pass_run_id = $run_id,
+    c.ai_first_pass_at = datetime(),
+    c.updated_at = datetime()
+RETURN
+    c.candidate_id AS candidate_id,
+    c.status AS status,
+    c.ai_first_pass_run_id AS ai_first_pass_run_id,
+    toString(c.ai_first_pass_at) AS ai_first_pass_at,
+    (c.entities_json_original IS NOT NULL) AS audit_copy_present
+"""
+
+# Read the gold-completed candidate pool for FewShotSelector.
+# Returns text + entities_json so the selector can rank by cosine and the
+# extractor can pass exemplars to Haiku verbatim. Capped to keep the
+# in-memory embedding pool bounded.
+READ_GOLD_POOL_FOR_FEW_SHOT = """
+MATCH (c:TrainingCandidate {status: 'completed'})
+WHERE c.text IS NOT NULL AND c.entities_json IS NOT NULL
+RETURN
+    c.candidate_id AS candidate_id,
+    c.text AS text,
+    c.entities_json AS entities_json,
+    c.source AS source
+ORDER BY c.updated_at DESC
+LIMIT $limit
+"""
+
 GET_TRAINING_CANDIDATE_BY_ID = """
 MATCH (c:TrainingCandidate {candidate_id: $candidate_id})
 RETURN
     c.candidate_id AS candidate_id,
     c.text AS text,
     c.entities_json AS entities_json,
+    c.entities_json_original AS entities_json_original,
+    c.ai_first_pass_run_id AS ai_first_pass_run_id,
+    toString(c.ai_first_pass_at) AS ai_first_pass_at,
     c.relation_changes AS relation_changes,
     c.source AS source,
     c.status AS status,
@@ -72,6 +117,9 @@ RETURN
     c.candidate_id AS candidate_id,
     c.text AS text,
     c.entities_json AS entities_json,
+    c.entities_json_original AS entities_json_original,
+    c.ai_first_pass_run_id AS ai_first_pass_run_id,
+    toString(c.ai_first_pass_at) AS ai_first_pass_at,
     c.relation_changes AS relation_changes,
     c.source AS source,
     c.status AS status,

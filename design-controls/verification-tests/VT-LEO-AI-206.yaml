@@ -1,0 +1,202 @@
+# -- VT-LEO-AI-206 -- Mission Control KPI patient-headline + cohort denominator
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-206"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-214"
+    risks:
+      - "R-LEO-AI-201"
+
+  metadata:
+    title: "Mission Control KPI strip exposes patient counts and cohort denominator with plain-English caption"
+    description: >
+      Verifies DI-LEO-AI-214. Backend cases (TC-001..TC-005)
+      cover _kpis_cypher exposing both episode and patient
+      counts for confirmed cancer and pathway closures, the
+      new _cohort_denominator_cypher helper returning the
+      cohort total + three excluded buckets without inheriting
+      the date / pathway / cancer-type filters, and GET
+      /mission-control/kpis returning a stable "cohort" block
+      (zero-filled when the underlying query returns no rows).
+      UI cases (TC-001..TC-006) cover the patient-headline /
+      pathway-sub-line rendering on the two KPI cards, the
+      cohort denominator caption rendering for excluded, no-
+      excluded and missing-cohort cases, and the plain-English
+      pluralisation of the buildCohortDenominatorLine helper.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest + jest"
+    test_file_paths:
+      - "services/analytics_api/tests/test_mission_control_cohort_kpis.py"
+      - "services/ui/src/__tests__/mission-control/KPIStripCohortDenominator.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-206-TC-001"
+      case_name: "_kpis_cypher exposes confirmed_cancer_patients (DISTINCT p) alongside confirmed_cancer (DISTINCT ep)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read _kpis_cypher(BASE, {}) source string"
+          expected_result: "String contains 'confirmed_cancer_patients' AND 'AS confirmed_cancer,'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Both episode and patient counts present in the KPI Cypher"
+
+    - case_id: "VT-206-TC-002"
+      case_name: "_kpis_cypher exposes pathway_closure_patients (DISTINCT p) alongside pathway_closures (DISTINCT ep)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read _kpis_cypher(BASE, {}) source string"
+          expected_result: "String contains 'pathway_closure_patients' AND 'AS pathway_closures,'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Both episode and patient counts present for pathway closures"
+
+    - case_id: "VT-206-TC-003"
+      case_name: "_cohort_denominator_cypher returns the four cohort fields and is scope-only"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect _cohort_denominator_cypher output"
+          expected_result: "Contains cohort_total_patients, excluded_no_pathway, excluded_missing_referral_date, excluded_outside_window AND no cancer_type / closure_reason / reviewed_at predicates"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Cohort denominator query exposes all four buckets and ignores secondary filters"
+
+    - case_id: "VT-206-TC-004"
+      case_name: "GET /mission-control/kpis returns a populated cohort block alongside patient counts"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call get_mission_control_kpis with a stubbed PatientGraphClient that returns 89/54/44/76/60 in-view + 107/18/8/7/3 cohort"
+          expected_result: "Result contains confirmed_cancer_patients=44, pathway_closure_patients=60 and cohort={total_patients:107, excluded_total:18, excluded_no_pathway:8, excluded_missing_referral_date:7, excluded_outside_window:3}"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Endpoint surfaces the cohort denominator and patient counts"
+
+    - case_id: "VT-206-TC-005"
+      case_name: "Empty Cypher result returns a zero-filled cohort block, not KeyError"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call get_mission_control_kpis with a stubbed PatientGraphClient that returns no rows"
+          expected_result: "Result contains cohort={total_patients:0, excluded_total:0, excluded_no_pathway:0, excluded_missing_referral_date:0, excluded_outside_window:0}"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Cohort block defaults are zero, never undefined"
+
+    - case_id: "VT-206-TC-006"
+      case_name: "KPIStrip renders confirmed_cancer_patients as headline and 'N pathways' sub-line"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render KPIStrip with kpis={confirmed_cancer_patients:44, confirmed_cancer:54, pathway_closure_patients:60, pathway_closures:76, cohort:{total_patients:107, excluded_total:18, ...}}"
+          expected_result: "Document contains '44', '54 pathways', '60', '76 pathways'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Patient count is the headline, pathway count is the sub-line for both cards"
+
+    - case_id: "VT-206-TC-007"
+      case_name: "Cohort denominator caption shows breakdown of excluded buckets"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render KPIStrip with cohort excluded buckets {8 no_pathway, 7 missing_referral_date, 3 outside_window}"
+          expected_result: "Caption text contains 'Showing 89 of 107 patients', '18 hidden', '8 no pathway', '7 missing referral date', '3 outside the date range'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Plain-English breakdown of why patients are hidden"
+
+    - case_id: "VT-206-TC-008"
+      case_name: "Caption reads 'Showing all N patients in the cohort' when nothing is excluded"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render KPIStrip with cohort={total_patients:107, excluded_total:0, ...}"
+          expected_result: "Caption text contains 'Showing all 107 patients'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All-included message is rendered when no patient is excluded"
+
+    - case_id: "VT-206-TC-009"
+      case_name: "Caption is NOT rendered when kpis.cohort is undefined"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render KPIStrip with kpis.cohort = undefined"
+          expected_result: "queryByTestId('kpi-cohort-denominator') returns null"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Back-compat branch: missing cohort block does not crash or render the caption"
+
+    - case_id: "VT-206-TC-010"
+      case_name: "buildCohortDenominatorLine pluralises and lists only non-zero buckets"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call buildCohortDenominatorLine(10, {total:11, excluded_total:1, no_pathway:1, missing:0, outside:0})"
+          expected_result: "Returned string equals 'Showing 10 of 11 patients - 1 hidden (1 no pathway).'"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Call buildCohortDenominatorLine(0, {all zeros, total_patients:0})"
+          expected_result: "Returned string is empty"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helper output stays plain English and respects empty cohorts"
+
+    - case_id: "VT-206-TC-011"
+      case_name: "Cohort denominator query is scoped by org/scope only (regression guard)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build _cohort_denominator_cypher for admin scope"
+          expected_result: "Query string contains MATCH (p:Patient) and no Organization filter"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Build _cohort_denominator_cypher for GP scope with primary_org_id='org-1'"
+          expected_result: "params['org'] == 'org-1'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Scope binding is correct for admin and GP scopes"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types:
+      - "automated_test_run"
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-206/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-LEO-AI-206-EXEC-001"
+      executed_at: "2026-04-18T13:00:00Z"
+      executor: "automated"
+      result: "pass"
+      summary: >
+        Backend: services/analytics_api/tests/test_mission_
+        control_cohort_kpis.py executed via pytest -- 9
+        cases pass (TC-001..TC-005 plus three scope-binding
+        regression tests). UI: services/ui/src/__tests__/
+        mission-control/KPIStripCohortDenominator.test.tsx
+        executed via jest -- 6 cases pass (TC-006..TC-011).
+        15 cases executed, 0 failures.
+      pass_count: 15
+      fail_count: 0
+      notes: "Backend command: python -m pytest services/analytics_api/tests/test_mission_control_cohort_kpis.py -q. UI command: cd services/ui && npx jest --testPathPatterns 'KPIStripCohortDenominator' --no-coverage."

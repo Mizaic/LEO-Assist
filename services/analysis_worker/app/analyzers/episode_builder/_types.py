@@ -94,6 +94,17 @@ class BuildContext:
     result: EpisodeBuildResult
     episode_ids: list[str]
     phantom_sites: set[str]
+    # DI-LEO-AI-205 (Pattern F): exclusive encounter claiming. The
+    # first episode to claim an encounter id (in build order:
+    # closed/diagnosis-led groups first, then open referral-only
+    # groups) keeps the IS_PART_OF edge. Subsequent episodes skip
+    # the encounter so a single home-visit / FIT result is not
+    # linked to two cancer pathways. Anchor types that legitimately
+    # span multiple episodes (e.g. a multi-cancer 2WW template) are
+    # already detected by the phantom_sites pass and routed via
+    # ``closed_phantom`` -- they do not flow through the exclusive
+    # claim set.
+    claimed_encounters: set[str] = field(default_factory=set)
 
 
 def _parse_date(val: Any) -> date | None:

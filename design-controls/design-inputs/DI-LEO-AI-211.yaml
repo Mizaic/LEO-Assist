@@ -1,0 +1,83 @@
+# -- DI-LEO-AI-211 -- Boilerplate lab-report referral guidance suppression (Pattern I)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-211"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-005"
+    - "UN-LEO-AI-006"
+  requirement: >
+    The text-anchor classifier SHALL suppress text_generic referral
+    anchors when the encounter is an auto-filed lab/imaging result
+    drop AND the only referral-shaped text is conditional
+    boilerplate guidance ("If the PSA value remains elevated above
+    the age specific threshold, refer as a 2WW", "Should be
+    referred as a 2WW", "Consider 2WW referral if calprotectin
+    above 250", "referrals made at the time of UTI will be
+    rejected") with no structural referral artefact.
+  rationale: >
+    Patient 4842019832's normal PSA result (XE25C 0.77 ng/ml,
+    auto-filed 2024-06-19) carried the standardised laboratory
+    disclaimer text used across the practice for every PSA result.
+    The classifier matched _RE_REFERRAL on the disclaimer's "refer
+    as a 2WW" wording and opened a phantom prostate cancer episode.
+    The same boilerplate appears on every PSA / CA125 / FIT /
+    calprotectin auto-filed report - the failure mode is generic,
+    not patient-specific.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "_RE_BOILERPLATE_REFERRAL_GUIDANCE.search('If the PSA value remains elevated above the age specific threshold, refer as a 2WW') is not None"
+      - type: "functional"
+        spec: "_RE_BOILERPLATE_REFERRAL_GUIDANCE.search('should be referred as a 2WW') is not None"
+      - type: "functional"
+        spec: "_RE_BOILERPLATE_REFERRAL_GUIDANCE.search('Consider a 2WW referral if calprotectin is above 250') is not None"
+      - type: "functional"
+        spec: "_RE_BOILERPLATE_REFERRAL_GUIDANCE.search('referrals made at the time of UTI will be rejected') is not None"
+      - type: "safety"
+        spec: "_RE_BOILERPLATE_REFERRAL_GUIDANCE.search('Refer this patient via 2WW today for suspected lung cancer') is None"
+      - type: "functional"
+        spec: "_RE_AUTO_FILED_PREFIX matches '11:47 - Surgery: Auto-filed'"
+      - type: "safety"
+        spec: "Auto-filed PSA disclaimer encounter MUST NOT emit text_generic referral"
+      - type: "safety"
+        spec: "An auto-filed encounter that ALSO carries a structural referral artefact (XaY59, Outbound referral, Fast track referral for suspected) MUST still emit a referral"
+    constraints:
+      - type: "safety"
+        spec: "Suppression MUST only apply to text_generic referrals; PRISM cancer, rejection, and resubmission subtypes are unaffected"
+    dependencies:
+      - "DI-LEO-AI-195"
+      - "DI-LEO-AI-202"
+      - "DI-LEO-AI-210"
+    downstream_impacts:
+      - "Anchor detector (text path)"
+      - "Practice-level prostate / colorectal / breast pathway counts"
+      - "Auto-filed lab result encounter classification"
+    technical_details:
+      language: "Python"
+      framework: "Anchor detector (regex layer)"
+      file_structure:
+        - "services/analysis_worker/app/analyzers/anchor_detector.py"
+      estimated_loc: 60
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-203 must pass with 100% on all critical and total
+      cases, including the patient 4842019832 PSA disclaimer
+      regression and the false-positive guards (real referral with
+      lab disclaimer attached still fires; "Refer this patient via
+      2WW today" stays a real referral).
+    test_protocol: "VT-LEO-AI-203"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-199"
+  tags:
+    - "anchor-detector"
+    - "referral-classification"
+    - "boilerplate-guard"
+    - "auto-filed-lab"
+    - "patient-4842019832"

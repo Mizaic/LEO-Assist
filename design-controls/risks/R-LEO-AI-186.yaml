@@ -1,0 +1,133 @@
+# -- R-LEO-AI-186 -- False-positive 2WW pathway from non-cancer PRISM proforma
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-186"
+  title: >
+    Non-cancer PRISM proforma encounters open false 2WW cancer
+    pathways, polluting cancer pathway dashboards and rejection /
+    delay DQ tooling.
+
+  hazard:
+    description: >
+      The practice's PRISM platform is used for many specialties
+      (sexual health, MSK, IBD, cardiology, mental-health crisis,
+      ultrasound, hospice, advice & guidance). The previous PRISM
+      regex matched any "PRISM ... finalised" phrase and emitted a
+      cancer 2WW referral anchor, which opened a non_site_specific
+      EpisodeOfCare. Marking these as cancer pathways inflates the
+      "open 2WW pathway" count and sends real cancer-suspicion
+      reviewers to encounters that have nothing to do with cancer.
+
+      A second, related failure mode: "Marked in Error: Amended
+      data" QOF amendments on a referral row were classified as
+      clinical referral rejections, inflating the
+      rejection-resubmission DQ metric and triggering false
+      workflow-delay alerts.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinical reviewer working a 2WW-pathway worklist opens a
+    patient and sees a non_site_specific cancer pathway tied to
+    a sexual-health PRISM encounter. The reviewer either
+    (a) wastes triage time chasing a non-existent cancer signal,
+    (b) closes the false pathway, masking the real signal-to-noise
+    ratio of the worklist, or (c) loses confidence in the pathway
+    detector and starts ignoring genuine alerts.
+
+    Separately, a workflow-delay alert fires for an "Amended data"
+    administrative correction; the operations team treats the
+    metric as noisy and stops monitoring for genuine
+    rejection-resubmission delays in 2WW pathways.
+
+  harm:
+    description: >
+      Reviewer time wasted on false 2WW pathways; degraded trust
+      in the cancer pathway worklist; rejection-resubmission DQ
+      metric becomes uninformative. No direct patient harm
+      provided the underlying coded encounter record is
+      preserved, but indirect harm via reviewer alert fatigue
+      and missed real workflow delays.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 4
+    detectability: 3
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Cancer-context guard (_RE_PRISM_CANCER_CONTEXT) -- a PRISM
+        proforma encounter is only classified as a cancer 2WW
+        referral when the same encounter text carries an explicit
+        cancer token (2WW, TWW, two-week wait, "fast track
+        referral for suspected", "suspected cancer", or a 2WW
+        Read code from the XaMe[A-Z] family). Pattern is
+        evidence-based: across the observed dataset every
+        legitimate cancer-2WW PRISM template name carried a "2WW"
+        token while no non-cancer PRISM template did.
+      implemented_by: ["DI-LEO-AI-195"]
+      verified_by: ["VT-LEO-AI-190"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Admin-amendment qualifier filter -- "Marked in Error"
+        followed by an "amended data" / "amendment" /
+        "data amendment" / "reason: amended" qualifier is
+        classified as an administrative QOF correction and falls
+        through to text_generic instead of emitting
+        referral_subtype="rejected", so workflow-delay DQ
+        metrics only count genuine clinical withdrawals.
+      implemented_by: ["DI-LEO-AI-195"]
+      verified_by: ["VT-LEO-AI-190"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Periodic review of dq_rejected_referrals_resubmission_delay
+        output to confirm the rejection-event population is
+        clinically plausible (no spike of admin amendments).
+      implemented_by: ["DI-LEO-AI-195"]
+      verified_by: ["VT-LEO-AI-190"]
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The cancer-context guard is a generic textual discriminator
+      that auto-handles any new non-cancer PRISM template name
+      observed in production -- no per-template allow / deny list
+      to maintain. The admin-amendment filter uses a tightly
+      scoped qualifier so genuine "Marked in Error" withdrawals
+      still emit rejected. Both behaviours are unit-tested
+      (VT-LEO-AI-190) and the DQ tooling (dq_rejected_referrals_
+      resubmission_delay) provides ongoing visibility.
+
+  monitoring:
+    monitoring_plan: >
+      Track count of new EpisodeOfCare nodes opened per
+      encounter type to detect any future regex regressions.
+      Track count of rejected vs amended referral subtypes
+      monthly; investigate sudden drops in genuine rejections.
+    metrics:
+      - "count of EpisodeOfCare opens from PRISM encounters per month"
+      - "ratio of rejected to amended referral_subtypes per month"
+      - "count of non_site_specific episodes opened per week"
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Patient 6519337463 investigation 2026-04-17"
+    identified_date: "2026-04-17"
+    status: "mitigated"
+    tags:
+      - "anchor-detector"
+      - "prism"
+      - "cancer-pathway"
+      - "false-positive"
+      - "dq"

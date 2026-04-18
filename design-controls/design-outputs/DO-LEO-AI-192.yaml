@@ -1,0 +1,59 @@
+# -- DO-LEO-AI-192 -- Deterministic Assessment formatter
+- id: "DO-LEO-AI-192"
+  version: "1.0.0"
+  type: "Algorithm"
+  status: "approved"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-193"]
+    user_needs: ["UN-LEO-AI-080"]
+    risks_addressed: ["R-LEO-AI-181", "R-LEO-AI-183"]
+    verification_tests: ["VT-LEO-AI-189"]
+
+  specification:
+    title: "libs/sbar/assessment_formatter.py"
+    description: |
+      Deterministic renderer for the SBAR Assessment section. Calls
+      /terminology/guidelines/evaluate via httpx, sorts the matched
+      rules by action priority (2ww > urgent > routine), produces a
+      Markdown narrative that quotes recommendation_verbatim with rule
+      and guideline attribution, and derives the pathway hint
+      properties (stt, rtr, alternative_pathway plus *_evidence
+      strings) from the rule outputs without any further LLM call.
+    acceptance_criteria:
+      - criterion: "No LLM in the loop"
+        type: "safety"
+        measurement: "Inspection"
+        target: "format_assessment is a pure function of matched_rules + patient_codes + guideline_ids"
+      - criterion: "Pathway hints"
+        type: "functional"
+        measurement: "Test"
+        target: "2WW rule -> rtr=yes with rule_id evidence; routine-only -> rtr=no"
+      - criterion: "Sort order"
+        type: "functional"
+        measurement: "Test"
+        target: "Rules are sorted by priority before rendering"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/sbar/assessment_formatter.py"
+        description: "AssessmentNarrative dataclass + format_assessment + evaluate_codes_against_guidelines"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 350
+      key_functions: ["format_assessment", "evaluate_codes_against_guidelines"]
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Pathway hint derivation is the trigger downstream systems rely on"
+      - "Rule wording is preserved verbatim from the evaluator response"
+    risk_control_measures:
+      - "Empty matched_rules -> explicit 'no match' narrative + rtr=no"
+      - "Evaluator outage -> AssessmentNarrative with markdown noting the outage and rtr=no (R-LEO-AI-183)"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

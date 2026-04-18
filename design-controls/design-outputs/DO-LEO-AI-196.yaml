@@ -1,0 +1,90 @@
+# -- DO-LEO-AI-196 -- CandidatePruneDialog UI + GoldDatasetPanel ToolbarAction
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-196"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-197"]
+    user_needs: ["UN-LEO-AI-083"]
+    risks_addressed: ["R-LEO-AI-187"]
+    verification_tests: ["VT-LEO-AI-183"]
+
+  specification:
+    title: "Auto-prune low-confidence candidates dialog"
+    description: |
+      A new React component CandidatePruneDialog wraps the
+      preview-then-execute flow exposed by DO-LEO-AI-195. It is opened
+      from a new ToolbarAction id='auto-prune' on the Candidates tab
+      of GoldDatasetPanel. The dialog body has three sections:
+
+        1. Parameters: numeric inputs for min_surface_match (0.7),
+           semantic_vector_floor (0.92), semantic_min_surface (0.66)
+           plus a status multi-select (default
+           pending+processing+failed) and a candidate cap (default
+           500).
+        2. Preview: a table grouped by verdict (delete / review /
+           keep) with candidate text snippet, entity count, and the
+           top rejection reason for each. A summary row shows the
+           per-verdict totals.
+        3. Confirm: a checkbox 'I understand this will permanently
+           delete N candidates and their draft GoldLabel /
+           SurfaceFormTask rows' that gates the destructive button.
+
+      Closing the dialog while a request is in-flight is blocked
+      (the close handler is a no-op while loading).
+    acceptance_criteria:
+      - criterion: "toolbar_action_present"
+        type: "functional"
+        measurement: "Test"
+        target: "GoldDatasetPanel registers id='auto-prune' on tab==='candidates'"
+      - criterion: "default_param_values"
+        type: "functional"
+        measurement: "Test"
+        target: "Initial state holds 0.7 / 0.92 / 0.66 for the three confidence floors"
+      - criterion: "destructive_button_gated"
+        type: "safety"
+        measurement: "Test"
+        target: "Delete button is disabled until previewLoaded && deleteCount > 0 && confirmAcknowledged"
+      - criterion: "explicit_confirmation_checkbox"
+        type: "safety"
+        measurement: "Test"
+        target: "Checkbox label includes the literal phrase 'permanently delete'"
+      - criterion: "in_flight_close_blocked"
+        type: "safety"
+        measurement: "Test"
+        target: "onClose is a no-op while loading is true"
+      - criterion: "file_size_budget"
+        type: "functional"
+        measurement: "Inspection"
+        target: "CandidatePruneDialog.tsx <= 500 LOC"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/gold-dataset/CandidatePruneDialog.tsx"
+        description: "CandidatePruneDialog component"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+        description: "ToolbarAction registration + dialog state hook"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 320
+      key_functions:
+        - "CandidatePruneDialog"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Gates a destructive backend action that cascade-deletes draft GoldLabels"
+    risk_control_measures:
+      - "Two-step preview-then-confirm flow"
+      - "Explicit acknowledgement checkbox prior to enabling Delete"
+      - "Disabled close while in-flight"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

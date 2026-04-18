@@ -67,6 +67,7 @@ from app.routers.test_patients import router as test_patients_router
 from app.routers.pricing import router as pricing_router
 from app.routers.reference_ranges import router as reference_ranges_router
 from app.routers.audit_quality import router as audit_quality_router
+from app.routers.sbar import router as sbar_router
 
 
 def _validate_startup_deps():
@@ -323,6 +324,7 @@ app.include_router(pricing_router)
 app.include_router(reference_ranges_router)
 app.include_router(audit_quality_router)
 app.include_router(data_quality_router)
+app.include_router(sbar_router)
 
 
 @app.get("/health")

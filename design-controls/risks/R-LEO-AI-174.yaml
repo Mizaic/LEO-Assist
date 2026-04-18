@@ -73,15 +73,33 @@
       implemented_by: ["DI-LEO-AI-179"]
       verified_by: ["VT-LEO-AI-173"]
       effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        DI-LEO-AI-213 replaces the scope chips and accordion
+        sections with a single chronological encounter list
+        driven by the histogram brush, defaults the brush to the
+        padded episode-linked window, marks every linked card
+        with an "In episode" chip, and adds three episode
+        overlays on top of the histogram: a tightened band
+        spanning first-linked..last-linked encounter dates,
+        per-encounter linked ticks on the bottom axis, and
+        labelled milestone markers along the top. This removes
+        the residual "scope toggle" cognitive step and surfaces
+        every surrounding-context encounter on a single
+        chronological timeline by default.
+      implemented_by: ["DI-LEO-AI-213"]
+      verified_by: ["VT-LEO-AI-205"]
+      effectiveness: "effective"
     - control_type: "information_for_safety"
       description: >
-        Tab help copy notes that the scrubber covers all
-        encounters in the patient's history, not just those linked
-        to the focused episode, so reviewers do not assume the
-        scrubber is filtered.
-      implemented_by: ["DI-LEO-AI-179"]
-      verified_by: ["VT-LEO-AI-173"]
-      effectiveness: "partially_effective"
+        Tab help copy notes that the timeline shows every
+        encounter in the patient's history and that the brush
+        controls which encounters appear in the list below, so
+        reviewers do not assume the histogram or the encounter
+        list is filtered to the linked set only.
+      implemented_by: ["DI-LEO-AI-179", "DI-LEO-AI-213"]
+      verified_by: ["VT-LEO-AI-173", "VT-LEO-AI-205"]
+      effectiveness: "effective"
 
   residual_risk_estimate:
     severity: 2
@@ -94,13 +112,17 @@
       The scrubber removes the structural cause of the missed-
       context use error: surrounding encounters are now visible at
       a glance and one click away, with a hover preview that
-      confirms the date and coded count before commit. Residual
-      risk reflects the narrow case where a reviewer dismisses the
-      scrubber entirely; the existing scope chips and milestone
-      jumps remain available as fallbacks, and the harm is minor
-      (downstream re-review, not a missed cancer diagnosis -- the
-      upstream coding pipeline and the safety-net dashboard remain
-      the primary controls for missed cancers).
+      confirms the date and coded count before commit.
+      DI-LEO-AI-213 strengthens the control further by making the
+      timeline the only spatial filter and by overlaying the
+      episode footprint, linked encounters, and milestones
+      directly on the histogram, so the surrounding context is
+      visible without any toggle action. Residual risk now
+      reflects only the narrow case where a reviewer ignores both
+      the histogram overlay and the milestone chip row; the harm
+      is minor (downstream re-review, not a missed cancer
+      diagnosis -- the upstream coding pipeline and the safety-net
+      dashboard remain the primary controls for missed cancers).
 
   monitoring:
     monitoring_plan: >

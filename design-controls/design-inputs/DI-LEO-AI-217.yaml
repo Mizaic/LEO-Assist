@@ -1,0 +1,91 @@
+# -- DI-LEO-AI-217 -- Cancer treatment Read code coverage expansion (Pattern M)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-217"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-005"
+    - "UN-LEO-AI-006"
+  requirement: >
+    The CANCER_TREATMENT_PROCEDURE_CODES inventory in
+    libs/domains/code_inventories.py SHALL contain Read codes for
+    all common definitive cancer treatment / staging procedures
+    encountered in the live primary-care cohort, including:
+      - Breast surgery: XacLJ (mastectomy R), XacLK (mastectomy L),
+        X40EC (wide local excision of breast lesion), 7H601 (block
+        dissection of axillary lymph nodes), XaF83 (sentinel lymph
+        node biopsy)
+      - Bowel/colorectal: X20Y4 (anterior resection), XaFB2 (low
+        anterior resection), XaCvE (loop ileostomy), XaZVW
+        (lap-assisted right hemicolectomy), 77132 (right
+        hemicolectomy)
+      - Prostate/urology: Y3c24 (robot-assisted laparoscopic
+        radical prostatectomy)
+      - Thyroid: Xa8OS (partial thyroidectomy), 71102
+        (hemithyroidectomy)
+      - Generic chemotherapy/radiotherapy: 8BAD0 (cancer
+        chemotherapy), 8BAD1 (cancer radiotherapy), ZV58A
+        (antineoplastic chemotherapy encounter)
+    so that a treatment_started milestone fires whenever any of
+    these codes appears in a post-referral encounter.
+  rationale: >
+    Patient 4802892365's 2025-07-28 encounter contained
+    "Major: Mastectomy of right breast (XacLJ) (New Episode)" and
+    "Major: Biopsy of sentinel lymph node (XaF83) (New Episode)",
+    which are unambiguous cancer treatment milestones. Neither
+    code was in CANCER_TREATMENT_PROCEDURE_CODES, so no
+    treatment_started anchor fired and the episode showed
+    treatment_started_date = null. A cohort scan found 5
+    breast-specific encounters with the same shape and 106
+    completed cancer episodes with no treatment_started milestone.
+    Without these codes the milestone-chain KPI under-reports
+    coverage by ~25% on completed cancer pathways.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: "find_active_cancer_care_code('Major: Mastectomy of right breast (XacLJ) (New Episode)') matches XacLJ via the treatment-procedure path"
+      - type: "functional"
+        spec: "All 17 Read codes in the Pattern M expansion MUST be present in CANCER_TREATMENT_PROCEDURE_CODES"
+      - type: "functional"
+        spec: "An encounter with 'Mastectomy of right breast (XacLJ)' on a post-referral date MUST emit a treatment_started anchor"
+      - type: "functional"
+        spec: "An encounter with 'Robot assisted laparoscopic radical prostatectomy (Y3c24)' MUST emit a treatment_started anchor"
+      - type: "safety"
+        spec: "Pre-referral cancer-treatment codes (e.g. mastectomy in family-history context) MUST NOT emit treatment_started"
+    constraints:
+      - type: "safety"
+        spec: "All codes added are definitive cancer treatment or staging procedures; no diagnostic-only codes (e.g. plain mammogram) added"
+    dependencies:
+      - "DI-LEO-AI-175"
+      - "DI-LEO-AI-200"
+    downstream_impacts:
+      - "Anchor detector (text path)"
+      - "EpisodeOfCare.treatment_started_date population"
+      - "Pathway completeness KPI"
+      - "Cancer treatment time-to-treatment SLA reporting"
+    technical_details:
+      language: "Python"
+      framework: "Code inventory"
+      file_structure:
+        - "libs/domains/code_inventories.py"
+      estimated_loc: 30
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-209 must pass with 100% on all critical and total
+      cases covering inventory membership and end-to-end
+      treatment_started emission for the patient 4802892365 and
+      cohort breast/prostate/thyroid cases.
+    test_protocol: "VT-LEO-AI-209"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-204"
+  tags:
+    - "anchor-detector"
+    - "treatment-classification"
+    - "code-inventory"
+    - "patient-4802892365"

@@ -254,6 +254,43 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     async def on_message(msg: Message) -> None:
         _consumer_state["last_message_at"] = _utc_now_iso()
+        # Inspect body cheaply for SBAR jobs and dispatch directly to the
+        # SBAROrchestrator. Other event_types continue through the workflow
+        # engine. See DI-LEO-AI-186.
+        try:
+            body = msg.body
+            if isinstance(body, (str, bytes)):
+                body = json.loads(body)
+        except Exception:
+            body = None
+        if isinstance(body, dict) and body.get("event_type") == "sbar_requested":
+            try:
+                from services.pipeline_worker.app.services.sbar_orchestrator import (
+                    handle_sbar_message,
+                )
+
+                await handle_sbar_message(body)
+                return
+            except Exception:
+                logger.exception("SBAR job failed")
+                try:
+                    from services.coding_worker.app.services.progress_publisher import (
+                        publish_progress,
+                    )
+                    run_id = str(msg.correlation_id or msg.message_id or body.get("run_id") or "")
+                    if run_id:
+                        publish_progress(
+                            run_id,
+                            {
+                                "type": "sbar_failed",
+                                "run_id": run_id,
+                                "message": "SBAR orchestrator raised an exception. See worker logs.",
+                            },
+                        )
+                except Exception:
+                    pass
+                raise
+
         try:
             await handler.handle_message(msg)
         except Exception:
@@ -1086,6 +1123,18 @@ async def model_registry_worker_trace(body: WorkerTraceRequest) -> dict[str, Any
                 final_state.get("extraction_model_version_mismatch", False)
             )
 
+            # Return the actual de-identified text the workflow processed
+            # so the curator UI renders entity offsets against the same
+            # string they will be persisted against. Document.text in
+            # Neo4j is already de-identified at write time; falling back
+            # to the request text would re-introduce raw PHI.
+            processed_text = ""
+            for key in ("encounter_text", "document_text", "text", "raw_text"):
+                value = final_state.get(key)
+                if isinstance(value, str) and value.strip():
+                    processed_text = value
+                    break
+
             layer_trace = [
                 {
                     "layer_id": str(step.get("layer_id") or ""),
@@ -1106,7 +1155,10 @@ async def model_registry_worker_trace(body: WorkerTraceRequest) -> dict[str, Any
                     "encounter_id": enc.encounter_id,
                     "patient_id": enc.patient_id,
                     "encounter_date": enc.encounter_date,
-                    "text_length": len(str(enc.text or "")),
+                    "text": processed_text,
+                    "text_length": len(processed_text)
+                    if processed_text
+                    else len(str(enc.text or "")),
                     "ner_entities": extraction_entities,
                     "final_entities": final_entities,
                     "suppressed_entities": suppressed_entities,

@@ -1,0 +1,73 @@
+# -- DI-LEO-AI-186 -- :Chunk node and HAS_CHUNK relationship
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-186"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-079"
+  requirement: >
+    The patient graph SHALL support a :Chunk node attached to a
+    DocumentReference via a HAS_CHUNK relationship, with a deterministic
+    id, ordinal position, character offsets and SHA-256 of the chunk
+    text, so that coded clinical evidence can be linked at sub-document
+    granularity.
+  rationale: >
+    DocumentReference granularity is too coarse for long referral letters
+    and free-text notes. A :Chunk node carrying the original substring
+    plus its SHA-256 lets a reviewer see exactly what text was coded
+    from, and lets the writer dedupe re-ingestion of the same letter.
+    Deterministic chunk ids (sha256 of document_reference_id + ordinal
+    + sha256(text)) make MERGE re-runs idempotent.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          libs.cypher.chunk_queries.make_chunk_id() is a pure function of
+          (document_reference_id, ordinal, sha256) and produces the same
+          64-character hex id for identical inputs.
+      - type: "functional"
+        spec: >
+          UPSERT_CHUNK MERGEs on Chunk.id and SETs document_reference_id,
+          text, sha256, ordinal, char_start, char_end, created_at.
+      - type: "functional"
+        spec: >
+          UPSERT_CHUNK MERGEs the (DocumentReference)-[:HAS_CHUNK
+          {ordinal, char_start, char_end}]->(Chunk) edge.
+      - type: "functional"
+        spec: >
+          schema_constraints includes UNIQUE on Chunk.id and indexes on
+          Chunk.document_reference_id and Chunk.sha256.
+    constraints:
+      - type: "safety"
+        spec: >
+          The chunk text MUST NOT be modified after first MERGE -- the
+          sha256 is authoritative. Re-ingestion produces a new chunk if
+          the text changes, leaving the old one for audit.
+    dependencies: []
+    downstream_impacts:
+      - "Patient graph schema (new node + relationship)"
+      - "Documents writer (libs.cypher.documents_queries.py)"
+    technical_details:
+      language: "Python"
+      framework: "Neo4j Cypher"
+      file_structure:
+        - "libs/cypher/chunk_queries.py"
+        - "libs/cypher/schema_constraints.py"
+      estimated_loc: 150
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-185 covers chunk id determinism, UPSERT_CHUNK parameter
+      shape, and constraint registration.
+    test_protocol: "VT-LEO-AI-185"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-180"
+  tags:
+    - "documents"
+    - "chunks"
+    - "schema"

@@ -1,0 +1,91 @@
+# -- DI-LEO-AI-185 -- GoldLabelDetailDialog re-mount per record + state resync on item change
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-185"
+  type: "Safety"
+  derived_from: ["UN-LEO-AI-082"]
+  requirement: >
+    Every JSX mount of the GoldLabelDetailDialog component in the
+    LEO UI SHALL carry a stable `key` prop derived from the
+    rendered GoldLabel's `label_id`, AND the dialog body SHALL
+    declare a belt-and-braces useEffect that, when `item.label_id`
+    changes, re-derives entity-dependent state (entities,
+    rejectedRelationKeys, suggestion drafts, lookup target,
+    surface-form drafts) from the new `item.entities_json` so that
+    no state from a previously-rendered GoldLabel can leak into
+    the next record under any caller pattern.
+
+  rationale: >
+    The dialog uses lazy useState initialisers (e.g.
+    useState(() => parseEntities(item.entities_json))) which only
+    run on mount. Without a key prop, React re-uses the component
+    instance when the parent flips `item` to a new GoldLabel via
+    onNextCandidate, causing stale entities from the prior record
+    to render against the new sentence. Reviewers approving such
+    a dialog sign off content they never actually inspected,
+    which corrupts the gold training set with their implicit
+    consent attached to the wrong entities.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Every <GoldLabelDetailDialog .../> mount in
+          services/ui/src/**/*.tsx passes a `key` prop whose
+          expression includes `label_id`.
+      - type: "functional"
+        spec: >
+          Distinct JSX mounts use distinct key namespace prefixes
+          ("gold-", "syn-", "cand-", "sim-") to prevent
+          accidental key collisions across surfaces.
+      - type: "safety"
+        spec: >
+          The dialog body declares useEffect with dependency array
+          [item.label_id, item.entities_json] that calls
+          setEntities, setRejectedRelationKeys, setSuggestions({}),
+          setTermDrafts({}), setLookupTarget(null), setSaveError
+          (null), setSaveMsg(null), setNewEntityText(""),
+          setShowDeleteConfirm(false), setSuppressOnDelete(false)
+          when prevLabelIdRef.current differs from item.label_id.
+      - type: "functional"
+        spec: >
+          The lazy useState initialiser
+          `useState<Entity[]>(() => parseEntities(item
+          .entities_json))` is preserved as the mount-time fast
+          path so first-render does not pay the effect cost.
+
+    constraints:
+      - type: "safety"
+        spec: >
+          The fix MUST NOT depend on any caller passing the key
+          prop correctly -- the in-component useEffect resync is
+          the safety net that catches the regression class even
+          when the key prop is forgotten in a future contributor's
+          edit.
+
+    dependencies: []
+    downstream_impacts:
+      - "Gold Dataset review surface (training-data tab + synthetic tab)"
+      - "Candidate review modal launch (CandidateReviewList)"
+      - "Similar-candidate dialog launch (SuggestionsPanel)"
+
+    technical_details:
+      language: "TypeScript"
+      framework: "React 18 + Next.js 14"
+      file_structure:
+        - "services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx"
+      estimated_loc: 60
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-179 static-source jest test passes 5/5 cases.
+    test_protocol: "VT-LEO-AI-179"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-179"]
+  tags:
+    - "ui-safety"
+    - "gold-label"
+    - "training-data-quality"

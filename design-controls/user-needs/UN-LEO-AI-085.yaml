@@ -1,0 +1,135 @@
+# -- UN-LEO-AI-085 -- AI first-pass over the labeller backlog
+# IEC 62366 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-085"
+  title: "AI first-pass over the training-candidate to-do list so reviewers confirm rather than label from scratch"
+  description: >
+    As a labeller faced with hundreds of TrainingCandidate rows in the
+    Training Data > Candidates queue (status pending / processing /
+    failed), reviewing every candidate from a blank slate is
+    overwhelming. Most candidates either (a) can be labelled and coded
+    confidently by an AI pass that uses recent gold candidates as
+    few-shot examples and the existing Ask LEO smart-coding loop
+    (Haiku ranks SNOMED resolver candidates and rephrases the search
+    term when nothing fits), in which case the candidate should remain
+    in the to-do list "pre-done" so the reviewer just confirms; or (b)
+    cannot be made codable by the AI's best efforts, in which case
+    the candidate should be deleted from the queue so the reviewer
+    never sees it. A small middle band where the AI is uncertain or
+    where safety rails apply must be left untouched for the reviewer.
+  stakeholder: "training-data curator"
+  priority: "high"
+  rationale: >
+    The current backlog of approximately 900 non-completed
+    TrainingCandidate rows blocks NER model improvement because no
+    reviewer can plausibly work through it manually. A defensive
+    auto-prune (UN-LEO-AI-083 v1) only removes the obviously bad and
+    leaves the bulk of mediocre candidates untouched, so the queue
+    stays unmanageable. An assistive AI first-pass that PRE-DOES the
+    label and code, deletes only what cannot be coded after Haiku has
+    tried alternative search terms, and visually marks every
+    AI-suggested entity in the reviewer UI converts a 900-candidate
+    backlog into a much smaller queue of confirmations plus a clear
+    delete log.
+
+  acceptance_criteria:
+    - id: "AC-001"
+      description: >
+        For each candidate processed, the system MUST run an AI
+        extraction step (Haiku via tier='small') seeded with top-5
+        nearest-neighbour gold candidates by BioClinicalBERT cosine
+        similarity (FewShotSelector against the pool of
+        status='completed' TrainingCandidates), passing the
+        candidate's existing entities_json as a hint, and produce a
+        refined entity list with text, label, and assertion fields.
+
+    - id: "AC-002"
+      description: >
+        For each AI-extracted entity, the system MUST run the
+        existing SNOMED resolver and validator
+        (validate_proposal). When the validator rejects the top hit,
+        the system MUST invoke the Ask LEO smart loop
+        (escalate_coding_from_candidates) to let Haiku request an
+        alternative search query (capped at 2 retries per entity)
+        before giving up.
+
+    - id: "AC-003"
+      description: >
+        Verdict 'pre_done' is assigned when at least one AI-extracted
+        entity passes the validator; the candidate's
+        entities_json MUST be overwritten with the AI pass and the
+        original payload MUST be stashed once into
+        entities_json_original (never overwritten on subsequent
+        passes); status remains 'pending' so the candidate stays in
+        the to-do list.
+
+    - id: "AC-004"
+      description: >
+        Verdict 'delete' is assigned when zero AI-extracted entities
+        pass the validator AND no safety rail fires; the system MUST
+        cascade DETACH DELETE the TrainingCandidate plus its draft
+        GoldLabel and SurfaceFormTask peers (using the existing
+        DELETE_TRAINING_CANDIDATE_AND_ARTIFACTS Cypher).
+
+    - id: "AC-005"
+      description: >
+        Verdict 'review' is assigned and NO writes happen when any
+        of: zero entities even after the AI pass; any entity carries
+        an _AUTO_CODE_BLOCKED assertion (absent / refuted / declined
+        / cancelled / planned / hypothetical / possible / historical
+        / family); source startswith 'manual_gold_seed'; or mixed
+        accept/reject across entities.
+
+    - id: "AC-006"
+      description: >
+        The workflow MUST run as a background job (tens of minutes
+        wall clock for a full backlog) with an SSE progress channel
+        so the reviewer can close the browser and return; per-
+        candidate events MUST include candidate_id, verdict, and the
+        AI-extracted entity count.
+
+    - id: "AC-007"
+      description: >
+        The reviewer UI MUST visibly mark every AI-suggested entity
+        on a pre_done candidate with an "AI suggested" chip in the
+        GoldLabelDetailDialog so the curator never confuses an AI
+        pass with a human-saved one; a "show original" toggle MUST
+        let the curator see the pre-AI entities_json on demand.
+
+    - id: "AC-008"
+      description: >
+        status='completed' (gold) candidates MUST never be touched by
+        any phase of this workflow regardless of input parameters or
+        run_id state, defended at three layers (fetch query exclusion,
+        per-candidate TOCTOU re-check before write/delete, and
+        explicit assertion in the verdict engine).
+
+  user_validation:
+    method: "Real backlog dry-run"
+    success_criteria: >
+      Run the AI first-pass over the live ~900-candidate backlog;
+      confirm at least 50% of candidates resolve to a non-review
+      verdict (pre_done or delete), confirm zero gold candidates are
+      modified or deleted (count of status='completed' before == after),
+      and confirm a sample of pre_done candidates render the "AI
+      suggested" chip in the dialog.
+    documentation: >
+      Recorded in data/audit/ai_first_pass_<UTC>.{summary.json,events.jsonl}
+      and in the UI dialog's final summary panel.
+
+  design_inputs:
+    - "DI-LEO-AI-208"
+    - "DI-LEO-AI-209"
+
+  metadata:
+    created_date: "2026-04-17"
+    last_updated: "2026-04-17"
+    status: "approved"
+    owner: "training-data curator"
+    supersedes: "UN-LEO-AI-083 (defensive prune; replaced by assistive first-pass)"
+    tags:
+      - "training-data"
+      - "ai-assist"
+      - "labeller-experience"
+      - "haiku"
+      - "few-shot"

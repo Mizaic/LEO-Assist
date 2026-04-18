@@ -1,0 +1,93 @@
+# -- DO-LEO-AI-203 -- rejected_no_followup status engine implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-203"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "approved"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-205"
+    user_needs:
+      - "UN-LEO-AI-006"
+      - "UN-LEO-AI-007"
+    risks_addressed:
+      - "R-LEO-AI-195"
+    verification_tests:
+      - "VT-LEO-AI-197"
+
+  specification:
+    title: "rejected_no_followup status: surface broken referral chains before the stale-close pass"
+    description: |
+      Two new helpers in
+      services/analysis_worker/app/analyzers/episode_builder/_status.py:
+
+        - _has_followup_referral(ref_anchors,
+            rejection_date, followup_window_days=90):
+          True iff any non-rejected referral exists strictly
+          after the rejection date and within the 90-day
+          rescue window.
+
+        - _rejection_followup_status(ref_anchors,
+            has_diagnosis, benign_date):
+          Returns ('rejected_no_followup', True, <reason>)
+          when (a) at least one referral subtype is
+          'rejected' or 'marked_in_error', (b) no follow-up
+          referral exists, (c) no diagnosis, (d) no
+          benign-closure date. Otherwise returns None.
+
+      _determine_episode_status now accepts an optional
+      ref_anchors argument and consults
+      _rejection_followup_status BEFORE returning the
+      default 'in_progress' fallback. Both
+      _build_closed_episode and _build_open_episode pass
+      ref_anchors so the new status is reachable from both
+      paths.
+
+    acceptance_criteria:
+      - criterion: "all_rejected_no_followup_returns_rejected_status"
+        type: "functional"
+        measurement: "Test"
+        target: "_rejection_followup_status returns ('rejected_no_followup', True, reason) when every referral subtype is 'rejected' and there is no follow-up within 90 days"
+      - criterion: "rejection_with_followup_referral_returns_none"
+        type: "functional"
+        measurement: "Test"
+        target: "_rejection_followup_status returns None when a non-rejected referral exists within 90 days of the earliest rejection"
+      - criterion: "rejection_with_diagnosis_does_not_override"
+        type: "safety"
+        measurement: "Test"
+        target: "_rejection_followup_status returns None when has_diagnosis=True"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_status.py"
+        description: "_has_followup_referral, _rejection_followup_status, updated _determine_episode_status"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/analyzers/episode_builder/_builder.py"
+        description: "Pass ref_anchors to _determine_episode_status from both _build_closed_episode and _build_open_episode"
+      - artifact_type: "test_code"
+        location: "tests/test_patient_4643293950_patterns.py"
+        description: "TestPatternARejectedNoFollowupStatus"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 60
+      key_functions:
+        - "_has_followup_referral"
+        - "_rejection_followup_status"
+        - "_determine_episode_status"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "EpisodeOfCare status assignment for the operations queue"
+    risk_control_measures:
+      - "Diagnosis evidence beats workflow signal (has_diagnosis short-circuits)"
+      - "Closed-benign date beats workflow signal (benign_date short-circuits)"
+      - "90-day rescue window measured from the earliest rejection so re-rejected referrals reset the clock"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

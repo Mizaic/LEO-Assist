@@ -1,0 +1,75 @@
+# -- DI-LEO-AI-187 -- Generalise :DOCUMENTS to accept Encounter|Chunk source
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-187"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-079"
+  requirement: >
+    The DOCUMENTS relationship writer SHALL accept either an :Encounter
+    or a :Chunk as the source node, while preserving the existing
+    Patient-level shortcut edge for present/historical assertions on
+    Encounter sources, so that coded evidence from chunked documents is
+    persisted with the same semantics as coded evidence from encounters.
+  rationale: >
+    The original :DOCUMENTS writer assumed an Encounter source and a
+    direct Patient parent. Chunks live under DocumentReferences which
+    in turn live under Patients, so the writer needs a parameterised
+    MATCH and a null-safe FOREACH for the Patient shortcut. This keeps
+    a single code path responsible for evidence semantics.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          libs.cypher.documents_queries._build_upsert_query accepts
+          source_label="Encounter" (default) or source_label="Chunk".
+      - type: "functional"
+        spec: >
+          For source_label="Chunk" the MATCH uses (src:Chunk) with
+          OPTIONAL MATCH up the (DocumentReference)<-[:HAS_DOCUMENT_REFERENCE]-
+          (:Patient) chain, and the FOREACH that creates the Patient
+          shortcut is guarded by p IS NOT NULL.
+      - type: "functional"
+        spec: >
+          write_documents_from_sentences_payload accepts a source_label
+          parameter and forwards source_id (alias of encounter_id) to
+          the query.
+      - type: "functional"
+        spec: >
+          _build_upsert_query rejects unknown source_label values with
+          ValueError before constructing the query.
+    constraints:
+      - type: "safety"
+        spec: >
+          The Patient-level :IS_DOCUMENTED shortcut MUST only be created
+          for present or historical assertions, never for negated,
+          family or hypothetical evidence -- preserving the runtime
+          guard that prevents false-positive patient flags.
+    dependencies:
+      - "DI-LEO-AI-186"
+    downstream_impacts:
+      - "Documents writer call sites that pass encounter_id"
+    technical_details:
+      language: "Python"
+      framework: "Neo4j Cypher"
+      file_structure:
+        - "libs/cypher/documents_queries.py"
+      estimated_loc: 80
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-185 includes cases that build the query for both
+      source_labels, verify the chunk path uses OPTIONAL MATCH and
+      that the Patient FOREACH is null-guarded, and reject an unknown
+      source_label.
+    test_protocol: "VT-LEO-AI-185"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-180"
+  tags:
+    - "documents"
+    - "chunks"

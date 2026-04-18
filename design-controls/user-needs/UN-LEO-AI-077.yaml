@@ -124,7 +124,7 @@
     created_date: "2026-04-17"
     status: "approved"
 
-  design_inputs: ["DI-LEO-AI-179"]
+  design_inputs: ["DI-LEO-AI-179", "DI-LEO-AI-213"]
   validation_tests: []
 
   tags: ["mission-control", "patient-detail", "encounter-text", "navigation", "ui", "usability"]

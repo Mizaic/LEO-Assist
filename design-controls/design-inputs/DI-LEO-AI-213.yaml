@@ -1,0 +1,231 @@
+# -- DI-LEO-AI-213 -- Patient detail Encounter text - overlay-first navigation
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-213"
+  type: "Usability"
+  derived_from: ["UN-LEO-AI-077"]
+  requirement: >
+    The Mission Control patient detail Encounter text tab SHALL
+    surface every encounter in the patient's history as a single
+    flat, chronological list driven by the histogram timeline
+    overlay, removing the previous scope-chip + accordion model
+    introduced in DI-LEO-AI-179. Specifically:
+    (a) The three scope chips ("Episode linked", "Episode window",
+    "All encounters") SHALL be removed; the "linked-but-no-explicit-
+    links" warning Alert and the two collapsible sections ("Other
+    encounters in episode window", "All other patient encounters")
+    SHALL also be removed;
+    (b) The encounter list below the histogram SHALL be a single
+    chronological feed of every encounter returned for the patient,
+    filtered ONLY by (i) the histogram brush window, (ii) the
+    "Coded only" switch, and (iii) the "Search text in shown
+    encounters" field. The "Coded only" switch and the "Search"
+    field SHALL remain visible above the list;
+    (c) Each encounter card whose id appears in
+    episode.linked_encounter_ids OR in any
+    episode.milestones[].encounter_id SHALL render an "In episode"
+    chip beside its date, plus a thin coloured left accent bar, so
+    the linkage is visible without the previous scope filter;
+    (d) On first load (and on any episode_id change), the histogram
+    brush window SHALL be initialised to the patient's
+    "episode-linked footprint" -- the min and max dates of the
+    encounters in the linked-encounter set -- padded by 10 percent
+    of the patient's full history span on each side, clamped to the
+    patient's [oldestEncounter, newestEncounter] range. When the
+    linked set is empty, the brush SHALL fall back to
+    [referral_date, end_date] padded the same way; when neither is
+    available, the brush SHALL remain at the full patient range
+    (no filter);
+    (e) The histogram SHALL overlay three episode cues on top of the
+    existing stacked-bar histogram delivered by DI-LEO-AI-179:
+    (e.1) the existing "timeline-window-band" SHALL be tightened
+    to span only first-linked..last-linked encounter dates (not
+    referral_date..end_date), so the band reflects the actual
+    episode footprint; (e.2) one small, absolutely-positioned tick
+    marker (data-testid="timeline-linked-tick", colour #2563eb)
+    SHALL be drawn on the bottom axis at the date of every
+    episode-linked encounter so the reviewer can see exactly which
+    bars are linked; (e.3) one labelled milestone marker
+    (data-testid="timeline-milestone-marker") SHALL be drawn at the
+    date of every episode milestone (referral, specialist visit,
+    diagnosis, etc.), with a tooltip exposing the milestone label
+    and date and a click handler that jumps to the milestone's
+    encounter;
+    (f) Calling jumpToEncounter (via milestone chip, single-bin bar
+    click, popover row click, or milestone marker click) SHALL
+    clear the brush filter, the Coded-only switch, and the Search
+    field, so the target encounter is always visible after any
+    jump; the encounter card SHALL scroll into view only when
+    target.scrollIntoView is a function (jsdom-safe);
+    (g) The timeline caption SHALL read "Click a bar to jump - drag
+    the focus band to widen or narrow your view"; the helper
+    paragraph above the timeline SHALL explain in plain English
+    that the timeline shows every encounter and the brush controls
+    which encounters appear below;
+    (h) The scrubber SHALL accept a milestones prop of the shape
+    Array<{ milestone_type: string; encounter_id: string;
+    date: string }> and SHALL fall back to an empty list when the
+    prop is omitted (back-compat for any non-EncounterTextTab
+    consumer);
+    (i) EncounterTextTab.tsx SHALL remain at or below 500 LOC; any
+    new logic SHALL be hosted in sibling modules (TimelineOverlays,
+    useEncounterRecode, ...).
+  rationale: >
+    UN-LEO-AI-077 calls for surrounding-context encounters to be
+    one click away and visible at a glance. DI-LEO-AI-179 delivered
+    the histogram primitive but kept the legacy scope chips +
+    accordions in front of the encounter list, which forced
+    reviewers to choose between "see linked only", "see window
+    only" or "see everything" and pushed surrounding-context
+    encounters into a collapsed accordion. Reviewers reported the
+    accordion split was confusing because it duplicated information
+    the histogram already conveyed spatially. This DI consolidates
+    the navigation model: the histogram is the primary spatial
+    affordance, the brush is the only spatial filter, and the
+    encounter list is a single chronological feed. Tightening the
+    band to first-linked..last-linked, adding per-encounter linked
+    ticks, and adding milestone markers means the histogram itself
+    answers "what happened before, after, and in between the
+    episode encounters" -- which is precisely the reviewer
+    question UN-LEO-AI-077 was raised against. Defaulting the
+    brush to the padded episode window means the list opens
+    pre-focused on the episode plus a bit of surrounding context,
+    which preserves the discoverability gain of the previous
+    "Episode window" chip without a manual click.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          EncounterTextTab.tsx contains no Scope chip definitions
+          ("Episode linked (", "Episode window (", "All encounters
+          (" string literals are absent), no <Accordion ...> nodes,
+          no setScope state setter, and no splitEncounters import.
+      - type: "functional"
+        spec: >
+          The encounter list rendered below the timeline is the
+          output of applyCommonFilters(encounters, { codedOnly,
+          search, timelineRange }) sorted ascending by date.
+      - type: "functional"
+        spec: >
+          On mount and on every change of episode.episode_id, the
+          tab initialises timelineRange to padRange(
+          episodeLinkedRange.fromMs, episodeLinkedRange.toMs,
+          fullMinMs, fullMaxMs) where pad = 10 percent of
+          (fullMaxMs - fullMinMs) on each side, clamped to
+          [fullMinMs, fullMaxMs]. The default-applied flag SHALL
+          live in a ref keyed by episode.episode_id so the brush
+          is not reset after the user has manually adjusted it.
+      - type: "functional"
+        spec: >
+          Each rendered encounter whose encounter_id is in
+          linkedEncounterIds renders a Chip with label "In episode"
+          (data-testid="encounter-in-episode-chip") and a 3px
+          coloured left accent bar
+          (data-testid="encounter-linked-accent").
+      - type: "functional"
+        spec: >
+          EncounterTimelineScrubber accepts a milestones?: Array<{
+          milestone_type, encounter_id, date }> prop and renders
+          one MilestoneMarkers child overlay per non-empty
+          milestone date, plus one LinkedEncounterTicks child
+          overlay aggregating all linked-encounter dates.
+      - type: "functional"
+        spec: >
+          The episode "timeline-window-band" is computed from the
+          min and max timestamps of linked-encounter dates (not
+          from episode.referral_date / episode.end_date). When the
+          linked set is empty, the band is not rendered.
+      - type: "functional"
+        spec: >
+          Each milestone marker has data-testid="timeline-milestone
+          -marker", a data-milestone-type attribute, an aria-label
+          of the form "Milestone: <label> on <short date>", is
+          tabbable, and invokes the parent's onJumpToEncounter
+          handler on click and on Enter / Space.
+      - type: "functional"
+        spec: >
+          Each linked tick has data-testid="timeline-linked-tick",
+          a data-encounter-id attribute, and is aria-hidden (the
+          per-bar aria-label already announces linked count).
+      - type: "functional"
+        spec: >
+          jumpToEncounter clears codedOnly, search, and
+          timelineRange before scrolling, and the scrollIntoView
+          call is guarded by `typeof target.scrollIntoView ===
+          "function"` so the unit tests can drive jumps under
+          jsdom without crashing.
+      - type: "usability"
+        spec: >
+          The timeline caption reads "Click a bar to jump - drag
+          the focus band to widen or narrow your view"; the helper
+          paragraph above the timeline explains, in plain English,
+          that every patient encounter appears below and the brush
+          controls which appear (reading age 9-11).
+      - type: "usability"
+        spec: >
+          EncounterTextTab.tsx file size remains <= 500 LOC; the
+          recode flow (queue + SSE + refresh loop) lives in
+          useEncounterRecode.ts; the overlays live in
+          TimelineOverlays.tsx.
+
+  constraints:
+    - type: "safety"
+      spec: >
+        The overlays are read-only presentation: ticks and markers
+        MUST NOT mutate encounter data, MUST NOT trigger network
+        calls on hover, and MUST NOT change the bins or the brush
+        window directly (only via the existing onJumpToEncounter
+        callback which clears the filter).
+    - type: "performance"
+      spec: >
+        Render must remain under 16 ms for up to 500 encounters;
+        overlays MUST be derived from the same dated array as the
+        bars and use useMemo to avoid per-frame recomputation.
+    - type: "accessibility"
+      spec: >
+        Milestone markers MUST meet WCAG 2.5.5 AA hit-area target
+        (>= 24 x 24 px including padding) and MUST be activatable
+        with Enter / Space; the linked ticks are decorative and
+        aria-hidden because the per-bar aria-label already
+        announces the linked count.
+
+  dependencies: ["DI-LEO-AI-179"]
+  downstream_impacts:
+    - "services/ui/src/components/mission-control/EncounterTextTab.tsx"
+    - "services/ui/src/components/mission-control/EncounterTimelineScrubber.tsx"
+    - "services/ui/src/components/mission-control/TimelineOverlays.tsx"
+    - "services/ui/src/components/mission-control/EncounterCard.tsx"
+    - "services/ui/src/components/mission-control/encounterFilters.ts"
+    - "services/ui/src/components/mission-control/useEncounterRecode.ts"
+
+  technical_details:
+    language: "TypeScript"
+    framework: "Next.js / React / MUI / framer-motion / @leo/design-system"
+    file_structure:
+      - "services/ui/src/components/mission-control/EncounterTextTab.tsx"
+      - "services/ui/src/components/mission-control/EncounterTimelineScrubber.tsx"
+      - "services/ui/src/components/mission-control/TimelineOverlays.tsx"
+      - "services/ui/src/components/mission-control/EncounterCard.tsx"
+      - "services/ui/src/components/mission-control/encounterFilters.ts"
+      - "services/ui/src/components/mission-control/useEncounterRecode.ts"
+    estimated_loc: 320
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-205 passes all critical static-source and
+      live-render cases for the overlay-first navigation rework:
+      scope chips and accordions removed, Coded-only and Search
+      retained, In-episode chip on linked cards, default brush
+      initialised to the padded episode-linked window, tightened
+      episode band, per-encounter linked tick markers, milestone
+      markers (with accessible label and keyboard activation), the
+      flat encounter list driven by the brush, EncounterTextTab.tsx
+      remains <= 500 LOC.
+    test_protocol: "VT-LEO-AI-205"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-174"]
+  tags: ["mission-control", "patient-detail", "encounter-text", "navigation", "ui", "framer-motion", "accessibility"]

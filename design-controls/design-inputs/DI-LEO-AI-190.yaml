@@ -1,0 +1,91 @@
+# -- DI-LEO-AI-190 -- SBAR orchestrator: four-stage pipeline with incremental persistence
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-190"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-080"
+  requirement: >
+    The pipeline worker SHALL run the SBAR generation as a single
+    SBAROrchestrator that, for every sbar_requested message: (1)
+    creates a draft :Assessment, (2) resolves source nodes and codes,
+    (3) calls the situation prompt, (4) calls the background prompt,
+    (5) runs the deterministic Assessment formatter against the
+    roaring bitmap evaluator, (6) calls the recommendation prompt,
+    and (7) finalises the Assessment with status='completed' (or
+    'draft' if any stage produced an error). After every stage the
+    orchestrator SHALL publish a progress event on Redis pub/sub
+    channel pipeline:{run_id}.
+  rationale: >
+    Single-orchestrator design avoids dual writers and makes the
+    contract with the UI (per-stage SSE) trivial to relay. Incremental
+    persistence is what lets a partial result be visible to the user
+    when the LLM degrades.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          On a happy-path run the orchestrator emits, in order:
+          sbar_started -> 4x (sbar_stage_started, sbar_stage_completed)
+          -> sbar_completed.
+      - type: "functional"
+        spec: >
+          A failure in the situation/background/recommendation LLM
+          call records the error in the Assessment.errors list and
+          finalises with status='draft' rather than raising.
+      - type: "functional"
+        spec: >
+          The orchestrator writes via the SBAR Cypher queries from
+          DI-LEO-AI-189 in the order
+          CREATE_ASSESSMENT -> LINK_* -> SET_SITUATION ->
+          SET_BACKGROUND -> SET_ASSESSMENT_NARRATIVE ->
+          SET_RECOMMENDATION -> FINALISE_ASSESSMENT.
+      - type: "functional"
+        spec: >
+          The handle_sbar_message dispatch helper accepts either a
+          flat sbar_requested body or a wrapped {context: {...}}
+          envelope and rejects anything else with ValueError so the
+          message bus can dead-letter it.
+    constraints:
+      - type: "safety"
+        spec: >
+          The orchestrator MUST NOT short-circuit the Assessment stage
+          on LLM failure -- the deterministic Assessment formatter must
+          still run because it is the rule-grounded section that
+          carries safety-net evidence.
+    dependencies:
+      - "DI-LEO-AI-188"
+      - "DI-LEO-AI-189"
+      - "DI-LEO-AI-192"
+      - "DI-LEO-AI-193"
+    downstream_impacts:
+      - "Pipeline worker on_message dispatcher"
+      - "Redis pub/sub channel layout (pipeline:{run_id})"
+    technical_details:
+      language: "Python"
+      framework: "asyncio + Neo4j + Redis"
+      file_structure:
+        - "services/pipeline_worker/app/services/sbar_orchestrator.py"
+        - "services/pipeline_worker/app/main.py"
+        - "libs/sbar/source_resolver.py"
+        - "libs/sbar/prompt_calls.py"
+      estimated_loc: 700
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-187 covers the happy-path stage ordering, the
+      degrade-to-draft behaviour on situation failure, and the
+      Cypher write sequence.
+    test_protocol: "VT-LEO-AI-187"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-182"
+    - "R-LEO-AI-183"
+  tags:
+    - "sbar"
+    - "orchestrator"
+    - "pipeline-worker"

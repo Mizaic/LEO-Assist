@@ -395,11 +395,17 @@ def _patient_only_query(
 
 
 def _kpis_cypher(base: str, params: dict) -> tuple[str, dict]:
-    """Return (query, params) for the 6 Mission Control KPI aggregation.
+    """Return (query, params) for the Mission Control KPI aggregation.
 
-    confirmed_cancer uses the canonical NCDA cohort helper so this
-    count agrees with /audit/summary.confirmed_cancers and
-    /audit/cancer-stage (DI-LEO-AI-134).
+    DI-LEO-AI-214 (Mission Control KPI unit clarity): the KPI block returns
+    BOTH episode counts (canonical NCDA, what the audit endpoint reports)
+    AND patient counts (what the KPI strip label promises). The UI shows
+    patients as the headline number and episodes as a sub-line so the
+    label "Patients with..." matches what is on screen.
+
+    confirmed_cancer / confirmed_cancer_patients use the canonical NCDA
+    cohort helper so the headline figure agrees with /audit/summary
+    (DI-LEO-AI-134).
     """
     confirmed = confirmed_cancer_where("ep")
     q = (
@@ -409,8 +415,12 @@ def _kpis_cypher(base: str, params: dict) -> tuple[str, dict]:
         "  count(DISTINCT p) AS total_patients, "
         f"  count(DISTINCT CASE WHEN ({confirmed}) THEN ep END) "
         "    AS confirmed_cancer, "
+        f"  count(DISTINCT CASE WHEN ({confirmed}) THEN p END) "
+        "    AS confirmed_cancer_patients, "
         "  count(DISTINCT CASE WHEN ep.status IN "
         f"    {_CLOSURE_STATUSES!r} THEN ep END) AS pathway_closures, "
+        "  count(DISTINCT CASE WHEN ep.status IN "
+        f"    {_CLOSURE_STATUSES!r} THEN p END) AS pathway_closure_patients, "
         "  percentileCont(toFloat(ep.diagnostic_interval_days), 0.5) AS median_diagnostic_interval_days, "
         "  toFloat(count(DISTINCT CASE WHEN ep.safety_netting_milestone IS NOT NULL "
         "    AND ep.safety_netting_milestone <> '' THEN ep END)) / "
@@ -418,6 +428,92 @@ def _kpis_cypher(base: str, params: dict) -> tuple[str, dict]:
         "  count(DISTINCT CASE WHEN ep.reviewed_at IS NULL THEN ep END) AS needs_review_count "
     )
     return q, params
+
+
+def _cohort_denominator_cypher(
+    org_id: Optional[str],
+    scope: CallerScope,
+    date_from: Optional[str],
+    date_to: Optional[str],
+) -> tuple[str, dict]:
+    """Return (query, params) for the cohort denominator + excluded buckets.
+
+    DI-LEO-AI-214: the KPI strip filter context can hide patients whose
+    only EpisodeOfCare nodes either (a) do not exist, (b) all carry an
+    excluded status (merged / closed_phantom / closed_related), or
+    (c) have a NULL or out-of-window referral_date. These patients
+    silently disappear from "Patients in view" today; the cohort
+    denominator surfaces them so the user always knows the headline
+    figure (89) sits inside a known cohort total (107) with a known
+    excluded breakdown (no pathway / outside window / missing referral
+    date).
+
+    The query is intentionally scoped by org / caller scope ONLY -- the
+    date / pathway / cancer-type / closure-reason filters do NOT apply.
+    """
+    if scope.is_admin and not org_id:
+        scope_match = "MATCH (p:Patient) "
+        scope_params: dict = {}
+    elif org_id or scope.primary_org_id:
+        effective_org = org_id or scope.primary_org_id
+        scope_match = (
+            "MATCH (_scope:Organization {id: $org}) "
+            "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+            "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+            "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
+        )
+        scope_params = {"org": effective_org}
+    else:
+        scope_match = (
+            "MATCH (p:Patient) "
+            f"WHERE {ORG_PATIENT_FILTER} "
+        )
+        scope_params = scope.to_query_params()
+
+    # DI-LEO-AI-214: an episode is "in view" for the KPI strip when its
+    # status is not in the always-excluded list AND its referral_date
+    # falls inside the configured window. Anything else means the
+    # patient is hidden by either status, missing referral date, or an
+    # out-of-window referral. We split the excluded bucket so the user
+    # can see WHY a patient is hidden.
+    date_lo = date_from or "0001-01-01"
+    date_hi = date_to or "9999-12-31"
+    excluded = list(_ALWAYS_EXCLUDE)
+    in_view_predicate = (
+        f"NOT ep.status IN {excluded!r} "
+        "AND ep.referral_date IS NOT NULL "
+        f"AND ep.referral_date >= '{date_lo}' "
+        f"AND ep.referral_date <= '{date_hi}' "
+    )
+    has_any_episode = "EXISTS { MATCH (p)-[:HAS_EPISODE_OF_CARE]->(:EpisodeOfCare) }"
+    has_in_view_episode = (
+        "EXISTS { MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+        f"WHERE {in_view_predicate}}}"
+    )
+    has_episode_with_null_ref = (
+        "EXISTS { MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+        f"WHERE NOT ep.status IN {excluded!r} "
+        "AND ep.referral_date IS NULL }"
+    )
+
+    q = (
+        f"{scope_match}"
+        "RETURN "
+        "  count(DISTINCT p) AS cohort_total_patients, "
+        "  count(DISTINCT p) - count(DISTINCT CASE WHEN "
+        f"    {has_in_view_episode} THEN p END) AS excluded_total, "
+        "  count(DISTINCT CASE WHEN NOT "
+        f"    {has_any_episode} THEN p END) AS excluded_no_pathway, "
+        "  count(DISTINCT CASE WHEN "
+        f"    {has_any_episode} AND NOT {has_in_view_episode} "
+        f"    AND {has_episode_with_null_ref} "
+        "    THEN p END) AS excluded_missing_referral_date, "
+        "  count(DISTINCT CASE WHEN "
+        f"    {has_any_episode} AND NOT {has_in_view_episode} "
+        f"    AND NOT {has_episode_with_null_ref} "
+        "    THEN p END) AS excluded_outside_window "
+    )
+    return q, scope_params
 
 
 # ---------------------------------------------------------------------------
@@ -538,30 +634,53 @@ async def get_mission_control_kpis(
     )
 
     q, qparams = _kpis_cypher(base, params)
+    cohort_q, cohort_params = _cohort_denominator_cypher(
+        org_id, scope, date_from, date_to
+    )
     client = PatientGraphClient()
     try:
         rows = client.run(q, **qparams)
+        cohort_rows = client.run(cohort_q, **cohort_params)
     finally:
         client.close()
+
+    cohort = cohort_rows[0] if cohort_rows else {}
+    cohort_block = {
+        "total_patients": int(cohort.get("cohort_total_patients", 0) or 0),
+        "excluded_total": int(cohort.get("excluded_total", 0) or 0),
+        "excluded_no_pathway": int(cohort.get("excluded_no_pathway", 0) or 0),
+        "excluded_missing_referral_date": int(
+            cohort.get("excluded_missing_referral_date", 0) or 0
+        ),
+        "excluded_outside_window": int(
+            cohort.get("excluded_outside_window", 0) or 0
+        ),
+    }
 
     if not rows:
         return {
             "total_patients": 0,
             "confirmed_cancer": 0,
+            "confirmed_cancer_patients": 0,
             "pathway_closures": 0,
+            "pathway_closure_patients": 0,
             "median_diagnostic_interval_days": None,
             "safety_netting_rate": 0.0,
             "needs_review_count": 0,
+            "cohort": cohort_block,
         }
 
     row = rows[0]
     return {
         "total_patients": row.get("total_patients", 0),
         "confirmed_cancer": row.get("confirmed_cancer", 0),
+        "confirmed_cancer_patients": row.get("confirmed_cancer_patients", 0),
         "pathway_closures": row.get("pathway_closures", 0),
+        "pathway_closure_patients": row.get("pathway_closure_patients", 0),
         "median_diagnostic_interval_days": row.get("median_diagnostic_interval_days"),
         "safety_netting_rate": float(row.get("safety_netting_rate") or 0.0),
         "needs_review_count": row.get("needs_review_count", 0),
+        "cohort": cohort_block,
     }
 
 

@@ -1,0 +1,35 @@
+{
+  "generated_at": "20260417T170959Z",
+  "input_labels": 967,
+  "input_entities": 2073,
+  "labels_with_any_issue": 369,
+  "entities_emitted_to_report": 88,
+  "min_severity_filter": "critical",
+  "issue_counts": {
+    "blocked_assertion_with_concept": 421,
+    "qualifier_value_on_clinical_label": 7,
+    "stored_tag_drift": 6,
+    "tag_label_mismatch": 24,
+    "missing_concept_id": 58,
+    "missing_snomed_term": 83
+  },
+  "severity_counts": {
+    "info": 398,
+    "critical": 88,
+    "warning": 80
+  },
+  "issue_descriptions": {
+    "missing_concept_id": "Entity is labelled but no SNOMED concept_id is attached.",
+    "missing_snomed_term": "Entity has a concept_id but no SNOMED preferred term.",
+    "missing_label": "Entity has a SNOMED concept but no domain label.",
+    "qualifier_value_on_clinical_label": "Entity is labelled as clinical (finding/disorder/procedure/observable_entity) but the attached SNOMED concept is a (qualifier value) or other non-clinical class.",
+    "tag_label_mismatch": "Entity label and SNOMED-derived semantic_tag disagree, and the mismatch is not a covered synonym.",
+    "stored_tag_drift": "Entity's stored semantic_tag field disagrees with the SNOMED preferred term suffix (data-write integrity issue).",
+    "blocked_assertion_with_concept": "Informational: entity has an assertion the runtime coder refuses to auto-code (absent/refuted/historical/planned/etc.) but a SNOMED concept_id is attached. This is INTENTIONAL for most training data -- the NER model still needs to detect the span so the assertion engine can decide not to code it. Surfaced only so reviewers can spot the rare case where the assertion is wrong (e.g. assertion=refuted on a sentence that actually asserts presence)."
+  },
+  "filters": {
+    "source": null,
+    "exclude_source": [],
+    "limit": 0
+  }
+}

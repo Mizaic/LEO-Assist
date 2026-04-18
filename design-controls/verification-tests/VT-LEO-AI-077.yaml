@@ -2,8 +2,8 @@
 # IEC 62304 Verification Test Protocol
 
 - id: "VT-LEO-AI-077"
-  version: "1.0"
-  status: "draft"
+  version: "1.1"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-077"]
@@ -24,6 +24,7 @@
     automation_framework: "pytest"
     test_file_paths:
       - "tests/test_deidentify_evidence.py"
+      - "tests/test_deidentify.py"
 
   test_environment:
     environment_type: "development"
@@ -91,6 +92,26 @@
       acceptance_criteria:
         - "No records with evidence_start < 0 in export query result"
 
+    - case_id: "VT-077-TC-006"
+      case_name: "Postcode redaction preserves CTV3 / Read v2 clinical codes"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call deidentify_text on sentences containing 5-character CTV3 / Read v2
+            codes that match the compact-form UK postcode regex (e.g. 'B00zz',
+            'X78HC', 'Ya03d'); verify the codes survive unchanged and that real
+            postcodes (with space, e.g. 'SW1A 1AA') are still redacted.
+          expected_result: >
+            Read codes preserved verbatim in output; '[POSTCODE]' substituted only
+            for tokens that are not 5-char alphanumeric clinical codes; detect_phi()
+            does not flag Read codes as 'postcode'.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Read codes B00zz, X78HC, Ya03d, X00ZA, Y7JQI preserved unchanged"
+        - "Real postcode 'SW1A 1AA' is replaced with [POSTCODE]"
+        - "detect_phi('Coded as B00zz') does not include 'postcode'"
+
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
     blocking_on_failure: true
@@ -101,4 +122,16 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - executed_on: "2026-04-18"
+      executed_by: "developer"
+      result: "pass"
+      scope: "VT-077-TC-006 (Read code preservation regression)"
+      command: "pytest tests/test_deidentify.py -v"
+      summary: >
+        152 deidentify tests passed (33 in tests/test_deidentify.py covering the
+        new Read code guard, plus existing completeness suite). Postcode regex
+        now skips 5-char alphanumeric tokens that match the CTV3 / Read v2 shape
+        so clinical codes like B00zz, X78HC, Ya03d are no longer clobbered to
+        [POSTCODE]. Real postcodes with the canonical space (SW1A 1AA) and 7-char
+        compact postcodes (SW1A1AA, LE114QH) continue to be redacted.

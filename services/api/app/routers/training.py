@@ -235,8 +235,10 @@ TRAINING_WORKER_BASE = os.getenv("TRAINING_WORKER_URL", "http://localhost:8005")
 )
 
 from app.routers._training_askleo import register_askleo_routes
+from app.routers._training_ai_first_pass import register_ai_first_pass_routes
 
 register_askleo_routes(router)
+register_ai_first_pass_routes(router)
 
 
 def _enrich_items_entities_with_pt_cache(
@@ -437,6 +439,53 @@ class ExcludeLabelRequest(BaseModel):
 
 class UpdateEntitiesRequest(BaseModel):
     entities: list[dict[str, Any]]
+
+
+class DryRunCandidateRequest(BaseModel):
+    """Create or fetch a TrainingCandidate seeded from a dry-run extraction.
+
+    The encounter text is de-identified server-side before hashing so
+    PHI never enters the candidate text or the candidate_id.
+    """
+
+    encounter_text: str
+    entities: list[dict[str, Any]] = Field(default_factory=list)
+    source_hint: str | None = None
+
+
+class DryRunApproveRequest(BaseModel):
+    """Approve a dry-run extraction as gold without opening the editor.
+
+    The reviewer must echo back ``expected_entity_count`` -- the number
+    of entities they saw on the row card -- so the server can refuse
+    when de-identification drops or merges entities (which would mean
+    the reviewer never saw the persisted set).
+    """
+
+    encounter_text: str
+    entities: list[dict[str, Any]] = Field(default_factory=list)
+    expected_entity_count: int = Field(..., ge=0)
+    source_hint: str | None = None
+    quality_score: float = Field(default=1.0, ge=0.0, le=1.0)
+
+
+class PerEncounterWeightLookupRow(BaseModel):
+    encounter_id: str
+    text: str
+
+
+class PerEncounterWeightLookupRequest(BaseModel):
+    """Look up per-encounter error contribution from the latest canary run.
+
+    The server de-identifies + sha256s each encounter text, joins the
+    hash to ``candidate_id`` in the most recent completed canary job's
+    ``per_document`` block, and returns the weight keyed by the
+    encounter_id supplied by the caller. PHI never crosses back over
+    the wire.
+    """
+
+    encounters: list[PerEncounterWeightLookupRow] = Field(default_factory=list)
+    version: str | None = None
 
 
 class ResolveVerificationRequest(BaseModel):
@@ -4851,6 +4900,133 @@ def delete_training_candidate(
         client.close()
 
 
+# --------------------------------------------------------------------------
+# Confidence-gated TrainingCandidate auto-prune (DI-LEO-AI-196 / UN-LEO-AI-083)
+#
+# Two-phase contract:
+#   POST /training/candidates/prune/preview  -- read-only verdict ladder
+#   POST /training/candidates/prune/execute  -- delete the explicit IDs only
+#
+# Both endpoints are admin-only. The execute path re-checks status before
+# deleting (TOCTOU guard) and never touches status='completed'.
+# --------------------------------------------------------------------------
+
+
+class PrunePreviewRequest(BaseModel):
+    min_surface_match: float = Field(default=0.7, ge=0.0, le=1.0)
+    semantic_vector_floor: float = Field(default=0.92, ge=0.0, le=1.0)
+    semantic_min_surface: float = Field(default=0.66, ge=0.0, le=1.0)
+    statuses: list[str] = Field(
+        default_factory=lambda: ["pending", "processing", "failed"]
+    )
+    limit: int = Field(default=500, ge=1, le=2000)
+
+
+class PruneExecuteRequest(BaseModel):
+    candidate_ids: list[str] = Field(default_factory=list)
+
+
+@router.post("/candidates/prune/preview")
+def prune_training_candidates_preview(
+    body: PrunePreviewRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Dry-run the verdict ladder over non-completed TrainingCandidates.
+
+    Returns a per-candidate assessment plus aggregate summary so the
+    reviewer can sample before invoking ``/prune/execute`` with the
+    explicit candidate_ids returned here.
+    """
+    from app.services.candidate_prune import (
+        PruneParams,
+        assess_candidates,
+        summarise,
+    )
+
+    params = PruneParams(
+        min_surface_match=float(body.min_surface_match),
+        semantic_vector_floor=float(body.semantic_vector_floor),
+        semantic_min_surface=float(body.semantic_min_surface),
+        statuses=tuple(body.statuses or []),
+        limit=int(body.limit),
+    )
+
+    kg = KnowledgeGraphClient()
+    terminology = TerminologyClient()
+    try:
+        assessments = assess_candidates(kg, terminology, params)
+    finally:
+        kg.close()
+
+    summary = summarise(assessments)
+    payload = {
+        "params": {
+            "min_surface_match": params.min_surface_match,
+            "semantic_vector_floor": params.semantic_vector_floor,
+            "semantic_min_surface": params.semantic_min_surface,
+            "statuses": list(params.statuses),
+            "limit": params.limit,
+        },
+        "summary": summary,
+        "candidates": [a.to_dict() for a in assessments],
+    }
+    logger.info(
+        "candidate_prune.preview actor=%s scanned=%d delete=%d review=%d keep=%d",
+        getattr(scope, "email", "unknown"),
+        summary["candidate_count"],
+        summary["by_verdict"].get("delete", 0),
+        summary["by_verdict"].get("review", 0),
+        summary["by_verdict"].get("keep", 0),
+    )
+    return payload
+
+
+@router.post("/candidates/prune/execute")
+def prune_training_candidates_execute(
+    body: PruneExecuteRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Delete the explicitly-supplied TrainingCandidate IDs.
+
+    Re-fetches each candidate before deletion and skips
+    ``status='completed'`` to defend against TOCTOU drift between a
+    prior preview and this execute call.
+    """
+    from app.services.candidate_prune import execute_prune
+
+    if not body.candidate_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="candidate_ids must be non-empty",
+        )
+
+    kg = KnowledgeGraphClient()
+    try:
+        outcome = execute_prune(kg, body.candidate_ids)
+    finally:
+        kg.close()
+
+    logger.info(
+        "candidate_prune.execute actor=%s requested=%d deleted=%d "
+        "skipped_completed=%d not_found=%d",
+        getattr(scope, "email", "unknown"),
+        len(outcome.requested),
+        len(outcome.deleted),
+        len(outcome.skipped_completed),
+        len(outcome.not_found),
+    )
+    return {
+        "requested": len(outcome.requested),
+        "deleted": len(outcome.deleted),
+        "skipped_completed": len(outcome.skipped_completed),
+        "not_found": len(outcome.not_found),
+        "deleted_ids": outcome.deleted,
+        "skipped_completed_ids": outcome.skipped_completed,
+        "not_found_ids": outcome.not_found,
+        "cascade_counts": outcome.cascade_counts,
+    }
+
+
 @router.post("/candidates/{candidate_id}/mark-completed")
 def mark_training_candidate_completed(
     candidate_id: str,
@@ -5540,12 +5716,26 @@ def ensure_gold_label_for_candidate(
                     status_code=404, detail=f"Candidate {candidate_id!r} not found"
                 )
 
+            # -- AI first-pass audit fields (DI-LEO-AI-208 / DI-LEO-AI-209) --
+            # Always read from the TrainingCandidate side: the AI first-pass
+            # writes entities back to the candidate, and the GoldLabel is a
+            # downstream draft. The reviewer needs ai_first_pass_run_id and
+            # entities_json_original on the dialog so the "AI suggested" chip
+            # and "show original" toggle render correctly.
+            ai_audit = {
+                "ai_first_pass_run_id": candidate_row.get("ai_first_pass_run_id"),
+                "ai_first_pass_at": candidate_row.get("ai_first_pass_at"),
+                "entities_json_original": candidate_row.get(
+                    "entities_json_original"
+                ),
+            }
+
             row = session.run(
                 GET_GOLD_LABEL_BY_CANDIDATE_ID,
                 candidate_id=candidate_id,
             ).single()
             if row:
-                return dict(row)
+                return {**dict(row), **ai_audit}
 
             label_id = f"manual-{uuid.uuid4().hex}"
             session.run(
@@ -5564,9 +5754,302 @@ def ensure_gold_label_for_candidate(
                 raise HTTPException(
                     status_code=500, detail="Failed to create GoldLabel"
                 )
-            return dict(created)
+            return {**dict(created), **ai_audit}
     finally:
         client.close()
+
+
+_DRY_RUN_SOURCE = "dry_run_correction"
+_DRY_RUN_APPROVE_GOLD_SOURCE = "manual_gold_curated"
+_DRY_RUN_APPROVED_VIA = "dry_run_quick_approve"
+_DRY_RUN_SOURCE_HINT_MAX = 64
+
+
+def _sanitise_dry_run_entities(
+    deidentified_text: str,
+    entities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Re-anchor dry-run entity offsets onto the de-identified text.
+
+    Drops entities whose surface text can no longer be located after
+    de-identification (e.g. a PERSON token replaced a date inside the
+    span). The reviewer can re-add them in the editor.
+    """
+
+    sanitised: list[dict[str, Any]] = []
+    for raw in entities or []:
+        if not isinstance(raw, dict):
+            continue
+        text = str(raw.get("text") or "").strip()
+        label = str(raw.get("label") or "").strip()
+        if not text or not label:
+            continue
+        span = find_span(deidentified_text, text)
+        if span is None:
+            continue
+        start, end = span
+        cleaned: dict[str, Any] = {
+            "text": deidentified_text[start:end],
+            "label": label,
+            "start": start,
+            "end": end,
+        }
+        for optional_key in ("semantic_tag", "concept_id", "term", "assertion"):
+            value = raw.get(optional_key)
+            if value not in (None, ""):
+                cleaned[optional_key] = value
+        sanitised.append(cleaned)
+    return sanitised
+
+
+@router.post("/candidates/from-dry-run")
+def candidate_from_dry_run(
+    payload: DryRunCandidateRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Create or fetch a TrainingCandidate + draft GoldLabel for a dry-run encounter.
+
+    The reviewer is then deep-linked into the gold-label editor where
+    they can correct the labels and add the encounter to gold training data.
+
+    Idempotent: two reviewers clicking the same encounter land on the same
+    draft because candidate_id = sha256(deidentified_text).
+    """
+
+    raw_text = (payload.encounter_text or "").strip()
+    if not raw_text:
+        raise HTTPException(
+            status_code=400, detail="encounter_text must not be empty"
+        )
+
+    deidentified = deidentify_text(raw_text, ner=True).strip()
+    if not deidentified:
+        raise HTTPException(
+            status_code=400, detail="encounter_text is empty after de-identification"
+        )
+
+    candidate_id = hashlib.sha256(deidentified.encode("utf-8")).hexdigest()
+    sanitised_entities = _sanitise_dry_run_entities(deidentified, payload.entities)
+    entities_json = json.dumps(sanitised_entities, ensure_ascii=False)
+
+    hint = (payload.source_hint or "").strip()[:_DRY_RUN_SOURCE_HINT_MAX]
+
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            existing_candidate = session.run(
+                GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id
+            ).single()
+            if existing_candidate is None:
+                session.run(
+                    UPSERT_TRAINING_CANDIDATE,
+                    candidate_id=candidate_id,
+                    text=deidentified,
+                    entities_json=entities_json,
+                    relation_changes=None,
+                    source=_DRY_RUN_SOURCE,
+                    status="pending",
+                    hitl_reason=hint or None,
+                    hitl_guidance=None,
+                    schema_version="v4",
+                )
+
+            existing_label = session.run(
+                GET_GOLD_LABEL_BY_CANDIDATE_ID, candidate_id=candidate_id
+            ).single()
+            if existing_label:
+                label_id = existing_label.get("label_id")
+            else:
+                label_id = f"manual-{uuid.uuid4().hex}"
+                session.run(
+                    UPSERT_GOLD_LABEL,
+                    label_id=label_id,
+                    text=deidentified,
+                    entities_json=entities_json,
+                    quality_score=None,
+                    source="manual_gold_draft",
+                    verified_by="",
+                    candidate_id=candidate_id,
+                    schema_version="v4",
+                )
+    finally:
+        client.close()
+
+    return {
+        "candidate_id": candidate_id,
+        "label_id": label_id,
+        "source": _DRY_RUN_SOURCE,
+        "entity_count": len(sanitised_entities),
+        "dropped_entity_count": max(
+            0, len(payload.entities or []) - len(sanitised_entities)
+        ),
+    }
+
+
+@router.post("/gold-labels/approve-from-dry-run")
+def approve_dry_run_extraction_as_gold(
+    payload: DryRunApproveRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Approve a dry-run extraction directly as a verified GoldLabel.
+
+    Two-click flow: the reviewer has already eyeballed the entity list
+    on the dry-run row and confirmed via a modal. This endpoint
+    refuses to write gold if any entity was dropped or merged during
+    de-identification (the reviewer would not have seen the persisted
+    set), forcing the reviewer back into the editor for those rows.
+    """
+
+    raw_text = (payload.encounter_text or "").strip()
+    if not raw_text:
+        raise HTTPException(
+            status_code=400, detail="encounter_text must not be empty"
+        )
+
+    deidentified = deidentify_text(raw_text, ner=True).strip()
+    if not deidentified:
+        raise HTTPException(
+            status_code=400, detail="encounter_text is empty after de-identification"
+        )
+
+    candidate_id = hashlib.sha256(deidentified.encode("utf-8")).hexdigest()
+    sanitised = _sanitise_dry_run_entities(deidentified, payload.entities)
+    if not sanitised:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "No entities survived de-identification. "
+                "Open this encounter in the editor to add or fix labels first."
+            ),
+        )
+    if len(sanitised) != payload.expected_entity_count:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Entity count changed during de-identification "
+                f"(saw {payload.expected_entity_count}, "
+                f"{len(sanitised)} can be saved). "
+                "Open this encounter in the editor to review."
+            ),
+        )
+
+    entities_json = json.dumps(sanitised, ensure_ascii=False)
+    hint = (payload.source_hint or "").strip()[:_DRY_RUN_SOURCE_HINT_MAX]
+    verified_by = (getattr(scope, "email", None) or "unknown").strip() or "unknown"
+
+    client = KnowledgeGraphClient()
+    try:
+        with client.session() as session:
+            existing_candidate = session.run(
+                GET_TRAINING_CANDIDATE_BY_ID, candidate_id=candidate_id
+            ).single()
+            if existing_candidate is None:
+                session.run(
+                    UPSERT_TRAINING_CANDIDATE,
+                    candidate_id=candidate_id,
+                    text=deidentified,
+                    entities_json=entities_json,
+                    relation_changes=None,
+                    source=_DRY_RUN_SOURCE,
+                    status="pending",
+                    hitl_reason=hint or None,
+                    hitl_guidance=None,
+                    schema_version="v4",
+                )
+
+            existing_label = session.run(
+                GET_GOLD_LABEL_BY_CANDIDATE_ID, candidate_id=candidate_id
+            ).single()
+            label_id = (
+                existing_label.get("label_id")
+                if existing_label
+                else f"manual-{uuid.uuid4().hex}"
+            )
+            session.run(
+                UPSERT_GOLD_LABEL,
+                label_id=label_id,
+                text=deidentified,
+                entities_json=entities_json,
+                quality_score=float(payload.quality_score),
+                source=_DRY_RUN_APPROVE_GOLD_SOURCE,
+                verified_by=verified_by,
+                candidate_id=candidate_id,
+                schema_version="v4",
+            )
+    finally:
+        client.close()
+
+    return {
+        "candidate_id": candidate_id,
+        "label_id": label_id,
+        "source": _DRY_RUN_APPROVE_GOLD_SOURCE,
+        "verified_by": verified_by,
+        "entity_count": len(sanitised),
+        "approved_via": _DRY_RUN_APPROVED_VIA,
+    }
+
+
+@router.post("/per-encounter-weights/lookup")
+def lookup_per_encounter_weights(
+    payload: PerEncounterWeightLookupRequest,
+    _scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Map dry-run encounter rows to per-document error contribution.
+
+    Reads ``per_document`` from the most recent completed canary job
+    held in the model_registry router's in-memory store. Encounters
+    that did not appear in the canary corpus return ``None`` so the
+    UI can omit the badge cleanly.
+    """
+
+    from app.routers.model_registry import _canary_jobs, _canary_jobs_lock
+
+    with _canary_jobs_lock:
+        candidates = sorted(
+            (
+                job
+                for job in _canary_jobs.values()
+                if job.get("status") == "completed"
+                and (
+                    payload.version is None
+                    or job.get("version") == payload.version
+                )
+                and isinstance(
+                    (job.get("metrics") or {}).get("per_document"), list
+                )
+            ),
+            key=lambda j: float(j.get("completed_at") or 0.0),
+            reverse=True,
+        )
+    if not candidates:
+        return {"job_id": None, "version": None, "weights": {}}
+
+    job = candidates[0]
+    per_doc_index: dict[str, dict[str, Any]] = {}
+    for entry in (job.get("metrics") or {}).get("per_document") or []:
+        cid = entry.get("candidate_id")
+        if isinstance(cid, str) and cid:
+            per_doc_index[cid] = entry
+
+    weights: dict[str, dict[str, Any] | None] = {}
+    for row in payload.encounters:
+        text = (row.text or "").strip()
+        if not text:
+            weights[row.encounter_id] = None
+            continue
+        deid = deidentify_text(text, ner=True).strip()
+        if not deid:
+            weights[row.encounter_id] = None
+            continue
+        cid = hashlib.sha256(deid.encode("utf-8")).hexdigest()
+        weights[row.encounter_id] = per_doc_index.get(cid)
+
+    return {
+        "job_id": job.get("job_id"),
+        "version": job.get("version"),
+        "completed_at": job.get("completed_at"),
+        "weights": weights,
+    }
 
 
 @router.delete("/gold-labels/{label_id}")

@@ -626,6 +626,8 @@ async def get_mission_control_encounters(
             "rewrite_source": query_ctx.rewrite_source,
             "rewrite_confidence": query_ctx.rewrite_confidence,
             "expanded_terms": query_ctx.expanded_terms,
+            "clinical_synonyms": query_ctx.clinical_synonyms,
+            "clinical_synonyms_source": query_ctx.clinical_synonyms_source,
             "fulltext_query": query_ctx.fulltext_query,
             "reasoning": query_ctx.reasoning,
             "near_duplicate_threshold": near_duplicate_threshold,

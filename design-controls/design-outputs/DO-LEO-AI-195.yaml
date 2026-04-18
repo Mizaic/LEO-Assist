@@ -1,0 +1,103 @@
+# -- DO-LEO-AI-195 -- candidate_prune service module + /training/candidates/prune/* endpoints
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-195"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-196"]
+    user_needs: ["UN-LEO-AI-083"]
+    risks_addressed: ["R-LEO-AI-187", "R-LEO-AI-188"]
+    verification_tests: ["VT-LEO-AI-182"]
+
+  specification:
+    title: "Confidence-gated TrainingCandidate pruning service"
+    description: |
+      A new module services/api/app/services/candidate_prune.py
+      implements the verdict ladder. It exports:
+
+        - dataclass CandidateAssessment with fields
+          (candidate_id, status, source, text, entity_count,
+          accepted_count, rejected_count, blocked_assertion_count,
+          verdict, rejection_reasons)
+        - PruneParams pydantic model with fields
+          (min_surface_match=0.7, semantic_vector_floor=0.92,
+          semantic_min_surface=0.66, statuses=['pending','processing',
+          'failed'], limit=2000)
+        - assess_candidates(client, terminology, params) ->
+          list[CandidateAssessment]
+        - execute_prune(client, candidate_ids) ->
+          {requested,deleted,skipped_completed,not_found}
+
+      Two FastAPI routes are added to
+      services/api/app/routers/training.py:
+
+        POST /training/candidates/prune/preview
+        POST /training/candidates/prune/execute
+
+      Both depend on require_admin and emit an INFO audit log line on
+      every call including the actor email and the requested vs
+      executed counts.
+    acceptance_criteria:
+      - criterion: "verdict_zero_entities_review"
+        type: "safety"
+        measurement: "Test"
+        target: "candidate with empty entities_json -> verdict='review'"
+      - criterion: "verdict_blocked_assertion_review"
+        type: "safety"
+        measurement: "Test"
+        target: "any entity assertion in _AUTO_CODE_BLOCKED -> verdict='review'"
+      - criterion: "verdict_manual_seed_review"
+        type: "safety"
+        measurement: "Test"
+        target: "source startswith 'manual_gold_seed' -> verdict='review'"
+      - criterion: "verdict_all_rejected_delete"
+        type: "functional"
+        measurement: "Test"
+        target: "every entity validator-rejected -> verdict='delete'"
+      - criterion: "verdict_all_accepted_keep"
+        type: "functional"
+        measurement: "Test"
+        target: "every entity validator-accepted -> verdict='keep'"
+      - criterion: "execute_completed_skip"
+        type: "safety"
+        measurement: "Test"
+        target: "execute_prune skips status='completed' and reports skipped_completed"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/candidate_prune.py"
+        description: "PruneParams, CandidateAssessment, assess_candidates, execute_prune"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/training.py"
+        description: "POST /training/candidates/prune/preview and /execute routes"
+      - artifact_type: "source_code"
+        location: "scripts/prune_low_confidence_candidates.py"
+        description: "Equivalent CLI for offline / CI dry-runs"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 320
+      key_functions:
+        - "candidate_prune.assess_candidates"
+        - "candidate_prune.execute_prune"
+        - "training.prune_training_candidates_preview"
+        - "training.prune_training_candidates_execute"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Decision to delete a TrainingCandidate cascade-deletes its draft GoldLabel and SurfaceFormTask rows, so the verdict ladder must never classify safety-rail-protected candidates as 'delete'"
+      - "execute_prune re-checks status before deleting to defend against TOCTOU between preview and execute"
+    risk_control_measures:
+      - "Two-phase preview-then-execute API; execute requires explicit candidate_ids and re-checks status='completed'"
+      - "Safety rails: zero-entity, _AUTO_CODE_BLOCKED assertion, manual_gold_seed* source -> verdict='review'"
+      - "Admin-only via require_admin"
+      - "Audit log on every call"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
