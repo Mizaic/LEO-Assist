@@ -314,7 +314,28 @@ export interface CohortFilter {
   episode_status?: string[];
   age_min?: number;
   age_max?: number;
+  sex?: "female" | "male" | string;
+  smoking_status?: "current_smoker" | "ever_smoker";
   custom_cypher?: string;
+  // Patient-finder extensions (DI-LEO-AI-230)
+  imd_decile_min?: number;
+  imd_decile_max?: number;
+  encounter_count_min?: number;
+  encounter_count_max?: number;
+  encounter_count_window_months?: number;
+  episode_domain?: string;
+  episode_subdomain?: string;
+  episode_outcome?:
+    | "confirmed_cancer"
+    | "two_week_wait_route"
+    | "benign"
+    | "in_progress"
+    | "any_open";
+}
+
+export interface CohortPreviewResponse {
+  patient_count: number;
+  sample_patient_ids: string[];
 }
 
 export interface Cohort {
@@ -358,6 +379,134 @@ export async function deleteCohort(cohortId: string): Promise<{ success: boolean
   return fetchJson<{ success: boolean }>(
     `${ANALYTICS_BASE}/analytics/cohorts/${cohortId}`,
     { method: "DELETE" },
+  );
+}
+
+export async function previewCohort(
+  filters: CohortFilter,
+): Promise<CohortPreviewResponse> {
+  return fetchJson<CohortPreviewResponse>(
+    `${ANALYTICS_BASE}/analytics/cohorts/preview`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(filters),
+    },
+  );
+}
+
+// -- Analytics: Patient Finder (DI-LEO-AI-230) -------------------------
+
+export interface PatientFinderRow {
+  id: string;
+  display_name?: string | null;
+  nhs_number?: string | null;
+  dob?: string | null;
+  gender?: string | null;
+  registered_org_id?: string | null;
+}
+
+export interface PatientFinderSearchResponse {
+  results: PatientFinderRow[];
+  total: number;
+}
+
+export interface PatientFinderEncounter {
+  id: string;
+  date?: string | null;
+  encounter_type?: string | null;
+  top_concept?: string | null;
+  coded_count: number;
+}
+
+export interface PatientFinderDocumentReference {
+  id: string;
+  date?: string | null;
+  document_type?: string | null;
+  source?: string | null;
+  chunk_count: number;
+}
+
+export interface PatientFinderChunk {
+  id: string;
+  ordinal: number;
+  preview: string;
+}
+
+export async function searchPatients(
+  q: string,
+  limit = 20,
+): Promise<PatientFinderSearchResponse> {
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  return fetchJson<PatientFinderSearchResponse>(
+    `${ANALYTICS_BASE}/analytics/patient-finder/search?${params}`,
+  );
+}
+
+export async function patientsByFilter(
+  filters: CohortFilter,
+  limit = 50,
+  offset = 0,
+): Promise<PatientFinderSearchResponse> {
+  const params = new URLSearchParams({
+    filters: JSON.stringify(filters),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  return fetchJson<PatientFinderSearchResponse>(
+    `${ANALYTICS_BASE}/analytics/patient-finder/by-filter?${params}`,
+  );
+}
+
+export async function patientsByCohort(
+  cohortId: string,
+  limit = 50,
+  offset = 0,
+): Promise<PatientFinderSearchResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  return fetchJson<PatientFinderSearchResponse>(
+    `${ANALYTICS_BASE}/analytics/patient-finder/by-cohort/${encodeURIComponent(
+      cohortId,
+    )}?${params}`,
+  );
+}
+
+export async function listPatientEncounters(
+  patientId: string,
+  limit = 100,
+): Promise<PatientFinderEncounter[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return fetchJson<PatientFinderEncounter[]>(
+    `${ANALYTICS_BASE}/analytics/patient-finder/${encodeURIComponent(
+      patientId,
+    )}/encounters?${params}`,
+  );
+}
+
+export async function listPatientDocumentReferences(
+  patientId: string,
+  limit = 100,
+): Promise<PatientFinderDocumentReference[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return fetchJson<PatientFinderDocumentReference[]>(
+    `${ANALYTICS_BASE}/analytics/patient-finder/${encodeURIComponent(
+      patientId,
+    )}/document-references?${params}`,
+  );
+}
+
+export async function listDocumentReferenceChunks(
+  documentReferenceId: string,
+  limit = 500,
+): Promise<PatientFinderChunk[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return fetchJson<PatientFinderChunk[]>(
+    `${ANALYTICS_BASE}/analytics/document-references/${encodeURIComponent(
+      documentReferenceId,
+    )}/chunks?${params}`,
   );
 }
 

@@ -65,12 +65,33 @@ class CohortFilter(BaseModel):
     episode_status: Optional[List[str]] = None
     age_min: Optional[int] = None
     age_max: Optional[int] = None
-    # "female" | "male" | None — maps to p.gender in the Patient graph.
+    # "female" | "male" | None - maps to p.gender in the Patient graph.
     # Used for gender-specific programmes (breast, cervical screening).
     sex: Optional[str] = None
-    # "current_smoker" | "ever_smoker" — shorthand for lifestyle filter.
+    # "current_smoker" | "ever_smoker" - shorthand for lifestyle filter.
     smoking_status: Optional[str] = None
     custom_cypher: Optional[str] = None
+
+    # -- Patient finder extensions (DI-LEO-AI-230) --
+    # IMD decile of the patient's primary address. 1 = most deprived, 10 = least.
+    # Stored on (Patient)-[:HAS_ADDRESS]->(Address) by /imd/enrich.
+    imd_decile_min: Optional[int] = None
+    imd_decile_max: Optional[int] = None
+    # Encounter activity. Window defaults to 12 months ending today.
+    encounter_count_min: Optional[int] = None
+    encounter_count_max: Optional[int] = None
+    encounter_count_window_months: Optional[int] = None
+    # Episode of care domain (e.g. "cancer_audit") and subdomain
+    # (e.g. "breast"). Subdomain matches against ep.cancer_type when domain
+    # is cancer_audit, and against ep.subdomain otherwise.
+    episode_domain: Optional[str] = None
+    episode_subdomain: Optional[str] = None
+    # Episode outcome shorthand. Reuses libs/analytics/cohorts canonical
+    # NCDA fragments for cancer outcomes; "in_progress" / "any_open"
+    # cover work-in-progress episodes.
+    # Allowed: "confirmed_cancer", "two_week_wait_route", "benign",
+    # "in_progress", "any_open"
+    episode_outcome: Optional[str] = None
 
 
 class CohortCreateRequest(BaseModel):
@@ -253,6 +274,48 @@ def resolve_cohort(
             cohort_id=cohort_id,
             patient_ids=patient_ids,
             total=len(patient_ids),
+        )
+    finally:
+        client.close()
+
+
+class CohortPreviewResponse(BaseModel):
+    """Lightweight count + sample for an unsaved CohortFilter.
+
+    Used by the PatientFinder primitive's Filter tab so a reviewer can
+    refine the filter ('how many patients does this match?') before
+    deciding whether to persist a Cohort node.
+    """
+
+    patient_count: int
+    sample_patient_ids: List[str]
+
+
+@router.post("/cohorts/preview", response_model=CohortPreviewResponse)
+def preview_cohort(
+    filters: CohortFilter,
+    scope: CallerScope = Depends(get_caller_scope),  # noqa: ARG001 -- gating
+):
+    """Resolve an ad-hoc CohortFilter without persisting a Cohort node.
+
+    Returns the total count of matching patients and up to 25 sample
+    patient ids for a quick UI preview. The filter is not saved.
+    """
+    client = PatientGraphClient()
+    try:
+        count = _resolve_patient_count(client, filters)
+        sample: List[str] = []
+        if count > 0:
+            where_clause, params = _build_where_clauses(filters)
+            rows = client.run(
+                f"MATCH (p:Patient) WHERE {where_clause} "
+                f"RETURN toString(p.id) AS patient_id "
+                f"ORDER BY p.id LIMIT 25",
+                **params,
+            )
+            sample = [str(r["patient_id"]) for r in rows]
+        return CohortPreviewResponse(
+            patient_count=count, sample_patient_ids=sample
         )
     finally:
         client.close()
@@ -445,7 +508,129 @@ def _build_where_clauses(f: CohortFilter) -> tuple[str, Dict[str, Any]]:
         )
         params.setdefault("confirmed_assertions", list(_CONFIRMED_ASSERTIONS))
 
+    _append_imd_clause(f, clauses, params)
+    _append_encounter_count_clause(f, clauses, params)
+    _append_episode_domain_clause(f, clauses, params)
+    _append_episode_outcome_clause(f, clauses, params)
+
     return " AND ".join(clauses) if clauses else "true", params
+
+
+# -- Patient finder filter helpers (DI-LEO-AI-230) ------------------------
+#
+# Each helper appends WHERE-clause fragments for one extension dimension.
+# Kept as small named functions to keep _build_where_clauses() readable
+# and to give each filter a single test target.
+
+
+def _append_imd_clause(
+    f: CohortFilter, clauses: List[str], params: Dict[str, Any]
+) -> None:
+    if f.imd_decile_min is None and f.imd_decile_max is None:
+        return
+    inner: list[str] = []
+    if f.imd_decile_min is not None:
+        inner.append("a.imd_decile >= $imd_decile_min")
+        params["imd_decile_min"] = f.imd_decile_min
+    if f.imd_decile_max is not None:
+        inner.append("a.imd_decile <= $imd_decile_max")
+        params["imd_decile_max"] = f.imd_decile_max
+    clauses.append(
+        "EXISTS { MATCH (p)-[:HAS_ADDRESS]->(a:Address) "
+        "WHERE a.imd_decile IS NOT NULL AND " + " AND ".join(inner) + " }"
+    )
+
+
+def _append_encounter_count_clause(
+    f: CohortFilter, clauses: List[str], params: Dict[str, Any]
+) -> None:
+    if f.encounter_count_min is None and f.encounter_count_max is None:
+        return
+    months = f.encounter_count_window_months or 12
+    params["encounter_window_months"] = months
+    # COUNT { ... } subquery (Neo4j 5.x) is the cleanest way to express
+    # "encounters in the last N months" without a top-level WITH that
+    # would clash with the cohort caller's MATCH / WHERE pipeline.
+    count_expr = (
+        "COUNT { (p)-[:HAS_ENCOUNTER]->(_e:Encounter) "
+        "WHERE _e.date IS NOT NULL "
+        "AND date(_e.date) >= "
+        "date() - duration({months: $encounter_window_months}) }"
+    )
+    bounds: list[str] = []
+    if f.encounter_count_min is not None:
+        bounds.append(f"{count_expr} >= $encounter_count_min")
+        params["encounter_count_min"] = f.encounter_count_min
+    if f.encounter_count_max is not None:
+        bounds.append(f"{count_expr} <= $encounter_count_max")
+        params["encounter_count_max"] = f.encounter_count_max
+    clauses.append("(" + " AND ".join(bounds) + ")")
+
+
+def _append_episode_domain_clause(
+    f: CohortFilter, clauses: List[str], params: Dict[str, Any]
+) -> None:
+    if not f.episode_domain and not f.episode_subdomain:
+        return
+    # Subdomain on cancer_audit episodes maps to ep.cancer_type for backward
+    # compatibility with the NCDA episode builder. For other audit domains
+    # we look at ep.subdomain.
+    inner: list[str] = []
+    if f.episode_domain:
+        inner.append("coalesce(ep.domain, 'cancer_audit') = $episode_domain")
+        params["episode_domain"] = f.episode_domain
+    if f.episode_subdomain:
+        if (f.episode_domain or "cancer_audit") == "cancer_audit":
+            inner.append("ep.cancer_type = $episode_subdomain")
+        else:
+            inner.append("coalesce(ep.subdomain, '') = $episode_subdomain")
+        params["episode_subdomain"] = f.episode_subdomain
+    clauses.append(
+        "EXISTS { MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+        "WHERE " + " AND ".join(inner) + " }"
+    )
+
+
+def _append_episode_outcome_clause(
+    f: CohortFilter, clauses: List[str], params: Dict[str, Any]
+) -> None:
+    """Filter patients by episode-level outcome shorthand.
+
+    Reuses canonical NCDA fragments from libs.analytics.cohorts so this
+    cohort agrees with /audit/summary on what 'confirmed cancer' means.
+    """
+    if not f.episode_outcome:
+        return
+    from libs.analytics.cohorts import (
+        confirmed_cancer_where,
+        suspected_cancer_referral_where,
+    )
+
+    outcome = f.episode_outcome
+    if outcome == "confirmed_cancer":
+        predicate = confirmed_cancer_where("ep")
+    elif outcome == "two_week_wait_route":
+        predicate = suspected_cancer_referral_where("ep")
+    elif outcome == "benign":
+        predicate = (
+            "(ep.status = 'closed_benign' "
+            "OR coalesce(ep.letter_inferred_benign, false) = true)"
+        )
+    elif outcome == "in_progress":
+        predicate = "ep.status = 'in_progress'"
+    elif outcome == "any_open":
+        predicate = (
+            "NOT ep.status IN "
+            "['merged', 'closed_phantom', 'closed_related']"
+        )
+    else:
+        # Unknown outcome -> no clause added; treat as a no-op so a typo
+        # doesn't silently match every patient via false-WHERE collapse.
+        return
+    clauses.append(
+        "EXISTS { MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+        f"WHERE {predicate} }}"
+    )
 
 
 def _resolve_patients(client: PatientGraphClient, f: CohortFilter) -> List[str]:

@@ -21,8 +21,10 @@ from pydantic import BaseModel, ConfigDict, Field
 # the most common cause of dropped LLM responses.
 
 MILESTONE_TYPES: tuple[str, ...] = (
+    "first_presentation",
     "referral",
     "first_seen",
+    "outcome_letter",
     "diagnosis_confirmed",
     "treatment_started",
     "treatment_completed",
@@ -44,6 +46,28 @@ TREATMENT_TYPES: tuple[str, ...] = (
     "radiotherapy",
     "immunotherapy",
     "other",
+)
+
+# Place of first presentation -- mirrors the NCDA cancer audit dropdown.
+# Used only when type == "first_presentation".
+PRESENTATION_PLACES: tuple[str, ...] = (
+    "gp_surgery",
+    "gp_home_visit",
+    "other_primary_care",
+    "hospital_outpatient",
+    "hospital_inpatient",
+    "accident_and_emergency",
+    "walk_in_centre",
+    "out_of_hours",
+    "from_screening",
+    "telephone_consultation",
+    "email_consultation",
+    "video_consultation",
+    "dentist",
+    "optometrist",
+    "community_care_nurse",
+    "other",
+    "not_known",
 )
 
 
@@ -84,8 +108,10 @@ class Milestone(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     type: Literal[
+        "first_presentation",
         "referral",
         "first_seen",
+        "outcome_letter",
         "diagnosis_confirmed",
         "treatment_started",
         "treatment_completed",
@@ -108,6 +134,34 @@ class Milestone(BaseModel):
             "other",
         ]
     ] = None
+    presentation_place: Optional[
+        Literal[
+            "gp_surgery",
+            "gp_home_visit",
+            "other_primary_care",
+            "hospital_outpatient",
+            "hospital_inpatient",
+            "accident_and_emergency",
+            "walk_in_centre",
+            "out_of_hours",
+            "from_screening",
+            "telephone_consultation",
+            "email_consultation",
+            "video_consultation",
+            "dentist",
+            "optometrist",
+            "community_care_nurse",
+            "other",
+            "not_known",
+        ]
+    ] = Field(
+        default=None,
+        description=(
+            "Where the patient first presented, from the NCDA dropdown. "
+            "Only set when type == 'first_presentation'. Use 'not_known' "
+            "if presentation place cannot be inferred from the source text."
+        ),
+    )
     confidence: float = Field(..., ge=0.0, le=1.0)
     reasoning: str
 
@@ -161,8 +215,11 @@ class StageTrace(BaseModel):
     stage: str
     prompt_version: str
     model_id: str
+    tier: str = ""
     input_tokens: int = 0
     output_tokens: int = 0
+    cached_input_tokens: int = 0
+    cost_usd: float = 0.0
     latency_ms: int = 0
     ok: bool = True
     error: str = ""
@@ -175,6 +232,8 @@ class Provenance(BaseModel):
     stages: list[StageTrace] = Field(default_factory=list)
     total_input_tokens: int = 0
     total_output_tokens: int = 0
+    total_cached_input_tokens: int = 0
+    total_cost_usd: float = 0.0
     total_latency_ms: int = 0
     timeline_encounter_count: int = 0
 

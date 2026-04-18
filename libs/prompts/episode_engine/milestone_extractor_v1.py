@@ -17,8 +17,9 @@ from __future__ import annotations
 
 from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.prompts.episode_engine._shared import (
+    BREAST_REFERENCE_CASE,
     MILESTONE_TYPE_LIST,
-    PATIENT_4802892365_REFERENCE,
+    PRESENTATION_PLACE_LIST,
     RULES_OF_THE_ROAD,
     TREATMENT_TYPE_LIST,
 )
@@ -32,12 +33,32 @@ SYSTEM = INJECTION_GUARD + (
     "Extract the canonical milestones from the window:\n"
     f"  {MILESTONE_TYPE_LIST}\n\n"
     "Rules for milestones:\n"
-    "  - referral             : the source 2WW / fast-track / urgent\n"
+    "  - first_presentation    : the FIRST encounter on this pathway where\n"
+    "                            the patient presented with the symptom(s)\n"
+    "                            that ultimately led to the cancer referral.\n"
+    "                            Usually a GP face-to-face or telephone\n"
+    "                            consult several days or weeks BEFORE the\n"
+    "                            2WW referral. Skip routine encounters\n"
+    "                            unrelated to the presenting symptom.\n"
+    "                            Set presentation_place from this list:\n"
+    f"                            {PRESENTATION_PLACE_LIST}.\n"
+    "                            Use 'not_known' only when the source\n"
+    "                            encounter exists but the place is\n"
+    "                            unclear from the text.\n"
+    "  - referral              : the source 2WW / fast-track / urgent\n"
     "                            cancer referral. Pick ONE -- the highest\n"
     "                            fidelity (PRISM / structured form) over\n"
     "                            free-text restatements on the same day.\n"
     "  - first_seen            : first specialist contact after referral\n"
     "                            (clinic visit, telephone consult).\n"
+    "  - outcome_letter        : a clinic / MDT outcome letter received in\n"
+    "                            primary care that reports an interim\n"
+    "                            result (e.g. biopsy taken, surveillance\n"
+    "                            scan, follow-up booked) WITHOUT yet\n"
+    "                            confirming the cancer diagnosis. If the\n"
+    "                            same letter both reports the outcome AND\n"
+    "                            confirms the cancer, prefer\n"
+    "                            diagnosis_confirmed and SKIP this one.\n"
     "  - diagnosis_confirmed   : when the cancer diagnosis is confirmed,\n"
     "                            usually by histology or hospital letter.\n"
     "                            'PMHx of...' is NOT this.\n"
@@ -56,12 +77,15 @@ SYSTEM = INJECTION_GUARD + (
     "    text-message confirmation, prescription pickup as the source.\n"
     "  - evidence_quote MUST be a literal substring of that encounter's\n"
     "    text (do not paraphrase).\n"
+    "  - presentation_place is REQUIRED when type == first_presentation\n"
+    "    and MUST be omitted (null) for every other milestone type.\n"
     "  - confidence < 0.6 -> set needs_human_review=true.\n"
     "  - If a milestone type genuinely does not occur in the window,\n"
-    "    OMIT it. Do not fabricate.\n\n"
+    "    OMIT it. Do not fabricate. first_presentation in particular is\n"
+    "    often missing -- skip it rather than inventing one.\n\n"
     + RULES_OF_THE_ROAD
     + "\n\n"
-    + PATIENT_4802892365_REFERENCE
+    + BREAST_REFERENCE_CASE
     + "\n\nRespond by calling the submit_milestones tool.\n"
 )
 
@@ -105,8 +129,10 @@ SCHEMA: dict = {
                     "type": {
                         "type": "string",
                         "enum": [
+                            "first_presentation",
                             "referral",
                             "first_seen",
+                            "outcome_letter",
                             "diagnosis_confirmed",
                             "treatment_started",
                             "treatment_completed",
@@ -132,6 +158,33 @@ SCHEMA: dict = {
                             "other",
                             None,
                         ],
+                    },
+                    "presentation_place": {
+                        "type": ["string", "null"],
+                        "enum": [
+                            "gp_surgery",
+                            "gp_home_visit",
+                            "other_primary_care",
+                            "hospital_outpatient",
+                            "hospital_inpatient",
+                            "accident_and_emergency",
+                            "walk_in_centre",
+                            "out_of_hours",
+                            "from_screening",
+                            "telephone_consultation",
+                            "email_consultation",
+                            "video_consultation",
+                            "dentist",
+                            "optometrist",
+                            "community_care_nurse",
+                            "other",
+                            "not_known",
+                            None,
+                        ],
+                        "description": (
+                            "Required when type == 'first_presentation'. "
+                            "Must be null for any other milestone type."
+                        ),
                     },
                     "confidence": {
                         "type": "number",

@@ -1,0 +1,137 @@
+id: SBAR-GS-04
+title: 'Routine prostate review: mild LUTS with normal PSA'
+clinical_scenario: '65-year-old man presents with mild lower urinary tract symptoms
+
+  (slow stream, occasional nocturia) over 6 months. PSA 1.4 ug/L
+
+  (within age-adjusted normal). DRE benign. Reviewer must confirm the
+
+  pathway is routine, not 2WW, and that the recommendation does not
+
+  invent symptoms or escalate inappropriately.
+
+  '
+input:
+  patient_id: pat-gs-04
+  situation:
+    artifacts:
+    - type: referral_request
+      id: rr-gs-04
+  background:
+  - type: encounter
+    id: enc-gs-04
+  guideline_ids:
+  - G-LUTS-ROUTINE
+resolved_situation:
+  patient_id: pat-gs-04
+  patient_summary:
+    age_band: 60-69
+    sex: M
+  artifacts:
+  - kind: referral_request
+    id: rr-gs-04
+    reason: Mild LUTS, routine urology assessment
+    referring_specialty: Urology
+resolved_background:
+- source_label: Encounter
+  source_id: enc-gs-04
+  text: '65M, 6 months of slow stream and occasional nocturia (twice per
+
+    night). No haematuria, no dysuria, no weight loss. PSA 1.4 ug/L
+
+    (03/2026). DRE: benign-feeling prostate, no nodule. IPSS score 9
+
+    (mild). Patient declines medical therapy at present.
+
+    '
+  codes:
+  - concept_id: '60951000'
+    term: Lower urinary tract symptoms
+    assertion: present
+  - concept_id: '59717004'
+    term: Nocturia
+    assertion: present
+llm_transcript:
+  situation:
+    markdown: '65-year-old man referred by GP for a routine urology opinion on a
+
+      6-month history of mild lower urinary tract symptoms with normal
+
+      PSA and benign DRE [SOURCE: rr-gs-04].
+
+      '
+    actions: []
+    error: null
+  background:
+    markdown: '- 6-month history of mild LUTS: slow stream and nocturia x 2 [SOURCE:
+      enc-gs-04]
+
+      - PSA 1.4 ug/L, within age-adjusted normal range (03/2026) [SOURCE: enc-gs-04]
+
+      - DRE: benign-feeling prostate, no nodule [SOURCE: enc-gs-04]
+
+      - IPSS score 9 (mild category) [SOURCE: enc-gs-04]
+
+      - No haematuria, dysuria or weight loss [SOURCE: enc-gs-04]
+
+      - Patient declined medical therapy [SOURCE: enc-gs-04]
+
+      '
+    error: null
+  recommendation:
+    markdown: 'Routine urology outpatient appointment. Lifestyle advice on
+
+      caffeine and evening fluid intake. No 2WW criteria met.
+
+      '
+    actions:
+    - action: Routine urology outpatient appointment
+      priority: routine
+      due_days: 84
+      rule_ids:
+      - R-LUTS-001
+    error: null
+evaluator_response:
+  outage: false
+  matched_rules:
+  - rule_id: R-LUTS-001
+    name: Mild LUTS with normal PSA -> routine urology
+    strength: moderate
+    guideline_id: G-LUTS-ROUTINE
+    guideline_title: Lower urinary tract symptoms in men
+    chapter_title: Initial assessment
+    recommendation_verbatim: Offer a conservative management plan; refer routinely
+      if symptoms persist.
+    action:
+      priority: routine
+      due_days: 84
+      name: Routine urology referral
+    confidence: 0.9
+reviewer_expectations:
+  required_section_headings:
+  - '## Situation'
+  - '## Background'
+  - '## Assessment'
+  - '## Recommendation'
+  required_phrases_in_assessment:
+  - R-LUTS-001
+  required_phrases_in_recommendation:
+  - - Routine
+    - routine
+  banned_phrases:
+  - Refer 2WW
+  - Two week wait
+  - suspected cancer
+  - as an AI
+  expected_pathway_hints:
+    rtr: 'no'
+    rtr_evidence_contains: routine
+    stt_is_null: true
+  expected_action_priority: routine
+  reviewer_focus: "1. The transcript MUST NOT escalate to a 2WW or \"two week wait\"\
+    \n   pathway; PSA is normal, no red-flag symptoms. Negative\n   statements such\
+    \ as \"no 2WW criteria met\" are acceptable.\n2. The transcript MUST NOT invent\
+    \ haematuria or weight loss.\n   Negative statements such as \"no haematuria\"\
+    \ are acceptable and\n   desirable as they show the LLM read the negation correctly.\n\
+    3. Lifestyle advice is acceptable; medical therapy is acceptable\n   only if framed\
+    \ as previously declined.\n"

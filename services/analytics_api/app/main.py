@@ -46,6 +46,9 @@ from services.analytics_api.app.routers.mission_control import (
 from services.analytics_api.app.routers.mission_control_encounters import (
     router as mission_control_encounters_router,
 )
+from services.analytics_api.app.routers.patient_finder import (
+    router as patient_finder_router,
+)
 from services.analytics_api.app.routers.research import router as research_router
 
 configure_logging(service_name="analytics-api")
@@ -133,6 +136,9 @@ app.include_router(
     mission_control_encounters_router, prefix="/analytics", tags=["mission-control"]
 )
 app.include_router(research_router, prefix="/analytics", tags=["pathway-explorer"])
+app.include_router(
+    patient_finder_router, prefix="/analytics", tags=["patient-finder"]
+)
 
 
 @app.get("/health")

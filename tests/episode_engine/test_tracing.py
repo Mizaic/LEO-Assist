@@ -19,16 +19,22 @@ def _stages() -> list[StageTrace]:
             stage="segmenter",
             prompt_version="v1",
             model_id="haiku",
+            tier="small",
             input_tokens=100,
             output_tokens=20,
+            cached_input_tokens=30,
+            cost_usd=0.001234,
             latency_ms=500,
         ),
         StageTrace(
             stage="reconciler",
             prompt_version="v1",
             model_id="sonnet",
+            tier="big",
             input_tokens=200,
             output_tokens=40,
+            cached_input_tokens=10,
+            cost_usd=0.002,
             latency_ms=1500,
             ok=False,
             error="schema validation failed",
@@ -56,6 +62,8 @@ def test_build_provenance_aggregates_stage_totals():
     assert prov.trace_id == "eet-test"
     assert prov.total_input_tokens == 300
     assert prov.total_output_tokens == 60
+    assert prov.total_cached_input_tokens == 40
+    assert prov.total_cost_usd == round(0.001234 + 0.002, 6)
     assert prov.total_latency_ms == 2000
     assert prov.timeline_encounter_count == 42
     assert len(prov.stages) == 2
@@ -83,6 +91,8 @@ def test_persist_trace_writes_node_with_serialised_stages():
     assert kwargs["dry_run"] is False
     assert kwargs["total_input_tokens"] == 300
     assert kwargs["total_output_tokens"] == 60
+    assert kwargs["total_cached_input_tokens"] == 40
+    assert kwargs["total_cost_usd"] == round(0.001234 + 0.002, 6)
 
     stages = json.loads(kwargs["stages_json"])
     assert {s["stage"] for s in stages} == {"segmenter", "reconciler"}

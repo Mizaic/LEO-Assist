@@ -1,0 +1,191 @@
+{
+  "_meta": {
+    "synthetic_patient_id": "SYN-EE-001",
+    "scenario": "Single breast cancer episode with neoadjuvant endocrine therapy followed by definitive mastectomy. Includes the canonical 'Failed encounter' admin task that deterministic detectors mis-anchor as treatment_started.",
+    "expected_episodes": 1,
+    "expected_milestones": [
+      {"type": "referral",            "date": "2025-03-26", "encounter_id": "syn-ee-001-enc-005", "treatment_type": null},
+      {"type": "first_seen",          "date": "2025-04-28", "encounter_id": "syn-ee-001-enc-008", "treatment_type": null},
+      {"type": "diagnosis_confirmed", "date": "2025-05-19", "encounter_id": "syn-ee-001-enc-013", "treatment_type": null},
+      {"type": "treatment_started",   "date": "2025-05-19", "encounter_id": "syn-ee-001-enc-013", "treatment_type": "endocrine"},
+      {"type": "treatment_started",   "date": "2025-07-28", "encounter_id": "syn-ee-001-enc-015", "treatment_type": "surgery"}
+    ],
+    "expected_NOT_milestones": [
+      {"date": "2025-05-02", "encounter_id": "syn-ee-001-enc-010", "reason": "Pharmacist Failed encounter -- admin task only, NOT a treatment_started"}
+    ],
+    "data_provenance": "Hand-authored synthetic timeline by Quality Engineering, 2026-04-18. No real patient was used as the source. Staff names, addresses, phone numbers, and identifiers are fabricated."
+  },
+
+  "patient": {
+    "id": "SYN-EE-001",
+    "nhs_number": "9990000001",
+    "given_name": "Synthetic",
+    "family_name": "Patient-One",
+    "date_of_birth": "1970-01-01",
+    "gender": "female",
+    "registered_practice": "Synthetic Surgery (Test)"
+  },
+
+  "encounters": [
+    {
+      "id": "syn-ee-001-enc-001",
+      "date": "2025-03-26",
+      "time": "08:25",
+      "location": "Synthetic Surgery",
+      "author_role": "Receptionist Access Role",
+      "author_name": "RECEPTIONIST, Test",
+      "encounter_type": "Administrative",
+      "text": "08:25 - Surgery: RECEPTIONIST, Test (Receptionist Access Role) / Patient telephoned requesting urgent GP appointment for a breast lump."
+    },
+    {
+      "id": "syn-ee-001-enc-002",
+      "date": "2025-03-26",
+      "time": "08:28",
+      "location": "Synthetic Surgery",
+      "author_role": "Receptionist Access Role",
+      "author_name": "RECEPTIONIST, Test",
+      "encounter_type": "Administrative",
+      "text": "08:28 - Surgery: RECEPTIONIST, Test (Receptionist Access Role) / Email sent to clinical inbox."
+    },
+    {
+      "id": "syn-ee-001-enc-003",
+      "date": "2025-03-26",
+      "time": "10:15",
+      "location": "Synthetic Surgery",
+      "author_role": "GP",
+      "author_name": "BRIDGES, Test (Dr)",
+      "encounter_type": "Face-to-face consultation",
+      "text": "10:15 - GP F2F consultation with Dr BRIDGES. 55F presents with 3-week history of right breast lump in upper outer quadrant. Approx 2cm, firm, non-mobile, no overlying skin changes, no axillary lymphadenopathy palpable. No discharge. No FHx breast/ovarian cancer. Discussed concern - 2WW referral being made today. Examination findings noted (XaIY1)."
+    },
+    {
+      "id": "syn-ee-001-enc-004",
+      "date": "2025-03-26",
+      "time": "10:30",
+      "location": "Synthetic Surgery",
+      "author_role": "GP",
+      "author_name": "BRIDGES, Test (Dr)",
+      "encounter_type": "Structured form entry",
+      "text": "10:30 - PRISM 2WW breast cancer referral form completed by Dr BRIDGES. Referred to Synthetic Hospital Trust Breast Unit. Two week wait referral (XaPyQ) (New Episode)."
+    },
+    {
+      "id": "syn-ee-001-enc-005",
+      "date": "2025-03-26",
+      "time": "10:32",
+      "location": "Synthetic Surgery",
+      "author_role": "GP",
+      "author_name": "BRIDGES, Test (Dr)",
+      "encounter_type": "Coded entry",
+      "text": "10:32 - Suspected breast cancer (XaMeC) (New Episode) added to problem list by Dr BRIDGES. Awaiting 2WW clinic appointment."
+    },
+    {
+      "id": "syn-ee-001-enc-006",
+      "date": "2025-03-26",
+      "time": "11:05",
+      "location": "Synthetic Surgery",
+      "author_role": "Admin/Clinical Support Access Role",
+      "author_name": "CLERK, Test",
+      "encounter_type": "Administrative",
+      "text": "11:05 - Surgery: CLERK, Test (Admin/Clinical Support Access Role) / 2WW referral letter generated and faxed to Synthetic Hospital Trust."
+    },
+    {
+      "id": "syn-ee-001-enc-007",
+      "date": "2025-03-26",
+      "time": "16:42",
+      "location": "Synthetic Surgery",
+      "author_role": "Receptionist Access Role",
+      "author_name": "RECEPTIONIST, Test",
+      "encounter_type": "Administrative",
+      "text": "16:42 - SMS reminder sent to patient confirming 2WW breast clinic referral. Standard wording."
+    },
+    {
+      "id": "syn-ee-001-enc-008",
+      "date": "2025-04-28",
+      "time": "09:30",
+      "location": "Synthetic Hospital Breast Unit",
+      "author_role": "Hospital Consultant (letter)",
+      "author_name": "HARRIS, Test (Mr)",
+      "encounter_type": "Hospital outpatient letter (transcribed by Medical Secretary)",
+      "text": "09:30 - First seen in fast-track 2WW breast clinic by Mr HARRIS, Consultant Breast Surgeon. Right breast 2cm mass confirmed, U4 on ultrasound, M4 on mammography. Core biopsy performed today, awaiting histology. Patient counselled regarding likely diagnosis and management options. Plan: results clinic in 2 weeks. Letter dictated 28/04/25 (XaIaB)."
+    },
+    {
+      "id": "syn-ee-001-enc-009",
+      "date": "2025-04-28",
+      "time": "14:00",
+      "location": "Synthetic Surgery",
+      "author_role": "Admin/Clinical Support Access Role",
+      "author_name": "CLERK, Test",
+      "encounter_type": "Administrative",
+      "text": "14:00 - Surgery: CLERK, Test (Admin/Clinical Support Access Role) / Hospital letter from Synthetic Breast Unit received and filed pending GP review."
+    },
+    {
+      "id": "syn-ee-001-enc-010",
+      "date": "2025-05-02",
+      "time": "11:25",
+      "location": "Synthetic Surgery",
+      "author_role": "Pharmacist (Failed encounter)",
+      "author_name": "PHARM, Test",
+      "encounter_type": "Failed encounter",
+      "text": "11:25 - Failed encounter / N+S Encounter type / Pharmacist PHARM, Test attempted call to patient regarding letrozole prescribed by hospital - no answer. Will retry."
+    },
+    {
+      "id": "syn-ee-001-enc-011",
+      "date": "2025-05-15",
+      "time": "08:09",
+      "location": "Synthetic Surgery",
+      "author_role": "Receptionist Access Role",
+      "author_name": "RECEPTIONIST, Test",
+      "encounter_type": "Administrative",
+      "text": "08:09 - Surgery: RECEPTIONIST, Test (Receptionist Access Role) / Patient telephone call - querying when she will hear results from breast clinic. Reassured, awaiting hospital letter."
+    },
+    {
+      "id": "syn-ee-001-enc-012",
+      "date": "2025-05-19",
+      "time": "10:00",
+      "location": "Synthetic Hospital Breast Unit",
+      "author_role": "Hospital Consultant (letter)",
+      "author_name": "HARRIS, Test (Mr)",
+      "encounter_type": "Hospital outpatient letter (transcribed by Medical Secretary)",
+      "text": "10:00 - Results clinic with Mr HARRIS. Histology confirms invasive ductal carcinoma, ER+ PR+ HER2-, grade 2, right breast (XaJSA) (New Episode). Discussed at MDT 16/05/25, plan: neoadjuvant endocrine therapy with letrozole 2.5mg OD for 12 weeks, followed by mastectomy and sentinel node biopsy. Letrozole prescribed today. Patient consented and counselled. Letter dictated 19/05/25."
+    },
+    {
+      "id": "syn-ee-001-enc-013",
+      "date": "2025-05-19",
+      "time": "15:42",
+      "location": "Synthetic Surgery",
+      "author_role": "Pharmacist",
+      "author_name": "PHARM, Test",
+      "encounter_type": "Drug review",
+      "text": "15:42 - Pharmacist drug review by PHARM, Test. Reconciled letrozole 2.5mg OD from Synthetic Breast Clinic letter dated 19/05/25 (Mr HARRIS). New medication added to repeat. Patient counselled by phone re: hot flushes and bone health monitoring. Diagnosis of breast cancer confirmed (B620.) - neoadjuvant endocrine therapy commenced."
+    },
+    {
+      "id": "syn-ee-001-enc-014",
+      "date": "2025-06-30",
+      "time": "11:00",
+      "location": "Synthetic Hospital Breast Unit",
+      "author_role": "Hospital Consultant (letter)",
+      "author_name": "HARRIS, Test (Mr)",
+      "encounter_type": "Hospital outpatient letter (transcribed by Medical Secretary)",
+      "text": "11:00 - Pre-op clinic with Mr HARRIS. Tumour clinically smaller on examination, good response to letrozole. Surgery scheduled 28/07/25 - right mastectomy and sentinel lymph node biopsy. Pre-op assessment booked. Letter dictated 30/06/25."
+    },
+    {
+      "id": "syn-ee-001-enc-015",
+      "date": "2025-07-28",
+      "time": "14:00",
+      "location": "Synthetic Hospital Breast Unit",
+      "author_role": "Medical Secretary (transcribing op note)",
+      "author_name": "SEC, Test",
+      "encounter_type": "Operation note (transcribed)",
+      "text": "14:00 - Major: Mastectomy of right breast (XacLJ) (New Episode) and Sentinel lymph node biopsy axilla (XaIqp). Performed by Mr HARRIS at Synthetic Hospital. Uneventful. Patient discharged day 1 post-op. Histology awaited. Op note transcribed 28/07/25 by SEC, Test."
+    },
+    {
+      "id": "syn-ee-001-enc-016",
+      "date": "2025-08-15",
+      "time": "10:30",
+      "location": "Synthetic Hospital Breast Unit",
+      "author_role": "Hospital Consultant (letter)",
+      "author_name": "HARRIS, Test (Mr)",
+      "encounter_type": "Hospital outpatient letter (transcribed by Medical Secretary)",
+      "text": "10:30 - Post-op review with Mr HARRIS. Wound healing well. Final histology: 18mm invasive ductal carcinoma grade 2, ER+ PR+ HER2-, 0/3 sentinel nodes positive, margins clear. Plan: complete 5 years adjuvant letrozole, no chemotherapy required, no radiotherapy required. Discharged to GP for medication continuation. Letter dictated 15/08/25."
+    }
+  ]
+}

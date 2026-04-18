@@ -1,0 +1,84 @@
+# -- VT-LEO-AI-504 -- Verification of Episode Engine Reconciler Agent
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-504"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-504"]
+    risks: ["R-LEO-AI-504"]
+
+  metadata:
+    title: "Episode engine reconciler agent -- merging, JSON candidate payload, audit trail"
+    description: >
+      Verifies that the reconciler agent (a) parses a single
+      ReconciledEpisode response cleanly and preserves merged_from for
+      audit, (b) serialises candidate windows as JSON in the user
+      message so the LLM sees structured input, and (c) supports a
+      multi-to-one merge response (e.g. multi-site referrals resolving
+      to one primary diagnosis). The reconciler runs on Bedrock Sonnet
+      ('big' tier) by default; tests use a FakeLLM with synthetic
+      payloads, no real LLM calls.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/episode_engine/test_reconciler_agent.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-504-TC-001"
+      case_name: "test_reconciler_parses_single_episode"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "FakeLLM returns one ReconciledEpisode with merged_from=['w1']"
+          expected_result: "ReconcilerResult validates; episode_id, merged_from, needs_human_review preserved"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Audit trail (merged_from) survives the round-trip"
+    - case_id: "VT-504-TC-002"
+      case_name: "test_reconciler_serialises_candidates_as_json"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run reconciler with one candidate window; inspect the user message"
+          expected_result: "User message contains JSON-encoded candidate list parseable as a list of dicts"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "LLM receives structured candidate payload, not free text"
+    - case_id: "VT-504-TC-003"
+      case_name: "test_reconciler_supports_multi_to_one_merge"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "FakeLLM returns one episode with merged_from=['w1', 'w2'] and episode_type='multi_site'"
+          expected_result: "ReconciledEpisode validates with both window ids preserved"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Multi-site -> single primary merges retain provenance"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-504/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-18"
+      executor: "Quality Engineering"
+      result: "pass"
+      notes: "All 3 cases pass; FakeLLM mocks only."

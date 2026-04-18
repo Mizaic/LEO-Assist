@@ -1392,6 +1392,51 @@ underlying causes for the bulk of those 106 cases.
 | Verification Test | VT-LEO-AI-301 | passed | ICD-10 loader - 14/14 pytest cases pass via `python3 -m pytest tests/test_icd10_xml_loader.py -v`: code normalisation (dotted form), level classification (chapter/block/three_char/four_char/five_char), title extraction, included/excluded terms, age/sex constraints, IS_A hierarchy edges, idempotent re-runs, title-drift detection, batch-size flushing, empty-file resilience, malformed-XML resilience, age-range parsing edges, sex-coding edges, end-to-end load against synthetic ClaML fixture. Plus 6/6 jest static-source cases for the terminology page chrome and 4/4 jest static-source cases for ICD-10 title rendering in TermSearch + surface-forms. |
 | Verification Test | VT-LEO-AI-302 | passed | OPCS-4 loader + SNOMED -> OPCS-4 map - 21/21 pytest cases pass via `python3 -m pytest tests/test_opcs4_loader.py tests/test_snomed_map_opcs4.py -v` covering OPCS-4 parser (code normalisation; chapter/block/three_char/four_char level classification; tab-delimited row streaming; chapter-name backfill; IS_A hierarchy edge construction; idempotent re-runs; empty-file and malformed-row resilience) and SNOMED -> OPCS-4 map (refset-id filter ensures only refset `1126491000000109` produces `MAPS_TO_OPCS4` edges; `load_simple_map(refset_filter=CTV3_REFSET_ID)` no longer leaks OPCS-4 rows into `ReadCode` nodes; idempotent re-runs; batch flushing; multi-refset RF2 input). Plus the shared 6/6 jest static-source cases for terminology page chrome and 4/4 jest static-source cases for OPCS-4 title rendering in TermSearch + surface-forms. |
 
+### Haiku Episode Engine -- LLM-driven episode + milestone detection (April 2026)
+
+Replaces the rule-based Pattern A..N episode-builder stack (DI/DO/Risk/VT
+artefacts in the 2xx and 4xx ranges that anchored on regex / Read-code
+heuristics) with a LangGraph chain of four LLM agents plus a deterministic
+loader, idempotent writer, and provenance trace node. Synthetic reference
+case `SYN-EE-001` is the canonical breast-cancer example used in every
+prompt few-shot, fixture, and frozen-cohort baseline -- no real NHS numbers
+are committed to source control or test definitions.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-090 | approved | Replace the rule-based episode detector with an LLM-driven engine that finds cancer episodes reliably, including patients with multiple episodes over time and patients with multi-site referrals that resolve to a single primary diagnosis (synthetic reference SYN-EE-001). |
+| Design Input | DI-LEO-AI-500 | approved | Timeline loader -- de-noised encounter timeline with a 240-char trunk view (segmenter / classifier) and a 1200-char encounter_index (milestone extractor lookups). |
+| Design Input | DI-LEO-AI-501 | approved | Segmenter agent (Haiku) -- splits the timeline into candidate episode windows with structured tool-call output and low-confidence flagging. |
+| Design Input | DI-LEO-AI-502 | approved | Classifier agent (Haiku) -- labels each window cancer / multi_site / benign / non_cancer with a justification and confidence score; ties get needs_human_review=true. |
+| Design Input | DI-LEO-AI-503 | approved | Milestone extractor agent (Haiku) -- finds canonical milestones with evidence quotes and explicitly avoids anchoring treatment_started on the SYN-EE-001 "Failed encounter" administrative task. |
+| Design Input | DI-LEO-AI-504 | approved | Reconciler agent (Sonnet) -- merges overlapping windows that are actually one episode; surfaces low-confidence merges to HITL with merged_from audit trail. |
+| Design Input | DI-LEO-AI-505 | approved | Provenance + idempotent writeback -- EpisodeEngineTrace per run captures model id, prompt version, token + latency totals, per-stage error containment; writer deletes existing EpisodeOfCare for the patient and rewrites with deterministic ids. |
+| Design Output | DO-LEO-AI-500 | approved | services/analysis_worker/app/episode_engine/timeline_loader.py + schemas.py + state.py |
+| Design Output | DO-LEO-AI-501 | approved | services/analysis_worker/app/episode_engine/agents/segmenter.py + libs/prompts/episode_engine/segmenter_v1.py + _shared.py (BREAST_REFERENCE_CASE / SYN-EE-001 few-shot) |
+| Design Output | DO-LEO-AI-502 | approved | services/analysis_worker/app/episode_engine/agents/classifier.py + libs/prompts/episode_engine/classifier_v1.py |
+| Design Output | DO-LEO-AI-503 | approved | services/analysis_worker/app/episode_engine/agents/milestone_extractor.py + libs/prompts/episode_engine/milestone_extractor_v1.py |
+| Design Output | DO-LEO-AI-504 | approved | services/analysis_worker/app/episode_engine/agents/reconciler.py + libs/prompts/episode_engine/reconciler_v1.py + chain.py LangGraph wiring |
+| Design Output | DO-LEO-AI-505 | approved | services/analysis_worker/app/episode_engine/{tracing,writer}.py + libs/pipeline_graph/subgraphs/episode_engine.py + registry/probe wiring |
+| Risk | R-LEO-AI-500 | mitigated | Timeline loader drops critical encounter text (e.g. SYN-EE-001 "Failed encounter" or "(New Episode)" markers) (mitigated by dual-view loader + fixture-driven integration VT). |
+| Risk | R-LEO-AI-501 | mitigated | Segmenter splits a single multi-site episode into multiple windows or fuses unrelated episodes (mitigated by reconciler stage + per-window low-confidence flags). |
+| Risk | R-LEO-AI-502 | mitigated | Classifier mislabels a benign 2WW closure as cancer or vice versa (mitigated by required justification + confidence; ties marked needs_human_review). |
+| Risk | R-LEO-AI-503 | mitigated | Milestone extractor anchors treatment_started on an administrative "Failed encounter" task instead of the real reconciliation or definitive surgery (mitigated by SYN-EE-001 reference case in the prompt + frozen-cohort regression VT). |
+| Risk | R-LEO-AI-504 | mitigated | Reconciler over-merges and hides a true second cancer episode (mitigated by merged_from audit trail + reviewer split-merge in <=2 clicks). |
+| Risk | R-LEO-AI-505 | mitigated | Provenance / writeback failure corrupts patient timeline OR loses cost / drift telemetry (mitigated by idempotent writer + error-contained tracing + EpisodeEngineTrace per run). |
+| Verification Test | VT-LEO-AI-500 | passed | Timeline loader unit + synthetic-fixture VTs (`tests/episode_engine/test_timeline_loader.py`, `test_synthetic_fixture_loader.py`). |
+| Verification Test | VT-LEO-AI-501 | passed | Segmenter agent unit VT with mocked LLM (`tests/episode_engine/test_segmenter_agent.py`). |
+| Verification Test | VT-LEO-AI-502 | passed | Classifier agent unit VT with mocked LLM (`tests/episode_engine/test_classifier_agent.py`). |
+| Verification Test | VT-LEO-AI-503 | passed | Milestone extractor unit VT with mocked LLM and the SYN-EE-001 anti-pattern (`tests/episode_engine/test_milestone_extractor_agent.py`). |
+| Verification Test | VT-LEO-AI-504 | passed | Reconciler agent unit VT with mocked LLM (`tests/episode_engine/test_reconciler_agent.py`). |
+| Verification Test | VT-LEO-AI-505 | passed | Idempotent writer VT (`tests/episode_engine/test_writer.py`). |
+| Verification Test | VT-LEO-AI-506 | passed | Provenance / tracing VT -- trace ids, aggregation, persistence, error containment (`tests/episode_engine/test_tracing.py`). |
+| Verification Test | VT-LEO-AI-507 | draft | Frozen-cohort regression on 20 synthetic patient ids (`SYN-EE-001..SYN-EE-020`); gated on `RUN_EPISODE_ENGINE_FROZEN_VT=1` + `secrets/episode_engine_cohort_map.json`; baseline.json keyed by synthetic id only. |
+| Validation Test | VAL-LEO-AI-014 | draft | Reviewer-led clinical validation on synthetic + de-identified review cohort. SYN-EE-001 acceptance is blocking (must yield endocrine 2025-05-19 + surgery 2025-07-28; must not anchor treatment_started on the 2025-05-02 Failed encounter). |
+
+Supersession: DI-LEO-AI-401 / DI-LEO-AI-402 / DI-LEO-AI-224 / DI-LEO-AI-225
+and their DO/Risk/VT chains MUST be marked `superseded_by:
+[DI-LEO-AI-500..505]` once the cutover lands (todo `supersede_dcs`).
+
 ---
 
 ## SBAR Generation Workflow + Document Chunks (April 2026)
@@ -1452,7 +1497,7 @@ preserved in the section above.
 | Verification Test | VT-LEO-AI-186 | passed | 6 pytest cases pinning SBARRequestPayload validation: minimal happy path, situation artefact id-or-text rules per artefact type, BackgroundSourceType enum gate, JSON round-trip idempotence, event_type literal lock. Run via tests/test_sbar_events.py. Passed 2026-04-17 |
 | Verification Test | VT-LEO-AI-187 | passed | 7 pytest cases pinning SBAROrchestrator stage ordering, draft Assessment created up-front, Cypher write sequence, per-stage Redis progress events, degrade-to-draft on LLM failure, deterministic Assessment formatter always invoked, final composed Markdown contains all four section headings, pathway hints derived from rule outputs. Run via tests/test_sbar_orchestrator.py. Passed 2026-04-17 |
 | Verification Test | VT-LEO-AI-188 | passed | UI verification with two layers. (1) Jest static-source: tab registration in /admin/knowledge, 'Test only' banner present, patient-id/background-source/guideline-id inputs present, useSbarStream POSTs /api/sbar/jobs and opens EventSource on /api/sbar/jobs/{id}/events, three Next.js Route Handlers proxy to the Core API. (2) Playwright: live tab load with banner, submit-enable behaviour, axe baseline (zero critical/serious violations). Run via services/ui/src/__tests__/sbar-playground-chrome.test.tsx + services/ui/e2e/sbar-playground.spec.ts + services/ui/e2e/knowledge-tabs.spec.ts. Passed 2026-04-17 |
-| Verification Test | VT-LEO-AI-189 | draft | 8 automated pytest cases (formatter purity, empty-match narrative, evaluator-outage path, 2WW pathway-hint derivation, routine-only rtr=no, prompt seed registration, JSON schema empty-rejection, hardening rule 10 presence) plus TC-009 manual golden-set sign-off (10 manually-curated SBAR fixtures end-to-end). Automated cases passed 2026-04-17; TC-009 remains pending and gates broader SBAR rollout |
+| Verification Test | VT-LEO-AI-189 | draft | 8 automated pytest cases (formatter purity, empty-match narrative, evaluator-outage path, 2WW pathway-hint derivation, routine-only rtr=no, prompt seed registration, JSON schema empty-rejection, hardening rule 10 presence) plus TC-009: 10 manually-curated SBAR fixtures driven end-to-end by `scripts/run_sbar_golden_set.py`, structurally pinned by `tests/test_sbar_golden_set_runner.py` (29/29 green 2026-04-17), and signed off interactively by a clinical reviewer + Clinical Safety Officer via `scripts/review_sbar_golden_set.py`. Status remains `draft` until the signed ledger lands in the evidence bundle |
 
 ---
 

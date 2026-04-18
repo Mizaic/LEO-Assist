@@ -28,16 +28,18 @@ logger = logging.getLogger(__name__)
 
 _WRITE_TRACE_Q = """
 MERGE (t:EpisodeEngineTrace {trace_id: $trace_id})
-SET t.patient_id            = $patient_id,
-    t.created_at            = datetime($created_at),
-    t.timeline_encounter_count = $encounter_count,
-    t.episode_count         = $episode_count,
-    t.total_input_tokens    = $total_input_tokens,
-    t.total_output_tokens   = $total_output_tokens,
-    t.total_latency_ms      = $total_latency_ms,
-    t.stages_json           = $stages_json,
-    t.errors_json           = $errors_json,
-    t.dry_run               = $dry_run
+SET t.patient_id                  = $patient_id,
+    t.created_at                  = datetime($created_at),
+    t.timeline_encounter_count    = $encounter_count,
+    t.episode_count               = $episode_count,
+    t.total_input_tokens          = $total_input_tokens,
+    t.total_output_tokens         = $total_output_tokens,
+    t.total_cached_input_tokens   = $total_cached_input_tokens,
+    t.total_cost_usd              = $total_cost_usd,
+    t.total_latency_ms            = $total_latency_ms,
+    t.stages_json                 = $stages_json,
+    t.errors_json                 = $errors_json,
+    t.dry_run                     = $dry_run
 WITH t
 MATCH (p:Patient {id: $patient_id})
 MERGE (p)-[:HAS_ENGINE_TRACE]->(t)
@@ -57,12 +59,16 @@ def build_provenance(
 ) -> Provenance:
     total_in = sum(s.input_tokens for s in stages)
     total_out = sum(s.output_tokens for s in stages)
+    total_cached = sum(s.cached_input_tokens for s in stages)
+    total_cost = round(sum(s.cost_usd for s in stages), 6)
     total_latency = sum(s.latency_ms for s in stages)
     return Provenance(
         trace_id=trace_id,
         stages=stages,
         total_input_tokens=total_in,
         total_output_tokens=total_out,
+        total_cached_input_tokens=total_cached,
+        total_cost_usd=total_cost,
         total_latency_ms=total_latency,
         timeline_encounter_count=encounter_count,
     )
@@ -92,6 +98,10 @@ def persist_trace(
             episode_count=int(episode_count),
             total_input_tokens=int(sum(s.input_tokens for s in stages)),
             total_output_tokens=int(sum(s.output_tokens for s in stages)),
+            total_cached_input_tokens=int(
+                sum(s.cached_input_tokens for s in stages)
+            ),
+            total_cost_usd=round(sum(s.cost_usd for s in stages), 6),
             total_latency_ms=int(sum(s.latency_ms for s in stages)),
             stages_json=stages_json,
             errors_json=json.dumps(list(errors)),

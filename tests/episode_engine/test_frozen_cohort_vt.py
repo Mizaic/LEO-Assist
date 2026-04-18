@@ -1,13 +1,18 @@
 """Frozen-cohort regression VT for the Haiku episode engine (VT-LEO-AI-507).
 
-Re-runs the engine in dry_run on the 20 canonical patients from
-``scripts/regression/episode_engine_frozen/cohort_ids.FROZEN_COHORT`` and
-asserts that each patient's structural output still matches the committed
-baseline JSON.
+Re-runs the engine in dry_run on the 20 canonical SYNTHETIC patients
+from ``scripts/regression/episode_engine_frozen/cohort_ids.FROZEN_COHORT``
+(SYN-EE-001 .. SYN-EE-020) and asserts that each patient's structural
+output still matches the committed baseline JSON.
+
+The synthetic ids are resolved to the real Neo4j patient ids at runtime
+via the gitignored ``secrets/episode_engine_cohort_map.json`` mapping.
+The test SKIPS if either:
+  - the env var ``RUN_EPISODE_ENGINE_FROZEN_VT`` is not ``1``, OR
+  - the cohort mapping file is missing.
 
 This test makes REAL Bedrock calls (~$2 cost per run, ~15-20 min wall
-clock). It is gated by the env var ``RUN_EPISODE_ENGINE_FROZEN_VT=1`` so
-it never runs in normal CI / pre-commit.
+clock). It is therefore gated and never runs in normal CI / pre-commit.
 
 Comparison rules (intentionally tolerant - LLM outputs vary slightly
 between runs and we don't want to chase noise):
@@ -87,7 +92,16 @@ def test_frozen_cohort_engine_matches_baseline():
     """VT-507-TC-001: structural engine output matches baseline for all 20 patients."""
 
     from services.analysis_worker.app.episode_engine import run_episode_engine
-    from scripts.regression.episode_engine_frozen.cohort_ids import FROZEN_COHORT
+    from scripts.regression.episode_engine_frozen.cohort_ids import (
+        FROZEN_COHORT,
+        CohortMappingError,
+        iter_resolved_pairs,
+    )
+
+    try:
+        pairs = iter_resolved_pairs()
+    except CohortMappingError as exc:
+        pytest.skip(f"Cohort mapping unavailable: {exc}")
 
     baseline = _load_baseline()
     expected_patients = baseline["patients"]
@@ -96,27 +110,29 @@ def test_frozen_cohort_engine_matches_baseline():
     )
 
     failures: list[str] = []
-    for pid in FROZEN_COHORT:
+    for synthetic_id, real_id in pairs:
         try:
-            result = run_episode_engine(pid, dry_run=True)
+            result = run_episode_engine(real_id, dry_run=True)
         except Exception as exc:
-            failures.append(f"{pid}: ENGINE CRASHED -- {type(exc).__name__}: {exc}")
+            failures.append(
+                f"{synthetic_id}: ENGINE CRASHED -- {type(exc).__name__}: {exc}"
+            )
             continue
 
-        expected = expected_patients[pid]
+        expected = expected_patients[synthetic_id]
         engine_summaries = [_engine_episode_summary(e) for e in result.episodes]
 
         if abs(result.episode_count - expected["episode_count"]) > 1:
             failures.append(
-                f"{pid}: episode_count {result.episode_count} drifted from "
-                f"baseline {expected['episode_count']} (>+/-1)"
+                f"{synthetic_id}: episode_count {result.episode_count} drifted "
+                f"from baseline {expected['episode_count']} (>+/-1)"
             )
 
         for exp_ep in expected["episodes"]:
             match = _matches_baseline_episode(engine_summaries, exp_ep)
             if match is None:
                 failures.append(
-                    f"{pid}: no engine episode matches baseline "
+                    f"{synthetic_id}: no engine episode matches baseline "
                     f"site={exp_ep['suspected_site']} "
                     f"type={exp_ep['episode_type']} "
                     f"milestones={exp_ep['milestone_types']} "

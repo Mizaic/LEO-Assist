@@ -1216,6 +1216,64 @@ and are still verified by VT-LEO-AI-180 and VT-LEO-AI-181 respectively.
 
 ---
 
+### 3.xx Haiku Episode Engine -- LLM-driven episode + milestone detection (April 2026)
+
+This section supersedes the rule-based episode-builder Pattern A..N stack
+(DI-LEO-AI-401, DI-LEO-AI-402, DI-LEO-AI-224, DI-LEO-AI-225, and the older
+DI/DO/Risk/VT artefacts that anchored on regex / Read-code heuristics).
+The new pipeline is a LangGraph chain of four LLM agents
+(segmenter -> classifier -> milestone extractor -> reconciler) plus a
+deterministic timeline loader, idempotent writer, and provenance trace
+node. SYN-EE-001 is the synthetic reference case used in every prompt
+few-shot, fixture, and frozen-cohort baseline (no real NHS numbers in
+source control or test definitions).
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-090 | approved | Replace the rule-based episode detector with an LLM-driven engine that finds cancer episodes reliably, including patients with multiple episodes over time and patients with multi-site referrals that resolve to a single primary diagnosis (synthetic reference SYN-EE-001). |
+| Design Input | DI-LEO-AI-500 | approved | Timeline loader: pulls and de-noises a patient's encounter timeline; produces a 240-char "trunk" view for cheap stages and a 1200-char "full" encounter_index for the milestone extractor's targeted lookups. |
+| Design Input | DI-LEO-AI-501 | approved | Segmenter agent (Haiku): splits the timeline into candidate episode windows with referral / first_seen / treatment / closure boundaries, low-confidence flagging, and structured tool-call output. |
+| Design Input | DI-LEO-AI-502 | approved | Classifier agent (Haiku): labels each window cancer / multi_site / benign / non_cancer with a justification and a confidence score; ties get needs_human_review=true. |
+| Design Input | DI-LEO-AI-503 | approved | Milestone extractor agent (Haiku): finds canonical milestones (referral, first_seen, diagnosis_confirmed, treatment_started, treatment_completed, benign_closure) inside each window with evidence quotes; explicitly avoids anchoring treatment_started on the SYN-EE-001 "Failed encounter" administrative task -- the canonical failure mode of the deterministic detector. |
+| Design Input | DI-LEO-AI-504 | approved | Reconciler agent (Sonnet): merges overlapping windows that are actually one episode (multi-site referrals resolving to a single diagnosis), preserves merged_from window ids, and surfaces merges with low confidence to HITL. |
+| Design Input | DI-LEO-AI-505 | approved | Provenance + idempotent writeback: EpisodeEngineTrace per run captures model id, prompt version, token + latency totals, per-stage error containment; writer deletes existing EpisodeOfCare for the patient and rewrites with deterministic ids. |
+| Design Output | DO-LEO-AI-500 | approved | services/analysis_worker/app/episode_engine/timeline_loader.py + schemas.py + state.py. |
+| Design Output | DO-LEO-AI-501 | approved | services/analysis_worker/app/episode_engine/agents/segmenter.py + libs/prompts/episode_engine/segmenter_v1.py + _shared.py (BREAST_REFERENCE_CASE / SYN-EE-001 few-shot). |
+| Design Output | DO-LEO-AI-502 | approved | services/analysis_worker/app/episode_engine/agents/classifier.py + libs/prompts/episode_engine/classifier_v1.py. |
+| Design Output | DO-LEO-AI-503 | approved | services/analysis_worker/app/episode_engine/agents/milestone_extractor.py + libs/prompts/episode_engine/milestone_extractor_v1.py. |
+| Design Output | DO-LEO-AI-504 | approved | services/analysis_worker/app/episode_engine/agents/reconciler.py + libs/prompts/episode_engine/reconciler_v1.py + chain.py LangGraph wiring. |
+| Design Output | DO-LEO-AI-505 | approved | services/analysis_worker/app/episode_engine/{tracing,writer}.py + libs/pipeline_graph/subgraphs/episode_engine.py + registry/probe wiring. |
+| Risk | R-LEO-AI-500 | mitigated | Timeline loader drops critical encounter text (e.g. the SYN-EE-001 "Failed encounter" or "(New Episode)" markers) and starves downstream agents (mitigated by dual-view loader, fixture-driven integration VT confirms preservation of both critical strings). |
+| Risk | R-LEO-AI-501 | mitigated | Segmenter splits a single multi-site episode into multiple windows OR fuses two unrelated episodes into one window (mitigated by reconciler stage and per-window low-confidence flags). |
+| Risk | R-LEO-AI-502 | mitigated | Classifier mislabels a benign 2WW closure as cancer or vice versa (mitigated by required justification + confidence; ties marked needs_human_review). |
+| Risk | R-LEO-AI-503 | mitigated | Milestone extractor anchors treatment_started on an administrative "Failed encounter" task instead of the real reconciliation or definitive surgery (mitigated by SYN-EE-001 reference case in the prompt + frozen-cohort regression VT). |
+| Risk | R-LEO-AI-504 | mitigated | Reconciler over-merges and hides a true second cancer episode (mitigated by merged_from audit trail + reviewer split-merge action in <=2 clicks). |
+| Risk | R-LEO-AI-505 | mitigated | Provenance / writeback failure corrupts patient timeline OR loses cost / drift telemetry (mitigated by idempotent writer, error-contained tracing, EpisodeEngineTrace per run). |
+| Verification Test | VT-LEO-AI-500 | passed | Timeline loader unit + synthetic-fixture VTs (services/analysis_worker/app/episode_engine/timeline_loader.py + tests/episode_engine/test_timeline_loader.py + test_synthetic_fixture_loader.py). |
+| Verification Test | VT-LEO-AI-501 | passed | Segmenter agent unit VT with mocked LLM (tests/episode_engine/test_segmenter_agent.py). |
+| Verification Test | VT-LEO-AI-502 | passed | Classifier agent unit VT with mocked LLM (tests/episode_engine/test_classifier_agent.py). |
+| Verification Test | VT-LEO-AI-503 | passed | Milestone extractor unit VT with mocked LLM and the SYN-EE-001 anti-pattern (tests/episode_engine/test_milestone_extractor_agent.py). |
+| Verification Test | VT-LEO-AI-504 | passed | Reconciler agent unit VT with mocked LLM (tests/episode_engine/test_reconciler_agent.py). |
+| Verification Test | VT-LEO-AI-505 | passed | Idempotent writer VT (tests/episode_engine/test_writer.py). |
+| Verification Test | VT-LEO-AI-506 | passed | Provenance / tracing VT -- trace ids, aggregation, persistence, error containment (tests/episode_engine/test_tracing.py). |
+| Verification Test | VT-LEO-AI-507 | draft | Frozen-cohort regression on 20 synthetic patient ids (SYN-EE-001 .. SYN-EE-020); gated on RUN_EPISODE_ENGINE_FROZEN_VT=1 + secrets/episode_engine_cohort_map.json; baseline.json keyed by synthetic id only. |
+| Validation Test | VAL-LEO-AI-014 | draft | Reviewer-led clinical validation on synthetic + de-identified review cohort; SYN-EE-001 acceptance is blocking (must produce endocrine 2025-05-19 + surgery 2025-07-28; must not anchor treatment_started on the 2025-05-02 Failed encounter). |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-500 | Timeline loader (UN-LEO-AI-090). | R-LEO-AI-500 | VT-LEO-AI-500 |
+| DI-LEO-AI-501 | Segmenter agent (UN-LEO-AI-090). | R-LEO-AI-501 | VT-LEO-AI-501 |
+| DI-LEO-AI-502 | Classifier agent (UN-LEO-AI-090). | R-LEO-AI-502 | VT-LEO-AI-502 |
+| DI-LEO-AI-503 | Milestone extractor agent (UN-LEO-AI-090). | R-LEO-AI-503 | VT-LEO-AI-503, VT-LEO-AI-507 |
+| DI-LEO-AI-504 | Reconciler agent (UN-LEO-AI-090). | R-LEO-AI-504 | VT-LEO-AI-504, VT-LEO-AI-507 |
+| DI-LEO-AI-505 | Provenance + idempotent writeback (UN-LEO-AI-090). | R-LEO-AI-505 | VT-LEO-AI-505, VT-LEO-AI-506 |
+
+Supersession note: DI-LEO-AI-401, DI-LEO-AI-402, DI-LEO-AI-224, DI-LEO-AI-225
+and their DO/Risk/VT chains MUST be marked `superseded_by:
+[DI-LEO-AI-500..505]` once the cutover lands (todo id `supersede_dcs`).
+
+---
+
 ## 4. Approval
 
 | Role | Name | Date | Signature |

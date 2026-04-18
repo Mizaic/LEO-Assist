@@ -1,0 +1,176 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 4232,
+    "error": null,
+    "markdown": "This patient has been referred to Breast surgery with a new unilateral breast lump and a query diagnosis of breast cancer [SOURCE: referral_request rr-gs-03]. The patient's age, sex, and date of birth are not recorded in the available data. This summary is being produced in the context of the referral request.",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient has been referred to Breast surgery with a new unilateral breast lump and a query diagnosis of breast cancer [SOURCE: referral_request rr-gs-03]. The patient's age, sex, and date of birth are not recorded in the available data. This summary is being produced in the context of the referral request.",
+      "citations": [
+        {
+          "source_type": "referral_request",
+          "source_id": "rr-gs-03",
+          "date": null,
+          "fact": "New unilateral breast lump, ?breast cancer; referral to Breast surgery"
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex",
+        "Patient date of birth",
+        "Clinical examination findings",
+        "Duration of symptoms",
+        "Associated symptoms (pain, skin changes, nipple discharge)",
+        "Family history of breast cancer",
+        "Previous breast imaging or biopsies"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 4746,
+    "error": null,
+    "markdown": "- **Breast lump**: 3 cm discrete, mobile, non-tender lump in upper outer quadrant of right breast, 2-week history, no nipple discharge or skin changes [SOURCE: Encounter enc-gs-03]\n- **Axillary examination**: No axillary lymphadenopathy detected on GP examination [SOURCE: Encounter enc-gs-03]\n- **Family history**: No family history of breast or ovarian cancer reported [SOURCE: Encounter enc-gs-03]",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- **Breast lump**: 3 cm discrete, mobile, non-tender lump in upper outer quadrant of right breast, 2-week history, no nipple discharge or skin changes [SOURCE: Encounter enc-gs-03]\n- **Axillary examination**: No axillary lymphadenopathy detected on GP examination [SOURCE: Encounter enc-gs-03]\n- **Family history**: No family history of breast or ovarian cancer reported [SOURCE: Encounter enc-gs-03]",
+      "citations": [
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-03",
+          "fact": "Breast lump: 3 cm discrete, mobile, non-tender lump in upper outer quadrant of right breast, 2-week history, no nipple discharge or skin changes; no axillary lymphadenopathy; no family history of breast or ovarian cancer"
+        }
+      ],
+      "missing": [
+        "Imaging results (ultrasound or mammography)",
+        "Previous breast history or benign breast disease",
+        "Menopausal status and hormone replacement therapy use",
+        "Recent medication history"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": null,
+    "markdown": "**1 guideline rule(s) fired** (scope: guidelines G-BREAST-2WW).\n\n### Two week wait (urgent suspected cancer)\n- **Unexplained breast lump age >=30 -> 2WW breast** _(strength: strong)_ -- rule `R-BREAST-001`\n  - Recommendation: Refer people using a suspected cancer pathway referral if they are aged 30 and over and have an unexplained breast lump with or without pain.\n  - Action: 2WW breast referral (within 14 days)\n  - Guideline: Suspected breast cancer (`G-BREAST-2WW`)",
+    "actions": [],
+    "raw": {
+      "rules": [
+        {
+          "rule_id": "R-BREAST-001",
+          "name": "Unexplained breast lump age >=30 -> 2WW breast",
+          "strength": "strong",
+          "guideline_id": "G-BREAST-2WW",
+          "guideline_title": "Suspected breast cancer",
+          "chapter_title": "Referral criteria",
+          "recommendation_verbatim": "Refer people using a suspected cancer pathway referral if they are aged 30 and over and have an unexplained breast lump with or without pain.",
+          "action": {
+            "priority": "2ww",
+            "due_days": 14,
+            "name": "2WW breast referral"
+          },
+          "confidence": 1.0
+        }
+      ]
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 10344,
+    "error": null,
+    "markdown": "This patient meets the criteria for a **two-week wait referral** for suspected breast cancer and should be seen by the Breast surgery team within 14 days [RULE: R-BREAST-001]. The referral is appropriate given the presence of a discrete 3 cm breast lump in a patient aged 30 or over, as per NICE guidance on suspected breast cancer. Urgent imaging (typically bilateral mammography with or without ultrasound) and clinical assessment by the specialist team are required to establish a tissue diagnosis. The patient should be provided with written information about the two-week wait pathway and safety-netting advice to return immediately if symptoms worsen or new concerning features develop (such as nipple discharge, skin changes, or axillary swelling).",
+    "actions": [
+      {
+        "action": "Complete two-week wait referral to Breast surgery",
+        "priority": "2ww",
+        "due_days": 14,
+        "rationale": "Patient has unexplained breast lump aged 30 or over, meeting NICE criteria for urgent suspected cancer pathway.",
+        "rule_ids": [
+          "R-BREAST-001"
+        ]
+      },
+      {
+        "action": "Arrange urgent bilateral mammography and ultrasound",
+        "priority": "2ww",
+        "due_days": 14,
+        "rationale": "Initial imaging is required to characterise the breast lump and assess for malignancy within the two-week wait timeframe.",
+        "rule_ids": [
+          "R-BREAST-001"
+        ]
+      },
+      {
+        "action": "Provide patient with two-week wait information leaflet",
+        "priority": "routine",
+        "due_days": 1,
+        "rationale": "Patients on suspected cancer pathways should receive clear written information about the process, timescales, and what to expect.",
+        "rule_ids": [
+          "R-BREAST-001"
+        ]
+      },
+      {
+        "action": "Safety-net: advise patient to seek urgent review if new symptoms develop",
+        "priority": "routine",
+        "due_days": null,
+        "rationale": "Patient should be advised to return immediately if nipple discharge, skin changes, axillary swelling, or rapid lump enlargement occur before specialist appointment.",
+        "rule_ids": [
+          "R-BREAST-001"
+        ]
+      }
+    ],
+    "raw": {
+      "recommendation_markdown": "This patient meets the criteria for a **two-week wait referral** for suspected breast cancer and should be seen by the Breast surgery team within 14 days [RULE: R-BREAST-001]. The referral is appropriate given the presence of a discrete 3 cm breast lump in a patient aged 30 or over, as per NICE guidance on suspected breast cancer. Urgent imaging (typically bilateral mammography with or without ultrasound) and clinical assessment by the specialist team are required to establish a tissue diagnosis. The patient should be provided with written information about the two-week wait pathway and safety-netting advice to return immediately if symptoms worsen or new concerning features develop (such as nipple discharge, skin changes, or axillary swelling).",
+      "actions": [
+        {
+          "action": "Complete two-week wait referral to Breast surgery",
+          "priority": "2ww",
+          "due_days": 14,
+          "rationale": "Patient has unexplained breast lump aged 30 or over, meeting NICE criteria for urgent suspected cancer pathway.",
+          "rule_ids": [
+            "R-BREAST-001"
+          ]
+        },
+        {
+          "action": "Arrange urgent bilateral mammography and ultrasound",
+          "priority": "2ww",
+          "due_days": 14,
+          "rationale": "Initial imaging is required to characterise the breast lump and assess for malignancy within the two-week wait timeframe.",
+          "rule_ids": [
+            "R-BREAST-001"
+          ]
+        },
+        {
+          "action": "Provide patient with two-week wait information leaflet",
+          "priority": "routine",
+          "due_days": 1,
+          "rationale": "Patients on suspected cancer pathways should receive clear written information about the process, timescales, and what to expect.",
+          "rule_ids": [
+            "R-BREAST-001"
+          ]
+        },
+        {
+          "action": "Safety-net: advise patient to seek urgent review if new symptoms develop",
+          "priority": "routine",
+          "due_days": null,
+          "rationale": "Patient should be advised to return immediately if nipple discharge, skin changes, axillary swelling, or rapid lump enlargement occur before specialist appointment.",
+          "rule_ids": [
+            "R-BREAST-001"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "rule_id": "R-BREAST-001",
+          "guideline_id": "G-BREAST-2WW",
+          "guideline_title": "Suspected breast cancer",
+          "chapter_title": "Referral criteria"
+        }
+      ],
+      "missing": [],
+      "conflicts": []
+    }
+  }
+]

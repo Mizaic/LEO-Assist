@@ -39,9 +39,23 @@ export interface SbarStreamState {
 }
 
 export interface SbarSituationArtifactInput {
-  type: "patient_context" | "referral_request" | "procedure_request" | "fixed_text";
+  type:
+    | "patient_context"
+    | "referral_request"
+    | "procedure_request"
+    | "summarisation_context"
+    | "fixed_text";
   id?: string;
   text?: string;
+  /** Required when type is "summarisation_context". Mirrors the
+   * libs/sbar/events.SummarisationContext enum. */
+  context_value?: string;
+}
+
+export interface SbarStartConcern {
+  /** Free-text reviewer concern that gets appended to the Situation
+   *  prompt as a QSIR-aligned safety / clinical framing note. */
+  text: string;
 }
 
 export interface SbarBackgroundSourceInput {
@@ -54,6 +68,8 @@ export interface SbarStartParams {
   artifacts: SbarSituationArtifactInput[];
   background: SbarBackgroundSourceInput[];
   guidelineIds?: string[];
+  /** Optional free-text concern to frame the Situation. */
+  concern?: string;
 }
 
 const STAGES: SbarStageName[] = [
@@ -234,7 +250,8 @@ export function useSbarStream() {
         stages: initialStages(),
         finalContent: null,
       });
-      const body = {
+      const concern = (params.concern ?? "").trim();
+      const body: Record<string, unknown> = {
         situation: {
           patient_id: params.patientId,
           artifacts: params.artifacts,
@@ -242,6 +259,9 @@ export function useSbarStream() {
         background: params.background,
         guideline_ids: params.guidelineIds ?? [],
       };
+      if (concern.length > 0) {
+        body.concern = concern;
+      }
       let res: Response;
       try {
         res = await fetch("/api/sbar/jobs", {

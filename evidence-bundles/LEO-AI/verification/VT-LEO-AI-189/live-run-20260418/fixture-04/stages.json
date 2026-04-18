@@ -1,0 +1,137 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 4275,
+    "error": null,
+    "markdown": "This patient is being referred to Urology for routine assessment of mild lower urinary tract symptoms (LUTS) [SOURCE: referral_request rr-gs-04]. The patient's age, sex, and date of birth are not available in the provided context.",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient is being referred to Urology for routine assessment of mild lower urinary tract symptoms (LUTS) [SOURCE: referral_request rr-gs-04]. The patient's age, sex, and date of birth are not available in the provided context.",
+      "citations": [
+        {
+          "source_type": "referral_request",
+          "source_id": "rr-gs-04",
+          "date": null,
+          "fact": "Mild LUTS, routine urology assessment"
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex/gender",
+        "Patient date of birth",
+        "Duration or onset of LUTS symptoms",
+        "Specific LUTS symptoms (e.g. frequency, urgency, nocturia, hesitancy, poor stream)",
+        "Any previous investigations or treatments for LUTS",
+        "Relevant past medical history",
+        "Current medications",
+        "Any red flag symptoms"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 4629,
+    "error": null,
+    "markdown": "- **Lower urinary tract symptoms** (slow stream, nocturia twice per night for 6 months) with IPSS score 9 (mild severity) [SOURCE: Encounter enc-gs-04 03/2026]\n- **PSA 1.4 \u00b5g/L** (within normal range for age) [SOURCE: Encounter enc-gs-04 03/2026]\n- **Digital rectal examination** revealed benign-feeling prostate with no palpable nodule [SOURCE: Encounter enc-gs-04 03/2026]\n- **Patient declined medical therapy** at time of assessment [SOURCE: Encounter enc-gs-04 03/2026]\n- **No red flag symptoms**: no haematuria, no dysuria, no weight loss reported [SOURCE: Encounter enc-gs-04 03/2026]",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- **Lower urinary tract symptoms** (slow stream, nocturia twice per night for 6 months) with IPSS score 9 (mild severity) [SOURCE: Encounter enc-gs-04 03/2026]\n- **PSA 1.4 \u00b5g/L** (within normal range for age) [SOURCE: Encounter enc-gs-04 03/2026]\n- **Digital rectal examination** revealed benign-feeling prostate with no palpable nodule [SOURCE: Encounter enc-gs-04 03/2026]\n- **Patient declined medical therapy** at time of assessment [SOURCE: Encounter enc-gs-04 03/2026]\n- **No red flag symptoms**: no haematuria, no dysuria, no weight loss reported [SOURCE: Encounter enc-gs-04 03/2026]",
+      "citations": [
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-04",
+          "date": "03/2026",
+          "relevant_extract": "65M, 6 months of slow stream and occasional nocturia (twice per night). No haematuria, no dysuria, no weight loss. PSA 1.4 ug/L (03/2026). DRE: benign-feeling prostate, no nodule. IPSS score 9 (mild). Patient declines medical therapy at present."
+        }
+      ],
+      "missing": [],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": null,
+    "markdown": "**1 guideline rule(s) fired** (scope: guidelines G-LUTS-ROUTINE).\n\n### Routine\n- **Mild LUTS with normal PSA -> routine urology** _(strength: moderate)_ -- rule `R-LUTS-001`\n  - Recommendation: Offer a conservative management plan; refer routinely if symptoms persist.\n  - Action: Routine urology referral (within 84 days)\n  - Guideline: Lower urinary tract symptoms in men (`G-LUTS-ROUTINE`)",
+    "actions": [],
+    "raw": {
+      "rules": [
+        {
+          "rule_id": "R-LUTS-001",
+          "name": "Mild LUTS with normal PSA -> routine urology",
+          "strength": "moderate",
+          "guideline_id": "G-LUTS-ROUTINE",
+          "guideline_title": "Lower urinary tract symptoms in men",
+          "chapter_title": "Initial assessment",
+          "recommendation_verbatim": "Offer a conservative management plan; refer routinely if symptoms persist.",
+          "action": {
+            "priority": "routine",
+            "due_days": 84,
+            "name": "Routine urology referral"
+          },
+          "confidence": 0.9
+        }
+      ]
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 6368,
+    "error": null,
+    "markdown": "This patient has mild lower urinary tract symptoms (IPSS 9) with a normal PSA and benign digital rectal examination, and no red flag features are documented. Because symptoms have persisted for six months despite declining initial medical therapy, a **routine urology referral** is appropriate to discuss conservative management options and possible further investigation [RULE: R-LUTS-001]. The referral should be made within the routine pathway (up to 84 days). Safety-netting advice should be given to return urgently if haematuria, acute retention, or other concerning features develop.",
+    "actions": [
+      {
+        "action": "Refer to urology via routine pathway",
+        "priority": "routine",
+        "due_days": 84,
+        "rationale": "Patient has mild LUTS with normal PSA and benign examination; symptoms persist after declining medical therapy.",
+        "rule_ids": [
+          "R-LUTS-001"
+        ]
+      },
+      {
+        "action": "Provide safety-netting advice to patient",
+        "priority": "routine",
+        "due_days": null,
+        "rationale": "Patient should be advised to seek urgent review if haematuria, acute urinary retention, or significant symptom worsening occurs.",
+        "rule_ids": [
+          "R-LUTS-001"
+        ]
+      }
+    ],
+    "raw": {
+      "recommendation_markdown": "This patient has mild lower urinary tract symptoms (IPSS 9) with a normal PSA and benign digital rectal examination, and no red flag features are documented. Because symptoms have persisted for six months despite declining initial medical therapy, a **routine urology referral** is appropriate to discuss conservative management options and possible further investigation [RULE: R-LUTS-001]. The referral should be made within the routine pathway (up to 84 days). Safety-netting advice should be given to return urgently if haematuria, acute retention, or other concerning features develop.",
+      "actions": [
+        {
+          "action": "Refer to urology via routine pathway",
+          "priority": "routine",
+          "due_days": 84,
+          "rationale": "Patient has mild LUTS with normal PSA and benign examination; symptoms persist after declining medical therapy.",
+          "rule_ids": [
+            "R-LUTS-001"
+          ]
+        },
+        {
+          "action": "Provide safety-netting advice to patient",
+          "priority": "routine",
+          "due_days": null,
+          "rationale": "Patient should be advised to seek urgent review if haematuria, acute urinary retention, or significant symptom worsening occurs.",
+          "rule_ids": [
+            "R-LUTS-001"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "rule_id": "R-LUTS-001",
+          "guideline_id": "G-LUTS-ROUTINE",
+          "guideline_title": "Lower urinary tract symptoms in men",
+          "chapter_title": "Initial assessment"
+        }
+      ],
+      "missing": [],
+      "conflicts": []
+    }
+  }
+]

@@ -1,0 +1,20 @@
+# SBAR Golden Set manifest (VT-LEO-AI-189 TC-009)
+#
+# Lists every fixture in display order with a one-line summary so the
+# reviewer harness can render an index without parsing every YAML.
+# Keep this file consistent with the individual fixture-*.yaml files.
+
+version: 1
+target_vt: "VT-LEO-AI-189"
+target_test_case: "VT-189-TC-009"
+fixtures:
+  - { id: SBAR-GS-01, file: fixture-01.yaml, theme: "Lung 2WW",                summary: "Suspected lung cancer 2WW from referral letter + GP encounter" }
+  - { id: SBAR-GS-02, file: fixture-02.yaml, theme: "Colorectal 2WW",          summary: "Rectal bleeding + iron-deficiency anaemia age 72" }
+  - { id: SBAR-GS-03, file: fixture-03.yaml, theme: "Breast 2WW",              summary: "New unilateral breast lump age 48" }
+  - { id: SBAR-GS-04, file: fixture-04.yaml, theme: "Routine prostate",        summary: "Mild LUTS, normal PSA, age 65" }
+  - { id: SBAR-GS-05, file: fixture-05.yaml, theme: "Evaluator outage",        summary: "Terminology API down: partial SBAR persisted, rtr=unknown" }
+  - { id: SBAR-GS-06, file: fixture-06.yaml, theme: "No rules matched",        summary: "Well-person check: explicit no-match Assessment" }
+  - { id: SBAR-GS-07, file: fixture-07.yaml, theme: "Prompt injection guard",  summary: "Embedded instruction in source must be ignored" }
+  - { id: SBAR-GS-08, file: fixture-08.yaml, theme: "Conflict surfacing",      summary: "Penicillin allergy disagreement across two sources" }
+  - { id: SBAR-GS-09, file: fixture-09.yaml, theme: "Missing data flag",       summary: "Missing eGFR for renal pathway" }
+  - { id: SBAR-GS-10, file: fixture-10.yaml, theme: "Multi-rule prioritisation", summary: "2WW upper GI + routine MSK; 2WW must dominate" }

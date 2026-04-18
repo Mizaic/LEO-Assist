@@ -86,6 +86,14 @@ class EpisodeEngineResult:
         return sum(s.output_tokens for s in self.stage_traces)
 
     @property
+    def total_cached_input_tokens(self) -> int:
+        return sum(s.cached_input_tokens for s in self.stage_traces)
+
+    @property
+    def total_cost_usd(self) -> float:
+        return round(sum(s.cost_usd for s in self.stage_traces), 6)
+
+    @property
     def total_latency_ms(self) -> int:
         return sum(s.latency_ms for s in self.stage_traces)
 

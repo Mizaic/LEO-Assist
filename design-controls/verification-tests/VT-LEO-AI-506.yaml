@@ -1,0 +1,93 @@
+# -- VT-LEO-AI-506 -- Verification of Episode Engine Tracing / Provenance
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-506"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-505"]
+    risks: ["R-LEO-AI-505"]
+
+  metadata:
+    title: "Episode engine provenance tracing -- trace ids, aggregation, persistence, error containment"
+    description: >
+      Verifies the tracing module: trace ids are unique and prefixed
+      ('eet-...'); build_provenance correctly sums per-stage input
+      tokens, output tokens, and latency; persist_trace writes a
+      single Neo4j node carrying serialised stage and error JSON; and
+      persist_trace never raises -- a Neo4j failure is logged at ERROR
+      and contained so it cannot break the engine result. All cases
+      use a MagicMock client and synthetic StageTrace payloads.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/episode_engine/test_tracing.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-506-TC-001"
+      case_name: "test_new_trace_id_unique_and_prefixed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call new_trace_id() twice"
+          expected_result: "Both ids start with 'eet-' and differ from each other"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Trace ids never collide across runs"
+    - case_id: "VT-506-TC-002"
+      case_name: "test_build_provenance_aggregates_stage_totals"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build provenance from two stages with known token + latency totals"
+          expected_result: "total_input_tokens=300, total_output_tokens=60, total_latency_ms=2000"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Cost + latency reporting is accurate"
+    - case_id: "VT-506-TC-003"
+      case_name: "test_persist_trace_writes_node_with_serialised_stages"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call persist_trace with two stages and one error"
+          expected_result: "Single Neo4j call; stages_json and errors_json deserialise correctly"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "EpisodeEngineTrace persists every stage's metadata"
+    - case_id: "VT-506-TC-004"
+      case_name: "test_persist_trace_swallows_exceptions"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Have client.run raise RuntimeError; call persist_trace"
+          expected_result: "No exception escapes; ERROR log contains 'Failed to persist EpisodeEngineTrace'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "A logging failure cannot bring down a successful engine run"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-506/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-18"
+      executor: "Quality Engineering"
+      result: "pass"
+      notes: "All 4 cases pass with MagicMock client; no Neo4j calls."

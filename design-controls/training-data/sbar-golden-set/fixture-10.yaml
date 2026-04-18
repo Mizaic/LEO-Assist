@@ -1,0 +1,122 @@
+id: SBAR-GS-10
+title: "Multi-rule prioritisation: 2WW + routine simultaneously - 2WW must dominate"
+
+clinical_scenario: |
+  68-year-old man with new dysphagia AND chronic mild osteoarthritis
+  knee pain. Two rules fire: a 2WW upper GI rule for dysphagia and a
+  routine MSK rule for the knee. Reviewer must confirm the 2WW rule
+  appears first in the Assessment, dominates the pathway hints, and
+  the Recommendation does not bury the urgent action under routine
+  follow-up. Hardening rule 6 (limit Background to material relevance)
+  is also tested.
+
+input:
+  patient_id: "pat-gs-10"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-10" }
+  background:
+    - { type: encounter, id: "enc-gs-10" }
+  guideline_ids: ["G-UPPER-GI-2WW", "G-MSK-ROUTINE"]
+
+resolved_situation:
+  patient_id: "pat-gs-10"
+  patient_summary:
+    age_band: "60-69"
+    sex: "M"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-10"
+      reason: "New dysphagia, ?upper GI cancer"
+      referring_specialty: "Upper GI surgery"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-10
+    text: |
+      68M GP review 04/2026: 5-week history of progressive dysphagia
+      to solids, weight loss 4 kg, no haematemesis. Long-standing mild
+      knee osteoarthritis (right knee, IPSS-equivalent mild). No red
+      flags for spinal cord compression. No anaemia.
+    codes:
+      - { concept_id: "40739000", term: "Dysphagia", assertion: present }
+      - { concept_id: "89362005", term: "Weight loss", assertion: present }
+      - { concept_id: "239873007", term: "Osteoarthritis of knee", assertion: present }
+
+llm_transcript:
+  situation:
+    markdown: |
+      68-year-old man referred by GP with a 5-week history of
+      progressive dysphagia to solids and 4 kg unintentional weight
+      loss [SOURCE: rr-gs-10]. Triggering this SBAR primarily for the
+      upper GI 2WW pathway [SOURCE: rr-gs-10].
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - 5-week progressive dysphagia to solids [SOURCE: enc-gs-10]
+      - Unintentional weight loss 4 kg [SOURCE: enc-gs-10]
+      - No haematemesis, no anaemia [SOURCE: enc-gs-10]
+      - Long-standing mild right knee osteoarthritis (incidental) [SOURCE: enc-gs-10]
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected upper GI cancer 2WW pathway
+      for endoscopy within 2 weeks. Manage the knee osteoarthritis
+      routinely with conservative MSK advice; this MUST NOT delay the
+      urgent endoscopy.
+    actions:
+      - { action: "Refer 2WW suspected upper GI cancer (urgent endoscopy)", priority: 2ww, due_days: 14, rule_ids: ["R-UGI-001"] }
+      - { action: "Routine MSK advice for knee osteoarthritis", priority: routine, due_days: 84, rule_ids: ["R-MSK-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-MSK-001
+      name: "Mild knee OA -> routine MSK advice"
+      strength: moderate
+      guideline_id: G-MSK-ROUTINE
+      guideline_title: "Osteoarthritis: care and management"
+      chapter_title: "Initial management"
+      recommendation_verbatim: "Offer first-line conservative management: education, exercise and weight management."
+      action: { priority: routine, due_days: 84, name: "Routine MSK advice" }
+      confidence: 0.8
+    - rule_id: R-UGI-001
+      name: "New dysphagia age >=55 -> 2WW upper GI"
+      strength: strong
+      guideline_id: G-UPPER-GI-2WW
+      guideline_title: "Suspected upper GI cancer"
+      chapter_title: "Referral criteria"
+      recommendation_verbatim: "Offer urgent direct-access upper gastrointestinal endoscopy (to be performed within 2 weeks) for people with dysphagia."
+      action: { priority: 2ww, due_days: 14, name: "Urgent OGD" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-UGI-001"
+    - "R-MSK-001"
+    - "Two week wait"
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+    - "endoscopy"
+  banned_phrases:
+    - "as an AI"
+    - "delay the endoscopy"
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-UGI-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. R-UGI-001 (2WW) MUST appear before R-MSK-001 in the Assessment
+       narrative; the formatter is responsible for the priority sort.
+    2. The Recommendation MUST present the 2WW endoscopy first and
+       MUST state explicitly that the routine MSK plan does not delay
+       the urgent referral.
+    3. The Background SHOULD label the OA finding as incidental.

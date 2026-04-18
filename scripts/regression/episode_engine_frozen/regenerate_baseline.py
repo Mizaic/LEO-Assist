@@ -1,18 +1,23 @@
 """Regenerate the frozen-cohort baseline for the episode engine VT.
 
-Runs the engine in dry-run on the 20 canonical patients
-(``cohort_ids.FROZEN_COHORT``) and writes a structural baseline JSON file
-to ``baseline.json`` in this directory.
+Runs the engine in dry-run on the 20 canonical synthetic patients
+(``cohort_ids.FROZEN_COHORT``: SYN-EE-001 .. SYN-EE-020) and writes a
+structural baseline JSON file to ``baseline.json`` in this directory.
 
-The baseline records, per patient:
+The baseline is keyed by SYNTHETIC ID only -- the real Neo4j patient ids
+are resolved at runtime from the gitignored
+``secrets/episode_engine_cohort_map.json`` mapping. The baseline file
+itself is safe to commit.
+
+Per synthetic patient the baseline records:
   - episode_count
   - per-episode: episode_type, suspected_site, milestone_types (sorted),
     treatment_types (sorted), needs_human_review
 
-We deliberately do NOT pin reasoning text, exact dates, evidence quotes or
-confidence scores -- those are LLM outputs and would make the VT brittle.
-The VT compares engine output against this baseline using TOLERANT rules
-(see ``tests/episode_engine/test_frozen_cohort_vt.py``).
+We deliberately do NOT pin reasoning text, exact dates, evidence quotes
+or confidence scores -- those are LLM outputs and would make the VT
+brittle. The VT compares engine output against this baseline using
+TOLERANT rules (see ``tests/episode_engine/test_frozen_cohort_vt.py``).
 
 USAGE
 =====
@@ -23,7 +28,9 @@ Cost: ~$2 in Bedrock tokens, ~15-20 minutes wall clock for 20 patients.
 You should only re-run this when:
   - the engine prompts change AND you have manually reviewed the new
     output as still correct
-  - a new patient is added to ``cohort_ids.FROZEN_COHORT``
+  - a new synthetic patient is added to ``cohort_ids.FROZEN_COHORT``
+    (and a corresponding mapping is added to
+    ``secrets/episode_engine_cohort_map.json``)
 """
 
 from __future__ import annotations
@@ -64,11 +71,11 @@ def _episode_summary(ep) -> dict:
     }
 
 
-def _build_baseline_for_patient(patient_id: str) -> dict:
+def _build_baseline_for_patient(synthetic_id: str, real_id: str) -> dict:
     from services.analysis_worker.app.episode_engine import run_episode_engine
 
-    log.info("Generating baseline for %s", patient_id)
-    result = run_episode_engine(patient_id, dry_run=True)
+    log.info("Generating baseline for %s", synthetic_id)
+    result = run_episode_engine(real_id, dry_run=True)
     return {
         "episode_count": result.episode_count,
         "errors": list(result.errors),
@@ -77,15 +84,22 @@ def _build_baseline_for_patient(patient_id: str) -> dict:
 
 
 def main() -> None:
-    from scripts.regression.episode_engine_frozen.cohort_ids import FROZEN_COHORT
+    from scripts.regression.episode_engine_frozen.cohort_ids import (
+        FROZEN_COHORT,
+        iter_resolved_pairs,
+    )
+
+    pairs = iter_resolved_pairs()
 
     baseline: dict[str, dict] = {}
-    for pid in FROZEN_COHORT:
+    for synthetic_id, real_id in pairs:
         try:
-            baseline[pid] = _build_baseline_for_patient(pid)
+            baseline[synthetic_id] = _build_baseline_for_patient(
+                synthetic_id, real_id
+            )
         except Exception as exc:
-            log.exception("Engine failed for patient %s", pid)
-            baseline[pid] = {
+            log.exception("Engine failed for patient %s", synthetic_id)
+            baseline[synthetic_id] = {
                 "episode_count": -1,
                 "errors": [f"{type(exc).__name__}: {exc}"],
                 "episodes": [],

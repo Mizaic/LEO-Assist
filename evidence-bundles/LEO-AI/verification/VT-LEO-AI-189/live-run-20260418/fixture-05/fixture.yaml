@@ -1,0 +1,117 @@
+id: SBAR-GS-05
+title: 'Evaluator outage: terminology API unreachable, partial SBAR persisted'
+clinical_scenario: 'Same clinical inputs as fixture-01 (suspected lung cancer 2WW),
+  but
+
+  the roaring-bitmap evaluator is unreachable (HTTP 503). The
+
+  orchestrator must persist Situation and Background, render an
+
+  explicit "Assessment unavailable" Assessment section, and set
+
+  pathway hints to rtr=unknown / stt=null. The Recommendation LLM call
+
+  must still run and acknowledge the missing rule context rather than
+
+  invent a pathway.
+
+  '
+input:
+  patient_id: pat-gs-05
+  situation:
+    artifacts:
+    - type: referral_request
+      id: rr-gs-05
+  background:
+  - type: encounter
+    id: enc-gs-05
+  guideline_ids:
+  - G-LUNG-2WW
+resolved_situation:
+  patient_id: pat-gs-05
+  patient_summary:
+    age_band: 60-69
+    sex: F
+  artifacts:
+  - kind: referral_request
+    id: rr-gs-05
+    reason: Persistent haemoptysis
+    referring_specialty: Respiratory medicine
+resolved_background:
+- source_label: Encounter
+  source_id: enc-gs-05
+  text: 'GP review: persistent haemoptysis 4 weeks. Ex-smoker.'
+  codes:
+  - concept_id: '66857006'
+    term: Haemoptysis
+    assertion: present
+  - concept_id: '8517006'
+    term: Ex-smoker
+    assertion: present
+llm_transcript:
+  situation:
+    markdown: '64-year-old female ex-smoker referred by GP with a 4-week history
+
+      of persistent haemoptysis [SOURCE: rr-gs-05].
+
+      '
+    actions: []
+    error: null
+  background:
+    markdown: '- 4-week history of persistent haemoptysis [SOURCE: enc-gs-05]
+
+      - Ex-smoker [SOURCE: enc-gs-05]
+
+      '
+    error: null
+  recommendation:
+    markdown: 'The terminology evaluator is currently unavailable so no
+
+      guideline-driven recommendation can be made automatically. Based
+
+      on the documented clinical evidence (haemoptysis in an ex-smoker)
+
+      a clinician should review and consider a 2WW pathway, but this
+
+      SBAR must be re-evaluated once the evaluator is back online.
+
+      '
+    actions: []
+    error: null
+evaluator_response:
+  outage: true
+  matched_rules: []
+reviewer_expectations:
+  required_section_headings:
+  - '## Situation'
+  - '## Background'
+  - '## Assessment'
+  - '## Recommendation'
+  required_phrases_in_assessment:
+  - - evaluator
+    - Assessment unavailable
+    - Insufficient
+  required_phrases_in_recommendation:
+  - - Insufficient documented evidence
+    - clinical judgement
+    - evaluator
+  - - clinician
+    - clinical judgement
+  banned_phrases:
+  - as an AI
+  - Refer 2WW
+  expected_pathway_hints:
+    rtr: 'no'
+    rtr_evidence_contains: evaluator
+    stt_is_null: true
+  expected_status: draft
+  expected_errors_contain: 'assessment:'
+  reviewer_focus: "1. The Assessment narrative MUST tell the clinician that the\n\
+    \   evaluator was unavailable - it must NOT invent a rule outcome.\n2. The orchestrator's\
+    \ outage branch currently sets pathway_hints.rtr\n   = \"no\" with rtr_evidence\
+    \ carrying the exception string. This is\n   distinguishable from \"no rules matched\"\
+    \ only via rtr_evidence\n   and the errors[] field. Future work (DI follow-up)\
+    \ is to\n   introduce an explicit rtr=\"unknown\" value; until then the\n   reviewer\
+    \ MUST cross-check errors[] for \"assessment:\".\n3. The Recommendation LLM call\
+    \ must defer to clinician judgement\n   and explicitly note the partial state.\n\
+    4. The :Assessment status MUST remain \"draft\" with errors[]\n   populated.\n"

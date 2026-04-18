@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.prompts.episode_engine._shared import (
-    PATIENT_4802892365_REFERENCE,
+    BREAST_REFERENCE_CASE,
     RULES_OF_THE_ROAD,
 )
 
@@ -41,7 +41,7 @@ SYSTEM = INJECTION_GUARD + (
     "    merge.\n\n"
     + RULES_OF_THE_ROAD
     + "\n\n"
-    + PATIENT_4802892365_REFERENCE
+    + BREAST_REFERENCE_CASE
     + "\n\nRespond by calling the submit_windows tool with the JSON below.\n"
 )
 

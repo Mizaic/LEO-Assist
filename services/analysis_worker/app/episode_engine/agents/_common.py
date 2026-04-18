@@ -18,6 +18,7 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from libs.llm_client.factory import LLMClient
+from libs.llm_usage import LLMCostConfig, LLMUsage
 from services.analysis_worker.app.episode_engine.schemas import StageTrace
 
 logger = logging.getLogger(__name__)
@@ -87,9 +88,13 @@ def call_stage(
     whether to fail-fast or fail-soft per stage).
     """
 
+    tier = getattr(llm, "tier", "") or ""
     started = time.perf_counter()
     trace = StageTrace(
-        stage=stage, prompt_version=prompt_version, model_id=llm.model_id
+        stage=stage,
+        prompt_version=prompt_version,
+        model_id=llm.model_id,
+        tier=tier,
     )
     try:
         resp = llm.converse(
@@ -106,8 +111,26 @@ def call_stage(
 
     trace.input_tokens = int(resp.input_tokens or 0)
     trace.output_tokens = int(resp.output_tokens or 0)
+    trace.cached_input_tokens = int(getattr(resp, "cached_input_tokens", 0) or 0)
     trace.latency_ms = int((time.perf_counter() - started) * 1000)
     trace.model_id = resp.model_id or llm.model_id
+
+    # Cost is best-effort: if the env vars for this tier are not set,
+    # cost_usd is 0 and we still record token counts.
+    try:
+        usage = LLMUsage(
+            input_tokens=trace.input_tokens,
+            output_tokens=trace.output_tokens,
+            cached_input_tokens=trace.cached_input_tokens,
+            llm_calls=1,
+        )
+        cfg = LLMCostConfig.for_tier(tier or "small")
+        trace.cost_usd = round(usage.cost_usd(cfg), 6)
+    except Exception:
+        logger.debug(
+            "Stage %s: cost calc failed; leaving cost_usd=0", stage, exc_info=True
+        )
+        trace.cost_usd = 0.0
 
     payload = _extract_tool_input(resp.tool_uses or [], tool_name)
     if payload is None:

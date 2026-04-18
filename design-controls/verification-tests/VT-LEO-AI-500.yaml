@@ -1,0 +1,145 @@
+# -- VT-LEO-AI-500 -- Verification of Episode Engine Timeline Loader
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-500"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-500"]
+    risks: ["R-LEO-AI-500"]
+
+  metadata:
+    title: "Episode engine timeline loader -- normalisation, capping, grouping, prompt safety"
+    description: >
+      Verifies that the timeline loader normalises whitespace, caps the
+      trunk-view snippet at 240 characters per encounter, retains the
+      full snippet (capped at 1200 chars) in the encounter_index, groups
+      same-day encounters under one date header, applies prompt-safety
+      sanitisation, and skips rows without an encounter_id. Includes
+      a fixture-driven integration test against the synthetic
+      SYN-EE-001 reference timeline.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/episode_engine/test_timeline_loader.py"
+      - "tests/episode_engine/test_synthetic_fixture_loader.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "tests/episode_engine/fixtures/SYN-EE-001-timeline.json present"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-500-TC-001"
+      case_name: "test_normalise_collapses_whitespace_and_newlines"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Pass multi-line whitespace-heavy text through _normalise"
+          expected_result: "Newlines collapse to ' / ', multi-spaces collapse to single spaces"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Single normalised string produced"
+    - case_id: "VT-500-TC-002"
+      case_name: "test_normalise_handles_empty"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Pass None and '' through _normalise"
+          expected_result: "Returns empty string in both cases"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No exception raised"
+    - case_id: "VT-500-TC-003"
+      case_name: "test_trunk_line_caps_snippet_length_and_short_id"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build a trunk line from a 1000-char body and a 16-hex-char encounter id"
+          expected_result: "Body capped at 240 chars; line prefix is '  [<8-char id>] '"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Trunk line length matches 240-char cap exactly"
+    - case_id: "VT-500-TC-004"
+      case_name: "test_load_timeline_groups_records_by_date"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Load a 3-encounter synthetic patient where 2 encounters share a date"
+          expected_result: "Trunk view contains a single header for the shared date with '(2 records)'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Encounter_index contains all 3 records keyed by encounter_id"
+    - case_id: "VT-500-TC-005"
+      case_name: "test_load_timeline_skips_rows_without_encounter_id"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Load synthetic patient with one row missing encounter_id"
+          expected_result: "Loader logs and skips the row; encounter_count reflects valid rows only"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No KeyError raised"
+    - case_id: "VT-500-TC-006"
+      case_name: "test_load_timeline_no_encounters_returns_empty"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Load timeline for a synthetic patient with no encounters"
+          expected_result: "Returns ('', {}, 0)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Loader does not raise"
+    - case_id: "VT-500-TC-007"
+      case_name: "test_syn_ee_001_fixture_round_trips_through_loader"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Load synthetic SYN-EE-001 fixture (16 encounters across the breast-cancer reference timeline)"
+          expected_result: "All 16 encounters in encounter_index; same-day grouping intact (7 records on 2025-03-26); failed encounter (2025-05-02) preserved; mastectomy (2025-07-28) preserves '(New Episode)' marker"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Critical clinical evidence ('invasive ductal carcinoma', 'letrozole', 'Mastectomy of right breast') survives loader sanitisation"
+    - case_id: "VT-500-TC-008"
+      case_name: "test_syn_ee_001_fixture_no_real_identifiers"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Scan SYN-EE-001 fixture for any 10-digit token starting 1-7 (real NHS issued range)"
+          expected_result: "Patient NHS number is in 999... test range; no encounter text contains a real-looking NHS number"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Synthetic fixture is genuinely synthetic"
+    - case_id: "VT-500-TC-009"
+      case_name: "test_load_timeline_full_snippet_present_in_index"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Verify each encounter_index entry has a non-empty full_snippet field"
+          expected_result: "full_snippet is sanitised + capped at 1200 chars"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Milestone extractor will see usable per-encounter context"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-500/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-18"
+      executor: "Quality Engineering"
+      result: "pass"
+      notes: "All 9 cases pass under .venv/bin/python -m pytest tests/episode_engine/test_timeline_loader.py tests/episode_engine/test_synthetic_fixture_loader.py -q. Synthetic-only data."

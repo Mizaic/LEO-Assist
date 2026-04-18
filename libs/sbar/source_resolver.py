@@ -30,6 +30,8 @@ from libs.sbar.events import (
     SBARArtifactRef,
     SBARBackgroundSourceRef,
     SBARSituationInput,
+    SUMMARISATION_CONTEXT_LABELS,
+    SUMMARISATION_CONTEXT_PROMPTS,
     SituationArtifactType,
 )
 
@@ -232,7 +234,21 @@ def resolve_situation(
 
 
 def _resolve_artifact(session: Any, ref: SBARArtifactRef) -> dict[str, Any]:
+    if ref.type is SituationArtifactType.summarisation_context:
+        # New typed-context artefact. The orchestrator picks up
+        # `prompt_snippet` and prepends it to the Situation prompt so
+        # the LLM emphasises the right framing for that summary type.
+        ctx = ref.context_value
+        return {
+            "type": ref.type.value,
+            "value": ctx.value if ctx is not None else None,
+            "label": SUMMARISATION_CONTEXT_LABELS.get(ctx) if ctx else None,
+            "prompt_snippet": (
+                SUMMARISATION_CONTEXT_PROMPTS.get(ctx) if ctx else None
+            ),
+        }
     if ref.type is SituationArtifactType.fixed_text:
+        # Legacy free-text label retained for one minor version.
         return {"type": ref.type.value, "text": ref.text}
     if ref.type is SituationArtifactType.patient_context:
         return {

@@ -1,0 +1,112 @@
+id: SBAR-GS-01
+title: "Suspected lung cancer (2WW) from referral letter + GP encounter"
+
+clinical_scenario: |
+  64-year-old female ex-smoker (35 pack-years) referred by GP for
+  4-week history of haemoptysis, unintentional weight loss of 5 kg
+  over 8 weeks, and intermittent right-sided chest discomfort. Chest
+  X-ray pending. Reviewer must confirm the SBAR routes to a 2WW
+  suspected lung cancer pathway and that no clinical fact is invented
+  beyond what the encoded evidence supports.
+
+input:
+  patient_id: "pat-gs-01"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-01" }
+  background:
+    - { type: encounter, id: "enc-gs-01" }
+  guideline_ids: ["G-LUNG-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-01"
+  patient_summary:
+    age_band: "60-69"
+    sex: "F"
+    smoking_status: "ex_smoker_35py"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-01"
+      reason: "Persistent haemoptysis, weight loss, ?lung cancer"
+      referring_specialty: "Respiratory medicine"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-01
+    text: |
+      GP review 04/2026: 4-week history of haemoptysis, weight loss
+      5 kg over 8 weeks, right-sided pleuritic chest pain. Ex-smoker
+      35 pack-years, stopped 2018. CXR requested. No prior haemoptysis.
+    codes:
+      - { concept_id: "66857006", term: "Haemoptysis", assertion: present }
+      - { concept_id: "89362005", term: "Weight loss", assertion: present }
+      - { concept_id: "8517006",  term: "Ex-smoker", assertion: present }
+      - { concept_id: "29857009", term: "Chest pain", assertion: present }
+
+llm_transcript:
+  situation:
+    markdown: |
+      64-year-old female ex-smoker referred by GP with a 4-week history
+      of haemoptysis, 5 kg unintentional weight loss, and right-sided
+      chest pain [SOURCE: rr-gs-01]. Triggering this SBAR for the
+      respiratory 2WW suspected lung cancer pathway [SOURCE: rr-gs-01].
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - 4-week history of haemoptysis [SOURCE: enc-gs-01]
+      - Unintentional weight loss 5 kg over 8 weeks [SOURCE: enc-gs-01]
+      - Ex-smoker, 35 pack-years, stopped 2018 [SOURCE: enc-gs-01]
+      - Right-sided pleuritic chest pain [SOURCE: enc-gs-01]
+      - Chest X-ray requested but result not yet available [SOURCE: enc-gs-01]
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected lung cancer 2WW pathway. CT
+      thorax should be arranged as part of the 2WW work-up. Await CXR
+      result but do not delay referral.
+    actions:
+      - { action: "Refer 2WW suspected lung cancer", priority: 2ww, due_days: 14, rule_ids: ["R-LUNG-001"] }
+      - { action: "Arrange CT thorax with contrast", priority: urgent, due_days: 14, rule_ids: ["R-LUNG-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-LUNG-001
+      name: "Haemoptysis age >=40 -> 2WW lung"
+      strength: strong
+      guideline_id: G-LUNG-2WW
+      guideline_title: "Suspected lung cancer"
+      chapter_title: "Referral criteria"
+      recommendation_verbatim: "Refer using a suspected cancer pathway referral (for an appointment within 2 weeks)."
+      action: { priority: 2ww, due_days: 14, name: "2WW lung referral" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-LUNG-001"
+    - "Suspected lung cancer"
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "30 pack-years"
+    - "40 pack-years"
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-LUNG-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. The transcript must NOT invent a CXR result.
+    2. The pack-year value MUST be 35 (matches encounter text), not 30
+       or 40.
+    3. The 2WW pathway must dominate the recommendation; routine
+       follow-up on its own is a fail.

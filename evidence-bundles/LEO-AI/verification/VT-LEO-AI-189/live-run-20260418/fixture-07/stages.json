@@ -1,0 +1,163 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 4598,
+    "error": null,
+    "markdown": "This patient has been referred to Lower GI surgery with rectal bleeding and iron-deficiency anaemia [SOURCE: referral_request rr-gs-07]. Age and sex are not recorded in the available data. This summary is generated in the context of the referral request.",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient has been referred to Lower GI surgery with rectal bleeding and iron-deficiency anaemia [SOURCE: referral_request rr-gs-07]. Age and sex are not recorded in the available data. This summary is generated in the context of the referral request.",
+      "citations": [
+        {
+          "source_type": "referral_request",
+          "source_id": "rr-gs-07",
+          "fact": "Rectal bleeding and iron-deficiency anaemia as reason for referral to Lower GI surgery",
+          "date": null
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex",
+        "Duration or frequency of rectal bleeding",
+        "Haemoglobin level or other iron-deficiency anaemia parameters",
+        "Associated symptoms (e.g. weight loss, change in bowel habit, abdominal pain)",
+        "Relevant past medical history",
+        "Current medications",
+        "Family history of colorectal disease"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 4204,
+    "error": null,
+    "markdown": "- **Iron deficiency anaemia** \u2013 Hb 9.6 g/dL, ferritin 6 \u00b5g/L [SOURCE: DocumentReference doc-gs-07]\n- **Rectal haemorrhage** \u2013 8-week history of intermittent fresh rectal bleeding mixed with stool [SOURCE: DocumentReference doc-gs-07]\n- **Age and sex** \u2013 68-year-old female [SOURCE: DocumentReference doc-gs-07]",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- **Iron deficiency anaemia** \u2013 Hb 9.6 g/dL, ferritin 6 \u00b5g/L [SOURCE: DocumentReference doc-gs-07]\n- **Rectal haemorrhage** \u2013 8-week history of intermittent fresh rectal bleeding mixed with stool [SOURCE: DocumentReference doc-gs-07]\n- **Age and sex** \u2013 68-year-old female [SOURCE: DocumentReference doc-gs-07]",
+      "citations": [
+        {
+          "source_type": "DocumentReference",
+          "source_id": "doc-gs-07",
+          "facts_used": [
+            "Iron deficiency anaemia with Hb 9.6 g/dL and ferritin 6 \u00b5g/L",
+            "8-week history of intermittent fresh rectal bleeding mixed with stool",
+            "68-year-old female"
+          ]
+        }
+      ],
+      "missing": [
+        "No documented colonoscopy or flexible sigmoidoscopy results",
+        "No documented coagulation profile or anticoagulant medication status",
+        "No documented comorbidities or performance status",
+        "No documented previous colorectal investigations or imaging"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": null,
+    "markdown": "**1 guideline rule(s) fired** (scope: guidelines G-COLO-2WW).\n\n### Two week wait (urgent suspected cancer)\n- **PR bleeding + IDA age >=60 -> 2WW colorectal** _(strength: strong)_ -- rule `R-COLO-001`\n  - Recommendation: Refer adults using a suspected cancer pathway referral if they have iron-deficiency anaemia and rectal bleeding.\n  - Action: 2WW colorectal referral (within 14 days)\n  - Guideline: Suspected colorectal cancer (`G-COLO-2WW`)",
+    "actions": [],
+    "raw": {
+      "rules": [
+        {
+          "rule_id": "R-COLO-001",
+          "name": "PR bleeding + IDA age >=60 -> 2WW colorectal",
+          "strength": "strong",
+          "guideline_id": "G-COLO-2WW",
+          "guideline_title": "Suspected colorectal cancer",
+          "chapter_title": "Referral criteria",
+          "recommendation_verbatim": "Refer adults using a suspected cancer pathway referral if they have iron-deficiency anaemia and rectal bleeding.",
+          "action": {
+            "priority": "2ww",
+            "due_days": 14,
+            "name": "2WW colorectal referral"
+          },
+          "confidence": 1.0
+        }
+      ]
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 7592,
+    "error": null,
+    "markdown": "This patient meets criteria for a **two-week wait referral** to colorectal surgery under the suspected cancer pathway [RULE: R-COLO-001]. The combination of iron-deficiency anaemia (Hb 9.6 g/dL, ferritin 6 \u00b5g/L) and rectal bleeding in a 68-year-old woman triggers urgent investigation for possible colorectal malignancy. The referral should be processed within 14 days in line with national guidance for suspected colorectal cancer. Safety-netting advice should include instructions to contact the GP or attend emergency services if bleeding worsens, new abdominal pain develops, or the patient becomes unwell before the appointment.",
+    "actions": [
+      {
+        "action": "Process two-week wait referral to colorectal surgery",
+        "priority": "2ww",
+        "due_days": 14,
+        "rationale": "Patient meets criteria for suspected cancer pathway with iron-deficiency anaemia and rectal bleeding at age 68.",
+        "rule_ids": [
+          "R-COLO-001"
+        ]
+      },
+      {
+        "action": "Arrange colonoscopy or CT colonography as part of 2WW pathway",
+        "priority": "2ww",
+        "due_days": 14,
+        "rationale": "Diagnostic imaging is required to investigate possible colorectal malignancy in line with the two-week wait pathway.",
+        "rule_ids": [
+          "R-COLO-001"
+        ]
+      },
+      {
+        "action": "Provide written safety-netting advice to patient",
+        "priority": "urgent",
+        "due_days": 1,
+        "rationale": "Patient should know when to seek urgent help (worsening bleeding, new pain, feeling unwell) while awaiting specialist appointment.",
+        "rule_ids": [
+          "R-COLO-001"
+        ]
+      }
+    ],
+    "raw": {
+      "recommendation_markdown": "This patient meets criteria for a **two-week wait referral** to colorectal surgery under the suspected cancer pathway [RULE: R-COLO-001]. The combination of iron-deficiency anaemia (Hb 9.6 g/dL, ferritin 6 \u00b5g/L) and rectal bleeding in a 68-year-old woman triggers urgent investigation for possible colorectal malignancy. The referral should be processed within 14 days in line with national guidance for suspected colorectal cancer. Safety-netting advice should include instructions to contact the GP or attend emergency services if bleeding worsens, new abdominal pain develops, or the patient becomes unwell before the appointment.",
+      "actions": [
+        {
+          "action": "Process two-week wait referral to colorectal surgery",
+          "priority": "2ww",
+          "due_days": 14,
+          "rationale": "Patient meets criteria for suspected cancer pathway with iron-deficiency anaemia and rectal bleeding at age 68.",
+          "rule_ids": [
+            "R-COLO-001"
+          ]
+        },
+        {
+          "action": "Arrange colonoscopy or CT colonography as part of 2WW pathway",
+          "priority": "2ww",
+          "due_days": 14,
+          "rationale": "Diagnostic imaging is required to investigate possible colorectal malignancy in line with the two-week wait pathway.",
+          "rule_ids": [
+            "R-COLO-001"
+          ]
+        },
+        {
+          "action": "Provide written safety-netting advice to patient",
+          "priority": "urgent",
+          "due_days": 1,
+          "rationale": "Patient should know when to seek urgent help (worsening bleeding, new pain, feeling unwell) while awaiting specialist appointment.",
+          "rule_ids": [
+            "R-COLO-001"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "guideline_id": "G-COLO-2WW",
+          "guideline_title": "Suspected colorectal cancer",
+          "rule_ids": [
+            "R-COLO-001"
+          ]
+        }
+      ],
+      "missing": [],
+      "conflicts": []
+    }
+  }
+]

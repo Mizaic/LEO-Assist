@@ -1,0 +1,160 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 5026,
+    "error": null,
+    "markdown": "This patient has been referred to Nephrology for investigation of microalbuminuria and possible chronic kidney disease (CKD) progression [SOURCE: referral_request rr-gs-09]. The patient's age, sex, and birth date are not available in the provided records. No further clinical details regarding kidney function, urine albumin-creatinine ratio, or relevant medical history are present in the context.",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient has been referred to Nephrology for investigation of microalbuminuria and possible chronic kidney disease (CKD) progression [SOURCE: referral_request rr-gs-09]. The patient's age, sex, and birth date are not available in the provided records. No further clinical details regarding kidney function, urine albumin-creatinine ratio, or relevant medical history are present in the context.",
+      "citations": [
+        {
+          "source_type": "referral_request",
+          "source_id": "rr-gs-09",
+          "date": null,
+          "fact": "Referral reason: Microalbuminuria, ?CKD progression; Referring specialty: Nephrology"
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex",
+        "Patient date of birth",
+        "Current or recent serum creatinine / eGFR",
+        "Urine albumin-creatinine ratio (ACR) or protein-creatinine ratio (PCR)",
+        "Relevant past medical history (e.g. diabetes, hypertension)",
+        "Current medications",
+        "Previous renal function trends"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 5593,
+    "error": null,
+    "markdown": "- **Type 2 diabetes mellitus** for 10 years [SOURCE: Encounter enc-gs-09 03/2026]\n- **Hypertension** [SOURCE: Encounter enc-gs-09 03/2026]\n- **Urine albumin/creatinine ratio raised** at 12 mg/mmol (03/2026), indicating possible early diabetic nephropathy [SOURCE: Encounter enc-gs-09 03/2026]\n- HbA1c 58 mmol/mol (03/2026) [SOURCE: Encounter enc-gs-09 03/2026]\n- Blood pressure 138/84 mmHg (03/2026) [SOURCE: Encounter enc-gs-09 03/2026]\n- Current medications: metformin 1 g twice daily, ramipril 5 mg once daily [SOURCE: Encounter enc-gs-09 03/2026]\n\n## MISSING\n- **eGFR**: No eGFR result on record at this visit; last U&E result not available in current GP record. This is essential for nephrology assessment.",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- **Type 2 diabetes mellitus** for 10 years [SOURCE: Encounter enc-gs-09 03/2026]\n- **Hypertension** [SOURCE: Encounter enc-gs-09 03/2026]\n- **Urine albumin/creatinine ratio raised** at 12 mg/mmol (03/2026), indicating possible early diabetic nephropathy [SOURCE: Encounter enc-gs-09 03/2026]\n- HbA1c 58 mmol/mol (03/2026) [SOURCE: Encounter enc-gs-09 03/2026]\n- Blood pressure 138/84 mmHg (03/2026) [SOURCE: Encounter enc-gs-09 03/2026]\n- Current medications: metformin 1 g twice daily, ramipril 5 mg once daily [SOURCE: Encounter enc-gs-09 03/2026]\n\n## MISSING\n- **eGFR**: No eGFR result on record at this visit; last U&E result not available in current GP record. This is essential for nephrology assessment.",
+      "citations": [
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-09",
+          "date": "03/2026",
+          "fact": "Type 2 diabetes mellitus for 10 years, hypertension, raised urine ACR 12 mg/mmol, HbA1c 58 mmol/mol, BP 138/84, medications metformin 1 g BD and ramipril 5 mg OD"
+        }
+      ],
+      "missing": [
+        "eGFR: No eGFR result on record at this visit; last U&E result not available in current GP record"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": null,
+    "markdown": "**1 guideline rule(s) fired** (scope: guidelines G-CKD-MGMT).\n\n### Urgent\n- **Microalbuminuria + diabetes -> assess renal function** _(strength: moderate)_ -- rule `R-CKD-001`\n  - Recommendation: Quantify proteinuria with ACR and measure serum creatinine and eGFR before adjusting therapy.\n  - Action: U&E + eGFR (within 7 days)\n  - Guideline: Chronic kidney disease management (`G-CKD-MGMT`)",
+    "actions": [],
+    "raw": {
+      "rules": [
+        {
+          "rule_id": "R-CKD-001",
+          "name": "Microalbuminuria + diabetes -> assess renal function",
+          "strength": "moderate",
+          "guideline_id": "G-CKD-MGMT",
+          "guideline_title": "Chronic kidney disease management",
+          "chapter_title": "Investigation and referral",
+          "recommendation_verbatim": "Quantify proteinuria with ACR and measure serum creatinine and eGFR before adjusting therapy.",
+          "action": {
+            "priority": "urgent",
+            "due_days": 7,
+            "name": "U&E + eGFR"
+          },
+          "confidence": 0.85
+        }
+      ]
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 9937,
+    "error": null,
+    "markdown": "This patient with a 10-year history of type 2 diabetes and newly documented microalbuminuria (ACR 12 mg/mmol) requires urgent baseline renal biochemistry to stage possible diabetic nephropathy and guide further management [RULE: R-CKD-001]. Before any therapy adjustment or specialist review, serum creatinine and eGFR must be obtained within 7 days to quantify kidney function. Blood pressure control (currently 138/84 mmHg on ramipril 5 mg) and glycaemic control (HbA1c 58 mmol/mol) should be optimised in parallel, but dosing decisions depend on confirmed eGFR. Safety-net the patient to return if symptoms of fluid overload, worsening hypertension, or reduced urine output develop.",
+    "actions": [
+      {
+        "action": "Order U&E and eGFR",
+        "priority": "urgent",
+        "due_days": 7,
+        "rationale": "Baseline renal function is essential to stage CKD and guide therapy in a diabetic patient with microalbuminuria.",
+        "rule_ids": [
+          "R-CKD-001"
+        ]
+      },
+      {
+        "action": "Review blood pressure and consider ACE-inhibitor titration once eGFR known",
+        "priority": "routine",
+        "due_days": 14,
+        "rationale": "Target BP <130/80 mmHg in diabetic CKD; current ramipril dose may require adjustment based on renal function.",
+        "rule_ids": [
+          "R-CKD-001"
+        ]
+      },
+      {
+        "action": "Safety-net patient to seek urgent review if symptoms of fluid overload or oliguria develop",
+        "priority": "routine",
+        "due_days": null,
+        "rationale": "Early recognition of acute-on-chronic kidney injury is critical in this at-risk group.",
+        "rule_ids": [
+          "R-CKD-001"
+        ]
+      }
+    ],
+    "raw": {
+      "recommendation_markdown": "This patient with a 10-year history of type 2 diabetes and newly documented microalbuminuria (ACR 12 mg/mmol) requires urgent baseline renal biochemistry to stage possible diabetic nephropathy and guide further management [RULE: R-CKD-001]. Before any therapy adjustment or specialist review, serum creatinine and eGFR must be obtained within 7 days to quantify kidney function. Blood pressure control (currently 138/84 mmHg on ramipril 5 mg) and glycaemic control (HbA1c 58 mmol/mol) should be optimised in parallel, but dosing decisions depend on confirmed eGFR. Safety-net the patient to return if symptoms of fluid overload, worsening hypertension, or reduced urine output develop.",
+      "actions": [
+        {
+          "action": "Order U&E and eGFR",
+          "priority": "urgent",
+          "due_days": 7,
+          "rationale": "Baseline renal function is essential to stage CKD and guide therapy in a diabetic patient with microalbuminuria.",
+          "rule_ids": [
+            "R-CKD-001"
+          ]
+        },
+        {
+          "action": "Review blood pressure and consider ACE-inhibitor titration once eGFR known",
+          "priority": "routine",
+          "due_days": 14,
+          "rationale": "Target BP <130/80 mmHg in diabetic CKD; current ramipril dose may require adjustment based on renal function.",
+          "rule_ids": [
+            "R-CKD-001"
+          ]
+        },
+        {
+          "action": "Safety-net patient to seek urgent review if symptoms of fluid overload or oliguria develop",
+          "priority": "routine",
+          "due_days": null,
+          "rationale": "Early recognition of acute-on-chronic kidney injury is critical in this at-risk group.",
+          "rule_ids": [
+            "R-CKD-001"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "rule_id": "R-CKD-001",
+          "guideline_id": "G-CKD-MGMT",
+          "guideline_title": "Chronic kidney disease management"
+        }
+      ],
+      "missing": [
+        "eGFR result (essential for CKD staging and therapy decisions)",
+        "Most recent serum creatinine",
+        "Patient age and sex (required for eGFR calculation)",
+        "Detailed medication history (e.g. SGLT2 inhibitor use, which may be indicated in diabetic CKD)"
+      ],
+      "conflicts": []
+    }
+  }
+]

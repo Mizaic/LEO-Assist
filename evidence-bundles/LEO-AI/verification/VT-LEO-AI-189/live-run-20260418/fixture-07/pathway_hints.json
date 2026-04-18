@@ -1,0 +1,8 @@
+{
+  "alternative_pathway": null,
+  "alternative_pathway_evidence": null,
+  "rtr": "yes",
+  "rtr_evidence": "Triggered by rule(s): R-COLO-001",
+  "stt": "Within 14 days (two-week wait)",
+  "stt_evidence": "R-COLO-001"
+}

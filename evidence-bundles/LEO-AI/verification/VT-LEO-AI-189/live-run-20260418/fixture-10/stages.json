@@ -1,0 +1,199 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 4857,
+    "error": null,
+    "markdown": "This patient has been referred to Upper GI surgery for new dysphagia with a query upper GI cancer [SOURCE: referral_request rr-gs-10]. The summary is being produced in the context of this Upper GI surgery referral. No age, sex, or birth date information is available for this patient.",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient has been referred to Upper GI surgery for new dysphagia with a query upper GI cancer [SOURCE: referral_request rr-gs-10]. The summary is being produced in the context of this Upper GI surgery referral. No age, sex, or birth date information is available for this patient.",
+      "citations": [
+        {
+          "source_type": "referral_request",
+          "source_id": "rr-gs-10",
+          "date": null,
+          "fact": "Referral reason: new dysphagia, ?upper GI cancer; referred to Upper GI surgery"
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex",
+        "Patient birth date",
+        "Duration or onset timing of dysphagia",
+        "Associated symptoms (weight loss, odynophagia, regurgitation)",
+        "Red flag symptoms",
+        "Relevant past medical history",
+        "Current medications",
+        "Smoking or alcohol history",
+        "Examination findings",
+        "Previous investigations (endoscopy, imaging)"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 5552,
+    "error": null,
+    "markdown": "- **Progressive dysphagia to solids** over 5 weeks, with 4 kg weight loss [SOURCE: Encounter enc-gs-10 04/2026]\n- **No haematemesis** reported at time of GP review [SOURCE: Encounter enc-gs-10 04/2026]\n- **No anaemia** documented [SOURCE: Encounter enc-gs-10 04/2026]\n- Long-standing mild osteoarthritis of right knee [SOURCE: Encounter enc-gs-10 04/2026]",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- **Progressive dysphagia to solids** over 5 weeks, with 4 kg weight loss [SOURCE: Encounter enc-gs-10 04/2026]\n- **No haematemesis** reported at time of GP review [SOURCE: Encounter enc-gs-10 04/2026]\n- **No anaemia** documented [SOURCE: Encounter enc-gs-10 04/2026]\n- Long-standing mild osteoarthritis of right knee [SOURCE: Encounter enc-gs-10 04/2026]",
+      "citations": [
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-10",
+          "date": "04/2026",
+          "fact": "Progressive dysphagia to solids over 5 weeks, with 4 kg weight loss"
+        },
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-10",
+          "date": "04/2026",
+          "fact": "No haematemesis reported"
+        },
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-10",
+          "date": "04/2026",
+          "fact": "No anaemia documented"
+        },
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-10",
+          "date": "04/2026",
+          "fact": "Long-standing mild osteoarthritis of right knee"
+        }
+      ],
+      "missing": [
+        "Recent upper GI endoscopy or barium swallow findings",
+        "Full blood count values (despite 'no anaemia' statement, numerical values not provided)",
+        "Baseline weight for comparison",
+        "Medication list (particularly proton pump inhibitors, NSAIDs, or anticoagulants)"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": null,
+    "markdown": "**2 guideline rule(s) fired** (scope: guidelines G-UPPER-GI-2WW, G-MSK-ROUTINE).\n\n### Two week wait (urgent suspected cancer)\n- **New dysphagia age >=55 -> 2WW upper GI** _(strength: strong)_ -- rule `R-UGI-001`\n  - Recommendation: Offer urgent direct-access upper gastrointestinal endoscopy (to be performed within 2 weeks) for people with dysphagia.\n  - Action: Urgent OGD (within 14 days)\n  - Guideline: Suspected upper GI cancer (`G-UPPER-GI-2WW`)\n\n### Routine\n- **Mild knee OA -> routine MSK advice** _(strength: moderate)_ -- rule `R-MSK-001`\n  - Recommendation: Offer first-line conservative management: education, exercise and weight management.\n  - Action: Routine MSK advice (within 84 days)\n  - Guideline: Osteoarthritis: care and management (`G-MSK-ROUTINE`)",
+    "actions": [],
+    "raw": {
+      "rules": [
+        {
+          "rule_id": "R-UGI-001",
+          "name": "New dysphagia age >=55 -> 2WW upper GI",
+          "strength": "strong",
+          "guideline_id": "G-UPPER-GI-2WW",
+          "guideline_title": "Suspected upper GI cancer",
+          "chapter_title": "Referral criteria",
+          "recommendation_verbatim": "Offer urgent direct-access upper gastrointestinal endoscopy (to be performed within 2 weeks) for people with dysphagia.",
+          "action": {
+            "priority": "2ww",
+            "due_days": 14,
+            "name": "Urgent OGD"
+          },
+          "confidence": 1.0
+        },
+        {
+          "rule_id": "R-MSK-001",
+          "name": "Mild knee OA -> routine MSK advice",
+          "strength": "moderate",
+          "guideline_id": "G-MSK-ROUTINE",
+          "guideline_title": "Osteoarthritis: care and management",
+          "chapter_title": "Initial management",
+          "recommendation_verbatim": "Offer first-line conservative management: education, exercise and weight management.",
+          "action": {
+            "priority": "routine",
+            "due_days": 84,
+            "name": "Routine MSK advice"
+          },
+          "confidence": 0.8
+        }
+      ]
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 7258,
+    "error": null,
+    "markdown": "This patient meets criteria for a **two-week wait pathway** for suspected upper GI cancer and should be offered urgent direct-access upper gastrointestinal endoscopy within 2 weeks [RULE: R-UGI-001]. The progressive dysphagia with weight loss requires prompt investigation to exclude malignancy. The patient's mild knee osteoarthritis can be managed conservatively with routine musculoskeletal advice, education, exercise and weight management guidance [RULE: R-MSK-001]. Safety-netting advice should be provided regarding any new alarm symptoms (haematemesis, melaena, worsening dysphagia) pending endoscopy.",
+    "actions": [
+      {
+        "action": "Arrange urgent direct-access upper gastrointestinal endoscopy",
+        "priority": "2ww",
+        "due_days": 14,
+        "rationale": "New dysphagia in context of weight loss meets two-week wait criteria for suspected upper GI cancer.",
+        "rule_ids": [
+          "R-UGI-001"
+        ]
+      },
+      {
+        "action": "Provide routine musculoskeletal advice including education, exercise and weight management guidance",
+        "priority": "routine",
+        "due_days": 84,
+        "rationale": "First-line conservative management is appropriate for documented mild knee osteoarthritis.",
+        "rule_ids": [
+          "R-MSK-001"
+        ]
+      },
+      {
+        "action": "Safety-net for new alarm symptoms (haematemesis, melaena, worsening dysphagia) and advise patient to seek urgent review if these develop",
+        "priority": "urgent",
+        "due_days": null,
+        "rationale": "Patient under investigation for suspected upper GI malignancy requires clear safety-netting guidance.",
+        "rule_ids": [
+          "R-UGI-001"
+        ]
+      }
+    ],
+    "raw": {
+      "recommendation_markdown": "This patient meets criteria for a **two-week wait pathway** for suspected upper GI cancer and should be offered urgent direct-access upper gastrointestinal endoscopy within 2 weeks [RULE: R-UGI-001]. The progressive dysphagia with weight loss requires prompt investigation to exclude malignancy. The patient's mild knee osteoarthritis can be managed conservatively with routine musculoskeletal advice, education, exercise and weight management guidance [RULE: R-MSK-001]. Safety-netting advice should be provided regarding any new alarm symptoms (haematemesis, melaena, worsening dysphagia) pending endoscopy.",
+      "actions": [
+        {
+          "action": "Arrange urgent direct-access upper gastrointestinal endoscopy",
+          "priority": "2ww",
+          "due_days": 14,
+          "rationale": "New dysphagia in context of weight loss meets two-week wait criteria for suspected upper GI cancer.",
+          "rule_ids": [
+            "R-UGI-001"
+          ]
+        },
+        {
+          "action": "Provide routine musculoskeletal advice including education, exercise and weight management guidance",
+          "priority": "routine",
+          "due_days": 84,
+          "rationale": "First-line conservative management is appropriate for documented mild knee osteoarthritis.",
+          "rule_ids": [
+            "R-MSK-001"
+          ]
+        },
+        {
+          "action": "Safety-net for new alarm symptoms (haematemesis, melaena, worsening dysphagia) and advise patient to seek urgent review if these develop",
+          "priority": "urgent",
+          "due_days": null,
+          "rationale": "Patient under investigation for suspected upper GI malignancy requires clear safety-netting guidance.",
+          "rule_ids": [
+            "R-UGI-001"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "rule_id": "R-UGI-001",
+          "guideline_title": "Suspected upper GI cancer",
+          "chapter_title": "Referral criteria"
+        },
+        {
+          "rule_id": "R-MSK-001",
+          "guideline_title": "Osteoarthritis: care and management",
+          "chapter_title": "Initial management"
+        }
+      ],
+      "missing": [],
+      "conflicts": []
+    }
+  }
+]

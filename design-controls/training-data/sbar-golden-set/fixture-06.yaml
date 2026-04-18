@@ -1,0 +1,94 @@
+id: SBAR-GS-06
+title: "No rules matched: well person check, normal results"
+
+clinical_scenario: |
+  45-year-old asymptomatic woman attending for a well-person review
+  with normal vitals and unremarkable bloods. The evaluator returns no
+  matched rules. The Assessment must say so explicitly (distinct from
+  evaluator outage), and the Recommendation must default to routine
+  health promotion, not a fabricated 2WW pathway.
+
+input:
+  patient_id: "pat-gs-06"
+  situation:
+    artifacts:
+      - { type: fixed_text, text: "Routine well person review" }
+  background:
+    - { type: encounter, id: "enc-gs-06" }
+  guideline_ids: []
+
+resolved_situation:
+  patient_id: "pat-gs-06"
+  patient_summary:
+    age_band: "40-49"
+    sex: "F"
+  artifacts:
+    - kind: text
+      text: "Routine well person review"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-06
+    text: |
+      45F well person check. BP 118/76, BMI 24.1, non-smoker, alcohol
+      <14 units/week. Bloods: FBC normal, U&E normal, LFTs normal,
+      HbA1c 35 mmol/mol, lipids within target. No symptoms, no current
+      medications.
+    codes:
+      - { concept_id: "171185007", term: "Well person check", assertion: present }
+
+llm_transcript:
+  situation:
+    markdown: |
+      45-year-old asymptomatic woman attending for a routine well
+      person review [SOURCE: text].
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - BP 118/76, BMI 24.1, non-smoker, alcohol <14 units/week [SOURCE: enc-gs-06]
+      - FBC, U&E and LFTs normal [SOURCE: enc-gs-06]
+      - HbA1c 35 mmol/mol; lipids within target [SOURCE: enc-gs-06]
+      - No symptoms reported and no current medications [SOURCE: enc-gs-06]
+    error: null
+  recommendation:
+    markdown: |
+      No guideline rule matched the documented evidence. Continue
+      routine well person review. Reinforce healthy lifestyle advice
+      and re-screen at the next scheduled interval.
+    actions:
+      - { action: "Continue routine well person review", priority: routine, due_days: 365, rule_ids: [] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules: []
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "No matching"
+  required_phrases_in_recommendation:
+    - ["Insufficient documented evidence", "clinical judgement", "routine"]
+  banned_phrases:
+    - "2WW"
+    - "suspected cancer"
+    - "as an AI"
+  expected_pathway_hints:
+    rtr: "no"
+    rtr_evidence_contains: "No matching rules fired"
+    stt_is_null: true
+  reviewer_focus: |
+    1. The Assessment MUST distinguish between "no rules matched" and
+       "evaluator unavailable" (see fixture-05). The Assessment must
+       say "No matching guideline rules" or equivalent.
+    2. The Recommendation MUST NOT invent a 2WW pathway.
+    3. Per Recommendation Rule 3, an empty assessment_rules input means
+       the prompt must emit the boilerplate "Insufficient documented
+       evidence ... clinical judgement required" and zero structured
+       actions. Either an empty actions list or a routine follow-up
+       action is acceptable; an urgent or 2WW action is a fail.

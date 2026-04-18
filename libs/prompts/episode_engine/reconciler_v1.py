@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.prompts.episode_engine._shared import (
+    BREAST_REFERENCE_CASE,
     EPISODE_TYPE_LIST,
-    PATIENT_4802892365_REFERENCE,
     RULES_OF_THE_ROAD,
 )
 
@@ -50,7 +50,7 @@ SYSTEM = INJECTION_GUARD + (
     "    or if the merge required guesswork.\n\n"
     + RULES_OF_THE_ROAD
     + "\n\n"
-    + PATIENT_4802892365_REFERENCE
+    + BREAST_REFERENCE_CASE
     + "\n\nRespond by calling the submit_episodes tool.\n"
 )
 

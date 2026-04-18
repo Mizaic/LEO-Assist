@@ -239,6 +239,74 @@ def test_apply_run_with_no_episodes_still_deletes_existing():
     assert not any("MERGE (ep:EpisodeOfCare" in q for q in queries)
 
 
+def test_first_presentation_and_outcome_letter_persist_on_episode_and_link():
+    """VT-505-TC-010: first_presentation + outcome_letter milestones project
+    onto the EpisodeOfCare node and onto the IS_PART_OF relationship."""
+
+    client = MagicMock()
+    client.run.return_value = [{"deleted": 0}]
+
+    eps = [
+        _episode(
+            milestones=[
+                _milestone(
+                    type="first_presentation",
+                    iso_date="2025-03-12",
+                    encounter_id="enc-pres",
+                ),
+                _milestone(
+                    type="referral",
+                    iso_date="2025-03-26",
+                    encounter_id="enc-ref",
+                ),
+                _milestone(
+                    type="outcome_letter",
+                    iso_date="2025-05-12",
+                    encounter_id="enc-letter",
+                ),
+            ]
+        )
+    ]
+    # Override first_presentation to carry presentation_place
+    eps[0].milestones[0] = Milestone(
+        type="first_presentation",
+        date=date.fromisoformat("2025-03-12"),
+        encounter_id="enc-pres",
+        evidence_quote="GP face-to-face for new breast lump.",
+        presentation_place="gp_surgery",
+        confidence=0.9,
+        reasoning="r",
+    )
+
+    write_episodes(
+        client=client,
+        patient_id="p-1",
+        domain_id="d-1",
+        episodes=eps,
+        provenance=_provenance(),
+        dry_run=False,
+    )
+
+    write_calls = [
+        c for c in client.run.call_args_list
+        if "MERGE (ep:EpisodeOfCare" in c.args[0]
+    ]
+    assert len(write_calls) == 1
+    write_kwargs = write_calls[0].kwargs
+    assert write_kwargs["first_presentation_date"] == "2025-03-12"
+    assert write_kwargs["place_of_first_presentation"] == "gp_surgery"
+    assert write_kwargs["outcome_letter_date"] == "2025-05-12"
+
+    link_calls = [
+        c for c in client.run.call_args_list
+        if "MERGE (e)-[r:IS_PART_OF" in c.args[0]
+    ]
+    by_type = {c.kwargs["milestone_type"]: c.kwargs for c in link_calls}
+    assert by_type["first_presentation"]["presentation_place"] == "gp_surgery"
+    assert by_type["referral"]["presentation_place"] is None
+    assert by_type["outcome_letter"]["presentation_place"] is None
+
+
 @pytest.mark.parametrize("ep_type", ["cancer", "multi_site", "benign", "non_cancer"])
 def test_episode_id_unique_per_site_window_pair(ep_type):
     """VT-505-TC-009: ids are stable per (patient, site, window_start)."""

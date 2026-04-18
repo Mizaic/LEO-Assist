@@ -1,0 +1,79 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 3723,
+    "error": null,
+    "markdown": "This patient is attending for a routine well person review [SOURCE: text artifact]. No specific trigger event or acute concern has been documented. The patient's age and sex are not recorded in the available information.",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient is attending for a routine well person review [SOURCE: text artifact]. No specific trigger event or acute concern has been documented. The patient's age and sex are not recorded in the available information.",
+      "citations": [
+        {
+          "source_type": "text",
+          "source_id": "artifact",
+          "source_date": null,
+          "content": "Routine well person review"
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex/gender",
+        "Date of review or appointment",
+        "Previous medical history",
+        "Current medications",
+        "Recent observations or measurements",
+        "Reason for scheduling this particular review"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 4133,
+    "error": null,
+    "markdown": "- 45-year-old female, well person check performed recently [SOURCE: Encounter enc-gs-06]\n- Blood pressure 118/76 mmHg, BMI 24.1 (healthy range) [SOURCE: Encounter enc-gs-06]\n- Non-smoker, alcohol intake <14 units/week [SOURCE: Encounter enc-gs-06]\n- Recent bloods: FBC normal, U&E normal, LFTs normal, HbA1c 35 mmol/mol (non-diabetic range), lipids within target [SOURCE: Encounter enc-gs-06]\n- No current medications, no reported symptoms [SOURCE: Encounter enc-gs-06]",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- 45-year-old female, well person check performed recently [SOURCE: Encounter enc-gs-06]\n- Blood pressure 118/76 mmHg, BMI 24.1 (healthy range) [SOURCE: Encounter enc-gs-06]\n- Non-smoker, alcohol intake <14 units/week [SOURCE: Encounter enc-gs-06]\n- Recent bloods: FBC normal, U&E normal, LFTs normal, HbA1c 35 mmol/mol (non-diabetic range), lipids within target [SOURCE: Encounter enc-gs-06]\n- No current medications, no reported symptoms [SOURCE: Encounter enc-gs-06]",
+      "citations": [
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-06",
+          "date": null,
+          "relevance": "Well person check with baseline observations and blood results"
+        }
+      ],
+      "missing": [],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": null,
+    "markdown": "_No matching guideline rules fired for this patient's coded evidence._\n\nReviewed against 1 SNOMED concept(s).",
+    "actions": [],
+    "raw": {
+      "rules": []
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 4585,
+    "error": null,
+    "markdown": "Insufficient documented evidence to suggest a recommendation \u2014 clinical judgement required.\n\nThe patient's well person review shows normal clinical parameters and screening bloods. No clinical rules have triggered based on the available coded data. Routine health maintenance and age-appropriate screening should be considered in line with local protocols and the patient's preferences.",
+    "actions": [],
+    "raw": {
+      "recommendation_markdown": "Insufficient documented evidence to suggest a recommendation \u2014 clinical judgement required.\n\nThe patient's well person review shows normal clinical parameters and screening bloods. No clinical rules have triggered based on the available coded data. Routine health maintenance and age-appropriate screening should be considered in line with local protocols and the patient's preferences.",
+      "actions": [],
+      "citations": [],
+      "missing": [
+        "No assessment rules fired from the guideline knowledge base",
+        "Age-appropriate cancer screening status not documented in coded form",
+        "Cervical screening history not available in supplied context",
+        "Breast screening eligibility and history not recorded in supplied context"
+      ],
+      "conflicts": []
+    }
+  }
+]

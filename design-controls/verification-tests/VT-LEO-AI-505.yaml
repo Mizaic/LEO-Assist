@@ -1,0 +1,145 @@
+# -- VT-LEO-AI-505 -- Verification of Episode Engine Writer (idempotence + provenance)
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-505"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-505"]
+    risks: ["R-LEO-AI-505"]
+
+  metadata:
+    title: "Episode engine writer -- deterministic ids, status precedence, idempotent writes"
+    description: >
+      Verifies the writer produces deterministic episode ids (stable per
+      patient + site + window_start), maps episode_type to condition_type
+      correctly, derives episode status with the right precedence
+      (benign_closed > completed > review > active), threads provenance
+      fields onto the EpisodeOfCare node, performs DETACH DELETE before
+      MERGE for per-patient idempotence, gracefully degrades when one
+      milestone link fails, and treats dry_run as a true no-op against
+      Neo4j. All cases use a MagicMock for PatientGraphClient and
+      synthetic ReconciledEpisode payloads.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/episode_engine/test_writer.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-505-TC-001"
+      case_name: "test_deterministic_episode_id_is_stable_and_site_lowercased"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build ids for ('p-1','Breast','2025-03-26'), ('p-1','breast','2025-03-26'), ('p-1','breast','2025-03-27')"
+          expected_result: "First two ids equal; third differs; all start with 'ep-' and length 19"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Re-runs are stable; case differences in site do not produce duplicate nodes"
+    - case_id: "VT-505-TC-002"
+      case_name: "test_episode_status_priority_order"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build episodes with benign_closure / treatment_completed / needs_human_review / default milestones"
+          expected_result: "_episode_status returns benign_closed, completed, review, active in that order"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Status precedence is unambiguous"
+    - case_id: "VT-505-TC-003"
+      case_name: "test_first_seen_date_returns_iso_or_none"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Build episodes with and without a first_seen milestone"
+          expected_result: "Returns ISO date when present, None when absent"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Optional milestone gracefully handled"
+    - case_id: "VT-505-TC-004"
+      case_name: "test_condition_type_maps_cancer_variants"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Map cancer / multi_site / benign / non_cancer episode types"
+          expected_result: "cancer + multi_site collapse to 'cancer'; benign and non_cancer pass through"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Downstream filters can rely on condition_type='cancer' for clinical cohorts"
+    - case_id: "VT-505-TC-005"
+      case_name: "test_dry_run_does_not_touch_neo4j"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run write_episodes with dry_run=True and a single episode"
+          expected_result: "client.run is never called; materialised episodes returned with deterministic id"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Dry-run is a true no-op against the graph"
+    - case_id: "VT-505-TC-006"
+      case_name: "test_apply_run_deletes_then_writes_episode_and_milestone"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run with dry_run=False; inspect the issued queries"
+          expected_result: "Sequence contains 'DETACH DELETE ep', 'MERGE (ep:EpisodeOfCare', 'MERGE (e)-[r:IS_PART_OF'; engine_version + trace_id + first_seen_date threaded through"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Per-patient idempotence guaranteed"
+    - case_id: "VT-505-TC-007"
+      case_name: "test_milestone_link_failure_does_not_break_other_milestones"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Have one milestone link raise; the other should still be attempted"
+          expected_result: "Both link calls issued; failure logged at ERROR; episode still materialised"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "One bad encounter id does not poison an entire episode"
+    - case_id: "VT-505-TC-008"
+      case_name: "test_apply_run_with_no_episodes_still_deletes_existing"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call write_episodes with episodes=[] and dry_run=False"
+          expected_result: "DETACH DELETE issued; no MERGE for episodes; result is []"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Wipes leftover episodes even when the engine produced none"
+    - case_id: "VT-505-TC-009"
+      case_name: "test_episode_id_unique_per_site_window_pair"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Parameterised across cancer/multi_site/benign/non_cancer; build ids for breast vs skin on the same date"
+          expected_result: "Distinct ids for distinct sites"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Two co-occurring sites produce two episodes, not one"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-505/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-18"
+      executor: "Quality Engineering"
+      result: "pass"
+      notes: "All 9 cases (12 with parameterised TC-009) pass with MagicMock Neo4j client; no graph mutations."

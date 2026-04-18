@@ -1,0 +1,142 @@
+id: SBAR-GS-02
+title: 'Suspected colorectal cancer (2WW): rectal bleeding + iron-deficiency anaemia'
+clinical_scenario: '72-year-old male with 6-week history of intermittent rectal bleeding
+
+  and a recent FBC showing Hb 9.8 with low ferritin. GP requests urgent
+
+  lower GI assessment. Reviewer must confirm the 2WW colorectal pathway
+
+  fires and that the anaemia is presented as iron-deficiency, not
+
+  generic anaemia.
+
+  '
+input:
+  patient_id: pat-gs-02
+  situation:
+    artifacts:
+    - type: referral_request
+      id: rr-gs-02
+  background:
+  - type: encounter
+    id: enc-gs-02
+  guideline_ids:
+  - G-COLO-2WW
+resolved_situation:
+  patient_id: pat-gs-02
+  patient_summary:
+    age_band: 70-79
+    sex: M
+  artifacts:
+  - kind: referral_request
+    id: rr-gs-02
+    reason: Rectal bleeding + iron-deficiency anaemia, ?colorectal cancer
+    referring_specialty: Lower GI surgery
+resolved_background:
+- source_label: Encounter
+  source_id: enc-gs-02
+  text: '72M, 6 weeks intermittent fresh PR bleeding mixed with stool, no
+
+    change in bowel habit reported, weight stable. FBC 03/2026:
+
+    Hb 9.8 g/dL, MCV 76 fL, ferritin 8 ug/L. No PR examination
+
+    recorded today. No personal or family history of colorectal cancer.
+
+    '
+  codes:
+  - concept_id: '12063002'
+    term: Rectal haemorrhage
+    assertion: present
+  - concept_id: '87522002'
+    term: Iron deficiency anaemia
+    assertion: present
+llm_transcript:
+  situation:
+    markdown: '72-year-old male referred by GP with 6-week history of fresh
+
+      rectal bleeding and a new iron-deficiency anaemia (Hb 9.8 g/dL,
+
+      ferritin 8 ug/L) [SOURCE: enc-gs-02]. Triggering this SBAR for
+
+      the colorectal 2WW pathway [SOURCE: rr-gs-02].
+
+      '
+    actions: []
+    error: null
+  background:
+    markdown: '- 6-week history of intermittent fresh PR bleeding mixed with stool
+      [SOURCE: enc-gs-02]
+
+      - Iron-deficiency anaemia: Hb 9.8 g/dL, MCV 76 fL, ferritin 8 ug/L (03/2026)
+      [SOURCE: enc-gs-02]
+
+      - No reported change in bowel habit [SOURCE: enc-gs-02]
+
+      - No PR examination recorded at the GP visit [SOURCE: enc-gs-02]
+
+      - No personal or family history of colorectal cancer [SOURCE: enc-gs-02]
+
+      '
+    error: null
+  recommendation:
+    markdown: 'Refer urgently under the suspected colorectal cancer 2WW pathway.
+
+      Arrange iron studies repeat and oral iron pending colonoscopy.
+
+      Document a PR examination at first secondary-care visit.
+
+      '
+    actions:
+    - action: Refer 2WW suspected colorectal cancer
+      priority: 2ww
+      due_days: 14
+      rule_ids:
+      - R-COLO-001
+    - action: Start oral iron replacement
+      priority: routine
+      due_days: 7
+      rule_ids:
+      - R-COLO-001
+    error: null
+evaluator_response:
+  outage: false
+  matched_rules:
+  - rule_id: R-COLO-001
+    name: PR bleeding + IDA age >=60 -> 2WW colorectal
+    strength: strong
+    guideline_id: G-COLO-2WW
+    guideline_title: Suspected colorectal cancer
+    chapter_title: Referral criteria
+    recommendation_verbatim: Refer adults using a suspected cancer pathway referral
+      if they have iron-deficiency anaemia and rectal bleeding.
+    action:
+      priority: 2ww
+      due_days: 14
+      name: 2WW colorectal referral
+    confidence: 1.0
+reviewer_expectations:
+  required_section_headings:
+  - '## Situation'
+  - '## Background'
+  - '## Assessment'
+  - '## Recommendation'
+  required_phrases_in_assessment:
+  - R-COLO-001
+  - colorectal
+  required_phrases_in_recommendation:
+  - - 2WW
+    - two-week wait
+    - two week wait
+  banned_phrases:
+  - B12 deficiency
+  - vitamin deficiency
+  - as an AI
+  expected_pathway_hints:
+    rtr: 'yes'
+    stt_contains: two-week wait
+    stt_evidence_contains: R-COLO-001
+  expected_action_priority: 2ww
+  reviewer_focus: "1. Anaemia must be described as iron-deficiency, not generic.\n\
+    2. The transcript must NOT claim a PR examination was performed.\n3. The 2WW recommendation\
+    \ must be unambiguous and not deferred to\n   \"if symptoms persist\".\n"

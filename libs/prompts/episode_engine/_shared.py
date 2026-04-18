@@ -9,12 +9,20 @@ from __future__ import annotations
 
 # -- Vocabularies (must match services/analysis_worker/app/episode_engine/schemas.py) --
 MILESTONE_TYPE_LIST = (
-    "referral, first_seen, diagnosis_confirmed, treatment_started, "
-    "treatment_completed, benign_closure"
+    "first_presentation, referral, first_seen, outcome_letter, "
+    "diagnosis_confirmed, treatment_started, treatment_completed, "
+    "benign_closure"
 )
 EPISODE_TYPE_LIST = "cancer, multi_site, benign, non_cancer, uncertain"
 TREATMENT_TYPE_LIST = (
     "surgery, endocrine, chemotherapy, radiotherapy, immunotherapy, other"
+)
+PRESENTATION_PLACE_LIST = (
+    "gp_surgery, gp_home_visit, other_primary_care, hospital_outpatient, "
+    "hospital_inpatient, accident_and_emergency, walk_in_centre, "
+    "out_of_hours, from_screening, telephone_consultation, "
+    "email_consultation, video_consultation, dentist, optometrist, "
+    "community_care_nurse, other, not_known"
 )
 
 # -- Common rules ----------------------------------------------------------
@@ -81,13 +89,24 @@ Rules of the road -- learnt from real GP records:
 """
 
 
-PATIENT_4802892365_REFERENCE = """\
-Reference case (patient 4802892365, breast cancer):
+BREAST_REFERENCE_CASE = """\
+Reference case (synthetic patient SYN-EE-001, breast cancer):
+
+This is a synthetic teaching example. It illustrates the most common
+failure mode of any rule-based detector: anchoring treatment_started
+on an administrative "Failed encounter" task instead of the real
+clinical reconciliation or definitive surgery.
 
 Timeline summary:
+  2025-03-12  GP face-to-face: patient reports a new right breast lump
+              noticed two weeks ago. THIS is the real first_presentation
+              that led to the eventual 2WW referral. Place = gp_surgery.
   2025-03-26  GP enters PRISM 2WW referral for suspected breast cancer
               (multiple admin echoes the same day).
   2025-04-28  First seen in fast-track 2WW breast clinic.
+  2025-05-12  Breast clinic outcome letter received in primary care --
+              biopsy taken, awaiting histology. THIS is outcome_letter,
+              not diagnosis_confirmed.
   2025-05-02  Pharmacist "Failed encounter" mentioning letrozole
               prescribed by hospital. THIS IS NOT A TREATMENT EVENT.
   2025-05-19  Pharmacist drug review reconciles letrozole 2.5mg from
@@ -99,14 +118,18 @@ Timeline summary:
               (the definitive treatment).
 
 Correct output: ONE cancer episode. Milestones:
+  - first_presentation 2025-03-12 presentation_place=gp_surgery
+    (GP face-to-face for new breast lump -- the symptom that started
+     the pathway)
   - referral 2025-03-26 (PRISM 2WW)
   - first_seen 2025-04-28 (fast-track clinic)
+  - outcome_letter 2025-05-12 (biopsy-taken letter; not yet a diagnosis)
   - diagnosis_confirmed ~2025-05-19 (Breast Clinic letter reconciled)
   - treatment_started 2025-05-19 treatment_type=endocrine (letrozole
     neoadjuvant, real reconciliation, NOT the 02 May Failed encounter)
   - treatment_started 2025-07-28 treatment_type=surgery (mastectomy)
 
 Incorrect output: a treatment_started on 2025-05-02 anchored on the
-"Failed encounter" admin task -- this is the failure mode the rule-based
-detector kept making.
+"Failed encounter" admin task -- this is the failure mode that
+deterministic detectors kept making.
 """

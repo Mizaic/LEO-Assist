@@ -132,6 +132,68 @@ def test_milestone_extractor_rejects_unknown_treatment_type():
         _run(llm)
 
 
+def test_milestone_extractor_parses_first_presentation_with_place():
+    """VT-503-TC-006: first_presentation parses with a presentation_place enum."""
+
+    payload = {
+        "window_id": "w1",
+        "milestones": [
+            {
+                "type": "first_presentation",
+                "date": "2025-03-12",
+                "encounter_id": "enc-0",
+                "evidence_quote": "Patient reports a new right breast lump.",
+                "presentation_place": "gp_surgery",
+                "confidence": 0.85,
+                "reasoning": "GP face-to-face for the presenting symptom.",
+            },
+            {
+                "type": "outcome_letter",
+                "date": "2025-05-12",
+                "encounter_id": "enc-3",
+                "evidence_quote": "Breast clinic letter -- biopsy taken.",
+                "confidence": 0.8,
+                "reasoning": "Outcome letter received pre-diagnosis.",
+            },
+        ],
+        "needs_human_review": False,
+        "reasoning": "Two new milestones extracted.",
+    }
+    llm = FakeLLM(FakeLLMResponse(tool_uses=[tool_use("submit_milestones", payload)]))
+    result, _ = _run(llm)
+
+    assert len(result.milestones) == 2
+    fp, ol = result.milestones
+    assert fp.type == "first_presentation"
+    assert fp.presentation_place == "gp_surgery"
+    assert ol.type == "outcome_letter"
+    assert ol.presentation_place is None
+
+
+def test_milestone_extractor_rejects_unknown_presentation_place():
+    """VT-503-TC-007: an invented presentation_place is rejected."""
+
+    payload = {
+        "window_id": "w1",
+        "milestones": [
+            {
+                "type": "first_presentation",
+                "date": "2025-03-12",
+                "encounter_id": "enc-0",
+                "evidence_quote": "Saw GP about a lump.",
+                "presentation_place": "spaceship",
+                "confidence": 0.8,
+                "reasoning": "",
+            }
+        ],
+        "needs_human_review": False,
+        "reasoning": "",
+    }
+    llm = FakeLLM(FakeLLMResponse(tool_uses=[tool_use("submit_milestones", payload)]))
+    with pytest.raises(StageError):
+        _run(llm)
+
+
 def test_milestone_extractor_requires_evidence_quote():
     """VT-503-TC-005: empty evidence_quote violates min_length and is rejected."""
 

@@ -11,8 +11,8 @@
       administrative encounter (failed task, booking note, pharmacist
       reminder, secretary letter) rather than the clinical event.
       This is the original failure mode that motivated replacing the
-      rule-based detector (patient 4802892365: 2025-05-02 failed
-      pharmacist task vs. 2025-07-28 mastectomy).
+      rule-based detector (synthetic reference case SYN-EE-001:
+      2025-05-02 failed pharmacist task vs. 2025-07-28 mastectomy).
     category: "clinical_safety"
 
   hazardous_situation: >
@@ -40,10 +40,11 @@
       description: >
         Milestone extractor prompt v1
         (libs/prompts/episode_engine/milestone_extractor_v1.py)
-        carries the explicit patient 4802892365 reference example
-        showing the failed pharmacist task and the correct mastectomy
-        date, plus the ``never anchor on failed/cancelled tasks''
-        rule from _shared.py.
+        carries the explicit synthetic SYN-EE-001 reference example
+        (BREAST_REFERENCE_CASE) showing the failed pharmacist task
+        and the correct mastectomy date, plus the
+        ``never anchor on failed/cancelled tasks'' rule from
+        _shared.py.
       implemented_by: ["DI-LEO-AI-503"]
       verified_by: ["VT-LEO-AI-503"]
       effectiveness: "effective"
@@ -58,8 +59,8 @@
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: >
-        Patient 4802892365 is included in the frozen-cohort VT
-        (VT-LEO-AI-507); regression on this patient blocks release.
+        Synthetic reference SYN-EE-001 is included in the frozen-cohort
+        VT (VT-LEO-AI-507); regression on this case blocks release.
       implemented_by: ["DI-LEO-AI-505"]
       verified_by: ["VT-LEO-AI-507"]
       effectiveness: "effective"
@@ -72,12 +73,12 @@
     risk_level: "low"
     acceptability: "acceptable"
     justification: >
-      Spike on patient 4802892365 confirmed the engine now correctly
-      picks the mastectomy and the endocrine therapy as the
-      treatment_started milestones and explicitly rejects the failed
-      pharmacist task. Evidence quotes per milestone make detection
-      of remaining false anchors trivial during HITL review. The
-      frozen-cohort VT prevents regression.
+      Spike on the synthetic SYN-EE-001 fixture confirmed the engine
+      now correctly picks the mastectomy and the endocrine therapy as
+      the treatment_started milestones and explicitly rejects the
+      failed pharmacist task. Evidence quotes per milestone make
+      detection of remaining false anchors trivial during HITL review.
+      The frozen-cohort VT prevents regression.
 
   monitoring:
     monitoring_plan: >
@@ -87,11 +88,11 @@
       encounter is a Task or Reminder during HITL review.
     metrics:
       - "treatment_started source encounter category distribution"
-      - "Frozen-cohort VT pass rate for patient 4802892365"
+      - "Frozen-cohort VT pass rate for synthetic reference SYN-EE-001"
     review_frequency: "Per release"
 
   metadata:
-    identified_by: "Patient 4802892365 incident review"
+    identified_by: "Synthetic reference case SYN-EE-001 incident review"
     identified_date: "2026-04-18"
     status: "mitigated"
-    tags: ["episode-engine", "milestone-extractor", "admin-noise", "patient-4802892365"]
+    tags: ["episode-engine", "milestone-extractor", "admin-noise", "syn-ee-001"]

@@ -23,15 +23,15 @@
     (``Failed encounter``, receptionist call logs, SMS reminders) as
     treatment_started.
   rationale: >
-    The whole engine exists to fix the failure mode where patient
-    4802892365 had a "Failed encounter / pharmacist call -> letrozole"
-    admin task on 2025-05-02 mis-tagged as treatment_started, when
-    the real definitive treatment was a mastectomy on 2025-07-28.
-    Pinning every milestone to an encounter_id with an evidence
-    quote means the auditor can verify the AI's choice in one
-    click. Allowing empty milestones with needs_human_review
-    prevents the model from hallucinating events when the window
-    actually doesn't have them.
+    The whole engine exists to fix the failure mode captured in the
+    synthetic reference case SYN-EE-001: a "Failed encounter /
+    pharmacist call -> letrozole" admin task on 2025-05-02 was
+    mis-tagged as treatment_started, when the real definitive
+    treatment was a mastectomy on 2025-07-28. Pinning every milestone
+    to an encounter_id with an evidence quote means the auditor can
+    verify the AI's choice in one click. Allowing empty milestones
+    with needs_human_review prevents the model from hallucinating
+    events when the window actually doesn't have them.
 
   machine_spec:
     acceptance_criteria:
@@ -50,7 +50,7 @@
       - type: "safety"
         spec: "Empty milestone list with needs_human_review=true MUST be a valid response (low-evidence window)."
       - type: "safety"
-        spec: "Patient 4802892365 spike output MUST contain treatment_started (endocrine) on 2025-05-19 AND treatment_started (surgery) on 2025-07-28; MUST NOT contain a treatment_started anchored to encounter aa8d55b9 (the 2025-05-02 Failed encounter)."
+        spec: "Synthetic reference SYN-EE-001 fixture MUST yield treatment_started (endocrine) on 2025-05-19 AND treatment_started (surgery) on 2025-07-28; MUST NOT yield a treatment_started anchored to the 2025-05-02 'Failed encounter' admin task."
     constraints:
       - type: "safety"
         spec: "Milestone extractor MUST NOT see benign or non_cancer windows below confidence 0.4 (chain-level filter)."
@@ -79,8 +79,8 @@
       multi-milestone parse, empty-milestone+HITL parse, invalid
       milestone type rejection, invalid treatment_type rejection,
       and empty-evidence-quote rejection. The frozen-cohort
-      regression test (VT-LEO-AI-507) must show treatment_started
-      surgery on 2025-07-28 for patient 4802892365.
+      regression test (VT-LEO-AI-507) must yield treatment_started
+      (surgery) on 2025-07-28 for synthetic reference SYN-EE-001.
     test_protocol: "VT-LEO-AI-503"
 
   safety_class: "B"
@@ -90,5 +90,5 @@
     - "episode-engine"
     - "milestone-extractor"
     - "haiku"
-    - "patient-4802892365"
+    - "syn-ee-001"
     - "treatment-started"

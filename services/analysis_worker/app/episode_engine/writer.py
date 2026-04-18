@@ -45,27 +45,35 @@ RETURN count(ep) AS deleted
 _WRITE_EPISODE_Q = """
 MATCH (p:Patient {id: $patient_id})
 MERGE (ep:EpisodeOfCare {episode_id: $episode_id})
-SET ep.patient_id           = $patient_id,
-    ep.condition_type       = $condition_type,
-    ep.cancer_type          = $suspected_site,
-    ep.episode_type         = $episode_type,
-    ep.suspected_site       = $suspected_site,
-    ep.start_date           = date($window_start),
-    ep.end_date             = CASE WHEN $window_end IS NULL
-                                   THEN null ELSE date($window_end) END,
-    ep.first_seen_date      = CASE WHEN $first_seen_date IS NULL
-                                   THEN null ELSE date($first_seen_date) END,
-    ep.confidence           = $confidence,
-    ep.reasoning            = $reasoning,
-    ep.needs_human_review   = $needs_human_review,
-    ep.merged_from_json     = $merged_from_json,
-    ep.engine_version       = $engine_version,
-    ep.engine_trace_id      = $trace_id,
-    ep.engine_provenance_json = $provenance_json,
-    ep.created_at           = coalesce(ep.created_at, datetime($created_at)),
-    ep.updated_at           = datetime($created_at),
-    ep.status               = $status,
-    ep.domain_id            = $domain_id
+SET ep.patient_id                  = $patient_id,
+    ep.condition_type              = $condition_type,
+    ep.cancer_type                 = $suspected_site,
+    ep.episode_type                = $episode_type,
+    ep.suspected_site              = $suspected_site,
+    ep.start_date                  = date($window_start),
+    ep.end_date                    = CASE WHEN $window_end IS NULL
+                                          THEN null ELSE date($window_end) END,
+    ep.first_presentation_date     = CASE WHEN $first_presentation_date IS NULL
+                                          THEN null
+                                          ELSE date($first_presentation_date) END,
+    ep.place_of_first_presentation = $place_of_first_presentation,
+    ep.first_seen_date             = CASE WHEN $first_seen_date IS NULL
+                                          THEN null
+                                          ELSE date($first_seen_date) END,
+    ep.outcome_letter_date         = CASE WHEN $outcome_letter_date IS NULL
+                                          THEN null
+                                          ELSE date($outcome_letter_date) END,
+    ep.confidence                  = $confidence,
+    ep.reasoning                   = $reasoning,
+    ep.needs_human_review          = $needs_human_review,
+    ep.merged_from_json            = $merged_from_json,
+    ep.engine_version              = $engine_version,
+    ep.engine_trace_id             = $trace_id,
+    ep.engine_provenance_json      = $provenance_json,
+    ep.created_at                  = coalesce(ep.created_at, datetime($created_at)),
+    ep.updated_at                  = datetime($created_at),
+    ep.status                      = $status,
+    ep.domain_id                   = $domain_id
 MERGE (p)-[:HAS_EPISODE_OF_CARE]->(ep)
 RETURN ep.episode_id AS episode_id
 """
@@ -74,12 +82,13 @@ _LINK_MILESTONE_Q = """
 MATCH (ep:EpisodeOfCare {episode_id: $episode_id})
 MATCH (e:Encounter {id: $encounter_id})
 MERGE (e)-[r:IS_PART_OF {milestone_type: $milestone_type}]->(ep)
-SET r.treatment_type = $treatment_type,
-    r.evidence_quote = $evidence_quote,
-    r.confidence     = $confidence,
-    r.engine         = true,
-    r.linked_by      = 'episode_engine',
-    r.created_at     = coalesce(r.created_at, datetime($created_at))
+SET r.treatment_type     = $treatment_type,
+    r.presentation_place = $presentation_place,
+    r.evidence_quote     = $evidence_quote,
+    r.confidence         = $confidence,
+    r.engine             = true,
+    r.linked_by          = 'episode_engine',
+    r.created_at         = coalesce(r.created_at, datetime($created_at))
 RETURN type(r) AS rt
 """
 
@@ -117,6 +126,26 @@ def _first_seen_date(ms: Iterable[Milestone]) -> str | None:
         if m.type == "first_seen":
             return m.date.isoformat()
     return None
+
+
+def _first_presentation(
+    ms: Iterable[Milestone],
+) -> tuple[str | None, str | None]:
+    """Return (date_iso, presentation_place) for the earliest first_presentation."""
+
+    candidates = [m for m in ms if m.type == "first_presentation"]
+    if not candidates:
+        return None, None
+    chosen = min(candidates, key=lambda m: m.date)
+    return chosen.date.isoformat(), chosen.presentation_place
+
+
+def _outcome_letter_date(ms: Iterable[Milestone]) -> str | None:
+    candidates = [m for m in ms if m.type == "outcome_letter"]
+    if not candidates:
+        return None
+    chosen = min(candidates, key=lambda m: m.date)
+    return chosen.date.isoformat()
 
 
 def _condition_type(ep: ReconciledEpisode) -> str:
@@ -183,6 +212,7 @@ def write_episodes(
     )
 
     for ep, final in zip(episodes, materialised):
+        first_pres_date, first_pres_place = _first_presentation(ep.milestones)
         client.run(
             _WRITE_EPISODE_Q,
             patient_id=patient_id,
@@ -192,7 +222,10 @@ def write_episodes(
             episode_type=ep.episode_type,
             window_start=ep.window_start.isoformat(),
             window_end=ep.window_end.isoformat() if ep.window_end else None,
+            first_presentation_date=first_pres_date,
+            place_of_first_presentation=first_pres_place,
             first_seen_date=_first_seen_date(ep.milestones),
+            outcome_letter_date=_outcome_letter_date(ep.milestones),
             confidence=float(ep.confidence),
             reasoning=ep.reasoning,
             needs_human_review=bool(ep.needs_human_review),
@@ -213,6 +246,7 @@ def write_episodes(
                     encounter_id=m.encounter_id,
                     milestone_type=m.type,
                     treatment_type=m.treatment_type,
+                    presentation_place=m.presentation_place,
                     evidence_quote=m.evidence_quote,
                     confidence=float(m.confidence),
                     created_at=now_iso,

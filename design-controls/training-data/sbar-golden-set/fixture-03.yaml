@@ -1,0 +1,107 @@
+id: SBAR-GS-03
+title: "Suspected breast cancer (2WW): new unilateral lump age 48"
+
+clinical_scenario: |
+  48-year-old woman presents with a painless 3 cm right breast lump
+  noticed 2 weeks ago, no nipple discharge, no skin change. GP's
+  examination confirms a discrete lump. Reviewer must confirm 2WW
+  breast referral and that the LLM does not minimise the finding by
+  citing benign possibilities ahead of the urgent pathway.
+
+input:
+  patient_id: "pat-gs-03"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-03" }
+  background:
+    - { type: encounter, id: "enc-gs-03" }
+  guideline_ids: ["G-BREAST-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-03"
+  patient_summary:
+    age_band: "40-49"
+    sex: "F"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-03"
+      reason: "New unilateral breast lump, ?breast cancer"
+      referring_specialty: "Breast surgery"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-03
+    text: |
+      48F, 2-week history of a painless 3 cm lump in upper outer
+      quadrant of right breast. No nipple discharge or skin change. No
+      family history of breast or ovarian cancer. GP examination:
+      discrete, mobile, non-tender lump confirmed. No axillary
+      lymphadenopathy.
+    codes:
+      - { concept_id: "300848003", term: "Breast lump", assertion: present }
+
+llm_transcript:
+  situation:
+    markdown: |
+      48-year-old woman referred by GP with a 2-week history of a
+      painless 3 cm right breast lump, confirmed on examination as a
+      discrete mobile mass with no axillary lymphadenopathy
+      [SOURCE: enc-gs-03]. Triggering this SBAR for the breast 2WW
+      pathway [SOURCE: rr-gs-03].
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - Painless unilateral right breast lump, 3 cm, upper outer quadrant [SOURCE: enc-gs-03]
+      - No nipple discharge, no skin change [SOURCE: enc-gs-03]
+      - No axillary lymphadenopathy on examination [SOURCE: enc-gs-03]
+      - No personal or family history of breast or ovarian cancer recorded [SOURCE: enc-gs-03]
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected breast cancer 2WW pathway.
+      Triple assessment (clinical, imaging, biopsy) at first appointment.
+    actions:
+      - { action: "Refer 2WW suspected breast cancer", priority: 2ww, due_days: 14, rule_ids: ["R-BREAST-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-BREAST-001
+      name: "Unexplained breast lump age >=30 -> 2WW breast"
+      strength: strong
+      guideline_id: G-BREAST-2WW
+      guideline_title: "Suspected breast cancer"
+      chapter_title: "Referral criteria"
+      recommendation_verbatim: "Refer people using a suspected cancer pathway referral if they are aged 30 and over and have an unexplained breast lump with or without pain."
+      action: { priority: 2ww, due_days: 14, name: "2WW breast referral" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-BREAST-001"
+    - "breast"
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+  banned_phrases:
+    - "likely benign"
+    - "probably a cyst"
+    - "fibroadenoma"
+    - "as an AI"
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-BREAST-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. The transcript must NOT downgrade with terms like "likely
+       benign" or "probably fibroadenoma" - the 2WW pathway is the
+       correct route.
+    2. The lump dimension MUST be 3 cm (matches encounter text).
+    3. Triple assessment language is acceptable and recommended.

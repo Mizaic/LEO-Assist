@@ -257,6 +257,15 @@ training_job_*/
 # Recovery / one-off scripts output
 scripts/recover_*.json
 
+# SBAR golden-set runner output (regenerated locally; ledger countersigned offline and stored in evidence-bundles/)
+data/sbar-golden-set-reports/
+data/sbar-live-reports/
+
+# Episode-engine spike reports (contain real patient data dumped from graph)
+scripts/investigations/episode_engine_spike/reports/*.md
+scripts/investigations/episode_engine_spike/reports/*.json
+!scripts/investigations/episode_engine_spike/reports/.gitkeep
+
 # Cursor AI workspace files (keep rules, ignore state)
 .cursor/chat/
 .cursor/history/

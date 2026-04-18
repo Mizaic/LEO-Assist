@@ -1,0 +1,85 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 4238,
+    "error": null,
+    "markdown": "This patient is referred to Respiratory medicine for persistent haemoptysis [SOURCE: referral_request rr-gs-05]. Age, sex, and duration of symptoms are not documented in the available information.",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient is referred to Respiratory medicine for persistent haemoptysis [SOURCE: referral_request rr-gs-05]. Age, sex, and duration of symptoms are not documented in the available information.",
+      "citations": [
+        {
+          "source_type": "referral_request",
+          "source_id": "rr-gs-05",
+          "fact": "Referral to Respiratory medicine for persistent haemoptysis",
+          "date": null
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex",
+        "Duration of haemoptysis",
+        "Frequency or volume of haemoptysis",
+        "Associated symptoms (e.g. weight loss, night sweats, chest pain, breathlessness)",
+        "Smoking history",
+        "Relevant past medical history",
+        "Current medications",
+        "Recent investigations (e.g. chest X-ray, CT scan, blood tests)"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 4608,
+    "error": null,
+    "markdown": "- **Haemoptysis** ongoing for 4 weeks [SOURCE: Encounter enc-gs-05]\n- **Ex-smoker** [SOURCE: Encounter enc-gs-05]\n\n## MISSING\n- Smoking pack-year history not documented\n- No chest imaging (CXR or CT) results provided\n- No spirometry or lung function tests documented\n- No haemoglobin or FBC to assess anaemia from haemoptysis",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- **Haemoptysis** ongoing for 4 weeks [SOURCE: Encounter enc-gs-05]\n- **Ex-smoker** [SOURCE: Encounter enc-gs-05]\n\n## MISSING\n- Smoking pack-year history not documented\n- No chest imaging (CXR or CT) results provided\n- No spirometry or lung function tests documented\n- No haemoglobin or FBC to assess anaemia from haemoptysis",
+      "citations": [
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-05",
+          "date": null,
+          "fact": "Haemoptysis ongoing for 4 weeks; Ex-smoker"
+        }
+      ],
+      "missing": [
+        "Smoking pack-year history",
+        "Chest imaging (CXR or CT)",
+        "Spirometry or lung function tests",
+        "Haemoglobin or FBC"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": "assessment:evaluator unavailable (live-run outage stub)",
+    "markdown": "_Assessment unavailable due to evaluator error._",
+    "actions": [],
+    "raw": {
+      "rules": []
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 4033,
+    "error": null,
+    "markdown": "Insufficient documented evidence to suggest a recommendation \u2014 clinical judgement required. The assessment could not be generated due to a system error, and no clinical rules have been provided to support specific recommendations. The clinician should prioritise urgent clinical evaluation given the presentation of persistent haemoptysis in an ex-smoker, which may warrant consideration of urgent cancer pathways, but this must be determined by direct clinical assessment rather than automated summary.",
+    "actions": [],
+    "raw": {
+      "recommendation_markdown": "Insufficient documented evidence to suggest a recommendation \u2014 clinical judgement required. The assessment could not be generated due to a system error, and no clinical rules have been provided to support specific recommendations. The clinician should prioritise urgent clinical evaluation given the presentation of persistent haemoptysis in an ex-smoker, which may warrant consideration of urgent cancer pathways, but this must be determined by direct clinical assessment rather than automated summary.",
+      "actions": [],
+      "citations": [],
+      "missing": [
+        "Assessment section unavailable due to system error",
+        "No assessment_rules provided to justify recommendations",
+        "Clinical decision-making must rely on direct patient evaluation"
+      ],
+      "conflicts": []
+    }
+  }
+]

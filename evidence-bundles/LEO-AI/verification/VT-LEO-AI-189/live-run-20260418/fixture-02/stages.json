@@ -1,0 +1,169 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 5107,
+    "error": null,
+    "markdown": "This patient has been referred to Lower GI surgery for investigation of rectal bleeding and iron-deficiency anaemia, with a query colorectal cancer [SOURCE: referral_request rr-gs-02]. Age and sex are not recorded in the available data. This summary is being produced in the context of the Lower GI surgery referral.",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient has been referred to Lower GI surgery for investigation of rectal bleeding and iron-deficiency anaemia, with a query colorectal cancer [SOURCE: referral_request rr-gs-02]. Age and sex are not recorded in the available data. This summary is being produced in the context of the Lower GI surgery referral.",
+      "citations": [
+        {
+          "source_type": "referral_request",
+          "source_id": "rr-gs-02",
+          "fact": "Referral reason: rectal bleeding + iron-deficiency anaemia, ?colorectal cancer; referring specialty: Lower GI surgery"
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex",
+        "Duration or severity of rectal bleeding",
+        "Haemoglobin level or other anaemia parameters",
+        "Any previous investigations (e.g. colonoscopy, CT)",
+        "Relevant past medical history",
+        "Current medications (especially anticoagulants/antiplatelets)",
+        "Family history of colorectal cancer"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 5037,
+    "error": null,
+    "markdown": "- **Iron deficiency anaemia** confirmed on FBC 03/2026: Hb 9.8 g/dL, MCV 76 fL (microcytic), ferritin 8 \u00b5g/L [SOURCE: Encounter enc-gs-02 03/2026]\n- **Rectal haemorrhage**: 6 weeks intermittent fresh PR bleeding mixed with stool [SOURCE: Encounter enc-gs-02]\n- No change in bowel habit reported; weight stable [SOURCE: Encounter enc-gs-02]\n- No personal or family history of colorectal cancer [SOURCE: Encounter enc-gs-02]",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- **Iron deficiency anaemia** confirmed on FBC 03/2026: Hb 9.8 g/dL, MCV 76 fL (microcytic), ferritin 8 \u00b5g/L [SOURCE: Encounter enc-gs-02 03/2026]\n- **Rectal haemorrhage**: 6 weeks intermittent fresh PR bleeding mixed with stool [SOURCE: Encounter enc-gs-02]\n- No change in bowel habit reported; weight stable [SOURCE: Encounter enc-gs-02]\n- No personal or family history of colorectal cancer [SOURCE: Encounter enc-gs-02]",
+      "citations": [
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-02",
+          "date": "03/2026",
+          "fact": "Iron deficiency anaemia with Hb 9.8 g/dL, MCV 76 fL, ferritin 8 \u00b5g/L"
+        },
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-02",
+          "date": null,
+          "fact": "Rectal haemorrhage, 6 weeks intermittent fresh PR bleeding mixed with stool"
+        },
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-02",
+          "date": null,
+          "fact": "No change in bowel habit, weight stable, no family history of colorectal cancer"
+        }
+      ],
+      "missing": [
+        "No PR examination recorded",
+        "No documented previous colonoscopy or sigmoidoscopy",
+        "No coagulation screen or anticoagulant medication status documented"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": null,
+    "markdown": "**1 guideline rule(s) fired** (scope: guidelines G-COLO-2WW).\n\n### Two week wait (urgent suspected cancer)\n- **PR bleeding + IDA age >=60 -> 2WW colorectal** _(strength: strong)_ -- rule `R-COLO-001`\n  - Recommendation: Refer adults using a suspected cancer pathway referral if they have iron-deficiency anaemia and rectal bleeding.\n  - Action: 2WW colorectal referral (within 14 days)\n  - Guideline: Suspected colorectal cancer (`G-COLO-2WW`)",
+    "actions": [],
+    "raw": {
+      "rules": [
+        {
+          "rule_id": "R-COLO-001",
+          "name": "PR bleeding + IDA age >=60 -> 2WW colorectal",
+          "strength": "strong",
+          "guideline_id": "G-COLO-2WW",
+          "guideline_title": "Suspected colorectal cancer",
+          "chapter_title": "Referral criteria",
+          "recommendation_verbatim": "Refer adults using a suspected cancer pathway referral if they have iron-deficiency anaemia and rectal bleeding.",
+          "action": {
+            "priority": "2ww",
+            "due_days": 14,
+            "name": "2WW colorectal referral"
+          },
+          "confidence": 1.0
+        }
+      ]
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 7794,
+    "error": null,
+    "markdown": "The combination of iron-deficiency anaemia and rectal bleeding meets the criteria for a **two-week wait suspected cancer pathway referral** to Lower GI surgery [RULE: R-COLO-001]. The referral has already been made and this patient should be seen within 14 days. At the appointment, a full history and examination should be performed, and consideration given to urgent colonoscopy or CT colonography to visualise the colorectum and exclude malignancy. The patient should be safety-netted to return immediately if bleeding worsens, new symptoms develop (e.g. severe abdominal pain, bowel obstruction), or if they feel unwell.",
+    "actions": [
+      {
+        "action": "Ensure two-week wait Lower GI surgery appointment scheduled within 14 days of referral",
+        "priority": "2ww",
+        "due_days": 14,
+        "rationale": "Iron-deficiency anaemia with rectal bleeding mandates urgent suspected cancer pathway assessment.",
+        "rule_ids": [
+          "R-COLO-001"
+        ]
+      },
+      {
+        "action": "Arrange urgent colonoscopy or CT colonography at Lower GI surgery appointment",
+        "priority": "2ww",
+        "due_days": 14,
+        "rationale": "Endoscopic or radiological visualisation of the colorectum is required to exclude colorectal cancer.",
+        "rule_ids": [
+          "R-COLO-001"
+        ]
+      },
+      {
+        "action": "Safety-net patient to seek immediate help if bleeding worsens, severe pain, or new concerning symptoms",
+        "priority": "routine",
+        "due_days": null,
+        "rationale": "Patients awaiting investigation for suspected cancer require clear guidance on when to escalate care.",
+        "rule_ids": [
+          "R-COLO-001"
+        ]
+      }
+    ],
+    "raw": {
+      "recommendation_markdown": "The combination of iron-deficiency anaemia and rectal bleeding meets the criteria for a **two-week wait suspected cancer pathway referral** to Lower GI surgery [RULE: R-COLO-001]. The referral has already been made and this patient should be seen within 14 days. At the appointment, a full history and examination should be performed, and consideration given to urgent colonoscopy or CT colonography to visualise the colorectum and exclude malignancy. The patient should be safety-netted to return immediately if bleeding worsens, new symptoms develop (e.g. severe abdominal pain, bowel obstruction), or if they feel unwell.",
+      "actions": [
+        {
+          "action": "Ensure two-week wait Lower GI surgery appointment scheduled within 14 days of referral",
+          "priority": "2ww",
+          "due_days": 14,
+          "rationale": "Iron-deficiency anaemia with rectal bleeding mandates urgent suspected cancer pathway assessment.",
+          "rule_ids": [
+            "R-COLO-001"
+          ]
+        },
+        {
+          "action": "Arrange urgent colonoscopy or CT colonography at Lower GI surgery appointment",
+          "priority": "2ww",
+          "due_days": 14,
+          "rationale": "Endoscopic or radiological visualisation of the colorectum is required to exclude colorectal cancer.",
+          "rule_ids": [
+            "R-COLO-001"
+          ]
+        },
+        {
+          "action": "Safety-net patient to seek immediate help if bleeding worsens, severe pain, or new concerning symptoms",
+          "priority": "routine",
+          "due_days": null,
+          "rationale": "Patients awaiting investigation for suspected cancer require clear guidance on when to escalate care.",
+          "rule_ids": [
+            "R-COLO-001"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "rule_id": "R-COLO-001",
+          "guideline_id": "G-COLO-2WW",
+          "guideline_title": "Suspected colorectal cancer",
+          "chapter_title": "Referral criteria"
+        }
+      ],
+      "missing": [],
+      "conflicts": []
+    }
+  }
+]

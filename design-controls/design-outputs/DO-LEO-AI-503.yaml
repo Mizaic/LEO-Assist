@@ -23,12 +23,13 @@
       encounters (Failed encounter, receptionist call logs, SMS
       reminders) when they appear on the same date as the real
       clinical event - the prompt's _shared.py rules-of-the-road
-      include patient 4802892365 as the canonical few-shot example.
+      include the synthetic reference case SYN-EE-001 as the
+      canonical few-shot example.
     acceptance_criteria:
-      - criterion: "Patient 4802892365 treatment_started accuracy"
+      - criterion: "Synthetic SYN-EE-001 treatment_started accuracy"
         type: "safety"
         measurement: "Frozen-cohort regression VT (VT-LEO-AI-507)"
-        target: "Includes treatment_started endocrine on 2025-05-19 AND treatment_started surgery on 2025-07-28; excludes encounter aa8d55b9 (2025-05-02 Failed encounter)"
+        target: "Includes treatment_started endocrine on 2025-05-19 AND treatment_started surgery on 2025-07-28; excludes the 2025-05-02 'Failed encounter' admin task"
       - criterion: "Closed vocabularies"
         type: "safety"
         measurement: "Unit test"
@@ -50,11 +51,11 @@
         storage_location: "git"
       - artifact_type: "configuration"
         location: "libs/prompts/episode_engine/milestone_extractor_v1.py"
-        description: "SYSTEM, USER_TEMPLATE, SCHEMA, VERSION, TOOL_NAME for v1 - includes patient 4802892365 few-shot"
+        description: "SYSTEM, USER_TEMPLATE, SCHEMA, VERSION, TOOL_NAME for v1 - includes BREAST_REFERENCE_CASE few-shot (synthetic SYN-EE-001)"
         storage_location: "git"
       - artifact_type: "configuration"
         location: "libs/prompts/episode_engine/_shared.py"
-        description: "Shared rules-of-the-road and PATIENT_4802892365_REFERENCE example"
+        description: "Shared rules-of-the-road and BREAST_REFERENCE_CASE example (synthetic SYN-EE-001)"
         storage_location: "git"
     technical_details:
       language: "Python"
@@ -69,8 +70,8 @@
       - "Rejects admin-task encounters as treatment_started milestones"
       - "Requires evidence_quote >= 3 characters (Pydantic enforced) so milestones cannot be unanchored"
     risk_control_measures:
-      - "Patient 4802892365 included as a permanent few-shot example to prevent regression on the canonical failure mode"
-      - "Frozen-cohort VT (VT-LEO-AI-507) re-runs 20 patients including 4802892365 against pinned baseline"
+      - "Synthetic reference case SYN-EE-001 included as a permanent few-shot example to prevent regression on the canonical failure mode"
+      - "Frozen-cohort VT (VT-LEO-AI-507) re-runs 20 synthetic patients (SYN-EE-001..020) against pinned baseline"
       - "Chain-level confidence gate (>= 0.4) prevents extraction on weak windows"
 
   verification_status:

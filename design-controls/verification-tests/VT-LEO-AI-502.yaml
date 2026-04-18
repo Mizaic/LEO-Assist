@@ -1,0 +1,93 @@
+# -- VT-LEO-AI-502 -- Verification of Episode Engine Classifier Agent
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-502"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-502"]
+    risks: ["R-LEO-AI-502"]
+
+  metadata:
+    title: "Episode engine classifier agent -- vocabulary, confidence, open-ended windows"
+    description: >
+      Verifies that the classifier agent labels each candidate window with
+      an episode_type drawn from the closed vocabulary {cancer,
+      multi_site, benign, non_cancer, uncertain}, that it tolerates an
+      open-ended window (window_end=None) by signalling 'open' in the
+      user prompt, that out-of-range confidence values are rejected by
+      Pydantic, and that hallucinated episode types raise StageError.
+      All cases use a FakeLLMClient with synthetic payloads.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/episode_engine/test_classifier_agent.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-502-TC-001"
+      case_name: "test_classifier_parses_cancer_verdict"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "FakeLLM returns episode_type='cancer', confidence=0.93; agent runs"
+          expected_result: "ClassifierResult validates and stage trace marks ok=True"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Round-trip preserves window_id and confidence"
+    - case_id: "VT-502-TC-002"
+      case_name: "test_classifier_handles_open_ended_window"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Pass window_end=None to the classifier"
+          expected_result: "User-message body contains 'open' marker; agent does not crash"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Open-ended window is rendered safely"
+    - case_id: "VT-502-TC-003"
+      case_name: "test_classifier_rejects_unknown_episode_type"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "FakeLLM returns episode_type='definitely-cancer'"
+          expected_result: "StageError raised"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Closed-vocabulary enforcement is hard-fail"
+    - case_id: "VT-502-TC-004"
+      case_name: "test_classifier_rejects_out_of_range_confidence"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "FakeLLM returns confidence=1.7"
+          expected_result: "StageError raised by Pydantic constraint"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Confidence is bounded [0, 1]"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-502/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-18"
+      executor: "Quality Engineering"
+      result: "pass"
+      notes: "All 4 cases pass; FakeLLM mocks only."

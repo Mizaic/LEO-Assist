@@ -1,0 +1,112 @@
+# -- VT-LEO-AI-501 -- Verification of Episode Engine Segmenter Agent
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-501"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-501"]
+    risks: ["R-LEO-AI-501"]
+
+  metadata:
+    title: "Episode engine segmenter agent -- forced-tool parsing, schema enforcement, error paths"
+    description: >
+      Verifies that the segmenter agent calls Bedrock with a forced
+      submit_windows tool config; correctly parses tool input as either a
+      dict or a JSON string; raises StageError when the LLM omits the
+      tool, when the payload violates the schema, or when the LLM call
+      fails. All cases use a FakeLLMClient with deterministic synthetic
+      payloads.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/episode_engine/test_segmenter_agent.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-501-TC-001"
+      case_name: "test_segmenter_parses_valid_tool_use"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "FakeLLM returns a valid submit_windows tool_use; agent parses it"
+          expected_result: "SegmenterResult validates with the expected windows"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Pydantic model validates"
+    - case_id: "VT-501-TC-002"
+      case_name: "test_segmenter_accepts_string_tool_input"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "FakeLLM returns tool_input as a JSON string instead of a dict"
+          expected_result: "Agent json.loads it and validates the result"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No StageError raised"
+    - case_id: "VT-501-TC-003"
+      case_name: "test_segmenter_raises_when_tool_use_missing"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "FakeLLM returns text-only response with no tool_use block"
+          expected_result: "StageError raised with a 'no tool use' message"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "StageError surfaced cleanly"
+    - case_id: "VT-501-TC-004"
+      case_name: "test_segmenter_raises_on_schema_violation"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "FakeLLM returns tool_use with an invalid window (negative date, missing rationale)"
+          expected_result: "StageError raised wrapping the Pydantic validation error"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Schema enforces vocabulary and required fields"
+    - case_id: "VT-501-TC-005"
+      case_name: "test_segmenter_raises_when_llm_call_fails"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "RaisingLLM raises ConnectionError; agent invokes it"
+          expected_result: "StageError raised with the underlying error message"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No silent fallthrough"
+    - case_id: "VT-501-TC-006"
+      case_name: "test_build_tool_config_forces_tool_choice"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "build_tool_config returns the Bedrock toolConfig with toolChoice = {'tool': {'name': 'submit_windows'}}"
+          expected_result: "Tool choice forces structured output"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Hallucinated free-text responses cannot escape the tool envelope"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-501/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_at: "2026-04-18"
+      executor: "Quality Engineering"
+      result: "pass"
+      notes: "All 6 cases pass with FakeLLM mocks; no real LLM calls."

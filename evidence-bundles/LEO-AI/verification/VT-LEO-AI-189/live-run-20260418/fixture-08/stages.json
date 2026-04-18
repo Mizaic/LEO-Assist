@@ -1,0 +1,134 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 5003,
+    "error": null,
+    "markdown": "This patient is scheduled for pre-operative review ahead of elective hernia repair [SOURCE: text artifact (date unknown)]. Age, sex, and further clinical details regarding the hernia (location, type, duration of symptoms) are not available in the provided context. The purpose of this summary is to support the pre-operative assessment.",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient is scheduled for pre-operative review ahead of elective hernia repair [SOURCE: text artifact (date unknown)]. Age, sex, and further clinical details regarding the hernia (location, type, duration of symptoms) are not available in the provided context. The purpose of this summary is to support the pre-operative assessment.",
+      "citations": [
+        {
+          "source_id": "text artifact",
+          "source_type": "text",
+          "date": null,
+          "content": "Pre-operative review for elective hernia repair"
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex",
+        "Hernia location and type",
+        "Duration of hernia symptoms",
+        "Previous surgical history",
+        "Relevant comorbidities",
+        "Current medications",
+        "Allergy status"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 5615,
+    "error": null,
+    "markdown": "- **CONFLICT: Allergy documentation inconsistent** \u2014 GP review (03/2026) records 'No known drug allergy', but discharge summary (09/2024) documents 'Allergy to penicillin' (widespread rash on previous admission). [SOURCE: Encounter enc-gs-08-gp 03/2026] [SOURCE: DocumentReference doc-gs-08-discharge 09/2024]\n- Recent appendicectomy (09/2024). [SOURCE: DocumentReference doc-gs-08-discharge 09/2024]\n- Blood pressure 128/82 mmHg at GP review (03/2026). [SOURCE: Encounter enc-gs-08-gp 03/2026]",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- **CONFLICT: Allergy documentation inconsistent** \u2014 GP review (03/2026) records 'No known drug allergy', but discharge summary (09/2024) documents 'Allergy to penicillin' (widespread rash on previous admission). [SOURCE: Encounter enc-gs-08-gp 03/2026] [SOURCE: DocumentReference doc-gs-08-discharge 09/2024]\n- Recent appendicectomy (09/2024). [SOURCE: DocumentReference doc-gs-08-discharge 09/2024]\n- Blood pressure 128/82 mmHg at GP review (03/2026). [SOURCE: Encounter enc-gs-08-gp 03/2026]",
+      "citations": [
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-08-gp",
+          "date": "03/2026",
+          "snippet": "NKDA recorded. Otherwise well, BP 128/82."
+        },
+        {
+          "source_type": "DocumentReference",
+          "source_id": "doc-gs-08-discharge",
+          "date": "09/2024",
+          "snippet": "Allergies: PENICILLIN - widespread rash, documented during previous admission. appendicectomy."
+        }
+      ],
+      "missing": [],
+      "conflicts": [
+        "Allergy to penicillin documented in discharge summary (09/2024) conflicts with 'No known drug allergy' recorded at GP review (03/2026). Recommend reconciliation before prescribing."
+      ]
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": null,
+    "markdown": "_No matching guideline rules fired for this patient's coded evidence._\n\nReviewed against 2 SNOMED concept(s).",
+    "actions": [],
+    "raw": {
+      "rules": []
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 10281,
+    "error": null,
+    "markdown": "Insufficient documented evidence to suggest a recommendation \u2014 clinical judgement required.\n\nNo automated guideline rules have fired for this pre-operative hernia repair assessment. However, the **critical allergy documentation conflict** (penicillin allergy recorded in September 2024 discharge summary versus 'no known drug allergy' in March 2026 GP review) must be resolved before any surgical procedure. The anaesthetic and surgical teams require accurate allergy status to ensure safe prescribing of peri-operative antibiotics and analgesia.\n\nClinical review should confirm the patient's allergy history directly, reconcile the conflict in the medical record, and ensure all systems reflect the correct status before proceeding with elective surgery.",
+    "actions": [
+      {
+        "action": "Reconcile penicillin allergy status with patient and update EPR before surgery",
+        "priority": "urgent",
+        "due_days": 7,
+        "rationale": "Conflicting allergy documentation (penicillin allergy September 2024 versus NKDA March 2026) poses prescribing risk for peri-operative antibiotics.",
+        "rule_ids": []
+      },
+      {
+        "action": "Complete pre-operative assessment including anaesthetic review",
+        "priority": "routine",
+        "due_days": 14,
+        "rationale": "Standard pre-operative work-up required for elective hernia repair, ensuring fitness for surgery and optimising peri-operative care.",
+        "rule_ids": []
+      },
+      {
+        "action": "Document discussion of allergy conflict and confirmed status in pre-operative clerking",
+        "priority": "urgent",
+        "due_days": 1,
+        "rationale": "Accurate allergy documentation essential for safe surgical and anaesthetic care; must be confirmed before day of surgery.",
+        "rule_ids": []
+      }
+    ],
+    "raw": {
+      "recommendation_markdown": "Insufficient documented evidence to suggest a recommendation \u2014 clinical judgement required.\n\nNo automated guideline rules have fired for this pre-operative hernia repair assessment. However, the **critical allergy documentation conflict** (penicillin allergy recorded in September 2024 discharge summary versus 'no known drug allergy' in March 2026 GP review) must be resolved before any surgical procedure. The anaesthetic and surgical teams require accurate allergy status to ensure safe prescribing of peri-operative antibiotics and analgesia.\n\nClinical review should confirm the patient's allergy history directly, reconcile the conflict in the medical record, and ensure all systems reflect the correct status before proceeding with elective surgery.",
+      "actions": [
+        {
+          "action": "Reconcile penicillin allergy status with patient and update EPR before surgery",
+          "priority": "urgent",
+          "due_days": 7,
+          "rationale": "Conflicting allergy documentation (penicillin allergy September 2024 versus NKDA March 2026) poses prescribing risk for peri-operative antibiotics.",
+          "rule_ids": []
+        },
+        {
+          "action": "Complete pre-operative assessment including anaesthetic review",
+          "priority": "routine",
+          "due_days": 14,
+          "rationale": "Standard pre-operative work-up required for elective hernia repair, ensuring fitness for surgery and optimising peri-operative care.",
+          "rule_ids": []
+        },
+        {
+          "action": "Document discussion of allergy conflict and confirmed status in pre-operative clerking",
+          "priority": "urgent",
+          "due_days": 1,
+          "rationale": "Accurate allergy documentation essential for safe surgical and anaesthetic care; must be confirmed before day of surgery.",
+          "rule_ids": []
+        }
+      ],
+      "citations": [],
+      "missing": [
+        "Hernia type, location, and duration of symptoms not documented in available context",
+        "Patient age and sex not provided",
+        "No coded clinical evidence triggering automated guideline rules",
+        "Dates of scheduled surgery and pre-operative assessment not specified"
+      ],
+      "conflicts": [
+        "Allergy status conflict: penicillin allergy documented September 2024 versus NKDA documented March 2026 \u2014 must be resolved before surgical intervention"
+      ]
+    }
+  }
+]

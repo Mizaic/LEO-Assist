@@ -1,0 +1,132 @@
+{
+  "fixture_count": 10,
+  "fixtures": [
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-01",
+      "stage_errors": [],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 3782,
+        "recommendation": 6737,
+        "situation": 6450
+      },
+      "structural_status": "pass"
+    },
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-02",
+      "stage_errors": [],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 5037,
+        "recommendation": 7794,
+        "situation": 5107
+      },
+      "structural_status": "pass"
+    },
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-03",
+      "stage_errors": [],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 4746,
+        "recommendation": 10344,
+        "situation": 4232
+      },
+      "structural_status": "pass"
+    },
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-04",
+      "stage_errors": [],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 4629,
+        "recommendation": 6368,
+        "situation": 4275
+      },
+      "structural_status": "pass"
+    },
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-05",
+      "stage_errors": [
+        {
+          "error": "assessment:evaluator unavailable (live-run outage stub)",
+          "stage": "assessment"
+        }
+      ],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 4608,
+        "recommendation": 4033,
+        "situation": 4238
+      },
+      "structural_status": "pass"
+    },
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-06",
+      "stage_errors": [],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 4133,
+        "recommendation": 4585,
+        "situation": 3723
+      },
+      "structural_status": "pass"
+    },
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-07",
+      "stage_errors": [],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 4204,
+        "recommendation": 7592,
+        "situation": 4598
+      },
+      "structural_status": "pass"
+    },
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-08",
+      "stage_errors": [],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 5615,
+        "recommendation": 10281,
+        "situation": 5003
+      },
+      "structural_status": "pass"
+    },
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-09",
+      "stage_errors": [],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 5593,
+        "recommendation": 9937,
+        "situation": 5026
+      },
+      "structural_status": "pass"
+    },
+    {
+      "failures": [],
+      "fixture_id": "SBAR-GS-10",
+      "stage_errors": [],
+      "stage_latency_ms": {
+        "assessment": 0,
+        "background": 5552,
+        "recommendation": 7258,
+        "situation": 4857
+      },
+      "structural_status": "pass"
+    }
+  ],
+  "generated_at": "20260418T154759Z",
+  "structural_pass_count": 10
+}

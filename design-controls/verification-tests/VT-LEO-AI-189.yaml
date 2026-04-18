@@ -26,13 +26,28 @@
     automation_framework: "pytest"
     test_file_paths:
       - "tests/test_sbar_assessment_formatter.py"
+      - "tests/test_sbar_golden_set_runner.py"
+      - "scripts/run_sbar_golden_set.py"
+      - "scripts/review_sbar_golden_set.py"
+      - "design-controls/training-data/sbar-golden-set/manifest.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-01.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-02.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-03.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-04.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-05.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-06.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-07.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-08.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-09.yaml"
+      - "design-controls/training-data/sbar-golden-set/fixture-10.yaml"
 
   test_environment:
     environment_type: "development"
     prerequisites:
       - "Python 3.11+ / pytest 8+ / pytest-asyncio"
+      - "PyYAML (already a dependency)"
     test_data:
-      data_type: "synthetic + manually-curated golden set (planned)"
+      data_type: "synthetic + manually-curated golden set (10 fixtures)"
       cleanup_required: false
 
   test_cases:
@@ -129,11 +144,33 @@
       priority: "critical"
       test_steps:
         - step_number: 1
-          action: "Run orchestrator against 10 manually-curated SBAR fixtures with deterministic LLM transcript; reviewer signs off pass/fail"
-          expected_result: "All 10 pass with no hallucinated facts, all citations resolve, recommendations grounded in matched rule_ids"
+          action: |
+            Run the automated structural pass:
+              python3 -m pytest tests/test_sbar_golden_set_runner.py -v
+            (29 cases must pass; this guards against silent regressions
+            in any of the 10 fixtures and in the harness itself.)
+          expected_result: "29/29 pass; structural_pass_count == 10 in run_summary.json"
+          verification_method: "automated"
+        - step_number: 2
+          action: |
+            Generate a fresh report bundle for clinical sign-off:
+              python3 scripts/run_sbar_golden_set.py
+            (writes data/sbar-golden-set-reports/<UTC>/fixture-NN/{output.md, pathway_hints.json, structural_check.json, events.jsonl, result.json})
+          expected_result: "All 10 fixtures structural=pass; a report directory is created."
+          verification_method: "automated"
+        - step_number: 3
+          action: |
+            Walk the report bundle interactively with a clinical
+            reviewer plus a Clinical Safety Officer countersign:
+              python3 scripts/review_sbar_golden_set.py
+            For each fixture, the reviewer reads the rendered SBAR and
+            reviewer_focus then records pass/fail/comment.
+          expected_result: "signed_ledger.json has overall='pass' with all 10 verdicts == 'pass'; the ledger is attached to the VT-LEO-AI-189 evidence bundle."
           verification_method: "manual"
       acceptance_criteria:
-        - "100% golden-set pass before any prompt rollout"
+        - "Automated step 1 + 2 are green (pre-condition for sign-off)"
+        - "10/10 reviewer verdicts == 'pass' in signed_ledger.json"
+        - "signed_ledger.json carries reviewer name and role"
 
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
@@ -155,3 +192,18 @@
       notes: |
         Status remains 'draft' until golden-set TC-009 is signed off.
         Automated formatter + prompt-registration cases (TC-001 through TC-008) all green.
+    - execution_id: "VT-LEO-AI-189-EXEC-002"
+      executed_at: "2026-04-17"
+      executor: "automated-pytest"
+      command: "python3 -m pytest tests/test_sbar_golden_set_runner.py -v"
+      result: "pass"
+      summary: |
+        Golden-set scaffolding: 10 manually-curated fixtures, runner +
+        reviewer harness, structural-check runner all green (29/29).
+        TC-009 step 1 and step 2 satisfied; clinical reviewer + CSO
+        sign-off (step 3) still required to move VT status to 'passed'.
+      notes: |
+        Fixtures live under design-controls/training-data/sbar-golden-set/.
+        Runner: scripts/run_sbar_golden_set.py
+        Reviewer harness: scripts/review_sbar_golden_set.py
+        Reports written to data/sbar-golden-set-reports/<UTC>/.

@@ -1,0 +1,8 @@
+{
+  "alternative_pathway": "Mild knee OA -> routine MSK advice",
+  "alternative_pathway_evidence": "R-MSK-001",
+  "rtr": "yes",
+  "rtr_evidence": "Triggered by rule(s): R-UGI-001",
+  "stt": "Within 14 days (two-week wait)",
+  "stt_evidence": "R-UGI-001"
+}

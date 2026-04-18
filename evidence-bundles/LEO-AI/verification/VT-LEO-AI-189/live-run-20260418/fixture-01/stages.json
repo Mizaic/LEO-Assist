@@ -1,0 +1,167 @@
+[
+  {
+    "name": "situation",
+    "elapsed_ms": 6450,
+    "error": null,
+    "markdown": "This patient is being referred to Respiratory medicine for investigation of persistent haemoptysis and weight loss, with a query diagnosis of lung cancer [SOURCE: referral_request rr-gs-01]. The reason for this summary is to support the clinical assessment in the context of the referral request [SOURCE: referral_request rr-gs-01].",
+    "actions": [],
+    "raw": {
+      "situation_markdown": "This patient is being referred to Respiratory medicine for investigation of persistent haemoptysis and weight loss, with a query diagnosis of lung cancer [SOURCE: referral_request rr-gs-01]. The reason for this summary is to support the clinical assessment in the context of the referral request [SOURCE: referral_request rr-gs-01].",
+      "citations": [
+        {
+          "source_type": "referral_request",
+          "source_id": "rr-gs-01",
+          "date": null,
+          "fact": "Persistent haemoptysis, weight loss, ?lung cancer"
+        },
+        {
+          "source_type": "referral_request",
+          "source_id": "rr-gs-01",
+          "date": null,
+          "fact": "Referring specialty: Respiratory medicine"
+        }
+      ],
+      "missing": [
+        "Patient age",
+        "Patient sex/gender",
+        "Duration of symptoms",
+        "Quantification of weight loss",
+        "Smoking history",
+        "Previous imaging or investigations",
+        "Relevant past medical history",
+        "Current medications"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "background",
+    "elapsed_ms": 3782,
+    "error": null,
+    "markdown": "- Ex-smoker, 35 pack-years, stopped 2018. [SOURCE: Encounter enc-gs-01 04/2026]\n- No prior haemoptysis documented before current presentation. [SOURCE: Encounter enc-gs-01 04/2026]\n- CXR requested (awaiting result). [SOURCE: Encounter enc-gs-01 04/2026]",
+    "actions": [],
+    "raw": {
+      "background_markdown": "- Ex-smoker, 35 pack-years, stopped 2018. [SOURCE: Encounter enc-gs-01 04/2026]\n- No prior haemoptysis documented before current presentation. [SOURCE: Encounter enc-gs-01 04/2026]\n- CXR requested (awaiting result). [SOURCE: Encounter enc-gs-01 04/2026]",
+      "citations": [
+        {
+          "source_type": "Encounter",
+          "source_id": "enc-gs-01",
+          "date": "04/2026",
+          "reason": "Smoking history and baseline respiratory background"
+        }
+      ],
+      "missing": [
+        "CXR result (requested but not yet available)",
+        "Baseline spirometry or lung function tests",
+        "Previous respiratory diagnoses or chronic conditions",
+        "Current medications",
+        "Allergies"
+      ],
+      "conflicts": []
+    }
+  },
+  {
+    "name": "assessment",
+    "elapsed_ms": 0,
+    "error": null,
+    "markdown": "**1 guideline rule(s) fired** (scope: guidelines G-LUNG-2WW).\n\n### Two week wait (urgent suspected cancer)\n- **Haemoptysis age >=40 -> 2WW lung** _(strength: strong)_ -- rule `R-LUNG-001`\n  - Recommendation: Refer using a suspected cancer pathway referral (for an appointment within 2 weeks).\n  - Action: 2WW lung referral (within 14 days)\n  - Guideline: Suspected lung cancer (`G-LUNG-2WW`)",
+    "actions": [],
+    "raw": {
+      "rules": [
+        {
+          "rule_id": "R-LUNG-001",
+          "name": "Haemoptysis age >=40 -> 2WW lung",
+          "strength": "strong",
+          "guideline_id": "G-LUNG-2WW",
+          "guideline_title": "Suspected lung cancer",
+          "chapter_title": "Referral criteria",
+          "recommendation_verbatim": "Refer using a suspected cancer pathway referral (for an appointment within 2 weeks).",
+          "action": {
+            "priority": "2ww",
+            "due_days": 14,
+            "name": "2WW lung referral"
+          },
+          "confidence": 1.0
+        }
+      ]
+    }
+  },
+  {
+    "name": "recommendation",
+    "elapsed_ms": 6737,
+    "error": null,
+    "markdown": "This patient meets criteria for a **two-week wait referral** for suspected lung cancer [RULE: R-LUNG-001]. The combination of haemoptysis in a patient aged 40 or over with a significant smoking history (35 pack-years) warrants urgent assessment via the suspected cancer pathway. The referral should be submitted immediately to ensure the patient is seen within 14 days. Safety-netting advice should be provided to the patient, advising them to seek immediate medical attention if haemoptysis worsens or they develop new symptoms such as breathlessness or chest pain.",
+    "actions": [
+      {
+        "action": "Submit two-week wait referral to Respiratory medicine for suspected lung cancer",
+        "priority": "2ww",
+        "due_days": 14,
+        "rationale": "Patient meets NICE criteria for suspected lung cancer (haemoptysis, age \u226540, ex-smoker).",
+        "rule_ids": [
+          "R-LUNG-001"
+        ]
+      },
+      {
+        "action": "Ensure chest X-ray is completed urgently and result reviewed before or at first specialist appointment",
+        "priority": "urgent",
+        "due_days": 7,
+        "rationale": "Imaging is essential to support the 2WW pathway and guide further investigation.",
+        "rule_ids": [
+          "R-LUNG-001"
+        ]
+      },
+      {
+        "action": "Provide safety-netting advice to patient regarding worsening haemoptysis, breathlessness, or chest pain",
+        "priority": "routine",
+        "due_days": 1,
+        "rationale": "Patient must know when to seek urgent care before specialist review.",
+        "rule_ids": [
+          "R-LUNG-001"
+        ]
+      }
+    ],
+    "raw": {
+      "recommendation_markdown": "This patient meets criteria for a **two-week wait referral** for suspected lung cancer [RULE: R-LUNG-001]. The combination of haemoptysis in a patient aged 40 or over with a significant smoking history (35 pack-years) warrants urgent assessment via the suspected cancer pathway. The referral should be submitted immediately to ensure the patient is seen within 14 days. Safety-netting advice should be provided to the patient, advising them to seek immediate medical attention if haemoptysis worsens or they develop new symptoms such as breathlessness or chest pain.",
+      "actions": [
+        {
+          "action": "Submit two-week wait referral to Respiratory medicine for suspected lung cancer",
+          "priority": "2ww",
+          "due_days": 14,
+          "rationale": "Patient meets NICE criteria for suspected lung cancer (haemoptysis, age \u226540, ex-smoker).",
+          "rule_ids": [
+            "R-LUNG-001"
+          ]
+        },
+        {
+          "action": "Ensure chest X-ray is completed urgently and result reviewed before or at first specialist appointment",
+          "priority": "urgent",
+          "due_days": 7,
+          "rationale": "Imaging is essential to support the 2WW pathway and guide further investigation.",
+          "rule_ids": [
+            "R-LUNG-001"
+          ]
+        },
+        {
+          "action": "Provide safety-netting advice to patient regarding worsening haemoptysis, breathlessness, or chest pain",
+          "priority": "routine",
+          "due_days": 1,
+          "rationale": "Patient must know when to seek urgent care before specialist review.",
+          "rule_ids": [
+            "R-LUNG-001"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "guideline_id": "G-LUNG-2WW",
+          "guideline_title": "Suspected lung cancer",
+          "rule_ids": [
+            "R-LUNG-001"
+          ]
+        }
+      ],
+      "missing": [],
+      "conflicts": []
+    }
+  }
+]

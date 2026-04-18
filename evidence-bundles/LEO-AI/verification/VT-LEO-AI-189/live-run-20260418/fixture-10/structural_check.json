@@ -1,0 +1,76 @@
+{
+  "checks": [
+    {
+      "detail": "not found in composed content",
+      "name": "section heading present: '## Situation'",
+      "ok": true
+    },
+    {
+      "detail": "not found in composed content",
+      "name": "section heading present: '## Background'",
+      "ok": true
+    },
+    {
+      "detail": "not found in composed content",
+      "name": "section heading present: '## Assessment'",
+      "ok": true
+    },
+    {
+      "detail": "not found in composed content",
+      "name": "section heading present: '## Recommendation'",
+      "ok": true
+    },
+    {
+      "detail": "missing from Assessment section",
+      "name": "assessment contains: 'R-UGI-001'",
+      "ok": true
+    },
+    {
+      "detail": "missing from Assessment section",
+      "name": "assessment contains: 'R-MSK-001'",
+      "ok": true
+    },
+    {
+      "detail": "missing from Assessment section",
+      "name": "assessment contains: 'Two week wait'",
+      "ok": true
+    },
+    {
+      "detail": "missing from Recommendation section",
+      "name": "recommendation contains: any of ['2WW', 'two-week wait', 'two week wait']",
+      "ok": true
+    },
+    {
+      "detail": "missing from Recommendation section",
+      "name": "recommendation contains: 'endoscopy'",
+      "ok": true
+    },
+    {
+      "detail": "appears anywhere in composed SBAR content",
+      "name": "banned phrase absent: 'as an AI'",
+      "ok": true
+    },
+    {
+      "detail": "appears anywhere in composed SBAR content",
+      "name": "banned phrase absent: 'delay the endoscopy'",
+      "ok": true
+    },
+    {
+      "detail": "got 'yes'",
+      "name": "pathway_hints.rtr == 'yes'",
+      "ok": true
+    },
+    {
+      "detail": "actual: 'Within 14 days (two-week wait)'",
+      "name": "stt contains 'two-week wait'",
+      "ok": true
+    },
+    {
+      "detail": "actions: ['2ww', 'routine', 'urgent']",
+      "name": "recommendation has at least one action with priority='2ww'",
+      "ok": true
+    }
+  ],
+  "failures": [],
+  "overall": "pass"
+}

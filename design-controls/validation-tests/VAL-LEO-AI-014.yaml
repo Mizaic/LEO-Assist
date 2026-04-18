@@ -1,0 +1,120 @@
+# -- VAL-LEO-AI-014 -- AI-driven episode + milestone detection (clinical validation)
+# IEC 62304 Validation Test Protocol
+
+- id: "VAL-LEO-AI-014"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    user_needs: ["UN-LEO-AI-090"]
+    design_inputs:
+      - "DI-LEO-AI-500"
+      - "DI-LEO-AI-501"
+      - "DI-LEO-AI-502"
+      - "DI-LEO-AI-503"
+      - "DI-LEO-AI-504"
+      - "DI-LEO-AI-505"
+    risks:
+      - "R-LEO-AI-500"
+      - "R-LEO-AI-501"
+      - "R-LEO-AI-502"
+      - "R-LEO-AI-503"
+      - "R-LEO-AI-504"
+      - "R-LEO-AI-505"
+    verification_tests:
+      - "VT-LEO-AI-500"
+      - "VT-LEO-AI-501"
+      - "VT-LEO-AI-502"
+      - "VT-LEO-AI-503"
+      - "VT-LEO-AI-504"
+      - "VT-LEO-AI-505"
+      - "VT-LEO-AI-506"
+      - "VT-LEO-AI-507"
+
+  metadata:
+    title: "Clinical validation of the Haiku Episode Engine on synthetic + de-identified review cohort"
+    description: |
+      End-to-end validation that the new AI-driven episode engine
+      (segmenter -> classifier -> milestone extractor -> reconciler ->
+      writer) produces episodes and milestones a Clinical Audit Team
+      member would accept without manual rework. The validation set
+      includes (a) the synthetic SYN-EE-001 reference case and 19
+      synthetic aliases for de-identified live cases (covered by the
+      gated VT-LEO-AI-507) and (b) a manual reviewer pass on a 30-case
+      audit sample comparing engine output against the clinician's
+      gold answer captured at validation time.
+    validation_phase: "pre-deployment"
+    test_type: "functional"
+    automation_level: "semi-automated"
+    participants:
+      user_type: "clinical_reviewer"
+      count: 2
+      selection_criteria: "Practising NHS GP or cancer pathway lead with >=3 years primary-care cancer audit experience"
+
+  test_environment:
+    environment_name: "staging"
+    prerequisites:
+      - "Staging Neo4j contains the de-identified validation cohort (separate from production)"
+      - "secrets/episode_engine_cohort_map.json present for VT-507 alias resolution"
+      - "Reviewer training pack circulated (engine output explained, evidence-quote review process)"
+
+  acceptance_criteria:
+    - criterion: "Per-patient agreement"
+      target: ">= 90% of patients require no engine-output edits at reviewer sign-off"
+      measurement: "Reviewer marks each engine episode 'accept' / 'edit' / 'reject' in the review UI"
+      rationale: "Reviewers must trust the engine to use it day-to-day"
+    - criterion: "treatment_started accuracy on the canonical failure-mode case"
+      target: "100% (SYN-EE-001 must yield endocrine on 2025-05-19 AND surgery on 2025-07-28; must not yield treatment_started anchored on the 2025-05-02 Failed encounter)"
+      measurement: "VT-LEO-AI-507 frozen-cohort regression"
+      rationale: "Direct check on the failure mode that motivated replacing the rule-based detector"
+    - criterion: "Multi-site referral handling"
+      target: "Reviewers confirm reconciler correctly merges multi-site 2WW pairs that resolved to a single primary diagnosis in >= 80% of multi-site cases"
+      measurement: "Reviewer-coded outcome on the 30-case audit sample"
+      rationale: "Symptom-overlap referrals are a frequent source of phantom episodes"
+    - criterion: "HITL flag calibration"
+      target: "needs_human_review=true cases really do need review (>= 70% are edited or rejected by the reviewer); needs_human_review=false cases are accepted unedited (>= 90%)"
+      measurement: "Reviewer audit"
+      rationale: "Calibration of the engine's confidence signal is what makes HITL workable"
+
+  user_scenarios:
+    - scenario_id: "VAL-014-SCENARIO-001"
+      scenario_name: "Reviewer accepts engine output on the canonical breast-cancer reference case"
+      user_role: "Clinical Audit Team Member"
+      steps:
+        - step_number: 1
+          action: "Open synthetic reference SYN-EE-001 in the review UI"
+          expected_result: "Engine output shows ONE cancer episode with referral / first_seen / diagnosis_confirmed / treatment_started (endocrine) / treatment_started (surgery) milestones, each with an evidence quote from the source encounter"
+          success_criteria: "Reviewer marks all 5 milestones 'accept' without edits"
+        - step_number: 2
+          action: "Filter the episode timeline for any milestone anchored on the 2025-05-02 'Failed encounter' admin task"
+          expected_result: "No such milestone exists"
+          success_criteria: "Reviewer confirms the canonical failure mode is fixed"
+    - scenario_id: "VAL-014-SCENARIO-002"
+      scenario_name: "Reviewer overrides a low-confidence multi-site reconciliation"
+      user_role: "Clinical Audit Team Member"
+      steps:
+        - step_number: 1
+          action: "Open a de-identified review case where the reconciler merged two referrals (e.g. breast + ovarian) and flagged needs_human_review=true"
+          expected_result: "Review UI surfaces the merge with merged_from window ids and reasoning"
+          success_criteria: "Reviewer can split the merge in <= 2 clicks if clinically incorrect"
+    - scenario_id: "VAL-014-SCENARIO-003"
+      scenario_name: "Engine writes idempotently when the reviewer requests a re-run"
+      user_role: "Clinical Audit Team Member"
+      steps:
+        - step_number: 1
+          action: "Trigger a re-run on the same patient after a prompt update"
+          expected_result: "Old EpisodeOfCare nodes for that patient are deleted; new ones written with the same deterministic ids where unchanged"
+          success_criteria: "No duplicate episodes appear in the patient's pathway view"
+
+  evidence_bundle:
+    bundle_id: "VAL-014-EXEC-PLACEHOLDER"
+    blob_path: "/evidence-bundles/LEO-AI/validation/VAL-LEO-AI-014/"
+    immutability: true
+    evidence_types:
+      - "Reviewer-coded acceptance log (CSV)"
+      - "Engine output snapshot per validation case"
+      - "EpisodeEngineTrace node export per validation case"
+      - "VT-LEO-AI-507 frozen-cohort run log"
+      - "Reviewer sign-off attestation"
+
+  execution_history: []
