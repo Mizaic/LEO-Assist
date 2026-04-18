@@ -2,7 +2,11 @@
 # Python
 # ============================================================
 
-training/
+# Top-level training/ holds local model artefacts and datasets that we
+# never commit. Anchored to the repo root so we don't accidentally swallow
+# nested source folders like libs/training/ or
+# services/ui/src/app/api/training/.
+/training/
 
 # Byte-compiled / optimised / DLL files
 __pycache__/
