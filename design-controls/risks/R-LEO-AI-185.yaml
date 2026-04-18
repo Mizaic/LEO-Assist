@@ -55,6 +55,16 @@
       implemented_by: ["DI-LEO-AI-191", "DI-LEO-AI-194"]
       verified_by: ["VT-LEO-AI-188"]
       effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Replaced free-text Situation framing with the typed
+        SummarisationContext enum (DI-LEO-AI-231) and added the
+        capped 500-char Concern field (DI-LEO-AI-233) so the
+        playground prompt surface is bounded and reproducible
+        rather than open-ended free text.
+      implemented_by: ["DI-LEO-AI-231", "DI-LEO-AI-233"]
+      verified_by: ["VT-LEO-AI-231", "VT-LEO-AI-233"]
+      effectiveness: "effective"
     - control_type: "procedural_control"
       description: >
         QA reviewer onboarding documentation calls out that the

@@ -1,0 +1,94 @@
+# -- DI-LEO-AI-231 -- SummarisationContext enum + select primitive
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-231"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-081"
+  requirement: >
+    The SBAR pipeline contract SHALL replace the free-text
+    `fixed_text` Situation artefact with a typed
+    `SummarisationContext` enum covering 20 NHS-aligned reasons a
+    clinician asks LEO for an SBAR summary (clinic appointment prep,
+    long-term condition annual review, structured medication review,
+    discharge summary, ReSPECT, etc.). The Admin UI SHALL surface
+    this enum through a grouped dropdown primitive
+    (Primary care / Acute / Statutory & social / Quality assurance)
+    with plain-English friendly labels and one-sentence
+    descriptions targeting reading age 9-11.
+  rationale: >
+    Free-text Situation framing made every prompt run different,
+    blocked golden-set comparison, and gave reviewers no shared
+    vocabulary for the "why am I summarising?" question. The NHS
+    workforce already trains on a fixed taxonomy of communication
+    contexts (SBAR, SOAP, QSIR), so anchoring our enum to that
+    vocabulary shortens reviewer onboarding and gives the
+    orchestrator a stable per-context prompt fragment to inject.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          libs/sbar/events.SummarisationContext enum exists with
+          exactly 20 snake_case members covering the contexts
+          documented in DC-SRS-001 section "SBAR contexts".
+      - type: "functional"
+        spec: >
+          libs/sbar/events.SUMMARISATION_CONTEXT_LABELS and
+          SUMMARISATION_CONTEXT_PROMPTS provide a friendly UK English
+          label and a short prompt fragment per enum value.
+      - type: "functional"
+        spec: >
+          SBARArtifactRef accepts type='summarisation_context' with
+          a context_value of SummarisationContext, and the
+          source_resolver passes the matching prompt fragment into
+          the Situation stage.
+      - type: "functional"
+        spec: >
+          SummarisationContextSelect renders a grouped MUI Select
+          with 4 ListSubheader groups and 20 MenuItem options, plus
+          a helper-text region that shows the selected option's
+          friendly description.
+      - type: "safety"
+        spec: >
+          The legacy `fixed_text` enum value remains accepted by
+          SBARArtifactRef for one minor version with a deprecation
+          comment. New producers MUST use `summarisation_context`.
+    constraints:
+      - type: "safety"
+        spec: >
+          Frontend SummarisationContextValue union MUST mirror the
+          Python enum exactly. Mismatch is caught by VT-LEO-AI-231
+          static parity test.
+    dependencies:
+      - "DI-LEO-AI-186"
+    downstream_impacts:
+      - "SBAR Playground (consumer)"
+      - "Future encounter-created hook (consumer)"
+      - "SBAR golden-set runner (regression coverage)"
+    technical_details:
+      language: "TypeScript + Python"
+      framework: "Next.js + MUI (UI), Pydantic + FastAPI (backend)"
+      file_structure:
+        - "libs/sbar/events.py"
+        - "libs/sbar/source_resolver.py"
+        - "services/ui/src/components/sbar-playground/SummarisationContextSelect.tsx"
+      estimated_loc: 600
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-231 covers Pydantic enum validation, source-resolver
+      prompt-fragment injection and frontend / backend enum parity
+      via a static-source VT.
+    test_protocol: "VT-LEO-AI-231"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-185"
+  tags:
+    - "sbar"
+    - "playground"
+    - "primitive"
+    - "summarisation-context"

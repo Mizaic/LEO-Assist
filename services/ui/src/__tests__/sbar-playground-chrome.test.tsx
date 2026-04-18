@@ -78,20 +78,21 @@ describe("VT-LEO-AI-184 SBAR playground chrome", () => {
     expect(src).toMatch(/AiSummarisationPage/);
   });
 
-  it("playground renders the test-only banner and required form fields", () => {
+  it("playground renders the test-only banner and consumes the four shared primitives", () => {
     const src = read(FILES.playgroundComponent);
     for (const id of [
       "sbar-test-only-banner",
-      "sbar-patient-id",
-      "sbar-add-artifact",
-      "sbar-add-background",
-      "sbar-guideline-ids",
+      "sbar-pick-patient",
+      "sbar-pick-sources",
+      "sbar-concern",
       "sbar-submit",
     ]) {
       expect(src).toContain(id);
     }
-    expect(src).toMatch(/SITUATION_KINDS/);
-    expect(src).toMatch(/BACKGROUND_KINDS/);
+    expect(src).toMatch(/PatientFinder/);
+    expect(src).toMatch(/SummarisationContextSelect/);
+    expect(src).toMatch(/BackgroundSourcePicker/);
+    expect(src).toMatch(/GuidelinePicker/);
   });
 
   it("playground surfaces all four SBAR stages", () => {

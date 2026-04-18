@@ -124,7 +124,17 @@ export function BackgroundSourcePicker({
     for (const id of selectedEncounterIds) {
       out.push({ type: "encounter", id });
     }
+    // "Chunks drop parent": if any chunk under a document is selected,
+    // we emit the chunks and drop the parent DocumentReference even
+    // if the user also ticked the document-level checkbox. The
+    // orchestrator treats chunks as a more precise replacement for
+    // the whole document.
+    const docsWithChunks = new Set<string>();
+    for (const meta of selectedChunks.values()) {
+      docsWithChunks.add(meta.parent);
+    }
     for (const id of selectedDocIds) {
+      if (docsWithChunks.has(id)) continue;
       out.push({ type: "document_reference", id });
     }
     for (const [id, meta] of selectedChunks) {

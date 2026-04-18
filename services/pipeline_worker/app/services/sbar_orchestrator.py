@@ -148,6 +148,7 @@ class SBAROrchestrator:
                     resolved_situation,
                     extra_context={
                         "guideline_ids": payload.guideline_ids,
+                        "concern": (payload.concern or "").strip() or None,
                     },
                     patient_id=payload.situation.patient_id,
                 )

@@ -117,13 +117,41 @@ Each report contains:
 - `events.jsonl` per-stage progress events captured from the orchestrator
 - `structural_check.json` pass/fail for every reviewer expectation
 
+## Live LLM run (TC-009 step 3)
+
+The deterministic offline runner above uses each fixture's recorded
+`llm_transcript:` block. To exercise the SAME fixtures against the
+real Bedrock model with the seeded production prompts:
+
+```bash
+.venv/bin/python scripts/run_sbar_live.py \
+  --reports-dir evidence-bundles/LEO-AI/verification/VT-LEO-AI-189/live-run-<UTC>
+```
+
+Stages 1 (Situation), 2 (Background), and 4 (Recommendation) hit the
+live model; stage 3 (Assessment) stays deterministic via
+`libs.sbar.assessment_formatter.format_assessment` fed with each
+fixture's canned `evaluator_response.matched_rules`. The fixture-05
+outage flag is honoured exactly as the orchestrator handles it.
+
+Per-fixture artefacts: `live_output.md` (composed SBAR),
+`stages.json` (per-stage Markdown + actions + raw JSON + latency_ms),
+`pathway_hints.json`, `structural_check.json`, plus a top-level
+`live_summary.json`. Requires AWS Bedrock credentials in
+`secrets/.env.secrets`.
+
 ## Reviewer sign-off
 
 After the runner completes, walk the latest report directory with the
 interactive harness:
 
 ```bash
+# offline bundle (transcript-based)
 python3 scripts/review_sbar_golden_set.py
+
+# live bundle (real LLM)
+python3 scripts/review_sbar_golden_set.py \
+  --reports-dir evidence-bundles/LEO-AI/verification/VT-LEO-AI-189/live-run-<UTC>
 ```
 
 The harness prints each fixture's vignette, the rendered SBAR, the

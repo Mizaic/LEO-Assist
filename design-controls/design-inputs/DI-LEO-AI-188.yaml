@@ -30,8 +30,17 @@
           of 'sbar_requested'.
       - type: "functional"
         spec: >
-          SBARArtifactRef enforces 'fixed_text' artefacts must carry
-          text and other artefact types must carry id.
+          SBARArtifactRef enforces 'summarisation_context' artefacts
+          must carry a context_value from
+          libs.sbar.events.SummarisationContext, 'fixed_text'
+          artefacts must carry text (legacy, retained for one
+          minor version), and all other artefact types must carry
+          a Neo4j node id.
+      - type: "functional"
+        spec: >
+          SBARRequestPayload accepts an optional `concern` field
+          (Optional[str], max_length=500) that the orchestrator
+          forwards into the Situation stage prompt.
       - type: "functional"
         spec: >
           BackgroundSourceType is restricted to the enum

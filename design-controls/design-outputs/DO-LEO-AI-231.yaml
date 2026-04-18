@@ -1,0 +1,92 @@
+# -- DO-LEO-AI-231 -- SummarisationContext enum + select primitive
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-231"
+  version: "1.0.0"
+  type: "Schema"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-231"]
+    user_needs: ["UN-LEO-AI-081"]
+    risks_addressed: ["R-LEO-AI-185"]
+    verification_tests: ["VT-LEO-AI-231"]
+
+  specification:
+    title: "SummarisationContext enum, prompt fragments, and grouped select primitive"
+    description: |
+      Three coupled artefacts:
+
+      1. libs/sbar/events.SummarisationContext (str, Enum) -- 20
+         snake_case members covering the NHS-aligned reasons a
+         clinician asks LEO for an SBAR summary.
+
+      2. libs/sbar/events.SUMMARISATION_CONTEXT_LABELS and
+         SUMMARISATION_CONTEXT_PROMPTS dicts -- per-value friendly
+         label and short prompt fragment. The source resolver
+         passes the matching prompt fragment into the Situation
+         stage.
+
+      3. UI primitive SummarisationContextSelect -- grouped MUI
+         Select with 4 ListSubheader groups (Primary care, Acute,
+         Statutory and social, Quality assurance) and 20
+         MenuItem options. The selected option's friendly
+         description is shown as helper text so a non-clinical
+         reviewer understands what they are asking the model to
+         do.
+
+      The legacy `fixed_text` SituationArtifactType remains
+      accepted by SBARArtifactRef for one minor version with a
+      deprecation comment. New producers MUST use
+      `summarisation_context` with a context_value from
+      SummarisationContext.
+
+    acceptance_criteria:
+      - criterion: "Enum has 20 stable members"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-231 asserts len(SummarisationContext) == 20 and that every member appears in SUMMARISATION_CONTEXT_LABELS and SUMMARISATION_CONTEXT_PROMPTS"
+      - criterion: "Source resolver injects the prompt fragment"
+        type: "functional"
+        measurement: "Test"
+        target: "_resolve_artifact() returns the prompt fragment for the chosen context_value; pytest covers the new branch"
+      - criterion: "Frontend / backend parity"
+        type: "safety"
+        measurement: "Test"
+        target: "Static-source VT compares the SummarisationContextValue union in SummarisationContextSelect.tsx to the Python enum members; mismatch fails the build"
+      - criterion: "Backward-compatible fixed_text"
+        type: "functional"
+        measurement: "Test"
+        target: "Existing fixtures with type='FixedText' still deserialise; pytest covers both paths"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/sbar/events.py"
+        description: "SummarisationContext, SUMMARISATION_CONTEXT_LABELS, SUMMARISATION_CONTEXT_PROMPTS, updated SBARArtifactRef validator"
+      - artifact_type: "source_code"
+        location: "libs/sbar/source_resolver.py"
+        description: "_resolve_artifact branch for summarisation_context"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/sbar-playground/SummarisationContextSelect.tsx"
+        description: "Grouped MUI Select primitive + SUMMARISATION_CONTEXT_GROUPS data"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript + Python"
+      loc: 600
+      key_functions:
+        - "SummarisationContext"
+        - "_resolve_artifact"
+        - "SummarisationContextSelect"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Prompt-fragment injection into the Situation stage"
+    risk_control_measures:
+      - "Typed enum replaces free-text framing -- removes a class of prompt-injection-by-typo"
+      - "Frontend / backend parity test prevents drift"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

@@ -62,6 +62,10 @@
     dependencies:
       - "DI-LEO-AI-188"
       - "DI-LEO-AI-191"
+      - "DI-LEO-AI-230"
+      - "DI-LEO-AI-231"
+      - "DI-LEO-AI-232"
+      - "DI-LEO-AI-233"
     downstream_impacts:
       - "services/ui/src/app/admin/knowledge/page.tsx (new tab key)"
       - "services/ui/src/lib/knowledgeCopy.ts (new copy block)"

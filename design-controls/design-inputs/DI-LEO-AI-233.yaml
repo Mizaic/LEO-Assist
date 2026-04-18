@@ -1,0 +1,98 @@
+# -- DI-LEO-AI-233 -- GuidelinePicker primitive + Concern field
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-233"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-081"
+  requirement: >
+    The Admin SBAR Playground SHALL replace the free-text guideline
+    id field with a GuidelinePicker primitive (MUI Autocomplete
+    multi-select over the loaded NICE guidelines, with a "Use all
+    loaded" shortcut) AND SHALL add a QSIR-aligned free-text
+    "Concern" field (capped at 500 characters) that is forwarded to
+    the orchestrator on a new top-level
+    SBARRequestPayload.concern field. The orchestrator SHALL pass
+    the concern string into the Situation stage prompt as the
+    "what is the worry today?" framing note.
+  rationale: >
+    Reviewers cannot remember a NICE code (e.g. NG28). A picker
+    backed by /api/nice/loaded mirrors the existing
+    LoadedGuidelinesPanel pattern. The Concern field gives the
+    reviewer a QSIR-aligned (NHS Quality Service Improvement and
+    Redesign) "frame the situation" hook so the LLM can tailor the
+    Situation paragraph to the actual clinical worry, which is what
+    SBAR training documents emphasise as the most important field.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          GuidelinePicker renders an MUI Autocomplete (multiple)
+          loaded from /api/nice/loaded; a "Use all loaded" button
+          toggles between the empty (==all) and full selection.
+      - type: "functional"
+        spec: >
+          The selection is emitted as a string[] of guideline codes
+          mapped 1:1 onto SBARRequestPayload.guideline_ids. An
+          empty array is treated downstream as "evaluate against
+          every loaded guideline".
+      - type: "functional"
+        spec: >
+          SBARRequestPayload.concern is an Optional[str] capped at
+          500 characters by both the Pydantic model
+          (Field(max_length=500)) and the UI (maxLength on the
+          textarea + visible counter).
+      - type: "functional"
+        spec: >
+          The SBAR orchestrator forwards
+          extra_context['concern'] into the Situation stage prompt
+          fragment so the LLM sees the reviewer's worry alongside
+          the resolved Situation artefacts.
+      - type: "safety"
+        spec: >
+          The Concern field is optional. The Submit button MUST
+          remain enabled when the Concern is empty.
+    constraints:
+      - type: "safety"
+        spec: >
+          The 500-character cap MUST be enforced by both the
+          Pydantic model AND the UI textarea so neither side can
+          accept an over-long prompt-cost-blowout payload.
+    dependencies:
+      - "DI-LEO-AI-186"
+      - "DI-LEO-AI-194"
+    downstream_impacts:
+      - "/admin/ai-summarisation SBAR Playground (consumer)"
+      - "Future encounter-created hook (potential consumer of concern)"
+    technical_details:
+      language: "TypeScript + Python"
+      framework: "Next.js + MUI (UI), Pydantic + FastAPI (backend)"
+      file_structure:
+        - "services/ui/src/components/sbar-playground/GuidelinePicker.tsx"
+        - "services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx"
+        - "services/ui/src/hooks/useSbarStream.ts"
+        - "libs/sbar/events.py"
+        - "services/pipeline_worker/app/services/sbar_orchestrator.py"
+      estimated_loc: 500
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-233 covers static-source registration of the
+      Autocomplete multi-select contract and the 500-char Concern
+      cap, and pytest coverage of SBARRequestPayload.concern
+      validation and orchestrator forwarding into extra_context.
+    test_protocol: "VT-LEO-AI-233"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-185"
+  tags:
+    - "ui"
+    - "guideline-picker"
+    - "concern"
+    - "sbar"
+    - "playground"
+    - "primitive"

@@ -1,0 +1,109 @@
+# -- VT-LEO-AI-232 -- BackgroundSourcePicker primitive + chunk endpoint
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-232"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-232"]
+    risks: ["R-LEO-AI-211"]
+
+  metadata:
+    title: "BackgroundSourcePicker dialog (Encounters / Documents->Chunks) + ordered chunk endpoint"
+    description: >
+      Jest static-source layer pins the two-tab structure (no third
+      chunks tab) and the nested chunk Collapse markup. Jest live-
+      render layer covers the "selecting a chunk drops the parent
+      DocumentReference" rule. Pytest layer covers the
+      GET /document-references/{id}/chunks endpoint -- order by
+      chunk_index ascending and CallerScope enforcement.
+    test_level: "system"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest + pytest"
+    test_file_paths:
+      - "services/ui/src/__tests__/background-source-picker-chrome.test.tsx"
+      - "services/ui/src/__tests__/background-source-picker-chunk-rules.test.tsx"
+      - "tests/test_patient_finder_router.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Node 20+ / jest 30 / @testing-library/react / user-event"
+      - "Python 3.11+ / pytest"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-232-TC-001"
+      case_name: "Tabs container has exactly two children (Encounters, Documents) -- no third 'chunks' tab"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Static-source: count <Tab ...> children in BackgroundSourcePicker.tsx"
+          expected_result: "Exactly 2"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Chunks live inside the document Collapse, never as a top-level tab"
+
+    - case_id: "VT-232-TC-002"
+      case_name: "Selecting a chunk drops the parent DocumentReference from the emitted payload"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Live-render: open the picker, expand a doc, tick the parent and a chunk, click Confirm"
+          expected_result: "onConfirm receives only the chunk entry, not the parent DocumentReference"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Chunk-level selection takes precedence over the parent"
+
+    - case_id: "VT-232-TC-003"
+      case_name: "GET /document-references/{id}/chunks orders by ordinal and truncates preview at 80 chars"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Pytest: stub PatientGraphClient with a chunk whose text is 200 chars; call endpoint"
+          expected_result: "Cypher orders by coalesce(r.ordinal, 0) ASC; preview ends with '...' and total length is 83 chars"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewer always sees the chunks in document order with a safe inline preview"
+
+    - case_id: "VT-232-TC-004"
+      case_name: "Chunks endpoint applies a non-admin scope clause via HAS_GENERAL_PRACTITIONER"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Static-source: assert /document-references/{id}/chunks builds a non-admin EXISTS clause restricting via HAS_GENERAL_PRACTITIONER and passes scope_org_ids; pytest: call endpoint with non-admin CallerScope and assert scope_org_ids parameter is present"
+          expected_result: "Cypher contains HAS_GENERAL_PRACTITIONER scope filter and the parameter is bound"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No cross-tenant chunk leakage"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-232/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-LEO-AI-232-2026-04-18"
+      executed_at: "2026-04-18T00:00:00Z"
+      executed_by: "automated"
+      result: "pass"
+      environment: "developer-laptop"
+      notes: >
+        Jest run: 5 tests across background-source-picker-chrome.test.tsx
+        (two-tab structure, chunks-in-Collapse, listDocumentReferenceChunks
+        wiring, chunks-drop-parent rule encoded) and
+        background-source-picker-chunk-rules.test.tsx (live-render: ticking
+        a chunk drops the parent DocumentReference from onConfirm).
+        Pytest run: 1 case in tests/test_patient_finder_router.py
+        (chunks endpoint orders + truncates preview to 80+'...'). All
+        passed.

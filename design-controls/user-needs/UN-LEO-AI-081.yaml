@@ -31,6 +31,10 @@
 
   design_inputs:
     - "DI-LEO-AI-194"
+    - "DI-LEO-AI-230"
+    - "DI-LEO-AI-231"
+    - "DI-LEO-AI-232"
+    - "DI-LEO-AI-233"
 
   metadata:
     identified_by: "Conversation 2026-04-17 (prompt validation harness)"

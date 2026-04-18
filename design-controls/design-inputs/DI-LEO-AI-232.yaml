@@ -1,0 +1,97 @@
+# -- DI-LEO-AI-232 -- BackgroundSourcePicker primitive (encounters + nested chunks)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-232"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-081"
+  requirement: >
+    The platform SHALL provide a shared BackgroundSourcePicker UI
+    primitive scoped to a single patient that lets a reviewer pick
+    SBAR Background sources via two tabs: Encounters (chronological
+    multi-select list) and Letters and documents (DocumentReference
+    list where each row expands to reveal child :Chunk nodes for
+    nested chunk selection). Selecting a chunk implicitly drops its
+    parent DocumentReference from the payload (the orchestrator
+    receives only the chunks).
+  rationale: >
+    The previous playground required a reviewer to type Neo4j ids
+    for encounters, document references and chunks. Reviewers do
+    not memorise these. Browsing patient-scoped lists is the
+    natural workflow and matches how clinicians review records in
+    care surfaces. Nesting chunks under their parent document
+    avoids a third "chunks" tab where the reviewer would lose the
+    document context.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          BackgroundSourcePicker dialog renders two tabs
+          (Encounters, Letters and documents). Encounters tab calls
+          GET /patient-finder/{patient_id}/encounters; Documents
+          tab calls GET /patient-finder/{patient_id}/document-references.
+      - type: "functional"
+        spec: >
+          Each DocumentReference row expands to reveal child chunks
+          via GET /document-references/{id}/chunks. Chunk
+          checkboxes are nested inside the expanded row.
+      - type: "functional"
+        spec: >
+          Confirmation emits an array of
+          {type: 'encounter'|'document_reference'|'chunk', id,
+          parentDocumentReferenceId?} entries that map directly
+          onto SBARBackgroundSourceRef.
+      - type: "functional"
+        spec: >
+          When at least one chunk under a DocumentReference is
+          selected, the parent DocumentReference is implicitly
+          dropped (only the chunks are emitted).
+      - type: "safety"
+        spec: >
+          The picker is patient-scoped: the host MUST pass the
+          PatientFinder-resolved patient_id and the picker MUST
+          NOT call any cross-patient endpoint.
+    constraints:
+      - type: "safety"
+        spec: >
+          Each row label MUST include human-readable context
+          (encounter date + class for encounters, document title +
+          date for DocumentReferences, chunk index + first-line
+          preview for chunks) so the reviewer is not picking from
+          a list of opaque ids.
+    dependencies:
+      - "DI-LEO-AI-194"
+      - "DI-LEO-AI-230"
+    downstream_impacts:
+      - "/admin/ai-summarisation SBAR Playground (consumer)"
+      - "Future operations Ask LEO surface (potential consumer)"
+    technical_details:
+      language: "TypeScript + Python"
+      framework: "Next.js + MUI (UI), FastAPI + Neo4j (backend)"
+      file_structure:
+        - "services/ui/src/components/sbar-playground/BackgroundSourcePicker.tsx"
+        - "services/ui/src/lib/analyticsApi.ts"
+        - "services/analytics_api/app/routers/patient_finder.py"
+      estimated_loc: 700
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-232 covers static-source registration, the nested
+      chunk-checkbox structure and the
+      "selecting a chunk drops the parent" rule via jest, and
+      pytest coverage of the GET /document-references/{id}/chunks
+      endpoint for ordered chunk return.
+    test_protocol: "VT-LEO-AI-232"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-211"
+  tags:
+    - "ui"
+    - "background-source"
+    - "sbar"
+    - "playground"
+    - "primitive"

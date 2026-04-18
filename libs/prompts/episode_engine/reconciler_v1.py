@@ -15,6 +15,8 @@ from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.prompts.episode_engine._shared import (
     BREAST_REFERENCE_CASE,
     EPISODE_TYPE_LIST,
+    MILESTONE_TYPE_LIST,
+    PRESENTATION_PLACE_LIST,
     RULES_OF_THE_ROAD,
 )
 
@@ -42,8 +44,20 @@ SYSTEM = INJECTION_GUARD + (
     "  - episode_id is a stable string in this call ('e1', 'e2', ...);\n"
     "    the writer maps it to a deterministic graph id.\n"
     "  - episode_type from: " + EPISODE_TYPE_LIST + ".\n"
+    "  - milestone type from: " + MILESTONE_TYPE_LIST + ".\n"
     "  - milestones: union of merged-window milestones, deduplicated by\n"
     "    (type, encounter_id). Keep highest-confidence on conflict.\n"
+    "  - PRESERVE the milestone TYPE from the upstream extractor. Do NOT\n"
+    "    re-cast first_presentation as first_seen, do NOT collapse\n"
+    "    outcome_letter into diagnosis_confirmed, and do NOT drop\n"
+    "    first_presentation or outcome_letter when reconciling. They are\n"
+    "    distinct events on the pathway.\n"
+    "  - presentation_place MUST be carried through verbatim for every\n"
+    "    first_presentation milestone. Pick from:\n"
+    "    " + PRESENTATION_PLACE_LIST + ".\n"
+    "    Set null for every other milestone type. If an upstream\n"
+    "    first_presentation is missing presentation_place, infer the\n"
+    "    closest match from the encounter text rather than dropping it.\n"
     "  - merged_from: list the input window_ids you merged.\n"
     "  - confidence: overall episode confidence.\n"
     "  - needs_human_review: true if any milestone has confidence<0.6,\n"
@@ -82,8 +96,10 @@ _MILESTONE_SCHEMA = {
         "type": {
             "type": "string",
             "enum": [
+                "first_presentation",
                 "referral",
                 "first_seen",
+                "outcome_letter",
                 "diagnosis_confirmed",
                 "treatment_started",
                 "treatment_completed",
@@ -104,6 +120,32 @@ _MILESTONE_SCHEMA = {
                 "other",
                 None,
             ],
+        },
+        "presentation_place": {
+            "type": ["string", "null"],
+            "enum": [
+                "gp_surgery",
+                "gp_home_visit",
+                "other_primary_care",
+                "hospital_outpatient",
+                "hospital_inpatient",
+                "accident_and_emergency",
+                "walk_in_centre",
+                "out_of_hours",
+                "from_screening",
+                "telephone_consultation",
+                "email_consultation",
+                "video_consultation",
+                "dentist",
+                "optometrist",
+                "community_care_nurse",
+                "other",
+                "not_known",
+                None,
+            ],
+            "description": (
+                "Required when type == 'first_presentation'; null otherwise."
+            ),
         },
         "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
         "reasoning": {"type": "string"},

@@ -1,0 +1,84 @@
+# -- DO-LEO-AI-232 -- BackgroundSourcePicker primitive + chunk endpoint
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-232"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-232"]
+    user_needs: ["UN-LEO-AI-081"]
+    risks_addressed: ["R-LEO-AI-211"]
+    verification_tests: ["VT-LEO-AI-232"]
+
+  specification:
+    title: "BackgroundSourcePicker dialog with nested chunk selection"
+    description: |
+      MUI Dialog primitive scoped to a single patient. Two tabs:
+
+        - Encounters: chronological multi-select list backed by
+          GET /patient-finder/{patient_id}/encounters.
+        - Letters and documents: DocumentReference list backed by
+          GET /patient-finder/{patient_id}/document-references.
+          Each row is collapsible; expanding it loads child :Chunk
+          nodes via GET /document-references/{id}/chunks.
+
+      Selection state:
+        - encounter checkboxes are independent.
+        - DocumentReference checkbox marks "send the whole
+          document".
+        - chunk checkboxes inside the expanded row are independent
+          of the parent. As soon as ANY chunk under a document is
+          ticked, the parent DocumentReference is implicitly
+          dropped from the emitted payload.
+
+      onConfirm emits a SelectedBackgroundSource[] which the host
+      maps onto SBARBackgroundSourceRef.
+
+    acceptance_criteria:
+      - criterion: "Two tabs, no third chunk tab"
+        type: "functional"
+        measurement: "Test"
+        target: "Static-source VT asserts the Tabs component has exactly 2 children and chunks render inside the document Collapse, never as a top-level tab"
+      - criterion: "Patient-scoped"
+        type: "safety"
+        measurement: "Test"
+        target: "Live-render VT asserts the picker calls only /patient-finder/{props.patientId}/* endpoints"
+      - criterion: "Chunks drop the parent"
+        type: "functional"
+        measurement: "Test"
+        target: "Jest unit test confirms onConfirm emits only chunk entries when chunks are selected, never the parent DocumentReference"
+      - criterion: "Chunk endpoint is ordered"
+        type: "functional"
+        measurement: "Test"
+        target: "Pytest covers GET /document-references/{id}/chunks returns chunks ordered by chunk_index ascending"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/sbar-playground/BackgroundSourcePicker.tsx"
+        description: "BackgroundSourcePicker, EncountersPanel, DocumentsPanel, ChunkList"
+      - artifact_type: "source_code"
+        location: "services/analytics_api/app/routers/patient_finder.py"
+        description: "GET /document-references/{id}/chunks endpoint"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript + Python"
+      loc: 700
+      key_functions:
+        - "BackgroundSourcePicker"
+        - "DocumentsPanel"
+        - "ChunkList"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Patient-scoped data fetch: must never list cross-patient sources"
+    risk_control_measures:
+      - "Patient_id is a required prop; the picker has no internal patient switcher"
+      - "Backend endpoints check CallerScope for the patient before returning rows"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

@@ -196,6 +196,15 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--all",
+        action="store_true",
+        help=(
+            "Run across EVERY :Patient that has at least one :Encounter. "
+            "Bypasses the synthetic FROZEN_COHORT mapping. Report is keyed "
+            "by real patient_id."
+        ),
+    )
+    parser.add_argument(
         "--apply",
         action="store_true",
         help="Write episodes to the graph. Default: dry_run (no writes).",
@@ -211,23 +220,36 @@ def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
     from services.analysis_worker.app.episode_engine import run_episode_engine
 
-    if args.patients.strip():
-        synthetic_ids = [
-            p.strip() for p in args.patients.split(",") if p.strip()
-        ]
-        if REQUIRED_SYNTHETIC not in synthetic_ids:
-            synthetic_ids = [REQUIRED_SYNTHETIC] + synthetic_ids
-    else:
-        synthetic_ids = _auto_cohort(args.auto)
-
-    pairs = _resolve_cohort(synthetic_ids)
-    log.info(
-        "Spike cohort (%d synthetic ids): %s",
-        len(pairs),
-        [s for s, _ in pairs],
-    )
-
     client = PatientGraphClient()
+
+    if args.all:
+        rows = client.run(
+            "MATCH (p:Patient) "
+            "WHERE EXISTS { MATCH (p)-[:HAS_ENCOUNTER]->(:Encounter) } "
+            "RETURN p.id AS id ORDER BY p.id"
+        ) or []
+        all_ids = [str(r["id"]) for r in rows]
+        pairs = [(rid, rid) for rid in all_ids]
+        log.info(
+            "Full-graph cohort: %d patients (real ids, no synthetic mapping)",
+            len(pairs),
+        )
+    else:
+        if args.patients.strip():
+            synthetic_ids = [
+                p.strip() for p in args.patients.split(",") if p.strip()
+            ]
+            if REQUIRED_SYNTHETIC not in synthetic_ids:
+                synthetic_ids = [REQUIRED_SYNTHETIC] + synthetic_ids
+        else:
+            synthetic_ids = _auto_cohort(args.auto)
+
+        pairs = _resolve_cohort(synthetic_ids)
+        log.info(
+            "Spike cohort (%d synthetic ids): %s",
+            len(pairs),
+            [s for s, _ in pairs],
+        )
     try:
         report_dir = (
             ROOT / "scripts" / "investigations" / "episode_engine_spike" / "reports"
@@ -244,8 +266,10 @@ def main() -> None:
         )
         summary_rows: list[dict] = []
 
-        for synthetic_id, real_id in pairs:
-            log.info("--- patient %s", synthetic_id)
+        for idx, (synthetic_id, real_id) in enumerate(pairs, start=1):
+            log.info(
+                "--- patient %d/%d %s", idx, len(pairs), synthetic_id
+            )
             existing = _existing_episodes(client, real_id)
             try:
                 result = run_episode_engine(real_id, dry_run=not args.apply)

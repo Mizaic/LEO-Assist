@@ -1,0 +1,89 @@
+# -- DO-LEO-AI-233 -- GuidelinePicker primitive + Concern field
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-233"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-233"]
+    user_needs: ["UN-LEO-AI-081"]
+    risks_addressed: ["R-LEO-AI-185"]
+    verification_tests: ["VT-LEO-AI-233"]
+
+  specification:
+    title: "GuidelinePicker primitive + SBARRequestPayload.concern + orchestrator forwarding"
+    description: |
+      Three coupled artefacts:
+
+      1. UI primitive GuidelinePicker -- MUI Autocomplete (multiple)
+         loaded from /api/nice/loaded with a "Use all loaded"
+         shortcut. Emits a string[] of guideline codes that the
+         playground forwards as SBARRequestPayload.guideline_ids.
+
+      2. SBARRequestPayload.concern field (str, max_length=500)
+         on the production queue contract, plus the matching
+         maxLength + visible character counter on the playground
+         textarea.
+
+      3. SBAR orchestrator forwards (payload.concern or '').strip()
+         into extra_context['concern'] on the Situation stage
+         caller so the LLM receives the reviewer's QSIR-aligned
+         worry note.
+
+    acceptance_criteria:
+      - criterion: "Multi-select Autocomplete loaded from /api/nice/loaded"
+        type: "functional"
+        measurement: "Test"
+        target: "Static-source VT asserts Autocomplete has multiple={true} and the loader URL is /api/nice/loaded"
+      - criterion: "Use-all-loaded shortcut"
+        type: "functional"
+        measurement: "Test"
+        target: "Live-render VT confirms the shortcut toggles between empty selection and full-options selection"
+      - criterion: "Concern is capped at 500 chars on both ends"
+        type: "safety"
+        measurement: "Test"
+        target: "Pydantic raises ValidationError on >500 chars (pytest); UI textarea has maxLength=500 and visible counter (static-source VT)"
+      - criterion: "Orchestrator forwards concern"
+        type: "functional"
+        measurement: "Test"
+        target: "Pytest asserts the situation_caller is invoked with extra_context['concern'] == payload.concern (or None when empty)"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/sbar-playground/GuidelinePicker.tsx"
+        description: "GuidelinePicker primitive + default loader"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx"
+        description: "Concern field + counter + canSubmit gating"
+      - artifact_type: "source_code"
+        location: "services/ui/src/hooks/useSbarStream.ts"
+        description: "SbarStartParams.concern threaded into the request body"
+      - artifact_type: "source_code"
+        location: "libs/sbar/events.py"
+        description: "SBARRequestPayload.concern field with max_length=500"
+      - artifact_type: "source_code"
+        location: "services/pipeline_worker/app/services/sbar_orchestrator.py"
+        description: "Concern forwarded into extra_context on the Situation stage caller"
+    storage_location: "git"
+    technical_details:
+      language: "TypeScript + Python"
+      loc: 500
+      key_functions:
+        - "GuidelinePicker"
+        - "SBARRequestPayload"
+        - "SBAROrchestrator.run"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Concern field is concatenated into the Situation stage prompt"
+    risk_control_measures:
+      - "Two-sided 500-char cap prevents prompt-cost blowout"
+      - "Concern is optional -- empty submissions still produce a valid SBAR"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
