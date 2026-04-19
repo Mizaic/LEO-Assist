@@ -352,6 +352,52 @@ export default function SbarPlayground() {
         </Alert>
       )}
 
+      {/* Per-stage friendly errors (DI-LEO-AI-516). Sits above the
+          progress card so a partial-failure SBAR cannot be confused
+          with a complete one. Wording is plain English (reading age
+          9-11) -- raw AWS / Bedrock strings are translated server
+          side by libs/sbar/error_messages. */}
+      {sbar.errors.length > 0 && (
+        <Alert severity="warning" data-testid="sbar-errors-alert">
+          <Stack spacing={0.5}>
+            <Typography variant="subtitle2">
+              {sbar.errors.length === 1
+                ? "1 section did not finish."
+                : `${sbar.errors.length} sections did not finish.`}
+            </Typography>
+            {sbar.errors.map((e, i) => (
+              <Typography
+                key={`${e.stage}-${i}`}
+                variant="body2"
+                data-testid={`sbar-error-row-${e.stage}`}
+              >
+                <strong>{STAGE_LABELS[e.stage] ?? e.stage}:</strong>{" "}
+                {e.message}
+              </Typography>
+            ))}
+          </Stack>
+        </Alert>
+      )}
+
+      {/* Notices (e.g. background shrinker trim notice). Info, not
+          warning -- the SBAR still ran. */}
+      {sbar.notices.length > 0 && (
+        <Alert severity="info" data-testid="sbar-notices-alert">
+          <Stack spacing={0.5}>
+            {sbar.notices.map((n, i) => (
+              <Typography
+                key={`${n.stage}-${n.code}-${i}`}
+                variant="body2"
+                data-testid={`sbar-notice-row-${n.stage}`}
+              >
+                <strong>{STAGE_LABELS[n.stage] ?? n.stage}:</strong>{" "}
+                {n.message}
+              </Typography>
+            ))}
+          </Stack>
+        </Alert>
+      )}
+
       {(sbar.running || sbar.runId) && (
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Stack spacing={2}>
@@ -379,12 +425,14 @@ export default function SbarPlayground() {
                 {!sbar.running && sbar.finalContent ? (
                   <Button
                     variant="contained"
-                    color="success"
+                    color={sbar.errors.length === 0 ? "success" : "warning"}
                     size="small"
                     onClick={() => setFinalDialogOpen(true)}
                     data-testid="sbar-view-full-button"
                   >
-                    {sbar.status === "Done." ? "View full SBAR" : sbar.status}
+                    {sbar.errors.length === 0
+                      ? "View full SBAR"
+                      : `View full SBAR (${sbar.errors.length} ${sbar.errors.length === 1 ? "section did not finish" : "sections did not finish"})`}
                   </Button>
                 ) : (
                   <Typography variant="body2" color="text.secondary">

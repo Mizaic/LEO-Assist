@@ -922,6 +922,25 @@ _add(
         "formatter. Inline [RULE: ...] markers only -- no encounter ids."
     ),
 )
+# DI-LEO-AI-517 / DO-LEO-AI-517: REDUCE prompt for the partition +
+# map + reduce Background strategy. Used only when call_background
+# has produced N >= 2 partial Backgrounds and needs to merge them
+# into one coherent section without adding or losing facts.
+_add(
+    "sbar_background_reduce",
+    1,
+    "libs.prompts.sbar_background_reduce_v1.SBAR_BACKGROUND_REDUCE_SYSTEM_V1",
+    output_schema=json.dumps(SBAR_BACKGROUND_OUTPUT_SCHEMA),
+    few_shot_examples=[],
+    max_few_shot=0,
+    description=(
+        "SBAR Background REDUCE step. Merges N partial Background "
+        "sections (produced by sbar_background over chunks of the "
+        "patient's records) into one coherent Background. Strict "
+        "no-new-facts / no-loss / preserve-citations rules so the "
+        "merge cannot hallucinate or drop clinical detail."
+    ),
+)
 
 # -- SBAR per-context Situation framing snippets ------------------------------
 # DI-LEO-AI-507 / UN-LEO-AI-092: each SummarisationContext value gets its

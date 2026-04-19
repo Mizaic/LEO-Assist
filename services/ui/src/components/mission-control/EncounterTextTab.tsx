@@ -118,14 +118,22 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
     [patientId]
   );
 
+  // Stabilise milestones/linked_encounter_ids so downstream memos and
+  // effects do not refire when the field is undefined (`?? []` would
+  // create a fresh array each render). This was a contributor to
+  // "Maximum update depth exceeded" inside the timeline scrubber.
+  const milestones = useMemo(
+    () => episode.milestones ?? [],
+    [episode.milestones]
+  );
   const linkedEncounterIds = useMemo(() => {
     const ids: string[] = [];
     (episode.linked_encounter_ids ?? []).forEach((id) => ids.push(String(id)));
-    (episode.milestones ?? []).forEach((m) => {
+    milestones.forEach((m) => {
       if (m.encounter_id) ids.push(String(m.encounter_id));
     });
     return new Set(ids);
-  }, [episode.linked_encounter_ids, episode.milestones]);
+  }, [episode.linked_encounter_ids, milestones]);
   const from = episode.referral_date ?? null;
   const to = episode.end_date ?? null;
 
@@ -142,29 +150,34 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
     return { fullMinMs: lo, fullMaxMs: hi };
   }, [encounters]);
 
-  // Tight episode footprint: min/max of dates of episode-linked
-  // encounters. Falls back to episode.referral_date / end_date when
-  // no linked encounters resolve.
-  const episodeLinkedRange = useMemo(() => {
+  // Tight episode footprint: min/max dates of episode-linked
+  // encounters, falling back to episode.referral_date / end_date.
+  // Returned as primitive numbers so the values stay stable across
+  // renders even when the upstream arrays change reference.
+  const episodeLinkedFromMs = useMemo(() => {
     let lo = Number.POSITIVE_INFINITY;
-    let hi = Number.NEGATIVE_INFINITY;
     encounters.forEach((enc) => {
       if (!linkedEncounterIds.has(String(enc.encounter_id))) return;
       const t = Date.parse(enc.date ?? "");
       if (!Number.isFinite(t)) return;
       if (t < lo) lo = t;
+    });
+    if (Number.isFinite(lo)) return lo;
+    const fb = Date.parse(from ?? "");
+    return Number.isFinite(fb) ? fb : Number.NaN;
+  }, [encounters, linkedEncounterIds, from]);
+  const episodeLinkedToMs = useMemo(() => {
+    let hi = Number.NEGATIVE_INFINITY;
+    encounters.forEach((enc) => {
+      if (!linkedEncounterIds.has(String(enc.encounter_id))) return;
+      const t = Date.parse(enc.date ?? "");
+      if (!Number.isFinite(t)) return;
       if (t > hi) hi = t;
     });
-    if (Number.isFinite(lo) && Number.isFinite(hi)) {
-      return { fromMs: lo, toMs: hi };
-    }
-    const fb = Date.parse(from ?? "");
+    if (Number.isFinite(hi)) return hi;
     const ft = Date.parse(to ?? "");
-    if (Number.isFinite(fb) && Number.isFinite(ft)) {
-      return { fromMs: fb, toMs: ft };
-    }
-    return null;
-  }, [encounters, linkedEncounterIds, from, to]);
+    return Number.isFinite(ft) ? ft : Number.NaN;
+  }, [encounters, linkedEncounterIds, to]);
 
   // On first encounter load (or episode switch) initialise the brush
   // to the padded episode window so the list opens already focused
@@ -172,11 +185,12 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
   useEffect(() => {
     if (loading) return;
     if (encounters.length === 0) return;
-    if (!episodeLinkedRange) return;
+    if (!Number.isFinite(episodeLinkedFromMs)) return;
+    if (!Number.isFinite(episodeLinkedToMs)) return;
     if (defaultRangeAppliedRef.current === episode.episode_id) return;
     const padded = padRange(
-      episodeLinkedRange.fromMs,
-      episodeLinkedRange.toMs,
+      episodeLinkedFromMs,
+      episodeLinkedToMs,
       fullMinMs,
       fullMaxMs
     );
@@ -186,7 +200,8 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
   }, [
     loading,
     encounters.length,
-    episodeLinkedRange,
+    episodeLinkedFromMs,
+    episodeLinkedToMs,
     fullMinMs,
     fullMaxMs,
     episode.episode_id,
@@ -224,7 +239,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
   };
 
   const milestoneJumps = useMemo<MilestoneJump[]>(() => {
-    const rows = (episode.milestones ?? [])
+    const rows = milestones
       .filter((m) => Boolean(m.encounter_id))
       .map((m, idx) => ({
         key: `${m.milestone_type}-${m.encounter_id}-${idx}`,
@@ -239,7 +254,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
       if (!Number.isFinite(tb)) return -1;
       return ta - tb;
     });
-  }, [episode.milestones]);
+  }, [milestones]);
 
   const jumpToEncounter = useCallback((encounterId: string) => {
     setCodedOnly(false);
@@ -274,6 +289,9 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
     () => visibleEncounters.map((e) => String(e.encounter_id)),
     [visibleEncounters]
   );
+  // Stable key so the IntersectionObserver effect does not tear down
+  // and recreate when `visibleEncounters` gets a fresh reference.
+  const allVisibleIdsKey = allVisibleIds.join("|");
 
   const anyExpanded = allVisibleIds.some((id) => !collapsedEncounters[id]);
   const anyCollapsed = allVisibleIds.some((id) => !!collapsedEncounters[id]);
@@ -291,7 +309,8 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
 
   useEffect(() => {
     if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
-    const candidates = allVisibleIds
+    const ids = allVisibleIdsKey ? allVisibleIdsKey.split("|") : [];
+    const candidates = ids
       .map((id) => encounterRefs.current[id])
       .filter((node): node is HTMLDivElement => Boolean(node));
     if (candidates.length === 0) return;
@@ -308,7 +327,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
     );
     candidates.forEach((node) => observer.observe(node));
     return () => observer.disconnect();
-  }, [allVisibleIds]);
+  }, [allVisibleIdsKey]);
 
   if (loading) {
     return (
@@ -400,7 +419,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
         linkedEncounterIds={linkedEncounterIds}
         episodeFrom={from}
         episodeTo={to}
-        milestones={episode.milestones ?? []}
+        milestones={milestones}
         activeEncounterId={focusedEncounterId ?? visibleEncounterId}
         onJumpToEncounter={jumpToEncounter}
         visibleFromMs={timelineRange?.fromMs ?? null}

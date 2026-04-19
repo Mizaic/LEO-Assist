@@ -1,0 +1,138 @@
+# -- VT-LEO-AI-515 -- /care/encounters timeline brush wrapper + host wiring
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-515"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-516"
+    risks:
+      - "R-LEO-AI-063"
+      - "R-LEO-AI-174"
+      - "R-LEO-AI-206"
+
+  metadata:
+    title: "EncounterResultsTimeline wrapper + EncounterMissionControl brush wiring"
+    description: >
+      Static-source verification per ui-testing.mdc. Confirms the
+      new EncounterResultsTimeline wrapper adapts EncounterListItem
+      rows to the existing EncounterTimelineScrubber primitive,
+      hides itself for tiny result sets, and that the host wires
+      brush filtering into filteredRows (composed with bucket
+      filter, BEFORE pagination), feeds activePreview.encounter_id
+      into both the table row highlight and the histogram active
+      ring, and clears the brush range on every fresh load().
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/encounter-results-timeline-chrome.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "services/ui jest harness (jest 30 + ts-jest)"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-515-TC-001"
+      case_name: "EncounterResultsTimeline module exposes the documented adapter contract"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/src/components/mission-control/EncounterResultsTimeline.tsx"
+          expected_result: "Module imports EncounterTimelineScrubber and ScrubberEncounter, default-exports a component named EncounterResultsTimeline, and forwards linkedEncounterIds=EMPTY_LINKED (a `new Set`), episodeFrom=null, episodeTo=null, milestones=EMPTY_MILESTONES"
+          verification_method: "automated"
+
+    - case_id: "VT-515-TC-002"
+      case_name: "Adapter maps encounter_date -> date, drops null dates, and memoises the array"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterResultsTimeline.tsx"
+          expected_result: "Source uses useMemo<ScrubberEncounter[]>, calls Date.parse(row.encounter_date), guards on Number.isFinite(ts), and writes encounter_id: String(row.encounter_id) and date: row.encounter_date as string"
+          verification_method: "automated"
+
+    - case_id: "VT-515-TC-003"
+      case_name: "Wrapper renders nothing when fewer than 5 dated rows are loaded"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterResultsTimeline.tsx"
+          expected_result: "Source declares MIN_DATED_ROWS = 5 and contains an early-return null branch gated on scrubberRows.length < MIN_DATED_ROWS"
+          verification_method: "automated"
+
+    - case_id: "VT-515-TC-004"
+      case_name: "EncounterMissionControl holds controlled timelineRange state and clears it on load"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterMissionControl.tsx"
+          expected_result: "Source declares useState<{ fromMs: number; toMs: number } | null>(null) for timelineRange and resets it to null inside the loadAll() flow via setTimelineRange(null)"
+          verification_method: "automated"
+
+    - case_id: "VT-515-TC-005"
+      case_name: "Brush filter composes with bucket filter BEFORE pagination"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterMissionControl.tsx"
+          expected_result: "filteredRows useMemo references both bucketFilter and timelineRange in its dependency list and applies the timeline window filter to encounter_date; displayRows pagination still slices filteredRows"
+          verification_method: "automated"
+
+    - case_id: "VT-515-TC-006"
+      case_name: "Active preview drives table row highlight and timeline active ring"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterMissionControl.tsx"
+          expected_result: "highlightedEncounterId={activePreview?.encounter_id ?? null} is passed to EncounterResultsTable AND activeEncounterId={activePreview?.encounter_id ?? null} is passed to EncounterResultsTimeline"
+          verification_method: "automated"
+
+    - case_id: "VT-515-TC-007"
+      case_name: "Timeline jump opens the preview dialog for the matching loaded row"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterMissionControl.tsx"
+          expected_result: "A handleTimelineJump callback resolves the row from `rows` by encounter_id and calls setActivePreview(target); it is wired into <EncounterResultsTimeline ... onJumpToEncounter={handleTimelineJump}>"
+          verification_method: "automated"
+
+    - case_id: "VT-515-TC-008"
+      case_name: "Wrapper passes the controlled brush range through to the scrubber"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterResultsTimeline.tsx and EncounterMissionControl.tsx"
+          expected_result: "Wrapper forwards visibleFromMs / visibleToMs / onVisibleRangeChange to EncounterTimelineScrubber; host hands down timelineRange?.fromMs ?? null, timelineRange?.toMs ?? null, and handleTimelineRangeChange to the wrapper"
+          verification_method: "automated"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-515/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-515-EXEC-001"
+      timestamp: "2026-04-19T11:30:00Z"
+      executor: "Rob Smith (developer)"
+      result: "pass"
+      notes: >
+        8 cases pass under jest 30 + ts-jest in 0.68s. Wider
+        regression sweep across all encounter / mission-control
+        suites: 143 tests across 15 suites, all green. Confirms
+        the timeline brush adapter integrates cleanly with the
+        previously verified row template (VT-LEO-AI-512), the
+        preview wrapper (VT-LEO-AI-214), and the underlying
+        scrubber primitive (VT-LEO-AI-173).

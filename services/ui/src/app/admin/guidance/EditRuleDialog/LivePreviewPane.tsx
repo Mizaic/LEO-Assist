@@ -24,6 +24,8 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 
 import SummaryCard from "./SummaryCard";
 import { STRENGTH_LABELS, friendlyTerm } from "./copy";
@@ -70,22 +72,28 @@ export default function LivePreviewPane({
           position: "sticky",
           top: 0,
           alignSelf: "flex-start",
-          p: 1.5,
+          p: 2,
           display: "flex",
           flexDirection: "column",
           gap: 1.5,
         }}
       >
-        <Typography
-          variant="overline"
-          sx={{
-            display: "block",
-            color: "text.secondary",
-            letterSpacing: 0.5,
-          }}
-        >
-          Before and after
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={0.75}>
+          <AutoAwesomeRoundedIcon
+            sx={{ fontSize: 16, color: "primary.main" }}
+          />
+          <Typography
+            variant="overline"
+            sx={{
+              display: "block",
+              color: "text.secondary",
+              letterSpacing: 0.5,
+              lineHeight: 1,
+            }}
+          >
+            Before and after
+          </Typography>
+        </Stack>
         <Stack
           direction={{ xs: "column", lg: "row" }}
           spacing={1.5}
@@ -141,18 +149,28 @@ export default function LivePreviewPane({
         position: "sticky",
         top: 0,
         alignSelf: "flex-start",
-        p: 1.5,
+        p: 2,
         display: "flex",
         flexDirection: "column",
         gap: 1.5,
       }}
     >
-      <Typography
-        variant="overline"
-        sx={{ display: "block", color: "text.secondary", letterSpacing: 0.5 }}
-      >
-        Live preview
-      </Typography>
+      <Stack direction="row" alignItems="center" spacing={0.75}>
+        <AutoAwesomeRoundedIcon
+          sx={{ fontSize: 16, color: "primary.main" }}
+        />
+        <Typography
+          variant="overline"
+          sx={{
+            display: "block",
+            color: "text.secondary",
+            letterSpacing: 0.5,
+            lineHeight: 1,
+          }}
+        >
+          Live preview
+        </Typography>
+      </Stack>
       <SummaryCard summary={summary} defaultExpanded />
       <SystemRecap strength={strength} action={action} />
     </Box>
@@ -164,41 +182,88 @@ function SystemRecap({ strength, action }: SystemRecapProps) {
     STRENGTH_LABELS.find((o) => o.value === strength)?.label ??
     "Not specified yet";
   const procedure = friendlyTerm(action?.preferred_term);
+  const ready = Boolean(procedure);
   return (
     <Box
       role="region"
       aria-label="What the system will do when this rule matches"
       sx={{
-        p: 1.5,
-        borderRadius: 1.5,
+        position: "relative",
+        borderRadius: 2,
         border: "1px solid",
-        borderColor: procedure ? "success.100" : "warning.100",
-        bgcolor: procedure ? "success.50" : "warning.50",
+        borderColor: ready ? "success.100" : "warning.100",
+        bgcolor: "background.paper",
+        overflow: "hidden",
+        boxShadow:
+          "0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04)",
       }}
     >
-      <Typography
-        variant="overline"
+      <Box
+        aria-hidden
         sx={{
-          display: "block",
-          color: "text.secondary",
-          letterSpacing: 0.5,
+          height: 4,
+          width: "100%",
+          bgcolor: ready ? "success.main" : "warning.main",
         }}
-      >
-        What the system will do
-      </Typography>
-      <Typography variant="body2" sx={{ lineHeight: 1.55, mt: 0.25 }}>
-        If this rule matches: <strong>{strengthLabel}</strong>
-        {procedure ? (
-          <>
-            {" "}- <strong>{procedure}</strong>
-          </>
-        ) : (
-          <>
-            {" "}- <em>no procedure picked yet</em>
-          </>
-        )}
-        .
-      </Typography>
+      />
+      <Box sx={{ p: 1.75 }}>
+        <Stack direction="row" alignItems="center" spacing={0.75}>
+          <PlayArrowRoundedIcon
+            sx={{
+              fontSize: 16,
+              color: ready ? "success.main" : "warning.main",
+            }}
+          />
+          <Typography
+            variant="overline"
+            sx={{
+              display: "block",
+              color: "text.secondary",
+              letterSpacing: 0.5,
+              lineHeight: 1,
+            }}
+          >
+            What the system will do
+          </Typography>
+        </Stack>
+        <Typography
+          variant="body2"
+          sx={{ lineHeight: 1.6, mt: 0.75, fontWeight: 500 }}
+        >
+          If this rule matches:{" "}
+          <Box
+            component="span"
+            sx={{
+              fontWeight: 700,
+              color: ready ? "success.dark" : "warning.dark",
+            }}
+          >
+            {strengthLabel}
+          </Box>
+          {procedure ? (
+            <>
+              {" "}-{" "}
+              <Box
+                component="span"
+                sx={{ fontWeight: 700, color: "text.primary" }}
+              >
+                {procedure}
+              </Box>
+            </>
+          ) : (
+            <>
+              {" "}-{" "}
+              <Box
+                component="span"
+                sx={{ fontStyle: "italic", color: "text.secondary" }}
+              >
+                no procedure picked yet
+              </Box>
+            </>
+          )}
+          .
+        </Typography>
+      </Box>
     </Box>
   );
 }

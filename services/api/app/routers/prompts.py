@@ -595,6 +595,7 @@ def simulate_prompt(
                 messages=[{"role": "user", "content": user_message}],
                 max_tokens=2048,
                 temperature=0.0,
+                agent_task="prompt_simulator",
             )
             result["llmResponse"] = resp.text
             result["llmTokenUsage"] = {

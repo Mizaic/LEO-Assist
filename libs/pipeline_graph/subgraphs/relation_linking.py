@@ -101,6 +101,7 @@ def _run_linker(state: RelationLinkState) -> dict[str, Any]:
             temperature=0.0,
             max_tokens=900,
             json_mode=True,
+            agent_task="v3_pipeline_relation_linker",
         )
         raw = response.text or "{}"
         parsed = json.loads(raw) if raw.strip().startswith("{") else {}

@@ -1,0 +1,113 @@
+# -- DI-LEO-AI-513 -- Token-budget aware SBAR background prompt shrinker
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-513"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-095"
+  requirement: >
+    The SBAR Background stage SHALL apply a deterministic token-budget
+    aware shrinker to the assembled user prompt before invoking the
+    LLM. The shrinker SHALL: (1) estimate the prompt's token count
+    using a conservative char/token heuristic (default 3.6 chars per
+    token); (2) compute a budget equal to
+    SBAR_BACKGROUND_MAX_INPUT_TOKENS (env override; default 60000)
+    minus a fixed margin for the system prompt and model overhead;
+    (3) progressively reduce the per-source character cap from 4000
+    through 2000, 1000, 500 and 250 until the estimated tokens fit
+    the budget; (4) if the prompt still exceeds the budget at the
+    smallest cap, drop sources from the end of the list until the
+    prompt fits or only one source remains; and (5) return a
+    plain-English notice describing what was trimmed (target reading
+    age 9-11) when any trimming occurred. If, after shrinking, the
+    LLM still returns "Input is too long for requested model" or an
+    equivalent context-window validation error, the orchestrator
+    SHALL record a friendly background error and proceed to the
+    remaining stages without raising.
+  rationale: >
+    Today libs/sbar/prompt_calls.py applies only a per-source 4000-
+    character cap. A patient with many long encounters or chunked
+    discharge summaries can easily produce a prompt that exceeds the
+    Bedrock Claude input window, at which point the LLM call returns
+    a ValidationException and the run silently degrades to a partial
+    SBAR. A pre-emptive, deterministic shrinker keeps the playground
+    usable for large patients and removes the class of "input too
+    long" surprises from production callers.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          libs/sbar/background_shrinker.shrink_background_context()
+          returns a (serialised_user_message, ShrinkReport) pair
+          where ShrinkReport carries original_source_count,
+          kept_source_count, dropped_source_ids,
+          per_source_char_cap, estimated_input_tokens and a
+          plain-English notice (or None when no trimming occurred).
+      - type: "functional"
+        spec: >
+          Under SBAR_BACKGROUND_MAX_INPUT_TOKENS=60000 the shrinker
+          returns the original 4000-cap serialisation when the input
+          fits, returns a tighter cap when the input is over budget
+          but every source is kept, and drops sources only when the
+          smallest cap (250 chars) still would exceed the budget.
+      - type: "functional"
+        spec: >
+          libs/sbar/prompt_calls.call_background invokes the shrinker
+          before invoke_llm_json, threads the notice through the
+          returned dict as "notice", and returns shrink-aware notices
+          even on a success path.
+      - type: "safety"
+        spec: >
+          When invoke_llm_json returns {"error": "...Input is too
+          long for requested model..."} or any other Bedrock
+          ValidationException, call_background SHALL not raise; it
+          MUST return a friendly error string via
+          libs/sbar/error_messages.translate_error.
+      - type: "performance"
+        spec: >
+          The shrinker SHALL run in O(N) over sources and SHALL not
+          itself call any LLM or Neo4j query (pure function over the
+          ResolvedSource list).
+    constraints:
+      - type: "safety"
+        spec: >
+          The shrinker MUST preserve at least one source when sources
+          are non-empty so the Background prompt always carries at
+          least one record reference.
+    dependencies:
+      - "DI-LEO-AI-186"
+      - "DI-LEO-AI-194"
+    downstream_impacts:
+      - "SBAR orchestrator (consumer)"
+      - "SBAR Playground (notice rendering, DI-LEO-AI-516)"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI / pipeline-worker"
+      file_structure:
+        - "libs/sbar/background_shrinker.py"
+        - "libs/sbar/error_messages.py"
+        - "libs/sbar/prompt_calls.py"
+      estimated_loc: 300
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-514 covers the shrinker's no-op path, progressive
+      cap shrink, source-drop fallback, "always keep at least one"
+      invariant, the friendly translator's coverage of the four
+      known Bedrock failure modes, and the call_background
+      integration that wires the shrinker and translator together.
+    test_protocol: "VT-LEO-AI-514"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-185"
+    - "R-LEO-AI-510"
+  tags:
+    - "sbar"
+    - "background"
+    - "token-budget"
+    - "shrinker"
+    - "error-handling"

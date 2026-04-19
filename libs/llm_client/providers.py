@@ -120,29 +120,164 @@ async def invoke_with_fallback(
     *,
     max_retries: int = 5,
     tools: Optional[Sequence] = None,
+    agent_task: str = "unknown",
+    patient_id: str = "",
 ) -> Any:
     """Try Bedrock first; on failure fall back to Azure OpenAI.
 
     If ``USE_AZURE_PRIMARY`` is set, Azure is used directly.
     ``tools`` is an optional sequence of LangChain tool definitions;
     if provided the model will be bound to them before invocation.
+
+    DI-LEO-AI-515: every successful response fires a single
+    :func:`libs.llm_client.token_tracker.track_llm_usage` event tagged
+    with the provider that actually answered (``"bedrock"`` or
+    ``"azure"``), so cost telemetry flows through the active
+    ``LLMUsageRecorder`` and into the dashboard / per-tenant billing
+    surfaces. Failures fire one tracking event per attempted provider
+    with ``success=False`` and zero token counts.
     """
+    azure_model_name = f"azure-{os.getenv('AZURE_OPENAI_BIG_MODEL', 'gpt-4o')}"
+    bedrock_model_name = _bedrock_model_id().split("/")[-1] or "bedrock"
+
     if _USE_AZURE_PRIMARY:
         azure = get_azure_model()
         m = azure.bind_tools(tools) if tools else azure
-        return await m.ainvoke(messages, config)
+        started = time.monotonic()
+        try:
+            response = await m.ainvoke(messages, config)
+        except Exception as exc:
+            await _fire_invoke_tracking(
+                response=None,
+                provider="azure",
+                model_name=azure_model_name,
+                agent_task=agent_task,
+                patient_id=patient_id,
+                started=started,
+                success=False,
+                error_message=str(exc),
+            )
+            raise
+        await _fire_invoke_tracking(
+            response=response,
+            provider="azure",
+            model_name=azure_model_name,
+            agent_task=agent_task,
+            patient_id=patient_id,
+            started=started,
+            success=True,
+        )
+        return response
 
+    bedrock_started = time.monotonic()
     try:
         bound = model.bind_tools(tools) if tools else model
-        return await invoke_with_retry(bound, messages, config, max_retries=max_retries)
+        response = await invoke_with_retry(
+            bound, messages, config, max_retries=max_retries
+        )
     except Exception as bedrock_err:
+        await _fire_invoke_tracking(
+            response=None,
+            provider="bedrock",
+            model_name=bedrock_model_name,
+            agent_task=agent_task,
+            patient_id=patient_id,
+            started=bedrock_started,
+            success=False,
+            error_message=str(bedrock_err),
+        )
         logger.warning("Bedrock failed, falling back to Azure: %s", bedrock_err)
+        azure_started = time.monotonic()
         try:
             azure = get_azure_model()
             m = azure.bind_tools(tools) if tools else azure
-            return await m.ainvoke(messages, config)
+            response = await m.ainvoke(messages, config)
         except Exception as azure_err:
+            await _fire_invoke_tracking(
+                response=None,
+                provider="azure",
+                model_name=azure_model_name,
+                agent_task=agent_task,
+                patient_id=patient_id,
+                started=azure_started,
+                success=False,
+                error_message=str(azure_err),
+            )
             logger.error(
                 "Both Bedrock and Azure failed: %s / %s", bedrock_err, azure_err
             )
             raise
+        await _fire_invoke_tracking(
+            response=response,
+            provider="azure",
+            model_name=azure_model_name,
+            agent_task=agent_task,
+            patient_id=patient_id,
+            started=azure_started,
+            success=True,
+        )
+        return response
+
+    await _fire_invoke_tracking(
+        response=response,
+        provider="bedrock",
+        model_name=bedrock_model_name,
+        agent_task=agent_task,
+        patient_id=patient_id,
+        started=bedrock_started,
+        success=True,
+    )
+    return response
+
+
+async def _fire_invoke_tracking(
+    *,
+    response: Any,
+    provider: str,
+    model_name: str,
+    agent_task: str,
+    patient_id: str,
+    started: float,
+    success: bool,
+    error_message: str = "",
+) -> None:
+    """Best-effort wrapper around :func:`track_llm_usage` for invoke_with_fallback.
+
+    Pulls token counts from the langchain response via
+    :func:`extract_token_counts` (returns zeros when usage is missing
+    or extraction raises) and forwards them to the registered tracking
+    callback. Any failure inside this helper is swallowed so the
+    caller is never broken.
+    """
+    from libs.llm_client.token_tracker import (
+        extract_token_counts,
+        track_llm_usage,
+    )
+
+    latency_ms = int((time.monotonic() - started) * 1000)
+    counts: dict[str, Any] = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_token_details": None,
+        "output_token_details": None,
+    }
+    if response is not None:
+        try:
+            counts = extract_token_counts(response, provider)
+        except Exception:
+            logger.debug("extract_token_counts failed", exc_info=True)
+    try:
+        await track_llm_usage(
+            model_name=model_name,
+            model_provider=provider,
+            agent_task=agent_task,
+            patient_id=patient_id,
+            latency_ms=latency_ms,
+            success=success,
+            error_message=str(error_message or "")[:400],
+            **counts,
+        )
+    except Exception:
+        logger.debug("invoke_with_fallback telemetry emission failed", exc_info=True)

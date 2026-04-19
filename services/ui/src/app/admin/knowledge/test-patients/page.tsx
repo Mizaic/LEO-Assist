@@ -42,6 +42,7 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FileCopyOutlinedIcon from "@mui/icons-material/FileCopyOutlined";
@@ -60,18 +61,27 @@ import {
   ASPECT_HINT,
   ASPECT_LABEL,
   ASPECT_VALUES,
+  TRIAGE_OUTCOME_HINT,
+  TRIAGE_OUTCOME_LABEL,
+  TRIAGE_OUTCOME_VALUES,
   type AspectCounts,
   type AspectFilter,
   type TestPatientRow,
+  type TriageOutcome,
+  type TriageOutcomeCounts,
 } from "./types";
 import {
   deleteTestPatient,
   getAspectCounts,
+  getTriageOutcomeCounts,
   listTestPatients,
 } from "./api";
 import BuildPatientDialog from "./BuildPatientDialog";
 import CopyFromRealDialog from "./CopyFromRealDialog";
+import ScaffoldFromRuleDialog from "./ScaffoldFromRuleDialog";
+import ScaffoldFromScenarioDialog from "./ScaffoldFromScenarioDialog";
 import EditTestPatientDrawer from "./editor/EditTestPatientDrawer";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const ZERO_COUNTS: AspectCounts = {
   all: 0,
@@ -80,6 +90,22 @@ const ZERO_COUNTS: AspectCounts = {
   guidelines: 0,
   summarisation: 0,
 };
+
+const ZERO_TRIAGE_COUNTS: TriageOutcomeCounts = {
+  "2ww": 0,
+  urgent: 0,
+  routine: 0,
+  no_rule_fired: 0,
+  evaluator_outage: 0,
+  unset: 0,
+};
+
+// The triage chip group only makes sense for the SBAR / referral-
+// triage aspect. We also show it on "all" so a reviewer sweeping
+// the whole library can still slice by 2ww / urgent / routine.
+function showsTriageFilter(aspect: AspectFilter): boolean {
+  return aspect === "summarisation" || aspect === "all";
+}
 
 function buildStats(counts: AspectCounts): StatTile[] {
   return ASPECT_VALUES.map((key) => {
@@ -112,25 +138,40 @@ function ageSex(row: TestPatientRow): string {
 // Splitting further would scatter the load/refresh state across files.
 export default function TestPatientLibraryKnowledgeTab() {
   const [aspect, setAspect] = useState<AspectFilter>("all");
+  const [triageOutcome, setTriageOutcome] = useState<TriageOutcome>("all");
   const [counts, setCounts] = useState<AspectCounts>(ZERO_COUNTS);
+  const [triageCounts, setTriageCounts] =
+    useState<TriageOutcomeCounts>(ZERO_TRIAGE_COUNTS);
   const [rows, setRows] = useState<TestPatientRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [buildOpen, setBuildOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
+  const [scaffoldOpen, setScaffoldOpen] = useState(false);
+  const [scenarioOpen, setScenarioOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<TestPatientRow | null>(
+    null,
+  );
 
   const fetchAll = useCallback(() => {
     setLoading(true);
     setError(null);
+    // The triage chip group only filters when the SBAR aspect is in
+    // scope. Sending the param on the NLP / Episodes / Guidelines
+    // aspects would hide every row (none of them have an
+    // ExpectedSBAR), so we drop it client-side instead.
+    const outcomeForList = showsTriageFilter(aspect) ? triageOutcome : "all";
     Promise.all([
-      listTestPatients({ aspect }),
+      listTestPatients({ aspect, triage_outcome: outcomeForList }),
       getAspectCounts(),
+      getTriageOutcomeCounts(),
     ])
-      .then(([patientRows, aspectCounts]) => {
+      .then(([patientRows, aspectCounts, outcomeCounts]) => {
         setRows(patientRows);
         setCounts(aspectCounts);
+        setTriageCounts(outcomeCounts);
       })
       .catch((exc: unknown) => {
         setError(
@@ -140,17 +181,20 @@ export default function TestPatientLibraryKnowledgeTab() {
         );
       })
       .finally(() => setLoading(false));
-  }, [aspect]);
+  }, [aspect, triageOutcome]);
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll, refreshKey]);
 
-  const handleDelete = useCallback(async (row: TestPatientRow) => {
-    const ok = window.confirm(
-      `Delete test patient "${row.name}"? This cannot be undone.`,
-    );
-    if (!ok) return;
+  const handleDelete = useCallback((row: TestPatientRow) => {
+    setPendingDelete(row);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    const row = pendingDelete;
+    if (!row) return;
+    setPendingDelete(null);
     try {
       await deleteTestPatient(row.id);
       setRefreshKey((n) => n + 1);
@@ -161,7 +205,7 @@ export default function TestPatientLibraryKnowledgeTab() {
           : "Could not delete that test patient.",
       );
     }
-  }, []);
+  }, [pendingDelete]);
 
   const stats = useMemo(() => buildStats(counts), [counts]);
 
@@ -177,6 +221,20 @@ export default function TestPatientLibraryKnowledgeTab() {
 
   const toolbarActions: ToolbarAction[] = useMemo(
     () => [
+      {
+        id: "scaffold-from-scenario",
+        label: "Author from a scenario (AI)",
+        icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
+        variant: "secondary",
+        onClick: () => setScenarioOpen(true),
+      },
+      {
+        id: "scaffold-from-rule",
+        label: "Scaffold from a rule (AI)",
+        icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
+        variant: "secondary",
+        onClick: () => setScaffoldOpen(true),
+      },
       {
         id: "build-patient",
         label: "Build a patient",
@@ -245,6 +303,35 @@ export default function TestPatientLibraryKnowledgeTab() {
           <Typography variant="body2">{ageSex(row)}</Typography>
         ),
         width: "120px",
+      },
+      {
+        id: "triage_outcome",
+        header: "Triage outcome",
+        render: (row) =>
+          row.triage_outcome ? (
+            <Tooltip title={TRIAGE_OUTCOME_HINT[row.triage_outcome]} arrow>
+              <Chip
+                size="small"
+                variant="outlined"
+                label={TRIAGE_OUTCOME_LABEL[row.triage_outcome]}
+                color={
+                  row.triage_outcome === "2ww"
+                    ? "error"
+                    : row.triage_outcome === "urgent"
+                      ? "warning"
+                      : row.triage_outcome === "evaluator_outage"
+                        ? "warning"
+                        : "default"
+                }
+                sx={{ fontWeight: 500 }}
+              />
+            </Tooltip>
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              -
+            </Typography>
+          ),
+        width: "180px",
       },
       {
         id: "created_by",
@@ -338,11 +425,54 @@ export default function TestPatientLibraryKnowledgeTab() {
         <SegmentedTabs
           tabs={filterTabs}
           value={aspect}
-          onChange={(id) => setAspect(id as AspectFilter)}
+          onChange={(id) => {
+            const next = id as AspectFilter;
+            setAspect(next);
+            if (!showsTriageFilter(next)) setTriageOutcome("all");
+          }}
           aria-label="Filter test patients by AI aspect"
         />
         <ToolbarActions actions={toolbarActions} />
       </Box>
+
+      {showsTriageFilter(aspect) ? (
+        <Box
+          sx={{ mb: 2 }}
+          role="group"
+          aria-label="Filter SBAR test patients by triage outcome"
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mb: 0.75 }}
+          >
+            Triage outcome -- what the SBAR should recommend.
+            NICE NG12 suspected-cancer fixtures sit under 2 week wait.
+          </Typography>
+          <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap" }}>
+            {TRIAGE_OUTCOME_VALUES.map((value) => {
+              const selected = triageOutcome === value;
+              const count =
+                value === "all"
+                  ? Object.values(triageCounts).reduce((a, b) => a + b, 0)
+                  : triageCounts[value] ?? 0;
+              return (
+                <Tooltip key={value} title={TRIAGE_OUTCOME_HINT[value]} arrow>
+                  <Chip
+                    label={`${TRIAGE_OUTCOME_LABEL[value]} (${count})`}
+                    size="small"
+                    variant={selected ? "filled" : "outlined"}
+                    color={selected ? "primary" : "default"}
+                    onClick={() => setTriageOutcome(value)}
+                    aria-pressed={selected}
+                    data-testid={`triage-chip-${value}`}
+                  />
+                </Tooltip>
+              );
+            })}
+          </Stack>
+        </Box>
+      ) : null}
 
       {loading ? (
         <Stack alignItems="center" sx={{ pt: 6 }}>
@@ -378,12 +508,44 @@ export default function TestPatientLibraryKnowledgeTab() {
         onCloned={() => setRefreshKey((n) => n + 1)}
       />
 
+      <ScaffoldFromRuleDialog
+        open={scaffoldOpen}
+        initialAspect={aspect}
+        onClose={() => setScaffoldOpen(false)}
+        onScaffolded={(newPatientId) => {
+          setRefreshKey((n) => n + 1);
+          setEditingId(newPatientId);
+        }}
+      />
+
+      <ScaffoldFromScenarioDialog
+        open={scenarioOpen}
+        initialAspect={aspect}
+        onClose={() => setScenarioOpen(false)}
+        onScaffolded={(newPatientId) => {
+          setRefreshKey((n) => n + 1);
+          setEditingId(newPatientId);
+        }}
+      />
+
       <EditTestPatientDrawer
         patientId={editingId}
         open={editingId !== null}
         onClose={() => setEditingId(null)}
         onSaved={() => setRefreshKey((n) => n + 1)}
       />
+
+      {pendingDelete ? (
+        <ConfirmDialog
+          title="Delete this test patient?"
+          body={`This will remove "${pendingDelete.name}" from the test patient library. You cannot undo this.`}
+          confirmLabel="Delete"
+          cancelLabel="Keep"
+          variant="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      ) : null}
     </Box>
   );
 }

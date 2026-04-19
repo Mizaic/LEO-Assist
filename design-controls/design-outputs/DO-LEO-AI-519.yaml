@@ -1,0 +1,146 @@
+# -- DO-LEO-AI-519 -- Telemetry kwarg backfill + LLMUsage consolidation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-519"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-519"]
+    user_needs: ["UN-LEO-AI-091"]
+    risks_addressed: ["R-LEO-AI-506"]
+    verification_tests: ["VT-LEO-AI-518"]
+
+  specification:
+    title: "agent_task / patient_id backfill + LLMUsage module merge"
+    description: |
+      Two related improvements:
+
+      1. **LLMUsage consolidation** -- the duplicated module
+         ``services/api/app/services/llm_usage.py`` is replaced with a
+         thin re-export of ``libs.llm_usage`` so cost numbers stop
+         depending on import path. Existing call sites that import
+         ``LLMUsage`` / ``LLMCostConfig`` from either location keep
+         working unchanged.
+
+      2. **Kwarg backfill** -- every production
+         ``LLMClient.converse(...)`` call site is updated to pass a
+         stable, snake_case ``agent_task`` literal so the telemetry
+         events emitted by DI-LEO-AI-515 carry meaningful task
+         labels. Where a patient id is already in scope (Ask LEO,
+         escalation, encounter coding agent, AI first-pass extractor)
+         the call site also forwards ``patient_id``. The full list
+         of touched files is enumerated in DI-LEO-AI-519
+         ``technical_details.file_structure``.
+
+      Stable agent_task labels assigned by this change:
+        * ``coding_worker_llm_extractor``
+        * ``v3_pipeline_extractor``
+        * ``v3_pipeline_llm_check``
+        * ``v3_pipeline_ner_verifier``
+        * ``v3_pipeline_relation_linker``
+        * ``encounter_coding_agent_forced_verdict``
+        * ``encounter_coding_agent``
+        * ``escalate_label``
+        * ``escalate_coding``
+        * ``escalate_coding_from_candidates``
+        * ``ask_leo_smart``
+        * ``ask_leo_rank_candidates``
+        * ``label_verifier``
+        * ``label_verifier_alt_terms``
+        * ``label_verifier_extraction``
+        * ``training_alt_term_suggester``
+        * ``training_synthetic_sentence_generator``
+        * ``terminology_synonym_suggester``
+        * ``terminology_api_synonym_suggester``
+        * ``encounter_query_rewriter``
+        * ``clinical_synonym_expansion``
+        * ``exclusion_detector``
+        * ``prompt_simulator``
+        * ``guidance_rule_arbitrator``
+        * ``guidance_semantic_expansion``
+        * ``guidance_snomed_resolver``
+        * ``guidance_rule_drafter``
+        * ``guidance_rule_reviewer``
+        * ``ai_first_pass_extraction``
+
+    acceptance_criteria:
+      - criterion: "llm_usage_unified"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          ``services.api.app.services.llm_usage.LLMUsage is
+          libs.llm_usage.LLMUsage`` returns True; same for
+          LLMCostConfig.
+      - criterion: "all_converse_sites_have_agent_task"
+        type: "functional"
+        measurement: "Inspection"
+        target: >
+          Static-source test scans services/{api,coding_worker,
+          analytics_api,terminology_api,analysis_worker,
+          pipeline_worker} and libs/ for converse(...) calls and
+          asserts each carries an agent_task kwarg.
+      - criterion: "no_behavioural_change"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Existing pytest suites under tests/ continue to pass with
+          no test logic changes other than relaxing fixture stub
+          signatures to accept **kwargs.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/llm_usage.py"
+        description: >
+          Re-exports LLMUsage / LLMCostConfig from libs.llm_usage.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/pipeline_graph/subgraphs/"
+        description: >
+          agent_task literals added to converse() calls in
+          _extractor.py, llm_check.py, verification.py,
+          relation_linking.py, encounter_coding_agent.py,
+          guidance_rule_extraction_v2_impl.py.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/llm_client/escalation.py"
+        description: >
+          agent_task + patient_id added to all three escalate_*
+          converse calls.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/"
+        description: >
+          agent_task literals added to converse() calls in
+          _training_askleo.py, prompts.py, training.py, terminology.py.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/services/"
+        description: >
+          agent_task / patient_id literals added in
+          label_verifier.py and candidate_ai_first_pass/_extractor.py.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/{coding_worker,analytics_api,terminology_api}/"
+        description: >
+          agent_task literals added in llm_extractor.py,
+          encounter_query_understanding.py, concepts.py.
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 80
+      key_functions:
+        - "(no new functions; pure kwarg backfill + module merge)"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "(none directly; telemetry-only change)"
+    risk_control_measures:
+      - "kwarg defaults preserved so unmodified callers still work"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

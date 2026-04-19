@@ -19,6 +19,7 @@ import type { BucketFilter } from "./ScoreHistogram";
 import EncounterKpiStrip from "./EncounterKpiStrip";
 import EncounterBatchBar from "./EncounterBatchBar";
 import EncounterResultsTable from "./EncounterResultsTable";
+import EncounterResultsTimeline from "./EncounterResultsTimeline";
 import EncounterPreviewDialog from "./EncounterPreviewDialog";
 import Score3DMap, { type ApplyParams } from "./Score3DMap";
 import { useEncounterBatch } from "./useEncounterBatch";
@@ -66,6 +67,9 @@ export default function EncounterMissionControl() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(100);
   const [bucketFilter, setBucketFilter] = useState<BucketFilter | null>(null);
+  const [timelineRange, setTimelineRange] = useState<
+    { fromMs: number; toMs: number } | null
+  >(null);
   const [selected, setSelected] = useState<Record<string, EncounterListItem>>({});
   const [loading, setLoading] = useState(false);
   const [kpis, setKpis] = useState<EncounterKPIs>(DEFAULT_KPI);
@@ -179,6 +183,7 @@ export default function EncounterMissionControl() {
         );
       }
       setSelected({});
+      setTimelineRange(null);
     } catch (err) {
       setRows([]);
       setTotalResults(0);
@@ -239,13 +244,20 @@ export default function EncounterMissionControl() {
 
   const isLoading = loading || batchLoading;
   const filteredRows = useMemo(() => {
-    if (!bucketFilter) return rows;
     return rows.filter((r) => {
-      const s = typeof r.score === "number" ? r.score : null;
-      if (s === null) return false;
-      return s >= bucketFilter.lo && s < bucketFilter.hi;
+      if (bucketFilter) {
+        const s = typeof r.score === "number" ? r.score : null;
+        if (s === null) return false;
+        if (s < bucketFilter.lo || s >= bucketFilter.hi) return false;
+      }
+      if (timelineRange) {
+        const ts = Date.parse(r.encounter_date ?? "");
+        if (!Number.isFinite(ts)) return false;
+        if (ts < timelineRange.fromMs || ts > timelineRange.toMs) return false;
+      }
+      return true;
     });
-  }, [rows, bucketFilter]);
+  }, [rows, bucketFilter, timelineRange]);
   const displayRows = useMemo(
     () => filteredRows.slice((page - 1) * rowsPerPage, page * rowsPerPage),
     [filteredRows, page, rowsPerPage]
@@ -304,6 +316,26 @@ export default function EncounterMissionControl() {
   const handleNearDuplicateThresholdChange = useCallback((v: string) => {
     setSearch((prev) => ({ ...prev, nearDuplicateThreshold: v }));
   }, []);
+
+  const handleTimelineRangeChange = useCallback(
+    (fromMs: number | null, toMs: number | null) => {
+      setTimelineRange(
+        fromMs == null || toMs == null ? null : { fromMs, toMs }
+      );
+      setPage(1);
+    },
+    []
+  );
+
+  const handleTimelineJump = useCallback(
+    (encounterId: string) => {
+      const target = rows.find(
+        (r) => String(r.encounter_id) === String(encounterId)
+      );
+      if (target) setActivePreview(target);
+    },
+    [rows]
+  );
 
   return (
     <Box sx={{ p: 3 }}>
@@ -392,15 +424,26 @@ export default function EncounterMissionControl() {
       )}
 
       {isLoading && <LinearProgress sx={{ mt: 2.5, mb: 1 }} />}
-      {!isLoading && totalResults === 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2.5, mb: 1 }}>
-          Run a search to see encounters.
-        </Typography>
-      )}
+      {/* Empty-state copy is owned by EncounterResultsTable now
+          (DI-LEO-AI-514) so we only render the host-level result-cap
+          alert here. */}
       {rows.length >= RESULT_CAP && !isLoading && (
         <Alert severity="warning" sx={{ mt: 2.5, mb: 1, py: 0 }}>
           Result cap reached (1,200). Narrow your search for full coverage.
         </Alert>
+      )}
+
+      {rows.length > 0 && (
+        <Box sx={{ mt: 2.5, mb: 1 }}>
+          <EncounterResultsTimeline
+            rows={rows}
+            activeEncounterId={activePreview?.encounter_id ?? null}
+            visibleFromMs={timelineRange?.fromMs ?? null}
+            visibleToMs={timelineRange?.toMs ?? null}
+            onVisibleRangeChange={handleTimelineRangeChange}
+            onJumpToEncounter={handleTimelineJump}
+          />
+        </Box>
       )}
 
       <EncounterResultsTable
@@ -414,7 +457,8 @@ export default function EncounterMissionControl() {
         liveMinVectorScore={scoreValues.minVectorScore}
         lastSearchedMinScore={scoreValues.minCombinedScore ?? 0.2}
         lastSearchedMinVectorScore={scoreValues.minVectorScore}
-        highlightedEncounterId={null}
+        highlightedEncounterId={activePreview?.encounter_id ?? null}
+        searchQuery={search.query}
         onToggleSelection={toggleSelection}
         onOpenPreview={setActivePreview}
         onPageChange={handlePageChange}

@@ -2286,6 +2286,7 @@ def _recheck_suggest_alts(term: str, entity_label: str) -> list[str]:
             messages=[{"role": "user", "content": user}],
             max_tokens=256,
             temperature=0.2,
+            agent_task="training_alt_term_suggester",
         )
         raw_text = response.text.strip()
         match = re.search(r"\[.*\]", raw_text, re.DOTALL)
@@ -3935,6 +3936,7 @@ def generate_synthetic_candidates(
                             messages=[{"role": "user", "content": attempt_prompt}],
                             max_tokens=2200,
                             temperature=0.4,
+                            agent_task="training_synthetic_sentence_generator",
                         )
                         sentences = _safe_parse_json_array(response.text)
                     except Exception as exc:

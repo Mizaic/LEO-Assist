@@ -115,6 +115,7 @@ def _call_haiku(
     user_msg: str,
     *,
     tier: str = "small",
+    patient_id: str = "",
 ) -> tuple[str, str]:
     """Invoke Haiku via the shared LLM factory; returns (text, model_id).
 
@@ -129,6 +130,8 @@ def _call_haiku(
         messages=[{"role": "user", "content": user_msg}],
         temperature=0.0,
         max_tokens=_MAX_OUTPUT_TOKENS,
+        agent_task="candidate_ai_first_pass",
+        patient_id=str(patient_id or ""),
     )
     return response.text or "", response.model_id
 
@@ -203,8 +206,11 @@ def ai_extract_entities(
         few_shot_block=few_shot_block,
     )
 
+    patient_id = str(candidate.get("patient_id") or "")
     try:
-        raw, _model_id = call_llm(EXTRACTION_SYSTEM_V1, user_msg, tier=tier)
+        raw, _model_id = call_llm(
+            EXTRACTION_SYSTEM_V1, user_msg, tier=tier, patient_id=patient_id
+        )
     except Exception as exc:  # noqa: BLE001
         logger.warning(
             "Haiku extractor call failed for candidate=%s: %s",

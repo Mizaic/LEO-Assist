@@ -111,6 +111,7 @@ def _try_haiku_rewrite(normalized_query: str) -> tuple[str, float | None, str | 
             max_tokens=200,
             temperature=0.0,
             json_mode=True,
+            agent_task="encounter_query_rewriter",
         )
         payload = json.loads(response.text)
         rewritten = str(payload.get("rewritten_query") or normalized_query).strip()
@@ -281,6 +282,7 @@ def _expand_clinical_synonyms(normalized_query: str) -> tuple[list[str], str]:
             temperature=0.0,
             tool_config=_CLINICAL_SYNONYM_TOOL_CONFIG,
             json_mode=True,
+            agent_task="clinical_synonym_expansion",
         )
         cleaned = _extract_synonyms_from_response(response)
         source = "haiku" if cleaned else "no_synonyms"

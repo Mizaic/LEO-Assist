@@ -1,0 +1,89 @@
+# -- DI-LEO-AI-518 -- Guidance pipeline audit-event unification
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-518"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-091"]
+  requirement: >
+    The system SHALL emit ``:AuditEvent {type:'PipelineRun'}`` events
+    for every guidance rule generation operation -- both the
+    background rule-generator (``GuidanceRuleGenerator._write_guidance_audit_event``)
+    and the synchronous "Test extraction" dry-run endpoint
+    (``POST /guidance/rules/test/{recommendation_id}``). Both events
+    SHALL: (a) carry the four canonical token / cost properties
+    (``llm_input_tokens``, ``llm_output_tokens``, ``llm_cached_tokens``,
+    ``llm_cost_usd``); (b) carry a ``subtype`` of
+    ``guidance_rule_extraction`` (background) or
+    ``guidance_rule_dry_run`` (HITL editor); (c) populate
+    ``extraction_provider``, ``extraction_model_tier``,
+    ``extraction_prompt_name``, and ``extraction_prompt_version`` so
+    the empty-rate and provider-comparison dashboards group them
+    correctly; (d) be best-effort -- a write failure SHALL log at
+    WARNING and never block rule generation or the API response. The
+    legacy ``type='GuidanceRuleExtraction'`` value SHALL be retired in
+    favour of ``type='PipelineRun', subtype='guidance_rule_extraction'``
+    so guidance rows aggregate cleanly with the rest of the platform
+    spend.
+  rationale: >
+    Guidance rule generation already writes its own AuditEvent but
+    used a custom ``type`` value which the unified billing query
+    (``GET_AUDIT_EVENT_SPEND``) ignored. The dry-run endpoint
+    additionally returned ``llm_tokens`` to the UI without persisting
+    anything, so cost incurred by the rule editor was invisible to
+    finance. Both gaps were called out in the llm-cost-telemetry rule
+    audit.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          The guidance rule generator AuditEvent has
+          ``type='PipelineRun'`` and ``subtype='guidance_rule_extraction'``
+          plus the canonical four token / cost fields.
+      - type: "functional"
+        spec: >
+          The dry-run endpoint writes one AuditEvent per call with
+          ``subtype='guidance_rule_dry_run'`` and a ``would_write``
+          boolean property indicating whether the same call would
+          produce a rule under the production code path.
+      - type: "safety"
+        spec: >
+          Either AuditEvent write failing SHALL NOT raise to the
+          caller; rule generation and the dry-run endpoint complete
+          normally with a WARNING in the service log.
+    constraints:
+      - type: "performance"
+        spec: >
+          The dry-run AuditEvent write SHALL add no more than 50 ms
+          p95 to the dry-run endpoint round-trip.
+    dependencies: ["DI-LEO-AI-068", "DI-LEO-AI-114"]
+    downstream_impacts:
+      - "Per-tenant billing dashboards (/admin/billing)"
+      - "Empty-rate-by-prompt analytics"
+      - "Per-patient LLM spend drill-down (when patient_id present)"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI, neo4j-python-driver"
+      file_structure:
+        - "services/api/app/services/guidance_rule_generator.py"
+        - "services/api/app/routers/guidance_rules.py"
+        - "libs/cypher/model_config_queries.py"
+      estimated_loc: 120
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      Pytest cases in ``services/api/tests/test_guidance_rule_generator.py``
+      and ``services/api/tests/test_guidance_rules_dry_run_audit.py``
+      verify: AuditEvent uses unified type, dry-run write fires once
+      per call with token totals matching the response body, write
+      failures are swallowed.
+    test_protocol: "VT-LEO-AI-517"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-506"]
+  tags:
+    - "telemetry"
+    - "guidance-rules"
+    - "audit-event"

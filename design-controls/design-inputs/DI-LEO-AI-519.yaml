@@ -1,0 +1,108 @@
+# -- DI-LEO-AI-519 -- Telemetry granularity + LLMUsage consolidation
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-519"
+  type: "Functional"
+  derived_from: ["UN-LEO-AI-091"]
+  requirement: >
+    The system SHALL improve LLM telemetry granularity and consistency
+    so that operators can attribute spend to the correct logical task
+    and patient. Specifically: (a) every production
+    ``LLMClient.converse`` call site SHALL pass a non-default
+    ``agent_task`` kwarg whose value is a stable, snake_case label
+    identifying the logical pipeline stage (for example
+    ``ask_leo_smart``, ``v3_pipeline_extractor``, ``escalate_coding``);
+    (b) ``LLMClient.converse`` call sites that have a patient id in
+    scope SHALL forward it via the ``patient_id`` kwarg; (c) the
+    duplicated ``LLMUsage`` / ``LLMCostConfig`` modules at
+    ``libs/llm_usage.py`` and ``services/api/app/services/llm_usage.py``
+    SHALL collapse to a single canonical implementation in
+    ``libs/llm_usage`` so cost numbers do not depend on which import
+    path the caller happened to use; (d) the legacy
+    ``services/api/app/services/llm_usage`` import path SHALL continue
+    to work as a thin re-export so existing call sites do not break.
+  rationale: >
+    With the sync entry-point telemetry from DI-LEO-AI-515 in place,
+    every ``converse`` call already emits a tracking event -- but the
+    ``agent_task`` defaults to ``"unknown"`` and ``patient_id`` is
+    empty unless explicitly forwarded, which makes it impossible to
+    answer common operational questions such as "how much did Ask LEO
+    cost this month?" or "which patient drove the spend spike?".
+    Likewise, the two divergent ``LLMUsage`` modules produced
+    different cost numbers depending on whether ``LLMCostConfig.from_env``
+    or ``LLMCostConfig.for_tier`` had been called, breaking
+    aggregation across pipelines.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Every ``LLMClient.converse`` call site under
+          ``services/{api,coding_worker,analytics_api,terminology_api,
+          analysis_worker,pipeline_worker}/`` and ``libs/`` passes a
+          stable ``agent_task`` literal (verified by grep / inspection
+          test).
+      - type: "functional"
+        spec: >
+          ``services/api/app/services/llm_usage`` re-exports
+          ``LLMUsage``, ``LLMCostConfig``, and ``_bedrock_cache_read_tokens``
+          from ``libs.llm_usage`` so ``isinstance`` checks across the
+          two import paths return True.
+      - type: "safety"
+        spec: >
+          Backfilling kwargs MUST NOT change LLM behaviour or break
+          callers that did not previously pass ``agent_task`` /
+          ``patient_id`` (the kwargs are optional with safe defaults).
+    constraints:
+      - type: "performance"
+        spec: >
+          Telemetry kwarg forwarding adds zero measurable latency
+          (the kwargs are passed verbatim to the existing tracking
+          callback emitted by DI-LEO-AI-515).
+    dependencies: ["DI-LEO-AI-515"]
+    downstream_impacts:
+      - "Audit-trail UI (per-task cost breakdown)"
+      - "Per-patient cost drill-down"
+      - "Pricing / billing aggregates"
+    technical_details:
+      language: "Python"
+      framework: "Python stdlib only"
+      file_structure:
+        - "services/api/app/services/llm_usage.py"
+        - "libs/exclusion_detector/detector.py"
+        - "libs/pipeline_graph/subgraphs/_extractor.py"
+        - "libs/pipeline_graph/subgraphs/encounter_coding_agent.py"
+        - "libs/pipeline_graph/subgraphs/llm_check.py"
+        - "libs/pipeline_graph/subgraphs/relation_linking.py"
+        - "libs/pipeline_graph/subgraphs/verification.py"
+        - "libs/pipeline_graph/subgraphs/guidance_rule_extraction_v2_impl.py"
+        - "libs/llm_client/escalation.py"
+        - "libs/llm_client/consensus.py"
+        - "services/api/app/routers/_training_askleo.py"
+        - "services/api/app/routers/prompts.py"
+        - "services/api/app/routers/training.py"
+        - "services/api/app/routers/terminology.py"
+        - "services/api/app/services/label_verifier.py"
+        - "services/api/app/services/candidate_ai_first_pass/_extractor.py"
+        - "services/coding_worker/app/pipeline/llm_extractor.py"
+        - "services/analytics_api/app/services/encounter_query_understanding.py"
+        - "services/terminology_api/app/routers/concepts.py"
+      estimated_loc: 80
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      Pytest cases in
+      ``tests/llm_client/test_telemetry_kwarg_coverage.py`` verify:
+      (1) ``LLMUsage`` and ``LLMCostConfig`` imported from both module
+      paths are the same class; (2) static inspection of the production
+      converse call sites finds an ``agent_task`` kwarg on each one.
+    test_protocol: "VT-LEO-AI-518"
+
+  safety_class: "B"
+  risks: ["R-LEO-AI-506"]
+  tags:
+    - "telemetry"
+    - "refactor"
+    - "observability"

@@ -294,6 +294,7 @@ class LLMExtractorAdapter:
             messages=[{"role": "user", "content": final_user_msg}],
             max_tokens=4096,
             temperature=0.0,
+            agent_task="v3_pipeline_extractor",
         )
 
         # Build usage dict — cost_usd resolved from Neo4j ModelConfig if available

@@ -63,6 +63,25 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
+/**
+ * The widescreen editor splits the form across four steps. The action
+ * chip lives on step 2 ("What should the system suggest?") and the
+ * reason field lives on step 4 ("Save your change").
+ */
+function goToStep(stepNumber: 1 | 2 | 3 | 4) {
+  const rail = screen.getAllByRole("button", {
+    name: new RegExp(`^Step ${stepNumber} of 4`, "i"),
+  });
+  fireEvent.click(rail[0]);
+}
+
+function fillReason(text: string) {
+  goToStep(4);
+  fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
+    target: { value: text },
+  });
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -80,6 +99,7 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
       />,
     );
 
+    goToStep(2);
     const region = screen.getByRole("region", {
       name: /recommended procedure for this rule/i,
     });
@@ -106,6 +126,7 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
         onSave={() => {}}
       />,
     );
+    goToStep(2);
     expect(
       screen.getByRole("button", {
         name: /no procedure picked yet\. click to pick a different procedure\./i,
@@ -132,6 +153,7 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
       />,
     );
 
+    goToStep(2);
     fireEvent.click(
       screen.getByRole("button", {
         name: /plain chest x-ray\. click to pick a different procedure\./i,
@@ -159,9 +181,7 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
       }),
     ).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
-      target: { value: "Switched to ultrasound per chest team feedback" },
-    });
+    fillReason("Switched to ultrasound per chest team feedback");
     fireEvent.click(
       screen.getByRole("button", { name: /save your changes/i }),
     );
@@ -188,9 +208,7 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
-      target: { value: "Tightened criteria only" },
-    });
+    fillReason("Tightened criteria only");
     fireEvent.click(
       screen.getByRole("button", { name: /save your changes/i }),
     );

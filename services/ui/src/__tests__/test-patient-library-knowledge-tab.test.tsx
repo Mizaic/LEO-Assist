@@ -113,7 +113,10 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(src).toMatch(/nlp:\s*"Reading notes"/);
     expect(src).toMatch(/episodes:\s*"Patient story"/);
     expect(src).toMatch(/guidelines:\s*"Rule checks"/);
-    expect(src).toMatch(/summarisation:\s*"SBAR handover"/);
+    // Renamed in the NG12 / referral-triage pass: the SBAR aspect IS
+    // the referral-triage aspect (the SBAR transcript is the deliverable
+    // and the action priority is the triage outcome). The label says so.
+    expect(src).toMatch(/summarisation:\s*"SBAR \/ referral triage"/);
   });
 
   test("TC-005: api client points at the centralised endpoints", () => {
@@ -345,6 +348,159 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     // The drawer talks to the user about why guidelines is read-only
     // here -- the snapshot lives in the guideline editor.
     expect(src).toMatch(/guideline editor/);
+  });
+
+  test("TC-019: api.ts exposes scaffoldFromRule helper for the AI scaffold flow", () => {
+    const api = read(
+      "services/ui/src/app/admin/knowledge/test-patients/api.ts",
+    );
+    // The new helper hits POST /scaffold-from-rule and is typed against
+    // the scaffolder's response shape so callers cannot drift from the
+    // backend contract.
+    expect(api).toMatch(
+      /export function scaffoldFromRule\(\s*body:\s*ScaffoldFromRuleBody/,
+    );
+    expect(api).toMatch(/return request\("\/scaffold-from-rule"/);
+    expect(api).toMatch(/method:\s*"POST"/);
+    // Body shape: rule_id + aspect (one of the three non-Guidelines
+    // aspects -- the scaffolder rejects guidelines with a 422).
+    expect(api).toMatch(/rule_id:\s*string/);
+    expect(api).toMatch(/aspect:\s*"nlp"\s*\|\s*"episodes"\s*\|\s*"summarisation"/);
+    // Result shape: patient_id (drives the editor open) + provenance
+    // counts the dialog can show on success.
+    expect(api).toMatch(/patient_id:\s*string/);
+    expect(api).toMatch(/encounters_written:\s*number/);
+    expect(api).toMatch(/expected_sbar_written:\s*boolean/);
+  });
+
+  test("TC-020: ScaffoldFromRuleDialog wires the rule picker, the aspect select and the scaffold call", () => {
+    const dlg = read(
+      "services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromRuleDialog.tsx",
+    );
+    // Reuses the shared rule tree (no second picker UI).
+    expect(dlg).toMatch(
+      /import RulePickerDialog from "\.\/editor\/RulePickerDialog"/,
+    );
+    expect(dlg).toMatch(/<RulePickerDialog/);
+    // Fetches the rule library once on open via the existing endpoint.
+    expect(dlg).toMatch(/listGuidanceRules\(\{ limit: 500 \}\)/);
+    // Aspect select restricted to the three scaffoldable aspects;
+    // SBAR handover is the default because the scaffolder is most
+    // useful for the SBAR handover regression set.
+    expect(dlg).toMatch(
+      /SCAFFOLDABLE_ASPECTS:\s*ScaffoldAspect\[\]\s*=\s*\[\s*"summarisation"/,
+    );
+    // Calls the new endpoint and returns the new patient id to the
+    // page so the editor drawer opens with the AI draft loaded.
+    expect(dlg).toMatch(/scaffoldFromRule\(\{/);
+    expect(dlg).toMatch(/onScaffolded:\s*\(newPatientId:\s*string\)\s*=>\s*void/);
+    // The honest-test guarantee is shown to the reviewer in plain
+    // English so they understand the AI does NOT write its own ground
+    // truth (that comes from the rule).
+    expect(dlg).toMatch(/expected SBAR/);
+    expect(dlg).toMatch(/AI never\s+writes its own ground truth/);
+  });
+
+  test("TC-021: Knowledge page mounts the Scaffold dialog and opens the editor on success", () => {
+    const page = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    expect(page).toMatch(
+      /import ScaffoldFromRuleDialog from "\.\/ScaffoldFromRuleDialog"/,
+    );
+    // Scaffold is offered alongside Build and Copy in the toolbar.
+    expect(page).toMatch(/id:\s*"scaffold-from-rule"/);
+    expect(page).toMatch(/label:\s*"Scaffold from a rule \(AI\)"/);
+    expect(page).toMatch(/setScaffoldOpen\(true\)/);
+    // Mount + state.
+    expect(page).toMatch(/<ScaffoldFromRuleDialog/);
+    expect(page).toMatch(/scaffoldOpen,\s*setScaffoldOpen/);
+    // On success: refresh the table AND open the editor on the new
+    // patient so the reviewer can review the AI draft immediately.
+    expect(page).toMatch(/onScaffolded=\{\(newPatientId\)\s*=>/);
+    expect(page).toMatch(/setEditingId\(newPatientId\)/);
+  });
+
+  test("TC-022: api.ts exposes scaffoldFromScenario helper for the AI scenario flow", () => {
+    const api = read(
+      "services/ui/src/app/admin/knowledge/test-patients/api.ts",
+    );
+    // The helper hits POST /scaffold-from-scenario and is typed
+    // against the scaffolder's response shape so callers cannot
+    // drift from the backend contract.
+    expect(api).toMatch(
+      /export function scaffoldFromScenario\(\s*body:\s*ScaffoldFromScenarioBody/,
+    );
+    expect(api).toMatch(/return request\("\/scaffold-from-scenario"/);
+    // Body shape: scenario text + the same three scaffoldable aspects.
+    expect(api).toMatch(/scenario:\s*string/);
+    expect(api).toMatch(
+      /aspect:\s*"nlp"\s*\|\s*"episodes"\s*\|\s*"summarisation"/,
+    );
+    // Result shape: patient_id (drives the editor open) + a rich
+    // resolution summary so the dialog can show what resolved, what
+    // needs review, and which rules fired.
+    expect(api).toMatch(/patient_id:\s*string/);
+    expect(api).toMatch(/scenario:\s*string/);
+    expect(api).toMatch(/resolved_terms:\s*ScaffoldResolvedTerm\[\]/);
+    expect(api).toMatch(/unresolved_terms:\s*ScaffoldUnresolvedTerm\[\]/);
+    expect(api).toMatch(/matched_rules:\s*ScaffoldMatchedRule\[\]/);
+    // Resolved-term row carries the SNOMED concept_id (nullable when
+    // the candidate scored below the floor) and the assertion.
+    expect(api).toMatch(/concept_id:\s*string\s*\|\s*null/);
+    expect(api).toMatch(/assertion:\s*string/);
+  });
+
+  test("TC-023: ScaffoldFromScenarioDialog wires the text area, the aspect select and the scaffold call", () => {
+    const dlg = read(
+      "services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromScenarioDialog.tsx",
+    );
+    // Scenario textarea is the focus of the dialog -- it must be
+    // multiline, have a min/max length validation, and be data-test
+    // discoverable.
+    expect(dlg).toMatch(/<TextField[\s\S]*?multiline/);
+    expect(dlg).toMatch(/MIN_SCENARIO_CHARS/);
+    expect(dlg).toMatch(/MAX_SCENARIO_CHARS/);
+    expect(dlg).toMatch(/data-testid":\s*"scenario-input"/);
+    // Aspect select restricted to the three scaffoldable aspects;
+    // SBAR handover is the default because the rule engine pass is
+    // most useful when checking SBAR rule fires.
+    expect(dlg).toMatch(
+      /SCAFFOLDABLE_ASPECTS:\s*ScaffoldAspect\[\]\s*=\s*\[\s*"summarisation"/,
+    );
+    // Calls the new endpoint and returns the new patient id to the
+    // page so the editor drawer opens with the AI draft loaded.
+    expect(dlg).toMatch(/scaffoldFromScenario\(\{/);
+    expect(dlg).toMatch(
+      /onScaffolded:\s*\(newPatientId:\s*string\)\s*=>\s*void/,
+    );
+    // The honest-test guarantee is shown to the reviewer in plain
+    // English: AI writes the prose, codes come from the terminology
+    // service, expected SBAR comes from the rule engine.
+    expect(dlg).toMatch(/AI\s+never\s+writes\s+its\s+own\s+ground\s+truth/);
+    expect(dlg).toMatch(/terminology service/);
+    expect(dlg).toMatch(/rule engine/);
+  });
+
+  test("TC-024: Knowledge page mounts the Scenario dialog and opens the editor on success", () => {
+    const page = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    expect(page).toMatch(
+      /import ScaffoldFromScenarioDialog from "\.\/ScaffoldFromScenarioDialog"/,
+    );
+    // The new toolbar action sits alongside the existing flows.
+    expect(page).toMatch(/id:\s*"scaffold-from-scenario"/);
+    expect(page).toMatch(/label:\s*"Author from a scenario \(AI\)"/);
+    expect(page).toMatch(/setScenarioOpen\(true\)/);
+    // Mount + state for the dialog itself.
+    expect(page).toMatch(/<ScaffoldFromScenarioDialog/);
+    expect(page).toMatch(/scenarioOpen,\s*setScenarioOpen/);
+    // On success: refresh the table AND open the editor on the new
+    // patient so the reviewer can review the AI draft immediately.
+    expect(page).toMatch(
+      /<ScaffoldFromScenarioDialog[\s\S]*?onScaffolded=\{\(newPatientId\)\s*=>[\s\S]*?setEditingId\(newPatientId\)/,
+    );
   });
 
   test("TC-006: legacy /admin/guidance/test-patients route file is removed", () => {

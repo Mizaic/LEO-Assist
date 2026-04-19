@@ -712,8 +712,20 @@ class GuidanceRuleGenerator:
 
             audit_id = f"audit-guidance-{rec.get('id', uuid.uuid4())}"
             props = {
-                "type": "GuidanceRuleExtraction",
+                # DI-LEO-AI-518: align with the unified AuditEvent wire
+                # format so guidance rule generation costs aggregate
+                # alongside SBAR / coding / episode-engine spend in
+                # /admin/billing without UI changes. The legacy
+                # ``GuidanceRuleExtraction`` value is preserved as a
+                # ``subtype`` discriminator.
+                "type": "PipelineRun",
                 "subtype": "guidance_rule_extraction",
+                "plan_definition_id": "guidance_rule_extraction",
+                "event_type": "guidance_rule_extraction",
+                "extraction_prompt_name": "guidance_rule_extraction",
+                "extraction_prompt_version": 1,
+                "extraction_provider": "bedrock",
+                "extraction_model_tier": "small",
                 "guideline_id": guideline_id,
                 "recommendation_id": rec.get("id", ""),
                 "rule_id": rule_id or "",
@@ -726,7 +738,7 @@ class GuidanceRuleGenerator:
                 "llm_cost_usd": round(cost_usd, 6),
                 "error_count": len(errors),
                 "errors": str(errors[:10]),
-                # patient_id intentionally omitted — platform spend, not patient spend
+                # patient_id intentionally omitted -- platform spend, not patient spend
             }
             with self._driver.session() as session:
                 session.run(_UPSERT_GUIDANCE_AUDIT_EVENT, id=audit_id, props=props)

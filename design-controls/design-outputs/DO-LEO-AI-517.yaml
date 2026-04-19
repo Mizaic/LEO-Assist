@@ -1,0 +1,106 @@
+# -- DO-LEO-AI-517 -- Episode-engine PipelineRun audit event
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-517"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-517"]
+    user_needs: ["UN-LEO-AI-091"]
+    risks_addressed: ["R-LEO-AI-506"]
+    verification_tests: ["VT-LEO-AI-516"]
+
+  specification:
+    title: "Episode-engine PipelineRun :AuditEvent"
+    description: |
+      Two surgical edits land episode-engine LLM spend in the
+      unified billing dashboards:
+
+      1. ``services/analysis_worker/app/episode_engine/tracing.py``
+         gains a new Cypher constant
+         ``_WRITE_EPISODE_ENGINE_AUDIT_EVENT`` and an internal helper
+         ``_write_audit_event`` that ``persist_trace`` invokes after
+         the existing ``EpisodeEngineTrace`` write. The helper:
+           * derives ``status`` from per-stage ``ok`` flags + the
+             engine-level ``errors`` array (completed / partial /
+             failed)
+           * picks ``first_error`` from the first errored stage when
+             the engine-level errors list is empty
+           * computes ``llm_cost_usd`` from per-stage ``cost_usd``
+             totals; if those totals are zero (env vars unset for the
+             stage tier) it falls back to a recomputation via
+             ``LLMCostConfig.for_tier``
+           * defaults ``extraction_provider='bedrock'`` /
+             ``extraction_model_tier`` from the first stage's
+             ``model_id`` / ``tier``
+           * is wrapped in ``try/except`` so a Neo4j failure logs at
+             WARNING and never raises
+         The Cypher constant mirrors
+         ``WRITE_SBAR_AUDIT_EVENT`` so the same
+         ``GET_AUDIT_EVENT_SPEND`` query returns these rows with no
+         UI changes; an ``OPTIONAL MATCH (p:Patient)`` keeps the
+         write idempotent when the patient does not exist.
+
+      2. ``libs/cypher/model_config_queries.py::GET_PATIENT_LLM_SPEND``
+         gains a UNION over ``:AuditEvent {type:'PipelineRun',
+         subtype:'episode_engine'}`` rows, synthesising the same
+         ``llm_usage_json`` shape the EncounterCandidate / Assessment
+         branches emit so the per-patient drill-down picks them up
+         with no API or UI change.
+
+    acceptance_criteria:
+      - criterion: "audit_event_written"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          One :AuditEvent {type:'PipelineRun',
+          subtype:'episode_engine'} written per persist_trace call,
+          with the four canonical token / cost fields populated.
+      - criterion: "patient_link"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          When the patient exists, the AuditEvent has an
+          [:AUDIT_FOR] edge to the Patient.
+      - criterion: "no_raise_on_failure"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Failure to write the AuditEvent does not bubble out of
+          persist_trace.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/tracing.py"
+        description: >
+          New _WRITE_EPISODE_ENGINE_AUDIT_EVENT Cypher constant +
+          _write_audit_event + _resolve_total_cost_usd helpers
+          invoked from persist_trace.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/cypher/model_config_queries.py"
+        description: >
+          GET_PATIENT_LLM_SPEND extended with episode-engine UNION.
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 145
+      key_functions:
+        - "persist_trace"
+        - "_write_audit_event"
+        - "_resolve_total_cost_usd"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Best-effort telemetry write (must never raise)"
+    risk_control_measures:
+      - "Try/except wrapper around AuditEvent write"
+      - "OPTIONAL MATCH (p:Patient) keeps Cypher safe when patient absent"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

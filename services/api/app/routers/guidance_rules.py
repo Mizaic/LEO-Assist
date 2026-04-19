@@ -450,16 +450,122 @@ async def test_rule_extraction(
         return JSONResponse(status_code=422, content=response_body)
 
     if errors:
-        # Partial results — coded_criteria exists but some terms failed or
+        # Partial results -- coded_criteria exists but some terms failed or
         # Azure was offline.  Return 200 with warnings in the body so the UI
         # can show what DID get coded plus highlight the failures.
         logger.warning(
-            "Rule extraction test PARTIAL for %s — coded_criteria returned with warnings: %s",
+            "Rule extraction test PARTIAL for %s -- coded_criteria returned"
+            " with warnings: %s",
             recommendation_id,
             errors,
         )
 
+    _write_dry_run_audit_event(
+        recommendation_id=recommendation_id,
+        guideline_id=guideline_id,
+        coded=coded,
+        errors=list(errors),
+        llm_tokens=dict(llm_tokens),
+    )
+
     return response_body
+
+
+# DI-LEO-AI-518: persist a PipelineRun :AuditEvent for guidance dry-run
+# invocations so /admin/billing surfaces the cost of the rule editor's
+# "Test extraction" button. Best-effort -- never raises, never blocks.
+_DRY_RUN_AUDIT_EVENT = """
+MERGE (ae:AuditEvent {id: $id})
+SET ae.type                          = 'PipelineRun',
+    ae.subtype                       = 'guidance_rule_dry_run',
+    ae.plan_definition_id            = 'guidance_rule_extraction',
+    ae.event_type                    = 'guidance_rule_dry_run',
+    ae.guideline_id                  = $guideline_id,
+    ae.recommendation_id             = $recommendation_id,
+    ae.status                        = $status,
+    ae.error_count                   = $error_count,
+    ae.first_error                   = $first_error,
+    ae.llm_input_tokens              = $llm_input_tokens,
+    ae.llm_output_tokens             = $llm_output_tokens,
+    ae.llm_cached_tokens             = $llm_cached_tokens,
+    ae.llm_calls                     = $llm_calls,
+    ae.llm_cost_usd                  = $llm_cost_usd,
+    ae.extraction_prompt_name        = 'guidance_rule_extraction',
+    ae.extraction_prompt_version     = 1,
+    ae.extraction_provider           = 'bedrock',
+    ae.extraction_model_tier         = 'small',
+    ae.would_write                   = $would_write,
+    ae.created_at                    = datetime()
+RETURN ae.id AS id
+"""
+
+
+def _write_dry_run_audit_event(
+    *,
+    recommendation_id: str,
+    guideline_id: str,
+    coded,
+    errors: list[str],
+    llm_tokens: dict,
+) -> None:
+    """Persist guidance rule dry-run telemetry as a PipelineRun event.
+
+    Mirrors guidance_rule_generator._write_guidance_audit_event but
+    runs in the request handler. The wire format is intentionally a
+    superset (adds ``would_write``) so the dashboards can distinguish
+    dry-run cost from production rule generation cost.
+    """
+
+    try:
+        from libs.llm_usage import LLMCostConfig, LLMUsage
+
+        usage = LLMUsage(
+            input_tokens=int(llm_tokens.get("input_tokens", 0)),
+            output_tokens=int(llm_tokens.get("output_tokens", 0)),
+            cached_input_tokens=int(llm_tokens.get("cached_input_tokens", 0)),
+            llm_calls=int(llm_tokens.get("llm_calls", 0)),
+        )
+        try:
+            cost_usd = usage.cost_usd(LLMCostConfig.from_env())
+        except Exception:
+            cost_usd = 0.0
+
+        status = "completed" if coded is not None and not errors else (
+            "partial" if coded is not None else "failed"
+        )
+        first_error = errors[0][:400] if errors else None
+
+        client = CodingGraphClient()
+        try:
+            client.run(
+                _DRY_RUN_AUDIT_EVENT,
+                id=f"audit-guidance-dryrun-{recommendation_id}-{uuid.uuid4().hex[:8]}",
+                guideline_id=guideline_id,
+                recommendation_id=recommendation_id,
+                status=status,
+                error_count=len(errors),
+                first_error=first_error,
+                llm_input_tokens=int(usage.input_tokens),
+                llm_output_tokens=int(usage.output_tokens),
+                llm_cached_tokens=int(usage.cached_input_tokens),
+                llm_calls=int(usage.llm_calls),
+                llm_cost_usd=round(cost_usd, 6),
+                would_write=bool(
+                    coded is not None
+                    and not any("terminology_api_unavailable" in e for e in errors)
+                ),
+            )
+        finally:
+            try:
+                client.close()
+            except Exception:
+                pass
+    except Exception:
+        logger.warning(
+            "Failed to write guidance dry-run AuditEvent for %s",
+            recommendation_id,
+            exc_info=True,
+        )
 
 
 @router.post("/rules/generate", status_code=202)

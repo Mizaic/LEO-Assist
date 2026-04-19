@@ -103,6 +103,47 @@ def _bedrock_cache_read_tokens(usage: dict[str, Any]) -> int:
     )
 
 
+def _fire_converse_tracking(
+    *,
+    agent_task: str,
+    patient_id: str,
+    model_name: str,
+    model_provider: str,
+    input_tokens: int,
+    output_tokens: int,
+    cache_read_input_tokens: int,
+    cache_creation_input_tokens: int,
+    latency_ms: int,
+    success: bool,
+    error_message: str = "",
+) -> None:
+    """Best-effort telemetry emission for LLMClient.converse.
+
+    Imports ``track_llm_usage_sync`` lazily to avoid a circular import
+    risk and so that callers without telemetry installed pay zero
+    import cost. Any failure inside the tracking path is swallowed --
+    converse callers MUST never fail because of cost-tracking.
+    """
+    try:
+        from libs.llm_client.token_tracker import track_llm_usage_sync
+
+        track_llm_usage_sync(
+            model_name=model_name,
+            model_provider=model_provider,
+            agent_task=agent_task,
+            patient_id=patient_id,
+            input_tokens=int(max(0, input_tokens or 0)),
+            output_tokens=int(max(0, output_tokens or 0)),
+            cache_read_input_tokens=int(max(0, cache_read_input_tokens or 0)),
+            cache_creation_input_tokens=int(max(0, cache_creation_input_tokens or 0)),
+            latency_ms=int(max(0, latency_ms or 0)),
+            success=bool(success),
+            error_message=str(error_message or "")[:400],
+        )
+    except Exception:
+        logger.debug("converse telemetry emission failed", exc_info=True)
+
+
 class LLMClient:
     """Sync LLM client wrapping a single provider + model."""
 
@@ -180,6 +221,9 @@ class LLMClient:
         temperature: float = 0.0,
         tool_config: dict[str, Any] | None = None,
         json_mode: bool = False,
+        *,
+        agent_task: str = "unknown",
+        patient_id: str = "",
     ) -> LLMResponse:
         """Synchronous call. Returns unified response regardless of provider.
 
@@ -191,20 +235,65 @@ class LLMClient:
                 * Azure OpenAI: sets ``response_format={"type": "json_object"}``.
                   Requires the word "JSON" to appear somewhere in the prompt
                   (already true for all structured-output callers in this codebase).
-                * AWS Bedrock: JSON enforcement is handled via ``tool_config`` —
+                * AWS Bedrock: JSON enforcement is handled via ``tool_config`` --
                   pass a schema-constrained toolConfig and Claude is forced to use
                   the tool (it physically cannot return prose).  ``json_mode=True``
                   is a no-op for Bedrock when ``tool_config`` is already supplied.
+            agent_task: Logical task tag forwarded to the LLM tracking
+                callback (DI-LEO-AI-515). Defaults to ``"unknown"`` so
+                callers that do not yet pass a task name remain
+                source-compatible.
+            patient_id: Patient id forwarded to the tracking callback so
+                per-tenant billing can attribute cost. Defaults to ``""``.
         """
         client = self._get_client()
-        if self.provider == "aws":
-            return self._converse_bedrock(
-                client, system, messages, max_tokens, temperature, tool_config
+        provider_tag = "aws" if self.provider == "aws" else "azure"
+        started = time.monotonic()
+        try:
+            if self.provider == "aws":
+                response = self._converse_bedrock(
+                    client, system, messages, max_tokens, temperature, tool_config
+                )
+            else:
+                response = self._converse_azure(
+                    client,
+                    system,
+                    messages,
+                    max_tokens,
+                    temperature,
+                    json_mode=json_mode,
+                )
+        except Exception as exc:
+            latency_ms = int((time.monotonic() - started) * 1000)
+            _fire_converse_tracking(
+                agent_task=agent_task,
+                patient_id=patient_id,
+                model_name=self.model_id,
+                model_provider=provider_tag,
+                input_tokens=0,
+                output_tokens=0,
+                cache_read_input_tokens=0,
+                cache_creation_input_tokens=0,
+                latency_ms=latency_ms,
+                success=False,
+                error_message=str(exc),
             )
-        else:
-            return self._converse_azure(
-                client, system, messages, max_tokens, temperature, json_mode=json_mode
-            )
+            raise
+
+        latency_ms = int((time.monotonic() - started) * 1000)
+        _fire_converse_tracking(
+            agent_task=agent_task,
+            patient_id=patient_id,
+            model_name=self.model_id,
+            model_provider=provider_tag,
+            input_tokens=int(response.input_tokens or 0),
+            output_tokens=int(response.output_tokens or 0),
+            cache_read_input_tokens=int(response.cached_input_tokens or 0),
+            cache_creation_input_tokens=0,
+            latency_ms=latency_ms,
+            success=True,
+        )
+        return response
 
     def _converse_bedrock(
         self,

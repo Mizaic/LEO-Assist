@@ -1,8 +1,12 @@
-import React from "react";
-import Box from "@mui/material/Box";
-
 // Date / regex / sentence helpers shared by the Encounter text surface.
 // See DI-LEO-AI-179 / DO-LEO-AI-178.
+//
+// Note: the previous `highlightSearchMatches` helper has been
+// retired (DI-LEO-AI-514). All highlight rendering on the encounter
+// surfaces now goes through the shared
+// `components/mission-control/HighlightedText.tsx` primitive so the
+// dialog, the patient drawer, and the mission-control results table
+// share one amber token and one matching rule set.
 
 export const MILESTONE_LABELS: Record<string, string> = {
   first_presentation: "First seen",
@@ -50,37 +54,6 @@ export function shortDate(iso: string | null | undefined): string {
 
 export function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-// Wrap each case-insensitive occurrence of `query` in a <mark> so the
-// reader can quickly see why an encounter matched their search.
-export function highlightSearchMatches(
-  text: string,
-  query: string
-): React.ReactNode {
-  const trimmed = query.trim();
-  if (!trimmed || !text) return text;
-  const pattern = new RegExp(`(${escapeRegex(trimmed)})`, "gi");
-  const parts = text.split(pattern);
-  return parts.map((part, index) =>
-    index % 2 === 1 ? (
-      <Box
-        component="mark"
-        key={index}
-        sx={{
-          bgcolor: "#fde68a",
-          color: "inherit",
-          px: 0.25,
-          borderRadius: "2px",
-          fontWeight: 600,
-        }}
-      >
-        {part}
-      </Box>
-    ) : (
-      part
-    )
-  );
 }
 
 export function deriveEvidenceSentence(

@@ -417,6 +417,7 @@ def _call_model_for_label(
                 messages=[{"role": "user", "content": json.dumps(user_payload)}],
                 max_tokens=1024,
                 temperature=0.0,
+                agent_task="label_verifier",
             )
             parsed = _parse_model_json(response.text)
             entity_rows = parsed.get("entities", [])
@@ -977,6 +978,7 @@ def _suggest_alt_terms(term: str, entity_label: str) -> list[str]:
             messages=[{"role": "user", "content": user_prompt}],
             max_tokens=256,
             temperature=0.2,
+            agent_task="label_verifier_alt_terms",
         )
         raw_text = response.text.strip()
         match = re.search(r"\[.*\]", raw_text, re.DOTALL)
@@ -1547,6 +1549,7 @@ def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
                 messages=[{"role": "user", "content": user_payload}],
                 max_tokens=2048,
                 temperature=0.0,
+                agent_task="label_verifier_extraction",
             )
             break
         except Exception as exc:

@@ -196,6 +196,8 @@ def register_askleo_routes(router) -> None:
                 messages=[{"role": "user", "content": user_msg}],
                 temperature=0.0,
                 max_tokens=150,
+                agent_task="ask_leo_rank_candidates",
+                patient_id=str(getattr(body, "patient_id", "") or ""),
             )
             parsed = _parse_json(response.text)
             idx = int(parsed.get("selected_index", 0))

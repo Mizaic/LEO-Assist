@@ -26,6 +26,29 @@ export interface SbarStageState {
   actionCount?: number;
   sourceCount?: number;
   codeCount?: number;
+  /** Friendly stage error surfaced via sbar_stage_completed.error. */
+  errorDetail?: SbarErrorDetail | null;
+  /** Friendly stage notice surfaced via sbar_stage_completed.notice. */
+  notice?: SbarNotice | null;
+}
+
+/** Friendly per-stage error built by libs.sbar.error_messages on the
+ *  pipeline worker. The `message` field is plain English at reading
+ *  age 9-11 and is safe to render directly in the UI. Raw AWS /
+ *  Bedrock exception strings are NEVER carried in this shape. */
+export interface SbarErrorDetail {
+  stage: SbarStageName;
+  code: string;
+  message: string;
+}
+
+/** Friendly per-stage notice (e.g. the background shrinker's
+ *  "trimmed N records to fit" message). Same wire shape as
+ *  SbarErrorDetail. */
+export interface SbarNotice {
+  stage: SbarStageName;
+  code: string;
+  message: string;
 }
 
 export interface SbarStreamState {
@@ -36,6 +59,11 @@ export interface SbarStreamState {
   assessmentId: string | null;
   stages: Record<SbarStageName, SbarStageState>;
   finalContent: string | null;
+  /** Plain-English run errors aggregated on sbar_completed. */
+  errors: SbarErrorDetail[];
+  /** Plain-English notices aggregated on sbar_completed (e.g.
+   *  background trim notice from the shrinker). */
+  notices: SbarNotice[];
 }
 
 export interface SbarSituationArtifactInput {
@@ -135,6 +163,8 @@ export function useSbarStream() {
     assessmentId: null,
     stages: initialStages(),
     finalContent: null,
+    errors: [],
+    notices: [],
   });
 
   const esRef = useRef<EventSource | null>(null);
@@ -158,6 +188,8 @@ export function useSbarStream() {
       assessmentId,
       stages: initialStages(),
       finalContent: null,
+      errors: [],
+      notices: [],
     });
 
     const origin =
@@ -192,33 +224,54 @@ export function useSbarStream() {
     on("sbar_stage_completed", (d) => {
       const stage = (d.stage ?? "") as SbarStageName;
       if (!STAGES.includes(stage)) return;
-      setState((s) => ({
-        ...s,
-        status: `${stage} ready.`,
-        stages: {
-          ...s.stages,
-          [stage]: {
-            status: "completed",
-            preview: d.preview ?? null,
-            ruleCount: d.rule_count,
-            actionCount: d.action_count,
-            sourceCount: d.source_count,
-            codeCount: d.code_count,
+      const stageError = (d.error ?? null) as SbarErrorDetail | null;
+      const stageNotice = (d.notice ?? null) as SbarNotice | null;
+      setState((s) => {
+        const nextNotices = stageNotice
+          ? [...s.notices, stageNotice]
+          : s.notices;
+        return {
+          ...s,
+          status: `${stage} ready.`,
+          notices: nextNotices,
+          stages: {
+            ...s.stages,
+            [stage]: {
+              status: "completed",
+              preview: d.preview ?? null,
+              ruleCount: d.rule_count,
+              actionCount: d.action_count,
+              sourceCount: d.source_count,
+              codeCount: d.code_count,
+              errorDetail: stageError,
+              notice: stageNotice,
+            },
           },
-        },
-      }));
+        };
+      });
     });
 
     on("sbar_completed", async (d) => {
       finishedRef.current = true;
-      setState((s) => ({
-        ...s,
-        running: false,
-        status:
-          d.status === "completed"
-            ? "Done."
-            : `Done (${d.error_count ?? 0} errors).`,
-      }));
+      const errorsList = Array.isArray(d.errors)
+        ? (d.errors as SbarErrorDetail[])
+        : [];
+      const noticesList = Array.isArray(d.notices)
+        ? (d.notices as SbarNotice[])
+        : [];
+      setState((s) => {
+        const haveStageNotices = s.notices.length > 0;
+        return {
+          ...s,
+          running: false,
+          status:
+            d.status === "completed"
+              ? "Done."
+              : `Done (${d.error_count ?? errorsList.length} errors).`,
+          errors: errorsList,
+          notices: haveStageNotices ? s.notices : noticesList,
+        };
+      });
       source.close();
       esRef.current = null;
       try {
@@ -284,6 +337,8 @@ export function useSbarStream() {
         assessmentId: null,
         stages: initialStages(),
         finalContent: null,
+        errors: [],
+        notices: [],
       });
       const concern = (params.concern ?? "").trim();
       const body: Record<string, unknown> = {

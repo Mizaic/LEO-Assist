@@ -357,6 +357,7 @@ def suggest_aliases_for_concept(
             messages=[{"role": "user", "content": user_prompt}],
             max_tokens=512,
             temperature=0.3,
+            agent_task="terminology_synonym_suggester",
         )
         text = response.text.strip()
         match = re.search(r"\[.*\]", text, re.DOTALL)

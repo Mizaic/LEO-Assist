@@ -1,19 +1,33 @@
 "use client";
 
 /**
- * Widescreen step-rail editor for an AI-generated guidance rule.
+ * Widescreen step editor for an AI-generated guidance rule.
  *
- * Layout:
- *   - Left column (rail): four numbered steps, jump-able. The current
- *     step gets the canonical 3px accent strip; ready steps show a
- *     green tick.
- *   - Centre column (canvas): one focused step body at a time. Steps
- *     are presentational components in ./steps/, fed from the state
- *     held in this orchestrator.
- *   - Right column (preview): always-on plain-English mirror of the
- *     rule + a "what the system will do" recap. On step 4 the pane
- *     swaps to a Before / After diff so the reviewer can see exactly
- *     what they are saving.
+ * Layout (v2 -- April 2026 reflow for first-time reviewers):
+ *
+ *   +--- DialogTitle (guideline kicker + chapter caption) ---+
+ *   +--- HorizontalStepper (4 jump-able steps, 56px tall) ---+
+ *   +--- LivePreviewBanner (sticky one-line preview + drawer trigger) ---+
+ *   |                                                                    |
+ *   |                  CANVAS (full available width)                     |
+ *   |                                                                    |
+ *   +--- Sticky DialogActions (Cancel | Back | Next | Save) -------------+
+ *
+ *   On demand:
+ *     - LivePreviewDrawer is an INLINE slide-in panel that shares the
+ *       canvas row inside the dialog body. It is not a page-level
+ *       Modal, so it can never appear beside or behind the dialog
+ *       backdrop. When open it occupies ~380px on the right of the
+ *       canvas; when closed the canvas reclaims the full width.
+ *     - ChipSearchPopover anchors to the chip / +Add the reviewer
+ *       just clicked, replacing the previous always-visible
+ *       right-hand search column.
+ *
+ * The previous 3-column grid (StepRail | Canvas | LivePreviewPane)
+ * left the canvas at ~320px on a typical laptop once a search panel
+ * was open and trapped users in modes with no clear close
+ * affordance. The new layout keeps the canvas as the single primary
+ * surface and reserves screen real estate for the rule itself.
  *
  * Footer: sticky DialogActions with Back / Next / Save. Save is the
  * single primary action; it is gated on a >=3-character reason and a
@@ -23,8 +37,9 @@
  * ``{ action: "edit", reason, updates: { name, strength, logic_tree } }``.
  * The backend writes a new versioned rule and returns the new rule_id.
  *
- * Design Controls: UN-LEO-AI-094, DI-LEO-AI-512, DO-LEO-AI-512,
- *                  R-LEO-AI-509, VT-LEO-AI-511.
+ * Design Controls: UN-LEO-AI-094 (v2), DI-LEO-AI-512 (v2),
+ *                  DO-LEO-AI-512 (v2), R-LEO-AI-509 (v2),
+ *                  VT-LEO-AI-511 (v2).
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -48,8 +63,11 @@ import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 
 import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
-import LivePreviewPane from "./LivePreviewPane";
-import StepRail, { type StepDescriptor, type StepState } from "./StepRail";
+import ChipSearchPopover from "./ChipSearchPopover";
+import HorizontalStepper from "./HorizontalStepper";
+import LivePreviewBanner from "./LivePreviewBanner";
+import LivePreviewDrawer from "./LivePreviewDrawer";
+import { type StepDescriptor, type StepState } from "./StepRail";
 import Step1Who from "./steps/Step1Who";
 import Step2Suggest from "./steps/Step2Suggest";
 import Step3Try from "./steps/Step3Try";
@@ -101,6 +119,15 @@ interface SearchTarget {
   nodeId: string | null;
   initialQuery: string;
   focusLabel: string | null;
+  /**
+   * DOM element the popover should anchor to. Captured from the
+   * chip's onClick / +Add button onClick so the search appears
+   * directly under the trigger the user just touched.
+   *
+   * For the in-step `replace_action` slot we leave this null because
+   * Step 2 still renders the search inline beneath the action chip.
+   */
+  anchorEl: HTMLElement | null;
 }
 
 const IDLE_TARGET: SearchTarget = {
@@ -109,6 +136,7 @@ const IDLE_TARGET: SearchTarget = {
   nodeId: null,
   initialQuery: "",
   focusLabel: null,
+  anchorEl: null,
 };
 
 export default function EditRuleDialog({
@@ -129,7 +157,7 @@ export default function EditRuleDialog({
   const [searchTarget, setSearchTarget] = useState<SearchTarget>(IDLE_TARGET);
   const [showRecommendation, setShowRecommendation] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [searchPanelPinned, setSearchPanelPinned] = useState(false);
+  const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
   const [coach, setCoach] = useState<{
     nodeId: string;
     anchor: HTMLElement;
@@ -161,7 +189,7 @@ export default function EditRuleDialog({
     setReason("");
     setSearchTarget(IDLE_TARGET);
     setShowRecommendation(false);
-    setSearchPanelPinned(false);
+    setPreviewDrawerOpen(false);
     setCoach(null);
     setAction(rule.action ?? null);
     setOriginalAction(rule.action ?? null);
@@ -182,11 +210,14 @@ export default function EditRuleDialog({
     [tree],
   );
 
-  // The right-hand search column is "open" when the user is actively
-  // picking a concept OR when they have explicitly pinned it open via
-  // the slim rail. Otherwise it collapses to a 56px rail so the tree
-  // gets the full step width.
-  const searchPanelOpen = searchTarget.mode !== "idle" || searchPanelPinned;
+  // The chip-anchored search popover is open whenever there is an
+  // active concept-picking target with an anchor element. The
+  // `replace_action` slot in Step 2 still renders the search inline
+  // (it is not a chip-anchored interaction) so we only treat it as
+  // the chip popover when the anchor is set.
+  const chipPopoverOpen =
+    (searchTarget.mode === "replace" || searchTarget.mode === "add") &&
+    searchTarget.anchorEl !== null;
 
   const validationError = useMemo(() => findValidationError(tree), [tree]);
   const reasonReady = reason.trim().length >= 3;
@@ -221,7 +252,6 @@ export default function EditRuleDialog({
   const handleJumpStep = useCallback((next: StepId) => {
     setCurrentStepId(next);
     setSearchTarget(IDLE_TARGET);
-    setSearchPanelPinned(false);
   }, []);
 
   const currentIndex = STEP_IDS.indexOf(currentStepId);
@@ -245,7 +275,10 @@ export default function EditRuleDialog({
     }
   }
 
-  function handleSelectNode(nodeId: string) {
+  function handleSelectNode(
+    nodeId: string,
+    anchor?: HTMLElement | null,
+  ) {
     if (!tree) return;
     const focused = findNode(tree, nodeId);
     if (!focused) return;
@@ -262,10 +295,14 @@ export default function EditRuleDialog({
       focusLabel: friendly
         ? `Swapping: ${friendly}`
         : "Pick a symptom or sign for the empty pill",
+      anchorEl: anchor ?? null,
     });
   }
 
-  function handleRequestAdd(parentNodeId: string) {
+  function handleRequestAdd(
+    parentNodeId: string,
+    anchor?: HTMLElement | null,
+  ) {
     if (!tree) return;
     const parent = findNode(tree, parentNodeId);
     setSearchTarget({
@@ -276,7 +313,15 @@ export default function EditRuleDialog({
       focusLabel: parent
         ? `Adding to: ${groupLabel(parent.kind)}`
         : "Adding a symptom or sign",
+      anchorEl: anchor ?? null,
     });
+  }
+
+  /** Empty-state CTA: anchor a popover for adding the very first
+   *  symptom under the root tree. */
+  function handleAddFirstSymptom(anchor: HTMLElement) {
+    if (!tree) return;
+    handleRequestAdd(tree.node_id, anchor);
   }
 
   function handleRequestCoach(nodeId: string, anchor: HTMLElement) {
@@ -312,14 +357,17 @@ export default function EditRuleDialog({
   function handleCoachSearchMore(topic: string) {
     if (!coach || !tree) return;
     const parent = findParent(tree, coach.nodeId);
+    // Anchor the chip popover to the coach popover's element if we
+    // can find it; otherwise fall back to "no anchor" which leaves
+    // the popover anchored to the chip the coach was opened on.
     setSearchTarget({
       mode: "add",
       parentNodeId: parent?.node_id ?? null,
       nodeId: null,
       initialQuery: topic,
       focusLabel: `Adding to: ${parent ? groupLabel(parent.kind) : "the rule"}`,
+      anchorEl: coach.anchor,
     });
-    setSearchPanelPinned(true);
     setCoach(null);
   }
 
@@ -333,6 +381,7 @@ export default function EditRuleDialog({
       focusLabel: friendly
         ? `Swapping the procedure: ${friendly}`
         : "Pick the procedure the system should suggest",
+      anchorEl: null,
     });
   }
 
@@ -341,13 +390,11 @@ export default function EditRuleDialog({
       setAction(criterion);
       setActionDirty(true);
       setSearchTarget(IDLE_TARGET);
-      setSearchPanelPinned(false);
       return;
     }
     if (searchTarget.mode === "replace" && searchTarget.nodeId) {
       handleUpdate({ kind: "replace_concept", nodeId: searchTarget.nodeId, criterion });
       setSearchTarget(IDLE_TARGET);
-      setSearchPanelPinned(false);
       return;
     }
     if (searchTarget.mode === "add" && searchTarget.parentNodeId) {
@@ -356,7 +403,12 @@ export default function EditRuleDialog({
         parentNodeId: searchTarget.parentNodeId,
         criterion,
       });
+      setSearchTarget(IDLE_TARGET);
     }
+  }
+
+  function handleClosePopover() {
+    setSearchTarget(IDLE_TARGET);
   }
 
   function handleSave() {
@@ -388,28 +440,76 @@ export default function EditRuleDialog({
             },
       }}
     >
-      <DialogTitle id="edit-rule-dialog-title" component="div" sx={{ pb: 1 }}>
+      <DialogTitle
+        id="edit-rule-dialog-title"
+        component="div"
+        sx={{
+          pb: 1.25,
+          pt: 1.75,
+          px: 2.5,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          background:
+            "linear-gradient(180deg, var(--mui-palette-background-paper, #fff) 0%, var(--mui-palette-grey-50, #fafafa) 100%)",
+        }}
+      >
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Box sx={{ flex: 1 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {rule?.guideline_id && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  color: "primary.dark",
+                  fontWeight: 700,
+                  letterSpacing: 0.6,
+                  textTransform: "uppercase",
+                  fontSize: "0.68rem",
+                  lineHeight: 1.2,
+                }}
+              >
+                {rule.guideline_id}
+              </Typography>
+            )}
             <Typography
               variant="h6"
               component="h2"
-              sx={{ fontWeight: 700, fontSize: "1.05rem" }}
+              sx={{
+                fontWeight: 700,
+                fontSize: "1.2rem",
+                lineHeight: 1.25,
+                mt: rule?.guideline_id ? 0.25 : 0,
+              }}
             >
               Change this rule
             </Typography>
             {rule?.chapter_title && (
-              <Typography variant="caption" color="text.secondary">
-                {rule.guideline_id ? `${rule.guideline_id} - ` : ""}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  mt: 0.25,
+                  lineHeight: 1.4,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 1,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
                 {rule.chapter_title}
               </Typography>
             )}
           </Box>
-          <Tooltip title={fullscreen ? "Shrink to a window" : "Use the full screen"}>
+          <Tooltip
+            title={fullscreen ? "Shrink to a window" : "Use the full screen"}
+          >
             <IconButton
               onClick={() => setFullscreen((v) => !v)}
               size="small"
-              aria-label={fullscreen ? "Shrink to a window" : "Use the full screen"}
+              aria-label={
+                fullscreen ? "Shrink to a window" : "Use the full screen"
+              }
+              sx={{ color: "text.secondary" }}
             >
               {fullscreen ? (
                 <FullscreenExitIcon fontSize="small" />
@@ -423,6 +523,7 @@ export default function EditRuleDialog({
             size="small"
             aria-label="Close without saving"
             disabled={saving}
+            sx={{ color: "text.secondary" }}
           >
             <CloseIcon fontSize="small" />
           </IconButton>
@@ -431,24 +532,47 @@ export default function EditRuleDialog({
       <DialogContent dividers sx={{ p: 0 }}>
         <Box
           sx={{
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              md: "minmax(220px, 3fr) minmax(0, 6fr) minmax(280px, 4fr)",
-            },
+            display: "flex",
+            flexDirection: "column",
             minHeight: "100%",
           }}
         >
-          <StepRail
+          <HorizontalStepper
             steps={stepDescriptors}
             currentStepId={currentStepId}
             onJump={handleJumpStep}
           />
+          <LivePreviewBanner
+            summary={summary}
+            strength={strength}
+            action={action}
+            showDiffMode={currentStepId === "save"}
+            previewOpen={previewDrawerOpen}
+            onOpenPreview={() => setPreviewDrawerOpen(true)}
+            onClosePreview={() => setPreviewDrawerOpen(false)}
+          />
           <Box
-            role="region"
-            aria-label={`Step ${currentIndex + 1} of ${STEP_IDS.length}`}
-            sx={{ p: { xs: 2, md: 3 }, minWidth: 0 }}
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              flex: 1,
+              minHeight: 0,
+              minWidth: 0,
+            }}
           >
+            <Box
+              role="region"
+              aria-label={`Step ${currentIndex + 1} of ${STEP_IDS.length}`}
+              sx={{
+                p: { xs: 2, md: 3 },
+                minWidth: 0,
+                flex: 1,
+                maxWidth: previewDrawerOpen ? "none" : 1200,
+                width: "100%",
+                mx: previewDrawerOpen ? 0 : "auto",
+                overflowY: "auto",
+              }}
+            >
             {validationError && currentStepId === "who" && (
               <Alert
                 severity="warning"
@@ -468,24 +592,11 @@ export default function EditRuleDialog({
                 onToggleRecommendation={() =>
                   setShowRecommendation((v) => !v)
                 }
-                searchTarget={{
-                  mode:
-                    searchTarget.mode === "replace_action"
-                      ? "idle"
-                      : searchTarget.mode,
-                  initialQuery: searchTarget.initialQuery,
-                  focusLabel: searchTarget.focusLabel,
-                  nodeId: searchTarget.nodeId,
-                }}
-                searchPanelOpen={
-                  searchPanelOpen && searchTarget.mode !== "replace_action"
-                }
-                onOpenSearchPanel={() => setSearchPanelPinned(true)}
-                onPickConcept={handlePick}
                 onSelectNode={handleSelectNode}
                 onUpdate={handleUpdate}
                 onRequestAdd={handleRequestAdd}
                 onRequestCoach={handleRequestCoach}
+                onAddFirstSymptom={handleAddFirstSymptom}
               />
             )}
             {currentStepId === "suggest" && (
@@ -507,8 +618,26 @@ export default function EditRuleDialog({
                       border: "1px solid",
                       borderColor: "divider",
                       bgcolor: "background.paper",
+                      position: "relative",
                     }}
                   >
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                      }}
+                    >
+                      <Tooltip title="Cancel changing the procedure (ESC)">
+                        <IconButton
+                          onClick={handleClosePopover}
+                          size="small"
+                          aria-label="Cancel changing the procedure"
+                        >
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                     <ConceptSearchPanel
                       mode="replace_action"
                       focusLabel={searchTarget.focusLabel}
@@ -556,17 +685,10 @@ export default function EditRuleDialog({
                 }
               />
             )}
-          </Box>
-          <Box
-            sx={{
-              borderLeft: { xs: "none", md: "1px solid" },
-              borderTop: { xs: "1px solid", md: "none" },
-              borderColor: { xs: "divider", md: "divider" },
-              bgcolor: "grey.50",
-              minWidth: 0,
-            }}
-          >
-            <LivePreviewPane
+            </Box>
+            <LivePreviewDrawer
+              open={previewDrawerOpen}
+              onClose={() => setPreviewDrawerOpen(false)}
               summary={summary}
               strength={strength}
               action={action}
@@ -578,6 +700,19 @@ export default function EditRuleDialog({
           </Box>
         </Box>
       </DialogContent>
+      <ChipSearchPopover
+        open={chipPopoverOpen}
+        anchorEl={searchTarget.anchorEl}
+        mode={
+          searchTarget.mode === "replace" || searchTarget.mode === "add"
+            ? searchTarget.mode
+            : "add"
+        }
+        focusLabel={searchTarget.focusLabel}
+        initialQuery={searchTarget.initialQuery}
+        onPick={handlePick}
+        onClose={handleClosePopover}
+      />
       <DialogActions
         sx={{
           px: 3,

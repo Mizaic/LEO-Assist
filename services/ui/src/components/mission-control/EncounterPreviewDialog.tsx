@@ -49,6 +49,10 @@ import {
   type GoldLabel,
 } from "@/components/gold-editor";
 import type { EncounterListItem } from "@/lib/missionControlApi";
+import {
+  HighlightedText,
+  collectHighlightTerms,
+} from "./HighlightedText";
 
 interface Props {
   item: EncounterListItem | null;
@@ -135,81 +139,6 @@ function MatchRationaleHeader({
   );
 }
 
-// Tokens shorter than this are skipped so a stray "a" or "in" from
-// the user's query does not paint the entire encounter yellow.
-const MIN_HIGHLIGHT_LEN = 3;
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function collectHighlightTerms(
-  searchQuery: string | undefined,
-  rationale: string[] | undefined,
-): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  const push = (raw: string) => {
-    const t = raw.trim();
-    if (t.length < MIN_HIGHLIGHT_LEN) return;
-    const key = t.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push(t);
-  };
-  // Split the user's query on whitespace + common punctuation so
-  // "breast cancer screening" highlights all three words.
-  if (searchQuery) {
-    for (const tok of searchQuery.split(/[\s,.;:/()\[\]"']+/)) push(tok);
-  }
-  if (rationale) for (const tok of rationale) push(tok);
-  // Match longer terms first so "cancer screening" wins over "cancer".
-  out.sort((a, b) => b.length - a.length);
-  return out;
-}
-
-function HighlightedText({
-  text,
-  terms,
-}: {
-  text: string;
-  terms: string[];
-}) {
-  if (!terms.length) return <>{text}</>;
-  const pattern = new RegExp(
-    `(${terms.map(escapeRegex).join("|")})`,
-    "gi",
-  );
-  const parts = text.split(pattern);
-  return (
-    <>
-      {parts.map((part, idx) => {
-        if (!part) return null;
-        // Even indices are non-matches, odd indices are captured hits
-        // (because the pattern is a single capturing group).
-        if (idx % 2 === 1) {
-          return (
-            <Box
-              key={`hl-${idx}`}
-              component="mark"
-              data-testid="encounter-preview-highlight"
-              sx={{
-                bgcolor: "#fef3c7",
-                color: "inherit",
-                px: 0.25,
-                borderRadius: 0.5,
-              }}
-            >
-              {part}
-            </Box>
-          );
-        }
-        return <span key={`hl-${idx}`}>{part}</span>;
-      })}
-    </>
-  );
-}
-
 function EncounterTextBlock({
   text,
   terms,
@@ -245,7 +174,11 @@ function EncounterTextBlock({
         lineHeight: 1.5,
       }}
     >
-      <HighlightedText text={text} terms={terms} />
+      <HighlightedText
+        text={text}
+        terms={terms}
+        testId="encounter-preview-highlight"
+      />
     </Box>
   );
 }

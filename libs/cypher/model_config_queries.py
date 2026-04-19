@@ -136,6 +136,57 @@ RETURN a.id                    AS candidateId,
        a.llm_model_id          AS modelName,
        a.llm_usage_json        AS llmUsageJson,
        'sbar_assessment'       AS source
+UNION
+// DI-LEO-AI-517: include episode-engine PipelineRun :AuditEvent rows so
+// the per-patient drill-down covers Haiku/Sonnet runs that drive
+// :EpisodeOfCare derivation. Spend is denormalised onto the AuditEvent
+// already; we synthesise an llm_usage_json blob in the same shape the
+// EncounterCandidate / Assessment branches emit so the API/UI parsing
+// stays unchanged.
+MATCH (ae:AuditEvent {type: 'PipelineRun'})
+WHERE ae.subtype = 'episode_engine'
+  AND ae.patient_id = $patient_id
+  AND ae.llm_input_tokens IS NOT NULL
+  AND ($from_date IS NULL OR ae.created_at >= datetime($from_date))
+  AND ($to_date   IS NULL OR ae.created_at <= datetime($to_date))
+RETURN ae.run_id               AS candidateId,
+       ''                      AS encounterId,
+       ae.created_at           AS updatedAt,
+       coalesce(ae.extraction_model_tier, 'small') AS modelName,
+       apoc.convert.toJson({
+         input_tokens:  toInteger(coalesce(ae.llm_input_tokens, 0)),
+         output_tokens: toInteger(coalesce(ae.llm_output_tokens, 0)),
+         cached_input_tokens: toInteger(coalesce(ae.llm_cached_tokens, 0)),
+         total_tokens:  toInteger(coalesce(ae.llm_input_tokens, 0)) +
+                        toInteger(coalesce(ae.llm_output_tokens, 0)),
+         llm_calls:     toInteger(coalesce(ae.step_count, 0)),
+         cost_usd:      toFloat(coalesce(ae.llm_cost_usd, 0))
+       })                      AS llmUsageJson,
+       'episode_engine'        AS source
+UNION
+// DI-LEO-AI-518: include guidance PipelineRun :AuditEvent rows whose
+// patient_id was set (per-patient guidance dry-run from the rule editor).
+// Platform-spend rows (patient_id IS NULL) are excluded by the join.
+MATCH (ae:AuditEvent {type: 'PipelineRun'})
+WHERE ae.subtype IN ['guidance_rule_extraction', 'guidance_rule_dry_run']
+  AND ae.patient_id = $patient_id
+  AND ae.llm_input_tokens IS NOT NULL
+  AND ($from_date IS NULL OR ae.created_at >= datetime($from_date))
+  AND ($to_date   IS NULL OR ae.created_at <= datetime($to_date))
+RETURN ae.run_id               AS candidateId,
+       ''                      AS encounterId,
+       ae.created_at           AS updatedAt,
+       coalesce(ae.extraction_model_tier, 'small') AS modelName,
+       apoc.convert.toJson({
+         input_tokens:  toInteger(coalesce(ae.llm_input_tokens, 0)),
+         output_tokens: toInteger(coalesce(ae.llm_output_tokens, 0)),
+         cached_input_tokens: toInteger(coalesce(ae.llm_cached_tokens, 0)),
+         total_tokens:  toInteger(coalesce(ae.llm_input_tokens, 0)) +
+                        toInteger(coalesce(ae.llm_output_tokens, 0)),
+         llm_calls:     toInteger(coalesce(ae.step_count, 0)),
+         cost_usd:      toFloat(coalesce(ae.llm_cost_usd, 0))
+       })                      AS llmUsageJson,
+       coalesce(ae.subtype, 'guidance')  AS source
 """
 
 GET_ORG_LLM_SPEND = """

@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useState, useCallback } from "react";
+import { forwardRef, useMemo, useState, useCallback } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -10,7 +10,10 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import type { CodedLink } from "@/lib/types";
 import CodesPanel from "./EncounterCodesPanel";
-import { highlightSearchMatches } from "./encounterTextUtils";
+import {
+  HighlightedText,
+  collectHighlightTerms,
+} from "./HighlightedText";
 import {
   GoldLabelEditorDialog,
   createGoldLabelFromEncounter,
@@ -66,6 +69,10 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
       onCodingChanged,
     } = props;
     const encounterKey = String(enc.encounter_id);
+    const highlightTerms = useMemo(
+      () => collectHighlightTerms(search, undefined),
+      [search],
+    );
 
     // Inline shared editor state (DI-LEO-AI-220/221) -- replaces the
     // legacy /care/patients/.../encounters/.../ deep-link page so the
@@ -275,9 +282,11 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
                 fontStyle: enc.text ? "normal" : "italic",
               }}
             >
-              {enc.text
-                ? highlightSearchMatches(enc.text, search)
-                : "No text available for this encounter."}
+              {enc.text ? (
+                <HighlightedText text={enc.text} terms={highlightTerms} />
+              ) : (
+                "No text available for this encounter."
+              )}
             </Box>
           </Box>
         </Collapse>

@@ -345,6 +345,7 @@ class LLMExtractor:
                 messages=[{"role": "user", "content": user_msg}],
                 max_tokens=2048,
                 temperature=0.0,
+                agent_task="coding_worker_llm_extractor",
             )
             payload = self._parse_json(resp.text)
         except Exception as exc:

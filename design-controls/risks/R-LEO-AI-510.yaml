@@ -1,0 +1,118 @@
+# -- R-LEO-AI-510 -- Reviewer mistakes a partially-failed SBAR for a complete one
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-510"
+  title: "Reviewer mistakes a partially-failed SBAR for a complete one because errors are hidden behind a green 'Done' button"
+
+  hazard:
+    description: >
+      The SBAR Playground today renders a green "View full SBAR"
+      button on completion regardless of whether one or more stages
+      failed. The only signal that something went wrong is the text
+      "Done (N errors)" inside the button label, with no detail of
+      which stage failed or why. A reviewer scanning the UI may
+      treat the SBAR as complete and act on it, when in fact the
+      Background or Recommendation section is missing or stale.
+    category: "use_error"
+
+  hazardous_situation: >
+    A QA reviewer triggers an SBAR for a real patient with a large
+    document set. The Bedrock Background call fails with "Input is
+    too long for requested model". The orchestrator records the
+    error, persists a draft Assessment with an empty Background,
+    and emits sbar_completed with error_count=1. The playground
+    shows a green "Done (1 errors)" button. The reviewer clicks
+    through, reads the Situation / Assessment / Recommendation
+    sections, and shares the SBAR with a clinician colleague to
+    review the prompt. The colleague does not notice the empty
+    Background and acts on the partial summary.
+
+  harm:
+    description: >
+      Wrong clinical decision based on a reviewer-grade SBAR whose
+      Background section is silently missing or stale. Severity is
+      serious because Background carries the patient's relevant
+      history (medications, comorbidities, recent encounters) that
+      bounds the safety of any downstream recommendation.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Pre-emptive token-budget aware shrinker (DI-LEO-AI-513)
+        prevents the most common cause of silent Background
+        failures (input too long for Bedrock context window) by
+        trimming per-source text and dropping the lowest-priority
+        sources before the LLM call.
+      implemented_by: ["DI-LEO-AI-513"]
+      verified_by: ["VT-LEO-AI-514"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Structured errors[] and notices[] are emitted on every
+        sbar_completed and sbar_stage_completed SSE event
+        (DI-LEO-AI-516), and the SBAR Playground renders any errors
+        as an MUI Alert severity="warning" listing each error's
+        stage label and plain-English message before any "View full
+        SBAR" button. The result button shifts from
+        color="success" (green) to color="warning" (amber) when
+        errors[] is non-empty so the visual signal matches the run
+        state.
+      implemented_by: ["DI-LEO-AI-516"]
+      verified_by: ["VT-LEO-AI-514"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        translate_error returns plain-English text only (reading
+        age 9-11). Raw AWS / Bedrock exception strings never reach
+        the wire, so reviewers see "Too much information to
+        summarise in one go. Try picking fewer records or shorter
+        ones." rather than "ValidationException ... Converse ...".
+      implemented_by: ["DI-LEO-AI-513", "DI-LEO-AI-516"]
+      verified_by: ["VT-LEO-AI-514"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The shrinker removes the dominant cause of background
+      failures; the warning Alert + amber button make any remaining
+      failure unmissable in the UI. The persistent "Test only"
+      banner from R-LEO-AI-185 still bounds the scenario to QA
+      reviewers, so the residual probability of a partial SBAR
+      reaching a clinician is low.
+
+  monitoring:
+    monitoring_plan: >
+      VT-LEO-AI-514 enforces the SSE payload shape, the friendly
+      translator coverage, and the Playground Alert / warning
+      button markup on every release. Pipeline worker logs any
+      shrinker activity so we can monitor how often patients
+      breach the budget in production.
+    metrics:
+      - "VT-LEO-AI-514 status (must be 'pass' on every release)"
+      - "Count of background_trimmed notices per week (capacity signal)"
+      - "Count of sbar_completed events with non-empty errors[] per week (failure signal)"
+    review_frequency: "Per release + monthly QA review"
+
+  metadata:
+    identified_by: "Field report 2026-04-19 (SBAR Background ValidationException, no UI surfacing)"
+    identified_date: "2026-04-19"
+    status: "analyzed"
+    tags:
+      - "sbar"
+      - "playground"
+      - "use-error"
+      - "error-handling"

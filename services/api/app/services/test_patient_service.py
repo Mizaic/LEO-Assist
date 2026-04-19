@@ -26,6 +26,7 @@ from app.db.neo4j_client import CodingGraphClient
 from libs.cypher.test_patient_queries import (
     ASSERT_CONCEPTS_PRESENT,
     COUNT_TEST_PATIENTS_BY_ASPECT,
+    COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME,
     CREATE_TEST_PATIENT,
     CREATE_TEST_PATIENT_FOR_ASPECT,
     DELETE_TEST_PATIENT,
@@ -541,6 +542,20 @@ def confirm_and_save(
     return {"id": new_id, "created": True, "expectations_written": written}
 
 
+# Triage outcomes that the SBAR / referral-triage filter chips
+# expose. Mirrors the CASE expression in LIST_TEST_PATIENTS exactly.
+# 'unset' is the catch-all the UI uses for non-summarisation patients
+# (no ExpectedSBAR node attached) so the chip group never hides rows.
+TRIAGE_OUTCOMES: tuple[str, ...] = (
+    "2ww",
+    "urgent",
+    "routine",
+    "no_rule_fired",
+    "evaluator_outage",
+    "unset",
+)
+
+
 def list_patients(
     client: CodingGraphClient,
     *,
@@ -548,6 +563,7 @@ def list_patients(
     guideline_id: str | None = None,
     rule_id: str | None = None,
     node_id: str | None = None,
+    triage_outcome: str | None = None,
     limit: int = 200,
 ) -> list[dict]:
     """Return test patients matching the supplied filters.
@@ -556,6 +572,11 @@ def list_patients(
     or None / "all" for no aspect filter. Invalid aspect values fall
     back to "all" rather than raising, so the UI never 500s on a
     typo in a query string.
+
+    `triage_outcome` filters the SBAR / referral-triage aspect by the
+    derived outcome: 2ww | urgent | routine | no_rule_fired |
+    evaluator_outage | unset (no ExpectedSBAR node). Mirrors the chip
+    group on the Knowledge tab. Invalid values fall back to no filter.
     """
     aspect_param: str | None
     if aspect is None or aspect == "" or aspect == "all":
@@ -564,15 +585,43 @@ def list_patients(
         aspect_param = aspect
     else:
         aspect_param = None
+    outcome_param: str | None
+    if (
+        triage_outcome is None
+        or triage_outcome == ""
+        or triage_outcome == "all"
+    ):
+        outcome_param = None
+    elif triage_outcome in TRIAGE_OUTCOMES:
+        outcome_param = triage_outcome
+    else:
+        outcome_param = None
     rows = client.run(
         LIST_TEST_PATIENTS,
         aspect=aspect_param,
         guideline_id=guideline_id,
         rule_id=rule_id,
         node_id=node_id,
+        triage_outcome=outcome_param,
         limit=limit,
     )
     return [dict(r) for r in rows]
+
+
+def count_by_triage_outcome(client: CodingGraphClient) -> dict[str, int]:
+    """Return totals per triage outcome for the SBAR aspect chip badges.
+
+    Always returns one entry per known outcome (zero when there are
+    no patients for it), so the UI can render a stable chip group
+    without conditional logic.
+    """
+    rows = client.run(COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME)
+    counts: dict[str, int] = {o: 0 for o in TRIAGE_OUTCOMES}
+    for row in rows:
+        outcome = str(row.get("triage_outcome") or "").lower()
+        if outcome in counts:
+            counts[outcome] = int(row.get("total") or 0)
+    return counts
 
 
 def count_by_aspect(client: CodingGraphClient) -> dict[str, int]:

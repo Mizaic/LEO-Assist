@@ -97,6 +97,8 @@ def _call_provider(
     max_tokens: int,
     *,
     json_mode: bool = False,
+    agent_task: str = "consensus",
+    patient_id: str = "",
 ) -> LLMResponse:
     client = create_llm(provider=provider, tier=tier)
     return client.converse(
@@ -105,6 +107,8 @@ def _call_provider(
         temperature=0.0,
         max_tokens=max_tokens,
         json_mode=json_mode,
+        agent_task=agent_task,
+        patient_id=patient_id,
     )
 
 

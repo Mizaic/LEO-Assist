@@ -1,0 +1,218 @@
+# -- VT-LEO-AI-514 -- SBAR background shrinker + plain-English error surfacing
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-514"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-513", "DI-LEO-AI-516"]
+    risks: ["R-LEO-AI-185", "R-LEO-AI-510"]
+
+  metadata:
+    title: "Token-budget aware SBAR background shrinker + structured errors / notices end-to-end"
+    description: >
+      Pytest verifies (a) the shrinker preserves at least one source
+      and applies progressive caps before dropping sources;
+      (b) call_background wires the shrinker and threads a notice
+      through; (c) translate_error covers the four known Bedrock
+      failure modes, missing_section, and falls back to a generic
+      plain-English message; (d) the orchestrator emits structured
+      errors[] / notices[] arrays on sbar_completed AND a per-stage
+      error / notice on sbar_stage_completed, with no raw AWS
+      strings on the wire. Static-source jest verifies the
+      useSbarStream hook exposes errors and notices arrays from
+      sbar_completed events, and the SbarPlayground renders
+      sbar-errors-alert / sbar-notices-alert with the result button
+      colour shifting to "warning" when errors are present.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest + jest"
+    test_file_paths:
+      - "tests/sbar/test_background_shrinker.py"
+      - "tests/sbar/test_error_messages.py"
+      - "tests/sbar/test_prompt_calls_background_shrink.py"
+      - "tests/test_sbar_orchestrator.py"
+      - "services/ui/src/__tests__/sbar-playground-chrome.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.11+ / pytest"
+      - "Node 20+ / jest 30"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-514-TC-001"
+      case_name: "Shrinker preserves at least one source and returns the no-op serialisation under budget"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build 2 small ResolvedSource records, call shrink_background_context with max_input_tokens=60000"
+          expected_result: "Returns the original 4000-cap serialisation, ShrinkReport.kept_source_count == original_source_count, dropped_source_ids == [], notice is None"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Under-budget runs are a no-op so the existing happy-path behaviour is preserved"
+
+    - case_id: "VT-514-TC-002"
+      case_name: "Shrinker applies progressive per-source caps before dropping sources"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build 5 oversize ResolvedSource records (each text ~ 8000 chars), call shrink_background_context with a tight budget that requires the 1000-char cap to fit"
+          expected_result: "ShrinkReport.per_source_char_cap == 1000, kept_source_count == 5, dropped_source_ids == [], notice mentions 'shortened'"
+          verification_method: "automated"
+        - step_number: 2
+          action: "Repeat with a budget so tight that even the 250-char cap does not fit; expect sources to be dropped"
+          expected_result: "ShrinkReport.kept_source_count >= 1, dropped_source_ids non-empty, notice mentions 'dropped'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Cap shrink happens before drop"
+        - "At least one source is always kept"
+
+    - case_id: "VT-514-TC-003"
+      case_name: "call_background threads the shrinker notice through the return dict"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Patch invoke_llm_json to a fake that returns {'background_markdown': 'ok'}; call call_background with oversize sources and a tight env budget"
+          expected_result: "Returned dict has notice key with a non-empty plain-English string and error is None"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewers see notices on the success path, not just the failure path"
+
+    - case_id: "VT-514-TC-004"
+      case_name: "call_background returns a friendly background error when the LLM still fails after shrinking"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Patch invoke_llm_json to return {'error': 'An error occurred (ValidationException) when calling the Converse operation: The model returned the following errors: Input is too long for requested model.'}; call call_background"
+          expected_result: "Returned dict has error == friendly translate_error('background', raw)['message']; the raw AWS substring 'ValidationException' MUST NOT appear in the returned error string"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewers never see raw AWS exception strings"
+
+    - case_id: "VT-514-TC-005"
+      case_name: "translate_error covers the four known Bedrock failure modes, missing_section, and a generic fallback"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call translate_error('background', raw) for inputs containing 'Input is too long', 'ThrottlingException', 'AccessDeniedException', 'EndpointConnectionError', 'missing background_markdown', and an arbitrary 'foo bar baz'; assert the (code, message) pair for each"
+          expected_result: "input_too_long / throttled / access_denied / network / missing_section / unknown codes; messages are plain English and never include the raw vendor string"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All four known modes have a friendly mapping"
+        - "Missing-section degrades to a friendly explanation"
+        - "Unknown failures degrade to a generic message"
+
+    - case_id: "VT-514-TC-006"
+      case_name: "Orchestrator emits structured errors[] and notices[] on sbar_completed with no raw AWS strings"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run SBAROrchestrator with a background_caller that returns {'markdown': '', 'error': '<friendly>', 'error_code': 'input_too_long', 'notice': 'Trimmed records to fit.'}; capture the publish() calls"
+          expected_result: "The sbar_completed payload carries errors == [{stage: 'background', code: 'input_too_long', message: '<friendly>'}] and notices == [{stage: 'background', code: 'background_trimmed', message: 'Trimmed records to fit.'}]; no error message contains 'ValidationException' or 'Converse'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "errors[] / notices[] arrays travel on the wire"
+        - "Friendly text only; no raw vendor strings"
+
+    - case_id: "VT-514-TC-007"
+      case_name: "Orchestrator emits the background notice on the matching sbar_stage_completed event"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run SBAROrchestrator with a background_caller that returns a notice; capture publish() calls"
+          expected_result: "The sbar_stage_completed event for stage='background' carries notice == {code: 'background_trimmed', message: '...'}"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewers see trim notices as soon as the stage finishes"
+
+    - case_id: "VT-514-TC-008"
+      case_name: "useSbarStream exposes errors and notices arrays populated from sbar_completed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Static-source: read services/ui/src/hooks/useSbarStream.ts; assert SbarErrorDetail and SbarNotice types are exported, the SbarStreamState.errors and notices fields exist, and the on('sbar_completed') handler reads d.errors and d.notices into state"
+          expected_result: "All assertions pass"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Hook surface mirrors the orchestrator wire format"
+
+    - case_id: "VT-514-TC-009"
+      case_name: "SbarPlayground renders sbar-errors-alert / sbar-notices-alert and shifts result button to colour='warning' when errors are present"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Static-source: read services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx; assert data-testid 'sbar-errors-alert' and 'sbar-notices-alert' both appear; assert the result button has a color='warning' branch gated on errors.length > 0; assert the existing color='success' branch is gated on errors.length === 0"
+          expected_result: "All assertions pass"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Visual signal matches the run state"
+        - "Errors are unmissable in the UI"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-514/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-LEO-AI-514-EXEC-2026-04-19-001"
+      execution_date: "2026-04-19"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      cases_executed: 9
+      cases_passed: 9
+      cases_failed: 0
+      duration_seconds: 2.0
+      notes: >
+        Initial verification of the SBAR background shrinker
+        (DI-LEO-AI-513) and the structured errors[] / notices[]
+        SSE plumbing (DI-LEO-AI-516). Run 1: python3 -m pytest
+        tests/sbar/ tests/test_sbar_orchestrator.py -- 33 tests
+        passed in 0.63s covering TC-001
+        (test_shrinker_is_a_noop_under_budget), TC-002
+        (test_shrinker_picks_smallest_cap_that_fits_before_dropping
+        + test_shrinker_drops_sources_when_smallest_cap_still_too
+        _large + test_shrinker_always_keeps_at_least_one_source),
+        TC-003 (test_call_background_threads_notice_on_success),
+        TC-004 (test_call_background_returns_friendly_error_when
+        _input_too_long + test_call_background_translates_missing
+        _section_to_friendly_message), TC-005
+        (test_translate_error_classifies_known_modes parametrised
+        across all four known Bedrock modes plus missing_section
+        and unknown fallback, plus the safe-message and stage-noun
+        invariants), TC-006 / TC-007 (test_orchestrator_emits
+        _structured_errors_and_notices_on_sbar_completed -- both
+        the sbar_completed aggregate payload and the matching
+        sbar_stage_completed background event carry the structured
+        error / notice and contain no 'ValidationException' or
+        'Converse' substrings). Run 2: cd services/ui && npx jest
+        --no-coverage --testPathPatterns "sbar-playground-chrome"
+        -- 1 suite, all cases pass covering TC-008 ('hook exposes
+        errors and notices arrays populated from sbar_completed' --
+        asserts SbarErrorDetail and SbarNotice types,
+        SbarStreamState.errors / notices fields, and that the
+        on('sbar_completed') handler reads d.errors and d.notices
+        via Array.isArray) and TC-009 ('playground renders
+        sbar-errors-alert and sbar-notices-alert with friendly
+        text' -- asserts the warning Alert with data-testid
+        sbar-errors-alert gated on sbar.errors.length > 0, the
+        info Alert with data-testid sbar-notices-alert gated on
+        sbar.notices.length > 0, and the result button colour
+        shifts to 'warning' when errors are present via the
+        existing 'delegates the final SBAR' case which now matches
+        color={sbar.errors.length === 0 ? "success" : "warning"},
+        plus the negative invariant that no raw 'ValidationException'
+        / 'Converse operation' substring appears in the playground
+        source).

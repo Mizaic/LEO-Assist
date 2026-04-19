@@ -1186,3 +1186,1112 @@ class TestTC006LegacyRouteRemoval:
             / "page.tsx"
         )
         assert new_page.exists()
+
+
+# ---------------------------------------------------------------------------
+# TC-010 -- AI scaffold-from-rule (flow 1 of AI-assisted authoring)
+# ---------------------------------------------------------------------------
+
+
+class _ScaffoldFakeClient(FakeGraphClient):
+    """Knowledge-graph stub for the scaffolder tests.
+
+    Routes each Cypher fragment to a canned row set so we can exercise
+    the whole load-rule -> build-blank -> stamp-ai -> patch-full
+    pipeline without hitting Neo4j.
+    """
+
+    def __init__(
+        self,
+        *,
+        rule_row: dict | None,
+        present_concepts: set[str],
+        new_patient_id: str = "test_ai_scaffold_001",
+    ) -> None:
+        super().__init__()
+        self._rule_row = rule_row
+        self._present_concepts = present_concepts
+        self._new_patient_id = new_patient_id
+
+    def run(self, cypher: str, **params: Any) -> list[dict]:  # type: ignore[override]
+        self.calls.append((cypher, dict(params)))
+        # READ_RULE_FOR_SCAFFOLD
+        if "MATCH (rule:AppropriatenessRule {id: $rule_id})" in cypher and (
+            "READ_RULE_FOR_SCAFFOLD" in cypher
+            or "demographic_constraints" in cypher
+        ):
+            return [self._rule_row] if self._rule_row else []
+        # CREATE_TEST_PATIENT_FOR_ASPECT
+        if "CREATE (tp:TestPatient" in cypher and "$aspect" in cypher:
+            return [{"id": self._new_patient_id}]
+        # ASSERT_CONCEPTS_PRESENT
+        if "missing" in cypher and "concept_ids" in cypher:
+            asked = set(params.get("concept_ids") or [])
+            return [{"missing": sorted(asked - self._present_concepts)}]
+        # UPDATE_TEST_PATIENT_PROFILE -- "SET tp.name = $name" is the
+        # signature line; the AI provenance stamp uses tp.aiAssisted
+        # so we route the two writes apart.
+        if "SET tp.name" in cypher and "tp.aiAssisted" not in cypher:
+            return [{"id": params.get("id")}]
+        # WRITE_EDITOR_ENCOUNTER returns the count, but the service
+        # ignores the return value.
+        return []
+
+
+_GOOD_RULE_ROW = {
+    "rule_id": "rule:NG12:R001",
+    "rule_name": "2WW for visible haematuria >= 60",
+    "recommendation_text": (
+        "Refer adults aged >= 60 with unexplained visible haematuria using a "
+        "suspected cancer pathway."
+    ),
+    "chapter_title": "Urological cancers",
+    "guideline_id": "NG12",
+    "guideline_title": "Suspected cancer: recognition and referral",
+    "action_priority": "2WW",
+    "triggers": [
+        {
+            "concept_id": "34436003",
+            "preferred_term": "haematuria",
+            "predicate": "EQ",
+        }
+    ],
+    "demographic_constraints": [
+        {"field": "age", "operator": ">=", "value": 60, "unit": "years"}
+    ],
+}
+
+
+def _good_haiku_draft() -> dict:
+    """Mimic a well-formed Haiku response for _GOOD_RULE_ROW."""
+    return {
+        "demographics": {
+            "age": 67,
+            "sex": "female",
+            "display_hint": "Retired teacher with HTN",
+        },
+        "encounters": [
+            {
+                "source_label": "GP consultation",
+                "date_offset_days": -5,
+                "text": (
+                    "67yo female. C/O 2 weeks of painless visible haematuria. "
+                    "No dysuria. PMHx HTN. OE abdo soft. Urine dip blood +++. "
+                    "Plan: 2WW urology referral."
+                ),
+            }
+        ],
+        "reviewer_focus": "Confirm 2WW urology rule fires on the haematuria mention.",
+    }
+
+
+class TestTC010ScaffoldFromRule:
+    """AI scaffold-from-rule (flow 1 of AI-assisted test patient
+    authoring). Verifies the rule reader, the LLM-response validator,
+    the deterministic SBAR fill, the aiAssisted provenance stamp, and
+    the loud-failure error paths.
+    """
+
+    _UNSET = object()
+
+    def _scaffold(
+        self,
+        *,
+        rule_row=_UNSET,
+        draft: dict | None = None,
+        present_concepts: set[str] | None = None,
+        aspect: str = "summarisation",
+    ):
+        from app.services import test_patient_scaffolder
+
+        if rule_row is self._UNSET:
+            rule_row = _GOOD_RULE_ROW
+        present_concepts = (
+            present_concepts
+            if present_concepts is not None
+            else {"34436003"}
+        )
+        client = _ScaffoldFakeClient(
+            rule_row=rule_row,
+            present_concepts=present_concepts,
+        )
+
+        async def fake_generator(_system: str, _user: str) -> dict:
+            return draft if draft is not None else _good_haiku_draft()
+
+        result = test_patient_scaffolder.scaffold_patient_from_rule_sync(
+            client,
+            rule_id=(rule_row or {}).get("rule_id", "rule:none"),
+            aspect=aspect,
+            created_by="qa@example.com",
+            generator=fake_generator,
+        )
+        return client, result
+
+    def test_happy_path_writes_patient_and_stamps_provenance(self) -> None:
+        from app.services.test_patient_scaffolder import ScaffoldResult
+
+        client, result = self._scaffold()
+
+        assert isinstance(result, ScaffoldResult)
+        assert result.patient_id == "test_ai_scaffold_001"
+        assert result.aspect == "summarisation"
+        assert result.rule_id == "rule:NG12:R001"
+        assert result.encounters_written == 1
+        assert result.expected_sbar_written is True
+
+        cyphers = [c for c, _ in client.calls]
+        # 1. Rule read happens first.
+        assert any("AppropriatenessRule {id: $rule_id}" in c for c in cyphers)
+        # 2. Blank patient creation.
+        assert any("CREATE (tp:TestPatient" in c for c in cyphers)
+        # 3. AI provenance stamp.
+        provenance_calls = [
+            (c, p)
+            for c, p in client.calls
+            if "tp.aiAssisted" in c and "tp.aiSourceId" in c
+        ]
+        assert len(provenance_calls) == 1
+        _, params = provenance_calls[0]
+        assert params == {
+            "id": "test_ai_scaffold_001",
+            "rule_id": "rule:NG12:R001",
+        }
+        # 4. Concept pre-flight is enforced.
+        assert any("missing" in c and "concept_ids" in c for c in cyphers)
+        # 5. Encounter write happened.
+        assert any("MERGE (tp)-[:HAS_ENCOUNTER]" in c or "HAS_ENCOUNTER" in c for c in cyphers)
+        # 6. Expected SBAR write happened (summarisation aspect).
+        assert any("MERGE (s:ExpectedSBAR" in c for c in cyphers)
+
+    def test_expected_sbar_uses_rule_text_not_llm_words(self) -> None:
+        """The deterministic SBAR fill: Recommendation must be the
+        rule's verbatim recommendation, NOT anything the LLM wrote.
+        Critical -- otherwise the test would check the AI against
+        itself.
+        """
+        client, _ = self._scaffold()
+
+        # SEED_EXPECTED_SBAR is the only write that carries
+        # `recommendation_md`; the RESET cypher mentions ExpectedSBAR
+        # too but as a delete, so we filter on the write parameter.
+        sbar_calls = [
+            (c, p)
+            for c, p in client.calls
+            if "MERGE (s:ExpectedSBAR" in c
+        ]
+        assert sbar_calls, "Expected SBAR write should have happened."
+        _, params = sbar_calls[0]
+        assert params["recommendation_md"].startswith(
+            "Refer adults aged >= 60 with unexplained visible haematuria"
+        )
+        assert params["matched_rule_ids"] == ["rule:NG12:R001"]
+        assert params["expected_action_priority"] == "2WW"
+
+    def test_non_summarisation_aspect_skips_expected_sbar(self) -> None:
+        client, result = self._scaffold(aspect="nlp")
+        assert result.aspect == "nlp"
+        assert result.expected_sbar_written is False
+        assert not any(
+            "MERGE (s:ExpectedSBAR" in c for c, _ in client.calls
+        )
+
+    def test_rejects_guidelines_aspect(self) -> None:
+        from app.services.test_patient_scaffolder import ScaffoldError
+
+        with pytest.raises(ScaffoldError, match="not supported"):
+            self._scaffold(aspect="guidelines")
+
+    def test_missing_rule_raises_scaffold_error(self) -> None:
+        from app.services.test_patient_scaffolder import ScaffoldError
+
+        with pytest.raises(ScaffoldError, match="not found"):
+            self._scaffold(rule_row=None)
+
+    def test_rule_with_no_triggers_is_rejected(self) -> None:
+        from app.services.test_patient_scaffolder import ScaffoldError
+
+        broken = dict(_GOOD_RULE_ROW, triggers=[])
+        with pytest.raises(ScaffoldError, match="no SNOMED criteria"):
+            self._scaffold(rule_row=broken)
+
+    def test_llm_missing_keys_is_rejected(self) -> None:
+        from app.services.test_patient_scaffolder import ScaffoldError
+
+        bad = {"demographics": {"age": 67, "sex": "female"}}  # missing keys
+        with pytest.raises(ScaffoldError, match="missing required keys"):
+            self._scaffold(draft=bad)
+
+    def test_llm_breaking_demographic_constraint_is_rejected(self) -> None:
+        from app.services.test_patient_scaffolder import ScaffoldError
+
+        too_young = _good_haiku_draft()
+        too_young["demographics"]["age"] = 45  # rule needs age >= 60
+        with pytest.raises(ScaffoldError, match="APPLIES_TO age"):
+            self._scaffold(draft=too_young)
+
+    def test_llm_skipping_a_trigger_term_is_rejected(self) -> None:
+        from app.services.test_patient_scaffolder import ScaffoldError
+
+        no_trigger = _good_haiku_draft()
+        no_trigger["encounters"][0]["text"] = (
+            "67yo female. Routine check. BP 130/80. Plan: continue current "
+            "antihypertensives."
+        )
+        with pytest.raises(ScaffoldError, match="did not mention every trigger"):
+            self._scaffold(draft=no_trigger)
+
+    def test_llm_returning_error_dict_is_rejected(self) -> None:
+        from app.services.test_patient_scaffolder import ScaffoldError
+
+        with pytest.raises(ScaffoldError, match="did not return JSON"):
+            self._scaffold(draft={"error": "bedrock timeout"})
+
+    def test_router_endpoint_returns_scaffold_result(self) -> None:
+        """Router smoke test: the endpoint translates the service
+        result into the documented JSON shape."""
+        from app.routers import test_patients as router
+        from app.services import test_patient_scaffolder
+        from app.services.test_patient_scaffolder import ScaffoldResult
+
+        canned = ScaffoldResult(
+            patient_id="test_ai_scaffold_002",
+            aspect="summarisation",
+            rule_id="rule:NG12:R001",
+            encounters_written=1,
+            expected_sbar_written=True,
+            notes="Scaffolded a summarisation test patient against rule:NG12:R001.",
+        )
+
+        original = test_patient_scaffolder.scaffold_patient_from_rule_sync
+        test_patient_scaffolder.scaffold_patient_from_rule_sync = (  # type: ignore[assignment]
+            lambda *_a, **_kw: canned
+        )
+        try:
+            body = router.ScaffoldFromRuleRequest(
+                rule_id="rule:NG12:R001", aspect="summarisation"
+            )
+            payload = router.scaffold_from_rule(
+                body, scope=None  # type: ignore[arg-type]
+            )
+        finally:
+            test_patient_scaffolder.scaffold_patient_from_rule_sync = original  # type: ignore[assignment]
+
+        assert payload == {
+            "patient_id": "test_ai_scaffold_002",
+            "aspect": "summarisation",
+            "rule_id": "rule:NG12:R001",
+            "encounters_written": 1,
+            "expected_sbar_written": True,
+            "notes": canned.notes,
+        }
+
+    def test_router_translates_scaffold_error_to_422(self) -> None:
+        from fastapi import HTTPException
+        from app.routers import test_patients as router
+        from app.services import test_patient_scaffolder
+        from app.services.test_patient_scaffolder import ScaffoldError
+
+        def _raise(*_a, **_kw):
+            raise ScaffoldError("rule not found")
+
+        original = test_patient_scaffolder.scaffold_patient_from_rule_sync
+        test_patient_scaffolder.scaffold_patient_from_rule_sync = _raise  # type: ignore[assignment]
+        try:
+            body = router.ScaffoldFromRuleRequest(
+                rule_id="rule:missing", aspect="summarisation"
+            )
+            with pytest.raises(HTTPException) as exc_info:
+                router.scaffold_from_rule(
+                    body, scope=None  # type: ignore[arg-type]
+                )
+        finally:
+            test_patient_scaffolder.scaffold_patient_from_rule_sync = original  # type: ignore[assignment]
+
+        assert exc_info.value.status_code == 422
+        assert "rule not found" in str(exc_info.value.detail)
+
+
+# ---------------------------------------------------------------------------
+# TC-011 -- AI scaffold-from-scenario (flow 2 of AI-assisted authoring)
+# ---------------------------------------------------------------------------
+
+
+class _ScenarioFakeClient(FakeGraphClient):
+    """Knowledge-graph stub for the scenario-scaffolder tests.
+
+    Routes Cypher fragments to canned rows so we can exercise the
+    whole validate -> draft -> resolve -> evaluate -> persist pipeline
+    without hitting Neo4j or the terminology API.
+    """
+
+    def __init__(
+        self,
+        *,
+        present_concepts: set[str],
+        new_patient_id: str = "test_ai_scenario_001",
+    ) -> None:
+        super().__init__()
+        self._present_concepts = present_concepts
+        self._new_patient_id = new_patient_id
+
+    def run(self, cypher: str, **params: Any) -> list[dict]:  # type: ignore[override]
+        self.calls.append((cypher, dict(params)))
+        # CREATE_TEST_PATIENT_FOR_ASPECT
+        if "CREATE (tp:TestPatient" in cypher and "$aspect" in cypher:
+            return [{"id": self._new_patient_id}]
+        # ASSERT_CONCEPTS_PRESENT
+        if "missing" in cypher and "concept_ids" in cypher:
+            asked = set(params.get("concept_ids") or [])
+            return [{"missing": sorted(asked - self._present_concepts)}]
+        # UPDATE_TEST_PATIENT_PROFILE -- "SET tp.name" is the
+        # signature line; the AI provenance stamp uses tp.aiAssisted
+        # so we route the two writes apart.
+        if "SET tp.name" in cypher and "tp.aiAssisted" not in cypher:
+            return [{"id": params.get("id")}]
+        return []
+
+
+def _good_scenario_draft() -> dict:
+    """Mimic a well-formed Haiku response for a haematuria scenario."""
+    return {
+        "demographics": {
+            "age": 67,
+            "sex": "female",
+            "display_hint": "Retired teacher with HTN",
+        },
+        "encounters": [
+            {
+                "source_label": "GP consultation",
+                "date_offset_days": -5,
+                "text": (
+                    "67yo female. C/O 2/52 painless visible haematuria. "
+                    "No dysuria. PMHx HTN. OE abdo soft. Urine dip "
+                    "blood +++. Plan: 2WW urology referral."
+                ),
+                "terms": [
+                    {
+                        "surface_form": "visible haematuria",
+                        "lookup_term": "haematuria",
+                        "semantic_tag": "finding",
+                        "assertion": "present",
+                    },
+                    {
+                        "surface_form": "no dysuria",
+                        "lookup_term": "dysuria",
+                        "semantic_tag": "finding",
+                        "assertion": "absent",
+                    },
+                    {
+                        "surface_form": "PMHx HTN",
+                        "lookup_term": "hypertension",
+                        "semantic_tag": "disorder",
+                        "assertion": "history_of",
+                    },
+                ],
+            }
+        ],
+        "reviewer_focus": (
+            "Confirm 2WW urology rule fires on the haematuria mention."
+        ),
+    }
+
+
+def _scenario_resolver(known: dict[str, tuple[str, str, float]]):
+    """Build a fake terminology resolver from a {term: (cid, pt, score)} map."""
+
+    def _resolve(terms: list[str]) -> dict[str, list[Any]]:
+        out: dict[str, list[Any]] = {}
+        for term in terms:
+            hit = known.get(term.lower())
+            if hit is None:
+                out[term] = []
+                continue
+            cid, preferred, score = hit
+            out[term] = [
+                {
+                    "concept_id": cid,
+                    "term": preferred,
+                    "score": score,
+                }
+            ]
+        return out
+
+    return _resolve
+
+
+_GOOD_RESOLVER_HITS: dict[str, tuple[str, str, float]] = {
+    "haematuria": ("34436003", "Haematuria", 0.96),
+    "dysuria": ("49650001", "Dysuria", 0.94),
+    "hypertension": ("38341003", "Hypertensive disorder", 0.92),
+}
+
+
+def _good_evaluator_result() -> dict:
+    return {
+        "matched_rules": [
+            {
+                "rule_id": "rule:NG12:R001",
+                "name": "2WW for visible haematuria >= 60",
+                "recommendation_verbatim": (
+                    "Refer adults aged >= 60 with unexplained visible "
+                    "haematuria using a suspected cancer pathway."
+                ),
+                "action": "2ww",
+                "guideline_title": "Suspected cancer: recognition and referral",
+                "chapter_title": "Urological cancers",
+            },
+            {
+                "rule_id": "rule:NG12:R777",
+                "name": "Routine BP review",
+                "recommendation_verbatim": "Annual BP review for hypertension.",
+                "action": "routine",
+                "guideline_title": "Hypertension in adults",
+                "chapter_title": "Monitoring",
+            },
+        ]
+    }
+
+
+class TestTC011ScaffoldFromScenario:
+    """AI scaffold-from-scenario (flow 2 of AI-assisted authoring).
+
+    Verifies the scenario validator, the LLM-response shape check,
+    the terminology resolver pass (resolved + unresolved), the rule
+    engine wiring, the deterministic SBAR fill, the aiAssisted
+    provenance stamp, and the loud-failure error paths.
+    """
+
+    _UNSET = object()
+
+    def _scaffold(
+        self,
+        *,
+        scenario: str = (
+            "67yo woman with 2-week painless visible haematuria, "
+            "BP 140/85, PMHx HTN."
+        ),
+        draft=_UNSET,
+        resolver_hits: dict[str, tuple[str, str, float]] | None = _UNSET,  # type: ignore[assignment]
+        eval_result: dict | None | object = _UNSET,
+        present_concepts: set[str] | None = None,
+        aspect: str = "summarisation",
+    ):
+        from app.services import test_patient_scenario_scaffolder
+
+        if draft is self._UNSET:
+            draft = _good_scenario_draft()
+        if resolver_hits is self._UNSET:
+            resolver_hits = _GOOD_RESOLVER_HITS
+        if eval_result is self._UNSET:
+            eval_result = _good_evaluator_result()
+        present_concepts = (
+            present_concepts
+            if present_concepts is not None
+            else {"34436003", "49650001", "38341003"}
+        )
+        client = _ScenarioFakeClient(present_concepts=present_concepts)
+
+        async def fake_generator(_system: str, _user: str) -> dict:
+            return draft if isinstance(draft, dict) else {"error": str(draft)}
+
+        def fake_evaluator(_payload):
+            return eval_result if isinstance(eval_result, dict) else {}
+
+        result = (
+            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
+                client,
+                scenario=scenario,
+                aspect=aspect,
+                created_by="qa@example.com",
+                generator=fake_generator,
+                resolver=_scenario_resolver(resolver_hits or {}),
+                evaluator=fake_evaluator,
+            )
+        )
+        return client, result
+
+    # -- happy paths -------------------------------------------------
+
+    def test_happy_path_writes_patient_resolves_terms_and_predicts_rules(self) -> None:
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldResult,
+        )
+
+        client, result = self._scaffold()
+
+        assert isinstance(result, ScenarioScaffoldResult)
+        assert result.patient_id == "test_ai_scenario_001"
+        assert result.aspect == "summarisation"
+        assert result.encounters_written == 1
+        assert result.expected_sbar_written is True
+        # All three terms resolved.
+        assert sorted(r.concept_id for r in result.resolved_terms) == sorted(
+            ["34436003", "38341003", "49650001"]
+        )
+        assert result.unresolved_terms == []
+        # Top matched rule is the 2WW rule (urgency wins over routine).
+        assert result.matched_rules[0].rule_id == "rule:NG12:R001"
+        assert result.matched_rules[0].action_priority == "2ww"
+
+        cyphers = [c for c, _ in client.calls]
+        # Blank patient creation happens.
+        assert any("CREATE (tp:TestPatient" in c for c in cyphers)
+        # AI provenance stamp uses scenario kind, not rule.
+        provenance_calls = [
+            (c, p)
+            for c, p in client.calls
+            if "tp.aiAssisted" in c and "tp.aiSourceText" in c
+        ]
+        assert len(provenance_calls) == 1
+        _, params = provenance_calls[0]
+        assert params["id"] == "test_ai_scenario_001"
+        assert "haematuria" in params["scenario"]
+        # Concept pre-flight is enforced before the encounter write.
+        assert any("missing" in c and "concept_ids" in c for c in cyphers)
+        # Expected SBAR write happened (summarisation aspect).
+        assert any("MERGE (s:ExpectedSBAR" in c for c in cyphers)
+
+    def test_expected_sbar_uses_top_priority_rule_not_llm_words(self) -> None:
+        """Deterministic SBAR fill: Recommendation must be the top
+        matched rule's verbatim recommendation, NOT anything the LLM
+        wrote. Action priority must be the rule engine's verdict.
+        """
+        client, _ = self._scaffold()
+
+        sbar_calls = [
+            (c, p) for c, p in client.calls if "MERGE (s:ExpectedSBAR" in c
+        ]
+        assert sbar_calls, "Expected SBAR write should have happened."
+        _, params = sbar_calls[0]
+        assert params["recommendation_md"].startswith(
+            "Refer adults aged >= 60 with unexplained visible haematuria"
+        )
+        assert params["matched_rule_ids"] == [
+            "rule:NG12:R001",
+            "rule:NG12:R777",
+        ]
+        assert params["expected_action_priority"] == "2ww"
+
+    def test_no_rules_fired_seeds_no_referral_skeleton(self) -> None:
+        """When the rule engine returns no matches the SBAR is still
+        seeded with a 'no referral' skeleton so the reviewer has a
+        starting point.
+        """
+        client, result = self._scaffold(eval_result={"matched_rules": []})
+
+        assert result.matched_rules == []
+        sbar_calls = [
+            (c, p) for c, p in client.calls if "MERGE (s:ExpectedSBAR" in c
+        ]
+        assert sbar_calls
+        _, params = sbar_calls[0]
+        assert "No rule fires" in params["recommendation_md"]
+        assert params["matched_rule_ids"] == []
+        assert params["expected_action_priority"] is None
+
+    def test_unresolved_terms_are_returned_for_reviewer_to_fix(self) -> None:
+        """Terms the resolver does not return are surfaced as
+        unresolved so the reviewer can fix them in the editor. The
+        scaffold still succeeds as long as at least some terms
+        resolved.
+        """
+        partial = {
+            "haematuria": ("34436003", "Haematuria", 0.96),
+            # dysuria and hypertension intentionally missing
+        }
+        client, result = self._scaffold(resolver_hits=partial)
+
+        resolved_lookups = {r.lookup_term for r in result.resolved_terms}
+        unresolved_lookups = {r.lookup_term for r in result.unresolved_terms}
+        assert resolved_lookups == {"haematuria"}
+        assert unresolved_lookups == {"dysuria", "hypertension"}
+        # Per-encounter codes should only carry the resolved one.
+        # The fake client's WRITE_EDITOR_ENCOUNTER call carries the
+        # codes via $codes; we look it up from the recorded calls.
+        encounter_writes = [
+            (c, p)
+            for c, p in client.calls
+            if ":HAS_ENCOUNTER" in c or "(enc:Encounter" in c
+        ]
+        assert encounter_writes, "Encounter write should have happened."
+
+    def test_low_score_term_is_treated_as_unresolved(self) -> None:
+        """Terms whose top-1 candidate scored below the floor are
+        treated as unresolved so we never write a bad SNOMED code.
+        """
+        weak = {
+            "haematuria": ("34436003", "Haematuria", 0.96),
+            "dysuria": ("49650001", "Dysuria", 0.94),
+            # Hypertension scores below the 0.45 floor.
+            "hypertension": ("38341003", "Hypertensive disorder", 0.10),
+        }
+        _, result = self._scaffold(resolver_hits=weak)
+
+        unresolved = {r.lookup_term for r in result.unresolved_terms}
+        assert "hypertension" in unresolved
+
+    def test_non_summarisation_aspect_skips_expected_sbar_and_evaluator(self) -> None:
+        eval_called = {"hit": False}
+
+        def _evaluator(_payload):
+            eval_called["hit"] = True
+            return {}
+
+        from app.services import test_patient_scenario_scaffolder
+
+        client = _ScenarioFakeClient(
+            present_concepts={"34436003", "49650001", "38341003"}
+        )
+
+        async def gen(_s, _u):
+            return _good_scenario_draft()
+
+        result = (
+            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
+                client,
+                scenario="67yo woman with haematuria.",
+                aspect="nlp",
+                created_by="qa@example.com",
+                generator=gen,
+                resolver=_scenario_resolver(_GOOD_RESOLVER_HITS),
+                evaluator=_evaluator,
+            )
+        )
+
+        assert result.aspect == "nlp"
+        assert result.expected_sbar_written is False
+        assert result.matched_rules == []
+        assert eval_called["hit"] is False
+        assert not any(
+            "MERGE (s:ExpectedSBAR" in c for c, _ in client.calls
+        )
+
+    # -- loud-failure paths -----------------------------------------
+
+    def test_rejects_guidelines_aspect(self) -> None:
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldError,
+        )
+
+        with pytest.raises(ScenarioScaffoldError, match="not supported"):
+            self._scaffold(aspect="guidelines")
+
+    def test_too_short_scenario_is_rejected_before_llm_call(self) -> None:
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldError,
+        )
+
+        with pytest.raises(ScenarioScaffoldError, match="too short"):
+            self._scaffold(scenario="hi")
+
+    def test_too_long_scenario_is_rejected(self) -> None:
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldError,
+        )
+
+        long_text = "x" * 3000
+        with pytest.raises(ScenarioScaffoldError, match="too long"):
+            self._scaffold(scenario=long_text)
+
+    def test_llm_missing_keys_is_rejected(self) -> None:
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldError,
+        )
+
+        bad = {"demographics": {"age": 67, "sex": "female"}}
+        with pytest.raises(ScenarioScaffoldError, match="missing required keys"):
+            self._scaffold(draft=bad)
+
+    def test_llm_returning_error_dict_is_rejected(self) -> None:
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldError,
+        )
+
+        with pytest.raises(ScenarioScaffoldError, match="did not return JSON"):
+            self._scaffold(draft={"error": "bedrock timeout"})
+
+    def test_no_terms_extracted_is_rejected(self) -> None:
+        """A scenario with no clinical terms is unusable -- we surface
+        the error rather than save an empty patient."""
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldError,
+        )
+
+        empty_terms = _good_scenario_draft()
+        empty_terms["encounters"][0]["terms"] = []
+        with pytest.raises(
+            ScenarioScaffoldError, match="did not pick out any clinical terms"
+        ):
+            self._scaffold(draft=empty_terms)
+
+    def test_resolver_outage_raises_loud_failure(self) -> None:
+        from app.services import test_patient_scenario_scaffolder
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldError,
+        )
+
+        client = _ScenarioFakeClient(present_concepts=set())
+
+        async def gen(_s, _u):
+            return _good_scenario_draft()
+
+        def broken_resolver(_terms: list[str]):
+            raise RuntimeError("terminology API timeout")
+
+        with pytest.raises(
+            ScenarioScaffoldError, match="terminology service"
+        ):
+            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
+                client,
+                scenario="67yo woman with haematuria.",
+                aspect="summarisation",
+                created_by="qa@example.com",
+                generator=gen,
+                resolver=broken_resolver,
+                evaluator=lambda _p: _good_evaluator_result(),
+            )
+
+    def test_evaluator_outage_raises_loud_failure_for_summarisation(self) -> None:
+        from app.services import test_patient_scenario_scaffolder
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldError,
+        )
+
+        client = _ScenarioFakeClient(
+            present_concepts={"34436003", "49650001", "38341003"}
+        )
+
+        async def gen(_s, _u):
+            return _good_scenario_draft()
+
+        def broken_evaluator(_payload):
+            raise RuntimeError("rule engine 502")
+
+        with pytest.raises(
+            ScenarioScaffoldError, match="rule engine"
+        ):
+            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
+                client,
+                scenario="67yo woman with haematuria.",
+                aspect="summarisation",
+                created_by="qa@example.com",
+                generator=gen,
+                resolver=_scenario_resolver(_GOOD_RESOLVER_HITS),
+                evaluator=broken_evaluator,
+            )
+
+    # -- router smoke tests -----------------------------------------
+
+    def test_router_endpoint_returns_scaffold_result(self) -> None:
+        from app.routers import test_patients as router
+        from app.services import test_patient_scenario_scaffolder
+        from app.services.test_patient_scenario_scaffolder import (
+            MatchedRuleRow,
+            ResolvedTermRow,
+            ScenarioScaffoldResult,
+        )
+
+        canned = ScenarioScaffoldResult(
+            patient_id="test_ai_scenario_002",
+            aspect="summarisation",
+            scenario="67yo woman with haematuria.",
+            encounters_written=1,
+            expected_sbar_written=True,
+            resolved_terms=[
+                ResolvedTermRow(
+                    surface_form="visible haematuria",
+                    lookup_term="haematuria",
+                    semantic_tag="finding",
+                    assertion="present",
+                    concept_id="34436003",
+                    preferred_term="Haematuria",
+                    score=0.96,
+                )
+            ],
+            unresolved_terms=[],
+            matched_rules=[
+                MatchedRuleRow(
+                    rule_id="rule:NG12:R001",
+                    name="2WW haematuria",
+                    recommendation_verbatim="Refer using 2WW pathway.",
+                    action_priority="2ww",
+                    guideline_title="Suspected cancer",
+                    chapter_title="Urological",
+                )
+            ],
+            notes="Scaffolded a summarisation test patient.",
+        )
+
+        original = (
+            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync
+        )
+        test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync = (  # type: ignore[assignment]
+            lambda *_a, **_kw: canned
+        )
+        try:
+            body = router.ScaffoldFromScenarioRequest(
+                scenario="67yo woman with haematuria.",
+                aspect="summarisation",
+            )
+            payload = router.scaffold_from_scenario(
+                body, scope=None  # type: ignore[arg-type]
+            )
+        finally:
+            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync = (  # type: ignore[assignment]
+                original
+            )
+
+        assert payload["patient_id"] == "test_ai_scenario_002"
+        assert payload["aspect"] == "summarisation"
+        assert payload["scenario"] == "67yo woman with haematuria."
+        assert payload["encounters_written"] == 1
+        assert payload["expected_sbar_written"] is True
+        assert payload["resolved_terms"][0]["concept_id"] == "34436003"
+        assert payload["unresolved_terms"] == []
+        assert payload["matched_rules"][0]["rule_id"] == "rule:NG12:R001"
+        assert payload["matched_rules"][0]["action_priority"] == "2ww"
+
+    def test_router_translates_scaffold_error_to_422(self) -> None:
+        from fastapi import HTTPException
+        from app.routers import test_patients as router
+        from app.services import test_patient_scenario_scaffolder
+        from app.services.test_patient_scenario_scaffolder import (
+            ScenarioScaffoldError,
+        )
+
+        def _raise(*_a, **_kw):
+            raise ScenarioScaffoldError("scenario too short")
+
+        original = (
+            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync
+        )
+        test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync = (  # type: ignore[assignment]
+            _raise
+        )
+        try:
+            body = router.ScaffoldFromScenarioRequest(
+                scenario="hi there friend",
+                aspect="summarisation",
+            )
+            with pytest.raises(HTTPException) as exc_info:
+                router.scaffold_from_scenario(
+                    body, scope=None  # type: ignore[arg-type]
+                )
+        finally:
+            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync = (  # type: ignore[assignment]
+                original
+            )
+
+        assert exc_info.value.status_code == 422
+        assert "scenario too short" in str(exc_info.value.detail)
+
+
+# ---------------------------------------------------------------------------
+# TC-012 -- Triage outcome filter + counts (NG12 / referral-triage pass)
+# ---------------------------------------------------------------------------
+
+
+class TestTC012TriageOutcomeFilter:
+    """The SBAR aspect IS the referral-triage aspect. The list query
+    surfaces a derived `triage_outcome` (2ww / urgent / routine /
+    no_rule_fired / evaluator_outage / unset) so the Knowledge tab
+    can offer a chip-group filter inside the SBAR aspect, and a
+    counts endpoint backs the chip badges. The derivation lives in
+    Cypher so it is consistent across the list + count paths.
+    """
+
+    def test_list_cypher_derives_triage_outcome_from_expected_sbar(self) -> None:
+        # The same CASE expression appears in both the list query and
+        # the count query so the chip badge count and the filtered
+        # row count agree.
+        from libs.cypher.test_patient_queries import (
+            COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME,
+            LIST_TEST_PATIENTS,
+        )
+
+        for cypher in (LIST_TEST_PATIENTS, COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME):
+            assert "OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)" in cypher
+            assert "coalesce(s.evaluator_outage, false)" in cypher
+            assert "s.expected_action_priority IS NOT NULL" in cypher
+            assert "size(coalesce(s.matched_rule_ids, [])) = 0" in cypher
+            assert "'no_rule_fired'" in cypher
+            assert "'evaluator_outage'" in cypher
+
+    def test_list_cypher_filters_on_triage_outcome_param(self) -> None:
+        # The filter respects 'all' (no filter), exact match, and the
+        # special 'unset' value used for non-summarisation patients
+        # that have no ExpectedSBAR node.
+        from libs.cypher.test_patient_queries import LIST_TEST_PATIENTS
+
+        assert "$triage_outcome IS NULL" in LIST_TEST_PATIENTS
+        assert "$triage_outcome = 'all'" in LIST_TEST_PATIENTS
+        assert "triage_outcome = $triage_outcome" in LIST_TEST_PATIENTS
+        assert (
+            "$triage_outcome = 'unset' AND triage_outcome IS NULL"
+            in LIST_TEST_PATIENTS
+        )
+        assert "triage_outcome     AS triage_outcome" in LIST_TEST_PATIENTS
+
+    def test_count_query_only_sees_summarisation_patients(self) -> None:
+        # The chip group only makes sense for the SBAR / referral-
+        # triage aspect -- the other three aspects do not have an
+        # ExpectedSBAR node and so do not have a triage outcome. The
+        # WHERE clause guarantees the chip badges never count NLP
+        # or Episodes patients.
+        from libs.cypher.test_patient_queries import (
+            COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME,
+        )
+
+        assert (
+            "coalesce(tp.aspect, 'guidelines') = 'summarisation'"
+            in COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME
+        )
+        assert "RETURN triage_outcome" in COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME
+
+    def test_list_patients_passes_triage_outcome_through(self) -> None:
+        from app.services import test_patient_service
+
+        client = FakeGraphClient()
+        test_patient_service.list_patients(
+            client,
+            aspect="summarisation",
+            triage_outcome="2ww",
+        )
+        _, params = client.calls[0]
+        assert params["aspect"] == "summarisation"
+        assert params["triage_outcome"] == "2ww"
+
+    def test_list_patients_normalises_unknown_triage_outcome_to_none(self) -> None:
+        # Same defensive behaviour as the aspect filter: a typo in a
+        # query string should never 500 the API, it should just stop
+        # filtering by outcome.
+        from app.services import test_patient_service
+
+        client = FakeGraphClient()
+        test_patient_service.list_patients(
+            client,
+            aspect="summarisation",
+            triage_outcome="bogus",
+        )
+        _, params = client.calls[0]
+        assert params["triage_outcome"] is None
+
+    def test_list_patients_normalises_all_triage_outcome_to_none(self) -> None:
+        from app.services import test_patient_service
+
+        client = FakeGraphClient()
+        test_patient_service.list_patients(
+            client,
+            triage_outcome="all",
+        )
+        _, params = client.calls[0]
+        assert params["triage_outcome"] is None
+
+    def test_count_by_triage_outcome_pads_zero_rows(self) -> None:
+        # The counts endpoint always returns one entry per known
+        # outcome (zero when none) so the UI can render a stable
+        # chip group without conditional logic.
+        from app.services import test_patient_service
+
+        client = FakeGraphClient(
+            responses={
+                "COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME_KEY": [],
+                "coalesce(tp.aspect, 'guidelines') = 'summarisation'": [
+                    {"triage_outcome": "2ww", "total": 4},
+                    {"triage_outcome": "routine", "total": 1},
+                    {"triage_outcome": "no_rule_fired", "total": 1},
+                ],
+            }
+        )
+        counts = test_patient_service.count_by_triage_outcome(client)
+        assert counts == {
+            "2ww": 4,
+            "urgent": 0,
+            "routine": 1,
+            "no_rule_fired": 1,
+            "evaluator_outage": 0,
+            "unset": 0,
+        }
+
+    def test_count_by_triage_outcome_drops_unknown_outcome_rows(self) -> None:
+        # Defensive: if the graph ever contains a value outside the
+        # canonical vocabulary (e.g. an old fixture) we drop it
+        # rather than letting the chip group grow unexpected entries.
+        from app.services import test_patient_service
+
+        client = FakeGraphClient(
+            responses={
+                "coalesce(tp.aspect, 'guidelines') = 'summarisation'": [
+                    {"triage_outcome": "2ww", "total": 2},
+                    {"triage_outcome": "stop", "total": 9},
+                ],
+            }
+        )
+        counts = test_patient_service.count_by_triage_outcome(client)
+        assert counts["2ww"] == 2
+        assert "stop" not in counts
+
+    def test_router_endpoint_passes_triage_outcome_through(self) -> None:
+        # The router converts the FastAPI Query into a service call
+        # so the chip-driven URL ?triage_outcome=2ww filters server-
+        # side, not client-side.
+        from app.routers import test_patients as router
+        from app.services import test_patient_service
+
+        captured: dict[str, Any] = {}
+
+        def _fake_list(_client, **kw):
+            captured.update(kw)
+            return []
+
+        original = test_patient_service.list_patients
+        test_patient_service.list_patients = _fake_list  # type: ignore[assignment]
+        try:
+            router.list_patients(
+                aspect="summarisation",
+                guideline_id=None,
+                rule_id=None,
+                node_id=None,
+                triage_outcome="2ww",
+                limit=200,
+                scope=None,  # type: ignore[arg-type]
+            )
+        finally:
+            test_patient_service.list_patients = original  # type: ignore[assignment]
+        assert captured.get("triage_outcome") == "2ww"
+        assert captured.get("aspect") == "summarisation"
+
+    def test_router_endpoint_returns_triage_outcome_counts(self) -> None:
+        from app.routers import test_patients as router
+        from app.services import test_patient_service
+
+        called: dict[str, bool] = {"hit": False}
+
+        def _fake_count(_client):
+            called["hit"] = True
+            return {
+                "2ww": 4,
+                "urgent": 1,
+                "routine": 1,
+                "no_rule_fired": 1,
+                "evaluator_outage": 0,
+                "unset": 0,
+            }
+
+        original = test_patient_service.count_by_triage_outcome
+        test_patient_service.count_by_triage_outcome = _fake_count  # type: ignore[assignment]
+        try:
+            result = router.get_triage_outcome_counts(scope=None)  # type: ignore[arg-type]
+        finally:
+            test_patient_service.count_by_triage_outcome = original  # type: ignore[assignment]
+        assert called["hit"] is True
+        assert result["2ww"] == 4
+        assert set(result.keys()) == {
+            "2ww",
+            "urgent",
+            "routine",
+            "no_rule_fired",
+            "evaluator_outage",
+            "unset",
+        }

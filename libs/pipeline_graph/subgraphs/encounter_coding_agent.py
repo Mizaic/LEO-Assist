@@ -566,6 +566,7 @@ def coder(state: CodingAgentState) -> dict:
     messages = list(state.get("messages") or [])
     errors = list(state.get("errors") or [])
 
+    patient_id = str(state.get("patient_id") or "")
     try:
         llm = create_llm(tier=tier)
         system = build_system_prompt(mode)
@@ -574,6 +575,8 @@ def coder(state: CodingAgentState) -> dict:
             messages=deepcopy(messages),
             max_tokens=4096,
             tool_config=_TOOL_CONFIG,
+            agent_task="encounter_coding_agent",
+            patient_id=patient_id,
         )
         assistant_content: list[dict] = []
         if resp.text:
@@ -681,6 +684,8 @@ def _forced_verdict_call(state: CodingAgentState) -> dict | None:
             messages=deepcopy(messages),
             max_tokens=2048,
             tool_config=_TOOL_CONFIG,
+            agent_task="encounter_coding_agent_forced_verdict",
+            patient_id=str(state.get("patient_id") or ""),
         )
         for tu in resp.tool_uses:
             if tu.get("name") == "submit_verdict":

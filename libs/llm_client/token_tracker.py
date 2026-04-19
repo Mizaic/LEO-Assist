@@ -6,6 +6,7 @@ an async tracking hook that services can use to record usage.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from typing import Any, Callable, Dict, Optional
@@ -70,6 +71,52 @@ async def track_llm_usage(**kwargs: Any) -> None:
                 await result
         except Exception:
             logger.debug("Token tracking callback failed", exc_info=True)
+
+
+def track_llm_usage_sync(**kwargs: Any) -> None:
+    """Sync variant of :func:`track_llm_usage` for sync LLM entry points.
+
+    Used by ``libs.llm_client.factory.LLMClient.converse`` and other
+    synchronous callers that cannot await ``track_llm_usage``. Behaviour:
+
+    - If no callback is registered, this is a no-op.
+    - If the callback returns ``None`` (the common case -- the default
+      ``LLMUsageRecorder`` callback is sync), nothing else happens.
+    - If the callback returns a coroutine, we try to schedule it on the
+      currently running asyncio loop. If no loop is running in this
+      thread (typical when ``LLMClient.converse`` is called inside
+      ``asyncio.to_thread``), we drain the coroutine via
+      ``asyncio.run`` so the work still happens.
+    - Any exception from the callback path is swallowed and logged at
+      DEBUG, so a tracking-callback bug never breaks the LLM caller.
+    """
+    if _tracking_callback is None:
+        return
+    try:
+        result = _tracking_callback(**kwargs)
+    except Exception:
+        logger.debug("Token tracking callback failed (sync)", exc_info=True)
+        return
+    if not hasattr(result, "__await__"):
+        return
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        try:
+            asyncio.run(result)
+        except Exception:
+            logger.debug(
+                "Token tracking callback (sync, async drain) failed",
+                exc_info=True,
+            )
+        return
+    try:
+        loop.create_task(result)
+    except Exception:
+        logger.debug(
+            "Token tracking callback (sync, schedule on loop) failed",
+            exc_info=True,
+        )
 
 
 def get_model_name_from_arn(arn: str) -> str:

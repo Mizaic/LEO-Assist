@@ -191,7 +191,13 @@ describe("EncounterTextTab scrubber wiring - VT-LEO-AI-173", () => {
     expect(src).toMatch(/linkedEncounterIds=\{linkedEncounterIds\}/);
     expect(src).toMatch(/episodeFrom=\{from\}/);
     expect(src).toMatch(/episodeTo=\{to\}/);
-    expect(src).toMatch(/milestones=\{episode\.milestones\s*\?\?\s*\[\]\}/);
+    // Milestones are stabilised through a memoised local `milestones`
+    // identifier so the scrubber receives a stable reference (see
+    // EncounterTextTab fix for "Maximum update depth exceeded").
+    expect(src).toMatch(/milestones=\{milestones\}/);
+    expect(src).toMatch(
+      /const\s+milestones\s*=\s*useMemo\(\s*\(\s*\)\s*=>\s*episode\.milestones\s*\?\?\s*\[\]/
+    );
     expect(src).toMatch(/onJumpToEncounter=\{jumpToEncounter\}/);
   });
 
@@ -224,7 +230,12 @@ describe("EncounterTextTab overlay-first chrome - VT-LEO-AI-205", () => {
   });
 
   test("VT-205-TC-CHROME-003: brush state defaults to padded episode-linked window", () => {
-    expect(src).toMatch(/episodeLinkedRange/);
+    // The episode-linked window is now exposed as primitive
+    // `episodeLinkedFromMs` / `episodeLinkedToMs` memos so the
+    // brush-init effect has stable deps (see EncounterTextTab fix
+    // for "Maximum update depth exceeded").
+    expect(src).toMatch(/episodeLinkedFromMs/);
+    expect(src).toMatch(/episodeLinkedToMs/);
     expect(src).toMatch(/padRange/);
     expect(src).toMatch(/defaultRangeAppliedRef/);
   });

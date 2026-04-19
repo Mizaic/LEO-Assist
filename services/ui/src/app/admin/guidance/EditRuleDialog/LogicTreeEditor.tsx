@@ -60,9 +60,25 @@ import {
 interface Props {
   root: EditableLogicNode;
   selectedNodeId: string | null;
-  onSelect: (nodeId: string) => void;
+  /**
+   * Called when the reviewer focuses a chip. The optional `anchor`
+   * argument is the chip's DOM element so the parent can position
+   * a chip-anchored popover at the click point. Anchor is omitted
+   * when selection is triggered programmatically (e.g. before
+   * `onRequestAdd` fires from the same handler).
+   */
+  onSelect: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
-  onRequestAdd: (parentNodeId: string) => void;
+  /**
+   * Called when the reviewer clicks an "+ Add" chip / button inside a
+   * group. The optional `anchor` argument is the trigger element so
+   * the parent can position the search popover where the click
+   * happened.
+   */
+  onRequestAdd: (
+    parentNodeId: string,
+    anchor?: HTMLElement | null,
+  ) => void;
   /**
    * Open the concept-expansion coach for a chip whose term matches a
    * vague pattern (e.g. "symptoms of lung cancer"). The anchor element
@@ -269,9 +285,9 @@ function GroupNodeView(props: NodeViewProps) {
           ))}
           <AddChildBar
             parentKind={node.kind}
-            onAddConcept={() => {
+            onAddConcept={(anchor) => {
               onSelect(node.node_id);
-              onRequestAdd(node.node_id);
+              onRequestAdd(node.node_id, anchor);
             }}
             onAddGroup={(g) =>
               onUpdate({ kind: "add_group", parentNodeId: node.node_id, groupKind: g })
@@ -292,11 +308,22 @@ interface PathwayCardsProps {
   node: EditableLogicNode;
   depth: number;
   selectedNodeId: string | null;
-  onSelect: (nodeId: string) => void;
+  onSelect: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
-  onRequestAdd: (parentNodeId: string) => void;
+  onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
   root: EditableLogicNode;
+}
+
+const PATHWAY_ACCENTS = [
+  { stripe: "primary.main", chipBg: "primary.50", chipFg: "primary.dark" },
+  { stripe: "info.main", chipBg: "info.50", chipFg: "info.dark" },
+  { stripe: "secondary.main", chipBg: "secondary.50", chipFg: "secondary.dark" },
+  { stripe: "success.main", chipBg: "success.50", chipFg: "success.dark" },
+] as const;
+
+function pathwayAccent(index: number) {
+  return PATHWAY_ACCENTS[index % PATHWAY_ACCENTS.length];
 }
 
 function PathwayCardsView(props: PathwayCardsProps) {
@@ -324,14 +351,19 @@ function PathwayCardsView(props: PathwayCardsProps) {
       <Stack
         direction="row"
         alignItems="center"
-        spacing={0.75}
-        sx={{ mb: 1, pl: 0.5 }}
+        spacing={1}
+        sx={{ mb: 1.25, pl: 0.5, flexWrap: "wrap", rowGap: 0.5 }}
       >
         <Typography
           variant="body2"
-          sx={{ fontWeight: 600, color: "text.primary" }}
+          sx={{
+            fontWeight: 600,
+            color: "text.primary",
+            lineHeight: 1.4,
+          }}
         >
-          The rule fires if the patient matches any one of these pathways:
+          The rule fires if the patient matches any one of these
+          pathways:
         </Typography>
         <Tooltip title="Add another pathway">
           <Chip
@@ -339,6 +371,7 @@ function PathwayCardsView(props: PathwayCardsProps) {
             label="Add pathway"
             size="small"
             variant="outlined"
+            color="primary"
             onClick={() =>
               onUpdate({
                 kind: "add_group",
@@ -346,92 +379,140 @@ function PathwayCardsView(props: PathwayCardsProps) {
                 groupKind: "AND",
               })
             }
-            sx={{ height: 24, fontSize: "0.72rem" }}
+            sx={{
+              height: 24,
+              fontSize: "0.72rem",
+              fontWeight: 600,
+              borderRadius: 1.5,
+              bgcolor: "background.paper",
+            }}
           />
         </Tooltip>
       </Stack>
       <Stack
         direction={{ xs: "column", md: "row" }}
-        spacing={1.5}
+        spacing={2}
         useFlexGap
         sx={{ alignItems: "stretch", flexWrap: "wrap" }}
       >
-        {children.map((child, i) => (
-          <Box
-            key={child.node_id}
-            sx={{
-              flex: 1,
-              minWidth: { xs: "100%", md: 280 },
-              p: 1.25,
-              borderRadius: 1.5,
-              border: "1px solid",
-              borderColor: "primary.100",
-              bgcolor: "background.paper",
-              boxShadow: 1,
-              position: "relative",
-            }}
-          >
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={0.5}
-              sx={{ mb: 0.5 }}
+        {children.map((child, i) => {
+          const accent = pathwayAccent(i);
+          const letter = String.fromCharCode(65 + i);
+          return (
+            <Box
+              key={child.node_id}
+              sx={{
+                flex: 1,
+                minWidth: { xs: "100%", md: 280 },
+                position: "relative",
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "background.paper",
+                boxShadow:
+                  "0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.04)",
+                overflow: "hidden",
+                transition:
+                  "box-shadow 150ms ease, border-color 150ms ease",
+                "&:hover": {
+                  boxShadow:
+                    "0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 18px rgba(15, 23, 42, 0.08)",
+                },
+              }}
             >
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, color: "primary.dark" }}
-              >
-                Pathway {String.fromCharCode(65 + i)}
-              </Typography>
-              <Box sx={{ flex: 1 }} />
-              <Tooltip title="Remove this pathway">
-                <IconButton
-                  size="small"
-                  aria-label={`Remove pathway ${String.fromCharCode(65 + i)}`}
-                  onClick={() =>
-                    onUpdate({ kind: "remove", nodeId: child.node_id })
-                  }
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-            <PathwayCardBody
-              root={root}
-              node={child}
-              depth={depth + 1}
-              selectedNodeId={selectedNodeId}
-              onSelect={onSelect}
-              onUpdate={onUpdate}
-              onRequestAdd={onRequestAdd}
-              onRequestCoach={onRequestCoach}
-            />
-            {i < children.length - 1 && (
               <Box
-                sx={{
-                  display: { xs: "none", md: "flex" },
-                  position: "absolute",
-                  right: -22,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  bgcolor: "primary.main",
-                  color: "primary.contrastText",
-                  fontSize: "0.7rem",
-                  fontWeight: 700,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 1,
-                }}
                 aria-hidden
-              >
-                OR
+                sx={{
+                  height: 4,
+                  width: "100%",
+                  bgcolor: accent.stripe,
+                }}
+              />
+              <Box sx={{ p: 1.5 }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={0.75}
+                  sx={{ mb: 1 }}
+                >
+                  <Box
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      px: 0.85,
+                      py: 0.25,
+                      borderRadius: 1,
+                      bgcolor: accent.chipBg,
+                      color: accent.chipFg,
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      letterSpacing: 0.4,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Pathway {letter}
+                  </Box>
+                  <Box sx={{ flex: 1 }} />
+                  <Tooltip title="Remove this pathway">
+                    <IconButton
+                      size="small"
+                      aria-label={`Remove pathway ${letter}`}
+                      onClick={() =>
+                        onUpdate({ kind: "remove", nodeId: child.node_id })
+                      }
+                      sx={{
+                        color: "text.secondary",
+                        "&:hover": { color: "error.main" },
+                      }}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+                <PathwayCardBody
+                  root={root}
+                  node={child}
+                  depth={depth + 1}
+                  selectedNodeId={selectedNodeId}
+                  onSelect={onSelect}
+                  onUpdate={onUpdate}
+                  onRequestAdd={onRequestAdd}
+                  onRequestCoach={onRequestCoach}
+                />
               </Box>
-            )}
-          </Box>
-        ))}
+              {i < children.length - 1 && (
+                <Box
+                  sx={{
+                    display: { xs: "none", md: "flex" },
+                    position: "absolute",
+                    right: -18,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    bgcolor: "background.paper",
+                    color: "primary.dark",
+                    border: "1px solid",
+                    borderColor: "primary.light",
+                    fontSize: "0.65rem",
+                    fontWeight: 800,
+                    letterSpacing: 0.5,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 1,
+                    boxShadow:
+                      "0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 10px rgba(15, 23, 42, 0.08)",
+                  }}
+                  aria-hidden
+                >
+                  OR
+                </Box>
+              )}
+            </Box>
+          );
+        })}
       </Stack>
     </Box>
   );
@@ -455,9 +536,9 @@ interface PathwayCardBodyProps {
   node: EditableLogicNode;
   depth: number;
   selectedNodeId: string | null;
-  onSelect: (nodeId: string) => void;
+  onSelect: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
-  onRequestAdd: (parentNodeId: string) => void;
+  onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
 }
 
@@ -479,9 +560,9 @@ function PathwayCardBody(p: PathwayCardBodyProps) {
           </Typography>
           <AddChildBar
             parentKind="AND"
-            onAddConcept={() => {
+            onAddConcept={(anchor) => {
               p.onSelect(node.node_id);
-              p.onRequestAdd(node.node_id);
+              p.onRequestAdd(node.node_id, anchor);
             }}
             onAddGroup={(g) =>
               p.onUpdate({
@@ -515,9 +596,9 @@ function PathwayCardBody(p: PathwayCardBodyProps) {
         ))}
         <AddChildBar
           parentKind="AND"
-          onAddConcept={() => {
+          onAddConcept={(anchor) => {
             p.onSelect(node.node_id);
-            p.onRequestAdd(node.node_id);
+            p.onRequestAdd(node.node_id, anchor);
           }}
           onAddGroup={(g) =>
             p.onUpdate({
@@ -556,9 +637,9 @@ interface InlineAtLeastProps {
   depth: number;
   isRoot: boolean;
   selectedNodeId: string | null;
-  onSelect: (nodeId: string) => void;
+  onSelect: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
-  onRequestAdd: (parentNodeId: string) => void;
+  onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
 }
 
@@ -578,13 +659,24 @@ function InlineAtLeastView({
       role="treeitem"
       sx={{
         ml: isRoot ? 0 : 1.5,
-        mt: 0.75,
-        pl: 1.25,
-        py: 0.5,
-        borderLeft: "2px solid",
-        borderColor: depth <= 1 ? "primary.light" : "divider",
-        bgcolor: "grey.50",
-        borderRadius: "0 4px 4px 0",
+        mt: 1,
+        px: 1.25,
+        py: 1,
+        position: "relative",
+        bgcolor: "primary.50",
+        border: "1px solid",
+        borderColor: "primary.100",
+        borderRadius: 1.5,
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          left: 0,
+          top: 8,
+          bottom: 8,
+          width: 3,
+          borderRadius: 2,
+          bgcolor: depth <= 1 ? "primary.main" : "primary.light",
+        },
       }}
     >
       <Stack
@@ -592,19 +684,52 @@ function InlineAtLeastView({
         spacing={0.75}
         alignItems="center"
         useFlexGap
-        sx={{ flexWrap: "wrap", rowGap: 0.5 }}
+        sx={{ flexWrap: "wrap", rowGap: 0.75, pl: 0.5 }}
       >
-        <Typography variant="body2" sx={{ fontWeight: 600, mr: 0.25 }}>
-          At least
-        </Typography>
-        <AtLeastCounter
-          min={node.min ?? 1}
-          childCount={childCount}
-          onChange={(n) => onUpdate({ kind: "set_min", nodeId: node.node_id, min: n })}
-        />
-        <Typography variant="body2" sx={{ mr: 0.25 }}>
-          of these:
-        </Typography>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.5}
+          sx={{
+            mr: 0.5,
+            px: 0.85,
+            py: 0.35,
+            borderRadius: 1,
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "primary.100",
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              letterSpacing: 0.4,
+              textTransform: "uppercase",
+              color: "primary.dark",
+            }}
+          >
+            At least
+          </Typography>
+          <AtLeastCounter
+            min={node.min ?? 1}
+            childCount={childCount}
+            onChange={(n) =>
+              onUpdate({ kind: "set_min", nodeId: node.node_id, min: n })
+            }
+          />
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              letterSpacing: 0.4,
+              textTransform: "uppercase",
+              color: "text.secondary",
+            }}
+          >
+            of these
+          </Typography>
+        </Stack>
         {(node.children ?? []).map((child) => (
           <ConceptChipInline
             key={child.node_id}
@@ -620,12 +745,19 @@ function InlineAtLeastView({
           label="Add"
           size="small"
           variant="outlined"
-          onClick={() => {
+          color="primary"
+          onClick={(e) => {
             onSelect(node.node_id);
-            onRequestAdd(node.node_id);
+            onRequestAdd(node.node_id, e.currentTarget);
           }}
           aria-label="Add a symptom or sign to this group"
-          sx={{ height: 26, fontSize: "0.72rem" }}
+          sx={{
+            height: 26,
+            fontSize: "0.72rem",
+            fontWeight: 600,
+            bgcolor: "background.paper",
+            borderRadius: 1.5,
+          }}
         />
         <Box sx={{ flex: 1 }} />
         {!isRoot && (
@@ -634,6 +766,10 @@ function InlineAtLeastView({
               size="small"
               aria-label="Remove this group"
               onClick={() => onUpdate({ kind: "remove", nodeId: node.node_id })}
+              sx={{
+                color: "text.secondary",
+                "&:hover": { color: "error.main" },
+              }}
             >
               <DeleteOutlineIcon fontSize="small" />
             </IconButton>
@@ -653,7 +789,7 @@ function ConceptChipInline({
 }: {
   node: EditableLogicNode;
   isSelected: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, anchor?: HTMLElement | null) => void;
   onUpdate: (u: NodeUpdate) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
 }) {
@@ -664,7 +800,22 @@ function ConceptChipInline({
     ? `${friendly} (clinical code ${node.criterion.snomed_concept_id}). Click to swap. X to remove.`
     : "No clinical code yet. Click to search and pick one.";
   return (
-    <Stack direction="row" spacing={0.25} alignItems="center" component="span">
+    <Stack
+      direction="row"
+      spacing={0}
+      alignItems="center"
+      component="span"
+      sx={{
+        borderRadius: 1.5,
+        bgcolor: isSelected ? "primary.50" : "transparent",
+        border: "1px solid",
+        borderColor: isSelected ? "primary.light" : "transparent",
+        px: isSelected ? 0.25 : 0,
+        py: isSelected ? 0.25 : 0,
+        transition:
+          "background-color 120ms ease, border-color 120ms ease",
+      }}
+    >
       <Tooltip title={tooltip} arrow>
         <Chip
           label={label}
@@ -679,10 +830,19 @@ function ConceptChipInline({
           }
           variant={isSelected ? "filled" : "outlined"}
           size="small"
-          onClick={() => onSelect(node.node_id)}
+          onClick={(e) => onSelect(node.node_id, e.currentTarget)}
           onDelete={() => onUpdate({ kind: "remove", nodeId: node.node_id })}
           deleteIcon={<CloseIcon sx={{ fontSize: 14 }} />}
-          sx={{ height: 26, fontSize: "0.78rem" }}
+          sx={{
+            height: 26,
+            fontSize: "0.78rem",
+            fontWeight: 500,
+            borderRadius: 1.5,
+            bgcolor:
+              !isSelected && node.criterion?.snomed_concept_id
+                ? "background.paper"
+                : undefined,
+          }}
           aria-label={`${label}. Click to swap, X to remove.`}
         />
       </Tooltip>
@@ -785,7 +945,7 @@ function AddChildBar({
   onAddDemographic,
 }: {
   parentKind: LogicNodeKind;
-  onAddConcept: () => void;
+  onAddConcept: (anchor?: HTMLElement | null) => void;
   onAddGroup: (k: "AND" | "OR" | "NOT" | "AT_LEAST") => void;
   onAddDemographic: () => void;
 }) {
@@ -794,20 +954,43 @@ function AddChildBar({
     nextGroupKind === "OR"
       ? "Add a choice (any of these)"
       : "Add a sub-group (all of these)";
+  const addChipSx = {
+    height: 26,
+    fontSize: "0.72rem",
+    fontWeight: 600,
+    borderRadius: 1.5,
+    color: "text.secondary",
+    borderColor: "divider",
+    bgcolor: "background.paper",
+    transition:
+      "background-color 120ms ease, border-color 120ms ease, color 120ms ease",
+    "&:hover": {
+      bgcolor: "primary.50",
+      borderColor: "primary.light",
+      color: "primary.dark",
+    },
+    "& .MuiChip-icon": { color: "inherit" },
+  } as const;
   return (
     <Stack
       direction="row"
-      spacing={0.5}
+      spacing={0.75}
       alignItems="center"
-      sx={{ mt: 0.5, pl: 0.25, color: "text.secondary", flexWrap: "wrap" }}
+      sx={{
+        mt: 1,
+        pl: 0.25,
+        color: "text.secondary",
+        flexWrap: "wrap",
+        rowGap: 0.5,
+      }}
     >
       <Chip
         icon={<AddIcon sx={{ fontSize: 14 }} />}
         label={ADD_BAR_LABELS.symptom}
         size="small"
         variant="outlined"
-        onClick={onAddConcept}
-        sx={{ height: 24, fontSize: "0.72rem" }}
+        onClick={(e) => onAddConcept(e.currentTarget)}
+        sx={addChipSx}
       />
       <Chip
         icon={<AddIcon sx={{ fontSize: 14 }} />}
@@ -815,7 +998,7 @@ function AddChildBar({
         size="small"
         variant="outlined"
         onClick={() => onAddGroup(nextGroupKind)}
-        sx={{ height: 24, fontSize: "0.72rem" }}
+        sx={addChipSx}
       />
       <Chip
         icon={<AddIcon sx={{ fontSize: 14 }} />}
@@ -823,7 +1006,7 @@ function AddChildBar({
         size="small"
         variant="outlined"
         onClick={onAddDemographic}
-        sx={{ height: 24, fontSize: "0.72rem" }}
+        sx={addChipSx}
       />
     </Stack>
   );
@@ -852,9 +1035,21 @@ function ConceptNodeView({
   return (
     <Stack
       direction="row"
-      spacing={0.25}
+      spacing={0}
       alignItems="center"
-      sx={{ display: "inline-flex", mr: 0.5, mb: 0.5 }}
+      sx={{
+        display: "inline-flex",
+        mr: 0.5,
+        mb: 0.5,
+        borderRadius: 1.5,
+        bgcolor: isSelected ? "primary.50" : "transparent",
+        border: "1px solid",
+        borderColor: isSelected ? "primary.light" : "transparent",
+        px: isSelected ? 0.25 : 0,
+        py: isSelected ? 0.25 : 0,
+        transition:
+          "background-color 120ms ease, border-color 120ms ease",
+      }}
     >
       <Tooltip title={tooltip} arrow>
         <Chip
@@ -870,10 +1065,19 @@ function ConceptNodeView({
           }
           variant={isSelected ? "filled" : "outlined"}
           size="small"
-          onClick={() => onSelect(node.node_id)}
+          onClick={(e) => onSelect(node.node_id, e.currentTarget)}
           onDelete={() => onUpdate({ kind: "remove", nodeId: node.node_id })}
           deleteIcon={<CloseIcon sx={{ fontSize: 14 }} />}
-          sx={{ height: 26, fontSize: "0.78rem" }}
+          sx={{
+            height: 26,
+            fontSize: "0.78rem",
+            fontWeight: 500,
+            borderRadius: 1.5,
+            bgcolor:
+              !isSelected && node.criterion?.snomed_concept_id
+                ? "background.paper"
+                : undefined,
+          }}
           aria-label={`${label}. Click to swap, X to remove.`}
         />
       </Tooltip>

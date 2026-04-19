@@ -211,14 +211,23 @@ export default function HistogramBar({
           />
         )}
         {isActive && (
-          <fm.div
-            layoutId="timeline-active-bin"
-            transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            style={{
+          // NOTE: previously used framer-motion `layoutId="timeline-active-bin"`
+          // for a shared-element transition between bars. The shared
+          // layout animation could feed back into the React render
+          // cycle when the active bin flipped rapidly (e.g. as the
+          // IntersectionObserver above the encounter list updated
+          // `visibleEncounterId`), producing
+          // "Maximum update depth exceeded" inside `bars.map`.
+          // A static ring is sufficient -- the active bar is already
+          // visually distinct via colour and opacity.
+          <Box
+            data-testid="timeline-active-ring"
+            aria-hidden="true"
+            sx={{
               position: "absolute",
               inset: -3,
               border: `2px solid ${COLOR_ACTIVE_RING}`,
-              borderRadius: 5,
+              borderRadius: "5px",
               pointerEvents: "none",
             }}
           />

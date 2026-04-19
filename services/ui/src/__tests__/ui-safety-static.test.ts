@@ -373,17 +373,28 @@ describe("VT-036-TC-024: ModelLifecyclePanel status labels (static)", () => {
 // -- VT-062-TC-001: Prompt tuning runtime controls ----------------------------
 
 describe("VT-062-TC-001: Prompt editor runtime controls (static)", () => {
+  // The prompt editor was refactored into the orchestrator page plus a
+  // _components folder; the runtime control surface and the per-example
+  // toggle moved into TeachingExamplesTab.tsx and ExampleCard.tsx
+  // respectively. Each invariant is asserted against the file that now
+  // owns it so this guard tracks the live UI source.
   const promptEditor = readUISrc("app/admin/prompts/[id]/page.tsx");
+  const teachingTab = readUISrc(
+    "app/admin/prompts/[id]/_components/TeachingExamplesTab.tsx",
+  );
+  const exampleCard = readUISrc(
+    "app/admin/prompts/[id]/_components/ExampleCard.tsx",
+  );
 
   it("contains max few-shot runtime control", () => {
-    expect(promptEditor).toContain("Max examples used at runtime");
+    expect(teachingTab).toContain("Max examples used at runtime");
     expect(promptEditor).toContain("maxFewShot");
-    expect(promptEditor).toContain("inputProps={{ min: 1, max: 100 }}");
+    expect(teachingTab).toContain("inputProps={{ min: 1, max: 100 }}");
   });
 
   it("contains per-example core toggle", () => {
-    expect(promptEditor).toContain("Core (always included)");
-    expect(promptEditor).toContain('onChange(ex.id, "core", e.target.checked)');
+    expect(exampleCard).toContain("Core (always included)");
+    expect(exampleCard).toContain('onChange(ex.id, "core", e.target.checked)');
   });
 
   it("shows core count in teaching examples tab summary", () => {

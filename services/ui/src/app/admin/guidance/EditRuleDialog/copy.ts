@@ -112,7 +112,7 @@ export const STEP_SHORT_TITLES: Record<StepId, string> = {
 
 /** Helper text shown under each step's heading. One short sentence each. */
 export const STEP_HELPERS: Record<StepId, string> = {
-  who: "Pick which patients this rule is about. Tap a green pill to swap a sign. Tap + Add to add another.",
+  who: "Pick which patients this rule is about. Click a green pill to swap or change it. Use + Add to add another.",
   suggest: "Pick what the system should tell the clinician when this rule matches.",
   try: "Make sure your change still works for real patients before you save.",
   save: "Tell us why you are changing this rule. Then save.",

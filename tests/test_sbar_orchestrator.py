@@ -75,15 +75,11 @@ def _make_payload() -> SBARRequestPayload:
         situation=SBARSituationInput(
             patient_id="pat-1",
             artifacts=[
-                SBARArtifactRef(
-                    type=SituationArtifactType.referral_request, id="rr-9"
-                )
+                SBARArtifactRef(type=SituationArtifactType.referral_request, id="rr-9")
             ],
         ),
         background=[
-            SBARBackgroundSourceRef(
-                type=BackgroundSourceType.encounter, id="enc-1"
-            )
+            SBARBackgroundSourceRef(type=BackgroundSourceType.encounter, id="enc-1")
         ],
         guideline_ids=[],
     )
@@ -128,6 +124,7 @@ def orchestrator_with_mocks(monkeypatch):
 
     def _fake_resolve_situation(_session, _input):
         from libs.sbar.source_resolver import ResolvedSituation
+
         return ResolvedSituation(patient_id="pat-1", patient_summary={}, artifacts=[])
 
     def _fake_resolve_background(_session, _refs):
@@ -198,6 +195,116 @@ def test_orchestrator_runs_all_stages_and_persists(orchestrator_with_mocks):
     assert types[-1] == "sbar_completed"
 
 
+def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
+    monkeypatch,
+):
+    """VT-LEO-AI-514 TC-006 / TC-007: structured errors[] / notices[] on SSE.
+
+    The Bedrock 'Input is too long for requested model' validation
+    failure today ends up as a green 'Done (1 errors)' button with no
+    detail. After DI-LEO-AI-513 / DI-LEO-AI-516 the orchestrator MUST:
+      - Append a friendly error to errors_detail and to the legacy
+        errors[] list.
+      - Forward a background_trimmed notice on the matching
+        sbar_stage_completed event AND aggregate it in the final
+        sbar_completed payload.
+      - Never echo the raw vendor string (no 'ValidationException' or
+        'Converse' substring on the wire).
+    """
+    session = _FakeSession()
+    client = _FakeClient(session)
+
+    async def _ok_situation(*_a, **_kw):
+        return {
+            "markdown": "Patient context.",
+            "raw": {},
+            "error": None,
+            "error_code": None,
+        }
+
+    async def _bad_background(*_a, **_kw):
+        return {
+            "markdown": "",
+            "raw": {},
+            "error": (
+                "There was too much information for the model to read for "
+                "the Background section. Try picking fewer records, or "
+                "shorter ones, and run it again."
+            ),
+            "error_code": "input_too_long",
+            "notice": "Trimmed 3 records to fit.",
+        }
+
+    async def _ok_recommendation(*_a, **_kw):
+        return {
+            "markdown": "Refer urgently.",
+            "actions": [],
+            "raw": {},
+            "error": None,
+            "error_code": None,
+        }
+
+    monkeypatch.setattr(
+        "services.pipeline_worker.app.services.sbar_orchestrator.resolve_situation",
+        lambda _s, _i: _make_resolved_situation(),
+    )
+    monkeypatch.setattr(
+        "services.pipeline_worker.app.services.sbar_orchestrator.resolve_background_sources",
+        lambda _s, _r: [],
+    )
+
+    publish = MagicMock()
+    orch = SBAROrchestrator(
+        patient_graph_client=client,
+        publish_progress=publish,
+        situation_caller=_ok_situation,
+        background_caller=_bad_background,
+        recommendation_caller=_ok_recommendation,
+        evaluator=lambda **_kw: {"matched_rules": []},
+    )
+    result = asyncio.run(orch.run(_make_payload()))
+
+    assert result.status == "draft"
+    assert len(result.errors_detail) == 1
+    assert result.errors_detail[0]["stage"] == "background"
+    assert result.errors_detail[0]["code"] == "input_too_long"
+    assert "ValidationException" not in result.errors_detail[0]["message"]
+    assert "Converse" not in result.errors_detail[0]["message"]
+
+    assert len(result.notices) == 1
+    assert result.notices[0] == {
+        "stage": "background",
+        "code": "background_trimmed",
+        "message": "Trimmed 3 records to fit.",
+    }
+
+    events = [c.args[1] for c in publish.call_args_list]
+    completed = [e for e in events if e["type"] == "sbar_completed"]
+    assert len(completed) == 1
+    payload = completed[0]
+    assert payload["error_count"] == 1
+    assert isinstance(payload["errors"], list)
+    assert payload["errors"][0]["stage"] == "background"
+    assert payload["errors"][0]["code"] == "input_too_long"
+    assert isinstance(payload["notices"], list)
+    assert payload["notices"][0]["code"] == "background_trimmed"
+
+    bg_stage = [
+        e
+        for e in events
+        if e["type"] == "sbar_stage_completed" and e.get("stage") == "background"
+    ]
+    assert len(bg_stage) == 1
+    assert bg_stage[0]["error"]["code"] == "input_too_long"
+    assert bg_stage[0]["notice"]["code"] == "background_trimmed"
+
+    for e in events:
+        for value in e.values():
+            if isinstance(value, str):
+                assert "ValidationException" not in value
+                assert "Converse operation" not in value
+
+
 def test_orchestrator_records_error_when_situation_call_fails(monkeypatch):
     session = _FakeSession()
     client = _FakeClient(session)
@@ -235,4 +342,5 @@ def test_orchestrator_records_error_when_situation_call_fails(monkeypatch):
 
 def _make_resolved_situation():
     from libs.sbar.source_resolver import ResolvedSituation
+
     return ResolvedSituation(patient_id="pat-1", patient_summary={}, artifacts=[])

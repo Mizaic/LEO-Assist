@@ -380,6 +380,7 @@ def _call_model(
             messages=[{"role": "user", "content": user_msg}],
             max_tokens=256,
             temperature=0.0,
+            agent_task="exclusion_detector",
         )
         return _parse_llm_response(response.text)
     except Exception:

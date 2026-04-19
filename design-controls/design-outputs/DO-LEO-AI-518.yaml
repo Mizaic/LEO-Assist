@@ -1,0 +1,114 @@
+# -- DO-LEO-AI-518 -- Guidance pipeline audit-event unification
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-518"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-518"]
+    user_needs: ["UN-LEO-AI-091"]
+    risks_addressed: ["R-LEO-AI-506"]
+    verification_tests: ["VT-LEO-AI-517"]
+
+  specification:
+    title: "Guidance rule generator + dry-run unified PipelineRun AuditEvent"
+    description: |
+      Two surgical edits unify guidance LLM telemetry under
+      ``:AuditEvent {type:'PipelineRun'}``:
+
+      1. ``services/api/app/services/guidance_rule_generator.py``
+         changes the existing ``_write_guidance_audit_event`` props
+         from ``type='GuidanceRuleExtraction'`` to
+         ``type='PipelineRun', subtype='guidance_rule_extraction'``.
+         All other fields (extraction_provider, extraction_model_tier,
+         llm_input_tokens, llm_output_tokens, llm_cached_tokens,
+         llm_cost_usd, plan_definition_id, recommendation_id,
+         encounter_count, evidence_count, status, written_rule_id)
+         are preserved so the operator dashboards continue to work.
+
+      2. ``services/api/app/routers/guidance_rules.py`` gains a new
+         Cypher constant ``_DRY_RUN_AUDIT_EVENT`` and a helper
+         ``_write_dry_run_audit_event`` invoked from the
+         ``POST /guidance/rules/test/{recommendation_id}`` handler.
+         The helper:
+           * runs after the dry-run extraction completes, regardless
+             of outcome
+           * writes one :AuditEvent {type:'PipelineRun',
+             subtype:'guidance_rule_dry_run'} per call
+           * carries the same four canonical token / cost properties
+             plus a ``would_write`` boolean indicating whether the
+             same call would have produced a rule under the
+             production code path
+           * is wrapped in ``try/except`` so a Neo4j failure logs at
+             WARNING and never blocks the API response
+           * carries provider / tier / prompt metadata so the
+             empty-rate dashboard can group dry-runs by prompt
+
+      3. ``libs/cypher/model_config_queries.py::GET_PATIENT_LLM_SPEND``
+         gains a UNION over both subtypes
+         (``guidance_rule_extraction`` and
+         ``guidance_rule_dry_run``) so per-patient guidance spend
+         appears in the drill-down panel when a ``patient_id`` is
+         linked.
+
+    acceptance_criteria:
+      - criterion: "unified_type"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Background generator writes :AuditEvent
+          {type:'PipelineRun', subtype:'guidance_rule_extraction'}.
+      - criterion: "dry_run_written"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          /guidance/rules/test endpoint writes one :AuditEvent per
+          call with subtype 'guidance_rule_dry_run' and would_write
+          set correctly.
+      - criterion: "no_raise_on_failure"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Failure to write either AuditEvent does not bubble out of
+          the calling service.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/guidance_rule_generator.py"
+        description: >
+          _write_guidance_audit_event props updated to type=PipelineRun,
+          subtype=guidance_rule_extraction.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/guidance_rules.py"
+        description: >
+          New _DRY_RUN_AUDIT_EVENT Cypher constant +
+          _write_dry_run_audit_event helper invoked from the dry-run
+          endpoint.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/cypher/model_config_queries.py"
+        description: >
+          GET_PATIENT_LLM_SPEND extended with guidance_rule_extraction
+          + guidance_rule_dry_run UNIONs.
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 110
+      key_functions:
+        - "_write_guidance_audit_event"
+        - "_write_dry_run_audit_event"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Best-effort telemetry writes (must never raise)"
+    risk_control_measures:
+      - "Try/except wrapper on both AuditEvent writes"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

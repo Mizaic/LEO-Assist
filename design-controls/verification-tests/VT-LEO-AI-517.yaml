@@ -1,0 +1,98 @@
+- id: "VT-LEO-AI-517"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-518"]
+    risks: ["R-LEO-AI-506"]
+
+  metadata:
+    title: "Guidance pipeline PipelineRun AuditEvent unification"
+    description: >
+      Verifies that GuidanceRuleGenerator writes a unified
+      :AuditEvent {type:'PipelineRun', subtype:'guidance_rule_extraction'}
+      and that the dry-run endpoint POST /guidance/rules/test
+      writes a :AuditEvent {type:'PipelineRun',
+      subtype:'guidance_rule_dry_run'}, with token / cost properties
+      populated and write failures swallowed.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/api/tests/test_guidance_rule_generator.py"
+      - "services/api/tests/test_guidance_rules_dry_run_audit.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "FastAPI test client + Neo4j stub"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-517-TC-001"
+      case_name: "generator_writes_unified_pipelinerun"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Run GuidanceRuleGenerator over a synthetic recommendation
+            with a stubbed Neo4j session that captures Cypher params.
+          expected_result: >
+            Captured AuditEvent props contain type='PipelineRun',
+            subtype='guidance_rule_extraction', and the four
+            canonical token / cost properties.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Unified type / subtype values present."
+        - "llm_input_tokens, llm_output_tokens, llm_cached_tokens,"
+        - "llm_cost_usd all populated."
+
+    - case_id: "VT-517-TC-002"
+      case_name: "dry_run_endpoint_writes_audit_event"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call POST /guidance/rules/test/{recommendation_id} with a
+            stubbed extractor returning known token totals.
+          expected_result: >
+            One AuditEvent merge with subtype='guidance_rule_dry_run'
+            captured; bound llm_input_tokens / llm_output_tokens
+            match the response body llm_tokens; would_write reflects
+            extractor outcome.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "AuditEvent fired exactly once per dry-run call."
+        - "would_write boolean correctly populated."
+
+    - case_id: "VT-517-TC-003"
+      case_name: "audit_event_failure_does_not_raise"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Patch the AuditEvent helper to raise on the dry-run
+            write.
+          expected_result: >
+            POST /guidance/rules/test still returns HTTP 200 with the
+            normal response body and a WARNING log captures the
+            failure.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Endpoint succeeds despite Neo4j failure."
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-517/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

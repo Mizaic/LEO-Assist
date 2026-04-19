@@ -21,6 +21,8 @@ import type {
   GuidanceRulePickerEntry,
   SourcePatientPickerEntry,
   TestPatientRow,
+  TriageOutcome,
+  TriageOutcomeCounts,
   UpdateFullBody,
   UpdateFullResult,
 } from "./types";
@@ -44,11 +46,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export function listTestPatients(params: {
   aspect?: AspectFilter;
   guideline_id?: string;
+  triage_outcome?: TriageOutcome;
   limit?: number;
 }): Promise<TestPatientRow[]> {
   const qs = new URLSearchParams();
   if (params.aspect && params.aspect !== "all") qs.set("aspect", params.aspect);
   if (params.guideline_id) qs.set("guideline_id", params.guideline_id);
+  if (params.triage_outcome && params.triage_outcome !== "all")
+    qs.set("triage_outcome", params.triage_outcome);
   if (params.limit) qs.set("limit", String(params.limit));
   const tail = qs.toString();
   return request(tail ? `?${tail}` : "");
@@ -56,6 +61,10 @@ export function listTestPatients(params: {
 
 export function getAspectCounts(): Promise<AspectCounts> {
   return request("/aspect-counts");
+}
+
+export function getTriageOutcomeCounts(): Promise<TriageOutcomeCounts> {
+  return request("/triage-outcome-counts");
 }
 
 export function listSourcePatients(
@@ -153,6 +162,60 @@ export function scaffoldFromRule(
   body: ScaffoldFromRuleBody,
 ): Promise<ScaffoldFromRuleResult> {
   return request("/scaffold-from-rule", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
+export interface ScaffoldFromScenarioBody {
+  scenario: string;
+  aspect: "nlp" | "episodes" | "summarisation";
+}
+
+export interface ScaffoldResolvedTerm {
+  surface_form: string;
+  lookup_term: string;
+  semantic_tag: string;
+  assertion: string;
+  concept_id: string | null;
+  preferred_term: string | null;
+  score: number;
+}
+
+export interface ScaffoldUnresolvedTerm {
+  surface_form: string;
+  lookup_term: string;
+  semantic_tag: string;
+  assertion: string;
+  score: number;
+}
+
+export interface ScaffoldMatchedRule {
+  rule_id: string;
+  name: string | null;
+  recommendation_verbatim: string | null;
+  action_priority: string | null;
+  guideline_title: string | null;
+  chapter_title: string | null;
+}
+
+export interface ScaffoldFromScenarioResult {
+  patient_id: string;
+  aspect: string;
+  scenario: string;
+  encounters_written: number;
+  expected_sbar_written: boolean;
+  resolved_terms: ScaffoldResolvedTerm[];
+  unresolved_terms: ScaffoldUnresolvedTerm[];
+  matched_rules: ScaffoldMatchedRule[];
+  notes: string;
+}
+
+export function scaffoldFromScenario(
+  body: ScaffoldFromScenarioBody,
+): Promise<ScaffoldFromScenarioResult> {
+  return request("/scaffold-from-scenario", {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(body),

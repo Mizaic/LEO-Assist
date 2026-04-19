@@ -334,6 +334,7 @@ def verify_entities(state: VerificationState) -> dict[str, Any]:
                 messages=deepcopy(messages),
                 tool_config=_VERIFICATION_TOOL_CONFIG,
                 json_mode=True,
+                agent_task="v3_pipeline_ner_verifier",
             )
 
             if resp.tool_uses:

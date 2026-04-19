@@ -59,7 +59,7 @@ def test_VT_194_TC_002_extractor_requests_top_k_few_shot_exemplars():
 
     captured: dict[str, Any] = {}
 
-    def _stub_llm(_system, user_msg, *, tier="small"):
+    def _stub_llm(_system, user_msg, *, tier="small", **_kw):
         captured["user_msg"] = user_msg
         captured["tier"] = tier
         return (
@@ -109,7 +109,7 @@ def test_extractor_falls_back_on_unparseable_llm_output():
         [{"text": "diabetes", "label": "disorder"}],
     )
 
-    def _stub_llm(_s, _u, *, tier="small"):
+    def _stub_llm(_s, _u, *, tier="small", **_kw):
         return ("not valid json at all", "haiku-test")
 
     result = ai_extract_entities(

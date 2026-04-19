@@ -1,0 +1,82 @@
+- id: "VT-LEO-AI-518"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-519"]
+    risks: ["R-LEO-AI-506"]
+
+  metadata:
+    title: "Telemetry kwarg coverage + LLMUsage module identity"
+    description: >
+      Static-source + runtime checks that
+      (a) every production LLMClient.converse(...) call site carries a
+      stable agent_task literal, and
+      (b) LLMUsage / LLMCostConfig imported from
+      services.api.app.services.llm_usage are the same classes as
+      those exported by libs.llm_usage.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/llm_client/test_telemetry_kwarg_coverage.py"
+      - "tests/llm_client/test_llm_usage_module_identity.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Repo root accessible via Path(__file__).resolve().parents[2]"
+    test_data:
+      data_type: "static_source"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-518-TC-001"
+      case_name: "all_production_converse_sites_have_agent_task"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Walk libs/ and services/{api,coding_worker,analytics_api,
+            terminology_api,analysis_worker,pipeline_worker}/ for .py
+            files. For each occurrence of '.converse(' (excluding
+            test files, scripts/, and bedrock_retry which uses the
+            raw boto3 client) read the next ~25 lines and assert
+            'agent_task=' is present before the matching closing
+            paren.
+          expected_result: >
+            All occurrences pass; an empty failure list is reported.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Failure list empty."
+
+    - case_id: "VT-518-TC-002"
+      case_name: "llm_usage_module_identity"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Import LLMUsage and LLMCostConfig from both
+            libs.llm_usage and services.api.app.services.llm_usage
+            and assert that both names refer to the exact same
+            class object (`is`).
+          expected_result: >
+            Both `is` checks return True.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "LLMUsage class identical across import paths."
+        - "LLMCostConfig class identical across import paths."
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-518/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

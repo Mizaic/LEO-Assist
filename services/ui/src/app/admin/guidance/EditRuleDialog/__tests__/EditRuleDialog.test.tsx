@@ -10,7 +10,13 @@
  */
 
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from "@testing-library/react";
 
 import EditRuleDialog from "..";
 
@@ -57,6 +63,25 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
+/**
+ * The widescreen editor splits the form across four steps. Tests that
+ * need fields from a later step (action chip on step 2, reason on
+ * step 4) navigate via the left-hand rail.
+ */
+function goToStep(stepNumber: 1 | 2 | 3 | 4) {
+  const rail = screen.getAllByRole("button", {
+    name: new RegExp(`^Step ${stepNumber} of 4`, "i"),
+  });
+  fireEvent.click(rail[0]);
+}
+
+function fillReason(text: string) {
+  goToStep(4);
+  fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
+    target: { value: text },
+  });
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -71,9 +96,7 @@ describe("EditRuleDialog", () => {
     const saveBtn = screen.getByRole("button", { name: /save your changes/i });
     expect(saveBtn).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
-      target: { value: "Removed redundant cough chip" },
-    });
+    fillReason("Removed redundant cough chip");
     expect(saveBtn).not.toBeDisabled();
   });
 
@@ -83,9 +106,7 @@ describe("EditRuleDialog", () => {
     render(
       <EditRuleDialog rule={SAMPLE_RULE} open onClose={() => {}} onSave={onSave} />
     );
-    fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
-      target: { value: "Reviewed and tightened criteria" },
-    });
+    fillReason("Reviewed and tightened criteria");
     fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
@@ -114,9 +135,7 @@ describe("EditRuleDialog", () => {
     expect(deleteIcon).not.toBeNull();
     fireEvent.click(deleteIcon as Element);
 
-    fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
-      target: { value: "Cough was redundant with the OR group" },
-    });
+    fillReason("Cough was redundant with the OR group");
     fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
@@ -151,9 +170,7 @@ describe("EditRuleDialog", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /^Use Fatigue$/i }));
 
-    fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
-      target: { value: "Swapped cough for fatigue per chest team feedback" },
-    });
+    fillReason("Swapped cough for fatigue per chest team feedback");
     fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -164,28 +181,20 @@ describe("EditRuleDialog", () => {
     expect(concept?.criterion?.snomed_concept_id).toBe("84229001");
   });
 
-  it("shows the search panel as a slim rail when idle and expands it on click", () => {
+  it("does not render a permanent search column; search appears as a chip-anchored popover", () => {
     mockSearch();
     render(
       <EditRuleDialog rule={SAMPLE_RULE} open onClose={() => {}} onSave={() => {}} />
     );
-    // Idle state: rail is shown, search field is not.
-    const rail = screen.getByRole("button", {
-      name: /open search to pick a clinical term/i,
-    });
-    expect(rail).toBeInTheDocument();
-    expect(screen.queryByLabelText(/search clinical terms/i)).not.toBeInTheDocument();
-
-    fireEvent.click(rail);
-
-    // Pinned state: search field is shown, rail is gone.
-    expect(screen.getByLabelText(/search clinical terms/i)).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /open search to pick a clinical term/i }),
+      screen.queryByRole("button", {
+        name: /open search to pick a clinical term/i,
+      }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/search clinical terms/i)).not.toBeInTheDocument();
   });
 
-  it("expands the search panel automatically when a chip is clicked", () => {
+  it("opens the chip-anchored search popover when a chip is clicked, and closes via the X", async () => {
     mockSearch();
     render(
       <EditRuleDialog rule={SAMPLE_RULE} open onClose={() => {}} onSave={() => {}} />
@@ -197,7 +206,16 @@ describe("EditRuleDialog", () => {
     });
     fireEvent.click(chip);
 
-    expect(screen.getByLabelText(/search clinical terms/i)).toBeInTheDocument();
+    const searchField = await screen.findByLabelText(/search clinical terms/i);
+    expect(searchField).toBeInTheDocument();
+    const closeBtn = screen.getByRole("button", { name: /^close search$/i });
+    fireEvent.click(closeBtn);
+    // The popover plays an exit transition before unmounting, so wait
+    // for the search field to leave the DOM rather than asserting
+    // synchronously.
+    await waitForElementToBeRemoved(() =>
+      screen.queryByLabelText(/search clinical terms/i),
+    );
   });
 
   it("toggles fullscreen mode via the title-bar button", () => {
@@ -222,24 +240,36 @@ describe("EditRuleDialog", () => {
     expect(
       screen.getByRole("heading", { name: /change this rule/i, level: 2 })
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/short name for this rule/i)).toBeInTheDocument();
-    expect(
-      screen.getByLabelText(/what should the system suggest/i)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText(/why are you changing this rule/i)
-    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /save your changes/i })
     ).toBeInTheDocument();
-    // The summary card explains the rule in plain English; the duplicate
-    // "What the patient must have" overline above the editor was removed
-    // in favour of letting the SummaryCard + pathway header speak for the
-    // editor.
+    // The live preview banner is always visible above the canvas
+    // and explains the rule in plain English on every step.
     expect(
-      screen.getByRole("region", { name: /plain english summary of this rule/i })
+      screen.getByRole("status", { name: /live one-line preview of this rule/i }),
     ).toBeInTheDocument();
-    // Strength dropdown shows the friendly label, not the raw "offer" code.
+    // The banner shows the friendly strength label even before the
+    // reviewer opens step 2.
     expect(screen.getByText(/offer this test or referral/i)).toBeInTheDocument();
+    // The full preview drawer is reachable from the banner via the
+    // [See full preview] button.
+    expect(
+      screen.getByRole("button", { name: /see full live preview/i }),
+    ).toBeInTheDocument();
+
+    // Step 2 owns the short-name and strength fields.
+    goToStep(2);
+    expect(
+      screen.getAllByLabelText(/short name for this rule/i)[0],
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByLabelText(/what should the system suggest/i)[0],
+    ).toBeInTheDocument();
+
+    // Step 4 owns the reason field.
+    goToStep(4);
+    expect(
+      screen.getByLabelText(/why are you changing this rule/i)
+    ).toBeInTheDocument();
   });
 });

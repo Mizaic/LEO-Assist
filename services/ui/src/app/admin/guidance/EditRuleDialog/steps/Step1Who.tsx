@@ -4,42 +4,35 @@
  * Step 1 -- "Who is this rule about?"
  *
  * Hosts the editable logic tree, the duplicate-set alert, the NICE
- * source toggle and the slide-in concept search drawer.
+ * source toggle, and (when the tree is empty) a friendly empty-state
+ * CTA.
  *
- * The component is presentational: every piece of state (tree,
- * search target, coach popover, NICE toggle) lives in the parent
- * dialog so opening / closing this step preserves edits.
+ * Search is no longer rendered as a sibling column. Instead the
+ * parent dialog opens a chip-anchored ChipSearchPopover next to the
+ * chip / +Add button the reviewer just clicked. This step component
+ * is therefore purely about showing the rule.
  *
- * Design Controls: DI-LEO-AI-234, DO-LEO-AI-234, VT-LEO-AI-510.
+ * Design Controls: UN-LEO-AI-094 (v2), DI-LEO-AI-512 (v2),
+ *                  R-LEO-AI-509 (v2), VT-LEO-AI-511 (v2).
  */
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Collapse from "@mui/material/Collapse";
+import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import SearchIcon from "@mui/icons-material/Search";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
-import ConceptSearchPanel from "../ConceptSearchPanel";
 import LogicTreeEditor from "../LogicTreeEditor";
 import { STEP_HELPERS, STEP_TITLES } from "../copy";
 import type {
   EditableLogicNode,
-  LogicCriterion,
   NodeUpdate,
 } from "../types";
 
 interface DuplicateSet {
   preview: string[];
-}
-
-interface SearchTargetView {
-  mode: "replace" | "add" | "replace_action" | "idle";
-  initialQuery: string;
-  focusLabel: string | null;
-  nodeId: string | null;
 }
 
 interface Props {
@@ -50,15 +43,15 @@ interface Props {
   showRecommendation: boolean;
   onToggleRecommendation: () => void;
 
-  searchTarget: SearchTargetView;
-  searchPanelOpen: boolean;
-  onOpenSearchPanel: () => void;
-  onPickConcept: (criterion: LogicCriterion) => void;
-
-  onSelectNode: (nodeId: string) => void;
+  onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
-  onRequestAdd: (parentNodeId: string) => void;
+  onRequestAdd: (
+    parentNodeId: string,
+    anchor?: HTMLElement | null,
+  ) => void;
   onRequestCoach: (nodeId: string, anchor: HTMLElement) => void;
+  /** Trigger an empty-state +Add when the tree has no children yet. */
+  onAddFirstSymptom: (anchor: HTMLElement) => void;
 }
 
 export default function Step1Who({
@@ -68,15 +61,17 @@ export default function Step1Who({
   recommendationText,
   showRecommendation,
   onToggleRecommendation,
-  searchTarget,
-  searchPanelOpen,
-  onOpenSearchPanel,
-  onPickConcept,
   onSelectNode,
   onUpdate,
   onRequestAdd,
   onRequestCoach,
+  onAddFirstSymptom,
 }: Props) {
+  const treeIsEmpty =
+    !tree ||
+    !Array.isArray(tree.children) ||
+    tree.children.length === 0;
+
   return (
     <Stack spacing={2} sx={{ minWidth: 0 }}>
       <StepHeader />
@@ -141,12 +136,10 @@ export default function Step1Who({
         </Box>
       )}
 
-      <Stack
-        direction={{ xs: "column", md: "row" }}
-        spacing={2}
-        alignItems="stretch"
-      >
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+      {treeIsEmpty ? (
+        <EmptyTreeState onAddFirstSymptom={onAddFirstSymptom} />
+      ) : (
+        <Box sx={{ minWidth: 0 }}>
           {tree && (
             <LogicTreeEditor
               root={tree}
@@ -158,38 +151,7 @@ export default function Step1Who({
             />
           )}
         </Box>
-        <Box
-          sx={{
-            display: { xs: "block", md: "flex" },
-            alignItems: "stretch",
-            minWidth: 0,
-          }}
-        >
-          <Collapse
-            in={searchPanelOpen}
-            orientation="horizontal"
-            timeout={200}
-            unmountOnExit
-            sx={{
-              "& .MuiCollapse-wrapperInner": {
-                width: { xs: "100%", md: 380 },
-              },
-            }}
-          >
-            <Box sx={{ width: { xs: "100%", md: 380 }, pl: { md: 1.5 } }}>
-              <ConceptSearchPanel
-                mode={searchTarget.mode === "idle" ? "idle" : searchTarget.mode}
-                focusLabel={searchTarget.focusLabel}
-                initialQuery={searchTarget.initialQuery}
-                onPick={onPickConcept}
-              />
-            </Box>
-          </Collapse>
-          {!searchPanelOpen && (
-            <SearchPanelRail onOpen={onOpenSearchPanel} />
-          )}
-        </Box>
-      </Stack>
+      )}
     </Stack>
   );
 }
@@ -216,49 +178,57 @@ function StepHeader() {
 }
 
 /**
- * Slim 56px rail shown when the search panel is collapsed. Click to
- * pin the panel open. Acts as a constant signpost so the reviewer
- * knows the search is one click away even when not in use.
+ * Friendly empty state shown when the rule has no children. A
+ * first-time reviewer should never see a blank canvas with no
+ * obvious next action; this gives them one short sentence and a
+ * primary CTA they can click to start.
  */
-function SearchPanelRail({ onOpen }: { onOpen: () => void }) {
+function EmptyTreeState({
+  onAddFirstSymptom,
+}: {
+  onAddFirstSymptom: (anchor: HTMLElement) => void;
+}) {
   return (
-    <Tooltip title="Open search to pick a clinical term" placement="left">
-      <Box
-        component="button"
-        type="button"
-        onClick={onOpen}
-        aria-label="Open search to pick a clinical term"
+    <Box
+      role="status"
+      aria-label="This rule is empty"
+      sx={{
+        p: 3,
+        borderRadius: 2,
+        border: "1px dashed",
+        borderColor: "divider",
+        bgcolor: "grey.50",
+        textAlign: "center",
+      }}
+    >
+      <Typography
+        variant="body1"
+        sx={{ fontWeight: 600, mb: 0.5, color: "text.primary" }}
+      >
+        This rule has no symptoms yet.
+      </Typography>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ lineHeight: 1.5, mb: 2 }}
+      >
+        Start by picking the first symptom or sign the patient must have
+        for this rule to apply.
+      </Typography>
+      <Button
+        variant="contained"
+        startIcon={<AddRoundedIcon fontSize="small" />}
+        onClick={(e) => onAddFirstSymptom(e.currentTarget)}
+        aria-label="Add the first symptom or sign to this rule"
         sx={{
-          width: { xs: "100%", md: 56 },
-          minHeight: { xs: 48, md: 240 },
-          ml: { md: 1 },
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 1,
-          border: "1px dashed",
-          borderColor: "divider",
-          borderRadius: 1,
-          bgcolor: "transparent",
-          color: "text.secondary",
-          cursor: "pointer",
-          py: 1,
-          "&:hover": { bgcolor: "action.hover", color: "text.primary" },
+          borderRadius: 999,
+          textTransform: "none",
+          fontWeight: 600,
+          px: 2.5,
         }}
       >
-        <SearchIcon fontSize="small" />
-        <Typography
-          variant="caption"
-          sx={{
-            writingMode: { md: "vertical-rl" },
-            transform: { md: "rotate(180deg)" },
-            letterSpacing: 0.5,
-          }}
-        >
-          Search clinical terms
-        </Typography>
-      </Box>
-    </Tooltip>
+        Add the first symptom
+      </Button>
+    </Box>
   );
 }

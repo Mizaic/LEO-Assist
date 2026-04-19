@@ -3466,7 +3466,7 @@ export default function GoldDatasetPanel() {
     );
     const open = (record: GoldLabel) => {
       setSelectedItem(record);
-      const basePath = pathname ?? "/admin/gold-dataset";
+      const basePath = pathname ?? "/admin/knowledge?tab=training-data";
       router.replace(basePath, { scroll: false });
     };
     if (inMemory) {

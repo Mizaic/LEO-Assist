@@ -72,6 +72,59 @@
         confirms parity.
       implemented_by: ["DI-LEO-AI-506"]
       verified_by: ["VT-LEO-AI-508"]
+    - control_type: "design_feature"
+      description: >
+        The synchronous LLM entry points
+        (libs.llm_client.factory.LLMClient.converse for both
+        Bedrock and Azure, and
+        libs.llm_client.providers.invoke_with_fallback) fire
+        track_llm_usage on every call (success and failure
+        paths) so the ~14 sync caller surfaces (escalation,
+        consensus, label_verifier, candidate_ai_first_pass,
+        llm_extractor, training, _training_askleo, prompts,
+        terminology, encounter_query_understanding,
+        terminology_api/concepts, exclusion_detector,
+        _extractor, fix_analyzer) become observable to the
+        dashboard LLMSpendPanel and per-tenant billing
+        without modifying any caller. Telemetry is
+        best-effort and a callback exception is swallowed.
+      implemented_by: ["DI-LEO-AI-515"]
+      verified_by: ["VT-LEO-AI-513"]
+    - control_type: "design_feature"
+      description: >
+        The episode engine writes a parallel
+        :AuditEvent {type:'PipelineRun', subtype:'episode_engine'}
+        from persist_trace and GET_PATIENT_LLM_SPEND is extended
+        with a UNION over those rows so episode-engine cost is
+        visible in the per-tenant billing dashboard and the
+        per-patient drill-down panel without UI changes.
+        Telemetry is best-effort and a Neo4j failure logs at
+        WARNING.
+      implemented_by: ["DI-LEO-AI-517"]
+      verified_by: ["VT-LEO-AI-516"]
+    - control_type: "design_feature"
+      description: >
+        The guidance rule generator's existing audit event is
+        normalised to type='PipelineRun',
+        subtype='guidance_rule_extraction' and the synchronous
+        /guidance/rules/test dry-run endpoint writes a parallel
+        :AuditEvent with subtype='guidance_rule_dry_run'. Both
+        carry the canonical token / cost properties so guidance
+        spend (background + HITL editor) appears in /admin/billing
+        and the per-patient drill-down with no UI changes.
+      implemented_by: ["DI-LEO-AI-518"]
+      verified_by: ["VT-LEO-AI-517"]
+    - control_type: "design_feature"
+      description: >
+        Every production LLMClient.converse call site passes a
+        stable agent_task literal (and patient_id where in scope)
+        so the telemetry events emitted by DI-LEO-AI-515 carry
+        meaningful task labels for cost attribution. The
+        duplicated services/api/app/services/llm_usage module is
+        consolidated into libs/llm_usage so cost numbers stop
+        depending on the import path the caller happened to use.
+      implemented_by: ["DI-LEO-AI-519"]
+      verified_by: ["VT-LEO-AI-518"]
 
   residual_risk_estimate:
     severity: 2

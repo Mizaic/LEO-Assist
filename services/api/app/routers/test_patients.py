@@ -32,11 +32,15 @@ from app.services import (
     test_patient_clone,
     test_patient_generator,
     test_patient_scaffolder,
+    test_patient_scenario_scaffolder,
     test_patient_service,
 )
 from app.services.test_patient_clone import CloneError
 from app.services.test_patient_redactor import get_default_redactor
 from app.services.test_patient_scaffolder import ScaffoldError
+from app.services.test_patient_scenario_scaffolder import (
+    ScenarioScaffoldError,
+)
 from app.services.test_patient_service import EditorError, PatientPayload
 from libs.auth.org_scope import CallerScope
 from libs.cypher.test_patient_queries import TEST_PATIENT_ASPECTS
@@ -359,6 +363,14 @@ def list_patients(
     guideline_id: str | None = Query(default=None),
     rule_id: str | None = Query(default=None),
     node_id: str | None = Query(default=None),
+    triage_outcome: str | None = Query(
+        default=None,
+        description=(
+            "Filter SBAR / referral-triage patients by the derived "
+            "outcome. One of 2ww / urgent / routine / no_rule_fired / "
+            "evaluator_outage / unset, or 'all' / omitted for no filter."
+        ),
+    ),
     limit: int = Query(default=200, ge=1, le=1000),
     scope: CallerScope = Depends(require_admin),
 ) -> list[dict]:
@@ -372,6 +384,7 @@ def list_patients(
             guideline_id=guideline_id,
             rule_id=rule_id,
             node_id=node_id,
+            triage_outcome=triage_outcome,
             limit=limit,
         )
     finally:
@@ -392,6 +405,25 @@ def get_aspect_counts(
     client = _client()
     try:
         return test_patient_service.count_by_aspect(client)
+    finally:
+        client.close()
+
+
+@router.get("/test-patients/triage-outcome-counts")
+def get_triage_outcome_counts(
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, int]:
+    """Return counts per triage outcome for the SBAR aspect chip group.
+
+    Always returns one entry per known outcome (zero when none) so the
+    UI can render a stable chip group without conditional logic. Only
+    counts SBAR / referral-triage patients -- the other aspects do not
+    have an ExpectedSBAR node and so do not have a triage outcome.
+    """
+    _ = scope
+    client = _client()
+    try:
+        return test_patient_service.count_by_triage_outcome(client)
     finally:
         client.close()
 
@@ -542,6 +574,116 @@ def scaffold_from_rule(
         "rule_id": result.rule_id,
         "encounters_written": result.encounters_written,
         "expected_sbar_written": result.expected_sbar_written,
+        "notes": result.notes,
+    }
+
+
+class ScaffoldFromScenarioRequest(BaseModel):
+    """POST body for the AI scaffold-from-scenario endpoint."""
+
+    scenario: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+        description=(
+            "Free-text patient scenario, e.g. '67yo woman with 2-week "
+            "visible haematuria, BP 140/85, PMHx HTN'."
+        ),
+    )
+    aspect: Literal["nlp", "episodes", "summarisation"] = Field(
+        default="summarisation",
+        description="Which AI feature the test patient is for",
+    )
+
+
+@router.post("/test-patients/scaffold-from-scenario")
+def scaffold_from_scenario(
+    body: ScaffoldFromScenarioRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Draft a test patient that mirrors a free-text scenario.
+
+    AI-assisted authoring, flow 2. The reviewer types a short
+    scenario; we ask Haiku to expand it into demographics + UK GP
+    notes + a list of clinical terms. Each term is resolved to
+    SNOMED via the production terminology API, the rule engine is
+    asked which AppropriatenessRules would fire on the resulting
+    code list, and the expected SBAR (for the summarisation aspect)
+    is filled in deterministically from the rule engine's verdict.
+
+    The new patient is persisted immediately and stamped with
+    aiAssisted=true and aiSourceKind='scenario' so the library can
+    flag scenario drafts for review. The scenario text is preserved
+    on the node so the row can show "from scenario: <text>" without
+    a round-trip.
+
+    Failures (scenario too short, LLM produced unusable JSON,
+    terminology outage, no SNOMED concepts resolved, missing
+    concepts in the knowledge graph) raise
+    :class:`ScenarioScaffoldError` and surface as HTTP 422 with a
+    clear reason -- the reviewer can retry, rephrase, or fall back
+    to Build a patient.
+    """
+    client = _client()
+    try:
+        result = (
+            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
+                client,
+                scenario=body.scenario,
+                aspect=body.aspect,
+                created_by=getattr(scope, "user_email", "") or "unknown",
+            )
+        )
+    except ScenarioScaffoldError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:  # noqa: BLE001 - log + 5xx
+        logger.exception("scaffold-from-scenario failed")
+        raise HTTPException(
+            status_code=500, detail=f"Scaffold failed: {exc}"
+        ) from exc
+    finally:
+        client.close()
+    return {
+        "patient_id": result.patient_id,
+        "aspect": result.aspect,
+        "scenario": result.scenario,
+        "encounters_written": result.encounters_written,
+        "expected_sbar_written": result.expected_sbar_written,
+        "resolved_terms": [
+            {
+                "surface_form": row.surface_form,
+                "lookup_term": row.lookup_term,
+                "semantic_tag": row.semantic_tag,
+                "assertion": row.assertion,
+                "concept_id": row.concept_id,
+                "preferred_term": row.preferred_term,
+                "score": round(row.score, 4),
+            }
+            for row in result.resolved_terms
+        ],
+        "unresolved_terms": [
+            {
+                "surface_form": row.surface_form,
+                "lookup_term": row.lookup_term,
+                "semantic_tag": row.semantic_tag,
+                "assertion": row.assertion,
+                "score": round(row.score, 4),
+            }
+            for row in result.unresolved_terms
+        ],
+        "matched_rules": [
+            {
+                "rule_id": row.rule_id,
+                "name": row.name,
+                "recommendation_verbatim": row.recommendation_verbatim,
+                "action_priority": row.action_priority,
+                "guideline_title": row.guideline_title,
+                "chapter_title": row.chapter_title,
+            }
+            for row in result.matched_rules
+        ],
         "notes": result.notes,
     }
 

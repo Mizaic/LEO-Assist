@@ -1,0 +1,272 @@
+---
+description: LLM cost telemetry contract -- every LLM call site MUST be observable via the dashboard LLMSpendPanel and per-tenant billing aggregates. Apply whenever creating or modifying any LLM call site, orchestrator, or pipeline that calls a large language model (Bedrock, Azure OpenAI, or future provider).
+globs: libs/llm_client/**/*.py,libs/sbar/**/*.py,libs/prompts/**/*.py,services/*/app/**/*.py,libs/cypher/**/*.py
+alwaysApply: false
+---
+
+# LLM Cost Telemetry -- Universal Observability
+
+Every LLM call this platform makes MUST be counted, costed, attributed
+to a tenant and a patient where applicable, and surfaced in the
+existing dashboard cost trackers without UI changes.
+
+The contract is owned by:
+
+- DI-LEO-AI-506 -- universal LLM token + cost telemetry (async helper)
+- DI-LEO-AI-515 -- sync entry-point telemetry (`LLMClient.converse`,
+  `invoke_with_fallback`)
+- DO-LEO-AI-506 / DO-LEO-AI-514 -- recorder + invoke_llm_json + sync
+  `converse` / fallback plumbing + finalise writes
+- R-LEO-AI-506  -- under-billing risk if pipelines skip the contract
+- VT-LEO-AI-508 -- verification of the async helper (token extraction,
+  recorder isolation, Assessment + AuditEvent writes, telemetry-
+  failure isolation)
+- VT-LEO-AI-513 -- verification of the sync entry points
+  (`LLMClient.converse` + `invoke_with_fallback` callback parity,
+  failure-path emission, callback-exception isolation, recorder
+  pickup of sync calls)
+
+The wire format is fixed by DI-LEO-AI-068 (per-tenant billing) and the
+existing `LLMSpendPanel` / `AuditTrailTab` components. Do not invent
+new shapes.
+
+---
+
+## 1. Every LLM Call MUST Go Through a Sanctioned Entry Point
+
+There are exactly THREE sanctioned LLM entry points in this codebase.
+Each of them already wires `track_llm_usage` so the cost telemetry
+contract is satisfied automatically. Use one of these:
+
+| Entry point                                              | When to use                                                  | Async? |
+|----------------------------------------------------------|--------------------------------------------------------------|--------|
+| `libs.llm_client.json_helper.invoke_llm_json`            | Async features that want a JSON response with retry          | Async  |
+| `libs.llm_client.factory.create_llm(...).converse(...)`  | Sync features (the V3 pipeline, Ask LEO, escalation, etc.)   | Sync   |
+| `libs.llm_client.providers.invoke_with_fallback`         | Async features that want Bedrock primary + Azure fallback    | Async  |
+
+All three forward input / output / cache token counts, latency, and
+the model id to the registered tracking callback on success and on
+failure. Both `LLMClient.converse` and `invoke_with_fallback` accept
+optional `agent_task` and `patient_id` kwargs that flow into the
+callback verbatim.
+
+```python
+# GOOD -- async JSON helper
+from libs.llm_client.json_helper import invoke_llm_json
+result = await invoke_llm_json(
+    system_prompt=SYS,
+    user_message=usr,
+    agent_task="my_feature_stage_1",
+    patient_id=patient_id,
+)
+```
+
+```python
+# GOOD -- sync converse helper (Bedrock or Azure)
+from libs.llm_client.factory import create_llm
+client = create_llm(provider="aws", tier="big")
+response = client.converse(
+    system=SYS,
+    messages=[{"role": "user", "content": usr}],
+    agent_task="ask_leo_smart",
+    patient_id=patient_id,
+)
+```
+
+```python
+# GOOD -- async Bedrock-with-Azure-fallback helper
+from libs.llm_client.providers import get_bedrock_model, invoke_with_fallback
+model = await get_bedrock_model()
+response = await invoke_with_fallback(
+    model,
+    messages=messages,
+    agent_task="pipeline_fix_analyzer",
+    patient_id=patient_id,
+)
+```
+
+```python
+# BAD -- bypasses token extraction; cost will silently disappear
+from langchain_aws import ChatBedrockConverse
+model = ChatBedrockConverse(...)
+response = await model.ainvoke(messages)  # no telemetry path
+```
+
+If you absolutely must call a provider client directly (rare -- e.g.
+streaming, tool use, embeddings), you MUST replicate the work the
+sanctioned helpers do: time the call with `time.monotonic`, extract
+usage via `libs.llm_client.token_tracker.extract_token_counts`, and
+call `track_llm_usage(...)` (or `track_llm_usage_sync(...)` from a
+sync context) with `model_name`, `model_provider`, `agent_task`,
+`patient_id`, `input_tokens`, `output_tokens`,
+`cache_read_input_tokens`, `cache_creation_input_tokens`,
+`latency_ms`, `success`, `error_message`. Fire on the failure path
+too, so cost-monitoring sees outages.
+
+## 2. Orchestrators MUST Wrap a Logical Run in `LLMUsageRecorder`
+
+Anything that issues more than one LLM call as part of a single
+logical run (a pipeline job, an SBAR generation, an episode-engine
+run, a batch coder) MUST scope the work in `LLMUsageRecorder` so the
+totals can be persisted.
+
+```python
+# GOOD
+from libs.llm_client.usage_recorder import LLMUsageRecorder
+from libs.llm_usage import LLMCostConfig
+
+with LLMUsageRecorder() as rec:
+    await invoke_llm_json(...)   # stage 1
+    await invoke_llm_json(...)   # stage 2
+
+cfg = LLMCostConfig.from_env()
+self._record_telemetry(recorder=rec, ...)  # see rule 3
+```
+
+The recorder uses `contextvars.ContextVar`, so concurrent asyncio
+tasks each get an isolated copy. Do NOT introduce a module-global or
+threading.local accumulator.
+
+## 3. On Finalise, Persist Two Surfaces
+
+To make the run visible to the dashboard `LLMSpendPanel`, the
+per-tenant billing endpoint `/pricing/orgs`, the Mission Control
+`AuditTrailTab`, and the per-patient drill-down
+`/analytics/llm-spend/patient`, the orchestrator MUST write BOTH:
+
+### 3.1 Entity-level `llm_usage_json` + flat fields
+
+Match the established `:EncounterCandidate` pattern. For SBAR this is
+done by `libs/cypher/sbar_assessment_queries.py::SET_ASSESSMENT_USAGE`
+on the `:Assessment` node. For new entities, mirror that schema:
+
+| Field                   | Type   | Source                                      |
+|-------------------------|--------|---------------------------------------------|
+| `llm_usage_json`        | string | `json.dumps(rec.to_audit_dict(cfg))`        |
+| `llm_input_tokens`      | int    | `rec.usage.input_tokens`                    |
+| `llm_output_tokens`     | int    | `rec.usage.output_tokens`                   |
+| `llm_cached_tokens`     | int    | `rec.usage.cached_input_tokens`             |
+| `llm_total_tokens`      | int    | `rec.usage.total_tokens`                    |
+| `llm_calls`             | int    | `rec.usage.llm_calls`                       |
+| `llm_cost_usd`          | float  | `round(rec.cost_usd(cfg), 6)`               |
+| `llm_latency_ms`        | int    | `rec.total_latency_ms`                      |
+| `llm_model_id`          | string | `rec.primary_model`                         |
+| `llm_model_provider`    | string | `rec.primary_provider`                      |
+
+Then extend `libs/cypher/model_config_queries.py::GET_PATIENT_LLM_SPEND`
+with a UNION over the new entity (use a `source` discriminator string,
+e.g. `'sbar_assessment'`, `'episode_engine_run'`).
+
+### 3.2 A `:AuditEvent {type:'PipelineRun'}` linked to the patient
+
+This is the surface read by `LLMSpendPanel` (via
+`/analytics/llm-spend/runs`) and per-tenant billing. Use the same
+flat field names as `libs/workflow/engine.py::_write_audit_event`:
+
+```cypher
+MERGE (ae:AuditEvent {id: $id})
+SET ae.type                   = 'PipelineRun',
+    ae.patient_id             = $patient_id,
+    ae.encounter_id           = $encounter_id,
+    ae.run_id                 = $run_id,
+    ae.event_type             = $event_type,
+    ae.status                 = $status,
+    ae.step_count             = $step_count,
+    ae.total_duration_ms      = $total_duration_ms,
+    ae.entity_count           = $entity_count,
+    ae.error_count            = $error_count,
+    ae.first_error            = $first_error,
+    ae.llm_input_tokens       = $llm_input_tokens,
+    ae.llm_output_tokens      = $llm_output_tokens,
+    ae.llm_cached_tokens      = $llm_cached_tokens,
+    ae.llm_cost_usd           = $llm_cost_usd,
+    ae.extraction_provider    = $extraction_provider,
+    ae.extraction_model_tier  = $extraction_model_tier,
+    ae.extraction_prompt_name = $extraction_prompt_name,
+    ae.extraction_prompt_version = $extraction_prompt_version,
+    ae.created_at             = datetime()
+WITH ae
+OPTIONAL MATCH (p:Patient {id: $patient_id})
+FOREACH (_ IN CASE WHEN p IS NOT NULL THEN [1] ELSE [] END |
+    MERGE (ae)-[:AUDIT_FOR]->(p)
+)
+```
+
+Reuse `WRITE_SBAR_AUDIT_EVENT` as the canonical template.
+
+## 4. Telemetry Writes MUST Be Best-Effort
+
+A failure to record telemetry MUST NEVER fail the underlying run.
+Wrap every Cypher write for telemetry in its own try / except and log
+at WARNING:
+
+```python
+# GOOD
+try:
+    session.run(SET_ASSESSMENT_USAGE, ...)
+except Exception:
+    logger.warning(
+        "telemetry: failed to set llm_usage_json for %s",
+        assessment_id, exc_info=True,
+    )
+
+try:
+    session.run(WRITE_SBAR_AUDIT_EVENT, ...)
+except Exception:
+    logger.warning(
+        "telemetry: failed to write PipelineRun AuditEvent for %s",
+        run_id, exc_info=True,
+    )
+```
+
+```python
+# BAD -- a Neo4j blip will fail the whole job
+session.run(SET_ASSESSMENT_USAGE, ...)
+session.run(WRITE_SBAR_AUDIT_EVENT, ...)
+```
+
+## 5. Numeric Discipline
+
+- All token counts MUST be `int(...)` (not float, not None).
+- All cost amounts MUST be `round(value, 6)` before writing to Neo4j
+  to avoid float drift in aggregations.
+- Negative values are forbidden -- clamp with `max(0, ...)` if a
+  provider response could ever produce one.
+
+## 6. Checklist Before Merging Any New LLM Call Site
+
+- [ ] All LLM calls go through one of the three sanctioned entry
+      points -- `invoke_llm_json`, `LLMClient.converse`, or
+      `invoke_with_fallback` -- OR replicate their
+      `extract_token_counts` + `track_llm_usage(_sync)` plumbing.
+- [ ] When calling `LLMClient.converse` or `invoke_with_fallback`,
+      `agent_task` and `patient_id` are passed (default
+      `"unknown"` / `""` is only acceptable for the genuinely
+      patientless infra paths).
+- [ ] Logical run wrapped in `with LLMUsageRecorder() as rec:`.
+- [ ] Entity node carries `llm_usage_json` + the 9 flat fields from
+      table 3.1.
+- [ ] A `:AuditEvent {type:'PipelineRun'}` is MERGEd with
+      `[:AUDIT_FOR]->(:Patient)` and the same flat fields.
+- [ ] Both telemetry writes are inside their own try / except with a
+      WARNING log on failure.
+- [ ] If a new persistent surface was introduced (e.g. a new entity
+      label that carries `llm_usage_json`), `GET_PATIENT_LLM_SPEND`
+      has been extended with a UNION over it and a `source`
+      discriminator.
+- [ ] Pytest cases assert: token counts on the recorder, the entity
+      `llm_usage_json` write, the AuditEvent write, and that a
+      simulated telemetry failure does NOT fail the run.
+
+## 7. Where the Wire Format Is Consumed
+
+Do not change the field names or shapes without first updating every
+consumer below:
+
+| Consumer                                                   | Reads from                                              |
+|------------------------------------------------------------|---------------------------------------------------------|
+| `services/ui/src/components/dashboard/LLMSpendPanel.tsx`   | `GET /api/analytics/llm-spend/runs`                     |
+| `services/ui/src/components/mission-control/AuditTrailTab` | `:AuditEvent` properties directly via Mission Control   |
+| `GET /api/analytics/llm-spend/patient`                     | `GET_PATIENT_LLM_SPEND` -> `llm_usage_json`             |
+| `GET /api/pricing/orgs` (per-tenant billing)               | `:AuditEvent {type:'PipelineRun'}` flat `llm_*` fields  |
+| `services/ui/src/lib/types.ts::LLMUsage`                   | `LLMUsage.to_dict(cost_config)` Python output           |

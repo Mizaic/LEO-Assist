@@ -1,0 +1,100 @@
+# -- DO-LEO-AI-516 -- SBAR errors / notices SSE wire format + Playground surfacing
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-516"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-516"]
+    user_needs: ["UN-LEO-AI-095"]
+    risks_addressed: ["R-LEO-AI-185", "R-LEO-AI-510"]
+    verification_tests: ["VT-LEO-AI-514"]
+
+  specification:
+    title: "Structured SBAR errors[] / notices[] end-to-end"
+    description: |
+      The SBAR orchestrator collects every per-stage failure and
+      shrink notice into two structured arrays (FriendlyError and
+      FriendlyNotice TypedDicts) and propagates them through the
+      SSE wire format and the React playground:
+
+      Backend
+      - services/pipeline_worker/app/services/sbar_orchestrator
+        .SBARResult is extended with errors_detail and notices
+        fields. sbar_stage_completed events now carry an "error"
+        and "notice" key keyed to the stage; sbar_completed
+        carries the aggregated "errors" and "notices" arrays
+        alongside the legacy errors_count / errors counters.
+      - The orchestrator's two new helper methods
+        (_record_stage_error, _record_background_notice) are the
+        only writers of those arrays; they call into
+        libs/sbar/error_messages.translate_error and
+        background_trimmed_notice for every message so no raw
+        vendor string can escape.
+
+      Frontend
+      - services/ui/src/hooks/useSbarStream.ts exports
+        SbarErrorDetail and SbarNotice types and exposes
+        SbarStreamState.errors and SbarStreamState.notices arrays
+        wired to the new SSE payload via Array.isArray guards.
+      - services/ui/src/app/admin/ai-summarisation/SbarPlayground
+        .tsx renders sbar-errors-alert (severity="warning") and
+        sbar-notices-alert (severity="info") gated on the
+        respective array lengths, and demotes the result button
+        from colour="success" to colour="warning" when any stage
+        failed, with a label that names the failed-section count.
+
+    acceptance_criteria:
+      - criterion: "Structured errors / notices on sbar_completed"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-514 TC-006 asserts the sbar_completed payload carries errors[] and notices[] with the expected shape"
+      - criterion: "Per-stage error / notice on sbar_stage_completed"
+        type: "functional"
+        measurement: "Test"
+        target: "VT-LEO-AI-514 TC-007 asserts the background sbar_stage_completed event carries error and notice"
+      - criterion: "No raw vendor strings on the wire"
+        type: "safety"
+        measurement: "Test"
+        target: "VT-LEO-AI-514 TC-006 also asserts the absence of 'ValidationException' / 'Converse' substrings in every emitted event"
+      - criterion: "Playground renders Alerts and demotes button"
+        type: "usability"
+        measurement: "Test"
+        target: "VT-LEO-AI-514 TC-008 / TC-009 (jest static-source) assert the hook surface and the Alert + button colour gating"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/pipeline_worker/app/services/sbar_orchestrator.py"
+        description: "SBAROrchestrator.run() + _record_stage_error + _record_background_notice; SBAResult dataclass extended"
+      - artifact_type: "source_code"
+        location: "services/ui/src/hooks/useSbarStream.ts"
+        description: "SbarErrorDetail / SbarNotice exports + SbarStreamState.errors / notices wiring"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx"
+        description: "sbar-errors-alert + sbar-notices-alert + dynamic result button colour"
+    storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript"
+      loc: 280
+      key_functions:
+        - "SBAROrchestrator.run"
+        - "SBAROrchestrator._record_stage_error"
+        - "SBAROrchestrator._record_background_notice"
+        - "useSbarStream"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Structured propagation of partial-run state to the reviewer"
+      - "Visual demotion of the result button so a partial run is unmissable"
+    risk_control_measures:
+      - "Translator-only message text on the wire prevents raw vendor strings from reaching the reviewer"
+      - "Empty-array defaults make consumers safe to enumerate without nullchecks"
+      - "Per-stage error key on sbar_stage_completed surfaces failures as soon as they happen, not only at the end of the run"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

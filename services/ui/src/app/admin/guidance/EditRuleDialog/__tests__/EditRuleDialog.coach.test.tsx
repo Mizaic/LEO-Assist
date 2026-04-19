@@ -14,7 +14,14 @@
  */
 
 import React from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+  within,
+} from "@testing-library/react";
 
 import EditRuleDialog from "..";
 
@@ -64,50 +71,70 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
+/**
+ * The widescreen editor splits the form across four steps. The reason
+ * field lives on step 4 ("Save your change").
+ */
+function fillReason(text: string) {
+  const rail = screen.getAllByRole("button", {
+    name: /^Step 4 of 4/i,
+  });
+  fireEvent.click(rail[0]);
+  fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
+    target: { value: text },
+  });
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
 describe("EditRuleDialog phase 2", () => {
-  it("renders the plain-English summary card at the top", () => {
+  it("renders the live-preview banner at the top with the rule summary in plain English", () => {
+    // v2 layout: the SummaryCard lives inside the on-demand preview
+    // drawer. The always-visible banner above the canvas shows a
+    // single-line summary of the rule and a button to open the full
+    // drawer.
     mockSearch();
     render(
       <EditRuleDialog rule={VAGUE_RULE} open onClose={() => {}} onSave={() => {}} />,
     );
-    const summary = screen.getByRole("region", {
-      name: /plain english summary of this rule/i,
+    const banner = screen.getByRole("status", {
+      name: /live one-line preview of this rule/i,
     });
-    expect(summary).toBeInTheDocument();
-    expect(within(summary).getByText(/what this rule means/i)).toBeInTheDocument();
-    expect(within(summary).getByText(/40 years or older/i)).toBeInTheDocument();
-    expect(within(summary).getByText(/symptoms of lung cancer/i)).toBeInTheDocument();
+    expect(banner).toBeInTheDocument();
+    expect(within(banner).getByText(/40 years or older/i)).toBeInTheDocument();
+    expect(within(banner).getByText(/symptoms of lung cancer/i)).toBeInTheDocument();
   });
 
-  it("collapses the summary body when the toggle is clicked and reopens it", () => {
+  it("opens the full preview drawer with the SummaryCard, and closes it via the X", async () => {
     mockSearch();
     render(
       <EditRuleDialog rule={VAGUE_RULE} open onClose={() => {}} onSave={() => {}} />,
     );
-    const summary = screen.getByRole("region", {
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /see full live preview/i }),
+    );
+
+    const drawer = await screen.findByRole("region", {
       name: /plain english summary of this rule/i,
     });
-    const toggle = within(summary).getByRole("button", {
-      name: /hide plain english summary/i,
-    });
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(toggle).toHaveAttribute("aria-controls");
-    const bodyId = toggle.getAttribute("aria-controls")!;
-    const body = document.getElementById(bodyId);
-    expect(body).not.toBeNull();
-    expect(within(body!).getByText(/40 years or older/i)).toBeInTheDocument();
+    expect(drawer).toBeInTheDocument();
+    expect(within(drawer).getByText(/what this rule means/i)).toBeInTheDocument();
+    expect(within(drawer).getByText(/40 years or older/i)).toBeInTheDocument();
 
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(toggle).toHaveAccessibleName(/show plain english summary/i);
-
-    fireEvent.click(toggle);
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(toggle).toHaveAccessibleName(/hide plain english summary/i);
+    // Drawer has a visible close button (X) so users can never get
+    // trapped in the preview overlay.
+    fireEvent.click(screen.getByRole("button", { name: /^close preview$/i }));
+    // Drawer plays an exit transition before unmounting; wait for
+    // the SummaryCard region to leave the DOM rather than asserting
+    // synchronously.
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole("region", {
+        name: /plain english summary of this rule/i,
+      }),
+    );
   });
 
   it("shows a vague-phrase lightbulb badge next to the vague chip", () => {
@@ -158,9 +185,7 @@ describe("EditRuleDialog phase 2", () => {
         name: /add the ticked symptoms next to the vague phrase/i,
       }),
     );
-    fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
-      target: { value: "Made the lung cancer phrase concrete" },
-    });
+    fillReason("Made the lung cancer phrase concrete");
     fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     const tree = onSave.mock.calls[0][0].logic_tree;
@@ -189,9 +214,7 @@ describe("EditRuleDialog phase 2", () => {
         name: /replace the vague phrase with the ticked symptoms/i,
       }),
     );
-    fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
-      target: { value: "Replaced vague phrase with NICE NG12 specifics" },
-    });
+    fillReason("Replaced vague phrase with NICE NG12 specifics");
     fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     const tree = onSave.mock.calls[0][0].logic_tree;

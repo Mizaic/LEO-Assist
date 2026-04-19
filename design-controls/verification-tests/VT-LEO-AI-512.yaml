@@ -1,0 +1,136 @@
+# -- VT-LEO-AI-512 -- /care/encounters dry-run row template + shared HighlightedText
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-512"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-514"
+    risks:
+      - "R-LEO-AI-063"
+      - "R-LEO-AI-206"
+
+  metadata:
+    title: "EncounterResultsTable on ReviewListCard + shared HighlightedText primitive"
+    description: >
+      Static-source verification per ui-testing.mdc. Confirms the
+      /care/encounters list lifts the dry-run Candidates row
+      template (ReviewListCard with tone strip + chips + actions),
+      that the search box ships a clear-button end-adornment with
+      a query-echoing empty state, and that a single shared
+      HighlightedText primitive (services/ui/src/components/
+      mission-control/HighlightedText.tsx) is consumed by
+      EncounterPreviewDialog, EncounterCard, and the new row
+      template.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/encounter-row-template-chrome.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "services/ui jest harness (jest 30 + ts-jest)"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-512-TC-001"
+      case_name: "Shared HighlightedText primitive exists with the documented contract"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/src/components/mission-control/HighlightedText.tsx"
+          expected_result: "Module exports HighlightedText and collectHighlightTerms; renders <Box component='mark' data-testid='encounter-highlight'> with bgcolor '#fde68a'; declares MIN_HIGHLIGHT_LEN = 3; uses new RegExp(..., 'gi'); sorts terms longest-first"
+          verification_method: "automated"
+
+    - case_id: "VT-512-TC-002"
+      case_name: "EncounterPreviewDialog imports shared primitive (no inline copy)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterPreviewDialog.tsx"
+          expected_result: "Imports HighlightedText and collectHighlightTerms from ./HighlightedText; no inline collectHighlightTerms or HighlightedText function declarations remain"
+          verification_method: "automated"
+
+    - case_id: "VT-512-TC-003"
+      case_name: "EncounterCard imports the shared primitive for drawer highlighting"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterCard.tsx (or its drawer text consumer)"
+          expected_result: "Drawer highlight path imports HighlightedText / collectHighlightTerms from the shared module; encounterTextUtils.highlightSearchMatches either delegates to the shared primitive or is no longer used"
+          verification_method: "automated"
+
+    - case_id: "VT-512-TC-004"
+      case_name: "EncounterResultsTable rebuilt around ReviewListCard"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterResultsTable.tsx"
+          expected_result: "File imports ReviewListCard and ReviewListItem from @leo/design-system; contains a toneFor() helper mapping coded_count, status, and matched flag to positive/danger/warning/neutral; no @mui/material/Table or TableRow imports remain"
+          verification_method: "automated"
+
+    - case_id: "VT-512-TC-005"
+      case_name: "Row title uses HighlightedText; chips slot composes match-type, coded count, status, rationale"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterResultsTable.tsx"
+          expected_result: "Row title is rendered by <HighlightedText terms={...}/>; chips slot includes match-type chip, '{n} coded' chip, status chip (when present), and slices match_rationale at 4"
+          verification_method: "automated"
+
+    - case_id: "VT-512-TC-006"
+      case_name: "Selection checkbox lives in the actions slot and does not bubble to row click"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterResultsTable.tsx"
+          expected_result: "Checkbox sits inside the row actions slot; onClick on the checkbox calls stopPropagation; the row's onSelect/title click opens the preview"
+          verification_method: "automated"
+
+    - case_id: "VT-512-TC-007"
+      case_name: "Search box ships a clear-button end-adornment when the query is non-empty"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterSearchPanel.tsx"
+          expected_result: "Query TextField endAdornment renders an IconButton with CloseIcon when state.query is truthy; the button calls onQueryChange('') on click"
+          verification_method: "automated"
+
+    - case_id: "VT-512-TC-008"
+      case_name: "Empty state echoes the query when no rows match an active query"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterResultsTable.tsx (or its host fallback)"
+          expected_result: "Source contains the literal copy 'Nothing matches' and 'Try different words.' inside a node tagged data-testid='encounter-empty-query'; rendered when query is non-empty AND rows is empty"
+          verification_method: "automated"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-512/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-512-EXEC-001"
+      timestamp: "2026-04-19T08:55:00Z"
+      executor: "Rob Smith (developer)"
+      result: "pass"
+      notes: >
+        8 cases pass under jest 30 + ts-jest. Full mission-control
+        / encounter regression (135 tests across 14 suites) also
+        green: VT-LEO-AI-214 (preview wrapper) and the rest of
+        the encounter test surface are unaffected by the row
+        template refactor.

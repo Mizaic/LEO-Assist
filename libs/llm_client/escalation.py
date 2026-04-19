@@ -122,6 +122,7 @@ def escalate_label(
         try:
             client = create_llm(provider="aws", tier=tier)
             response: LLMResponse = client.converse(
+                agent_task="escalate_label",
                 system=system_prompt,
                 messages=[
                     {
@@ -281,6 +282,7 @@ def escalate_coding(
         try:
             client = create_llm(provider="aws", tier=tier)
             response: LLMResponse = client.converse(
+                agent_task="escalate_coding",
                 system=system_prompt,
                 messages=[
                     {
@@ -474,6 +476,7 @@ def escalate_coding_from_candidates(
             messages=[{"role": "user", "content": user_msg}],
             temperature=0.0,
             max_tokens=200,
+            agent_task="escalate_coding_from_candidates",
         )
     except Exception:
         logger.warning(

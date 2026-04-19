@@ -85,11 +85,12 @@ describe("LogicTreeEditor phase 1 layout", () => {
         onRequestAdd={noop}
       />,
     );
-    // The inline cluster is signalled by literal "At least" + "of these:"
+    // The inline cluster is signalled by literal "At least" + "of these"
     // text rather than the dropdown selector that the legacy stacked
-    // layout emits.
+    // layout emits. The trailing colon was removed when the chrome copy
+    // was rewritten for UK reading age 7-11 in DI-LEO-AI-512.
     expect(screen.getByText("At least")).toBeInTheDocument();
-    expect(screen.getByText(/of these:/i)).toBeInTheDocument();
+    expect(screen.getByText(/of these/i)).toBeInTheDocument();
     // All three concept chips appear once each.
     expect(screen.getByText("Cough")).toBeInTheDocument();
     expect(screen.getByText("Fatigue")).toBeInTheDocument();

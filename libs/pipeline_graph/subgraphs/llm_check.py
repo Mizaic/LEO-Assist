@@ -341,6 +341,7 @@ def _run_check(state: LLMCheckState, mode: str) -> dict[str, Any]:
             temperature=0.0,
             max_tokens=1200,
             json_mode=True,
+            agent_task="v3_pipeline_llm_check",
         )
         result = _parse_json_result(response.text or "{}")
         return {"llm_check_result": result, "errors": errors}

@@ -81,18 +81,21 @@ describe("VT-LEO-AI-214 -- /care/encounters preview wrapper", () => {
     expect(PREVIEW_SRC).toContain("Why this matched your search");
   });
 
-  it("TC-005: encounter text highlights search query and rationale terms via <mark>", () => {
+  it("TC-005: encounter text highlights search query and rationale terms via the shared primitive", () => {
+    // The dialog now delegates highlighting to the shared
+    // HighlightedText primitive (DI-LEO-AI-514). Structural checks
+    // (regex flags, MIN_HIGHLIGHT_LEN, longest-first sort) live in
+    // VT-LEO-AI-512 against that module. Here we just confirm the
+    // dialog imports and uses the shared primitive with the legacy
+    // test id so existing browser tests keep working.
     expect(PREVIEW_SRC).toContain("HighlightedText");
     expect(PREVIEW_SRC).toContain("collectHighlightTerms");
-    expect(PREVIEW_SRC).toContain('component="mark"');
-    expect(PREVIEW_SRC).toContain(
-      'data-testid="encounter-preview-highlight"',
+    expect(PREVIEW_SRC).toMatch(
+      /from "\.\/HighlightedText"|from "@\/components\/mission-control\/HighlightedText"/,
     );
-    // Case-insensitive matching, length floor and longest-first sort
-    // are all part of the contract.
-    expect(PREVIEW_SRC).toMatch(/new RegExp\([\s\S]{0,300}"gi"[\s\S]{0,20}\)/);
-    expect(PREVIEW_SRC).toContain("MIN_HIGHLIGHT_LEN");
-    expect(PREVIEW_SRC).toMatch(/sort\(\(a, b\) => b\.length - a\.length\)/);
+    expect(PREVIEW_SRC).toContain(
+      'testId="encounter-preview-highlight"',
+    );
   });
 
   it("TC-006: seed failure keeps the preview open with an inline error", () => {

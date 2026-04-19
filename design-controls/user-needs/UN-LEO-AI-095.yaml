@@ -1,0 +1,51 @@
+# -- UN-LEO-AI-095 -- Big records produce SBAR; failures explained in plain English
+# IEC 62366 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-095"
+  title: "Big patient records still produce a useful SBAR, and any failure is explained in plain English"
+  description: >
+    As a QA reviewer or platform admin running the SBAR Playground in
+    /admin/knowledge?tab=ai-summarisation, when I pick a patient with
+    a large amount of background material (many encounters, long
+    discharge summaries, dense chunked documents), the system should
+    still produce an SBAR rather than silently failing. If the inputs
+    cannot all fit in the model's input window, LEO should trim them
+    safely and tell me what was trimmed. If a stage genuinely fails,
+    the playground should show me a clear plain-English message
+    naming the stage and the reason -- not a green "Done" button with
+    a hidden error count.
+  stakeholder: "QA reviewer / platform admin"
+  priority: "high"
+  rationale: >
+    The current playground fails closed: when the Bedrock Converse
+    API returns "Input is too long for requested model" the run
+    finishes, the SSE event reports error_count=1, but the UI shows
+    a green "Done (1 errors)" button with no error detail and no
+    mitigation. Reviewers cannot tell whether the SBAR is missing a
+    section, whether they should pick fewer records, or whether the
+    model itself is broken. This both blocks prompt validation and
+    erodes trust in the playground -- and worse, it lets a partial
+    SBAR look complete (R-LEO-AI-185 hazard).
+
+  acceptance_criteria:
+    - "When the assembled background prompt would exceed the model's input window, the system trims per-source text and (if necessary) drops the lowest-priority sources before calling the LLM, and includes a plain-English notice of what was trimmed in the run output"
+    - "When an LLM call fails for a known reason (input too long, throttled, access denied, network), the run records a plain-English message naming the stage and the reason"
+    - "The SBAR Playground renders any errors as a warning Alert above the result, listing each error with its stage label and plain-English message"
+    - "The SBAR Playground renders any notices (e.g. 'trimmed 3 records to fit') as an info Alert"
+    - "When a run completes with one or more errors, the result button is amber/warning rather than green/success"
+    - "Plain-English error and notice messages target reading age 9-11 and never expose raw AWS exception text"
+
+  design_inputs:
+    - "DI-LEO-AI-513"
+    - "DI-LEO-AI-516"
+
+  metadata:
+    identified_by: "Field report 2026-04-19 (SBAR Background Bedrock ValidationException, no UI surfacing)"
+    identified_date: "2026-04-19"
+    status: "approved"
+    tags:
+      - "sbar"
+      - "playground"
+      - "error-handling"
+      - "health-literacy"
+      - "qa-tooling"

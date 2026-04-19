@@ -195,6 +195,24 @@ WITH tp, g,
 WHERE ($rule_id IS NULL OR any(e IN expectations WHERE e.rule_id = $rule_id))
   AND ($node_id  IS NULL OR
        any(e IN expectations WHERE $node_id IN coalesce(e.matched_branch_node_ids, [])))
+// Pull the expected SBAR priority + evaluator outage flag so the
+// reviewer can filter the library by triage outcome (2ww / urgent /
+// routine / safety-net / no rule fired / evaluator outage). Only the
+// summarisation aspect has an ExpectedSBAR -- the rest project NULL
+// and the UI shows them under "(no triage outcome)".
+OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)
+WHERE coalesce(s.is_test, false) = true
+WITH tp, g, expectations, s,
+     CASE
+       WHEN s IS NULL                              THEN NULL
+       WHEN coalesce(s.evaluator_outage, false)    THEN 'evaluator_outage'
+       WHEN s.expected_action_priority IS NOT NULL THEN s.expected_action_priority
+       WHEN size(coalesce(s.matched_rule_ids, [])) = 0 THEN 'no_rule_fired'
+       ELSE 'routine'
+     END AS triage_outcome
+WHERE ($triage_outcome IS NULL OR $triage_outcome = 'all'
+       OR triage_outcome = $triage_outcome
+       OR ($triage_outcome = 'unset' AND triage_outcome IS NULL))
 RETURN tp.id              AS id,
        tp.name            AS name,
        tp.description     AS description,
@@ -213,6 +231,7 @@ RETURN tp.id              AS id,
        g.title            AS guideline_title,
        toString(tp.created_at) AS created_at,
        tp.created_by      AS created_by,
+       triage_outcome     AS triage_outcome,
        [e IN expectations WHERE e.rule_id IS NOT NULL] AS expectations
 ORDER BY tp.created_at DESC
 LIMIT $limit
@@ -226,6 +245,28 @@ MATCH (tp:TestPatient)
 WHERE coalesce(tp.is_test, false) = true
 RETURN coalesce(tp.aspect, 'guidelines') AS aspect,
        count(tp)                         AS total
+"""
+
+
+# Count test patients grouped by triage outcome. Backs the secondary
+# filter chip group that sits inside the SBAR / referral triage aspect.
+# Outcome derivation matches LIST_TEST_PATIENTS exactly.
+COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME = """
+MATCH (tp:TestPatient)
+WHERE coalesce(tp.is_test, false) = true
+  AND coalesce(tp.aspect, 'guidelines') = 'summarisation'
+OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)
+WHERE coalesce(s.is_test, false) = true
+WITH tp, s,
+     CASE
+       WHEN s IS NULL                              THEN 'unset'
+       WHEN coalesce(s.evaluator_outage, false)    THEN 'evaluator_outage'
+       WHEN s.expected_action_priority IS NOT NULL THEN s.expected_action_priority
+       WHEN size(coalesce(s.matched_rule_ids, [])) = 0 THEN 'no_rule_fired'
+       ELSE 'routine'
+     END AS triage_outcome
+RETURN triage_outcome AS triage_outcome,
+       count(tp)      AS total
 """
 
 

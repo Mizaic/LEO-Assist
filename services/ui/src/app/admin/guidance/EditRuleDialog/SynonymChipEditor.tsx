@@ -23,6 +23,7 @@
 import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Popover from "@mui/material/Popover";
@@ -36,6 +37,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import HubIcon from "@mui/icons-material/Hub";
 import BlockIcon from "@mui/icons-material/Block";
+import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 
 import ConceptSearchPanel from "./ConceptSearchPanel";
 import { friendlyTerm } from "./copy";
@@ -86,32 +88,105 @@ export default function SynonymChipEditor({ node, onUpdate }: Props) {
 
   const extraSeedCount = Math.max(0, seeds.length - 1);
   const hasExclusions = excluded.length > 0;
-  const badgeLabel =
-    extraSeedCount > 0 ? `+${extraSeedCount}` : "synonyms";
-  const tooltip =
-    extraSeedCount === 0 && !hasExclusions
-      ? "Add other codes that mean the same thing, or block specific codes."
-      : `${seeds.length} code(s) on this chip${hasExclusions ? `, ${excluded.length} blocked` : ""}.`;
+  const isPopulated = extraSeedCount > 0 || hasExclusions;
+  const friendlyChipLabel = friendlyTerm(criterion.preferred_term);
+  const tooltip = !isPopulated
+    ? `Add other codes that mean the same as "${friendlyChipLabel}", or block specific codes.`
+    : `${seeds.length} code${seeds.length === 1 ? "" : "s"} on this chip${
+        hasExclusions
+          ? `, ${excluded.length} blocked code${excluded.length === 1 ? "" : "s"}`
+          : ""
+      }. Click to edit.`;
+  const ariaLabel = `Edit synonyms and blocked codes for ${friendlyChipLabel}. ${
+    isPopulated
+      ? `${seeds.length} code${seeds.length === 1 ? "" : "s"} on this chip${
+          hasExclusions
+            ? `, ${excluded.length} blocked.`
+            : "."
+        }`
+      : "No synonyms yet."
+  }`;
 
   return (
     <>
       <Tooltip title={tooltip} arrow>
-        <Chip
-          icon={
-            hasExclusions ? (
-              <BlockIcon sx={{ fontSize: 14 }} />
-            ) : (
-              <HubIcon sx={{ fontSize: 14 }} />
-            )
-          }
-          label={badgeLabel}
-          size="small"
-          variant="outlined"
-          color={extraSeedCount > 0 || hasExclusions ? "info" : "default"}
-          onClick={(e) => setAnchor(e.currentTarget)}
-          sx={{ height: 22, fontSize: "0.7rem", ml: 0.25 }}
-          aria-label={`Edit synonyms and blocked codes for ${friendlyTerm(criterion.preferred_term)}`}
-        />
+        {isPopulated ? (
+          <ButtonBase
+            onClick={(e) => setAnchor(e.currentTarget)}
+            aria-label={ariaLabel}
+            sx={{
+              height: 22,
+              borderRadius: "11px",
+              px: 0.75,
+              ml: 0.5,
+              gap: 0.5,
+              border: "1px solid",
+              borderColor: hasExclusions ? "error.light" : "info.light",
+              bgcolor: hasExclusions ? "error.50" : "info.50",
+              color: hasExclusions ? "error.dark" : "info.dark",
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              lineHeight: 1,
+              transition:
+                "background-color 120ms ease, border-color 120ms ease",
+              "&:hover": {
+                bgcolor: hasExclusions ? "error.100" : "info.100",
+              },
+              "&:focus-visible": {
+                outline: "2px solid",
+                outlineColor: hasExclusions ? "error.main" : "info.main",
+                outlineOffset: 1,
+              },
+            }}
+          >
+            {extraSeedCount > 0 && (
+              <>
+                <HubIcon sx={{ fontSize: 12 }} />
+                <span>+{extraSeedCount}</span>
+              </>
+            )}
+            {hasExclusions && (
+              <>
+                {extraSeedCount > 0 && (
+                  <Box
+                    aria-hidden
+                    sx={{
+                      width: 1,
+                      height: 10,
+                      bgcolor: "currentColor",
+                      opacity: 0.35,
+                    }}
+                  />
+                )}
+                <BlockIcon sx={{ fontSize: 12 }} />
+                <span>{excluded.length}</span>
+              </>
+            )}
+          </ButtonBase>
+        ) : (
+          <IconButton
+            size="small"
+            onClick={(e) => setAnchor(e.currentTarget)}
+            aria-label={ariaLabel}
+            sx={{
+              ml: 0.25,
+              p: 0.25,
+              color: "text.disabled",
+              transition: "color 120ms ease, background-color 120ms ease",
+              "&:hover": {
+                color: "primary.main",
+                bgcolor: "primary.50",
+              },
+              "&:focus-visible": {
+                outline: "2px solid",
+                outlineColor: "primary.main",
+                outlineOffset: 1,
+              },
+            }}
+          >
+            <TuneRoundedIcon sx={{ fontSize: 14 }} />
+          </IconButton>
+        )}
       </Tooltip>
       <Popover
         open={open}
@@ -119,7 +194,20 @@ export default function SynonymChipEditor({ node, onUpdate }: Props) {
         onClose={() => setAnchor(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
         transformOrigin={{ vertical: "top", horizontal: "left" }}
-        slotProps={{ paper: { sx: { p: 1.5, width: 460, maxWidth: "90vw" } } }}
+        slotProps={{
+          paper: {
+            elevation: 8,
+            sx: {
+              p: 2,
+              width: 480,
+              maxWidth: "90vw",
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              mt: 0.5,
+            },
+          },
+        }}
       >
         <SynonymEditorBody
           nodeId={node.node_id}
@@ -153,22 +241,52 @@ function SynonymEditorBody({
     useState<"none" | "add_seed" | "add_excluded">("none");
 
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={2}>
       <Box>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          Synonyms and blocked codes
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Add other codes that mean the same as &quot;{chipLabel}&quot;, or
-          block codes that should not fire this rule.
+        <Stack direction="row" alignItems="center" spacing={0.75}>
+          <TuneRoundedIcon sx={{ fontSize: 18, color: "primary.main" }} />
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: 700, lineHeight: 1.2 }}
+          >
+            Edit &ldquo;{chipLabel}&rdquo;
+          </Typography>
+        </Stack>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mt: 0.5, lineHeight: 1.45 }}
+        >
+          Add other codes that mean the same thing, or block codes that
+          should not fire this rule.
         </Typography>
       </Box>
 
       <Box>
-        <Typography variant="caption" sx={{ fontWeight: 700 }}>
-          Codes on this chip ({seeds.length})
-        </Typography>
-        <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+        <Stack
+          direction="row"
+          alignItems="baseline"
+          spacing={0.75}
+          sx={{ mb: 0.75 }}
+        >
+          <HubIcon sx={{ fontSize: 14, color: "info.main", alignSelf: "center" }} />
+          <Typography variant="caption" sx={{ fontWeight: 700, color: "text.primary" }}>
+            Codes on this chip
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {seeds.length} total
+          </Typography>
+        </Stack>
+        <Stack
+          spacing={0.25}
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1.5,
+            p: 0.5,
+            bgcolor: "grey.50",
+          }}
+        >
           {seeds.map((seed) => (
             <SeedRow
               key={seed.snomed_concept_id}
@@ -211,37 +329,61 @@ function SynonymEditorBody({
           size="small"
           startIcon={<AddIcon />}
           onClick={() => setSearchMode("add_seed")}
-          sx={{ mt: 0.75 }}
+          sx={{ mt: 1, textTransform: "none", fontWeight: 600 }}
         >
           Add another code that means the same
         </Button>
       </Box>
 
       <Box>
-        <Typography variant="caption" sx={{ fontWeight: 700 }}>
-          Blocked codes ({excluded.length})
-        </Typography>
+        <Stack
+          direction="row"
+          alignItems="baseline"
+          spacing={0.75}
+          sx={{ mb: 0.5 }}
+        >
+          <BlockIcon sx={{ fontSize: 14, color: "error.main", alignSelf: "center" }} />
+          <Typography variant="caption" sx={{ fontWeight: 700, color: "text.primary" }}>
+            Blocked codes
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {excluded.length} total
+          </Typography>
+        </Stack>
         <Typography
           variant="caption"
           color="text.secondary"
-          sx={{ display: "block" }}
+          sx={{ display: "block", mb: 0.75, lineHeight: 1.45 }}
         >
-          These codes will NOT fire the rule, even if they sit under a
+          These codes will not fire the rule, even if they sit under a
           chip code.
         </Typography>
         <Stack
           direction="row"
           spacing={0.5}
-          sx={{ mt: 0.5, flexWrap: "wrap" }}
+          sx={{ mt: 0.5, flexWrap: "wrap", rowGap: 0.5 }}
         >
           {excluded.length === 0 ? (
-            <Typography variant="caption" color="text.secondary">
-              None.
-            </Typography>
+            <Box
+              sx={{
+                width: "100%",
+                py: 0.75,
+                px: 1,
+                borderRadius: 1,
+                border: "1px dashed",
+                borderColor: "divider",
+                color: "text.secondary",
+              }}
+            >
+              <Typography variant="caption">
+                Nothing blocked yet.
+              </Typography>
+            </Box>
           ) : (
             excluded.map((cid) => (
               <Chip
                 key={cid}
+                icon={<BlockIcon sx={{ fontSize: 12 }} />}
                 label={`code ${cid}`}
                 size="small"
                 variant="outlined"
@@ -253,17 +395,29 @@ function SynonymEditorBody({
                     conceptId: cid,
                   })
                 }
-                deleteIcon={<CloseIcon sx={{ fontSize: 14 }} />}
-                sx={{ height: 22, fontSize: "0.7rem", mb: 0.25 }}
+                deleteIcon={<CloseIcon sx={{ fontSize: 13 }} />}
+                sx={{
+                  height: 24,
+                  fontSize: "0.7rem",
+                  bgcolor: "error.50",
+                  borderColor: "error.light",
+                  "& .MuiChip-icon": { color: "error.dark", ml: 0.5 },
+                }}
               />
             ))
           )}
         </Stack>
-        <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1}
+          sx={{ mt: 1 }}
+          alignItems={{ xs: "stretch", sm: "center" }}
+        >
           <Button
             size="small"
             startIcon={<BlockIcon />}
             onClick={() => setSearchMode("add_excluded")}
+            sx={{ textTransform: "none", fontWeight: 600 }}
           >
             Search a code to block
           </Button>
@@ -276,7 +430,16 @@ function SynonymEditorBody({
       </Box>
 
       {searchMode !== "none" && (
-        <Box sx={{ borderTop: 1, borderColor: "divider", pt: 1 }}>
+        <Box
+          sx={{
+            mt: 0.5,
+            p: 1.25,
+            borderRadius: 1.5,
+            bgcolor: "primary.50",
+            border: "1px solid",
+            borderColor: "primary.100",
+          }}
+        >
           <ConceptSearchPanel
             mode={searchMode === "add_seed" ? "add" : "replace"}
             focusLabel={
@@ -310,7 +473,7 @@ function SynonymEditorBody({
           <Button
             size="small"
             onClick={() => setSearchMode("none")}
-            sx={{ mt: 0.5 }}
+            sx={{ mt: 0.5, textTransform: "none", fontWeight: 600 }}
           >
             Cancel
           </Button>
@@ -342,12 +505,16 @@ function SeedRow({
   return (
     <Stack
       direction="row"
-      spacing={0.5}
+      spacing={0.75}
       alignItems="center"
       sx={{
-        p: 0.5,
+        px: 0.75,
+        py: 0.5,
         borderRadius: 1,
-        bgcolor: isPrimary ? "action.selected" : "transparent",
+        bgcolor: isPrimary ? "primary.50" : "background.paper",
+        border: "1px solid",
+        borderColor: isPrimary ? "primary.100" : "transparent",
+        transition: "background-color 120ms ease, border-color 120ms ease",
       }}
     >
       <Tooltip title="Use as the chip label" arrow>
@@ -360,13 +527,38 @@ function SeedRow({
         />
       </Tooltip>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
-          variant="body2"
-          sx={{ fontWeight: isPrimary ? 700 : 400, lineHeight: 1.2 }}
-          noWrap
-        >
-          {friendly}
-        </Typography>
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: isPrimary ? 700 : 500,
+              lineHeight: 1.25,
+              color: isPrimary ? "primary.dark" : "text.primary",
+            }}
+            noWrap
+          >
+            {friendly}
+          </Typography>
+          {isPrimary && (
+            <Box
+              component="span"
+              sx={{
+                fontSize: "0.6rem",
+                fontWeight: 700,
+                letterSpacing: 0.5,
+                px: 0.5,
+                py: "1px",
+                borderRadius: 0.5,
+                color: "primary.contrastText",
+                bgcolor: "primary.main",
+                textTransform: "uppercase",
+              }}
+              aria-hidden
+            >
+              Label
+            </Box>
+          )}
+        </Stack>
         <Typography variant="caption" color="text.secondary">
           code {seed.snomed_concept_id}
           {seed.semantic_tag ? ` -- ${seed.semantic_tag}` : ""}

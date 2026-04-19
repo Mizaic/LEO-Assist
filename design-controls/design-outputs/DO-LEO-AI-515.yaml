@@ -1,0 +1,105 @@
+# -- DO-LEO-AI-515 -- /care/encounters timeline brush wrapper + host wiring
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-515"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-516"]
+    user_needs: ["UN-LEO-AI-096"]
+    risks_addressed:
+      - "R-LEO-AI-063"
+      - "R-LEO-AI-174"
+      - "R-LEO-AI-206"
+    verification_tests: ["VT-LEO-AI-515"]
+
+  specification:
+    title: "EncounterResultsTimeline wrapper + EncounterMissionControl brush wiring"
+    description: |
+      Adapter that lifts the patient-drawer timeline scrubber
+      (DI-LEO-AI-179) onto the /care/encounters surface so
+      reviewers can see the temporal distribution of search
+      results and brush a date window to filter the result table.
+
+      Implementation pieces:
+
+        1. New module
+           `services/ui/src/components/mission-control/EncounterResultsTimeline.tsx`
+           that adapts `EncounterListItem[]` -> `ScrubberEncounter[]`
+           (renaming `encounter_date` -> `date`, dropping rows
+           whose date does not parse) and renders the existing
+           `EncounterTimelineScrubber` with `linkedEncounterIds`
+           empty, no episode bounds, and no milestones. The
+           wrapper renders nothing when fewer than 5 input rows
+           have a parseable date.
+
+        2. `EncounterMissionControl.tsx` gains:
+           - `timelineRange: { fromMs, toMs } | null` state, reset
+             on every fresh `load()`.
+           - A `filteredRows` step that intersects bucket filter
+             AND brush range so pagination + table stay in sync.
+           - The new `EncounterResultsTimeline` rendered between
+             the `Score3DMap` block and the `EncounterResultsTable`.
+           - `highlightedEncounterId` and the timeline's
+             `activeEncounterId` both wired to
+             `activePreview?.encounter_id ?? null` so the active
+             encounter receives the table row highlight + the
+             histogram active ring.
+           - `onJumpToEncounter` from the timeline -> opens the
+             matching loaded row in the preview dialog.
+
+      The brush filter MUST compose with the existing bucket and
+      score filters (intersection, not union) and MUST NOT mutate
+      the loaded result set so batch-bar workflows continue to
+      operate on the visible page.
+
+    acceptance_criteria:
+      - criterion: "Wrapper module exists with adapter contract"
+        type: "functional"
+        measurement: "Static-source"
+        target: "EncounterResultsTimeline default export with the documented props and adapter"
+      - criterion: "Host wiring composes filters in correct order"
+        type: "functional"
+        measurement: "Static-source"
+        target: "EncounterMissionControl applies brush filter to filteredRows BEFORE pagination, alongside bucket filter"
+      - criterion: "Active preview drives row highlight + active ring"
+        type: "functional"
+        measurement: "Static-source"
+        target: "highlightedEncounterId and timeline.activeEncounterId both fed from activePreview.encounter_id"
+      - criterion: "Tiny result sets hide the panel"
+        type: "functional"
+        measurement: "Static-source"
+        target: "Wrapper returns null when fewer than 5 dated rows are loaded"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/EncounterResultsTimeline.tsx"
+        description: "Adapter wrapping EncounterTimelineScrubber for /care/encounters"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/EncounterMissionControl.tsx"
+        description: "Host wiring: timelineRange state, filter intersection, jump-to-preview, highlightedEncounterId"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 120
+      key_functions:
+        - "EncounterResultsTimeline (default export)"
+        - "EncounterMissionControl (timelineRange + handleTimelineRangeChange + handleTimelineJump)"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Brush filter must compose with bucket filter; must not mutate loaded result set"
+      - "Active preview row must remain visually anchored on both surfaces"
+    risk_control_measures:
+      - "Reuses VT-LEO-AI-173-verified scrubber primitive unchanged (no new histogram code)"
+      - "Brush filter operates on a derived view, leaving the loaded `rows` intact"
+      - "Hide-when-tiny gate (<5 dated rows) prevents misleading single-bin histograms"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

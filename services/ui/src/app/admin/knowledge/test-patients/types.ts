@@ -29,7 +29,7 @@ export const ASPECT_LABEL: Record<AspectFilter, string> = {
   nlp: "Reading notes",
   episodes: "Patient story",
   guidelines: "Rule checks",
-  summarisation: "SBAR handover",
+  summarisation: "SBAR / referral triage",
 };
 
 export const ASPECT_HINT: Record<AspectFilter, string> = {
@@ -37,7 +37,10 @@ export const ASPECT_HINT: Record<AspectFilter, string> = {
   nlp: "Patients used to check the AI reads notes the right way.",
   episodes: "Patients used to check the AI builds the patient story right.",
   guidelines: "Patients used to check the right rules fire (or do not).",
-  summarisation: "Patients used to check the SBAR handover comes out right.",
+  summarisation:
+    "Patients used to check the AI gives the right triage decision " +
+    "(2 week wait, urgent, routine, safety-net, no rule fired) and writes " +
+    "a clean SBAR handover. Includes NICE NG12 suspected-cancer pathways.",
 };
 
 /**
@@ -53,6 +56,58 @@ export interface AspectCounts {
   summarisation: number;
 }
 
+/**
+ * Triage outcome derived from the ExpectedSBAR node attached to a
+ * SBAR / referral-triage test patient. Mirrors the CASE expression
+ * in libs/cypher/test_patient_queries.LIST_TEST_PATIENTS exactly.
+ *
+ * The chip-group filter on the Knowledge tab uses these values so the
+ * reviewer can see, at a glance, how many 2 week wait fixtures vs
+ * routine vs no-rule-fired vs evaluator-outage cases the library has
+ * coverage for. NICE NG12 referrals land under "2ww" or "urgent".
+ *
+ * "unset" is the catch-all for non-summarisation patients (no
+ * ExpectedSBAR node attached) so the chip group never hides rows.
+ * "all" is a UI-only sentinel meaning "no triage filter".
+ */
+export const TRIAGE_OUTCOME_VALUES = [
+  "all",
+  "2ww",
+  "urgent",
+  "routine",
+  "no_rule_fired",
+  "evaluator_outage",
+  "unset",
+] as const;
+
+export type TriageOutcome = (typeof TRIAGE_OUTCOME_VALUES)[number];
+
+export const TRIAGE_OUTCOME_LABEL: Record<TriageOutcome, string> = {
+  all: "All triage outcomes",
+  "2ww": "2 week wait (suspected cancer)",
+  urgent: "Urgent",
+  routine: "Routine",
+  no_rule_fired: "No rule fired",
+  evaluator_outage: "Evaluator outage",
+  unset: "(no SBAR)",
+};
+
+export const TRIAGE_OUTCOME_HINT: Record<TriageOutcome, string> = {
+  all: "Show every SBAR test patient.",
+  "2ww": "NICE NG12 suspected-cancer referrals (refer within 2 weeks).",
+  urgent: "Urgent referrals that are not 2 week wait.",
+  routine: "Routine referrals or routine review.",
+  no_rule_fired:
+    "The rule engine fired no rules for this patient -- the SBAR " +
+    "should reflect that (no referral, safety-net, watch and wait).",
+  evaluator_outage:
+    "The terminology / evaluator was unreachable -- the SBAR should " +
+    "still be written but flagged as a partial result.",
+  unset: "Patients without an ExpectedSBAR (non-summarisation aspects).",
+};
+
+export type TriageOutcomeCounts = Record<Exclude<TriageOutcome, "all">, number>;
+
 export interface TestPatientRow {
   id: string;
   name: string;
@@ -67,6 +122,7 @@ export interface TestPatientRow {
   generation_source: string;
   guideline_id: string | null;
   guideline_title: string | null;
+  triage_outcome: Exclude<TriageOutcome, "all"> | null;
   created_at: string;
   created_by: string;
   expectations: Array<Record<string, unknown>>;

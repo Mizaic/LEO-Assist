@@ -161,9 +161,48 @@ describe("VT-LEO-AI-184 SBAR playground chrome", () => {
     expect(src).toContain("SbarFinalDialog");
     // No inline duplicate of the final cards in the playground itself.
     expect(src).not.toContain("data-testid={`sbar-final-section-${stage}`}");
-    // The Done. status converts into a green "View full SBAR" action
-    // button when finalContent is available.
+    // The Done. status converts into a "View full SBAR" action button
+    // when finalContent is available. The button is success-coloured
+    // only when there are no errors; with errors it shifts to
+    // warning. See VT-LEO-AI-514 TC-009.
     expect(src).toContain('data-testid="sbar-view-full-button"');
-    expect(src).toMatch(/color="success"/);
+    expect(src).toMatch(/color=\{sbar\.errors\.length === 0 \? "success" : "warning"\}/);
+  });
+
+  // VT-LEO-AI-514 TC-008 / TC-009 -- structured errors[] / notices[]
+  // surfaced from the orchestrator (DI-LEO-AI-516). Reviewers must
+  // see plain-English error and notice Alerts above the result card,
+  // and the result button must shift colour when errors are present.
+  it("hook exposes errors and notices arrays populated from sbar_completed", () => {
+    const src = read(FILES.hook);
+    expect(src).toContain("export interface SbarErrorDetail");
+    expect(src).toContain("export interface SbarNotice");
+    expect(src).toMatch(/errors:\s*SbarErrorDetail\[\];/);
+    expect(src).toMatch(/notices:\s*SbarNotice\[\];/);
+    // The on('sbar_completed') handler reads the wire arrays.
+    expect(src).toMatch(/Array\.isArray\(d\.errors\)/);
+    expect(src).toMatch(/Array\.isArray\(d\.notices\)/);
+    // Per-stage notices are appended as the stage finishes, not
+    // only at the end.
+    expect(src).toMatch(/d\.notice\s*\?\?\s*null/);
+  });
+
+  it("playground renders sbar-errors-alert and sbar-notices-alert with friendly text", () => {
+    const src = read(FILES.playgroundComponent);
+    expect(src).toContain('data-testid="sbar-errors-alert"');
+    expect(src).toContain('data-testid="sbar-notices-alert"');
+    // The errors Alert is severity='warning' (not error -- the run
+    // produced a draft we want the reviewer to inspect, not abort).
+    expect(src).toMatch(
+      /sbar\.errors\.length > 0[\s\S]{0,200}severity="warning"[\s\S]{0,200}data-testid="sbar-errors-alert"/,
+    );
+    // The notices Alert is severity='info' (informational).
+    expect(src).toMatch(
+      /sbar\.notices\.length > 0[\s\S]{0,200}severity="info"[\s\S]{0,200}data-testid="sbar-notices-alert"/,
+    );
+    // No raw vendor strings should be referenced anywhere in the
+    // playground source -- friendly text is built server side.
+    expect(src).not.toMatch(/ValidationException/);
+    expect(src).not.toMatch(/Converse operation/);
   });
 });

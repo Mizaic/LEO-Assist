@@ -201,6 +201,10 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
         if not window_full.strip():
             continue
 
+        hints = _signal_hints(window_full)
+        if hints:
+            window_full = window_full + "\n\n" + hints
+
         try:
             result, trace = milestone_agent.run(
                 llm=llm,
@@ -420,6 +424,77 @@ def _slice_window_full(
             )
         )
     return "\n\n".join(blocks)
+
+
+_SAFETY_NETTING_HINT_RX = re.compile(
+    r"(?i)("
+    r"cancer safety netting|y281b|safety net|safety-net|safety netted|"
+    r"sn advice|if symptoms? worsen|if it gets worse|come back if|"
+    r"return if|re-attend|reattend|will rebook if|"
+    r"call 111|call 999|contact nhs 111|attend a&e if|seek urgent|"
+    r"see your gp if|advice if worsens"
+    r")"
+)
+
+_DISRUPTION_HINT_RX = re.compile(
+    r"(?i)("
+    r"no appointment letter|still no appointment|chasing referral|"
+    r"referral not received|lost referral|gp to chase|"
+    r"referral rejected|returned to gp|downgraded|asked for clarification|"
+    r"re-referred|second referral|repeat 2ww|"
+    r"did not attend|\bdna\b|no-show|"
+    r"patient cancelled|patient rearranged|pt cancelled|pt rearranged|"
+    r"cancelled by trust|clinic cancelled|hospital rescheduled|"
+    r"appointment rescheduled|staff sickness|"
+    r"awaiting result|result not back|no result yet|chasing histology|"
+    r"awaiting biopsy|"
+    r"unable to contact|no answer|no response after|"
+    r"multiple attempts to contact|"
+    r"mdt outcome unclear|no mdt plan"
+    r")"
+)
+
+_ADMIN_NOISE_RX = re.compile(
+    r"(?i)(note marked in error|diagnosis marked in error|"
+    r"vt cancellation|pt vt cancelled|failed encounter)"
+)
+
+
+def _signal_hints(window_full: str) -> str:
+    """Deterministic pre-scan for safety-netting / disruption candidates.
+
+    The LLM is responsible for verifying each hint against the source
+    encounter and rejecting admin noise. This step only ensures the
+    signal does not drown in a long window.
+    """
+    sn_ids: list[str] = []
+    dis_ids: list[str] = []
+    for block in window_full.split("\n\n"):
+        # First line is "[encounter_id] date"
+        first = block.split("\n", 1)[0].strip()
+        if not first.startswith("["):
+            continue
+        eid = first.split("]", 1)[0].lstrip("[")[:8]
+        if not eid:
+            continue
+        # Strip well-known admin-noise lines so they do not generate a hint.
+        cleaned = _ADMIN_NOISE_RX.sub(" ", block)
+        if _SAFETY_NETTING_HINT_RX.search(cleaned):
+            sn_ids.append(eid)
+        if _DISRUPTION_HINT_RX.search(cleaned):
+            dis_ids.append(eid)
+    if not sn_ids and not dis_ids:
+        return ""
+    lines = ["HINTS (deterministic pre-scan; verify each before emitting):"]
+    if sn_ids:
+        lines.append(
+            "  Possible safety_netting in encounters: " + ", ".join(sn_ids[:10])
+        )
+    if dis_ids:
+        lines.append(
+            "  Possible disruptions in encounters: " + ", ".join(dis_ids[:20])
+        )
+    return "\n".join(lines)
 
 
 # -- Compiled subgraph + sync runner --------------------------------------

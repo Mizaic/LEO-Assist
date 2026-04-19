@@ -84,6 +84,25 @@
       implemented_by: ["DI-LEO-AI-194"]
       verified_by: []
       effectiveness: "partially_effective"
+    - control_type: "design_feature"
+      description: >
+        Pre-emptive token-budget aware shrinker (DI-LEO-AI-513)
+        prevents the most common cause of silent partial SBARs
+        (Bedrock 'Input is too long for requested model'
+        ValidationException on the Background stage) by trimming
+        per-source text and dropping the lowest-priority sources
+        before the LLM call, with a plain-English notice surfaced
+        to the reviewer. Structured errors[] and notices[]
+        (DI-LEO-AI-516) are emitted on every sbar_completed and
+        sbar_stage_completed SSE event and rendered in the
+        playground as warning / info Alerts; the result button
+        shifts from green to amber when any stage failed so the
+        visual signal matches the run state and a partial SBAR can
+        no longer be confused with a complete one. See R-LEO-AI-510
+        for the dedicated risk record.
+      implemented_by: ["DI-LEO-AI-513", "DI-LEO-AI-516"]
+      verified_by: ["VT-LEO-AI-514"]
+      effectiveness: "effective"
 
   residual_risk_estimate:
     severity: 3

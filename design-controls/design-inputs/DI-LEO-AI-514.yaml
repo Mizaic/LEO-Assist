@@ -1,0 +1,191 @@
+# -- DI-LEO-AI-514 -- /care/encounters lifts dry-run row template + unified HighlightedText
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-514"
+  type: "Usability"
+  derived_from:
+    - "UN-LEO-AI-096"
+  requirement: >
+    The /care/encounters search-results surface SHALL render rows
+    using the shared `ReviewListCard` primitive from
+    `@leo/design-system` (the same primitive used by the dry-run
+    Candidates queue in `GoldDatasetPanel`). Each row SHALL expose
+    a left-edge tone accent that maps to coding status: `positive`
+    when `coded_count >= 1`, `danger` when the batch job for this
+    encounter has `state === "failed"`, `warning` when the row
+    matched the search but has no codes yet, and `neutral`
+    otherwise.
+
+    Each row's `chips:` slot SHALL surface (in this order): a
+    match-type chip mirroring the existing palette
+    (`hybrid`/`keyword`/`semantic`/`none`), a coded-count chip
+    (`{n} coded` -- success colour when `n > 0`, neutral
+    otherwise), the row's batch-run status chip when present, and
+    up to 4 match-rationale chips (the existing
+    `match_rationale[]` strings, outlined). The row's `actions:`
+    slot SHALL host the existing selection checkbox.
+
+    The row title SHALL show the encounter text (truncated to one
+    line) with matches of the reviewer's search query and
+    `match_rationale` terms wrapped in `<mark>` elements via the
+    shared `<HighlightedText>` primitive. The row meta line SHALL
+    show the encounter date, the patient id, and the existing
+    match-strength bar.
+
+    The /care/encounters search input SHALL include a clear (X)
+    end-adornment that resets the query when the input is
+    non-empty, matching the dry-run search box. The empty state
+    when no encounters match the active query SHALL echo the query
+    in the form `Nothing matches "<q>". Try different words.`,
+    matching the dry-run copy verbatim.
+
+    A single shared `<HighlightedText>` primitive (and its
+    `collectHighlightTerms` helper) SHALL live in
+    `services/ui/src/components/mission-control/HighlightedText.tsx`
+    and SHALL be consumed by:
+      - `EncounterPreviewDialog` (replacing its inline copy)
+      - `EncounterCard` (replacing the drawer's inline
+        `highlightSearchMatches` use)
+      - the new `EncounterResultsTable` row title
+    The primitive SHALL render hits as
+    `<Box component="mark" data-testid="encounter-highlight">`
+    using the amber token `#fde68a` (the patient-drawer colour;
+    the dimmer `#fef3c7` previously used by the preview dialog is
+    retired). Matching SHALL be case-insensitive, SHALL skip
+    tokens shorter than three characters, and SHALL prefer longer
+    overlapping terms.
+
+  rationale: >
+    Reviewers move daily between /care/encounters, the
+    /care/patients side drawer, and the /admin/training Candidates
+    tab. The dry-run Candidates list already ships the cleanest
+    list pattern -- tone-coded rows, chip taxonomy, debounced
+    search with clear button and query-echoing empty state -- and
+    reviewers asked for the same look and behaviour on
+    /care/encounters. Centralising the highlight primitive in one
+    file means there is one amber token, one regex, and one set of
+    helper rules across all three surfaces, removing the
+    "fef3c7 vs fde68a" inconsistency we noticed when comparing
+    DI-LEO-AI-223's dialog with the drawer.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          `EncounterResultsTable` MUST render encounters using
+          `ReviewListCard` from `@leo/design-system` (no MUI
+          `<Table>` rows). Each row MUST set `tone` to `positive`
+          when `coded_count >= 1`, `danger` when the batch status
+          for the row is `failed`, `warning` when the row has
+          matched the search and `coded_count === 0`, `neutral`
+          otherwise.
+      - type: "functional"
+        spec: >
+          Each row's `chips:` slot MUST contain a match-type chip,
+          a `{n} coded` chip, the batch-run status chip when
+          present, and up to four `match_rationale` chips
+          (outlined, font size <=0.7rem, height <=22).
+      - type: "functional"
+        spec: >
+          Each row's `title:` MUST be the encounter text rendered
+          through the shared `<HighlightedText>` primitive with
+          terms collected from the reviewer's search query and the
+          row's `match_rationale`. Each row's `meta:` MUST contain
+          the encounter date (en-GB short format), the patient id
+          (monospace), and the existing match-strength bar
+          (preserved from the previous table column).
+      - type: "functional"
+        spec: >
+          Each row's `actions:` slot MUST contain the encounter
+          selection checkbox so the existing batch-bar workflow
+          continues to work. Clicking the row title MUST open the
+          preview dialog (existing behaviour); clicking the
+          checkbox MUST NOT open the preview.
+      - type: "functional"
+        spec: >
+          The `EncounterSearchPanel` query input MUST expose a
+          clear (X) `endAdornment` IconButton when the query is
+          non-empty. Clicking the button MUST call
+          `onQueryChange("")`.
+      - type: "functional"
+        spec: >
+          When the active query is non-empty AND no rows match,
+          the encounters surface MUST render the copy
+          `Nothing matches "<q>". Try different words.` (matching
+          the dry-run wording) with
+          `data-testid="encounter-empty-query"`.
+      - type: "functional"
+        spec: >
+          A new module
+          `services/ui/src/components/mission-control/HighlightedText.tsx`
+          MUST export `HighlightedText` and `collectHighlightTerms`.
+          `EncounterPreviewDialog`, `EncounterCard`, and the new
+          `EncounterResultsTable` MUST import the shared
+          primitive; the inline highlight helpers in
+          `EncounterPreviewDialog.tsx` MUST be removed and the
+          `highlightSearchMatches` helper in
+          `encounterTextUtils.tsx` MUST delegate to the shared
+          primitive (or be removed if no longer used).
+      - type: "functional"
+        spec: >
+          The shared primitive MUST render hits as
+          `<Box component="mark" data-testid="encounter-highlight">`
+          using `bgcolor: "#fde68a"`. The constant
+          `MIN_HIGHLIGHT_LEN` MUST equal 3. `collectHighlightTerms`
+          MUST sort terms longest-first.
+    constraints:
+      - type: "performance"
+        spec: >
+          Row rendering MUST stay O(N) in the number of visible
+          encounters. The shared primitive MUST NOT recompile its
+          regex per render -- callers MUST memoise the term list
+          (e.g. via `useMemo`).
+      - type: "safety"
+        spec: >
+          The visual refactor MUST preserve all existing safety
+          flows: live-threshold drift banner, batch-bar selection,
+          pagination, score floor, near-duplicate suppression, and
+          the dual-save preview dialog (DI-LEO-AI-223) MUST
+          continue to work unchanged.
+    dependencies:
+      - "DI-LEO-AI-099"
+      - "DI-LEO-AI-223"
+    downstream_impacts:
+      - "EncounterResultsTable rebuilt around ReviewListCard"
+      - "EncounterSearchPanel ships clear button"
+      - "EncounterMissionControl forwards query for empty-state copy"
+      - "EncounterPreviewDialog imports shared HighlightedText"
+      - "EncounterCard / encounterTextUtils delegate to shared HighlightedText"
+    technical_details:
+      language: "TypeScript"
+      framework: "React 18 + Next.js 16 + @leo/design-system"
+      file_structure:
+        - "services/ui/src/components/mission-control/HighlightedText.tsx"
+        - "services/ui/src/components/mission-control/EncounterResultsTable.tsx"
+        - "services/ui/src/components/mission-control/EncounterSearchPanel.tsx"
+        - "services/ui/src/components/mission-control/EncounterMissionControl.tsx"
+        - "services/ui/src/components/mission-control/EncounterPreviewDialog.tsx"
+        - "services/ui/src/components/mission-control/EncounterCard.tsx"
+        - "services/ui/src/components/mission-control/encounterTextUtils.tsx"
+      estimated_loc: 350
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-512 verifies the new row template (ReviewListCard
+      tone + chips + actions + meta), the shared
+      <HighlightedText> primitive and its three consumers, the
+      search-box clear button, and the query-echoing empty state.
+    test_protocol: "VT-LEO-AI-512"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-063"
+    - "R-LEO-AI-206"
+  tags:
+    - "ui"
+    - "encounters"
+    - "search"
+    - "design-system"
+    - "consistency"

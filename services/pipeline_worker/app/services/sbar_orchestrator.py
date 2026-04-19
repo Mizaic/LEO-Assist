@@ -38,6 +38,14 @@ from libs.sbar.assessment_formatter import (
     evaluate_codes_against_guidelines,
     format_assessment,
 )
+from libs.sbar.error_messages import (
+    FriendlyError,
+    FriendlyNotice,
+    background_record_split_notice,
+    background_split_notice,
+    background_trimmed_notice,
+    translate_error,
+)
 from libs.sbar.events import (
     SBARRequestPayload,
     SituationArtifactType,
@@ -85,6 +93,8 @@ class SBARResult:
     rules: list[dict[str, Any]]
     pathway_hints: dict[str, Any]
     errors: list[str]
+    errors_detail: list[FriendlyError]
+    notices: list[FriendlyNotice]
     duration_s: float
 
 
@@ -127,6 +137,8 @@ class SBAROrchestrator:
         assessment_id = payload.assessment_id or uuid.uuid4().hex
         started = time.time()
         errors: list[str] = []
+        errors_detail: list[FriendlyError] = []
+        notices: list[FriendlyNotice] = []
 
         self._emit(
             run_id,
@@ -168,10 +180,17 @@ class SBAROrchestrator:
                 )
             except Exception as exc:
                 logger.exception("SBAR situation call failed")
-                sit_result = {"markdown": "", "raw": {}, "error": str(exc)}
+                friendly = translate_error("situation", str(exc))
+                sit_result = {
+                    "markdown": "",
+                    "raw": {},
+                    "error": friendly["message"],
+                    "error_code": friendly["code"],
+                }
             situation_md = sit_result.get("markdown") or ""
-            if sit_result.get("error"):
-                errors.append(f"situation:{sit_result['error']}")
+            sit_friendly = self._record_stage_error(
+                "situation", sit_result, errors, errors_detail
+            )
             session.run(
                 SET_SITUATION,
                 assessment_id=assessment_id,
@@ -184,6 +203,7 @@ class SBAROrchestrator:
                     "stage": "situation",
                     "assessment_id": assessment_id,
                     "preview": _preview(situation_md),
+                    "error": sit_friendly,
                 },
             )
 
@@ -200,19 +220,41 @@ class SBAROrchestrator:
                     "code_count": len(aggregated),
                 },
             )
+            def _on_part_progress(event: dict[str, Any]) -> None:
+                self._emit(
+                    run_id,
+                    "sbar_stage_progress",
+                    {
+                        "stage": "background",
+                        "assessment_id": assessment_id,
+                        **event,
+                    },
+                )
+
             try:
                 bg_result = await self._call_background(
                     resolved_sources,
                     aggregated,
                     referring_specialty=_first_specialty(resolved_situation),
                     patient_id=payload.situation.patient_id,
+                    progress_cb=_on_part_progress,
                 )
             except Exception as exc:
                 logger.exception("SBAR background call failed")
-                bg_result = {"markdown": "", "raw": {}, "error": str(exc)}
+                friendly = translate_error("background", str(exc))
+                bg_result = {
+                    "markdown": "",
+                    "raw": {},
+                    "error": friendly["message"],
+                    "error_code": friendly["code"],
+                    "parts": [],
+                }
             background_md = bg_result.get("markdown") or ""
-            if bg_result.get("error"):
-                errors.append(f"background:{bg_result['error']}")
+            bg_friendly = self._record_stage_error(
+                "background", bg_result, errors, errors_detail
+            )
+            bg_notices = self._record_background_notices(bg_result, notices)
+            self._record_background_part_errors(bg_result, errors, errors_detail)
             session.run(
                 SET_BACKGROUND,
                 assessment_id=assessment_id,
@@ -225,6 +267,10 @@ class SBAROrchestrator:
                     "stage": "background",
                     "assessment_id": assessment_id,
                     "preview": _preview(background_md),
+                    "error": bg_friendly,
+                    "notice": bg_notices[0] if bg_notices else None,
+                    "notices": bg_notices,
+                    "parts": list(bg_result.get("parts") or []),
                 },
             )
 
@@ -250,7 +296,9 @@ class SBAROrchestrator:
                 )
             except Exception as exc:
                 logger.exception("SBAR assessment formatter failed")
-                errors.append(f"assessment:{exc}")
+                friendly = translate_error("assessment", str(exc))
+                errors.append(f"assessment:{friendly['message']}")
+                errors_detail.append(friendly)
                 narrative = AssessmentNarrative(
                     markdown="_Assessment unavailable due to evaluator error._",
                     rules=[],
@@ -310,16 +358,19 @@ class SBAROrchestrator:
                 )
             except Exception as exc:
                 logger.exception("SBAR recommendation call failed")
+                friendly = translate_error("recommendation", str(exc))
                 rec_result = {
                     "markdown": "",
                     "actions": [],
                     "raw": {},
-                    "error": str(exc),
+                    "error": friendly["message"],
+                    "error_code": friendly["code"],
                 }
             recommendation_md = rec_result.get("markdown") or ""
             actions = list(rec_result.get("actions") or [])
-            if rec_result.get("error"):
-                errors.append(f"recommendation:{rec_result['error']}")
+            rec_friendly = self._record_stage_error(
+                "recommendation", rec_result, errors, errors_detail
+            )
             session.run(
                 SET_RECOMMENDATION,
                 assessment_id=assessment_id,
@@ -334,6 +385,7 @@ class SBAROrchestrator:
                     "assessment_id": assessment_id,
                     "action_count": len(actions),
                     "preview": _preview(recommendation_md),
+                    "error": rec_friendly,
                 },
             )
 
@@ -380,6 +432,8 @@ class SBAROrchestrator:
                 "status": status,
                 "duration_s": round(duration, 3),
                 "error_count": len(errors),
+                "errors": list(errors_detail),
+                "notices": list(notices),
             },
         )
 
@@ -395,10 +449,112 @@ class SBAROrchestrator:
             rules=narrative.rules,
             pathway_hints=hints,
             errors=errors,
+            errors_detail=list(errors_detail),
+            notices=list(notices),
             duration_s=duration,
         )
 
     # -- internals -----------------------------------------------------
+
+    @staticmethod
+    def _record_stage_error(
+        stage: str,
+        result: dict[str, Any],
+        errors: list[str],
+        errors_detail: list[FriendlyError],
+    ) -> FriendlyError | None:
+        """Append a stage error (if any) to both legacy and detail lists.
+
+        Returns the FriendlyError so callers can attach it to the
+        matching ``sbar_stage_completed`` SSE event, or ``None`` when
+        the stage succeeded.
+        """
+        message = result.get("error")
+        if not message:
+            return None
+        code = result.get("error_code") or "unknown"
+        friendly: FriendlyError = {
+            "stage": stage,
+            "code": str(code),
+            "message": str(message),
+        }
+        errors.append(f"{stage}:{message}")
+        errors_detail.append(friendly)
+        return friendly
+
+    @staticmethod
+    def _record_background_notices(
+        result: dict[str, Any],
+        notices: list[FriendlyNotice],
+    ) -> list[FriendlyNotice]:
+        """Convert background notices on the result into FriendlyNotices.
+
+        The new partition + map + reduce flow can produce up to three
+        kinds of notice in a single Background run:
+
+        - ``background_split`` -- "We summarised in N parts."
+        - ``background_record_split`` -- "One record was very long
+          so we split it into pieces."
+        - ``background_trimmed`` -- legacy shrinker notice (still
+          surfaced when a single record is so long that even the
+          intra-record split path had to cap it).
+
+        ``partition_report`` is the structured source for the first
+        two; ``result['notice']`` is the joined plain-English text
+        that the prompt-call layer also returns. We prefer the
+        structured form when present so the wire payload carries
+        machine-readable codes.
+        """
+        report = result.get("partition_report")
+        out: list[FriendlyNotice] = []
+        if report is not None:
+            if getattr(report, "notice", None):
+                out.append(background_split_notice(str(report.notice)))
+            if getattr(report, "record_split_notice", None):
+                out.append(
+                    background_record_split_notice(
+                        str(report.record_split_notice)
+                    )
+                )
+        if not out:
+            notice_text = result.get("notice")
+            if notice_text:
+                out.append(background_trimmed_notice(str(notice_text)))
+        for notice in out:
+            notices.append(notice)
+        return out
+
+    @staticmethod
+    def _record_background_part_errors(
+        result: dict[str, Any],
+        errors: list[str],
+        errors_detail: list[FriendlyError],
+    ) -> None:
+        """Surface each failed Background part as its own structured error.
+
+        The aggregated ``error`` field on the result already triggers
+        ``_record_stage_error`` to add a single "background" entry,
+        but the reviewer also needs to know WHICH parts failed so
+        they can act ("part 3 of 5 failed -- pick fewer records, or
+        re-run"). We label the per-part errors with a stage like
+        ``background:part 3 of 5`` so the UI can group them under
+        the Background section without polluting the simple
+        per-stage error count.
+        """
+        parts = result.get("parts") or []
+        for part in parts:
+            code = part.get("error_code")
+            if not code:
+                continue
+            stage_label = f"background:part {part.get('index')} of {part.get('total')}"
+            message = part.get("error_message") or ""
+            friendly: FriendlyError = {
+                "stage": stage_label,
+                "code": str(code),
+                "message": str(message),
+            }
+            errors.append(f"{stage_label}:{message}")
+            errors_detail.append(friendly)
 
     def _client_or_default(self):
         if self._client is not None:

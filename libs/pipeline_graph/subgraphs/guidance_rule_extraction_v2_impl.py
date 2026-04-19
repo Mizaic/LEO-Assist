@@ -1304,6 +1304,7 @@ def _ask_big_for_semantic_expansions(
         messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
         json_mode=True,
         max_tokens=500,
+        agent_task="guidance_rule_arbitrator",
     )
     parsed = _parse_json_object(
         cap_llm_response(resp.text or "", max_chars=2000), max_chars=2000
@@ -1351,6 +1352,7 @@ def _run_small_to_big_expansion_tool_loop(
             tool_config=_SEMANTIC_EXPANSION_TOOL_CONFIG,
             json_mode=True,
             max_tokens=400,
+            agent_task="guidance_semantic_expansion",
         )
         if not resp.tool_uses:
             parsed = _parse_json_object(resp.text or "", max_chars=1500)
@@ -2688,6 +2690,7 @@ def _run_snomed_resolver_tool_loop(
             messages=messages,
             tool_config=_GUIDANCE_SNOMED_TOOL_CONFIG,
             json_mode=True,
+            agent_task="guidance_snomed_resolver",
         )
 
         if resp.tool_uses:
@@ -3077,6 +3080,7 @@ def _draft_rule_small(
         messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
         json_mode=True,
         max_tokens=700,
+        agent_task="guidance_rule_drafter",
     )
     parsed = _parse_json_object(resp.text or "", max_chars=4000)
     return (
@@ -3111,6 +3115,7 @@ def _review_rule_big(
         messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}],
         json_mode=True,
         max_tokens=700,
+        agent_task="guidance_rule_reviewer",
     )
     parsed = _parse_json_object(resp.text or "", max_chars=4000)
     if isinstance(parsed, dict) and str(parsed.get("status") or "") in {
