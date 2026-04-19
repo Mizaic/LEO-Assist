@@ -1,6 +1,6 @@
 - id: "VT-LEO-AI-518"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-519"]
@@ -79,4 +79,18 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - executed_on: "2026-04-18"
+      executed_by: "automated_pytest"
+      result: "pass"
+      cases_passed: 2
+      cases_failed: 0
+      command: "pytest tests/llm_client/ -v"
+      notes: >
+        2/2 cases passed. TC-001 llm_usage_class_is_identical_across_import_paths
+        (libs.llm_usage.LLMUsage is services.api.app.services.llm_usage.LLMUsage,
+        same for LLMCostConfig). TC-002 every_converse_call_includes_agent_task
+        scans all production .py files via ast.NodeVisitor and asserts every
+        Call(attr='converse') has agent_task=... or **kwargs splat. After
+        backfilling services/analysis_worker/app/episode_engine/agents/_common.py
+        the AST scan covers 100% of production sites with zero failures.

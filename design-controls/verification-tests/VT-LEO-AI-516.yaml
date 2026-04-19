@@ -1,6 +1,6 @@
 - id: "VT-LEO-AI-516"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-517"]
@@ -107,4 +107,16 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - executed_on: "2026-04-18"
+      executed_by: "automated_pytest"
+      result: "pass"
+      cases_passed: 4
+      cases_failed: 0
+      command: "pytest tests/episode_engine/test_tracing.py -v"
+      notes: >
+        4/4 cases passed. TC-001 audit_event_written_with_token_totals,
+        TC-002 patient_link_created_when_patient_exists, TC-003
+        status_reflects_partial_failure, TC-004 write_failure_does_not_raise.
+        Combined with the rest of tests/episode_engine/ the full suite
+        is 77 passed, 1 skipped.

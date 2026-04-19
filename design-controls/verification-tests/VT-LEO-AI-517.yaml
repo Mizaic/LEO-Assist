@@ -1,6 +1,6 @@
 - id: "VT-LEO-AI-517"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs: ["DI-LEO-AI-518"]
@@ -95,4 +95,20 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - executed_on: "2026-04-18"
+      executed_by: "automated_pytest"
+      result: "pass"
+      cases_passed: 5
+      cases_failed: 0
+      command: >
+        pytest services/api/tests/test_guidance_rules_dry_run_audit.py
+        services/api/tests/test_guidance_rule_generator.py::TestVT517UnifiedAuditEvent
+        -v
+      notes: >
+        5/5 cases passed. Generator: TC-001 unified PipelineRun type +
+        guidance_rule_extraction subtype, TC-003a
+        audit_event_failure_does_not_raise. Dry-run endpoint: TC-002
+        dry_run_endpoint_writes_audit_event with correct token totals
+        and would_write=true, TC-002b would_write=false on
+        terminology_api_unavailable, TC-003 audit_event_failure_does_not_raise.
