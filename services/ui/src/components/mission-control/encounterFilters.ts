@@ -1,4 +1,5 @@
 import { inMsRange } from "./encounterTextUtils";
+import { expandSearchTerms, hasAnyExpandedHit } from "./encounterRelevance";
 
 // Encounter list filtering helpers used by the Mission Control
 // patient detail Encounter text tab. The flat encounter list below
@@ -7,8 +8,14 @@ import { inMsRange } from "./encounterTextUtils";
 // since DI-LEO-AI-213 replaced the scope chips with the histogram
 // overlay.
 //
-// Design Controls: UN-LEO-AI-077, DI-LEO-AI-213, DO-LEO-AI-210,
-// R-LEO-AI-174, VT-LEO-AI-205.
+// As of DI-LEO-AI-520 the free-text search delegates to
+// `expandSearchTerms` so the drawer matches the same typo and
+// synonym vocabulary as the host /care/encounters search (a query
+// for "lump" also surfaces "mass", "swelling", "nodule", etc).
+//
+// Design Controls: UN-LEO-AI-077, UN-LEO-AI-096, DI-LEO-AI-213,
+// DI-LEO-AI-520, DO-LEO-AI-210, R-LEO-AI-174, VT-LEO-AI-205,
+// VT-LEO-AI-519.
 
 export interface FilterableEncounter {
   encounter_id: string;
@@ -27,10 +34,12 @@ export function applyCommonFilters<E extends FilterableEncounter>(
   items: E[],
   args: CommonFilterArgs
 ): E[] {
-  const query = args.search.trim().toLowerCase();
+  const expandedTerms = expandSearchTerms(args.search);
   return items.filter((e) => {
     if (args.codedOnly && (e.coded_count ?? 0) <= 0) return false;
-    if (query && !(e.text ?? "").toLowerCase().includes(query)) return false;
+    if (expandedTerms.length && !hasAnyExpandedHit(e.text, expandedTerms)) {
+      return false;
+    }
     if (args.timelineRange) {
       if (!inMsRange(e.date, args.timelineRange.fromMs, args.timelineRange.toMs)) {
         return false;

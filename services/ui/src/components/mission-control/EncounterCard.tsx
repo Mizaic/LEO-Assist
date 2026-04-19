@@ -15,6 +15,10 @@ import {
   collectHighlightTerms,
 } from "./HighlightedText";
 import {
+  computeMatchRationale,
+  expandSearchTerms,
+} from "./encounterRelevance";
+import {
   GoldLabelEditorDialog,
   createGoldLabelFromEncounter,
   useDualSaveAdapter,
@@ -69,10 +73,21 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
       onCodingChanged,
     } = props;
     const encounterKey = String(enc.encounter_id);
-    const highlightTerms = useMemo(
-      () => collectHighlightTerms(search, undefined),
-      [search],
+    // Expand the query into the deterministic synonym set shared
+    // with /care/encounters (DI-LEO-AI-520) so highlights, the
+    // rationale chip row, and applyCommonFilters all read from the
+    // same vocabulary.
+    const expandedTerms = useMemo(() => expandSearchTerms(search), [search]);
+    const matchRationale = useMemo(
+      () => computeMatchRationale(enc.text, expandedTerms),
+      [enc.text, expandedTerms],
     );
+    const highlightTerms = useMemo(
+      () => collectHighlightTerms(search, matchRationale.hitTerms),
+      [search, matchRationale.hitTerms],
+    );
+    const showRationaleChips =
+      expandedTerms.length > 0 && matchRationale.hitTerms.length > 0;
 
     // Inline shared editor state (DI-LEO-AI-220/221) -- replaces the
     // legacy /care/patients/.../encounters/.../ deep-link page so the
@@ -199,6 +214,28 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
                 fontWeight: 600,
               }}
             />
+          )}
+          {showRationaleChips && (
+            <Box
+              data-testid="encounter-card-match-rationale"
+              sx={{
+                display: "flex",
+                gap: 0.5,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              {matchRationale.hitTerms.slice(0, 4).map((term, idx) => (
+                <Chip
+                  key={`${encounterKey}-mr-${idx}-${term}`}
+                  size="small"
+                  label={term}
+                  variant="outlined"
+                  data-testid="encounter-card-match-rationale-chip"
+                  sx={{ height: 20, fontSize: "0.65rem" }}
+                />
+              ))}
+            </Box>
           )}
 
           <Box

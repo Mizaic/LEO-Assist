@@ -54,10 +54,12 @@
     - "A single shared <HighlightedText> primitive (with collectHighlightTerms helper) is consumed by EncounterPreviewDialog, EncounterCard (drawer), and the new encounter row title -- all three surfaces use the same amber token (#fde68a) and the same minimum-token-length / longest-first matching rules"
     - "No regression in selection (checkbox), pagination, batch actions, or live-threshold drift indicator on /care/encounters"
     - "/care/encounters renders a sticky histogram + brush timeline above the result list (the same EncounterTimelineScrubber primitive as the /care/patients drawer), so reviewers can see the temporal distribution of search hits and brush a date window to filter the table; clicking a histogram bar opens the preview dialog for that encounter"
+    - "The /care/patients drawer's free-text encounter search uses the same deterministic typo correction and synonym vocabulary as the /care/encounters host search (a query for 'lump' also surfaces encounters mentioning 'mass', 'swelling', or 'nodule'); when at least one expanded synonym is found in an encounter, that encounter renders a 'why this matched' chip row using the same outlined chip token and 4-term cap as the host row"
 
   design_inputs:
     - "DI-LEO-AI-514"
     - "DI-LEO-AI-516"
+    - "DI-LEO-AI-520"
 
   metadata:
     identified_by: "Rob Smith - clinical reviewer feedback comparing /care/encounters, /care/patients drawer, and /admin/training Candidates tabs (April 2026)"
