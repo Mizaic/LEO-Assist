@@ -11,7 +11,6 @@ See DI-LEO-AI-186, DI-LEO-AI-188, DI-LEO-AI-189.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import time
@@ -26,10 +25,14 @@ from libs.cypher.sbar_assessment_queries import (
     LINK_ASSESSMENT_TO_PROCEDURE_REQUEST,
     LINK_ASSESSMENT_TO_REFERRAL_REQUEST,
     SET_ASSESSMENT_NARRATIVE,
+    SET_ASSESSMENT_USAGE,
     SET_BACKGROUND,
     SET_RECOMMENDATION,
     SET_SITUATION,
+    WRITE_SBAR_AUDIT_EVENT,
 )
+from libs.llm_client.usage_recorder import LLMUsageRecorder
+from libs.llm_usage import LLMCostConfig
 from libs.sbar.assessment_formatter import (
     AssessmentNarrative,
     evaluate_codes_against_guidelines,
@@ -125,24 +128,35 @@ class SBAROrchestrator:
         started = time.time()
         errors: list[str] = []
 
-        self._emit(run_id, "sbar_started", {
-            "assessment_id": assessment_id,
-            "patient_id": payload.situation.patient_id,
-        })
+        self._emit(
+            run_id,
+            "sbar_started",
+            {
+                "assessment_id": assessment_id,
+                "patient_id": payload.situation.patient_id,
+            },
+        )
 
         client = self._client_or_default()
 
-        # Persist a draft Assessment up-front so the UI can poll for it.
-        with client.session() as session:
+        # DI-LEO-AI-506: every LLM call inside this block flows through
+        # invoke_llm_json -> the active recorder, so we accumulate token
+        # usage and latency for Situation, Background, and Recommendation
+        # in one place.
+        with LLMUsageRecorder() as usage_recorder, client.session() as session:
             self._create_draft(session, payload, assessment_id)
             self._link_artefacts(session, payload, assessment_id)
 
             # -- Stage 1: Situation --------------------------------------
             resolved_situation = resolve_situation(session, payload.situation)
-            self._emit(run_id, "sbar_stage_started", {
-                "stage": "situation",
-                "assessment_id": assessment_id,
-            })
+            self._emit(
+                run_id,
+                "sbar_stage_started",
+                {
+                    "stage": "situation",
+                    "assessment_id": assessment_id,
+                },
+            )
             try:
                 sit_result = await self._call_situation(
                     resolved_situation,
@@ -163,23 +177,29 @@ class SBAROrchestrator:
                 assessment_id=assessment_id,
                 situation=situation_md,
             )
-            self._emit(run_id, "sbar_stage_completed", {
-                "stage": "situation",
-                "assessment_id": assessment_id,
-                "preview": _preview(situation_md),
-            })
+            self._emit(
+                run_id,
+                "sbar_stage_completed",
+                {
+                    "stage": "situation",
+                    "assessment_id": assessment_id,
+                    "preview": _preview(situation_md),
+                },
+            )
 
             # -- Stage 2: Background -------------------------------------
-            resolved_sources = resolve_background_sources(
-                session, payload.background
-            )
+            resolved_sources = resolve_background_sources(session, payload.background)
             aggregated = aggregate_codes(resolved_sources)
-            self._emit(run_id, "sbar_stage_started", {
-                "stage": "background",
-                "assessment_id": assessment_id,
-                "source_count": len(resolved_sources),
-                "code_count": len(aggregated),
-            })
+            self._emit(
+                run_id,
+                "sbar_stage_started",
+                {
+                    "stage": "background",
+                    "assessment_id": assessment_id,
+                    "source_count": len(resolved_sources),
+                    "code_count": len(aggregated),
+                },
+            )
             try:
                 bg_result = await self._call_background(
                     resolved_sources,
@@ -198,17 +218,25 @@ class SBAROrchestrator:
                 assessment_id=assessment_id,
                 background=background_md,
             )
-            self._emit(run_id, "sbar_stage_completed", {
-                "stage": "background",
-                "assessment_id": assessment_id,
-                "preview": _preview(background_md),
-            })
+            self._emit(
+                run_id,
+                "sbar_stage_completed",
+                {
+                    "stage": "background",
+                    "assessment_id": assessment_id,
+                    "preview": _preview(background_md),
+                },
+            )
 
             # -- Stage 3: Assessment (deterministic) ----------------------
-            self._emit(run_id, "sbar_stage_started", {
-                "stage": "assessment",
-                "assessment_id": assessment_id,
-            })
+            self._emit(
+                run_id,
+                "sbar_stage_started",
+                {
+                    "stage": "assessment",
+                    "assessment_id": assessment_id,
+                },
+            )
             patient_codes = sorted({c.concept_id for c in aggregated})
             try:
                 eval_payload = self._evaluate(
@@ -228,10 +256,12 @@ class SBAROrchestrator:
                     rules=[],
                     codes=patient_codes,
                     pathway_hints={
-                        "stt": None, "stt_evidence": None,
+                        "stt": None,
+                        "stt_evidence": None,
                         "alternative_pathway": None,
                         "alternative_pathway_evidence": None,
-                        "rtr": "no", "rtr_evidence": str(exc),
+                        "rtr": "no",
+                        "rtr_evidence": str(exc),
                     },
                 )
             session.run(
@@ -241,23 +271,33 @@ class SBAROrchestrator:
                 assessment_codes=narrative.codes,
                 assessment_rules=json.dumps(narrative.rules),
             )
-            self._emit(run_id, "sbar_stage_completed", {
-                "stage": "assessment",
-                "assessment_id": assessment_id,
-                "rule_count": len(narrative.rules),
-                "preview": _preview(narrative.markdown),
-            })
+            self._emit(
+                run_id,
+                "sbar_stage_completed",
+                {
+                    "stage": "assessment",
+                    "assessment_id": assessment_id,
+                    "rule_count": len(narrative.rules),
+                    "preview": _preview(narrative.markdown),
+                },
+            )
 
             # -- Stage 4: Recommendation ---------------------------------
-            self._emit(run_id, "sbar_stage_started", {
-                "stage": "recommendation",
-                "assessment_id": assessment_id,
-            })
-            guideline_titles = sorted({
-                (r.get("guideline_title") or "")
-                for r in narrative.rules
-                if r.get("guideline_title")
-            })
+            self._emit(
+                run_id,
+                "sbar_stage_started",
+                {
+                    "stage": "recommendation",
+                    "assessment_id": assessment_id,
+                },
+            )
+            guideline_titles = sorted(
+                {
+                    (r.get("guideline_title") or "")
+                    for r in narrative.rules
+                    if r.get("guideline_title")
+                }
+            )
             try:
                 rec_result = await self._call_recommendation(
                     situation_md=situation_md,
@@ -271,7 +311,10 @@ class SBAROrchestrator:
             except Exception as exc:
                 logger.exception("SBAR recommendation call failed")
                 rec_result = {
-                    "markdown": "", "actions": [], "raw": {}, "error": str(exc),
+                    "markdown": "",
+                    "actions": [],
+                    "raw": {},
+                    "error": str(exc),
                 }
             recommendation_md = rec_result.get("markdown") or ""
             actions = list(rec_result.get("actions") or [])
@@ -283,12 +326,16 @@ class SBAROrchestrator:
                 recommendation=recommendation_md,
                 recommendation_actions=json.dumps(actions),
             )
-            self._emit(run_id, "sbar_stage_completed", {
-                "stage": "recommendation",
-                "assessment_id": assessment_id,
-                "action_count": len(actions),
-                "preview": _preview(recommendation_md),
-            })
+            self._emit(
+                run_id,
+                "sbar_stage_completed",
+                {
+                    "stage": "recommendation",
+                    "assessment_id": assessment_id,
+                    "action_count": len(actions),
+                    "preview": _preview(recommendation_md),
+                },
+            )
 
             # -- Finalise ------------------------------------------------
             content = _compose_markdown(
@@ -305,20 +352,36 @@ class SBAROrchestrator:
                 stt=hints.get("stt"),
                 stt_evidence=hints.get("stt_evidence"),
                 alternative_pathway=hints.get("alternative_pathway"),
-                alternative_pathway_evidence=hints.get(
-                    "alternative_pathway_evidence"
-                ),
+                alternative_pathway_evidence=hints.get("alternative_pathway_evidence"),
                 rtr=hints.get("rtr"),
                 rtr_evidence=hints.get("rtr_evidence"),
             )
 
-        duration = time.time() - started
-        self._emit(run_id, "sbar_completed", {
-            "assessment_id": assessment_id,
-            "status": status,
-            "duration_s": round(duration, 3),
-            "error_count": len(errors),
-        })
+            duration = time.time() - started
+
+            # DI-LEO-AI-506: best-effort cost telemetry. Failures are
+            # logged at WARNING and do not fail the run.
+            self._record_telemetry(
+                session=session,
+                payload=payload,
+                assessment_id=assessment_id,
+                run_id=run_id,
+                status=status,
+                errors=errors,
+                duration_s=duration,
+                recorder=usage_recorder,
+            )
+
+        self._emit(
+            run_id,
+            "sbar_completed",
+            {
+                "assessment_id": assessment_id,
+                "status": status,
+                "duration_s": round(duration, 3),
+                "error_count": len(errors),
+            },
+        )
 
         return SBARResult(
             assessment_id=assessment_id,
@@ -391,7 +454,9 @@ class SBAROrchestrator:
             except Exception:
                 logger.debug(
                     "link artefact failed for %s/%s",
-                    ref.type.value, ref.id, exc_info=True,
+                    ref.type.value,
+                    ref.id,
+                    exc_info=True,
                 )
         if payload.encounter_id:
             try:
@@ -404,6 +469,96 @@ class SBAROrchestrator:
                 logger.debug(
                     "link encounter %s failed", payload.encounter_id, exc_info=True
                 )
+
+    # -- DI-LEO-AI-506 cost telemetry ----------------------------------
+
+    def _record_telemetry(
+        self,
+        *,
+        session: Any,
+        payload: SBARRequestPayload,
+        assessment_id: str,
+        run_id: str,
+        status: str,
+        errors: list[str],
+        duration_s: float,
+        recorder: LLMUsageRecorder,
+    ) -> None:
+        """Persist LLM usage onto :Assessment + a PipelineRun :AuditEvent.
+
+        Best-effort: any failure here is logged at WARNING and never
+        rolls back the run. The wire format mirrors
+        ``libs/workflow/engine.py::_write_audit_event`` so SBAR rows
+        appear in the existing dashboard LLMSpendPanel and the
+        per-tenant billing aggregates without UI changes.
+        """
+        try:
+            cfg = LLMCostConfig.from_env()
+        except Exception:
+            logger.warning("LLMCostConfig.from_env failed", exc_info=True)
+            cfg = None
+
+        try:
+            usage_dict = recorder.to_audit_dict(cfg)
+            usage_dict["assessment_id"] = assessment_id
+            usage_dict["run_id"] = run_id
+            usage_dict["calls"] = [c.to_dict() for c in recorder.calls]
+            cost_usd = float(usage_dict.get("cost_usd") or 0.0)
+            session.run(
+                SET_ASSESSMENT_USAGE,
+                assessment_id=assessment_id,
+                llm_usage_json=json.dumps(usage_dict, default=str),
+                llm_input_tokens=int(usage_dict.get("input_tokens") or 0),
+                llm_output_tokens=int(usage_dict.get("output_tokens") or 0),
+                llm_cached_tokens=int(usage_dict.get("cached_input_tokens") or 0),
+                llm_total_tokens=int(usage_dict.get("total_tokens") or 0),
+                llm_calls=int(usage_dict.get("llm_calls") or 0),
+                llm_cost_usd=round(cost_usd, 6),
+                llm_latency_ms=int(usage_dict.get("total_latency_ms") or 0),
+                llm_model_id=str(usage_dict.get("model_name") or ""),
+                llm_model_provider=str(usage_dict.get("model_provider") or ""),
+            )
+        except Exception:
+            logger.warning(
+                "SBAR usage telemetry: failed to set Assessment.llm_usage_json"
+                " for assessment %s",
+                assessment_id,
+                exc_info=True,
+            )
+
+        try:
+            first_error = errors[0][:400] if errors else None
+            session.run(
+                WRITE_SBAR_AUDIT_EVENT,
+                id=f"audit-{run_id}",
+                plan_definition_id="sbar",
+                patient_id=payload.situation.patient_id,
+                encounter_id=payload.encounter_id or "",
+                run_id=run_id,
+                event_type="sbar_requested",
+                status=status,
+                step_count=int(recorder.usage.llm_calls),
+                total_duration_ms=int(duration_s * 1000),
+                entity_count=0,
+                error_count=len(errors),
+                first_error=first_error,
+                llm_input_tokens=int(recorder.usage.input_tokens),
+                llm_output_tokens=int(recorder.usage.output_tokens),
+                llm_cached_tokens=int(recorder.usage.cached_input_tokens),
+                llm_cost_usd=round(recorder.cost_usd(cfg), 6),
+                extraction_provider=recorder.primary_provider or "bedrock",
+                extraction_model_tier="big",
+                extraction_prompt_name="sbar",
+                extraction_prompt_version=2,
+                assessment_id=assessment_id,
+            )
+        except Exception:
+            logger.warning(
+                "SBAR usage telemetry: failed to write PipelineRun AuditEvent"
+                " for run %s",
+                run_id,
+                exc_info=True,
+            )
 
 
 # ---------------------------------------------------------------------------

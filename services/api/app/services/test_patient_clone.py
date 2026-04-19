@@ -1,42 +1,46 @@
-"""Copy a real patient as a de-identified :TestPatient.
+"""Copy a real patient as a de-identified :TestPatient (cross-graph).
 
 Implements DI-59824215 (Atlas) -- the "copy a real patient and
 de-identify" action that powers the Knowledge > Test Patients page.
 
-What this module does, in plain English:
+Cross-graph design (R-PHI-XGRAPH mitigation)
+--------------------------------------------
+Real patients live in the patient graph (PHI/PII boundary). Test
+patients are configuration / regression data and live in the knowledge
+graph alongside SNOMED concepts and rules. This service is the ONLY
+place in the codebase that holds both Neo4j drivers, and it always
+flows in one direction:
 
+    PatientGraphClient.READ_SOURCE_*  ->  Python de-identification
+        -> KnowledgeGraphClient.WRITE_TEST_*
+
+No Cypher in this module ever spans graphs. Free text from documents
+and encounters is run through `services.test_patient_redactor` before
+it leaves Python on its way to the knowledge graph -- this is the
+mitigation for residual PHI in narrative text.
+
+What this module does, in plain English
+---------------------------------------
 1. Reads a real :Patient row from the patient graph.
-2. Creates a new :TestPatient root node next to it. The new node
-   carries:
-       - a brand new id (always prefixed "test_")
-       - an `aspect` tag (one of nlp / episodes / guidelines /
-         summarisation) so the library can filter by what the patient
-         is for
-       - `is_test = true` so any future label-agnostic query can also
-         filter it out
-       - a `source_patient_id` pointer back to the source row, kept
-         only so the QA lead can re-clone after the source changes
-       - a display name that ALWAYS starts with "test_"
-3. Mirrors the source subgraph at the level needed for replay across
-   every aspect:
-       - every (:Patient)-[:HAS_ENCOUNTER]->(:Encounter) is cloned
-         under the new root with a fresh id and `is_test = true`
-       - every (:Patient)-[:HAS_DOCUMENT]->(:Document) is cloned the
-         same way
-       - direct concept relationships from the patient root
-         (HAS_FINDING / HAS_DISORDER / HAS_OBSERVABLE / HAS_PROCEDURE
-         / HAS_SITUATION / HAS_CONCEPT) are re-pointed at the same
-         SNOMED concept nodes (concepts are reference data, not PII)
-4. Strips every identifiable property the source carried (NHS number,
-   name, date of birth, address, phone numbers and a longer list of
-   common PII keys) before persisting the new root. The test patient
-   age and sex ARE kept because they drive coding/guideline rules.
+2. Reads every encounter, document and direct concept edge under that
+   patient from the patient graph.
+3. Redacts free text in Python (NLP redactor + regex fallbacks for
+   NHS number / postcode / phone / email / DOB).
+4. Creates a new :TestPatient root in the knowledge graph with a
+   "test_" display name, the chosen aspect, `is_test = true` and a
+   `source_patient_id` pointer (string property -- there is no edge
+   between graphs).
+5. Re-creates every encounter / document / concept edge under the new
+   root in the knowledge graph, MERGE'd against pre-loaded :Concept
+   nodes by SNOMED id. Loud failure if a referenced concept is missing
+   so partial / silently-incorrect clones cannot land.
 
 Risk R-8C0CC94B (Atlas) -- "test patient mistaken for a real patient
 on a clinician surface" -- is mitigated by three independent layers
 implemented here and in the queries:
-    a. Separate :TestPatient label so production `MATCH (p:Patient)`
-       queries cannot return cloned patients.
+    a. Separate :TestPatient label LIVES IN A DIFFERENT DATABASE so
+       production `MATCH (p:Patient)` queries in the patient graph
+       cannot return cloned patients.
     b. `is_test = true` propagated to every cloned node and
        relationship, so any future property-level filter also catches
        them.
@@ -46,37 +50,39 @@ implemented here and in the queries:
 
 from __future__ import annotations
 
+import json
 import logging
 import uuid
-from typing import Any
+from typing import Any, Iterable
 
-from app.db.neo4j_client import CodingGraphClient
+from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
 from libs.cypher.test_patient_queries import (
+    ALLOWED_CONCEPT_EDGE_TYPES,
+    ASSERT_CONCEPTS_PRESENT,
     ASSERT_TEST_PATIENT_DEIDENTIFIED,
-    CLONE_PATIENT_CONCEPT_RELATIONSHIPS_NO_APOC,
-    CLONE_PATIENT_DOCUMENTS,
-    CLONE_PATIENT_ENCOUNTERS,
     CREATE_TEST_PATIENT_FOR_ASPECT,
-    GET_SOURCE_PATIENT_FOR_CLONE,
     LIST_REAL_PATIENTS_FOR_CLONE_PICKER,
+    READ_SOURCE_CONCEPT_EDGES,
+    READ_SOURCE_DOCUMENTS,
+    READ_SOURCE_ENCOUNTERS,
+    READ_SOURCE_PATIENT_FOR_CLONE,
     TEST_PATIENT_ASPECTS,
+    WRITE_TEST_CONCEPT_EDGE,
+    WRITE_TEST_DOCUMENT,
+    WRITE_TEST_ENCOUNTER,
 )
 
 logger = logging.getLogger(__name__)
 
 
-# Properties that MUST NOT survive a clone. The clone never copies
-# the source patient's properties bag wholesale; it only copies the
-# small allow-list of fields below. Every other source property is
-# dropped, including any future PII fields a tenant adds.
-_ALLOWED_ROOT_PROPERTIES: frozenset[str] = frozenset(
-    {"age", "sex"}
-)
+# Properties the clone is allowed to copy onto the new TestPatient
+# root. Everything else from the source row is dropped, including any
+# future PII fields a tenant adds. age and sex drive coding/guideline
+# rules so they are kept; everything else is PII or display chrome.
+_ALLOWED_ROOT_PROPERTIES: frozenset[str] = frozenset({"age", "sex"})
 
 
-# Properties the verification step will assert are NULL on the cloned
-# root. Mirrors DI-59824215 acceptance criterion 2 (no NHS number /
-# name / date of birth / address / phone numbers).
+# Properties the verification step asserts are NULL on the cloned root.
 PII_KEYS_TO_STRIP: tuple[str, ...] = (
     "nhs_number",
     "nhsNumber",
@@ -102,7 +108,7 @@ PII_KEYS_TO_STRIP: tuple[str, ...] = (
 
 class CloneError(ValueError):
     """Raised when clone-from-real cannot proceed (bad aspect, missing
-    source, etc.). Translates to HTTP 4xx in the router."""
+    source concept, etc.). Translates to HTTP 4xx in the router."""
 
 
 # ---------------------------------------------------------------------------
@@ -111,30 +117,33 @@ class CloneError(ValueError):
 
 
 def list_source_patients(
-    client: CodingGraphClient, *, limit: int = 50
+    patient_graph: PatientGraphClient, *, limit: int = 50
 ) -> list[dict]:
     """Return real patients that can be cloned, most active first.
 
-    Backs the source-picker dropdown in the Clone-from-real dialog.
+    Backs the source-picker dropdown. Runs on the PATIENT graph.
     """
-    rows = client.run(LIST_REAL_PATIENTS_FOR_CLONE_PICKER, limit=int(limit))
+    rows = patient_graph.run(
+        LIST_REAL_PATIENTS_FOR_CLONE_PICKER, limit=int(limit)
+    )
     return [dict(r) for r in rows]
 
 
 def clone_patient_as_test_patient(
-    client: CodingGraphClient,
+    patient_graph: PatientGraphClient,
+    knowledge_graph: CodingGraphClient,
     *,
     source_patient_id: str,
     aspect: str,
     created_by: str,
     description: str = "",
+    redactor: Any | None = None,
 ) -> dict:
-    """Copy `source_patient_id` to a new :TestPatient and return it.
+    """Copy a real patient as a de-identified test patient.
 
-    Returns ``{id, source_patient_id, aspect, encounters_cloned,
-    documents_cloned, concept_rels_cloned}`` on success. Raises
-    :class:`CloneError` if the aspect is invalid or the source does
-    not exist.
+    Returns a summary of what was cloned. Raises :class:`CloneError`
+    when the aspect is invalid, the source is missing, or a referenced
+    SNOMED concept is missing from the knowledge graph (loud failure).
     """
     aspect = (aspect or "").lower().strip()
     if aspect not in TEST_PATIENT_ASPECTS:
@@ -142,19 +151,37 @@ def clone_patient_as_test_patient(
             "aspect must be one of " + ", ".join(TEST_PATIENT_ASPECTS)
         )
 
-    source = _load_source(client, source_patient_id=source_patient_id)
+    source = _read_source(patient_graph, source_patient_id=source_patient_id)
     if source is None:
         raise CloneError(
             f"Source patient {source_patient_id!r} not found or already a test patient"
         )
 
-    new_id = f"test_{uuid.uuid4().hex[:12]}"
-    id_prefix = f"{new_id}_"
+    encounters = _read_source_encounters(
+        patient_graph, source_patient_id=source_patient_id
+    )
+    documents = _read_source_documents(
+        patient_graph, source_patient_id=source_patient_id
+    )
+    concept_edges = _read_source_concept_edges(
+        patient_graph, source_patient_id=source_patient_id
+    )
 
+    concept_ids = _collect_concept_ids(encounters, concept_edges)
+    _assert_concepts_present(knowledge_graph, concept_ids)
+
+    redacted_encounters = [
+        _redact_encounter(enc, redactor) for enc in encounters
+    ]
+    redacted_documents = [
+        _redact_document(doc, redactor) for doc in documents
+    ]
+
+    new_id = f"test_{uuid.uuid4().hex[:12]}"
     display_name = _build_display_name(source, new_id)
     root_props = _strip_pii(source)
 
-    client.run(
+    knowledge_graph.run(
         CREATE_TEST_PATIENT_FOR_ASPECT,
         id=new_id,
         name=display_name,
@@ -167,28 +194,22 @@ def clone_patient_as_test_patient(
         created_by=created_by,
     )
 
-    encounters = _run_cloned_count(
-        client,
-        CLONE_PATIENT_ENCOUNTERS,
-        source_patient_id=source_patient_id,
+    encounters_written = _write_test_encounters(
+        knowledge_graph,
         test_patient_id=new_id,
-        id_prefix=id_prefix,
-        result_key="encounters_cloned",
+        source_patient_id=source_patient_id,
+        encounters=redacted_encounters,
     )
-    documents = _run_cloned_count(
-        client,
-        CLONE_PATIENT_DOCUMENTS,
-        source_patient_id=source_patient_id,
+    documents_written = _write_test_documents(
+        knowledge_graph,
         test_patient_id=new_id,
-        id_prefix=id_prefix,
-        result_key="documents_cloned",
+        source_patient_id=source_patient_id,
+        documents=redacted_documents,
     )
-    concept_rels = _run_cloned_count(
-        client,
-        CLONE_PATIENT_CONCEPT_RELATIONSHIPS_NO_APOC,
-        source_patient_id=source_patient_id,
+    concept_rels_written = _write_test_concept_edges(
+        knowledge_graph,
         test_patient_id=new_id,
-        result_key="rel_count",
+        edges=concept_edges,
     )
 
     return {
@@ -196,57 +217,111 @@ def clone_patient_as_test_patient(
         "source_patient_id": source_patient_id,
         "aspect": aspect,
         "name": display_name,
-        "encounters_cloned": encounters,
-        "documents_cloned": documents,
-        "concept_rels_cloned": concept_rels,
+        "encounters_cloned": encounters_written,
+        "documents_cloned": documents_written,
+        "concept_rels_cloned": concept_rels_written,
     }
 
 
 def assert_deidentified(
-    client: CodingGraphClient, *, test_patient_id: str
+    knowledge_graph: CodingGraphClient, *, test_patient_id: str
 ) -> dict:
     """Run the verification query for VT-5BDFE5F7 TC-002.
 
-    Returns the row directly so callers (router, tests) can assert
-    individual fields.
+    Returns the row directly so callers can assert individual fields.
     """
-    rows = client.run(
+    rows = knowledge_graph.run(
         ASSERT_TEST_PATIENT_DEIDENTIFIED, test_patient_id=test_patient_id
     )
     return dict(rows[0]) if rows else {}
 
 
 # ---------------------------------------------------------------------------
-# Internals
+# Read helpers (patient graph)
 # ---------------------------------------------------------------------------
 
 
-def _load_source(
-    client: CodingGraphClient, *, source_patient_id: str
+def _read_source(
+    patient_graph: PatientGraphClient, *, source_patient_id: str
 ) -> dict | None:
-    rows = client.run(
-        GET_SOURCE_PATIENT_FOR_CLONE, source_patient_id=source_patient_id
+    rows = patient_graph.run(
+        READ_SOURCE_PATIENT_FOR_CLONE, source_patient_id=source_patient_id
     )
     return dict(rows[0]) if rows else None
 
 
-def _strip_pii(source_row: dict[str, Any]) -> dict[str, Any]:
-    """Keep only the allow-list of root properties.
+def _read_source_encounters(
+    patient_graph: PatientGraphClient, *, source_patient_id: str
+) -> list[dict]:
+    rows = patient_graph.run(
+        READ_SOURCE_ENCOUNTERS, source_patient_id=source_patient_id
+    )
+    return [dict(r) for r in rows]
 
-    Anything not in :data:`_ALLOWED_ROOT_PROPERTIES` is dropped, which
-    protects against future PII keys appearing on :Patient.
-    """
+
+def _read_source_documents(
+    patient_graph: PatientGraphClient, *, source_patient_id: str
+) -> list[dict]:
+    rows = patient_graph.run(
+        READ_SOURCE_DOCUMENTS, source_patient_id=source_patient_id
+    )
+    return [dict(r) for r in rows]
+
+
+def _read_source_concept_edges(
+    patient_graph: PatientGraphClient, *, source_patient_id: str
+) -> list[dict]:
+    rows = patient_graph.run(
+        READ_SOURCE_CONCEPT_EDGES,
+        source_patient_id=source_patient_id,
+        allowed_types=list(ALLOWED_CONCEPT_EDGE_TYPES),
+    )
+    return [dict(r) for r in rows]
+
+
+def _collect_concept_ids(
+    encounters: Iterable[dict], concept_edges: Iterable[dict]
+) -> list[str]:
+    ids: set[str] = set()
+    for enc in encounters:
+        for doc in enc.get("documents") or []:
+            cid = doc.get("concept_id")
+            if cid:
+                ids.add(str(cid))
+    for edge in concept_edges:
+        cid = edge.get("concept_id")
+        if cid:
+            ids.add(str(cid))
+    return sorted(ids)
+
+
+def _assert_concepts_present(
+    knowledge_graph: CodingGraphClient, concept_ids: list[str]
+) -> None:
+    if not concept_ids:
+        return
+    rows = knowledge_graph.run(ASSERT_CONCEPTS_PRESENT, concept_ids=concept_ids)
+    missing = (rows[0].get("missing") if rows else []) or []
+    if missing:
+        raise CloneError(
+            "Cannot clone patient: the knowledge graph is missing "
+            f"{len(missing)} SNOMED concept(s) referenced by the source: "
+            + ", ".join(sorted(missing))
+        )
+
+
+# ---------------------------------------------------------------------------
+# De-identification helpers (Python)
+# ---------------------------------------------------------------------------
+
+
+def _strip_pii(source_row: dict[str, Any]) -> dict[str, Any]:
+    """Keep only the allow-list of root properties."""
     return {k: source_row.get(k) for k in _ALLOWED_ROOT_PROPERTIES}
 
 
 def _build_display_name(source_row: dict[str, Any], new_id: str) -> str:
-    """Return a display name guaranteed to start with ``test_``.
-
-    The original display name is not reused -- copying any of the
-    source's name fields would defeat the de-id step. Instead we
-    build a stable, human-readable name from the new id plus age/sex
-    so the QA lead can still scan the table.
-    """
+    """Return a display name guaranteed to start with ``test_``."""
     bits: list[str] = []
     age = source_row.get("age")
     sex = source_row.get("sex")
@@ -261,17 +336,159 @@ def _build_display_name(source_row: dict[str, Any], new_id: str) -> str:
     return f"test_{suffix}"
 
 
-def _run_cloned_count(
-    client: CodingGraphClient,
-    cypher: str,
-    *,
-    result_key: str,
-    **params: Any,
-) -> int:
-    rows = client.run(cypher, **params)
-    if not rows:
-        return 0
+def _redact_text(text: str | None, redactor: Any | None) -> str:
+    if text is None or text == "":
+        return ""
+    if redactor is None:
+        # Fail loud rather than silently passing PHI through. The
+        # router always injects a ClinicalTextRedactor; the only way
+        # to hit this branch is unit-test misuse.
+        raise CloneError(
+            "Refusing to clone free text without a redactor injected. "
+            "Pass redactor=ClinicalTextRedactor() (or NoopRedactor in "
+            "tests that explicitly accept un-redacted text)."
+        )
     try:
-        return int(rows[0][result_key] or 0)
-    except (KeyError, TypeError, ValueError):
-        return 0
+        redacted = str(redactor.redact(text))
+    except Exception as exc:
+        raise CloneError(
+            f"Redactor failed; refusing to write source text to the "
+            f"knowledge graph: {exc!s}"
+        ) from exc
+    assert_clean = getattr(redactor, "assert_clean", None)
+    if callable(assert_clean):
+        try:
+            assert_clean(redacted)
+        except Exception as exc:
+            raise CloneError(
+                f"Redactor left residual PHI after de-identification; "
+                f"refusing to clone: {exc!s}"
+            ) from exc
+    return redacted
+
+
+def _drop_pii_from_dict(props: dict[str, Any] | None) -> dict[str, Any]:
+    if not props:
+        return {}
+    return {k: v for k, v in props.items() if k not in PII_KEYS_TO_STRIP}
+
+
+def _redact_encounter(enc: dict[str, Any], redactor: Any | None) -> dict:
+    redacted_text = _redact_text(enc.get("text"), redactor)
+    extra_props = _drop_pii_from_dict(enc.get("all_properties"))
+    extra_props.pop("text", None)
+    extra_props.pop("id", None)
+    extra_props.pop("date", None)
+    extra_props.pop("flags", None)
+    documents = []
+    for doc in enc.get("documents") or []:
+        if not doc.get("concept_id"):
+            continue
+        documents.append(
+            {
+                "concept_id": str(doc["concept_id"]),
+                "rel_type": doc.get("rel_type") or "DOCUMENTS",
+                "properties": _drop_pii_from_dict(doc.get("properties")),
+            }
+        )
+    return {
+        "source_id": enc.get("id"),
+        "date": enc.get("date"),
+        "flags": enc.get("flags"),
+        "text": redacted_text,
+        "extra_properties_json": json.dumps(extra_props, default=str),
+        "documents": documents,
+    }
+
+
+def _redact_document(doc: dict[str, Any], redactor: Any | None) -> dict:
+    extra_props = _drop_pii_from_dict(doc.get("all_properties"))
+    extra_props.pop("text", None)
+    extra_props.pop("id", None)
+    extra_props.pop("title", None)
+    return {
+        "source_id": doc.get("id"),
+        "title": doc.get("title"),
+        "text": _redact_text(doc.get("text"), redactor),
+        "extra_properties_json": json.dumps(extra_props, default=str),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Write helpers (knowledge graph)
+# ---------------------------------------------------------------------------
+
+
+def _write_test_encounters(
+    knowledge_graph: CodingGraphClient,
+    *,
+    test_patient_id: str,
+    source_patient_id: str,
+    encounters: list[dict],
+) -> int:
+    written = 0
+    for index, enc in enumerate(encounters, start=1):
+        encounter_id = f"{test_patient_id}_enc_{index:03d}"
+        knowledge_graph.run(
+            WRITE_TEST_ENCOUNTER,
+            test_patient_id=test_patient_id,
+            source_patient_id=source_patient_id,
+            encounter_id=encounter_id,
+            text=enc.get("text") or "",
+            date=enc.get("date"),
+            flags=enc.get("flags"),
+            extra_properties_json=enc.get("extra_properties_json") or "{}",
+            documents=enc.get("documents") or [],
+        )
+        written += 1
+    return written
+
+
+def _write_test_documents(
+    knowledge_graph: CodingGraphClient,
+    *,
+    test_patient_id: str,
+    source_patient_id: str,
+    documents: list[dict],
+) -> int:
+    written = 0
+    for index, doc in enumerate(documents, start=1):
+        document_id = f"{test_patient_id}_doc_{index:03d}"
+        knowledge_graph.run(
+            WRITE_TEST_DOCUMENT,
+            test_patient_id=test_patient_id,
+            source_patient_id=source_patient_id,
+            document_id=document_id,
+            title=doc.get("title"),
+            text=doc.get("text") or "",
+            extra_properties_json=doc.get("extra_properties_json") or "{}",
+        )
+        written += 1
+    return written
+
+
+def _write_test_concept_edges(
+    knowledge_graph: CodingGraphClient,
+    *,
+    test_patient_id: str,
+    edges: list[dict],
+) -> int:
+    written = 0
+    for edge in edges:
+        rel_type = (edge.get("rel_type") or "").upper()
+        if rel_type not in ALLOWED_CONCEPT_EDGE_TYPES:
+            continue
+        concept_id = edge.get("concept_id")
+        if not concept_id:
+            continue
+        properties = _drop_pii_from_dict(edge.get("properties"))
+        properties.setdefault("is_test", True)
+        knowledge_graph.run(
+            WRITE_TEST_CONCEPT_EDGE,
+            test_patient_id=test_patient_id,
+            concept_id=str(concept_id),
+            rel_type=rel_type,
+            properties=properties,
+        )
+        written += 1
+    return written

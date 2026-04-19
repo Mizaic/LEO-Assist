@@ -26,6 +26,7 @@ from app.db.neo4j_client import CodingGraphClient
 from libs.cypher.test_patient_queries import (
     COUNT_TEST_PATIENTS_BY_ASPECT,
     CREATE_TEST_PATIENT,
+    CREATE_TEST_PATIENT_FOR_ASPECT,
     DELETE_TEST_PATIENT,
     FIND_BY_CONTENT_HASH,
     GET_REPLAY_REPORT,
@@ -567,6 +568,55 @@ def count_by_aspect(client: CodingGraphClient) -> dict[str, int]:
 def get_patient(client: CodingGraphClient, *, patient_id: str) -> dict | None:
     rows = client.run(GET_TEST_PATIENT, id=patient_id)
     return dict(rows[0]) if rows else None
+
+
+_NON_GUIDELINE_ASPECTS = {a for a in TEST_PATIENT_ASPECTS if a != "guidelines"}
+
+
+def build_blank_patient_for_aspect(
+    client: CodingGraphClient,
+    *,
+    aspect: str,
+    name: str,
+    description: str = "",
+    age: float | None = None,
+    sex: str | None = None,
+    created_by: str = "",
+) -> dict:
+    """Create an empty :TestPatient row for an NLP / Episodes / SBAR aspect.
+
+    The Guidelines aspect goes through the existing
+    ``confirm_and_save`` flow because it must snapshot expected
+    rule fires; this helper covers the three remaining aspects
+    where the Build dialog only collects a name + demographics
+    and the per-aspect content is attached later.
+    """
+    aspect_norm = (aspect or "").lower()
+    if aspect_norm not in _NON_GUIDELINE_ASPECTS:
+        raise ValueError(
+            f"build_blank_patient_for_aspect supports {sorted(_NON_GUIDELINE_ASPECTS)}, "
+            f"got {aspect!r}"
+        )
+    clean_name = (name or "").strip()
+    if not clean_name:
+        raise ValueError("name is required when building a test patient")
+    safe_name = clean_name if clean_name.startswith("test_") else f"test_{clean_name}"
+    payload = {
+        "id": f"test_{uuid.uuid4().hex[:12]}",
+        "name": safe_name,
+        "description": (description or "").strip(),
+        "aspect": aspect_norm,
+        "source_patient_id": None,
+        "generation_source": "manual",
+        "age": age,
+        "sex": (sex or "").strip().lower() or None,
+        "created_by": (created_by or "").strip(),
+    }
+    rows = client.run(CREATE_TEST_PATIENT_FOR_ASPECT, **payload)
+    if not rows:
+        raise RuntimeError("create-test-patient query returned no rows")
+    saved = {**payload, "id": rows[0]["id"]}
+    return saved
 
 
 def delete_patient(client: CodingGraphClient, *, patient_id: str) -> int:

@@ -26,7 +26,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 CREATE_ASSESSMENT = """
 MATCH (p:Patient {id: $patient_id})
 MERGE (a:Assessment {id: $assessment_id})
@@ -120,6 +119,66 @@ SET a.content                       = $content,
     a.updated_at                    = datetime()
 RETURN a.id AS id, a.status AS status
 """
+
+# DI-LEO-AI-506: denormalise per-run LLM token usage and cost onto the
+# Assessment node so the per-encounter LLM-spend drill-down can return
+# SBAR rows alongside :EncounterCandidate rows. The flat fields mirror
+# the wire format used by the coding pipeline AuditEvent so the same UI
+# components render both.
+SET_ASSESSMENT_USAGE = """
+MATCH (a:Assessment {id: $assessment_id})
+SET a.llm_usage_json     = $llm_usage_json,
+    a.llm_input_tokens   = $llm_input_tokens,
+    a.llm_output_tokens  = $llm_output_tokens,
+    a.llm_cached_tokens  = $llm_cached_tokens,
+    a.llm_total_tokens   = $llm_total_tokens,
+    a.llm_calls          = $llm_calls,
+    a.llm_cost_usd       = $llm_cost_usd,
+    a.llm_latency_ms     = $llm_latency_ms,
+    a.llm_model_id       = $llm_model_id,
+    a.llm_model_provider = $llm_model_provider,
+    a.updated_at         = datetime()
+RETURN a.id AS id
+"""
+
+
+# DI-LEO-AI-506: write a PipelineRun AuditEvent so SBAR runs show up in
+# the dashboard LLMSpendPanel and per-tenant billing aggregates. Schema
+# matches libs/workflow/engine.py::_write_audit_event so the existing
+# /analytics/llm-spend/runs query (libs/cypher/model_config_queries.py)
+# returns SBAR rows with no UI change.
+WRITE_SBAR_AUDIT_EVENT = """
+MERGE (ae:AuditEvent {id: $id})
+SET ae.type                          = 'PipelineRun',
+    ae.plan_definition_id            = $plan_definition_id,
+    ae.patient_id                    = $patient_id,
+    ae.encounter_id                  = $encounter_id,
+    ae.run_id                        = $run_id,
+    ae.event_type                    = $event_type,
+    ae.status                        = $status,
+    ae.step_count                    = $step_count,
+    ae.total_duration_ms             = $total_duration_ms,
+    ae.entity_count                  = $entity_count,
+    ae.error_count                   = $error_count,
+    ae.first_error                   = $first_error,
+    ae.llm_input_tokens              = $llm_input_tokens,
+    ae.llm_output_tokens             = $llm_output_tokens,
+    ae.llm_cached_tokens             = $llm_cached_tokens,
+    ae.llm_cost_usd                  = $llm_cost_usd,
+    ae.extraction_provider           = $extraction_provider,
+    ae.extraction_model_tier         = $extraction_model_tier,
+    ae.extraction_prompt_name        = $extraction_prompt_name,
+    ae.extraction_prompt_version     = $extraction_prompt_version,
+    ae.assessment_id                 = $assessment_id,
+    ae.created_at                    = datetime()
+WITH ae
+OPTIONAL MATCH (p:Patient {id: $patient_id})
+FOREACH (_ IN CASE WHEN p IS NOT NULL THEN [1] ELSE [] END |
+    MERGE (ae)-[:AUDIT_FOR]->(p)
+)
+RETURN ae.id AS id
+"""
+
 
 GET_ASSESSMENT = """
 MATCH (a:Assessment {id: $assessment_id})

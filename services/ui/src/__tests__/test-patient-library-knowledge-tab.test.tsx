@@ -128,6 +128,54 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(src).toMatch(/qs\.set\("aspect"/);
   });
 
+  test("TC-007: page mounts both Build and Copy dialogs and wires the toolbar", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    expect(src).toMatch(/from\s+"\.\/BuildPatientDialog"/);
+    expect(src).toMatch(/from\s+"\.\/CopyFromRealDialog"/);
+    expect(src).toMatch(/onClick:\s*\(\)\s*=>\s*setBuildOpen\(true\)/);
+    expect(src).toMatch(/onClick:\s*\(\)\s*=>\s*setCopyOpen\(true\)/);
+    expect(src).toMatch(/onCreated=\{[^}]*setRefreshKey/);
+    expect(src).toMatch(/onCloned=\{[^}]*setRefreshKey/);
+  });
+
+  test("TC-008: BuildPatientDialog covers the three non-Guideline aspects", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/BuildPatientDialog.tsx",
+    );
+    expect(src).toMatch(
+      /BUILDABLE_ASPECTS:\s*BuildableAspect\[\]\s*=\s*\[\s*"nlp",\s*"episodes",\s*"summarisation",?\s*\]/,
+    );
+    expect(src).toMatch(/initialAspect === "guidelines"/);
+    expect(src).toMatch(/buildBlankTestPatient\(/);
+    expect(src).toMatch(/test_/);
+  });
+
+  test("TC-009: CopyFromRealDialog runs the cross-graph clone path", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/CopyFromRealDialog.tsx",
+    );
+    expect(src).toMatch(/listSourcePatients\(/);
+    expect(src).toMatch(/cloneFromReal\(/);
+    expect(src).toMatch(/source_patient_id:/);
+    expect(src).toMatch(/remove\s+anything that could identify them/);
+    expect(src).toMatch(/encounters_cloned/);
+    expect(src).toMatch(/documents_cloned/);
+    expect(src).toMatch(/concept_rels_cloned/);
+  });
+
+  test("TC-010: api.ts exposes a typed buildBlankTestPatient helper", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/api.ts",
+    );
+    expect(src).toMatch(/export function buildBlankTestPatient\(/);
+    expect(src).toMatch(/"\/build"/);
+    expect(src).toMatch(
+      /aspect:\s*"nlp"\s*\|\s*"episodes"\s*\|\s*"summarisation"/,
+    );
+  });
+
   test("TC-006: legacy /admin/guidance/test-patients route file is removed", () => {
     expect(
       exists("services/ui/src/app/admin/guidance/test-patients/page.tsx"),

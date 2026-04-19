@@ -194,6 +194,84 @@ def test_milestone_extractor_rejects_unknown_presentation_place():
         _run(llm)
 
 
+def test_milestone_extractor_parses_safety_netting_and_disruptions():
+    """VT-503-TC-008: episode-level safety_netting and disruptions parse
+    cleanly when the model emits them alongside milestones."""
+
+    payload = {
+        "window_id": "w1",
+        "milestones": [
+            {
+                "type": "first_presentation",
+                "date": "2025-03-12",
+                "encounter_id": "enc-pres",
+                "evidence_quote": "Patient reports new right breast lump.",
+                "presentation_place": "gp_surgery",
+                "confidence": 0.9,
+                "reasoning": "GP face-to-face for presenting symptom.",
+            }
+        ],
+        "safety_netting": {
+            "recorded": True,
+            "evidence_quote": (
+                "advised to return urgently if the lump grows or skin changes "
+                "appear before the clinic appointment."
+            ),
+            "encounter_id": "enc-pres",
+            "date": "2025-03-12",
+            "confidence": 0.9,
+        },
+        "disruptions": [
+            {
+                "date": "2025-04-10",
+                "category": "referral_lost_or_not_received",
+                "description": (
+                    "Patient phoned: no appointment letter from clinic yet."
+                ),
+                "encounter_id": "enc-chase",
+                "evidence_quote": "no appointment letter from breast clinic yet",
+                "confidence": 0.85,
+            }
+        ],
+        "needs_human_review": False,
+        "reasoning": "Captured safety netting and one disruption.",
+    }
+    llm = FakeLLM(FakeLLMResponse(tool_uses=[tool_use("submit_milestones", payload)]))
+    result, _ = _run(llm)
+
+    assert result.safety_netting is not None
+    assert result.safety_netting.recorded is True
+    assert result.safety_netting.encounter_id == "enc-pres"
+    assert len(result.disruptions) == 1
+    d = result.disruptions[0]
+    assert d.category == "referral_lost_or_not_received"
+    assert d.encounter_id == "enc-chase"
+
+
+def test_milestone_extractor_rejects_unknown_disruption_category():
+    """VT-503-TC-009: an invented disruption category is rejected."""
+
+    payload = {
+        "window_id": "w1",
+        "milestones": [],
+        "disruptions": [
+            {
+                "date": "2025-04-10",
+                "category": "alien_invasion",
+                "description": "anything",
+                "encounter_id": "enc-1",
+                "evidence_quote": "anything",
+                "confidence": 0.9,
+            }
+        ],
+        "needs_human_review": False,
+        "reasoning": "",
+    }
+    llm = FakeLLM(FakeLLMResponse(tool_uses=[tool_use("submit_milestones", payload)]))
+    with pytest.raises(StageError):
+        _run(llm)
+
+
 def test_milestone_extractor_requires_evidence_quote():
     """VT-503-TC-005: empty evidence_quote violates min_length and is rejected."""
 

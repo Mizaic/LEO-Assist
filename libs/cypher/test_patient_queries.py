@@ -3,9 +3,26 @@
 Test patients are reusable, reviewer-curated synthetic patient profiles
 that exercise every part of the AI: NLP (reading clinical notes),
 Episodes (building the patient story), Guidelines (rule firing) and
-Summarisation (SBAR handover). They live in the patient graph next to
-real patients, but always under a separate :TestPatient label so that
-production queries against :Patient cannot return them.
+Summarisation (SBAR handover).
+
+STORAGE -- IMPORTANT
+--------------------
+Test patients are CONFIG / TEST data, not patient data. They live in
+the **knowledge graph** (KNOWLEDGE_GRAPH_NEO4J_URI) alongside SNOMED
+concepts, surface forms, guidelines and rules. They MUST NEVER be
+written to the patient graph (NEO4J_URI), which holds real PHI/PII.
+
+The clone-from-real action therefore does cross-graph work:
+    1. READ source patient subgraph from the patient graph.
+    2. STRIP PII in Python (root props + free-text redactor).
+    3. WRITE de-identified :TestPatient subgraph to the knowledge
+       graph, MERGE'd against pre-loaded :Concept reference data.
+
+Cypher in this module is split into READ_SOURCE_* (run on the patient
+graph driver) and WRITE_TEST_* / list+update queries (run on the
+knowledge graph driver). The Python service layer
+(`services.test_patient_clone`) is the only place that holds both
+drivers; no Cypher in this file is allowed to span both graphs.
 
 Per DI-59824215 / DI-7625C251 (Atlas) -- the source of truth for the
 data model lives in those design inputs.
@@ -14,11 +31,13 @@ Key invariants enforced here:
 
 1. Every :TestPatient node carries `is_test = true` and an `aspect`
    property in {"nlp","episodes","guidelines","summarisation"}. Risk
-   R-8C0CC94B is mitigated by the structural separation: production
-   queries (`MATCH (p:Patient) ...`) never return :TestPatient nodes.
+   R-8C0CC94B is mitigated by structural separation: the patient
+   graph never carries a :TestPatient node, so production queries
+   against :Patient cannot return one.
 
 2. Test patients can either be authored from scratch (existing flow,
-   guidelines aspect only today) or cloned from a real patient via
+   guidelines aspect only today), seeded from YAML fixtures (the SBAR
+   golden set importer), or cloned from a real patient via
    `services.test_patient_clone`. Cloned subgraphs (encounters,
    documents, concept relationships) all carry `is_test = true` so
    any future label-agnostic query can also filter them out.
@@ -110,10 +129,16 @@ RETURN tp.id AS id
 """
 
 
-# Create a test patient for any aspect, optionally linked to a source
-# (real) patient via SOURCE_OF_TEST. The display name is forced to
-# carry a "test_" prefix; the service layer is responsible for
-# stripping any patient PII before passing props in.
+# Create a test patient for any aspect. Runs on the KNOWLEDGE graph.
+#
+# When `source_patient_id` is non-null we record it as a STRING property
+# (not an edge) -- the source :Patient lives in the patient graph, so
+# a Neo4j relationship across graphs is impossible. The clone audit
+# trail is preserved by the property + the cloned subgraph below.
+#
+# The display name is forced to carry a "test_" prefix; the service
+# layer is responsible for stripping any patient PII before passing
+# props in.
 CREATE_TEST_PATIENT_FOR_ASPECT = """
 CREATE (tp:TestPatient {
     id:                 $id,
@@ -129,11 +154,6 @@ CREATE (tp:TestPatient {
     created_at:         datetime(),
     updated_at:         datetime()
 })
-WITH tp
-OPTIONAL MATCH (src:Patient { id: $source_patient_id })
-FOREACH (_ IN CASE WHEN src IS NULL THEN [] ELSE [1] END |
-    MERGE (src)-[:SOURCE_OF_TEST]->(tp)
-)
 RETURN tp.id AS id
 """
 
@@ -209,9 +229,9 @@ RETURN coalesce(tp.aspect, 'guidelines') AS aspect,
 """
 
 
-# Picker for the "Clone from real patient" dialog -- returns the most
-# recently active real patients with a coarse activity signal so the
-# reviewer can pick a meaningful source.
+# Picker for the "Clone from real patient" dialog. Runs on the
+# PATIENT graph (PatientGraphClient) -- :Patient nodes do not live in
+# the knowledge graph so this query MUST NOT be run there.
 LIST_REAL_PATIENTS_FOR_CLONE_PICKER = """
 MATCH (p:Patient)
 WHERE coalesce(p.is_test, false) = false
@@ -260,16 +280,37 @@ RETURN tp.id              AS id,
 """
 
 
-# -- Clone-from-real-patient helpers ----------------------------------
+# -- Clone-from-real-patient helpers (CROSS-GRAPH) --------------------
 #
 # The Python service in services/api/app/services/test_patient_clone.py
-# orchestrates these in sequence under a single transaction. They are
-# split into small queries so each step is easy to test in isolation.
+# orchestrates these in sequence. The READ_SOURCE_* queries run against
+# the PATIENT graph (PatientGraphClient). The WRITE_TEST_* queries run
+# against the KNOWLEDGE graph (CodingGraphClient / KnowledgeGraphClient)
+# so that no test patient row is ever written to the patient graph and
+# no real PHI is ever written to the knowledge graph.
+#
+# Concepts (:Concept) live ONLY in the knowledge graph -- the read side
+# returns concept_ids and the write side MERGE'es against pre-loaded
+# :Concept nodes by id (loud failure if the concept is missing).
+#
+# Allowed concept-edge types -- mirror real :Patient -> :Concept and
+# :Encounter -> :Concept relationship types that production code emits.
+ALLOWED_CONCEPT_EDGE_TYPES: tuple[str, ...] = (
+    "HAS_FINDING",
+    "HAS_DISORDER",
+    "HAS_OBSERVABLE",
+    "HAS_PROCEDURE",
+    "HAS_SITUATION",
+    "HAS_CONCEPT",
+    "DOCUMENTS",
+)
 
-# Pull the source patient row so the service can decide what to copy.
-# Identifier fields (PII) are surfaced here so the service can prove
-# they are absent from the resulting :TestPatient row.
-GET_SOURCE_PATIENT_FOR_CLONE = """
+
+# READ (patient graph) -- pull source patient row. Identifier fields
+# (PII) are surfaced so the service can both populate the test
+# patient's age/sex AND prove via assertion tests that PII never made
+# it to the knowledge graph.
+READ_SOURCE_PATIENT_FOR_CLONE = """
 MATCH (p:Patient { id: $source_patient_id })
 WHERE coalesce(p.is_test, false) = false
 OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter)
@@ -279,100 +320,148 @@ RETURN p.id          AS id,
        p.displayName AS display_name,
        p.age         AS age,
        p.sex         AS sex,
+       p.nhs_number  AS nhs_number,
+       p.dateOfBirth AS date_of_birth,
+       p.address     AS address,
+       p.phone       AS phone,
+       p.email       AS email,
        encounter_count,
        document_count
 """
 
 
-# Clone every (:Patient)-[:HAS_ENCOUNTER]->(:Encounter) edge under the
-# new TestPatient. Each cloned encounter:
-#   - gets a new id ("test_<hash>") so it cannot collide
-#   - keeps every property except `id` (carried straight over)
-#   - is stamped with `is_test = true`
-#   - keeps its outbound DOCUMENTS-style relationships pointing at the
-#     same SNOMED Concept nodes (concepts are reference data)
-CLONE_PATIENT_ENCOUNTERS = """
-MATCH (src:Patient { id: $source_patient_id })-[:HAS_ENCOUNTER]->(e:Encounter)
-MATCH (tp:TestPatient { id: $test_patient_id })
-WITH tp, e, $id_prefix + e.id AS new_id
-CREATE (te:Encounter)
-SET te = properties(e),
-    te.id      = new_id,
-    te.is_test = true
-MERGE (tp)-[:HAS_ENCOUNTER]->(te)
-WITH te, e
+# READ (patient graph) -- every encounter under the source patient,
+# with the concept ids it documents and any free text. The service
+# layer takes the returned rows, runs free text through the NLP
+# redactor, then issues WRITE_TEST_ENCOUNTER calls against the
+# knowledge graph.
+READ_SOURCE_ENCOUNTERS = """
+MATCH (p:Patient { id: $source_patient_id })-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE coalesce(p.is_test, false) = false
 OPTIONAL MATCH (e)-[r:DOCUMENTS]->(c)
-FOREACH (_ IN CASE WHEN c IS NULL THEN [] ELSE [1] END |
-    MERGE (te)-[r2:DOCUMENTS]->(c)
-    SET r2 = properties(r), r2.is_test = true
-)
-RETURN count(te) AS encounters_cloned
+WHERE c.id IS NOT NULL
+WITH e, collect(DISTINCT {
+    rel_type:    type(r),
+    properties:  properties(r),
+    concept_id:  c.id
+}) AS documents
+RETURN e.id                AS id,
+       toString(e.date)    AS date,
+       e.text              AS text,
+       e.flags             AS flags,
+       properties(e)       AS all_properties,
+       [d IN documents WHERE d.concept_id IS NOT NULL] AS documents
+ORDER BY e.date ASC
 """
 
 
-# Same shape as CLONE_PATIENT_ENCOUNTERS but for the document subgraph.
-# Documents may exist via :HAS_DOCUMENT or :HAS_DOCUMENT_REFERENCE; we
-# clone whatever is present.
-CLONE_PATIENT_DOCUMENTS = """
-MATCH (src:Patient { id: $source_patient_id })
-OPTIONAL MATCH (src)-[:HAS_DOCUMENT]->(d:Document)
-WITH src, collect(DISTINCT d) AS docs
-MATCH (tp:TestPatient { id: $test_patient_id })
-UNWIND docs AS d
-WITH tp, d
-WHERE d IS NOT NULL
-CREATE (td:Document)
-SET td = properties(d),
-    td.id      = $id_prefix + d.id,
-    td.is_test = true
-MERGE (tp)-[:HAS_DOCUMENT]->(td)
-RETURN count(td) AS documents_cloned
+# READ (patient graph) -- documents attached directly to the patient
+# (referral letters, scanned PDFs that have been OCR'd, etc.).
+READ_SOURCE_DOCUMENTS = """
+MATCH (p:Patient { id: $source_patient_id })-[:HAS_DOCUMENT]->(d:Document)
+WHERE coalesce(p.is_test, false) = false
+RETURN d.id           AS id,
+       d.title        AS title,
+       d.text         AS text,
+       properties(d)  AS all_properties
+ORDER BY d.id ASC
 """
 
 
-# Mirror direct concept relationships from the source patient onto
-# the test patient (HAS_FINDING / HAS_DISORDER / HAS_OBSERVABLE /
-# HAS_PROCEDURE / HAS_SITUATION / HAS_CONCEPT). The relationship is
-# replayed pointing at the same Concept node (reference data) and is
-# tagged is_test = true so any future relationship-property filter
-# can exclude it.
-CLONE_PATIENT_CONCEPT_RELATIONSHIPS = """
-MATCH (src:Patient { id: $source_patient_id })-[r]->(c)
-WHERE type(r) IN [
-    'HAS_FINDING','HAS_DISORDER','HAS_OBSERVABLE',
-    'HAS_PROCEDURE','HAS_SITUATION','HAS_CONCEPT'
-  ]
-MATCH (tp:TestPatient { id: $test_patient_id })
-CALL apoc.merge.relationship(tp, type(r), {is_test: true}, properties(r), c, {})
-YIELD rel
-RETURN type(rel) AS rel_type, count(rel) AS rel_count
+# READ (patient graph) -- direct (Patient)-[r]->(Concept) edges.
+# Returns concept_ids only; the write side will MATCH them in the
+# knowledge graph and MERGE the test edge.
+READ_SOURCE_CONCEPT_EDGES = """
+MATCH (p:Patient { id: $source_patient_id })-[r]->(c)
+WHERE coalesce(p.is_test, false) = false
+  AND c.id IS NOT NULL
+  AND type(r) IN $allowed_types
+RETURN type(r)        AS rel_type,
+       properties(r)  AS properties,
+       c.id           AS concept_id
 """
 
 
-# Fallback for environments without APOC -- mirror only the most
-# common concept relationship types as discrete MERGE statements.
-CLONE_PATIENT_CONCEPT_RELATIONSHIPS_NO_APOC = """
-MATCH (src:Patient { id: $source_patient_id })-[r]->(c)
-WHERE type(r) IN [
-    'HAS_FINDING','HAS_DISORDER','HAS_OBSERVABLE',
-    'HAS_PROCEDURE','HAS_SITUATION','HAS_CONCEPT'
-  ]
+# WRITE (knowledge graph) -- create one cloned encounter under the
+# already-created TestPatient. Documents link to existing :Concept
+# nodes by id; the service layer is responsible for asserting all
+# concept_ids exist before calling this query (loud failure on miss).
+WRITE_TEST_ENCOUNTER = """
 MATCH (tp:TestPatient { id: $test_patient_id })
-WITH tp, type(r) AS rt, c, properties(r) AS rp
+CREATE (te:Encounter {
+    id:               $encounter_id,
+    is_test:          true,
+    source_patient_id: $source_patient_id,
+    text:             $text,
+    date:             $date,
+    flags:            $flags,
+    extra_properties: $extra_properties_json
+})
+MERGE (tp)-[r:HAS_ENCOUNTER]->(te)
+SET r.is_test = true
+WITH te
+UNWIND $documents AS doc
+MATCH (c:Concept { id: doc.concept_id })
+WITH te, doc, c
+CALL {
+    WITH te, doc, c
+    WITH te, doc, c, doc.rel_type AS rt
+    FOREACH (_ IN CASE WHEN rt = 'DOCUMENTS' THEN [1] ELSE [] END |
+        MERGE (te)-[r:DOCUMENTS]->(c)
+        SET r = doc.properties, r.is_test = true)
+    RETURN 1 AS done
+}
+RETURN count(DISTINCT te) AS encounters_written
+"""
+
+
+# WRITE (knowledge graph) -- create one cloned document under the
+# TestPatient. Free text is the redacted form -- the redactor runs
+# in Python before this call.
+WRITE_TEST_DOCUMENT = """
+MATCH (tp:TestPatient { id: $test_patient_id })
+CREATE (td:Document {
+    id:               $document_id,
+    is_test:          true,
+    source_patient_id: $source_patient_id,
+    title:            $title,
+    text:             $text,
+    extra_properties: $extra_properties_json
+})
+MERGE (tp)-[r:HAS_DOCUMENT]->(td)
+SET r.is_test = true
+RETURN td.id AS id
+"""
+
+
+# WRITE (knowledge graph) -- mirror one direct (Patient)->(Concept)
+# edge onto the TestPatient. We dispatch by rel_type via FOREACH so
+# Cypher type-checks each MERGE statically (it can't take a parameter
+# for the relationship type without APOC).
+WRITE_TEST_CONCEPT_EDGE = """
+MATCH (tp:TestPatient { id: $test_patient_id })
+MATCH (c:Concept { id: $concept_id })
+WITH tp, c, $rel_type AS rt, $properties AS rp
 FOREACH (_ IN CASE WHEN rt = 'HAS_FINDING'    THEN [1] ELSE [] END |
-    MERGE (tp)-[r2:HAS_FINDING]->(c)    SET r2 = rp, r2.is_test = true)
+    MERGE (tp)-[r:HAS_FINDING]->(c)    SET r = rp, r.is_test = true)
 FOREACH (_ IN CASE WHEN rt = 'HAS_DISORDER'   THEN [1] ELSE [] END |
-    MERGE (tp)-[r2:HAS_DISORDER]->(c)   SET r2 = rp, r2.is_test = true)
+    MERGE (tp)-[r:HAS_DISORDER]->(c)   SET r = rp, r.is_test = true)
 FOREACH (_ IN CASE WHEN rt = 'HAS_OBSERVABLE' THEN [1] ELSE [] END |
-    MERGE (tp)-[r2:HAS_OBSERVABLE]->(c) SET r2 = rp, r2.is_test = true)
+    MERGE (tp)-[r:HAS_OBSERVABLE]->(c) SET r = rp, r.is_test = true)
 FOREACH (_ IN CASE WHEN rt = 'HAS_PROCEDURE'  THEN [1] ELSE [] END |
-    MERGE (tp)-[r2:HAS_PROCEDURE]->(c)  SET r2 = rp, r2.is_test = true)
+    MERGE (tp)-[r:HAS_PROCEDURE]->(c)  SET r = rp, r.is_test = true)
 FOREACH (_ IN CASE WHEN rt = 'HAS_SITUATION'  THEN [1] ELSE [] END |
-    MERGE (tp)-[r2:HAS_SITUATION]->(c)  SET r2 = rp, r2.is_test = true)
+    MERGE (tp)-[r:HAS_SITUATION]->(c)  SET r = rp, r.is_test = true)
 FOREACH (_ IN CASE WHEN rt = 'HAS_CONCEPT'    THEN [1] ELSE [] END |
-    MERGE (tp)-[r2:HAS_CONCEPT]->(c)    SET r2 = rp, r2.is_test = true)
-RETURN count(*) AS rel_count
+    MERGE (tp)-[r:HAS_CONCEPT]->(c)    SET r = rp, r.is_test = true)
+RETURN 1 AS done
 """
+
+
+# Backwards-compat re-exports so older code paths keep importing the
+# old names; these now point at the cross-graph READ side. New code
+# MUST import the READ_SOURCE_* / WRITE_TEST_* names directly.
+GET_SOURCE_PATIENT_FOR_CLONE = READ_SOURCE_PATIENT_FOR_CLONE
 
 
 # Verification helper used by VT-5BDFE5F7 TC-002: prove a TestPatient
@@ -399,6 +488,139 @@ DELETE_TEST_PATIENT = """
 MATCH (tp:TestPatient { id: $id })
 DETACH DELETE tp
 RETURN count(*) AS deleted
+"""
+
+
+# ---------------------------------------------------------------------
+# SBAR golden-set seeding (knowledge graph)
+# ---------------------------------------------------------------------
+#
+# These queries are used by `scripts/seed_sbar_test_patients.py` to
+# load the YAML fixtures in design-controls/training-data/sbar-golden-
+# set/ as :TestPatient {aspect: 'summarisation'} rows. Idempotent --
+# re-running the script updates the existing rows in place.
+#
+# Each fixture becomes:
+#     (:TestPatient {aspect:'summarisation', is_test:true})
+#         -[:HAS_ENCOUNTER {is_test:true}]->(:Encounter {is_test:true, text:...})
+#         -[:DOCUMENTS {assertion, term, is_test:true}]->(:Concept) (MERGE'd
+#             against pre-loaded SNOMED Concept nodes)
+#         -[:HAS_EXPECTED_SBAR {is_test:true}]->(:ExpectedSBAR
+#             {situation_md, background_md, recommendation_md,
+#              required_phrases, banned_phrases, matched_rule_ids,
+#              reviewer_focus})
+
+SBAR_FIXTURE_CONSTRAINTS: tuple[str, ...] = (
+    "CREATE CONSTRAINT expected_sbar_id IF NOT EXISTS FOR (e:ExpectedSBAR) REQUIRE e.id IS UNIQUE",
+    "CREATE INDEX test_patient_fixture_id IF NOT EXISTS FOR (tp:TestPatient) ON (tp.fixture_id)",
+)
+
+
+# Upsert the test patient root for an SBAR fixture. Always stamps
+# is_test=true and aspect='summarisation'. Re-running the seed for an
+# existing fixture_id refreshes the metadata (title / scenario / age
+# band / sex) without churning the node identity.
+SEED_SBAR_TEST_PATIENT = """
+MERGE (tp:TestPatient { id: $id })
+ON CREATE SET tp.created_at = datetime(),
+              tp.created_by = $created_by
+SET tp.is_test            = true,
+    tp.aspect             = 'summarisation',
+    tp.name               = $name,
+    tp.description        = $description,
+    tp.fixture_id         = $fixture_id,
+    tp.fixture_path       = $fixture_path,
+    tp.title              = $title,
+    tp.age                = $age,
+    tp.sex                = $sex,
+    tp.age_band           = $age_band,
+    tp.smoking_status     = $smoking_status,
+    tp.guideline_ids      = $guideline_ids,
+    tp.generation_source  = 'fixture',
+    tp.updated_at         = datetime(),
+    tp.updated_by         = $created_by
+RETURN tp.id AS id
+"""
+
+
+# Detach previously-seeded children for this fixture so re-runs cannot
+# leave orphan encounters / documents / expected SBARs hanging around.
+# Only deletes children whose ids carry the fixture's id_prefix and
+# whose is_test flag is true.
+RESET_SBAR_FIXTURE_CHILDREN = """
+MATCH (tp:TestPatient { id: $id })
+OPTIONAL MATCH (tp)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE coalesce(e.is_test, false) = true
+  AND e.id STARTS WITH $id_prefix
+DETACH DELETE e
+WITH tp
+OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)
+WHERE coalesce(s.is_test, false) = true
+DETACH DELETE s
+RETURN count(*) AS reset
+"""
+
+
+# Create one cloned encounter under the SBAR test patient. The :Concept
+# nodes are MERGE'd by SNOMED id, NOT created. The seed-time check in
+# the importer asserts every concept_id is already present in the
+# knowledge graph (loud failure on missing reference data) before this
+# query runs, so a missing match here is a programming error.
+SEED_SBAR_ENCOUNTER = """
+MATCH (tp:TestPatient { id: $tp_id })
+CREATE (e:Encounter {
+    id:           $encounter_id,
+    is_test:      true,
+    source_label: $source_label,
+    source_id:    $source_id,
+    text:         $text,
+    fixture_id:   $fixture_id
+})
+MERGE (tp)-[r:HAS_ENCOUNTER]->(e)
+SET r.is_test = true
+WITH e
+UNWIND $codes AS code
+MATCH (c:Concept { id: code.concept_id })
+MERGE (e)-[d:DOCUMENTS]->(c)
+SET d.is_test     = true,
+    d.assertion   = code.assertion,
+    d.term        = code.term,
+    d.fixture_id  = $fixture_id
+RETURN count(DISTINCT c) AS codes_linked
+"""
+
+
+# Persist the expected SBAR transcript + reviewer expectations so the
+# Phase D replay can score generated SBARs against this baseline.
+SEED_EXPECTED_SBAR = """
+MATCH (tp:TestPatient { id: $tp_id })
+MERGE (s:ExpectedSBAR { id: $sbar_id })
+SET s.is_test                 = true,
+    s.fixture_id              = $fixture_id,
+    s.situation_md            = $situation_md,
+    s.background_md           = $background_md,
+    s.recommendation_md       = $recommendation_md,
+    s.matched_rule_ids        = $matched_rule_ids,
+    s.required_phrases        = $required_phrases,
+    s.banned_phrases          = $banned_phrases,
+    s.expected_action_priority = $expected_action_priority,
+    s.reviewer_focus          = $reviewer_focus,
+    s.evaluator_outage        = $evaluator_outage
+MERGE (tp)-[r:HAS_EXPECTED_SBAR]->(s)
+SET r.is_test = true
+RETURN s.id AS id
+"""
+
+
+# Pre-flight check used by the SBAR importer: returns the subset of
+# concept ids that are NOT present in the knowledge graph. Used to fail
+# loudly before any partial seed is written.
+ASSERT_CONCEPTS_PRESENT = """
+UNWIND $concept_ids AS cid
+OPTIONAL MATCH (c:Concept { id: cid })
+WITH cid, c
+WHERE c IS NULL
+RETURN collect(cid) AS missing
 """
 
 

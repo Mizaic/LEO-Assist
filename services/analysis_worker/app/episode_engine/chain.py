@@ -303,16 +303,30 @@ def _node_writer(state: EngineState) -> dict[str, Any]:
         encounter_count=int(state.get("encounter_count") or 0),
     )
 
+    upstream_errors = list(state.get("errors") or [])
+    has_upstream_errors = bool(upstream_errors)
+
     client = PatientGraphClient()
     try:
-        materialised = write_episodes(
-            client=client,
-            patient_id=patient_id,
-            domain_id=domain_id,
-            episodes=episodes,
-            provenance=provenance,
-            dry_run=dry_run,
-        )
+        if has_upstream_errors:
+            logger.warning(
+                "writer: SKIPPING delete+write for patient %s because "
+                "upstream stages reported errors (%d). Existing "
+                "EpisodeOfCare nodes are preserved. Errors: %s",
+                patient_id,
+                len(upstream_errors),
+                upstream_errors,
+            )
+            materialised = []
+        else:
+            materialised = write_episodes(
+                client=client,
+                patient_id=patient_id,
+                domain_id=domain_id,
+                episodes=episodes,
+                provenance=provenance,
+                dry_run=dry_run,
+            )
         persist_trace(
             client=client,
             trace_id=trace_id,
@@ -320,7 +334,7 @@ def _node_writer(state: EngineState) -> dict[str, Any]:
             stages=stage_traces,
             encounter_count=int(state.get("encounter_count") or 0),
             episode_count=len(materialised),
-            errors=list(state.get("errors") or []),
+            errors=upstream_errors,
             dry_run=dry_run,
         )
     finally:

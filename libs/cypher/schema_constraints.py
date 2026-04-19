@@ -87,7 +87,10 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE INDEX assessment_created_at IF NOT EXISTS FOR (a:Assessment) ON (a.created_at)",
 ]
 
-from libs.cypher.test_patient_queries import TEST_PATIENT_CONSTRAINTS
+from libs.cypher.test_patient_queries import (
+    SBAR_FIXTURE_CONSTRAINTS,
+    TEST_PATIENT_CONSTRAINTS,
+)
 
 CODING_SCHEMA_CONSTRAINTS: list[str] = [
     "CREATE FULLTEXT INDEX surface_form_fulltext IF NOT EXISTS FOR (sf:SurfaceForm) ON EACH [sf.form]",
@@ -105,4 +108,5 @@ CODING_SCHEMA_CONSTRAINTS: list[str] = [
     "CREATE CONSTRAINT surface_form_task_id IF NOT EXISTS FOR (t:SurfaceFormTask) REQUIRE t.task_id IS UNIQUE",
     "CREATE INDEX surface_form_task_status IF NOT EXISTS FOR (t:SurfaceFormTask) ON (t.status)",
     *TEST_PATIENT_CONSTRAINTS,
+    *SBAR_FIXTURE_CONSTRAINTS,
 ]

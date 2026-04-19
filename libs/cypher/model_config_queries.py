@@ -117,8 +117,25 @@ RETURN c.candidate_id          AS candidateId,
        c.encounter_id          AS encounterId,
        c.updated_at            AS updatedAt,
        c.extraction_model_name AS modelName,
-       c.llm_usage_json        AS llmUsageJson
-ORDER BY c.updated_at DESC
+       c.llm_usage_json        AS llmUsageJson,
+       'coding_extraction'     AS source
+UNION
+// DI-LEO-AI-506: include SBAR Assessment rows so the per-patient
+// LLM spend drill-down covers every LLM-backed pipeline. The shape
+// matches the EncounterCandidate row above so the API/UI need no
+// change; the `source` discriminator lets the UI optionally label
+// SBAR rows differently.
+MATCH (p:Patient {id: $patient_id})-[:HAS_ASSESSMENT]->(a:Assessment)
+WHERE a.llm_usage_json IS NOT NULL
+  AND ($from_date IS NULL OR a.updated_at >= datetime($from_date))
+  AND ($to_date   IS NULL OR a.updated_at <= datetime($to_date))
+OPTIONAL MATCH (e:Encounter)-[:HAS_ASSESSMENT]->(a)
+RETURN a.id                    AS candidateId,
+       coalesce(e.id, '')      AS encounterId,
+       a.updated_at            AS updatedAt,
+       a.llm_model_id          AS modelName,
+       a.llm_usage_json        AS llmUsageJson,
+       'sbar_assessment'       AS source
 """
 
 GET_ORG_LLM_SPEND = """

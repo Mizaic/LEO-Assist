@@ -1,0 +1,150 @@
+# -- VT-LEO-AI-508 -- Universal LLM cost telemetry verification
+# IEC 62304 Verification Test
+
+- id: "VT-LEO-AI-508"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-506"
+    risks:
+      - "R-LEO-AI-506"
+
+  metadata:
+    title: "LLM cost telemetry: invoke_llm_json + LLMUsageRecorder + SBAR finalise"
+    description: >
+      Verifies that every LLM call routed through the shared helper
+      invoke_llm_json reports tokens to a registered tracking
+      callback, that the new LLMUsageRecorder context manager
+      accumulates per-run usage in a contextvars-safe way, and
+      that the SBAR orchestrator denormalises the totals onto the
+      :Assessment node and emits a PipelineRun :AuditEvent that
+      matches the wire format consumed by the existing dashboard
+      LLMSpendPanel and the per-tenant billing subsystem.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "tests/llm_client/test_invoke_llm_json_token_extraction.py"
+      - "tests/llm_client/test_usage_recorder.py"
+      - "tests/sbar/test_sbar_orchestrator_cost_telemetry.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-508-TC-001"
+      case_name: "invoke_llm_json extracts Bedrock-style usage_metadata and forwards tokens to the callback"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Stub the LLM response to return usage_metadata={input_tokens:120, output_tokens:30, input_token_details:{cache_read:50}}"
+          expected_result: "Registered callback receives input_tokens=120, output_tokens=30, cached_tokens=50, model_name and provider populated"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Callback fired exactly once per LLM call with non-zero input/output tokens"
+
+    - case_id: "VT-508-TC-002"
+      case_name: "invoke_llm_json still fires the callback when usage_metadata is missing"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Stub the LLM response with no usage_metadata; invoke the helper"
+          expected_result: "Callback fires with input_tokens=0, output_tokens=0, latency_ms>0, model_name set"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Callback fired with zero token counts but non-empty model_name and provider"
+
+    - case_id: "VT-508-TC-003"
+      case_name: "LLMUsageRecorder accumulates token counts across nested invoke_llm_json calls"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Wrap two stubbed invoke_llm_json calls in a single LLMUsageRecorder context"
+          expected_result: "recorder.usage.input_tokens == sum of stubbed inputs; recorder.calls has 2 entries"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "recorder.usage.calls == 2 and recorder.cost_usd(default_config) > 0"
+
+    - case_id: "VT-508-TC-004"
+      case_name: "Concurrent asyncio tasks each get an isolated LLMUsageRecorder via contextvars"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run two asyncio.gather tasks each with their own recorder; each task makes a different number of stubbed LLM calls"
+          expected_result: "Each recorder sees only the calls made inside its own context; no cross-contamination"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "recorder_a.usage.calls != recorder_b.usage.calls when stubs differ"
+
+    - case_id: "VT-508-TC-005"
+      case_name: "SBAR orchestrator writes Assessment.llm_usage_json + flat fields"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run SBAROrchestrator.run with stubbed LLM callers that report fixed token counts"
+          expected_result: ":Assessment node has llm_usage_json (parses to JSON), llm_cost_usd > 0, llm_input_tokens > 0"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "json.loads(a.llm_usage_json)['cost_usd'] == a.llm_cost_usd within 1e-6"
+
+    - case_id: "VT-508-TC-006"
+      case_name: "SBAR orchestrator writes a PipelineRun AuditEvent linked to the patient"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run SBAROrchestrator.run; query MATCH (ae:AuditEvent {type:'PipelineRun', run_id:$run})-[:AUDIT_FOR]->(p:Patient)"
+          expected_result: "Exactly one AuditEvent is returned with non-zero llm_input_tokens, llm_output_tokens, llm_cost_usd"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "ae.llm_cost_usd matches a.llm_cost_usd within 1e-6"
+
+    - case_id: "VT-508-TC-007"
+      case_name: "Telemetry write failure does not fail the SBAR run"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Stub session.run to raise on the SET_ASSESSMENT_USAGE query; complete the SBAR run"
+          expected_result: "SBARResult.status == 'completed'; a WARNING is logged; orchestrator returns successfully"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Exception is swallowed at the telemetry boundary; downstream payload unchanged"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-508/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-508-EXEC-20260418-001"
+      executed_at: "2026-04-18"
+      executed_by: "Platform Engineering"
+      environment: "development"
+      command: >
+        pytest tests/llm_client/test_invoke_llm_json_token_extraction.py
+               tests/llm_client/test_usage_recorder.py
+               tests/sbar/test_sbar_orchestrator_cost_telemetry.py -v
+      result: "pass"
+      cases_executed: 10
+      cases_passed: 10
+      cases_failed: 0
+      notes: >
+        All 10 cases pass: 3 token-extraction cases (TC-001, TC-002,
+        plus one negative-path case for failed invocations), 4
+        recorder cases (TC-003, TC-004, plus two contract cases for
+        ContextVar lifecycle and to_audit_dict shape), and 3 SBAR
+        orchestrator cases (TC-005, TC-006, TC-007). Pre-existing
+        test_sbar_orchestrator.py and test_sbar_prompts_v2_contract.py
+        suites also pass with no regressions.

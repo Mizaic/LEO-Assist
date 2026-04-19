@@ -68,6 +68,8 @@ import {
   getAspectCounts,
   listTestPatients,
 } from "./api";
+import BuildPatientDialog from "./BuildPatientDialog";
+import CopyFromRealDialog from "./CopyFromRealDialog";
 
 const ZERO_COUNTS: AspectCounts = {
   all: 0,
@@ -113,6 +115,8 @@ export default function TestPatientLibraryKnowledgeTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [buildOpen, setBuildOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
 
   const fetchAll = useCallback(() => {
     setLoading(true);
@@ -175,16 +179,14 @@ export default function TestPatientLibraryKnowledgeTab() {
         label: "Build a patient",
         icon: <AddIcon fontSize="small" />,
         variant: "secondary",
-        disabled: true,
-        onClick: () => undefined,
+        onClick: () => setBuildOpen(true),
       },
       {
         id: "copy-from-real",
         label: "Copy from a real patient",
         icon: <FileCopyOutlinedIcon fontSize="small" />,
         variant: "primary",
-        disabled: true,
-        onClick: () => undefined,
+        onClick: () => setCopyOpen(true),
       },
     ],
     [],
@@ -337,6 +339,20 @@ export default function TestPatientLibraryKnowledgeTab() {
           emptyState={emptyState}
         />
       )}
+
+      <BuildPatientDialog
+        open={buildOpen}
+        initialAspect={aspect}
+        onClose={() => setBuildOpen(false)}
+        onCreated={() => setRefreshKey((n) => n + 1)}
+      />
+
+      <CopyFromRealDialog
+        open={copyOpen}
+        initialAspect={aspect}
+        onClose={() => setCopyOpen(false)}
+        onCloned={() => setRefreshKey((n) => n + 1)}
+      />
     </Box>
   );
 }

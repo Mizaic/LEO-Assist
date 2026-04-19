@@ -1,0 +1,115 @@
+# -- DO-LEO-AI-506 -- LLM cost telemetry plumbing (recorder + invoke_llm_json + SBAR finalise)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-506"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-506"]
+    user_needs: ["UN-LEO-AI-091"]
+    risks_addressed: ["R-LEO-AI-506"]
+    verification_tests: ["VT-LEO-AI-508"]
+
+  specification:
+    title: "Universal LLM cost telemetry"
+    description: |
+      Three changes wire LLM cost telemetry through every pipeline that
+      uses the shared ``invoke_llm_json`` helper:
+
+      1. ``invoke_llm_json`` is taught to extract input/output/cache
+         token counts and latency from the underlying provider response
+         and forward them (with model and provider) to the global
+         tracking callback.
+      2. A new ``libs.llm_client.usage_recorder.LLMUsageRecorder``
+         context manager uses ``contextvars.ContextVar`` to register
+         a per-run accumulator. Any orchestrator can wrap a section
+         of work in ``with LLMUsageRecorder() as rec:`` and read the
+         totals after the block; nested ``invoke_llm_json`` calls
+         flow into the active recorder automatically and async tasks
+         each get an isolated copy.
+      3. The SBAR orchestrator wraps each LLM-backed stage in a
+         recorder, denormalises the totals onto the ``:Assessment``
+         node as ``llm_usage_json`` + flat fields, and writes a
+         ``:AuditEvent {type:'PipelineRun'}`` linked to the patient.
+         Failures to write telemetry are logged at WARNING and do
+         not fail the run.
+      4. ``GET_PATIENT_LLM_SPEND`` is extended to pull
+         ``Assessment.llm_usage_json`` rows alongside
+         ``EncounterCandidate.llm_usage_json`` rows, with a
+         ``source`` discriminator.
+
+    acceptance_criteria:
+      - criterion: "Token extraction in invoke_llm_json"
+        type: "functional"
+        measurement: "Test"
+        target: "Extracts input/output/cache tokens from a fake Bedrock-style response and passes them to a registered callback"
+      - criterion: "LLMUsageRecorder context isolation"
+        type: "functional"
+        measurement: "Test"
+        target: "Two concurrent asyncio tasks each see only their own usage; outer recorder sees only its own scope"
+      - criterion: "SBAR Assessment carries llm_usage_json"
+        type: "functional"
+        measurement: "Test"
+        target: ":Assessment.llm_usage_json is set, parses to a JSON object whose total_cost_usd matches a.llm_cost_usd within 1e-6"
+      - criterion: "SBAR run writes a PipelineRun AuditEvent"
+        type: "functional"
+        measurement: "Test"
+        target: ":AuditEvent {type:'PipelineRun', run_id:$run} exists with non-zero llm_input_tokens and llm_output_tokens after a successful run"
+      - criterion: "Failure isolation"
+        type: "safety"
+        measurement: "Test"
+        target: "If the AuditEvent write raises, the orchestrator logs a WARNING and SBARResult.status remains 'completed'"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/llm_client/json_helper.py"
+        description: "Updated invoke_llm_json: extract usage_metadata, latency_ms, model + provider; pass to track_llm_usage"
+      - artifact_type: "source_code"
+        location: "libs/llm_client/usage_recorder.py"
+        description: "New LLMUsageRecorder + active-recorder ContextVar; default tracking callback bound on import"
+      - artifact_type: "source_code"
+        location: "libs/llm_client/token_tracker.py"
+        description: "extract_token_counts already returns input/output/cached/total; add prompt_name and model_name forwarding"
+      - artifact_type: "source_code"
+        location: "services/pipeline_worker/app/services/sbar_orchestrator.py"
+        description: "Wrap each stage in LLMUsageRecorder; on finalise, write SET_ASSESSMENT_USAGE and a PipelineRun AuditEvent"
+      - artifact_type: "source_code"
+        location: "libs/cypher/sbar_assessment_queries.py"
+        description: "New SET_ASSESSMENT_USAGE and WRITE_SBAR_AUDIT_EVENT Cypher constants"
+      - artifact_type: "source_code"
+        location: "libs/cypher/model_config_queries.py"
+        description: "GET_PATIENT_LLM_SPEND extended with UNION over :Assessment.llm_usage_json"
+      - artifact_type: "test"
+        location: "tests/llm_client/test_invoke_llm_json_token_extraction.py"
+        description: "Token extraction unit tests against a fake Bedrock-style response"
+      - artifact_type: "test"
+        location: "tests/llm_client/test_usage_recorder.py"
+        description: "LLMUsageRecorder context isolation + accumulation tests"
+      - artifact_type: "test"
+        location: "tests/sbar/test_sbar_orchestrator_cost_telemetry.py"
+        description: "End-to-end SBAR orchestrator test asserting Assessment + AuditEvent telemetry"
+    storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 380
+      key_functions:
+        - "invoke_llm_json"
+        - "LLMUsageRecorder"
+        - "_record_assessment_usage"
+        - "_write_sbar_audit_event"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Telemetry write must never fail the SBAR run (best-effort)"
+    risk_control_measures:
+      - "Try/except around all telemetry writes; log WARNING on failure"
+      - "All numeric fields rounded to 6 decimal places to avoid float drift"
+      - "Recorder uses ContextVar to avoid leaking usage across concurrent runs"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

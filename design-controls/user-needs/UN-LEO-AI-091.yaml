@@ -1,0 +1,107 @@
+# -- UN-LEO-AI-091 -- LLM cost observability across all generation pipelines
+# IEC 62304 / ISO 13485 User Need
+# Schema: design-controls/templates/user_needs_schema.yaml
+
+- id: "UN-LEO-AI-091"
+  title: "Platform admins can monitor LLM token usage and cost for every generation pipeline"
+  description: |
+    Platform and tenant administrators need a single, consistent view of
+    LLM token usage and cost-in-pounds for every pipeline that calls
+    a large language model -- including coding extraction, the episode
+    engine, and the SBAR pipeline. Today, only the coding pipeline
+    populates the dashboard cost panels. SBAR runs and any other future
+    LLM-backed feature run with no spend telemetry, which makes per-tenant
+    invoicing inaccurate, hides cost regressions caused by prompt or
+    model changes, and prevents finance from forecasting AI spend.
+
+    Every LLM call -- regardless of which orchestrator made it -- must
+    be counted, costed, attributed to a tenant and a patient where
+    applicable, and surfaced in the existing dashboard cost trackers
+    using the same wire format already in production
+    (``GET /analytics/llm-spend/runs`` and ``/llm-spend/patient``).
+
+  stakeholder:
+    type: "internal"
+    role: "Platform Administrator and Finance"
+    organization: "Mizaic"
+
+  priority: "MUST"
+
+  rationale: |
+    The billing subsystem (DI-LEO-AI-068) already aggregates per-tenant
+    spend from ``:AuditEvent {type:'PipelineRun', llm_input_tokens IS
+    NOT NULL}``, but only the coding pipeline writes those events. SBAR
+    cost is currently invisible: ``libs/llm_client/json_helper.invoke_llm_json``
+    fires its tracking callback with no token counts, no callback is
+    registered at runtime, and ``:Assessment`` has no usage properties.
+    A patient SBAR run that costs $0.10 today is billed at $0.00.
+
+  benefit: |
+    - Accurate per-tenant invoicing across every AI feature, not just
+      coding.
+    - Early detection of cost regressions caused by a prompt change
+      (e.g. v2 SBAR prompts adding 30% to recommendation cost).
+    - Finance can forecast AI spend by feature.
+    - Cost trends per prompt version unlock prompt-engineering ROI
+      decisions.
+
+  use_case: |
+    1. A reviewer launches an SBAR run from the playground.
+    2. The orchestrator records token counts and latency for each LLM
+       call (Situation, Background, Recommendation).
+    3. On finalisation, the orchestrator writes a ``PipelineRun``
+       ``:AuditEvent`` with ``llm_input_tokens``, ``llm_output_tokens``,
+       ``llm_cached_tokens``, ``llm_cost_usd``, ``total_duration_ms``,
+       and ``extraction_provider`` / ``extraction_model_tier`` /
+       ``extraction_prompt_name`` set.
+    4. The same totals are denormalised onto the ``:Assessment`` as
+       ``llm_usage_json`` so per-encounter drill-downs include SBAR.
+    5. The dashboard ``LLMSpendPanel`` immediately shows the run with
+       its cost, no UI change required.
+
+  current_solution: |
+    Coding extraction writes flat ``llm_*`` properties on
+    ``:AuditEvent`` and ``llm_usage_json`` on ``:EncounterCandidate``.
+    Episode engine accumulates ``LLMUsage`` in memory but does not
+    persist it to a UI-visible surface. SBAR persists nothing.
+
+  pain_points:
+    - "SBAR runs do not appear in the AI model spend dashboard."
+    - "Per-tenant invoicing under-counts AI cost because non-coding pipelines are invisible."
+    - "Prompt version regressions in SBAR cannot be detected by cost monitoring."
+    - "Episode engine accumulates usage in memory but it is discarded after the run."
+
+  acceptance_criteria:
+    - "Every completed SBAR run writes a :AuditEvent {type:'PipelineRun'} with non-null llm_input_tokens, llm_output_tokens, llm_cached_tokens and llm_cost_usd."
+    - "Every completed :Assessment node has a non-empty llm_usage_json property whose parsed cost_usd matches the AuditEvent cost_usd within 1e-6."
+    - "All LLM call paths that go through libs.llm_client.json_helper.invoke_llm_json populate input/output/cache token counts on the tracking callback."
+    - "A LLMUsageRecorder context manager (scoped to a run_id) accumulates per-call usage so any orchestrator can reuse the same plumbing without changing call sites."
+    - "GET /api/analytics/llm-spend/patient returns SBAR Assessment usage rows alongside EncounterCandidate rows."
+    - "GET /api/analytics/llm-spend/runs returns SBAR runs with the same field shape as coding runs (no UI change required)."
+
+  success_metrics:
+    - metric: "% of LLM calls with token counts recorded"
+      target: ">= 99% across coding, episode engine, and SBAR"
+      baseline: "100% coding, 0% episode engine writes, 0% SBAR"
+    - metric: "Coverage of SBAR runs in /analytics/llm-spend/runs"
+      target: "100% of completed SBAR runs in the previous 7 days"
+      baseline: "0%"
+
+  regulatory_impact: "low"
+  safety_impact: "low"
+
+  derived_from:
+    - "DI-LEO-AI-068 per-tenant billing requirement"
+    - "Operational gap identified during SBAR playground review 2026-04-18"
+
+  related_standards:
+    - "IEC 62304:2006 (software item observability)"
+    - "ISO 13485:2016"
+
+  metadata:
+    created_by: "Platform Engineering"
+    created_date: "2026-04-18"
+    status: "draft"
+
+  design_inputs:
+    - "DI-LEO-AI-506"

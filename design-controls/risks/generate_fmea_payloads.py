@@ -21,6 +21,8 @@ import json
 import re
 from pathlib import Path
 
+import yaml
+
 import di_matcher
 
 HERE = Path(__file__).parent
@@ -31,6 +33,11 @@ YAML_INDEX = HERE / "all_yaml_risks_extracted.json"
 ATLAS_INDEX = HERE / "_atlas_index.json"
 OUT_PATH = HERE / "atlas_fmea_payloads.json"
 DI_REPORT_PATH = HERE / "di_mapping_report.csv"
+
+# Cache of fully-parsed YAML risk blocks keyed by R-LEO-AI-NNN id. Populated
+# lazily by _yaml_block_for; supplies residual_risk_estimate that the legacy
+# regex-based all_yaml_risks_extracted.json does not include.
+_YAML_BLOCKS: dict[str, dict] = {}
 
 DI_MATCH_TOP_N = 5
 DI_MATCH_MIN_SCORE = 0.30
@@ -265,21 +272,108 @@ def _recommended_actions(row: dict) -> str:
             "Safety Committee.")
 
 
+def _yaml_block_for(risk_id: str) -> dict | None:
+    """Load the full YAML risk record (including residual_risk_estimate) for
+    R-LEO-AI-NNN. Returns None when no file exists or it cannot be parsed.
+    Cached so we only hit disk once per ID across the run.
+    """
+    if not risk_id:
+        return None
+    if risk_id in _YAML_BLOCKS:
+        return _YAML_BLOCKS[risk_id]
+    path = HERE / f"{risk_id}.yaml"
+    if not path.exists():
+        _YAML_BLOCKS[risk_id] = {}
+        return None
+    try:
+        docs = list(yaml.safe_load_all(path.open()))
+    except yaml.YAMLError:
+        _YAML_BLOCKS[risk_id] = {}
+        return None
+    for doc in docs:
+        if doc is None:
+            continue
+        items = doc if isinstance(doc, list) else [doc]
+        for it in items:
+            if isinstance(it, dict) and it.get("id") == risk_id:
+                _YAML_BLOCKS[risk_id] = it
+                return it
+    _YAML_BLOCKS[risk_id] = {}
+    return None
+
+
+def _residual_from_yaml(risk_id: str, row: dict) -> dict:
+    block = _yaml_block_for(risk_id)
+    if not block:
+        return {}
+    res = block.get("residual_risk_estimate") or {}
+    sev = res.get("severity")
+    prob = res.get("probability")
+    det = res.get("detectability")
+    if not (isinstance(sev, int) and isinstance(prob, int) and isinstance(det, int)):
+        return {}
+    rpn = sev * prob * det
+    accept_raw = (res.get("acceptability") or "").strip().lower()
+    accept = ACCEPT_MAP.get(accept_raw) or ACCEPT_MAP.get(
+        rpn_to_level(rpn), "alarp"
+    )
+    return {
+        "residual_severity": sev,
+        "residual_probability": prob,
+        "residual_detectability": det,
+        "residual_rpn": rpn,
+        "residual_risk_level": rpn_to_level(rpn),
+        "residual_acceptability": accept,
+        "residual_justification": (
+            res.get("justification")
+            or (
+                f"Residual estimate from {risk_id}.yaml. "
+                f"Specialist review framework: "
+                f"{row.get('Specialist_Review_Framework') or 'clinical safety'}."
+            )
+        )[:500],
+    }
+
+
+def _residual_initial_fallback(row: dict) -> dict:
+    """Conservative ISO 14971 fallback: until residual is workshop-reviewed,
+    treat residual = initial. Surfaces the risk in the matrix at its
+    pre-mitigation cell rather than dropping it silently.
+    """
+    s5, p5, d5 = _scores_5(row)
+    rpn = s5 * p5 * d5
+    return {
+        "residual_severity": s5,
+        "residual_probability": p5,
+        "residual_detectability": d5,
+        "residual_rpn": rpn,
+        "residual_risk_level": rpn_to_level(rpn),
+        "residual_acceptability": ACCEPT_MAP.get(rpn_to_level(rpn), "alarp"),
+        "residual_justification": (
+            "Provisional residual = initial estimate. Pending workshop "
+            "review of mitigation effectiveness for this FMEA gap "
+            f"({row.get('Master_ID', '')}). Specialist framework: "
+            f"{row.get('Specialist_Review_Framework') or 'clinical safety'}."
+        )[:500],
+    }
+
+
 def _residual_block(row: dict) -> dict:
     sev_raw = row.get("Residual_Severity", "")
     prob_raw = row.get("Residual_Probability", "")
     det_raw = row.get("Residual_Detectability", "")
     accept_raw = (row.get("Residual_Acceptability") or "").strip().lower()
+    rid = row.get("Atlas_R_ID", "")
     if not (sev_raw and prob_raw and det_raw and accept_raw):
-        return {}
+        return _residual_from_yaml(rid, row) or _residual_initial_fallback(row)
     s = _to_int_5(sev_raw, SEV_NUM_5)
     p = _to_int_5(prob_raw, PROB_NUM_5)
     try:
         d = int(det_raw)
     except (TypeError, ValueError):
-        return {}
+        return _residual_from_yaml(rid, row) or _residual_initial_fallback(row)
     if s is None or p is None:
-        return {}
+        return _residual_from_yaml(rid, row) or _residual_initial_fallback(row)
     rpn = s * p * d
     return {
         "residual_severity": s,

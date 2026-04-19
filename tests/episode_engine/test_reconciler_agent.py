@@ -121,3 +121,60 @@ def test_reconciler_supports_multi_to_one_merge():
     result, _ = reconciler.run(llm=llm, patient_id="p-1", candidates=_CANDIDATES)
     assert result.episodes[0].merged_from == ["w1", "w2"]
     assert result.episodes[0].episode_type == "multi_site"
+
+
+def test_reconciler_preserves_safety_netting_and_disruptions():
+    """VT-504-TC-004: episode-level safety_netting and disruptions
+    survive the reconciler round-trip."""
+
+    payload = {
+        "episodes": [
+            {
+                "episode_id": "e-1",
+                "suspected_site": "breast",
+                "episode_type": "cancer",
+                "window_start": "2025-03-26",
+                "window_end": "2025-07-28",
+                "milestones": [
+                    {
+                        "type": "referral",
+                        "date": "2025-03-26",
+                        "encounter_id": "enc-1",
+                        "evidence_quote": "Fast track referral.",
+                        "confidence": 0.95,
+                        "reasoning": "",
+                    }
+                ],
+                "safety_netting": {
+                    "recorded": True,
+                    "evidence_quote": "advised to return if lump grows.",
+                    "encounter_id": "enc-pres",
+                    "date": "2025-03-12",
+                    "confidence": 0.9,
+                },
+                "disruptions": [
+                    {
+                        "date": "2025-04-10",
+                        "category": "referral_lost_or_not_received",
+                        "description": "Patient phoned -- no clinic letter.",
+                        "encounter_id": "enc-chase",
+                        "evidence_quote": "no appointment letter from clinic",
+                        "confidence": 0.85,
+                    }
+                ],
+                "confidence": 0.93,
+                "reasoning": "preserved",
+                "needs_human_review": False,
+                "merged_from": ["w1"],
+            }
+        ],
+        "notes": "preserved",
+    }
+    llm = FakeLLM(FakeLLMResponse(tool_uses=[tool_use("submit_episodes", payload)]))
+    result, _ = reconciler.run(llm=llm, patient_id="p-1", candidates=_CANDIDATES)
+    ep = result.episodes[0]
+    assert ep.safety_netting is not None
+    assert ep.safety_netting.recorded is True
+    assert ep.safety_netting.encounter_id == "enc-pres"
+    assert len(ep.disruptions) == 1
+    assert ep.disruptions[0].category == "referral_lost_or_not_received"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from typing import Any
 from unittest.mock import MagicMock
@@ -9,9 +10,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from services.analysis_worker.app.episode_engine.schemas import (
+    Disruption,
     Milestone,
     Provenance,
     ReconciledEpisode,
+    SafetyNetting,
     StageTrace,
 )
 from services.analysis_worker.app.episode_engine.writer import (
@@ -21,6 +24,12 @@ from services.analysis_worker.app.episode_engine.writer import (
     _first_seen_date,
     deterministic_episode_id,
     write_episodes,
+)
+from services.analysis_worker.app.episode_engine.writer_rollups import (
+    disruption_phase,
+    disruption_summary,
+    earliest_phase,
+    safety_netting_payload,
 )
 
 
@@ -316,3 +325,308 @@ def test_episode_id_unique_per_site_window_pair(ep_type):
     id1 = deterministic_episode_id("p-1", ep1.suspected_site, "2025-03-26")
     id2 = deterministic_episode_id("p-1", ep2.suspected_site, "2025-03-26")
     assert id1 != id2
+
+
+def test_denormalised_milestone_dates_persist_on_episode():
+    """VT-505-TC-011: referral_date, diagnosis_date, treatment_started_date,
+    treatment_completed_date, specialist_date are denormalised onto the
+    EpisodeOfCare so the analytics dashboards can read them without a
+    relationship traversal."""
+
+    client = MagicMock()
+    client.run.return_value = [{"deleted": 0}]
+
+    eps = [
+        _episode(
+            milestones=[
+                _milestone(
+                    type="referral", iso_date="2025-03-26", encounter_id="enc-ref"
+                ),
+                _milestone(
+                    type="first_seen",
+                    iso_date="2025-04-28",
+                    encounter_id="enc-fs",
+                ),
+                _milestone(
+                    type="diagnosis_confirmed",
+                    iso_date="2025-05-19",
+                    encounter_id="enc-diag",
+                ),
+                _milestone(
+                    type="treatment_started",
+                    iso_date="2025-05-19",
+                    encounter_id="enc-tx1",
+                    treatment_type="endocrine",
+                ),
+                _milestone(
+                    type="treatment_started",
+                    iso_date="2025-07-28",
+                    encounter_id="enc-tx2",
+                    treatment_type="surgery",
+                ),
+                _milestone(
+                    type="treatment_completed",
+                    iso_date="2025-09-15",
+                    encounter_id="enc-txdone",
+                ),
+            ]
+        )
+    ]
+
+    write_episodes(
+        client=client,
+        patient_id="p-1",
+        domain_id="d-1",
+        episodes=eps,
+        provenance=_provenance(),
+        dry_run=False,
+    )
+
+    write_call = next(
+        c
+        for c in client.run.call_args_list
+        if "MERGE (ep:EpisodeOfCare" in c.args[0]
+    )
+    kw: dict[str, Any] = write_call.kwargs
+    assert kw["referral_date"] == "2025-03-26"
+    assert kw["first_seen_date"] == "2025-04-28"
+    assert kw["diagnosis_date"] == "2025-05-19"
+    assert (
+        kw["treatment_started_date"] == "2025-05-19"
+    ), "earliest treatment_started should win"
+    assert kw["treatment_completed_date"] == "2025-09-15"
+
+
+def test_safety_netting_persists_to_episode_properties():
+    """VT-505-TC-012: a SafetyNetting object on the reconciled episode is
+    flattened onto ep.safety_netting_* properties for the dashboard."""
+
+    client = MagicMock()
+    client.run.return_value = [{"deleted": 0}]
+
+    eps = [_episode()]
+    eps[0].safety_netting = SafetyNetting(
+        recorded=True,
+        evidence_quote="advised to return urgently if symptoms worsen.",
+        encounter_id="enc-pres",
+        date=date.fromisoformat("2025-03-12"),
+        confidence=0.92,
+    )
+
+    write_episodes(
+        client=client,
+        patient_id="p-1",
+        domain_id="d-1",
+        episodes=eps,
+        provenance=_provenance(),
+        dry_run=False,
+    )
+
+    write_call = next(
+        c
+        for c in client.run.call_args_list
+        if "MERGE (ep:EpisodeOfCare" in c.args[0]
+    )
+    kw = write_call.kwargs
+    assert kw["safety_netting_recorded"] is True
+    assert (
+        kw["safety_netting_evidence"]
+        == "advised to return urgently if symptoms worsen."
+    )
+    assert kw["safety_netting_encounter_id"] == "enc-pres"
+    assert kw["safety_netting_date"] == "2025-03-12"
+    assert kw["safety_netting_confidence"] == pytest.approx(0.92)
+
+
+def test_safety_netting_absent_falls_back_to_recorded_false():
+    """VT-505-TC-013: an episode with no safety netting persists
+    safety_netting_recorded=false and null evidence."""
+
+    client = MagicMock()
+    client.run.return_value = [{"deleted": 0}]
+    eps = [_episode()]
+
+    write_episodes(
+        client=client,
+        patient_id="p-1",
+        domain_id="d-1",
+        episodes=eps,
+        provenance=_provenance(),
+        dry_run=False,
+    )
+
+    write_call = next(
+        c
+        for c in client.run.call_args_list
+        if "MERGE (ep:EpisodeOfCare" in c.args[0]
+    )
+    kw = write_call.kwargs
+    assert kw["safety_netting_recorded"] is False
+    assert kw["safety_netting_evidence"] is None
+    assert kw["safety_netting_encounter_id"] is None
+    assert kw["safety_netting_date"] is None
+
+
+def test_disruptions_roll_up_and_link_per_encounter():
+    """VT-505-TC-014: disruptions roll up into ep.* scalars and emit one
+    DOCUMENTS_DISRUPTION link per disruption with the resolved phase."""
+
+    client = MagicMock()
+    client.run.return_value = [{"deleted": 0}]
+
+    eps = [
+        _episode(
+            milestones=[
+                _milestone(
+                    type="first_presentation",
+                    iso_date="2025-03-12",
+                    encounter_id="enc-pres",
+                ),
+                _milestone(
+                    type="referral", iso_date="2025-03-26", encounter_id="enc-ref"
+                ),
+            ]
+        )
+    ]
+    # Override first_presentation to carry presentation_place
+    eps[0].milestones[0] = Milestone(
+        type="first_presentation",
+        date=date.fromisoformat("2025-03-12"),
+        encounter_id="enc-pres",
+        evidence_quote="GP face-to-face for new lump.",
+        presentation_place="gp_surgery",
+        confidence=0.9,
+        reasoning="r",
+    )
+    eps[0].disruptions = [
+        Disruption(
+            date=date.fromisoformat("2025-04-10"),
+            category="referral_lost_or_not_received",
+            description="Patient phoned: no appointment letter from clinic yet.",
+            encounter_id="enc-chase",
+            evidence_quote="no appointment letter from breast clinic yet",
+            confidence=0.85,
+        ),
+        Disruption(
+            date=date.fromisoformat("2025-05-02"),
+            category="appointment_dna",
+            description="Patient did not attend the booked clinic.",
+            encounter_id="enc-dna",
+            evidence_quote="DNA breast clinic appt 02/05.",
+            confidence=0.9,
+        ),
+    ]
+
+    write_episodes(
+        client=client,
+        patient_id="p-1",
+        domain_id="d-1",
+        episodes=eps,
+        provenance=_provenance(),
+        dry_run=False,
+    )
+
+    write_call = next(
+        c
+        for c in client.run.call_args_list
+        if "MERGE (ep:EpisodeOfCare" in c.args[0]
+    )
+    kw = write_call.kwargs
+    assert kw["disruption_count"] == 2
+    assert kw["has_referral_disruption"] is True
+    assert kw["avoidable_delay"] is True
+    assert kw["avoidable_delay_phase"] == "after_referral"
+    assert sorted(kw["disruption_categories"]) == [
+        "appointment_dna",
+        "referral_lost_or_not_received",
+    ]
+    persisted = json.loads(kw["disruptions_json"])
+    assert len(persisted) == 2
+    assert persisted[0]["phase"] == "after_referral"
+
+    link_calls = [
+        c
+        for c in client.run.call_args_list
+        if "MERGE (e)-[r:DOCUMENTS_DISRUPTION" in c.args[0]
+    ]
+    assert len(link_calls) == 2
+    by_category = {c.kwargs["category"]: c.kwargs for c in link_calls}
+    assert by_category["referral_lost_or_not_received"]["phase"] == "after_referral"
+    assert by_category["appointment_dna"]["phase"] == "after_referral"
+
+
+def test_disruption_phase_classifies_against_milestones():
+    """VT-505-TC-015: disruption_phase buckets dates relative to the
+    first_presentation and referral milestones."""
+
+    fp = "2025-03-12"
+    ref = "2025-03-26"
+
+    assert (
+        disruption_phase(date(2025, 3, 1), first_presentation_iso=fp, referral_iso=ref)
+        == "before_presentation"
+    )
+    assert (
+        disruption_phase(
+            date(2025, 3, 12), first_presentation_iso=fp, referral_iso=ref
+        )
+        == "pres_to_referral"
+    )
+    assert (
+        disruption_phase(
+            date(2025, 3, 20), first_presentation_iso=fp, referral_iso=ref
+        )
+        == "pres_to_referral"
+    )
+    assert (
+        disruption_phase(
+            date(2025, 3, 26), first_presentation_iso=fp, referral_iso=ref
+        )
+        == "after_referral"
+    )
+    # No first_presentation -> falls through to after_referral
+    assert (
+        disruption_phase(
+            date(2025, 3, 1), first_presentation_iso=None, referral_iso=None
+        )
+        == "after_referral"
+    )
+
+
+def test_earliest_phase_picks_pres_phase_over_after_referral():
+    """VT-505-TC-016: earliest_phase prioritises the earliest pathway phase."""
+
+    assert earliest_phase([]) is None
+    assert earliest_phase(["after_referral", "before_presentation"]) == (
+        "before_presentation"
+    )
+    assert (
+        earliest_phase(["after_referral", "pres_to_referral"]) == "pres_to_referral"
+    )
+
+
+def test_disruption_summary_with_no_disruptions_emits_nullish_rollup():
+    """VT-505-TC-017: an empty disruption list yields a quiet rollup."""
+
+    out = disruption_summary(
+        [], first_presentation_iso="2025-03-12", referral_iso="2025-03-26"
+    )
+    assert out["disruption_count"] == 0
+    assert out["has_referral_disruption"] is False
+    assert out["avoidable_delay"] is False
+    assert out["avoidable_delay_phase"] is None
+    assert out["disruption_categories"] == []
+    assert json.loads(out["disruptions_json"]) == []
+
+
+def test_safety_netting_payload_handles_none_and_recorded_false():
+    """VT-505-TC-018: safety_netting_payload normalises absent / falsy inputs."""
+
+    none_out = safety_netting_payload(None)
+    falsy_out = safety_netting_payload(SafetyNetting(recorded=False))
+    for out in (none_out, falsy_out):
+        assert out["safety_netting_recorded"] is False
+        assert out["safety_netting_evidence"] is None
+        assert out["safety_netting_encounter_id"] is None
+        assert out["safety_netting_date"] is None
+        assert out["safety_netting_confidence"] == 0.0

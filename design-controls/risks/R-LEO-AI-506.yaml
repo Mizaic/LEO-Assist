@@ -1,0 +1,109 @@
+# -- R-LEO-AI-506 -- Untracked LLM cost from non-coding pipelines
+
+- id: "R-LEO-AI-506"
+  title: "Non-coding LLM pipelines write no cost telemetry, so per-tenant invoicing under-counts AI spend"
+
+  hazard:
+    description: >
+      The shared LLM helper invoke_llm_json fires its tracking callback
+      with no token counts and no callback is registered at runtime, so
+      the SBAR orchestrator (and any future pipeline that does not
+      go through the coding workflow engine) writes no
+      :AuditEvent {type:'PipelineRun'} and no llm_usage_json. The
+      per-tenant billing subsystem (DI-LEO-AI-068) reads spend from
+      exactly those two surfaces, so SBAR cost is invisible to
+      invoicing and to the dashboard cost panels.
+    category: "data_protection"
+
+  hazardous_situation: >
+    A tenant runs many SBAR generations across a billing period.
+    Finance issues invoices computed only from coding extraction
+    spend. The tenant is under-billed and Mizaic absorbs the
+    cost. Concurrently, a prompt-version regression in SBAR
+    doubles per-call cost without any cost-monitoring alert
+    firing.
+
+  harm:
+    description: >
+      Direct revenue loss from under-billing tenants for AI usage.
+      Loss of cost-regression observability allows expensive
+      prompts to ship undetected. No direct patient-safety impact
+      because the underlying clinical output is unaffected.
+    severity: "minor"
+    safety_impact: "none"
+
+  initial_risk_estimate:
+    severity: 2
+    probability: 4
+    detectability: 4
+    rpn: 32
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        invoke_llm_json extracts input_tokens, output_tokens,
+        cached_tokens, latency_ms and the model id from the
+        provider response and passes them to the tracking
+        callback for every call.
+      implemented_by: ["DI-LEO-AI-506"]
+      verified_by: ["VT-LEO-AI-508"]
+    - control_type: "design_feature"
+      description: >
+        A contextvars-scoped LLMUsageRecorder accumulates per-run
+        token usage so any orchestrator can persist it to a
+        UI-visible surface with a single try/except block.
+      implemented_by: ["DI-LEO-AI-506"]
+      verified_by: ["VT-LEO-AI-508"]
+    - control_type: "design_feature"
+      description: >
+        The SBAR orchestrator writes a :AuditEvent {type:'PipelineRun'}
+        and Assessment.llm_usage_json on finalisation, matching
+        the wire format already consumed by /analytics/llm-spend
+        and /pricing/orgs.
+      implemented_by: ["DI-LEO-AI-506"]
+      verified_by: ["VT-LEO-AI-508"]
+    - control_type: "procedural_control"
+      description: >
+        dq_stale_unactioned_safety_alerts and the dashboard
+        LLMSpendPanel together flag any 7-day window in which a
+        tenant has Assessment nodes but no PipelineRun
+        AuditEvents (telemetry gap). Quarterly platform review
+        confirms parity.
+      implemented_by: ["DI-LEO-AI-506"]
+      verified_by: ["VT-LEO-AI-508"]
+
+  residual_risk_estimate:
+    severity: 2
+    probability: 1
+    detectability: 2
+    rpn: 4
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      Once invoke_llm_json + LLMUsageRecorder are wired through the
+      shared helper, every future LLM-backed feature inherits cost
+      telemetry by default. Telemetry writes are best-effort with
+      WARNING logs, so the run never fails because of cost-tracking
+      issues. Residual risk is limited to a small window of missed
+      events between a deploy and the next dq sweep.
+
+  monitoring:
+    monitoring_plan: >
+      Weekly review of the LLMSpendPanel comparing Assessment
+      counts to PipelineRun AuditEvent counts for the same period.
+      Quarterly billing reconciliation cross-checks invoice totals
+      against /analytics/llm-spend/runs aggregates.
+    metrics:
+      - "Ratio of completed :Assessment nodes to corresponding PipelineRun AuditEvents (target = 1.0)"
+      - "Mean llm_cost_usd per SBAR run (alert if 7-day moving average changes > 25%)"
+    review_frequency: "weekly"
+
+  metadata:
+    identified_by: "Platform engineering review during SBAR playground rollout"
+    identified_date: "2026-04-18"
+    status: "analyzed"
+    tags:
+      - "observability"
+      - "billing"
+      - "cost-tracking"

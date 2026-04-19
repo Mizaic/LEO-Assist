@@ -14,6 +14,7 @@ from __future__ import annotations
 from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.prompts.episode_engine._shared import (
     BREAST_REFERENCE_CASE,
+    DISRUPTION_CATEGORY_LIST,
     EPISODE_TYPE_LIST,
     MILESTONE_TYPE_LIST,
     PRESENTATION_PLACE_LIST,
@@ -62,6 +63,21 @@ SYSTEM = INJECTION_GUARD + (
     "  - confidence: overall episode confidence.\n"
     "  - needs_human_review: true if any milestone has confidence<0.6,\n"
     "    or if the merge required guesswork.\n\n"
+    "Episode-level signals to PRESERVE through reconciliation\n"
+    "(BOTH fields are REQUIRED in your output for every episode --\n"
+    "the schema rejects payloads that omit them):\n"
+    "  - safety_netting: keep the EARLIEST documented advice across\n"
+    "    the merged windows. Carry recorded, evidence_quote,\n"
+    "    encounter_id, date and confidence VERBATIM. If NONE of the\n"
+    "    merged windows recorded safety netting, emit\n"
+    "    safety_netting={recorded:false, evidence_quote:null,\n"
+    "    encounter_id:null, date:null, confidence:0.9}.\n"
+    "  - disruptions: take the UNION of disruption entries across\n"
+    "    merged windows, deduplicated by (date, category,\n"
+    "    encounter_id). Do NOT invent new disruptions. Do NOT\n"
+    "    re-categorise. Categories are: " + DISRUPTION_CATEGORY_LIST + ".\n"
+    "    If no merged window recorded any disruptions, emit\n"
+    "    disruptions=[].\n"
     + RULES_OF_THE_ROAD
     + "\n\n"
     + BREAST_REFERENCE_CASE
@@ -153,6 +169,64 @@ _MILESTONE_SCHEMA = {
 }
 
 
+_SAFETY_NETTING_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["recorded", "confidence"],
+    "properties": {
+        "recorded": {"type": "boolean"},
+        "evidence_quote": {"type": ["string", "null"]},
+        "encounter_id": {"type": ["string", "null"]},
+        "date": {"type": ["string", "null"]},
+        "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+        },
+    },
+}
+
+_DISRUPTION_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "date",
+        "category",
+        "description",
+        "encounter_id",
+        "evidence_quote",
+        "confidence",
+    ],
+    "properties": {
+        "date": {"type": "string"},
+        "category": {
+            "type": "string",
+            "enum": [
+                "referral_lost_or_not_received",
+                "referral_rejected_or_returned",
+                "repeat_referral_required",
+                "appointment_dna",
+                "appointment_cancelled_by_patient",
+                "appointment_cancelled_by_trust",
+                "result_not_received_in_primary_care",
+                "letter_received_late",
+                "patient_unreachable",
+                "mdt_outcome_unclear",
+                "other_administrative_delay",
+            ],
+        },
+        "description": {"type": "string"},
+        "encounter_id": {"type": "string"},
+        "evidence_quote": {"type": "string"},
+        "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+        },
+    },
+}
+
+
 SCHEMA: dict = {
     "type": "object",
     "additionalProperties": False,
@@ -169,6 +243,8 @@ SCHEMA: dict = {
                     "episode_type",
                     "window_start",
                     "milestones",
+                    "safety_netting",
+                    "disruptions",
                     "confidence",
                     "reasoning",
                     "needs_human_review",
@@ -192,6 +268,11 @@ SCHEMA: dict = {
                     "milestones": {
                         "type": "array",
                         "items": _MILESTONE_SCHEMA,
+                    },
+                    "safety_netting": _SAFETY_NETTING_SCHEMA,
+                    "disruptions": {
+                        "type": "array",
+                        "items": _DISRUPTION_SCHEMA,
                     },
                     "confidence": {
                         "type": "number",

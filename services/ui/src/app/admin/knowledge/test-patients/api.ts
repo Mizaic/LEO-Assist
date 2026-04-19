@@ -77,6 +77,32 @@ export function cloneFromReal(
   });
 }
 
+export interface BuildBlankBody {
+  aspect: "nlp" | "episodes" | "summarisation";
+  name: string;
+  description?: string;
+  age: number | null;
+  sex: "male" | "female" | "other" | null;
+}
+
+export interface BuildBlankResult {
+  id: string;
+  name: string;
+  aspect: string;
+  age: number | null;
+  sex: string | null;
+}
+
+export function buildBlankTestPatient(
+  body: BuildBlankBody,
+): Promise<BuildBlankResult> {
+  return request("/build", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
 export function deleteTestPatient(id: string): Promise<{ deleted: number }> {
   return request(`/${encodeURIComponent(id)}`, {
     method: "DELETE",

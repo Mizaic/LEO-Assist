@@ -70,6 +70,25 @@ PRESENTATION_PLACES: tuple[str, ...] = (
     "not_known",
 )
 
+# Disruption / avoidable-delay categories. See R-LEO-AI-* (audit avoidable
+# delays) and the NCDA "Avoidable Delays" section. Each category is mapped
+# to an audit phase by the writer when the disruption date is compared to
+# the episode milestones (before_presentation | pres_to_referral |
+# after_referral).
+DISRUPTION_CATEGORIES: tuple[str, ...] = (
+    "referral_lost_or_not_received",
+    "referral_rejected_or_returned",
+    "repeat_referral_required",
+    "appointment_dna",
+    "appointment_cancelled_by_patient",
+    "appointment_cancelled_by_trust",
+    "result_not_received_in_primary_care",
+    "letter_received_late",
+    "patient_unreachable",
+    "mdt_outcome_unclear",
+    "other_administrative_delay",
+)
+
 
 # -- Stage outputs ----------------------------------------------------------
 
@@ -166,6 +185,74 @@ class Milestone(BaseModel):
     reasoning: str
 
 
+class SafetyNetting(BaseModel):
+    """Cancer safety-netting advice recorded in the source text.
+
+    NCDA definition: documented advice to the patient about what
+    symptoms should prompt re-presentation, when, and how (e.g.
+    "advised to return if symptoms worsen / no improvement in 2
+    weeks"). One entry per episode -- the EARLIEST documented advice
+    on the pathway is the canonical record.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    recorded: bool = False
+    evidence_quote: Optional[str] = Field(
+        default=None,
+        description=(
+            "Literal substring of the source encounter text that "
+            "documents the safety-netting advice. Required when "
+            "recorded == true."
+        ),
+    )
+    encounter_id: Optional[str] = Field(
+        default=None,
+        description="Source encounter id; required when recorded == true.",
+    )
+    date: Optional[_date_t] = Field(
+        default=None,
+        description="Date the advice was given; required when recorded == true.",
+    )
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
+class Disruption(BaseModel):
+    """A single avoidable-delay / pathway disruption event evidenced in the
+    source text. The writer turns each entry into a (:Disruption) node
+    attached to the EpisodeOfCare and rolls them up onto the episode
+    properties used by the NCDA Avoidable Delays dashboard tile."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: _date_t
+    category: Literal[
+        "referral_lost_or_not_received",
+        "referral_rejected_or_returned",
+        "repeat_referral_required",
+        "appointment_dna",
+        "appointment_cancelled_by_patient",
+        "appointment_cancelled_by_trust",
+        "result_not_received_in_primary_care",
+        "letter_received_late",
+        "patient_unreachable",
+        "mdt_outcome_unclear",
+        "other_administrative_delay",
+    ]
+    description: str = Field(
+        ...,
+        min_length=3,
+        description="Plain-English one-liner; suitable for a clinician.",
+    )
+    encounter_id: str = Field(..., min_length=1)
+    evidence_quote: str = Field(
+        ...,
+        min_length=3,
+        description="Literal substring of the source encounter text.",
+    )
+    confidence: float = Field(..., ge=0.0, le=1.0)
+
+
 class MilestoneExtractorResult(BaseModel):
     """Stage 4 output for one cancer/multi-site window."""
 
@@ -173,6 +260,17 @@ class MilestoneExtractorResult(BaseModel):
 
     window_id: str
     milestones: list[Milestone] = Field(default_factory=list)
+    safety_netting: Optional[SafetyNetting] = Field(
+        default=None,
+        description=(
+            "Cancer safety-netting advice for this window. Set "
+            "recorded=false (or omit) when no advice is documented."
+        ),
+    )
+    disruptions: list[Disruption] = Field(
+        default_factory=list,
+        description="Pathway disruptions / avoidable-delay events.",
+    )
     needs_human_review: bool = False
     reasoning: str = ""
 
@@ -188,6 +286,20 @@ class ReconciledEpisode(BaseModel):
     window_start: _date_t
     window_end: Optional[_date_t] = None
     milestones: list[Milestone] = Field(default_factory=list)
+    safety_netting: Optional[SafetyNetting] = Field(
+        default=None,
+        description=(
+            "Earliest documented safety-netting advice across the merged "
+            "windows. Carried through verbatim from the extractor."
+        ),
+    )
+    disruptions: list[Disruption] = Field(
+        default_factory=list,
+        description=(
+            "Union of disruptions across merged windows, deduplicated by "
+            "(date, category, encounter_id)."
+        ),
+    )
     confidence: float = Field(..., ge=0.0, le=1.0)
     reasoning: str
     needs_human_review: bool = False
@@ -250,6 +362,8 @@ class Episode(BaseModel):
     window_start: _date_t
     window_end: Optional[_date_t] = None
     milestones: list[Milestone] = Field(default_factory=list)
+    safety_netting: Optional[SafetyNetting] = None
+    disruptions: list[Disruption] = Field(default_factory=list)
     confidence: float = Field(..., ge=0.0, le=1.0)
     reasoning: str
     needs_human_review: bool = False

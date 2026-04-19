@@ -114,6 +114,27 @@ def _format_engine(result) -> str:
             f"conf={ep.confidence:.2f} hitl={ep.needs_human_review}"
         )
         lines.append(f"  - reasoning: {ep.reasoning}")
+        sn = ep.safety_netting
+        if sn and sn.recorded:
+            lines.append(
+                f"  - safety_netting: recorded on {sn.date} "
+                f"enc=`{(sn.encounter_id or '')[:8]}` "
+                f"conf={sn.confidence:.2f}"
+            )
+            if sn.evidence_quote:
+                lines.append(f"    > {sn.evidence_quote[:160]}")
+        else:
+            lines.append("  - safety_netting: not recorded")
+        if ep.disruptions:
+            lines.append(f"  - disruptions ({len(ep.disruptions)}):")
+            for d in ep.disruptions:
+                lines.append(
+                    f"    - {d.date} {d.category} "
+                    f"enc=`{d.encounter_id[:8]}` conf={d.confidence:.2f}"
+                )
+                lines.append(f"      > {d.evidence_quote[:160]}")
+        else:
+            lines.append("  - disruptions: none")
         for m in ep.milestones:
             extras: list[str] = []
             if m.treatment_type:
@@ -295,11 +316,23 @@ def main() -> None:
             sections.append(_format_existing(existing))
             sections.append("\n### Engine output\n")
             sections.append(_format_engine(result))
+            sn_recorded = sum(
+                1
+                for ep in result.episodes
+                if ep.safety_netting and ep.safety_netting.recorded
+            )
+            disruption_total = sum(len(ep.disruptions) for ep in result.episodes)
+            avoidable_delay_eps = sum(
+                1 for ep in result.episodes if ep.disruptions
+            )
             summary_rows.append(
                 {
                     "patient": synthetic_id,
                     "existing": len(existing),
                     "engine": result.episode_count,
+                    "sn_recorded": sn_recorded,
+                    "disruptions": disruption_total,
+                    "avoidable_delay_eps": avoidable_delay_eps,
                     "in_tok": result.total_input_tokens,
                     "out_tok": result.total_output_tokens,
                     "cached_tok": result.total_cached_input_tokens,
@@ -316,10 +349,11 @@ def main() -> None:
 
         sections.append("\n## Summary\n")
         sections.append(
-            "| patient | existing | engine | in_tok | out_tok | cached_tok | "
-            "cost_usd | errors |"
+            "| patient | existing | engine | sn | disruptions | "
+            "avoid_delay_eps | in_tok | out_tok | cached_tok | cost_usd | "
+            "errors |"
         )
-        sections.append("|---|---|---|---|---|---|---|---|")
+        sections.append("|---|---|---|---|---|---|---|---|---|---|---|")
         for r in summary_rows:
             cost_val = r.get("cost_usd")
             cost_str = (
@@ -327,15 +361,22 @@ def main() -> None:
             )
             sections.append(
                 f"| {r.get('patient')} | {r.get('existing','-')} | "
-                f"{r.get('engine','-')} | {r.get('in_tok','-')} | "
-                f"{r.get('out_tok','-')} | {r.get('cached_tok','-')} | "
-                f"{cost_str} | {r.get('errors','-')} |"
+                f"{r.get('engine','-')} | {r.get('sn_recorded','-')} | "
+                f"{r.get('disruptions','-')} | "
+                f"{r.get('avoidable_delay_eps','-')} | "
+                f"{r.get('in_tok','-')} | {r.get('out_tok','-')} | "
+                f"{r.get('cached_tok','-')} | {cost_str} | "
+                f"{r.get('errors','-')} |"
             )
 
+        total_sn = sum(int(r.get("sn_recorded", 0) or 0) for r in summary_rows)
+        total_dx = sum(int(r.get("disruptions", 0) or 0) for r in summary_rows)
+        total_eps = sum(int(r.get("engine", 0) or 0) for r in summary_rows)
         sections.append("")
         sections.append(
             f"**Cohort totals:** patients={len(summary_rows)}, "
-            f"in_tok={total_in}, out_tok={total_out}, "
+            f"episodes={total_eps}, safety_netting_recorded={total_sn}, "
+            f"disruptions={total_dx}, in_tok={total_in}, out_tok={total_out}, "
             f"cost_usd={total_cost:.6f}, "
             f"avg_cost_per_patient_usd={total_cost / n_pat:.6f}"
         )

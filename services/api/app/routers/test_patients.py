@@ -25,7 +25,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.db.neo4j_client import CodingGraphClient
+from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
 from app.deps import require_admin
 from app.services import (
     test_patient_clone,
@@ -33,6 +33,7 @@ from app.services import (
     test_patient_service,
 )
 from app.services.test_patient_clone import CloneError
+from app.services.test_patient_redactor import get_default_redactor
 from app.services.test_patient_service import PatientPayload
 from libs.auth.org_scope import CallerScope
 from libs.cypher.test_patient_queries import TEST_PATIENT_ASPECTS
@@ -42,7 +43,13 @@ router = APIRouter(prefix="/guidance", tags=["test-patients"])
 
 
 def _client() -> CodingGraphClient:
+    """Knowledge graph client (where TestPatient nodes live)."""
     return CodingGraphClient()
+
+
+def _patient_client() -> PatientGraphClient:
+    """Patient graph client (where real :Patient nodes live)."""
+    return PatientGraphClient()
 
 
 # ---------------------------------------------------------------------------
@@ -159,6 +166,27 @@ class CloneFromRealRequest(BaseModel):
     source_patient_id: str
     aspect: Literal["nlp", "episodes", "guidelines", "summarisation"]
     description: str = ""
+
+
+class BuildBlankRequest(BaseModel):
+    """Body for ``POST /test-patients/build``.
+
+    Used by the Knowledge > Test Patients > Build dialog when the
+    selected aspect is NLP, Episodes or Summarisation. Creates an
+    empty :TestPatient row with just demographics; the per-aspect
+    content (free text + expected codes / expected episode timeline /
+    expected SBAR) is attached in a follow-up step.
+
+    For aspect = "guidelines" the dialog routes through the existing
+    ``POST /test-patients`` endpoint instead, which also snapshots
+    expected rule fires.
+    """
+
+    aspect: Literal["nlp", "episodes", "summarisation"]
+    name: str
+    description: str = ""
+    age: float | None = None
+    sex: Literal["male", "female", "other"] | None = None
 
 
 class SandboxReplayRequest(BaseModel):
@@ -305,16 +333,19 @@ def list_source_patients(
 ) -> list[dict]:
     """Return real patients available as a clone source.
 
+    Reads from the **patient graph** (where real :Patient nodes live).
     Filters out :TestPatient rows so only true production patients
     appear. Used by the Knowledge > Test Patients > Clone-from-real
     dialog.
     """
     _ = scope
-    client = _client()
+    patient_graph = _patient_client()
     try:
-        return test_patient_clone.list_source_patients(client, limit=limit)
+        return test_patient_clone.list_source_patients(
+            patient_graph, limit=limit
+        )
     finally:
-        client.close()
+        patient_graph.close()
 
 
 @router.post("/test-patients/clone")
@@ -323,28 +354,63 @@ def clone_from_real_patient(
 ) -> dict:
     """Copy a real patient to a new de-identified :TestPatient.
 
-    Returns the new test patient summary including counts of cloned
-    encounters, documents and concept relationships, so the UI can
-    display "X encounters, Y documents copied" feedback.
+    Cross-graph operation: reads source from the patient graph, runs
+    free text through the clinical redactor, then writes the cloned
+    de-identified subgraph to the knowledge graph alongside SNOMED
+    concepts (MERGE'd by snomed id with loud failure on missing).
 
-    Raises HTTP 400 when the aspect is unknown or the source patient
-    does not exist.
+    Raises HTTP 400 when the aspect is unknown, the source patient
+    does not exist, or any referenced SNOMED concept is missing from
+    the knowledge graph.
     """
     if body.aspect not in TEST_PATIENT_ASPECTS:
         raise HTTPException(
             status_code=400,
             detail=f"aspect must be one of {sorted(TEST_PATIENT_ASPECTS)}",
         )
-    client = _client()
+    patient_graph = _patient_client()
+    knowledge_graph = _client()
     try:
         return test_patient_clone.clone_patient_as_test_patient(
-            client,
+            patient_graph,
+            knowledge_graph,
             source_patient_id=body.source_patient_id,
             aspect=body.aspect,
             created_by=getattr(scope, "user_email", "") or "unknown",
             description=body.description,
+            redactor=get_default_redactor(),
         )
     except CloneError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    finally:
+        patient_graph.close()
+        knowledge_graph.close()
+
+
+@router.post("/test-patients/build")
+def build_blank_patient(
+    body: BuildBlankRequest, scope: CallerScope = Depends(require_admin)
+) -> dict:
+    """Create an empty :TestPatient for nlp / episodes / summarisation.
+
+    The Build dialog uses this path for the three non-Guidelines
+    aspects, where the form only collects a name + demographics and
+    the per-aspect content is attached afterwards (free text +
+    expected SNOMED codes for NLP, encounter timeline for Episodes,
+    expected SBAR markdown for Summarisation).
+    """
+    client = _client()
+    try:
+        return test_patient_service.build_blank_patient_for_aspect(
+            client,
+            aspect=body.aspect,
+            name=body.name,
+            description=body.description,
+            age=body.age,
+            sex=body.sex,
+            created_by=getattr(scope, "user_email", "") or "unknown",
+        )
+    except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     finally:
         client.close()

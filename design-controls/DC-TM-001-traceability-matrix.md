@@ -1291,6 +1291,22 @@ and their DO/Risk/VT chains MUST be marked `superseded_by:
 
 ---
 
+### 3.xx Universal LLM cost telemetry across every generation pipeline (April 2026)
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-091 | draft | Platform admins can monitor LLM token usage and cost for every generation pipeline (coding, episode engine, SBAR) |
+| Design Input | DI-LEO-AI-506 | draft | Universal LLM token + cost telemetry: invoke_llm_json extracts tokens, LLMUsageRecorder accumulates per-run via contextvars, SBAR orchestrator writes Assessment.llm_usage_json + a PipelineRun :AuditEvent |
+| Design Output | DO-LEO-AI-506 | draft | libs/llm_client/json_helper.py token extraction + libs/llm_client/usage_recorder.py + SBAR orchestrator _record_telemetry + libs/cypher/sbar_assessment_queries.py SET_ASSESSMENT_USAGE / WRITE_SBAR_AUDIT_EVENT + libs/cypher/model_config_queries.py GET_PATIENT_LLM_SPEND UNION over :Assessment |
+| Risk | R-LEO-AI-506 | analyzed | Non-coding LLM pipelines (SBAR, future features) write no cost telemetry, so per-tenant invoicing under-counts AI spend and prompt-version regressions go undetected (mitigated by routing every call through invoke_llm_json + LLMUsageRecorder + best-effort write at FINALISE) |
+| Verification Test | VT-LEO-AI-508 | passed | 10/10 cases: token extraction (TC-001/002), recorder accumulation + concurrent isolation (TC-003/004), SBAR Assessment + AuditEvent telemetry (TC-005/006), telemetry-failure isolation (TC-007) |
+
+| Artefact | ID | Risk | VT |
+|----------|----|------|-----|
+| DI-LEO-AI-506 | Universal LLM cost telemetry (UN-LEO-AI-091): invoke_llm_json now extracts input/output/cache tokens + latency + model id from the Bedrock response and forwards them to the registered tracking callback for every call. libs/llm_client/usage_recorder.py adds a contextvars-based LLMUsageRecorder so any orchestrator can wrap a logical run, accumulate token usage from nested invoke_llm_json calls, and read the totals after the block. The SBAR orchestrator wraps Situation/Background/Recommendation in a single recorder and on FINALISE writes (a) Assessment.llm_usage_json + flat llm_input_tokens/llm_output_tokens/llm_cached_tokens/llm_cost_usd/llm_latency_ms/llm_model_id and (b) a :AuditEvent {type:'PipelineRun'} with the same flat fields linked to the Patient via [:AUDIT_FOR]. GET_PATIENT_LLM_SPEND extended with a UNION over :Assessment so the per-encounter drill-down covers SBAR rows (source='sbar_assessment'). Telemetry writes are best-effort: failures are logged at WARNING and never fail the SBAR run. - VT passed 2026-04-18 | R-LEO-AI-506 | VT-LEO-AI-508 |
+
+---
+
 ## 4. Approval
 
 | Role | Name | Date | Signature |

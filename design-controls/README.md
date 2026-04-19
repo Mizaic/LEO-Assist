@@ -1439,6 +1439,24 @@ and their DO/Risk/VT chains MUST be marked `superseded_by:
 
 ---
 
+## Universal LLM Cost Telemetry (April 2026)
+
+Closes the observability gap where SBAR (and any other pipeline that
+calls an LLM through the shared `invoke_llm_json` helper) wrote no
+token counts and no `:AuditEvent {type:'PipelineRun'}`, leaving the
+dashboard `LLMSpendPanel` and the per-tenant billing subsystem
+under-counting AI spend.
+
+| Artefact | ID | Status | Description |
+|----------|----|--------|-------------|
+| User Need | UN-LEO-AI-091 | draft | Platform admins can monitor LLM token usage and cost for every generation pipeline (coding, episode engine, SBAR). |
+| Design Input | DI-LEO-AI-506 | draft | Universal LLM token + cost telemetry: `invoke_llm_json` extracts tokens; `LLMUsageRecorder` accumulates per-run via `contextvars`; SBAR orchestrator writes `Assessment.llm_usage_json` + a `:AuditEvent {type:'PipelineRun'}` matching the coding-pipeline wire format; `GET_PATIENT_LLM_SPEND` extended to UNION SBAR rows. |
+| Design Output | DO-LEO-AI-506 | draft | `libs/llm_client/json_helper.py` token extraction + `libs/llm_client/usage_recorder.py` (`LLMUsageRecorder` + default tracking callback) + `services/pipeline_worker/app/services/sbar_orchestrator.py::_record_telemetry` + `libs/cypher/sbar_assessment_queries.py::SET_ASSESSMENT_USAGE` / `WRITE_SBAR_AUDIT_EVENT` + `libs/cypher/model_config_queries.py::GET_PATIENT_LLM_SPEND` UNION over `:Assessment`. |
+| Risk | R-LEO-AI-506 | analyzed | Non-coding LLM pipelines write no cost telemetry, so per-tenant invoicing under-counts AI spend and prompt-version cost regressions go undetected (mitigated by routing every call through `invoke_llm_json` + `LLMUsageRecorder` + best-effort write at `FINALISE`). |
+| Verification Test | VT-LEO-AI-508 | passed | 10/10 cases: token extraction (TC-001/002 + failed-call telemetry), recorder accumulation + concurrent isolation (TC-003/004 + ContextVar lifecycle + `to_audit_dict` shape), SBAR `Assessment.llm_usage_json` + `:AuditEvent {type:'PipelineRun'}` + telemetry-failure isolation (TC-005/006/007). |
+
+---
+
 ## SBAR Generation Workflow + Document Chunks (April 2026)
 
 This programme adds an end-to-end SBAR (Situation, Background,

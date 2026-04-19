@@ -292,6 +292,7 @@ def patient_llm_spend(
             "outputTokens": int(usage.get("output_tokens", 0)),
             "cachedTokens": int(usage.get("cached_input_tokens", 0)),
             "costUsd": float(usage.get("cost_usd") or 0),
+            "source": row.get("source") or "coding_extraction",
         }
         encounters.append(enc)
         total_input += enc["inputTokens"]

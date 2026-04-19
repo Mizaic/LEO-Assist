@@ -24,6 +24,13 @@ PRESENTATION_PLACE_LIST = (
     "email_consultation, video_consultation, dentist, optometrist, "
     "community_care_nurse, other, not_known"
 )
+DISRUPTION_CATEGORY_LIST = (
+    "referral_lost_or_not_received, referral_rejected_or_returned, "
+    "repeat_referral_required, appointment_dna, "
+    "appointment_cancelled_by_patient, appointment_cancelled_by_trust, "
+    "result_not_received_in_primary_care, letter_received_late, "
+    "patient_unreachable, mdt_outcome_unclear, other_administrative_delay"
+)
 
 # -- Common rules ----------------------------------------------------------
 RULES_OF_THE_ROAD = """\
@@ -101,8 +108,17 @@ Timeline summary:
   2025-03-12  GP face-to-face: patient reports a new right breast lump
               noticed two weeks ago. THIS is the real first_presentation
               that led to the eventual 2WW referral. Place = gp_surgery.
+              At the end of the consultation the GP records: "advised
+              to return urgently if the lump grows or skin changes
+              appear before the clinic appointment." THIS is the
+              safety_netting evidence for the episode.
   2025-03-26  GP enters PRISM 2WW referral for suspected breast cancer
               (multiple admin echoes the same day).
+  2025-04-10  Patient phones reception: "no appointment letter from
+              breast clinic yet"; reception task asks GP to chase. THIS
+              is a disruption (category =
+              referral_lost_or_not_received) -- record it but it does
+              NOT change the referral milestone.
   2025-04-28  First seen in fast-track 2WW breast clinic.
   2025-05-12  Breast clinic outcome letter received in primary care --
               biopsy taken, awaiting histology. THIS is outcome_letter,
@@ -128,6 +144,17 @@ Correct output: ONE cancer episode. Milestones:
   - treatment_started 2025-05-19 treatment_type=endocrine (letrozole
     neoadjuvant, real reconciliation, NOT the 02 May Failed encounter)
   - treatment_started 2025-07-28 treatment_type=surgery (mastectomy)
+
+Plus an episode-level safety_netting record:
+  recorded=true, date=2025-03-12, encounter_id=enc-presentation,
+  evidence_quote="advised to return urgently if the lump grows
+  or skin changes appear before the clinic appointment."
+
+Plus one disruption:
+  date=2025-04-10, category=referral_lost_or_not_received,
+  description="Patient phoned: no appointment letter from breast
+  clinic yet; GP chase requested.", encounter_id=enc-chase,
+  evidence_quote="no appointment letter from breast clinic yet".
 
 Incorrect output: a treatment_started on 2025-05-02 anchored on the
 "Failed encounter" admin task -- this is the failure mode that

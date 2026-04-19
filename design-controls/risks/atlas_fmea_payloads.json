@@ -58,7 +58,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-001 | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-015 (review service); DI-LEO-AI-016 (review UI); DI-LEO-AI-072 (weekly NER quality audit)"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-001 | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-015 (review service); DI-LEO-AI-016 (review UI); DI-LEO-AI-072 (weekly NER quality audit)",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Human review gate combined with gold-standard regression testing reduces probability of undetected incorrect coding to improbable level. Individual coding errors are caught by reviewers; systematic errors are caught by regression tests."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -193,7 +200,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-002"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-002",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Human reviewers see full source text and can identify entities missed by the NLP pipeline. Gold-standard regression testing catches systematic recall degradation."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -400,7 +414,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk"
+        "mitigation_measures_detail": "Existing YAML risk",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Context flags are prominently displayed in the review interface. Reviewers can correct context assertions. Individual errors are low-severity as they affect single entities, not systematic patterns."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -524,7 +545,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor - keep both but cross-link. R-055 is a high-severity subset of R-004. | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-041 (terminology consensus check); DI-LEO-AI-053 (semantic-tag cross-validation); DI-LEO-AI-016 (review UI)"
+        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor - keep both but cross-link. R-055 is a high-severity subset of R-004. | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-041 (terminology consensus check); DI-LEO-AI-053 (semantic-tag cross-validation); DI-LEO-AI-016 (review UI)",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Reviewer sees all candidate concepts and selects the correct one. Hybrid resolution with semantic re-ranking reduces ambiguity. SurfaceForm learning improves over time."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -644,7 +672,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-076 (surface form revocation); DI-LEO-AI-016 (provenance display in review UI)"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-076 (surface form revocation); DI-LEO-AI-016 (provenance display in review UI)",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "SurfaceForm is a weak suggestion boost (1.2x) that does not override reviewer judgment. Future reviewers independently evaluate all coding proposals. Erroneous mappings are self-correcting through continued use."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -766,7 +801,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: Reviewer disagreement audit DI; Two-reviewer concordance for high-risk codes; Acceptance-rate drift monitoring (extension of DI-072)"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: Reviewer disagreement audit DI; Two-reviewer concordance for high-risk codes; Acceptance-rate drift monitoring (extension of DI-072)",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 12,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Automation bias is a known human factors risk that cannot be fully eliminated. Multiple monitoring controls (sampling audits, discordance analysis, gold re-review) detect emerging bias. Reviewer training raises awareness. Risk is as low as reasonably practicable."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -896,7 +938,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "not_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-072 (weekly NER audit); DI-LEO-AI-073 (SafetyNetAlert dedup); Per-clinical-domain accuracy KPI"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-072 (weekly NER audit); DI-LEO-AI-073 (SafetyNetAlert dedup); Per-clinical-domain accuracy KPI",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Gold-standard regression testing with per-domain accuracy metrics detects systematic miscoding before deployment. Cross-domain sampling and external data comparison provide independent verification. Probability of undetected systematic miscoding reduced to improbable."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -1458,7 +1507,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk"
+        "mitigation_measures_detail": "Existing YAML risk",
+        "residual_severity": 2,
+        "residual_probability": 2,
+        "residual_detectability": 1,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Hard-fail design prevents incorrect results; retry logic handles transient issues; operator alerting enables rapid response to sustained outages"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -1583,7 +1639,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-010"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-010",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 2,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Health checks and monitoring enable rapid detection and response; graceful error handling prevents cascading failures or data corruption"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -1755,7 +1818,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "not_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-072 (NER quality audit); DI for model-version pinning + canary (use DI-LEO-AI-094 production gate or atlas DI-7D710C52 canary)"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-072 (NER quality audit); DI for model-version pinning + canary (use DI-LEO-AI-094 production gate or atlas DI-7D710C52 canary)",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Validation threshold gates deployment; dry-run comparison catches regressions; human review provides final safety net against systematic extraction errors"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -2013,7 +2083,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: Explicit transaction/compensation DI for cross-store writes"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: Explicit transaction/compensation DI for cross-store writes",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 2,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Idempotent sync pattern means partial failures are safely recoverable by re-running; pipeline state tracking enables targeted restart without data loss"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -2137,7 +2214,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-093"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-093",
+        "residual_severity": 1,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 2,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Externalised configuration enables rapid correction; unit tests catch calculation errors; no clinical impact limits severity to financial only"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -2267,7 +2351,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "not_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for SOUP regression test gate; DI-LEO-AI-072 (NER quality audit)"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for SOUP regression test gate; DI-LEO-AI-072 (NER quality audit)",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Version pinning prevents unexpected updates. Gold-standard regression testing detects accuracy degradation before deployment. QA approval gate prevents untested SOUP changes reaching production."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -2392,7 +2483,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "not_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for embedding-version pinning; DI for batch re-embed on model upgrade"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for embedding-version pinning; DI for batch re-embed on model upgrade",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 2,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Model version is pinned and documented. Re-indexing procedure is defined. Regression testing validates recall before deployment. Probability of undetected drift is improbable."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -2517,7 +2615,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for retired-concept remap procedure (atlas DI-337D44DE)"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for retired-concept remap procedure (atlas DI-337D44DE)",
+        "residual_severity": 2,
+        "residual_probability": 2,
+        "residual_detectability": 1,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Terminology updates are planned and tested. Regression tests validate value set resolution before deployment. Version tracking enables rollback if issues detected."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -2755,7 +2860,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-073"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-073",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Human review gate, gold-standard validation, and temporal anomaly detection provide three independent layers of control. Probability of undetected systematic milestone errors reduced to improbable."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -2900,7 +3012,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "not_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-073 (SafetyNetAlert dedup + persistence); DI for symptom-without-action rule engine"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-073 (SafetyNetAlert dedup + persistence); DI for symptom-without-action rule engine",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Safety-net rules are validated against known cases. Rule coverage testing ensures completeness. Manual sampling provides independent verification. Risk is as low as reasonably practicable -- zero false negatives cannot be guaranteed but the false negative rate target of <=2% is achievable with current controls."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -3026,7 +3145,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: Alert-fatigue feedback DI; DI for guideline-rule unit-test corpus"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: Alert-fatigue feedback DI; DI for guideline-rule unit-test corpus",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Guideline rules are validated against expert consensus. All alerts require human review. Clinical team reviews rules when guidance changes. Multiple controls reduce probability of systematic error to improbable."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -3282,7 +3408,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-068 FMEA-075"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-068 FMEA-075",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Configuration validation, dry-run testing, and QA approval provide three independent controls. Audit trail enables rapid identification and rollback of incorrect configuration. Probability of undetected configuration error reaching production reduced to improbable."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -3425,7 +3558,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk"
+        "mitigation_measures_detail": "Existing YAML risk",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Seven layered controls reduce probability to improbable: dual-model consensus, three-tier decision engine, mode-aware fail-safes, audit trail, Tier 2 flagging, HITL default, and surface form approval. The combination ensures that only high-confidence, fully-verified entities are auto-coded. All failures default to the safe direction (do not code). Complete audit trail enables retrospective detection of any systematic drift."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -3554,7 +3694,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for suppress-rule impact preview before activation"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for suppress-rule impact preview before activation",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The UI guard makes it technically impossible to confirm a context-free suppress when LEO has identified the reason the entity is not codeable. The pre-filled phrase further reduces the probability that a reviewer bypasses the guard by clearing the field. Direct API access is now restricted to platform-admin accounts (require_admin), and user-supplied context_regex patterns are validated for ReDoS safety before persistence. Residual risk arises only from a malicious admin creating a suppress rule"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -3835,7 +3982,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-080"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-080",
+        "residual_severity": 4,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Four layered controls reduce probability to improbable: the prompt rule prevents the LLM from generating inferred diagnoses, the deterministic lab-value guard catches any that slip through, the scope guard reclassifies hedged/speculative diagnoses to non-present assertions, and the resolver tag-group penalty further down-ranks disorder candidates when an observable entity is expected. All four would need to fail simultaneously for a false diagnosis to reach the user"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -4472,7 +4626,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-054 and R-033 as possible merge (non-clinical text miscoded as finding). Medium confidence - retain both."
+        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-054 and R-033 as possible merge (non-clinical text miscoded as finding). Medium confidence - retain both.",
+        "residual_severity": 4,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Four layered controls reduce probability to improbable: the prompt \"Intended Use Boundaries\" section prevents the LLM from generating recommendation/safety-netting entities with \"present\" assertion; the deterministic scope guard catches any that slip through and reclassifies them; the tier classifier blocks hypothetical/possible from auto-coding; and ConText provides independent assertion detection. All four would need to fail simultaneously for a treatment recommendation or safety-netting sympt"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -4604,7 +4765,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-003"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-003",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 2,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The mandatory human acceptance step, the three-tier coding gate, and the ability to immediately reverse any accepted alias together reduce the probability of patient harm to negligible.  The LLM does not process patient data; only SNOMED concept metadata is transmitted.  The harm is limited to future encounters (not retrospective) and is correctable without a code deployment.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -4807,7 +4975,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-003"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-003",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The deterministic cross-validation step catches all semantic tag mismatches in the top 3 candidates.  High-confidence mismatches are corrected automatically; medium-confidence mismatches are surfaced to the human reviewer with clear visual indicators.  For a miscoded entity to reach the patient graph, both the cross-validation and the HITL review (or tier-1 auto-accept with matching tags) would need to fail simultaneously.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -5001,7 +5176,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: Dedicated DI for tool-loop budget cap and per-job spend limit"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: Dedicated DI for tool-loop budget cap and per-job spend limit",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Three independent hard stops (iteration cap, token budget, dollar cap) prevent unbounded cost regardless of model behaviour. The two-pass architecture further limits eligibility. Residual risk is low and acceptable given the multiple independent controls.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -5130,7 +5312,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-036"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-036",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The code-level READONLY_FIELDS enforcement makes it structurally impossible for SNOMED codes to be auto-fixed, regardless of what Opus or Haiku recommend. All SNOMED changes require explicit human approval. The full audit trail enables human reviewers to verify the reasoning chain independently. Residual risk is low and acceptable given the mandatory human review gate for all SNOMED proposals.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -5276,7 +5465,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "not_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for ODS sync result assertion; DI for nightly data-freshness alert"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for ODS sync result assertion; DI for nightly data-freshness alert",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The circuit breaker ensures API outages produce visible alerts rather than silent failures. Platform admins are alerted via Service Bus within minutes of the sync aborting. Stale data is retained (not overwritten with nulls) so clinical operations are unaffected pending the next successful sync.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -5415,7 +5611,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for auto-correction confidence threshold; DI for reviewer veto on auto-correction"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for auto-correction confidence threshold; DI for reviewer veto on auto-correction",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 2,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "High-confidence threshold ensures auto-correction only fires on unambiguous matches; all borderline cases route to human review via SurfaceFormTask, preventing silent misclassification."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -5857,7 +6060,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-065 | ADDITIONAL CONTROLS REQUIRED: Cite DI-147C8EF0 / DI-F94EB13F (review-gate before promotion) here"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-065 | ADDITIONAL CONTROLS REQUIRED: Cite DI-147C8EF0 / DI-F94EB13F (review-gate before promotion) here",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The mandatory HITL gate ensures no LLM-generated rule can affect patients without explicit human clinical review. The plain-English UI presentation and SNOMED preferred term display reduce the likelihood of undetected errors. The additive bitmap system limits impact to precision degradation, not recall loss.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -5995,7 +6205,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for bitmap-staleness alert"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for bitmap-staleness alert",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 2,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The prominent UI notification and bitmap lifecycle panel make stale bitmaps clearly visible to administrators. The existing vector-search fallback ensures patient matching continues even when no bitmap rules are active.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -6118,7 +6335,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for taxonomy mapping review queue"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for taxonomy mapping review queue",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The two-step promote gate (HITL approval then explicit domain promotion) prevents unreviewed content from reaching domains. Audit trail and provenance tracking enable rapid rollback. No-delete protection prevents accidental domain removal.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -6420,7 +6644,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-009 FMEA-061 FMEA-064"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-009 FMEA-061 FMEA-064",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 2,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Integration tests against the live NICE API provide early detection of schema drift before any release. All parse failures produce WARNING logs with diagnostic detail. The taxonomy browser is a convenience feature -- direct code entry and text search remain available as fallback discovery paths. No patient safety impact.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -6602,7 +6833,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-079"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-079",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Weekly automated audit with validated accuracy (recall >= 0.85 overall, >= 0.90 safety-critical) detects systematic regressions within one cycle. Golden test set revalidation on model version change catches auditor regressions. Residual risk is limited to the detection latency of one audit cycle (7 days maximum).\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -6750,7 +6988,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-016 FMEA-045"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-016 FMEA-045",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Statistical deduplication guard significantly reduces false-positive alert volume. Auto-escalation at 14 days ensures Loop 1 is paused automatically even if alerts are routinely dismissed, forcing investigation. Auditor precision threshold at deployment reduces alert fatigue at source.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -6940,7 +7185,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-045 | ADDITIONAL CONTROLS REQUIRED: DI for historical-overcoding remediation dashboard"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-045 | ADDITIONAL CONTROLS REQUIRED: DI for historical-overcoding remediation dashboard",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Dedicated urgent queue section and 48-hour SLA alert together ensure overcoded items are detected and actioned within 2 days of the weekly audit run. Residual risk is limited to the window between the error occurring and the next audit run (maximum 7 days) plus the 48-hour SLA.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -7084,7 +7336,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-046 | ADDITIONAL CONTROLS REQUIRED: DI for two-reviewer concordance on SurfaceForm approvals"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-046 | ADDITIONAL CONTROLS REQUIRED: DI for two-reviewer concordance on SurfaceForm approvals",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Two-reviewer gate eliminates single-point-of-failure in dictionary curation. Even if both reviewers agree on an incorrect mapping, the weekly audit will detect systematic miscoding within one cycle, and the revocation endpoint allows rapid correction with cascade review for all affected encounters.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -7228,7 +7487,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "not_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for retroactive recoding pipeline on SurfaceForm revocation"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for retroactive recoding pipeline on SurfaceForm revocation",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Revocation cascade creates a CodingReview for every affected encounter, giving reviewers a systematic way to correct or confirm each one. Historical records are not silently left with wrong codes; each one requires an explicit reviewer decision. Severity is minor because the incorrect codes are from provisional source and visible to reviewers.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -7488,7 +7754,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk | Added FMEA link: FMEA-037 (holdout leakage)"
+        "mitigation_measures_detail": "Existing YAML risk | Added FMEA link: FMEA-037 (holdout leakage)",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Database-level holdout filter is enforced in the Cypher query; it cannot be accidentally omitted without a code change. Export manifest provides an observable signal (holdout_exclusion_count) that the filter is active. Holdout set is defined before training data collection begins, preventing contamination from the outset.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -7617,7 +7890,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-054 and R-033 as possible merge (non-clinical text miscoded as finding). Medium confidence - retain both."
+        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-054 and R-033 as possible merge (non-clinical text miscoded as finding). Medium confidence - retain both.",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The header filter removes the primary pathway for administrative content to reach the extractor. Residual probability accounts for header patterns not yet covered by the regex (new EMIS export formats). The HITL reviewer gate provides a secondary control. Severity reduced because the change reduces the plausibility of harm reaching the patient undetected.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -7749,7 +8029,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor - keep both but cross-link. R-055 is a high-severity subset of R-004. | ADDITIONAL CONTROLS REQUIRED: DI for abbreviation dictionary with org/specialty scope; DI for escalate-on-low-confidence abbreviations"
+        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor - keep both but cross-link. R-055 is a high-severity subset of R-004. | ADDITIONAL CONTROLS REQUIRED: DI for abbreviation dictionary with org/specialty scope; DI for escalate-on-low-confidence abbreviations",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Three independent layers (prompt suppression, escalation rule, resolver blocklist) provide defence in depth. Standalone CA encounters are left uncoded and surfaced by the periodic quality audit (Loop 1) for human review, preventing silent miscoding. Surface form writeback ensures the resolver returns the correct concept at score 1.0 for the 40 approved abbreviations. The residual risk is a novel abbreviation not yet in the blocklist, which would be detected by the next weekly audit run.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -7879,7 +8166,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-050 | Split out: FMEA-050 moved to new R-LEO-AI-160 per Dedup Auditor"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-050 | Split out: FMEA-050 moved to new R-LEO-AI-160 per Dedup Auditor",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "After dual LLM verification and re-audit, the probability of an undetected incorrect change is very low. The re-audit will surface any systematic error within one weekly cycle. Manual review of the disputes log provides an additional check.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -8046,7 +8340,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-058 | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-040 (HITL/AUTO mode gate); DI-LEO-AI-015 (review service)"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-058 | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-040 (HITL/AUTO mode gate); DI-LEO-AI-015 (review service)",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Residual probability is low because: (1) the 9-layer post-processing stack provides independent verification; (2) Tier 1 auto-write requires >= 0.95 confidence; (3) safety-critical entities are explicitly flagged in the prompt; (4) runtime path always routes through existing HITL gates. The weekly Sonnet audit provides an ongoing quality monitoring signal that would detect systematic miscoding within one audit cycle.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -8194,7 +8495,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-058 | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-005 (ConText assertion); DI-LEO-AI-103 (no LLM assertion); DI-LEO-AI-104 (assertion-inversion correction)"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-058 | ADDITIONAL CONTROLS REQUIRED: DI-LEO-AI-005 (ConText assertion); DI-LEO-AI-103 (no LLM assertion); DI-LEO-AI-104 (assertion-inversion correction)",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With assertion filtering in place, miscoded assertions are blocked at the anchor detection layer. The remaining residual risk is that an operator configures an incorrect assertion filter via the UI, which is mitigated by the controlled vocabulary Select (only valid assertion values are selectable) and the fail-fast registry bootstrap that surfaces misconfiguration immediately.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -8328,7 +8636,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-061 (Cancer pathway incorrectly closed as completed after specialist letter when trea) per Dedup Auditor"
+        "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-061 (Cancer pathway incorrectly closed as completed after specialist letter when trea) per Dedup Auditor",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The 365-day window eliminates the vast majority of spurious closures. Residual risk is limited to scenarios where an unrelated 395100000 is coded within 365 days of a referral -- a narrow time window that corresponds to normal cancer pathway completion. Diagnosis precedence provides an additional safety layer. The residual probability is low because clinically, 395100000 coded within the pathway window is expected to represent a pathway discharge.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -8453,7 +8768,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for temporal-proximity bound on specialist attribution"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for temporal-proximity bound on specialist attribution",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "After the per-episode claiming algorithm is applied, the date-inversion condition (visit_date < ref_date on an episode) is structurally impossible because the claiming filter enforces v_date >= spec.ref_date. Live data validation confirmed zero such inversions after rebuild. Residual risk is limited to edge cases where a concept name yields \"unknown\" site key and the visit falls in the episode window but belongs to a different pathway -- this is flagged for HITL review by the existing stale dete"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -8580,7 +8902,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-063"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-063",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The episode always remains in the HITL queue (status unchanged, hitl_flag preserved) regardless of the inferred_outcome. The UX clearly distinguishes inferred from confirmed. A quality lead reviewing the HITL queue will see the provisional nature of the classification and can override it. Residual probability of harm is very low given these safeguards.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -8726,7 +9055,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-063"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-063",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With dry-run default, admin-only access, MCP read-only restriction, and UI confirmation dialogs, the probability of an accidental or uninformed mutation is very low. Any mutation that does occur is auditable via the Neo4j transaction log and can be reversed. The residual risk is low and acceptable for an internal admin-only tool used by platform engineers.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -8874,7 +9210,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for cross-pathway evidence isolation in staging; DI for reviewer-confirmation gate on stage assignment"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for cross-pathway evidence isolation in staging; DI for reviewer-confirmation gate on stage assignment",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Residual risk is acceptable because unsupported or ambiguous evidence resolves to unknown rather than forced staging, and source/confidence metadata enables focused review of lower-certainty cases.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -9000,7 +9343,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-008 FMEA-037 | Data fix: FMEA-037 re-routed to R-LEO-AI-053 per Dedup Auditor | Split out: FMEA-008 moved to new R-LEO-AI-159 per Dedup Auditor"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-008 FMEA-037 | Data fix: FMEA-037 re-routed to R-LEO-AI-053 per Dedup Auditor | Split out: FMEA-008 moved to new R-LEO-AI-159 per Dedup Auditor",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With raw evidence visible alongside coded output, low-confidence concepts highlighted, and review accountability tracked, the probability of an auditor missing a pipeline error before marking as reviewed is low. The residual risk is accepted because the interface provides all information needed to detect errors; the remaining risk requires auditor diligence, which is addressed by clinical governance procedures. Residual RPN 6 is below the threshold of 10 for conditionally acceptable.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -9184,7 +9534,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-039"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-039",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The dual-layer defence (LLM prompt rule + post-processing scope guard) makes it unlikely that a spinal vertebral token passes both filters and reaches terminology resolution as a TNM staging concept. Any residual misclassification is visible to a clinical auditor via the coded-data tab in Mission Control before it influences quality decisions. Monthly monitoring of T-category entity counts on non-oncology encounters detects any regression.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -9338,7 +9695,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-007 FMEA-020 | Workshop flag: Dedup Auditor flagged R-068 and R-067 as possible merge (same hazard, different pipeline stage). Medium confidence - retain both."
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-007 FMEA-020 | Workshop flag: Dedup Auditor flagged R-068 and R-067 as possible merge (same hazard, different pipeline stage). Medium confidence - retain both.",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Single-turn constrained output and explicit test coverage reduce incorrect correction likelihood. Residual issues are further contained by coding check and HITL review pathways.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -9506,7 +9870,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-068 and R-067 as possible merge (same hazard, different pipeline stage). Medium confidence - retain both."
+        "mitigation_measures_detail": "Existing YAML risk | Workshop flag: Dedup Auditor flagged R-068 and R-067 as possible merge (same hazard, different pipeline stage). Medium confidence - retain both.",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Constrained action space and explicit tier override semantics make harmful mutation unlikely. Residual risk is detectable through queue analytics and post-deployment coding quality monitoring.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -9632,7 +10003,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-071 (ConText double-negation inverts assertion on polarity-encoding SNOMED finding co) per Dedup Auditor"
+        "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-071 (ConText double-negation inverts assertion on polarity-encoding SNOMED finding co) per Dedup Auditor",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The deterministic guard eliminates the failure mode for any situation concept whose PT matches the negative-prefix pattern, covering the known high-severity cases (suicidal thoughts, self-harm). The HITL review gate provides an additional catch for any edge cases not covered by the pattern. Residual probability is very low because the guard is applied before persist and is covered by automated regression tests.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -9759,7 +10137,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk"
+        "mitigation_measures_detail": "Existing YAML risk",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With the assertion guard in place, absent and hypothetical conditions are filtered out at query time. The coalesce guard ensures null assertions (legacy data) default safely to 'present'. Residual risk is limited to data migration scenarios where assertion values are incorrectly populated, which is controlled by pipeline-level VTs and the double-negation guard (R-LEO-AI-069).\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -9883,7 +10268,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for two-annotator concordance on GoldLabel; DI for span-offset validator in editor"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for two-annotator concordance on GoldLabel; DI for span-offset validator in editor",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Span realignment and assertion filtering eliminate the two primary pathways for corrupt data entering training. The golden evaluation gate provides a regression safety net that blocks model promotion if accuracy drops. Residual probability is low because all three controls must fail simultaneously for harm to occur.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -10010,7 +10402,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for spurious-additional-label detector at inference"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for spurious-additional-label detector at inference",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "All training data multi-labels are human-curated via the gold-label review workflow before reaching the model. The golden evaluation gate provides a regression safety net that blocks models with elevated false-positive rates from promotion. The LLM cannot independently generate multi-labels. Residual probability is low because spurious model output would need to survive three independent controls (training data QA, golden gate, HITL review of coding results) to reach the patient record.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -10144,7 +10543,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Consolidates FMEA: FMEA-014"
+        "mitigation_measures_detail": "Consolidates FMEA: FMEA-014",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Policy validation, canonical tuple checks, and runtime confidence fallback substantially reduce the probability of invalid relation persistence and downstream miscoding.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -10576,7 +10982,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for observable-completeness check"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for observable-completeness check",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "After extension, the linker captures all entries in _RESULT_DESCRIPTOR_TEXTS and values within 60 characters before the entity. Residual risk covers result descriptors outside this vocabulary (free-text qualitative descriptions) and values more than 60 characters away from the entity, both of which are uncommon clinical patterns. A human reviewer retains responsibility for actioning flagged results.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -11518,7 +11931,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for diagnosis-vs-referral anchor classifier audit"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for diagnosis-vs-referral anchor classifier audit",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Residual risk is acceptable because the gap control prevents the dominant failure mode; the remaining risk is that a legitimate same-day one-stop-shop clinic (where referral and diagnosis truly fall on the same day) loses its referral evidence. Monitoring (R-084 metrics) tracks the fraction of episodes where no referral was found so this tail case is visible.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -11642,7 +12062,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-092 (Different analytics endpoints using different 'confirmed cancer' filters give co) per Dedup Auditor"
+        "mitigation_measures_detail": "Existing YAML risk | MERGED_IN: R-LEO-AI-092 (Different analytics endpoints using different 'confirmed cancer' filters give co) per Dedup Auditor",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Single-source persistence eliminates drift across dashboards. Detection is improved because divergence would require a bug in one calculation path rather than in many.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -11766,7 +12193,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk"
+        "mitigation_measures_detail": "Existing YAML risk",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Per-site regex filtering plus bounded temporal window removes the dominant cross-contamination path. Rare ambiguous text is handled by the no-match fallback which defers to existing rules and downstream review.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -11891,7 +12325,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Existing YAML risk"
+        "mitigation_measures_detail": "Existing YAML risk",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Persistence on every subgraph run plus canonical-key router queries mean detected signals are always visible and acknowledgements always affect the intended row. Residual risk is limited to detection errors upstream in the subgraph, which are covered by the detector's own verification tests.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -12821,7 +13262,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for 2WW recall validation on gold-cohort"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for 2WW recall validation on gold-cohort",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "After the fix, the builder no longer falsely synthesises referral dates; the fallback claim recovers referrals with ambiguous site tags; evidence-wins merge removes same-day shadows; and the breast regex covers real UK referral phrasing. Residual probability is low because unit tests and rebuild idempotency pin the behaviour, and a nightly parity smoke tracks any drift in the 2WW rate.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -12948,7 +13396,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for second-primary-cancer guard before duplicate merge"
+        "mitigation_measures_detail": "Existing YAML risk | ADDITIONAL CONTROLS REQUIRED: DI for second-primary-cancer guard before duplicate merge",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "The evidence-wins rule is deliberately conservative: a multi-primary patient with distinct diagnosis text for both primaries will fail the single-winner check and be left alone. The reversibility guarantees mean any wrongful merge can be undone. The combination of automatic skip + human review on the warning log + reversible writes keeps residual probability low.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -13081,7 +13536,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "No risk on shortlisting false negatives - create R-LEO-AI-078"
+        "mitigation_measures_detail": "No risk on shortlisting false negatives - create R-LEO-AI-078",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 4,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With the interaction test pinning each chrome element to its existing handler, and the body sub-renders untouched, the remaining residual risk is limited to unanticipated css z-index or focus-order regressions which are covered by VT-LEO-AI-141 (primitives) axe-core and keyboard tests.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -13252,7 +13714,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Lower severity but high volume effect - create R-LEO-AI-079"
+        "mitigation_measures_detail": "Lower severity but high volume effect - create R-LEO-AI-079",
+        "residual_severity": 2,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 12,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With the kebab visibly adjacent to Mark gold, explicit aria-label, destructive tint on the Delete menu item, and post-deploy telemetry to catch behaviour change, the residual risk of accidental mis-flow is low. Power reviewers using the compact density mode still see both actions in the same visual row.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -13422,7 +13891,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Missing episode (false negative) not explicitly covered - create R-LEO-AI-081"
+        "mitigation_measures_detail": "Missing episode (false negative) not explicitly covered - create R-LEO-AI-081",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Because every legacy handler is asserted by VT-LEO-AI-145 and the destructive controls were left visible in the chrome (not moved to a kebab), the residual probability is low. The detectability is slightly improved because every CRUD tab now shares the same StatHero + ToolbarActions chrome -- a missing action will be obviously inconsistent with its sibling tabs.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -13585,7 +14061,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Over-redaction not covered - create R-LEO-AI-082 | ADDITIONAL CONTROLS REQUIRED: DI for clinical-content-preservation regression test on libs/deid"
+        "mitigation_measures_detail": "Over-redaction not covered - create R-LEO-AI-082 | ADDITIONAL CONTROLS REQUIRED: DI for clinical-content-preservation regression test on libs/deid",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With both routes asserted by VT-LEO-AI-146, the residual probability of losing reachability is very low. Detectability is high because the page renders an empty CTA state if the routes break, which a smoke test would catch immediately.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -13706,7 +14189,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Incorrect suppression scenario not covered - create R-LEO-AI-083 | ADDITIONAL CONTROLS REQUIRED: DI for suppress-rule audit + reviewer confirmation"
+        "mitigation_measures_detail": "Incorrect suppression scenario not covered - create R-LEO-AI-083 | ADDITIONAL CONTROLS REQUIRED: DI for suppress-rule audit + reviewer confirmation",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With the referral guard and the benign-vs-malignant override both in place, the residual probability of a false confirmed-cancer or false benign-closure firing is bounded by the small number of genuinely ambiguous histology-letter encounters. The hitl_flag ensures every text-derived diagnosis or closure is reviewed by a human before it influences external reporting, so detectability is high.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -13862,7 +14352,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Reference range data quality risk - create R-LEO-AI-085 | ADDITIONAL CONTROLS REQUIRED: DI for unit-mismatch validator on reference range entry"
+        "mitigation_measures_detail": "Reference range data quality risk - create R-LEO-AI-085 | ADDITIONAL CONTROLS REQUIRED: DI for unit-mismatch validator on reference range entry",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With the site-key guard, the assertion / pathway-completion filters, the hitl_flag review gate, and the daily DQ over-claim alert all in place, the residual risk of a mis-attributed diagnosis_confirmed milestone surviving to NCDA submission is very low. Detectability is high because every rescued episode goes through the operations review queue.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -13995,7 +14492,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Reference range staleness risk - create R-LEO-AI-086 | ADDITIONAL CONTROLS REQUIRED: DI for guideline-update to range-currency workflow"
+        "mitigation_measures_detail": "Reference range staleness risk - create R-LEO-AI-086 | ADDITIONAL CONTROLS REQUIRED: DI for guideline-update to range-currency workflow",
+        "residual_severity": 2,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 2,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With the prop contract preserved verbatim, the static verification gate in VT-LEO-AI-150 TC-006, and the always- visible sticky jump strip, the residual probability of a bridge regression slipping into production is very low. No patient data is written from this surface, so even a regression has no path to clinical harm.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -14118,7 +14622,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Lower probability but regulatory impact - note at workshop"
+        "mitigation_measures_detail": "Lower probability but regulatory impact - note at workshop",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 1,
+        "residual_rpn": 3,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "With the type-the-name delete gate, the explicit publish dialog, the seeded-pathway block, the busy-state disable, the single-primary-action invariant on the toolbar, and the static CI gate in VT-LEO-AI-151, the residual probability of an operator deleting an active pathway without intending to is very low. Detectability remains high because the FHIR audit log records every status change and delete, and the daily DQ sweep would flag the gap on the next run.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -14250,7 +14761,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "No explicit provenance loss risk - create R-LEO-AI-087"
+        "mitigation_measures_detail": "No explicit provenance loss risk - create R-LEO-AI-087",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 2,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-102). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -14427,7 +14945,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "No risk on guideline threshold surfacing failure - create R-LEO-AI-088 | ADDITIONAL CONTROLS REQUIRED: DI for guideline-threshold mapping verification at point of result review"
+        "mitigation_measures_detail": "No risk on guideline threshold surfacing failure - create R-LEO-AI-088 | ADDITIONAL CONTROLS REQUIRED: DI for guideline-threshold mapping verification at point of result review",
+        "residual_severity": 2,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 8,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Misclassification is recoverable -- it changes only the report slice, not the patient record -- and the human-in-the-loop review path catches it before any downstream action. The benefit (going from 0% site coverage to >=70%) substantially outweighs the residual mis-pair risk.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -14568,7 +15093,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Linked to reference range risk - create alongside R-LEO-AI-085 | ADDITIONAL CONTROLS REQUIRED: DI for guideline-version pinning on result type"
+        "mitigation_measures_detail": "Linked to reference range risk - create alongside R-LEO-AI-085 | ADDITIONAL CONTROLS REQUIRED: DI for guideline-version pinning on result type",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Save semantics, validation rules, and node logic are untouched in Phase 6b-ii (verified by static source). The only mutated handler call sites pass identical arguments via props. Residual risk reduces further once Phase 6b-iv ships the explicit dirty-tracking save model.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -14714,7 +15246,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Guideline staleness at point of clinical use - create R-LEO-AI-089 | ADDITIONAL CONTROLS REQUIRED: DI for KB staleness alert + forced refresh schedule"
+        "mitigation_measures_detail": "Guideline staleness at point of clinical use - create R-LEO-AI-089 | ADDITIONAL CONTROLS REQUIRED: DI for KB staleness alert + forced refresh schedule",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Node data shape is preserved; React Flow node-routing API is not touched; status mapping is verified by static source. Residual risk reduces further once Phase 6b-vi ships the Playwright + axe spec for the editor.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -14850,7 +15389,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Comparator bias risk - workshop priority | ADDITIONAL CONTROLS REQUIRED: DI for comparator-cohort validation methodology"
+        "mitigation_measures_detail": "Comparator bias risk - workshop priority | ADDITIONAL CONTROLS REQUIRED: DI for comparator-cohort validation methodology",
+        "residual_severity": 3,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 6,
+        "residual_risk_level": "low",
+        "residual_acceptability": "acceptable",
+        "residual_justification": "Each control sits on an existing tested code path: ConditionRuleBuilder is unchanged and reuses the same updateParam plumbing as every other wizard field; useDirtyGuard is additive and never blocks a save; the load error surface is read-only above the canvas. A static-source VT (VT-LEO-AI-157) gates the wiring with 12 assertions so future regressions (e.g. someone re-introducing the silent catch, or removing the dirty guard) are caught in CI.\n"
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -14976,7 +15522,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-090 | ADDITIONAL CONTROLS REQUIRED: DI for SNOMED scope review on recovery markers"
+        "mitigation_measures_detail": "Create R-LEO-AI-090 | ADDITIONAL CONTROLS REQUIRED: DI for SNOMED scope review on recovery markers",
+        "residual_severity": 4,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 24,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-107). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -15105,7 +15658,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Linked to NICE currency risk | ADDITIONAL CONTROLS REQUIRED: DI for NICE-update -> ordering-guidance refresh trigger"
+        "mitigation_measures_detail": "Linked to NICE currency risk | ADDITIONAL CONTROLS REQUIRED: DI for NICE-update -> ordering-guidance refresh trigger",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-108). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -15234,7 +15794,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-091 | ADDITIONAL CONTROLS REQUIRED: DI for cache invalidation on episode update"
+        "mitigation_measures_detail": "Create R-LEO-AI-091 | ADDITIONAL CONTROLS REQUIRED: DI for cache invalidation on episode update",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-109). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -15373,7 +15940,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-092 | ADDITIONAL CONTROLS REQUIRED: DI for pathway-version pinning"
+        "mitigation_measures_detail": "Create R-LEO-AI-092 | ADDITIONAL CONTROLS REQUIRED: DI for pathway-version pinning",
+        "residual_severity": 4,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 24,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-110). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -15489,7 +16063,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-093 | ADDITIONAL CONTROLS REQUIRED: DI for MDT summary completeness check"
+        "mitigation_measures_detail": "Create R-LEO-AI-093 | ADDITIONAL CONTROLS REQUIRED: DI for MDT summary completeness check",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 2,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-111). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -15612,7 +16193,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "HITL gap for SBAR - create R-LEO-AI-094"
+        "mitigation_measures_detail": "HITL gap for SBAR - create R-LEO-AI-094",
+        "residual_severity": 4,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 16,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-112). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -15755,7 +16343,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Dependency on safety netting - create R-LEO-AI-095 | ADDITIONAL CONTROLS REQUIRED: DI for SBAR-includes-safety-net-alerts contract"
+        "mitigation_measures_detail": "Dependency on safety netting - create R-LEO-AI-095 | ADDITIONAL CONTROLS REQUIRED: DI for SBAR-includes-safety-net-alerts contract",
+        "residual_severity": 4,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 24,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-113). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -15892,7 +16487,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-096 | ADDITIONAL CONTROLS REQUIRED: DI for grounding-check on AI interpretation"
+        "mitigation_measures_detail": "Create R-LEO-AI-096 | ADDITIONAL CONTROLS REQUIRED: DI for grounding-check on AI interpretation",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-114). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -16014,7 +16616,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-097 - high priority for workshop"
+        "mitigation_measures_detail": "Create R-LEO-AI-097 - high priority for workshop",
+        "residual_severity": 4,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 36,
+        "residual_risk_level": "high",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-115). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -16167,7 +16776,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-099 | ADDITIONAL CONTROLS REQUIRED: DI for override-detection audit pass"
+        "mitigation_measures_detail": "Create R-LEO-AI-099 | ADDITIONAL CONTROLS REQUIRED: DI for override-detection audit pass",
+        "residual_severity": 2,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-116). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -16283,7 +16899,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-100 | ADDITIONAL CONTROLS REQUIRED: DI for programme-overlap test corpus"
+        "mitigation_measures_detail": "Create R-LEO-AI-100 | ADDITIONAL CONTROLS REQUIRED: DI for programme-overlap test corpus",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-117). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -16409,7 +17032,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-101 - detectability high concern | ADDITIONAL CONTROLS REQUIRED: DI for unclassified-encounter fallback queue and alert"
+        "mitigation_measures_detail": "Create R-LEO-AI-101 - detectability high concern | ADDITIONAL CONTROLS REQUIRED: DI for unclassified-encounter fallback queue and alert",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 4,
+        "residual_rpn": 36,
+        "residual_risk_level": "high",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-118). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -16534,7 +17164,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-102"
+        "mitigation_measures_detail": "Create R-LEO-AI-102",
+        "residual_severity": 4,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 24,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-119). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -16662,7 +17299,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Lower priority - workshop: acceptable?"
+        "mitigation_measures_detail": "Lower priority - workshop: acceptable?",
+        "residual_severity": 2,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 8,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-120). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -16787,7 +17431,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-104"
+        "mitigation_measures_detail": "Create R-LEO-AI-104",
+        "residual_severity": 4,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 16,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-121). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -16917,7 +17568,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-105 | ADDITIONAL CONTROLS REQUIRED: DI for impact-summary completeness audit"
+        "mitigation_measures_detail": "Create R-LEO-AI-105 | ADDITIONAL CONTROLS REQUIRED: DI for impact-summary completeness audit",
+        "residual_severity": 4,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 24,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-122). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -17178,7 +17836,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-108 | ADDITIONAL CONTROLS REQUIRED: DI for downstream-effect query coverage test"
+        "mitigation_measures_detail": "Create R-LEO-AI-108 | ADDITIONAL CONTROLS REQUIRED: DI for downstream-effect query coverage test",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-124). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -17313,7 +17978,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-109 - low probability but high severity"
+        "mitigation_measures_detail": "Create R-LEO-AI-109 - low probability but high severity",
+        "residual_severity": 4,
+        "residual_probability": 1,
+        "residual_detectability": 3,
+        "residual_rpn": 12,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-125). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -17447,7 +18119,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-110"
+        "mitigation_measures_detail": "Create R-LEO-AI-110",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 12,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-126). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -17870,7 +18549,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-112"
+        "mitigation_measures_detail": "Create R-LEO-AI-112",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-129). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -17955,7 +18641,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-113 | ADDITIONAL CONTROLS REQUIRED: DI for cache invalidation on currency event"
+        "mitigation_measures_detail": "Create R-LEO-AI-113 | ADDITIONAL CONTROLS REQUIRED: DI for cache invalidation on currency event",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-130). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -18067,7 +18760,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-114 | ADDITIONAL CONTROLS REQUIRED: DI for dependency-coverage test on deprecated guideline"
+        "mitigation_measures_detail": "Create R-LEO-AI-114 | ADDITIONAL CONTROLS REQUIRED: DI for dependency-coverage test on deprecated guideline",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-131). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -18196,7 +18896,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-115"
+        "mitigation_measures_detail": "Create R-LEO-AI-115",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 12,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-132). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -18319,7 +19026,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-117 | ADDITIONAL CONTROLS REQUIRED: DI for NICE TA contractual-deadline auto-detect"
+        "mitigation_measures_detail": "Create R-LEO-AI-117 | ADDITIONAL CONTROLS REQUIRED: DI for NICE TA contractual-deadline auto-detect",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-133). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -18438,7 +19152,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-120 - low probability but catastrophic"
+        "mitigation_measures_detail": "Create R-LEO-AI-120 - low probability but catastrophic",
+        "residual_severity": 5,
+        "residual_probability": 1,
+        "residual_detectability": 2,
+        "residual_rpn": 10,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-134). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -18572,7 +19293,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-121"
+        "mitigation_measures_detail": "Create R-LEO-AI-121",
+        "residual_severity": 4,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 16,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-135). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -18715,7 +19443,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-123 | ADDITIONAL CONTROLS REQUIRED: DI for validation-rule corpus coverage test"
+        "mitigation_measures_detail": "Create R-LEO-AI-123 | ADDITIONAL CONTROLS REQUIRED: DI for validation-rule corpus coverage test",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-136). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -18866,7 +19601,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-124 | ADDITIONAL CONTROLS REQUIRED: DI for benchmark-denominator validation"
+        "mitigation_measures_detail": "Create R-LEO-AI-124 | ADDITIONAL CONTROLS REQUIRED: DI for benchmark-denominator validation",
+        "residual_severity": 2,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-137). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -18983,7 +19725,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-125 | ADDITIONAL CONTROLS REQUIRED: DI for AI-loop event-driven cache invalidation"
+        "mitigation_measures_detail": "Create R-LEO-AI-125 | ADDITIONAL CONTROLS REQUIRED: DI for AI-loop event-driven cache invalidation",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-138). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -19089,7 +19838,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-126"
+        "mitigation_measures_detail": "Create R-LEO-AI-126",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-139). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -19233,7 +19989,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-129 | ADDITIONAL CONTROLS REQUIRED: DI for ineligible-patient exclusion test"
+        "mitigation_measures_detail": "Create R-LEO-AI-129 | ADDITIONAL CONTROLS REQUIRED: DI for ineligible-patient exclusion test",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-140). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -19336,7 +20099,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-130 - detectability concern"
+        "mitigation_measures_detail": "Create R-LEO-AI-130 - detectability concern",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 4,
+        "residual_rpn": 36,
+        "residual_risk_level": "high",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-141). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -19471,7 +20241,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-131 | ADDITIONAL CONTROLS REQUIRED: DI for episode-type DQ-rule coverage test"
+        "mitigation_measures_detail": "Create R-LEO-AI-131 | ADDITIONAL CONTROLS REQUIRED: DI for episode-type DQ-rule coverage test",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-142). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -19578,7 +20355,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-133 | ADDITIONAL CONTROLS REQUIRED: DI for cohort-definition peer-review; DI for cohort-rule golden test"
+        "mitigation_measures_detail": "Create R-LEO-AI-133 | ADDITIONAL CONTROLS REQUIRED: DI for cohort-definition peer-review; DI for cohort-rule golden test",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-143). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -19707,7 +20491,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-134 - reproducibility risk"
+        "mitigation_measures_detail": "Create R-LEO-AI-134 - reproducibility risk",
+        "residual_severity": 2,
+        "residual_probability": 3,
+        "residual_detectability": 4,
+        "residual_rpn": 24,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-144). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -19824,7 +20615,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Lower priority - note at workshop | ADDITIONAL CONTROLS REQUIRED: DI for CI-enforced architecture gate"
+        "mitigation_measures_detail": "Lower priority - note at workshop | ADDITIONAL CONTROLS REQUIRED: DI for CI-enforced architecture gate",
+        "residual_severity": 2,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 12,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-145). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -19972,7 +20770,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-135"
+        "mitigation_measures_detail": "Create R-LEO-AI-135",
+        "residual_severity": 2,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 12,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-146). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -20103,7 +20908,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-136"
+        "mitigation_measures_detail": "Create R-LEO-AI-136",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 12,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-147). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -20370,7 +21182,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-137"
+        "mitigation_measures_detail": "Create R-LEO-AI-137",
+        "residual_severity": 2,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-149). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -20725,7 +21544,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-138"
+        "mitigation_measures_detail": "Create R-LEO-AI-138",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 2,
+        "residual_rpn": 12,
+        "residual_risk_level": "low",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-152). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -20840,7 +21666,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-139"
+        "mitigation_measures_detail": "Create R-LEO-AI-139",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-153). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -20957,7 +21790,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "partially_effective",
-        "mitigation_measures_detail": "Create R-LEO-AI-140 | ADDITIONAL CONTROLS REQUIRED: DI for prerequisite-checklist enforcement on programme activation"
+        "mitigation_measures_detail": "Create R-LEO-AI-140 | ADDITIONAL CONTROLS REQUIRED: DI for prerequisite-checklist enforcement on programme activation",
+        "residual_severity": 3,
+        "residual_probability": 2,
+        "residual_detectability": 3,
+        "residual_rpn": 18,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-154). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -21087,7 +21927,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "not_effective",
-        "mitigation_measures_detail": "Split from R-LEO-AI-065 per Dedup Auditor - different control layer (automated rule vs human auditor approval). | ADDITIONAL CONTROLS REQUIRED: DI for episode QC rule-set coverage against gold cases"
+        "mitigation_measures_detail": "Split from R-LEO-AI-065 per Dedup Auditor - different control layer (automated rule vs human auditor approval). | ADDITIONAL CONTROLS REQUIRED: DI for episode QC rule-set coverage against gold cases",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-155). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
@@ -21213,7 +22060,14 @@
         "review_frequency": "Quarterly",
         "mitigation_control_type": "protective_measure",
         "mitigation_effectiveness": "not_effective",
-        "mitigation_measures_detail": "Split from R-LEO-AI-056 per Dedup Auditor - R-056 is automated dual-LLM remediation; this is human reviewer expertise gap. | ADDITIONAL CONTROLS REQUIRED: DI for reviewer training/credentialing; DI for dual-reviewer concordance on ambiguous corrections"
+        "mitigation_measures_detail": "Split from R-LEO-AI-056 per Dedup Auditor - R-056 is automated dual-LLM remediation; this is human reviewer expertise gap. | ADDITIONAL CONTROLS REQUIRED: DI for reviewer training/credentialing; DI for dual-reviewer concordance on ambiguous corrections",
+        "residual_severity": 3,
+        "residual_probability": 3,
+        "residual_detectability": 3,
+        "residual_rpn": 27,
+        "residual_risk_level": "medium",
+        "residual_acceptability": "alarp",
+        "residual_justification": "Provisional residual = initial estimate. Pending workshop review of mitigation effectiveness for this FMEA gap (MR-156). Specialist framework: clinical safety."
       },
       "links": {
         "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
