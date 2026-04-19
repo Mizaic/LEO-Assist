@@ -40,6 +40,11 @@ from typing import Any, Awaitable, Callable
 
 from app.db.neo4j_client import CodingGraphClient
 from app.services import test_patient_service
+from app.services._logic_tree import (
+    extract_concept_triggers,
+    extract_demographic_constraints,
+    parse_logic_json,
+)
 from libs.cypher.test_patient_queries import READ_RULE_FOR_SCAFFOLD
 from libs.prompts.test_patient_scaffold_v1 import (
     SYSTEM_PROMPT,
@@ -108,8 +113,19 @@ def load_rule_for_scaffold(
 ) -> dict[str, Any]:
     """Pull every field the scaffolder needs about one rule.
 
-    Raises :class:`ScaffoldError` if the rule does not exist (so the
-    router returns a 404-like 422 with a clear reason).
+    The cypher returns ``logic_json`` (a raw JSON blob) and we walk it
+    here to derive the trigger SNOMED concepts and any demographic
+    constraints. The walker is shared with the picker so the two
+    surfaces always agree.
+
+    Backwards compatibility: if a caller (typically a unit test) hands
+    us a row that already has populated ``triggers`` /
+    ``demographic_constraints`` and no ``logic_json``, we use those as
+    the source of truth. Production rows always carry ``logic_json``.
+
+    Raises :class:`ScaffoldError` if the rule does not exist or has no
+    concept criteria the scaffolder can target -- the router then
+    returns a 422 with a plain-English reason.
     """
     rows = client.run(READ_RULE_FOR_SCAFFOLD, rule_id=rule_id)
     if not rows:
@@ -118,15 +134,21 @@ def load_rule_for_scaffold(
             "picker -- only active or pending rules can be scaffolded."
         )
     row = dict(rows[0])
-    triggers = list(row.get("triggers") or [])
-    if not triggers:
+    tree = parse_logic_json(row.get("logic_json"))
+    if tree is not None:
+        row["triggers"] = extract_concept_triggers(tree)
+        row["demographic_constraints"] = extract_demographic_constraints(tree)
+    else:
+        row["triggers"] = list(row.get("triggers") or [])
+        row["demographic_constraints"] = list(
+            row.get("demographic_constraints") or []
+        )
+    if not row["triggers"]:
         raise ScaffoldError(
             f"Rule {rule_id!r} has no SNOMED criteria attached. The "
             "scaffolder cannot draft notes without at least one trigger "
             "concept -- fix the rule before scaffolding."
         )
-    row["triggers"] = triggers
-    row["demographic_constraints"] = list(row.get("demographic_constraints") or [])
     return row
 
 

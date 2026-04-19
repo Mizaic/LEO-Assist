@@ -58,6 +58,19 @@ interface ScaffoldFromRuleDialogProps {
   initialAspect?: AspectFilter;
   onClose: () => void;
   onScaffolded: (newPatientId: string) => void;
+  /**
+   * When set, the rule picker is hidden and the dialog scaffolds
+   * against this rule directly. Used by the rule editor's "Try it on
+   * real patients" panel so the reviewer cannot accidentally pick a
+   * different rule from the one they are editing.
+   *
+   * The `lockedRuleHint` is a short plain-English label (the
+   * verbatim NICE recommendation, the rule name, etc.) shown in the
+   * locked preview so the reviewer can confirm what the AI will
+   * draft against without scrolling back through the picker.
+   */
+  lockedRuleId?: string;
+  lockedRuleHint?: string;
 }
 
 function pickInitialAspect(initial: AspectFilter | undefined): ScaffoldAspect {
@@ -76,11 +89,15 @@ export default function ScaffoldFromRuleDialog({
   initialAspect,
   onClose,
   onScaffolded,
+  lockedRuleId,
+  lockedRuleHint,
 }: ScaffoldFromRuleDialogProps) {
   const [aspect, setAspect] = useState<ScaffoldAspect>(
     pickInitialAspect(initialAspect),
   );
-  const [pickedRuleId, setPickedRuleId] = useState<string | null>(null);
+  const [pickedRuleId, setPickedRuleId] = useState<string | null>(
+    lockedRuleId ?? null,
+  );
   const [rules, setRules] = useState<GuidanceRulePickerEntry[]>([]);
   const [rulesLoading, setRulesLoading] = useState(false);
   const [rulesError, setRulesError] = useState<string | null>(null);
@@ -92,7 +109,7 @@ export default function ScaffoldFromRuleDialog({
   useEffect(() => {
     if (!open) return;
     setAspect(pickInitialAspect(initialAspect));
-    setPickedRuleId(null);
+    setPickedRuleId(lockedRuleId ?? null);
     setError(null);
     setSubmitting(false);
     setRulesLoading(true);
@@ -117,7 +134,7 @@ export default function ScaffoldFromRuleDialog({
     return () => {
       cancelled = true;
     };
-  }, [open, initialAspect]);
+  }, [open, initialAspect, lockedRuleId]);
 
   const pickedRule =
     pickedRuleId !== null
@@ -187,23 +204,53 @@ export default function ScaffoldFromRuleDialog({
                 ) : (
                   <Chip
                     size="small"
-                    label={`${rules.length} loaded`}
+                    label={
+                      lockedRuleId
+                        ? "Locked to the rule you are editing"
+                        : `${rules.length} loaded`
+                    }
                     variant="outlined"
+                    color={lockedRuleId ? "primary" : "default"}
                   />
                 )}
                 <Box sx={{ flex: 1 }} />
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<AccountTreeOutlinedIcon />}
-                  onClick={() => setPickerOpen(true)}
-                  disabled={submitting || (rulesLoading && rules.length === 0)}
-                >
-                  {pickedRule ? "Change rule" : "Pick a rule"}
-                </Button>
+                {lockedRuleId ? null : (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<AccountTreeOutlinedIcon />}
+                    onClick={() => setPickerOpen(true)}
+                    disabled={
+                      submitting || (rulesLoading && rules.length === 0)
+                    }
+                  >
+                    {pickedRule ? "Change rule" : "Pick a rule"}
+                  </Button>
+                )}
               </Stack>
               {rulesError ? (
                 <Alert severity="warning">{rulesError}</Alert>
+              ) : null}
+              {!pickedRule && lockedRuleId ? (
+                <Box
+                  sx={{
+                    p: 1.5,
+                    border: 1,
+                    borderColor: "primary.200",
+                    borderRadius: 1,
+                    bgcolor: "primary.50",
+                  }}
+                  data-testid="picked-rule-preview"
+                >
+                  <Stack spacing={0.5}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {lockedRuleHint || lockedRuleId}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Loading the rest of the rule details...
+                    </Typography>
+                  </Stack>
+                </Box>
               ) : null}
               {pickedRule ? (
                 <Box
@@ -316,18 +363,20 @@ export default function ScaffoldFromRuleDialog({
         </DialogActions>
       </Dialog>
 
-      <RulePickerDialog
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onApply={(ids) => {
-          setPickedRuleId(ids[ids.length - 1] ?? null);
-          setPickerOpen(false);
-        }}
-        selectedRuleIds={pickedRuleId ? [pickedRuleId] : []}
-        rules={rules}
-        loading={rulesLoading}
-        error={rulesError}
-      />
+      {lockedRuleId ? null : (
+        <RulePickerDialog
+          open={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          onApply={(ids) => {
+            setPickedRuleId(ids[ids.length - 1] ?? null);
+            setPickerOpen(false);
+          }}
+          selectedRuleIds={pickedRuleId ? [pickedRuleId] : []}
+          rules={rules}
+          loading={rulesLoading}
+          error={rulesError}
+        />
+      )}
     </>
   );
 }

@@ -194,8 +194,7 @@ def _stitch_partials_deterministic(parts: list[dict[str, Any]]) -> str:
         )
         if part.get("error_message"):
             heading = (
-                f"### Part {idx} of {total} -- {rr_text} "
-                "-- this part did not finish"
+                f"### Part {idx} of {total} -- {rr_text} " "-- this part did not finish"
             )
             body = (
                 "(Background for these records could not be generated. "
@@ -371,9 +370,7 @@ async def call_background(
                     "phase": "map",
                     "part_index": partition.index,
                     "part_total": partition.total,
-                    "record_count": len(
-                        {d.source_id for d in partition.descriptors}
-                    ),
+                    "record_count": len({d.source_id for d in partition.descriptors}),
                     "status": "started",
                 }
             )

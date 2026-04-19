@@ -20,9 +20,9 @@ def _make_app() -> FastAPI:
     from app import deps
     from libs.auth.org_scope import CallerScope
 
-    app.dependency_overrides[deps.require_admin] = lambda: CallerScope(
-        email="admin@test", is_admin=True
-    )
+    admin_scope = CallerScope(email="admin@test", is_admin=True)
+    app.dependency_overrides[deps.require_admin] = lambda: admin_scope
+    app.dependency_overrides[deps.require_admin_or_service] = lambda: admin_scope
     app.include_router(router)
     return app
 

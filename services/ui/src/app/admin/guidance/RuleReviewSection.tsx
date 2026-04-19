@@ -12,12 +12,15 @@ import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -76,6 +79,15 @@ interface Rule {
   action?: ActionConcept | null;
   has_predecessor: boolean;
   predecessor_id?: string;
+  // Surfaced by the BE list endpoint for the Active-list staleness sort
+  // (DI-LEO-AI-512 AC-001 / AC-002). updated_at coalesces server-side
+  // to created_at when the rule has never been edited; reviewed_at +
+  // reviewed_by are empty strings until the first decision lands so
+  // the JSON shape stays stable for FE consumers.
+  created_at?: string;
+  updated_at?: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
 }
 
 interface PromoteResult {
@@ -119,6 +131,88 @@ interface DiffData {
 
 interface Props {
   refreshKey?: number;
+}
+
+/**
+ * Render a FastAPI / Pydantic ``detail`` payload as a human-readable string.
+ *
+ * - A 422 returns ``detail`` as an array of ``{loc, msg, type, ...}`` objects.
+ *   The previous code did ``String(arr)`` which produced
+ *   ``"[object Object],[object Object],..."`` and hid the real cause.
+ * - A 4xx raised via ``HTTPException(detail=...)`` returns ``detail`` as a
+ *   plain string -- pass it through.
+ * - Anything else: best-effort JSON.stringify so the reviewer at least sees
+ *   the shape, never an opaque ``[object Object]``.
+ */
+export function formatApiDetail(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((d) => {
+        if (typeof d === "string") return d;
+        if (d && typeof d === "object") {
+          const obj = d as Record<string, unknown>;
+          const loc = Array.isArray(obj.loc)
+            ? (obj.loc as unknown[])
+                .filter((x) => x !== "body" && x !== "updates")
+                .join(".")
+            : "";
+          const msg = typeof obj.msg === "string" ? obj.msg : "";
+          if (loc && msg) return `${loc}: ${msg}`;
+          if (msg) return msg;
+        }
+        try {
+          return JSON.stringify(d);
+        } catch {
+          return String(d);
+        }
+      })
+      .filter((s) => s.length > 0);
+    return parts.join("; ");
+  }
+  if (detail && typeof detail === "object") {
+    try {
+      return JSON.stringify(detail);
+    } catch {
+      return String(detail);
+    }
+  }
+  return "";
+}
+
+/**
+ * Build the in-session "approved" cache row from the pre-edit ``Rule`` plus
+ * the payload the dialog just POSTed. Exposed (and exported) so a
+ * regression test can pin the merge: a previous version of this code only
+ * carried ``name`` / ``strength`` over from the payload, which silently
+ * dropped any newly added synonym seeds, exclusions, or concept swaps --
+ * so re-opening the rule after save looked like a persistence failure
+ * even though Neo4j had the new tree.
+ *
+ * The merge MUST always overlay ``logic_tree`` from the payload (the dialog
+ * is the source of truth for the new tree), and overlay ``action`` only when
+ * the reviewer changed it (the BE _decide_rule_with_edits coalesces null
+ * action_json back to the predecessor's action for the same reason).
+ */
+export function mergeEditedRuleIntoCache(
+  previous: Rule,
+  newRuleId: string,
+  payload: {
+    name: string;
+    strength: string;
+    logic_tree: Record<string, unknown>;
+    action?: ActionConcept;
+  },
+): Rule {
+  return {
+    ...previous,
+    rule_id: newRuleId,
+    status: "active",
+    name: payload.name || previous.name,
+    strength: payload.strength || previous.strength,
+    logic_tree: payload.logic_tree as unknown as LogicTreeNode,
+    ...(payload.action ? { action: payload.action } : {}),
+  };
 }
 
 // EditRuleDialog uses a narrower LogicCriterion shape (snomed_concept_id is
@@ -499,9 +593,13 @@ interface RuleAccordionCardProps {
   expanded: boolean;
   busy: string | null;
   onToggle: () => void;
-  onApprove: () => void;
   onEdit: () => void;
-  onReject: () => void;
+  // Optional so the same card renders for active rules (no Looks right /
+  // Reject) and superseded rules (read-only). When omitted the button
+  // does not render -- callers express the affordance set, the card
+  // does not infer it from rule.status.
+  onApprove?: () => void;
+  onReject?: () => void;
 }
 
 function RuleAccordionCard({
@@ -556,6 +654,16 @@ function RuleAccordionCard({
               {rule.chapter_title && (
                 <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: "0.75rem" }}>
                   {rule.chapter_title}
+                </Typography>
+              )}
+              {rule.updated_at && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.75rem", fontStyle: "italic" }}
+                  data-testid="rule-updated-relative"
+                >
+                  {formatRelativeUpdatedAt(rule.updated_at)}
                 </Typography>
               )}
             </Stack>
@@ -616,16 +724,18 @@ function RuleAccordionCard({
 
             {/* Action buttons */}
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 2 }}>
-              <Button
-                variant="contained"
-                color="success"
-                size="small"
-                disabled={isBusy}
-                onClick={(e) => { e.stopPropagation(); onApprove(); }}
-                aria-label={`Approve rule ${rule.rule_id}`}
-              >
-                Looks right
-              </Button>
+              {onApprove && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  disabled={isBusy}
+                  onClick={(e) => { e.stopPropagation(); onApprove(); }}
+                  aria-label={`Approve rule ${rule.rule_id}`}
+                >
+                  Looks right
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 size="small"
@@ -635,16 +745,18 @@ function RuleAccordionCard({
               >
                 Edit
               </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                disabled={isBusy}
-                onClick={(e) => { e.stopPropagation(); onReject(); }}
-                aria-label={`Reject rule ${rule.rule_id}`}
-              >
-                Reject
-              </Button>
+              {onReject && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  disabled={isBusy}
+                  onClick={(e) => { e.stopPropagation(); onReject(); }}
+                  aria-label={`Reject rule ${rule.rule_id}`}
+                >
+                  Reject
+                </Button>
+              )}
               {isBusy && <CircularProgress size={16} aria-label="Saving decision" />}
             </Stack>
           </Box>
@@ -656,6 +768,101 @@ function RuleAccordionCard({
 
 // ---- Main section ------------------------------------------------------------
 
+// ---- Active-list staleness helpers (DI-LEO-AI-512) --------------------------
+//
+// formatRelativeUpdatedAt renders an ISO 8601 timestamp (the BE returns
+// rule.updated_at -- coalesced to created_at when the rule has never
+// been edited) as a short, plain-English "Updated 5 minutes ago" hint.
+// We deliberately keep the strings short and unambiguous (no "a few"
+// or "about", no future tense) so reviewers reading dozens of cards
+// can size relative staleness at a glance per .cursor/rules/
+// health-literacy.mdc. The function is exported for static-source +
+// unit tests and is pure (deterministic given an explicit `now`).
+export function formatRelativeUpdatedAt(
+  iso: string | undefined | null,
+  now: Date = new Date(),
+): string {
+  if (!iso) return "";
+  const updated = new Date(iso);
+  if (Number.isNaN(updated.getTime())) return "";
+  const diffMs = now.getTime() - updated.getTime();
+  if (diffMs < 0) return "Updated just now";
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 60) return "Updated just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60)
+    return `Updated ${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24)
+    return `Updated ${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `Updated ${days} day${days === 1 ? "" : "s"} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12)
+    return `Updated ${months} month${months === 1 ? "" : "s"} ago`;
+  const years = Math.floor(days / 365);
+  return `Updated ${years} year${years === 1 ? "" : "s"} ago`;
+}
+
+// sortRulesForStatus orders rules for display:
+//  - "pending_review" + "superseded": preserve BE order (ORDER BY
+//    rule.createdAt DESC -- newest first; the reviewer wants to see
+//    the most recent generation / supersession at the top).
+//  - "active": stalest first (longest since updated_at), so rules
+//    most overdue for re-validation surface at the top of the page.
+//    Ties break on rule_id for deterministic ordering across renders.
+// Pure; exported for jest tests.
+export function sortRulesForStatus<R extends { rule_id: string; updated_at?: string }>(
+  rules: R[],
+  statusFilter: RuleStatusFilter,
+): R[] {
+  if (statusFilter !== "active") return rules;
+  const epoch = (iso: string | undefined): number => {
+    if (!iso) return 0;
+    const t = new Date(iso).getTime();
+    return Number.isNaN(t) ? 0 : t;
+  };
+  // Copy first -- never mutate the caller's list, otherwise the React
+  // state holding the fetched response would be silently re-ordered.
+  return [...rules].sort((a, b) => {
+    const da = epoch(a.updated_at);
+    const db = epoch(b.updated_at);
+    if (da !== db) return da - db;
+    return a.rule_id.localeCompare(b.rule_id);
+  });
+}
+
+// The status filter values mirror AppropriatenessRule.status in Neo4j and
+// are forwarded verbatim as the ?status=... query param accepted by
+// /api/guidance/rules/review (see services/api/app/routers/guidance_rules.py
+// list_pending_rules). Adding a new status here also requires teaching
+// the BE _FETCH_RULES query about it.
+export type RuleStatusFilter = "pending_review" | "active" | "superseded";
+
+const STATUS_FILTER_OPTIONS: ReadonlyArray<{
+  value: RuleStatusFilter;
+  label: string;
+  helper: string;
+}> = [
+  {
+    value: "pending_review",
+    label: "Pending review",
+    helper: "Rules waiting for a reviewer to approve, edit, or reject.",
+  },
+  {
+    value: "active",
+    label: "Active",
+    helper:
+      "Rules currently used by the live ruleset. Edit any to draft a new version (the active version stays live until the new edit is approved).",
+  },
+  {
+    value: "superseded",
+    label: "Superseded",
+    helper:
+      "Older versions of rules that have been replaced by an edit. Read-only history.",
+  },
+];
+
 export default function RuleReviewSection({ refreshKey }: Props) {
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(false);
@@ -665,6 +872,15 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [approveAllOpen, setApproveAllOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [expandedRules, setExpandedRules] = useState<Record<string, boolean>>({});
+
+  // Status filter for the rule list. Default = "pending_review" so the
+  // section's first impression matches the existing review-first flow;
+  // a reviewer who wants to revisit an already-live rule clicks Active.
+  // The filter is local state (not URL) for now -- promoting it to a
+  // URL-backed filter is a Tier 2 enhancement.
+  const [statusFilter, setStatusFilter] = useState<RuleStatusFilter>(
+    "pending_review",
+  );
 
   // Edit dialog
   const [editRule, setEditRule] = useState<Rule | null>(null);
@@ -681,12 +897,12 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch("/api/guidance/rules/review?status=pending_review")
+    fetch(`/api/guidance/rules/review?status=${statusFilter}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
       .then(setRules)
       .catch(() => setError("Could not load rules to review. Please try again."))
       .finally(() => setLoading(false));
-  }, [refreshKey, internalKey]);
+  }, [refreshKey, internalKey, statusFilter]);
 
   const toggleExpanded = useCallback((ruleId: string) => {
     setExpandedRules((prev) => ({ ...prev, [ruleId]: !prev[ruleId] }));
@@ -756,20 +972,26 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           }
         );
         if (!resp.ok) {
-          const detail = await resp.json().catch(() => ({ detail: resp.statusText }));
-          throw new Error(detail.detail || resp.statusText);
+          const detail = await resp
+            .json()
+            .catch(() => ({ detail: resp.statusText }));
+          throw new Error(formatApiDetail(detail.detail) || resp.statusText);
         }
         const body = await resp.json().catch(() => ({}));
         const newRuleId = (body && body.rule_id) || editRule.rule_id;
+        // Merge into the session cache via the shared helper; this keeps the
+        // post-save snapshot in sync with what the BE just persisted (in
+        // particular it forwards the new logic_tree, including any newly
+        // added synonym seeds and exclusions).
+        const previousRule = (editRule as unknown) as Rule;
+        const mergedRule = mergeEditedRuleIntoCache(
+          previousRule,
+          newRuleId,
+          payload,
+        );
         setSessionApproved((prev) => [
           ...prev.filter((r) => r.rule_id !== editRule.rule_id),
-          {
-            ...editRule,
-            rule_id: newRuleId,
-            status: "active",
-            name: payload.name || editRule.name,
-            strength: payload.strength || editRule.strength,
-          },
+          mergedRule,
         ]);
         setEditRule(null);
         setInternalKey((n) => n + 1);
@@ -889,26 +1111,38 @@ export default function RuleReviewSection({ refreshKey }: Props) {
                   <Typography variant="body2" sx={{ mb: 1, color: "text.secondary", fontSize: "0.82rem" }}>
                     {rule.recommendation_text || rule.name || rule.rule_id}
                   </Typography>
-                  {promotedRules[rule.rule_id] ? (
-                    <Alert severity="success" sx={{ py: 0.5 }}>
-                      Added {promotedRules[rule.rule_id].concepts_added} code
-                      {promotedRules[rule.rule_id].concepts_added !== 1 ? "s" : ""} to{" "}
-                      <Link href="/admin/knowledge?tab=domains" underline="hover">
-                        {promotedRules[rule.rule_id].domain_name}
-                      </Link>.
-                    </Alert>
-                  ) : (
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                     <Button
                       size="small"
                       variant="outlined"
-                      color="info"
-                      disabled={promoteBusy === rule.rule_id}
-                      onClick={() => setPromoteConfirmRule(rule)}
-                      aria-label={`Add rule ${rule.rule_id} medical codes to domain`}
+                      color="primary"
+                      startIcon={<EditOutlinedIcon fontSize="small" />}
+                      onClick={() => setEditRule(rule)}
+                      aria-label={`Edit approved rule ${rule.rule_id}`}
                     >
-                      {promoteBusy === rule.rule_id ? "Adding..." : "Add to domain"}
+                      Edit
                     </Button>
-                  )}
+                    {promotedRules[rule.rule_id] ? (
+                      <Alert severity="success" sx={{ py: 0.5, flex: 1 }}>
+                        Added {promotedRules[rule.rule_id].concepts_added} code
+                        {promotedRules[rule.rule_id].concepts_added !== 1 ? "s" : ""} to{" "}
+                        <Link href="/admin/knowledge?tab=domains" underline="hover">
+                          {promotedRules[rule.rule_id].domain_name}
+                        </Link>.
+                      </Alert>
+                    ) : (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="info"
+                        disabled={promoteBusy === rule.rule_id}
+                        onClick={() => setPromoteConfirmRule(rule)}
+                        aria-label={`Add rule ${rule.rule_id} medical codes to domain`}
+                      >
+                        {promoteBusy === rule.rule_id ? "Adding..." : "Add to domain"}
+                      </Button>
+                    )}
+                  </Stack>
                 </CardContent>
               </Card>
             ))}
@@ -916,39 +1150,105 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         </Box>
       )}
 
-      {/* ---- Pending rules accordion list ---- */}
+      {/* ---- Status filter (Pending / Active / Superseded) ---- */}
+      <Stack
+        direction="row"
+        spacing={1.5}
+        alignItems="center"
+        flexWrap="wrap"
+        sx={{ mb: 1.5 }}
+      >
+        <ToggleButtonGroup
+          value={statusFilter}
+          exclusive
+          size="small"
+          color="primary"
+          onChange={(_e, next) => {
+            // exclusive ToggleButtonGroup emits null when the active
+            // option is clicked again -- keep the current filter so
+            // there is never a "no filter selected" empty state.
+            if (next) setStatusFilter(next as RuleStatusFilter);
+          }}
+          aria-label="Filter rules by status"
+        >
+          {STATUS_FILTER_OPTIONS.map((opt) => (
+            <Tooltip key={opt.value} title={opt.helper} arrow>
+              <ToggleButton
+                value={opt.value}
+                aria-label={`Show ${opt.label} rules`}
+              >
+                {opt.label}
+              </ToggleButton>
+            </Tooltip>
+          ))}
+        </ToggleButtonGroup>
+        <Typography variant="caption" color="text.secondary">
+          {
+            STATUS_FILTER_OPTIONS.find((o) => o.value === statusFilter)?.helper
+          }
+        </Typography>
+      </Stack>
+
+      {/* ---- Rules accordion list (filtered by status) ---- */}
       {rules.length === 0 ? (
         <Typography color="text.secondary">
-          No rules waiting for review. Load a guideline first, then generate rules.
+          {statusFilter === "pending_review"
+            ? "No rules waiting for review. Load a guideline first, then generate rules."
+            : statusFilter === "active"
+              ? "No active rules yet. Approve a pending rule to make it active."
+              : "No superseded rules. Edits to active rules will appear here as a read-only history."}
         </Typography>
       ) : (
         <>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            sx={{ mb: 1.5 }}
+          >
             <Typography variant="body2" color="text.secondary">
-              {rules.length} rule{rules.length !== 1 ? "s" : ""} to check — click a row to read in full
+              {rules.length} {statusFilter === "pending_review" ? "rule" : statusFilter === "active" ? "active rule" : "superseded rule"}
+              {rules.length !== 1 ? "s" : ""}
+              {statusFilter === "pending_review" ? " to check" : ""}
+              {" "}— click a row to read in full
             </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              disabled={busy === "all"}
-              onClick={() => setApproveAllOpen(true)}
-              aria-label="Approve all rules"
-            >
-              Approve all
-            </Button>
+            {statusFilter === "pending_review" && (
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={busy === "all"}
+                onClick={() => setApproveAllOpen(true)}
+                aria-label="Approve all rules"
+              >
+                Approve all
+              </Button>
+            )}
           </Stack>
 
           <Stack spacing={1}>
-            {rules.map((rule) => (
+            {sortRulesForStatus(rules, statusFilter).map((rule) => (
               <RuleAccordionCard
                 key={rule.rule_id}
                 rule={rule}
                 expanded={!!expandedRules[rule.rule_id]}
                 busy={busy}
                 onToggle={() => toggleExpanded(rule.rule_id)}
-                onApprove={() => decide(rule, "approve")}
                 onEdit={() => setEditRule(rule)}
-                onReject={() => decide(rule, "reject", "Rejected by reviewer")}
+                // Looks right is meaningful only for pending_review
+                // (the rule has not been approved yet). For active
+                // rules the affordance is Edit (creates a new draft);
+                // for superseded rules everything except Edit is
+                // hidden -- Tier 3 will add Restore to that surface.
+                onApprove={
+                  statusFilter === "pending_review"
+                    ? () => decide(rule, "approve")
+                    : undefined
+                }
+                onReject={
+                  statusFilter === "pending_review"
+                    ? () => decide(rule, "reject", "Rejected by reviewer")
+                    : undefined
+                }
               />
             ))}
           </Stack>

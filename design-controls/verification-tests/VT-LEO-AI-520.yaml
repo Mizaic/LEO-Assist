@@ -203,3 +203,22 @@
         passed (TC-010..TC-011 covered by the new
         "hook handles sbar_stage_progress" and "playground
         renders the part progress chip" cases).
+    - executed_on: "2026-04-19"
+      executed_by: "agent"
+      environment: "local-dev"
+      result: "pass"
+      notes: >
+        Re-run after demoting libs/sbar/background_shrinker to a
+        corner-case fallback (now imports the shared knobs
+        _estimate_tokens / _max_input_tokens / _PROGRESSIVE_CAPS
+        from the partitioner) and after retiring the legacy
+        background_trimmed_notice contract on the orchestrator
+        notices wire (replaced with the partitioner-sourced
+        background_split + background_record_split notices).
+        pytest tests/sbar/ tests/test_sbar_orchestrator.py -q ->
+        33 passed (6 partitioner cases + 7 partitioned prompt-call
+        cases + 13 translator cases + 3 cost-telemetry cases + 3
+        orchestrator cases including the updated
+        test_orchestrator_emits_structured_errors_and_notices_on
+        _sbar_completed which now asserts code = background_split).
+        jest sbar-playground-chrome --no-coverage -> 15 passed.

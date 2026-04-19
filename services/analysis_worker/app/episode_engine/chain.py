@@ -28,6 +28,7 @@ from langgraph.graph.state import CompiledStateGraph
 from libs.llm_client.factory import LLMClient, create_llm
 from libs.neo4j_client.client import PatientGraphClient
 from services.analysis_worker.app.episode_engine.agents import (
+    audit_relevance_filter as audit_filter_agent,
     classifier as classifier_agent,
     milestone_extractor as milestone_agent,
     reconciler as reconciler_agent,
@@ -35,8 +36,13 @@ from services.analysis_worker.app.episode_engine.agents import (
 )
 from services.analysis_worker.app.episode_engine.agents._common import StageError
 from services.analysis_worker.app.episode_engine.schemas import (
+    AuditFilterDrop,
     Episode,
+    EpisodeOfCareTrace,
+    FocusedSet,
     Milestone,
+    MilestoneExtractorResult,
+    PartTrace,
     ReconciledEpisode,
     StageTrace,
 )
@@ -46,6 +52,10 @@ from services.analysis_worker.app.episode_engine.tracing import (
     build_provenance,
     new_trace_id,
     persist_trace,
+)
+from services.analysis_worker.app.episode_engine.window_partitioner import (
+    merge_milestones_deterministic,
+    partition_window,
 )
 from services.analysis_worker.app.episode_engine.writer import write_episodes
 
@@ -178,7 +188,15 @@ def _node_classifier(state: EngineState) -> dict[str, Any]:
     }
 
 
-def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
+def _node_audit_relevance_filter(state: EngineState) -> dict[str, Any]:
+    """Stage 3.5: build a focused encounter set per cancer-ish window.
+
+    See DI-LEO-AI-524. The focused set is the union of the deterministic
+    always-keep guards and the Haiku batched relevance triage. On Haiku
+    error the filter fails open (every encounter in the failed batch
+    flows through with kept_by_fallback = true) so a transient outage
+    never silently turns an encounter into a missing milestone.
+    """
     candidates_by_id = {
         w.get("window_id"): w for w in (state.get("candidate_windows") or [])
     }
@@ -186,7 +204,7 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
     encounter_index = state.get("encounter_index") or {}
 
     llm = _llm("small")
-    extracted: list[dict[str, Any]] = []
+    focused_sets: dict[str, dict[str, Any]] = dict(state.get("focused_sets") or {})
     new_traces: list[StageTrace] = []
     errors: list[str] = list(state.get("errors") or [])
 
@@ -196,33 +214,185 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
         if float(cls.get("confidence") or 0.0) < _CLASSIFIER_MIN_CONFIDENCE:
             continue
 
-        window = candidates_by_id.get(cls.get("window_id")) or {}
-        window_full = _slice_window_full(window, encounter_index)
-        if not window_full.strip():
+        window_id = cls.get("window_id", "")
+        window = candidates_by_id.get(window_id) or {}
+        in_window = _encounters_in_window(window, encounter_index)
+        if not in_window:
             continue
 
-        hints = _signal_hints(window_full)
-        if hints:
-            window_full = window_full + "\n\n" + hints
-
+        hint_ids = _hint_flagged_ids(in_window)
         try:
-            result, trace = milestone_agent.run(
+            focused, traces = audit_filter_agent.run(
                 llm=llm,
                 patient_id=str(state.get("patient_id") or ""),
-                window_id=cls.get("window_id", ""),
+                window_id=window_id,
                 suspected_site=window.get("suspected_site", "unknown"),
-                window_start=str(window.get("window_start", "")),
-                window_end=str(window.get("window_end") or ""),
-                window_full_text=window_full,
+                encounters=in_window,
+                segmenter_anchors=window.get("anchors") or {},
+                cancer_coded_encounter_ids=window.get("cancer_coded_encounter_ids")
+                or [],
+                hint_flagged_encounter_ids=hint_ids,
             )
-            extracted.append(result.model_dump(mode="json"))
-            new_traces.append(trace)
-        except StageError as exc:
-            errors.append(f"milestone[{cls.get('window_id')}]: {exc}")
-            new_traces.append(_failed_trace("milestone_extractor", str(exc)))
+            focused_sets[window_id] = focused.model_dump(mode="json")
+            new_traces.extend(traces)
+        except Exception as exc:  # pragma: no cover - guarded by audit_filter
+            errors.append(f"audit_relevance_filter[{window_id}]: {exc}")
+            new_traces.append(
+                _failed_trace("audit_relevance_filter", str(exc))
+            )
+
+    return {
+        "focused_sets": focused_sets,
+        "errors": errors,
+        "stage_traces": list(state.get("stage_traces") or [])
+        + [t.model_dump() for t in new_traces],
+    }
+
+
+def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
+    candidates_by_id = {
+        w.get("window_id"): w for w in (state.get("candidate_windows") or [])
+    }
+    classified = state.get("classified_windows") or []
+    encounter_index = state.get("encounter_index") or {}
+    focused_sets = state.get("focused_sets") or {}
+
+    llm = _llm("small")
+    extracted: list[dict[str, Any]] = []
+    eoc_traces: list[dict[str, Any]] = list(state.get("eoc_traces") or [])
+    new_traces: list[StageTrace] = []
+    errors: list[str] = list(state.get("errors") or [])
+
+    for cls in classified:
+        if cls.get("episode_type") not in _EXTRACT_EPISODE_TYPES:
+            continue
+        if float(cls.get("confidence") or 0.0) < _CLASSIFIER_MIN_CONFIDENCE:
+            continue
+
+        window_id = cls.get("window_id", "")
+        window = candidates_by_id.get(window_id) or {}
+
+        focused_dict = focused_sets.get(window_id) or {}
+        focused = (
+            FocusedSet.model_validate(focused_dict)
+            if focused_dict
+            else _focused_from_window(window, encounter_index)
+        )
+        focused_encounters = [
+            encounter_index.get(fe.encounter_id, {})
+            | {
+                "encounter_id": fe.encounter_id,
+                "date": (
+                    str(fe.encounter_date) if fe.encounter_date is not None else ""
+                ),
+            }
+            for fe in focused.encounters
+        ]
+        focused_encounters = [e for e in focused_encounters if e.get("encounter_id")]
+
+        if not focused_encounters:
+            continue
+
+        partitions, partition_report = partition_window(focused_encounters)
+        if partition_report.too_many_parts:
+            errors.append(
+                f"milestone[{window_id}]: audit_partition_overflow "
+                f"({partition_report.notice or 'too many parts'})"
+            )
+            extracted.append(
+                MilestoneExtractorResult(
+                    window_id=window_id,
+                    milestones=[],
+                    needs_human_review=True,
+                    reasoning=(
+                        partition_report.notice
+                        or (
+                            "Audit Partition Overflow: this window has too "
+                            "much pathway-relevant material to audit in "
+                            "one run. Ask a clinician to review."
+                        )
+                    ),
+                ).model_dump(mode="json")
+            )
+            eoc_traces.append(
+                _build_eoc_trace(
+                    window_id=window_id,
+                    focused=focused,
+                    parts=[],
+                    overflow=True,
+                    audit_parts=0,
+                ).model_dump(mode="json")
+            )
+            continue
+
+        per_part_results: list[MilestoneExtractorResult] = []
+        part_traces: list[PartTrace] = []
+        for part in partitions:
+            part_full_text = _build_part_text(
+                part=part,
+                encounter_index=encounter_index,
+            )
+            try:
+                result, trace = milestone_agent.run(
+                    llm=llm,
+                    patient_id=str(state.get("patient_id") or ""),
+                    window_id=window_id,
+                    suspected_site=window.get("suspected_site", "unknown"),
+                    window_start=str(window.get("window_start", "")),
+                    window_end=str(window.get("window_end") or ""),
+                    window_full_text=part_full_text,
+                )
+                per_part_results.append(result)
+                new_traces.append(trace)
+                part_traces.append(
+                    PartTrace(
+                        part_index=part.index,
+                        encounter_count=len(part.encounter_ids),
+                        milestones_count=len(result.milestones),
+                    )
+                )
+            except StageError as exc:
+                errors.append(
+                    f"milestone[{window_id} part {part.index}/{part.total}]: {exc}"
+                )
+                new_traces.append(_failed_trace("milestone_extractor", str(exc)))
+                per_part_results.append(
+                    MilestoneExtractorResult(
+                        window_id=window_id,
+                        milestones=[],
+                        needs_human_review=True,
+                        reasoning=(
+                            "This part failed to process; surviving parts "
+                            "still contributed to the merged result."
+                        ),
+                    )
+                )
+                part_traces.append(
+                    PartTrace(
+                        part_index=part.index,
+                        encounter_count=len(part.encounter_ids),
+                        milestones_count=0,
+                        error=str(exc)[:200],
+                    )
+                )
+
+        merged = merge_milestones_deterministic(
+            per_part_results, window_id=window_id
+        )
+        extracted.append(merged.model_dump(mode="json"))
+        eoc_traces.append(
+            _build_eoc_trace(
+                window_id=window_id,
+                focused=focused,
+                parts=part_traces,
+                overflow=False,
+                audit_parts=len(partitions),
+            ).model_dump(mode="json")
+        )
 
     return {
         "extracted": extracted,
+        "eoc_traces": eoc_traces,
         "errors": errors,
         "stage_traces": list(state.get("stage_traces") or [])
         + [t.model_dump() for t in new_traces],
@@ -426,6 +596,137 @@ def _slice_window_full(
     return "\n\n".join(blocks)
 
 
+def _encounters_in_window(
+    window: dict[str, Any],
+    encounter_index: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return the in-window encounter rows ordered by date then id."""
+    start = str(window.get("window_start", "0000-00-00"))
+    end = str(window.get("window_end") or "9999-12-31")
+    rows = [
+        rec
+        for rec in encounter_index.values()
+        if rec.get("date") and start <= str(rec["date"]) <= end
+    ]
+    rows.sort(key=lambda r: (str(r.get("date", "")), r.get("encounter_id", "")))
+    return rows
+
+
+def _hint_flagged_ids(in_window: list[dict[str, Any]]) -> list[str]:
+    """Run the deterministic safety-netting / disruption hint detectors
+    over the in-window encounters and return matched encounter ids.
+
+    Mirrors ``_signal_hints`` but operates on the raw rows instead of the
+    serialised window text, so the audit-relevance-filter guard layer
+    can use the same vocabulary the milestone extractor relies on.
+    """
+    flagged: list[str] = []
+    for rec in in_window:
+        text = (rec.get("full_snippet") or rec.get("text") or "")
+        cleaned = _ADMIN_NOISE_RX.sub(" ", str(text))
+        if (
+            _SAFETY_NETTING_HINT_RX.search(cleaned)
+            or _DISRUPTION_HINT_RX.search(cleaned)
+        ):
+            eid = str(rec.get("encounter_id") or "")
+            if eid:
+                flagged.append(eid)
+    return flagged
+
+
+def _focused_from_window(
+    window: dict[str, Any],
+    encounter_index: dict[str, dict[str, Any]],
+) -> FocusedSet:
+    """Fallback FocusedSet when the audit filter did not run for a window.
+
+    Treats every in-window encounter as kept_by_fallback so the milestone
+    extractor still runs on the full window, preserving the
+    no-encounter-silently-dropped invariant.
+    """
+    rows = _encounters_in_window(window, encounter_index)
+    focused = FocusedSet.model_validate(
+        {
+            "encounters": [
+                {
+                    "encounter_id": str(r.get("encounter_id") or ""),
+                    "encounter_date": (
+                        r.get("date") if r.get("date") else None
+                    ),
+                    "kept_by_guard": False,
+                    "kept_by_fallback": True,
+                }
+                for r in rows
+                if r.get("encounter_id")
+            ],
+            "report": {
+                "audit_input_encounters": len(rows),
+                "audit_kept_by_guards": 0,
+                "audit_kept_by_llm": 0,
+                "audit_dropped_by_llm": [],
+                "audit_filter_failed": True,
+                "audit_filter_overflow": False,
+                "audit_parts": 1,
+            },
+        }
+    )
+    return focused
+
+
+def _build_part_text(
+    *,
+    part,
+    encounter_index: dict[str, dict[str, Any]],
+) -> str:
+    """Render the per-encounter blocks for one Partition.
+
+    Common case (single partition): byte-for-byte identical to the legacy
+    ``_slice_window_full`` output for the encounters in that part.
+    Multi-part runs: a leading ``Part i of N`` marker is added so the
+    extractor knows it is summarising one slice of a wider audit; a
+    ``part_in_encounter`` note is added for any record split across
+    consecutive parts.
+    """
+    blocks: list[str] = []
+    if part.total > 1:
+        blocks.append(f"Part {part.index} of {part.total} of this audit window.")
+    for eid in part.encounter_ids:
+        rec = encounter_index.get(eid) or {}
+        snippet = rec.get("full_snippet") or rec.get("text") or ""
+        date = rec.get("date") or "unknown"
+        header = f"[{eid}] {date}"
+        if part.part_in_encounter and eid in part.part_in_encounter:
+            i, n = part.part_in_encounter[eid]
+            header += f" (record part {i} of {n})"
+        blocks.append(f"{header}\n{snippet}")
+    return "\n\n".join(blocks)
+
+
+def _build_eoc_trace(
+    *,
+    window_id: str,
+    focused: FocusedSet,
+    parts: list[PartTrace],
+    overflow: bool,
+    audit_parts: int,
+) -> EpisodeOfCareTrace:
+    """Combine focus + partition signal into one EpisodeOfCareTrace row."""
+    return EpisodeOfCareTrace(
+        window_id=window_id,
+        audit_input_encounters=focused.report.audit_input_encounters,
+        audit_kept_by_guards=focused.report.audit_kept_by_guards,
+        audit_kept_by_llm=focused.report.audit_kept_by_llm,
+        audit_dropped_by_llm=[
+            AuditFilterDrop(encounter_id=d.encounter_id, reason=d.reason)
+            for d in focused.report.audit_dropped_by_llm
+        ],
+        audit_filter_failed=focused.report.audit_filter_failed,
+        audit_filter_overflow=overflow,
+        audit_parts=audit_parts,
+        parts=list(parts),
+    )
+
+
 _SAFETY_NETTING_HINT_RX = re.compile(
     r"(?i)("
     r"cancer safety netting|y281b|safety net|safety-net|safety netted|"
@@ -506,6 +807,7 @@ def build_episode_engine_subgraph() -> CompiledStateGraph:
     g.add_node("load_timeline", _node_load_timeline)
     g.add_node("segmenter", _node_segmenter)
     g.add_node("classifier", _node_classifier)
+    g.add_node("audit_relevance_filter", _node_audit_relevance_filter)
     g.add_node("milestone_extractor", _node_milestone_extractor)
     g.add_node("reconciler", _node_reconciler)
     g.add_node("writer", _node_writer)
@@ -513,7 +815,8 @@ def build_episode_engine_subgraph() -> CompiledStateGraph:
     g.add_edge(START, "load_timeline")
     g.add_edge("load_timeline", "segmenter")
     g.add_edge("segmenter", "classifier")
-    g.add_edge("classifier", "milestone_extractor")
+    g.add_edge("classifier", "audit_relevance_filter")
+    g.add_edge("audit_relevance_filter", "milestone_extractor")
     g.add_edge("milestone_extractor", "reconciler")
     g.add_edge("reconciler", "writer")
     g.add_edge("writer", END)

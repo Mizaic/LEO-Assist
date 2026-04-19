@@ -21,6 +21,7 @@
 "use client";
 
 import { useMemo } from "react";
+import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Tooltip from "@mui/material/Tooltip";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -32,6 +33,15 @@ import {
 } from "@leo/design-system";
 
 import { useDensity } from "@/context/DensityContext";
+import {
+  HighlightedText,
+  collectHighlightTerms,
+} from "@/components/mission-control/HighlightedText";
+import {
+  computeMatchRationale,
+  expandSearchTerms,
+  type MatchRationale,
+} from "@/components/mission-control/encounterRelevance";
 
 import type { Candidate, Entity } from "./goldDatasetTypes";
 import { parseEntities, truncate } from "./goldDatasetUtils";
@@ -52,6 +62,15 @@ interface Props {
   openingLabelId: string | null;
   markingGoldId: string | null;
   deletingId: string | null;
+  /**
+   * Reviewer's debounced search query (forwarded from
+   * GoldDatasetPanel). When set, the row title highlights matched
+   * terms and a "why this matched" chip row is rendered alongside
+   * the existing entity / status chips so the dry-run queue speaks
+   * the same vocabulary as the /care/encounters host search and the
+   * /care/patients drawer (DI-LEO-AI-523, UN-LEO-AI-096).
+   */
+  search?: string;
 }
 
 function toneFor(
@@ -63,16 +82,52 @@ function toneFor(
   return "neutral";
 }
 
+function renderRationaleChips(
+  candidateId: string,
+  rationale: MatchRationale,
+  expandedTerms: string[],
+) {
+  if (expandedTerms.length === 0 || rationale.hitTerms.length === 0) return null;
+  return (
+    <Box
+      data-testid="candidate-row-match-rationale"
+      sx={{
+        display: "flex",
+        gap: 0.5,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
+      {rationale.hitTerms.slice(0, 4).map((term, idx) => (
+        <Chip
+          key={`${candidateId}-mr-${idx}-${term}`}
+          size="small"
+          label={term}
+          variant="outlined"
+          data-testid="candidate-row-match-rationale-chip"
+          sx={{ height: 20, fontSize: "0.65rem" }}
+        />
+      ))}
+    </Box>
+  );
+}
+
 function renderChips(
   entities: Entity[],
   uncodedCount: number,
   rareLabels: string[] | undefined,
   maps: ChipMaps,
   isAISuggested: boolean,
+  candidateId: string,
+  rationale: MatchRationale,
+  expandedTerms: string[],
 ) {
-  if (entities.length === 0 && !isAISuggested) return null;
+  const showRationale =
+    expandedTerms.length > 0 && rationale.hitTerms.length > 0;
+  if (entities.length === 0 && !isAISuggested && !showRationale) return null;
   return (
     <>
+      {renderRationaleChips(candidateId, rationale, expandedTerms)}
       {/* -- AI first-pass row badge (DI-LEO-AI-209 / R-LEO-AI-197) -- */}
       {/* Surface AI provenance at the row level so reviewers can spot */}
       {/* pre-done candidates without opening the detail dialog. */}
@@ -144,6 +199,8 @@ function buildItem(
   candidate: Candidate,
   handlers: Props,
   maps: ChipMaps,
+  search: string | undefined,
+  expandedTerms: string[],
 ): ReviewListItem {
   const entities = parseEntities(candidate.entities_json ?? null);
   const uncodedCount = entities.filter((e) => !e.snomed_concept_id).length;
@@ -155,16 +212,34 @@ function buildItem(
   const busyDelete = handlers.deletingId === id;
   const busyOpen = handlers.openingLabelId === id;
   const disabled = busyMark || busyDelete || busyOpen;
+  const truncatedText = truncate(candidate.text);
+  const matchRationale = computeMatchRationale(candidate.text, expandedTerms);
+  const highlightTerms = collectHighlightTerms(
+    search,
+    matchRationale.hitTerms,
+  );
 
   return {
     id,
-    title: truncate(candidate.text),
+    title:
+      highlightTerms.length > 0 ? (
+        <HighlightedText
+          text={truncatedText}
+          terms={highlightTerms}
+          testId="candidate-row-highlight"
+        />
+      ) : (
+        truncatedText
+      ),
     chips: renderChips(
       entities,
       uncodedCount,
       candidate.rare_labels ?? undefined,
       maps,
       !!candidate.ai_first_pass_run_id,
+      id,
+      matchRationale,
+      expandedTerms,
     ),
     meta: <RelationRow triplets={relTriplets} missing={missingLinks} />,
     actions: (
@@ -200,9 +275,15 @@ export default function CandidateReviewList(props: Props) {
   );
   const maps = useEntityChipMaps(allEntities);
 
+  const expandedTerms = useMemo(
+    () => expandSearchTerms(props.search),
+    [props.search],
+  );
+
   const reviewItems: ReviewListItem[] = useMemo(
-    () => props.items.map((c) => buildItem(c, props, maps)),
-    [props, maps],
+    () =>
+      props.items.map((c) => buildItem(c, props, maps, props.search, expandedTerms)),
+    [props, maps, expandedTerms],
   );
 
   return (

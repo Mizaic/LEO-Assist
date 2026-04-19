@@ -10,7 +10,14 @@
  * The banner offers a one-click compile so the reviewer can fix the
  * problem without leaving the dialog.
  *
- * Design control: DI-LEO-AI-181 / R-LEO-AI-176 (silent zero-match).
+ * Lives under the central Knowledge > Test Patients library so the
+ * rule editor's "Try it on real patients" panel and the central
+ * library can share one banner.
+ *
+ * Audience standard (UK reading age 11): one short paragraph, plain
+ * English, action verb on the button.
+ *
+ * Atlas IDs: DI-LEO-AI-181 / R-LEO-AI-176 (silent zero-match).
  */
 
 import { useState } from "react";
@@ -22,30 +29,13 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { compileProductionBitmap } from "./api";
+import { compileProductionBitmap } from "../api";
 
 interface Props {
-  /**
-   * Scope the missing ruleset belongs to. ``global``/``default`` is
-   * the production scope; other values mean a guideline- or
-   * domain-scoped ruleset is missing for that subset of rules.
-   */
   scopeType?: string;
   scopeId?: string;
-  /** Optional message returned by the backend (e.g. recompile_hint). */
   detail?: string | null;
-  /**
-   * Optional callback fired AFTER compile is requested -- typically
-   * the parent re-runs whatever query just returned ``not_compiled``
-   * (replay, diagnose, evaluate) so the new banner state reflects
-   * reality.
-   */
   onCompileRequested?: (job: { job_id: string; version: string }) => void;
-  /**
-   * When ``true`` the banner explains we are in a draft sandbox flow
-   * (so the user understands that compiling production won't fix the
-   * sandbox). Defaults to ``false``.
-   */
   sandbox?: boolean;
 }
 
@@ -143,7 +133,11 @@ export default function RulesetNotCompiledBanner({
         </Box>
       )}
       {error && (
-        <Typography variant="caption" color="error.main" sx={{ display: "block", mt: 0.5 }}>
+        <Typography
+          variant="caption"
+          color="error.main"
+          sx={{ display: "block", mt: 0.5 }}
+        >
           {error}
         </Typography>
       )}

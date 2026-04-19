@@ -25,10 +25,24 @@ from libs.neo4j_client.client import PatientGraphClient
 
 logger = logging.getLogger(__name__)
 
-# Cap text per encounter in the trunk view. Full text is preserved in
-# encounter_index for downstream stages that need it.
+# Cap text per encounter in the trunk view used by the segmenter +
+# classifier. The trunk view is intentionally short so the LLM can
+# segment a multi-year timeline in one cheap call.
 _TRUNK_SNIPPET_CHARS = 240
-_FULL_SNIPPET_CHARS = 4000
+
+# Per-encounter cap for the full-snippet stored in the encounter_index.
+# Historically this was the only safety net for the milestone extractor
+# and silently shortened encounters whose text exceeded 4000 chars (a
+# real risk for dense discharge letters and stitched encounter
+# bundles -- see DI-LEO-AI-525). The window partitioner now performs
+# the real safety-net work (see ``services/analysis_worker/app/
+# episode_engine/window_partitioner.py``); this cap is retained ONLY as
+# a corner-case fallback for callers that bypass the partitioner (for
+# example direct unit tests that hand the milestone extractor a single
+# untruncated encounter). Production code paths must NOT rely on this
+# cap to keep prompts within budget; the partitioner is the source of
+# truth.
+_FULL_SNIPPET_CHARS = 16_000
 
 _WHITESPACE_RX = re.compile(r"[ \t]+")
 _NEWLINES_RX = re.compile(r"\s*\n\s*")

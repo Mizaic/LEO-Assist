@@ -255,9 +255,7 @@ def background_part_failed_error(
     return {
         "stage": f"background:part {part_index} of {part_total}",
         "code": "background_part_failed",
-        "message": (
-            f"Background (part {part_index} of {part_total}): {message}"
-        ),
+        "message": (f"Background (part {part_index} of {part_total}): {message}"),
     }
 
 

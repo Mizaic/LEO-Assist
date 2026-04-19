@@ -606,8 +606,10 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(page).toMatch(/data-testid=\{`triage-chip-\$\{value\}`\}/);
     expect(page).toMatch(/TRIAGE_OUTCOME_HINT\[value\]/);
     expect(page).toMatch(/TRIAGE_OUTCOME_LABEL\[value\]/);
+    // The list call now also forwards the rule_id URL param so the
+    // central library can be deep-linked from the rule editor.
     expect(page).toMatch(
-      /listTestPatients\(\{\s*aspect,\s*triage_outcome:\s*outcomeForList\s*\}\)/,
+      /listTestPatients\(\{\s*aspect,\s*triage_outcome:\s*outcomeForList,\s*rule_id:\s*ruleIdFilter\s*\?\?\s*undefined,?\s*\}\)/,
     );
     expect(page).toMatch(/getTriageOutcomeCounts\(\)/);
     expect(page).toMatch(/id:\s*"triage_outcome"/);
@@ -615,16 +617,45 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(page).toMatch(/row\.triage_outcome === "2ww"[\s\S]*?\?\s*"error"/);
   });
 
-  test("TC-006: legacy /admin/guidance/test-patients route file is removed", () => {
+  test("TC-006: legacy /admin/guidance/test-patients folder is removed end-to-end", () => {
+    // Phase A removed the route page; this PR removes the supporting
+    // modules too. The rule editor now imports api/types/dialogs from
+    // the centralised /admin/knowledge/test-patients folder, and the
+    // moved replay components live in the /replay subfolder.
     expect(
       exists("services/ui/src/app/admin/guidance/test-patients/page.tsx"),
     ).toBe(false);
-    // The supporting modules (dialogs, api, types) are still present
-    // because the new Knowledge tab and the EditRuleDialog import
-    // them; only the route page.tsx is deleted in Phase A.
     expect(
       exists("services/ui/src/app/admin/guidance/test-patients/api.ts"),
+    ).toBe(false);
+    expect(
+      exists("services/ui/src/app/admin/guidance/test-patients/types.ts"),
+    ).toBe(false);
+    expect(
+      exists(
+        "services/ui/src/app/admin/guidance/test-patients/" +
+          "ReplayResultsDialog.tsx",
+      ),
+    ).toBe(false);
+    expect(
+      exists(
+        "services/ui/src/app/admin/guidance/test-patients/" +
+          "RulesetNotCompiledBanner.tsx",
+      ),
+    ).toBe(false);
+    expect(
+      exists(
+        "services/ui/src/app/admin/knowledge/test-patients/replay/" +
+          "ReplayResultsDialog.tsx",
+      ),
     ).toBe(true);
+    expect(
+      exists(
+        "services/ui/src/app/admin/knowledge/test-patients/replay/" +
+          "RulesetNotCompiledBanner.tsx",
+      ),
+    ).toBe(true);
+
     expect(
       exists(
         "services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx",
@@ -638,5 +669,53 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
       /href="\/admin\/knowledge\?tab=test-patients"/,
     );
     expect(lifecycle).not.toMatch(/href="\/admin\/guidance\/test-patients"/);
+  });
+
+  test("TC-007: rule editor panel is wired to the central library", () => {
+    // The "Try it on real patients" panel (rule editor) MUST import
+    // its data layer from the centralised library so SBAR-aspect
+    // patients show up alongside guideline ones, and MUST replace the
+    // legacy "Build new" / "Generate" pair with the new "Author with
+    // AI from this rule" + "Open in Test Patient Library" buttons.
+    const panel = read(
+      "services/ui/src/app/admin/guidance/EditRuleDialog/" +
+        "TestPatientsPanel.tsx",
+    );
+    expect(panel).toContain('from "../../knowledge/test-patients/api"');
+    expect(panel).toContain('from "../../knowledge/test-patients/types"');
+    expect(panel).toContain(
+      'from "../../knowledge/test-patients/ScaffoldFromRuleDialog"',
+    );
+    expect(panel).toContain(
+      'from "../../knowledge/test-patients/replay/ReplayResultsDialog"',
+    );
+    expect(panel).toContain(
+      'from "../../knowledge/test-patients/replay/RulesetNotCompiledBanner"',
+    );
+    expect(panel).toMatch(/Author with AI from this rule/);
+    expect(panel).toMatch(/Open in Test Patient Library/);
+    expect(panel).toMatch(/lockedRuleId=\{ruleId\}/);
+    // Open-in-library deep link uses URLSearchParams. The literal
+    // "test-patients" tab key and the rule_id field must both appear
+    // so the central library lands on the right tab + filter.
+    expect(panel).toMatch(/tab:\s*"test-patients"/);
+    expect(panel).toMatch(/rule_id:\s*ruleId/);
+    // Legacy entry points must be gone.
+    expect(panel).not.toMatch(/BuildPatientDialog/);
+    expect(panel).not.toMatch(/GeneratePatientsDialog/);
+    expect(panel).not.toMatch(/listPatients\(/);
+  });
+
+  test("TC-008: knowledge page reads ?rule_id and shows a clear banner", () => {
+    const page = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    expect(page).toMatch(
+      /searchParams\.get\(\s*"rule_id"\s*\)/,
+    );
+    expect(page).toMatch(/rule_id:\s*ruleIdFilter\s*\?\?\s*undefined/);
+    expect(page).toMatch(/data-testid="rule-filter-banner"/);
+    expect(page).toMatch(/data-testid="clear-rule-filter"/);
+    expect(page).toMatch(/Show all/);
   });
 });

@@ -34,13 +34,12 @@ import httpx
 import logging
 import os
 
-
 logger = logging.getLogger(__name__)
 
 
-TERMINOLOGY_API_URL = os.getenv(
-    "TERMINOLOGY_API_URL", "http://localhost:8003"
-).rstrip("/")
+TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8003").rstrip(
+    "/"
+)
 EVAL_TIMEOUT_S = float(os.getenv("SBAR_EVAL_TIMEOUT_S", "30"))
 
 
@@ -178,13 +177,19 @@ def format_assessment(
     rules_sorted = sorted(
         matched_rules,
         key=lambda r: (
-            _PRIORITY_ORDER.get(((r.get("action") or {}).get("priority") or "routine"), 9),
+            _PRIORITY_ORDER.get(
+                ((r.get("action") or {}).get("priority") or "routine"), 9
+            ),
             -(r.get("confidence") or 0.0),
             r.get("name") or "",
         ),
     )
 
-    by_priority: dict[str, list[dict[str, Any]]] = {"2ww": [], "urgent": [], "routine": []}
+    by_priority: dict[str, list[dict[str, Any]]] = {
+        "2ww": [],
+        "urgent": [],
+        "routine": [],
+    }
     for rule in rules_sorted:
         prio = ((rule.get("action") or {}).get("priority") or "routine").lower()
         by_priority.setdefault(prio, []).append(rule)
@@ -324,8 +329,12 @@ def _derive_pathway_hints(rules: list[dict[str, Any]]) -> dict[str, Any]:
     """
     twoww = [r for r in rules if ((r.get("action") or {}).get("priority")) == "2ww"]
     urgent = [r for r in rules if ((r.get("action") or {}).get("priority")) == "urgent"]
-    routine = [r for r in rules if ((r.get("action") or {}).get("priority")) == "routine"]
-    conditional = [r for r in rules if (r.get("strength") or "").lower() == "conditional"]
+    routine = [
+        r for r in rules if ((r.get("action") or {}).get("priority")) == "routine"
+    ]
+    conditional = [
+        r for r in rules if (r.get("strength") or "").lower() == "conditional"
+    ]
 
     stt: str | None = None
     stt_evidence: str | None = None
@@ -359,10 +368,7 @@ def _derive_pathway_hints(rules: list[dict[str, Any]]) -> dict[str, Any]:
     alt_evidence: str | None = None
     candidates = conditional + routine
     if candidates:
-        names = [
-            (r.get("name") or r.get("rule_id") or "?")
-            for r in candidates[:3]
-        ]
+        names = [(r.get("name") or r.get("rule_id") or "?") for r in candidates[:3]]
         alt = "; ".join(names)
         alt_evidence = "; ".join(r.get("rule_id", "?") for r in candidates[:3])
 

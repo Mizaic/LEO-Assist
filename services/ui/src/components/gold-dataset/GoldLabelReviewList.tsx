@@ -34,6 +34,15 @@ import {
 } from "@leo/design-system";
 
 import { useDensity } from "@/context/DensityContext";
+import {
+  HighlightedText,
+  collectHighlightTerms,
+} from "@/components/mission-control/HighlightedText";
+import {
+  computeMatchRationale,
+  expandSearchTerms,
+  type MatchRationale,
+} from "@/components/mission-control/encounterRelevance";
 
 import type { Entity, GoldLabel } from "./goldDatasetTypes";
 import {
@@ -56,6 +65,15 @@ interface Props {
   onOpen: (item: GoldLabel) => void;
   onReset: (item: GoldLabel) => void;
   resettingLabelId: string | null;
+  /**
+   * Reviewer's debounced search query (forwarded from
+   * GoldDatasetPanel). When set, the row title highlights matched
+   * terms and a "why this matched" chip row is rendered alongside
+   * the existing entity chips so verified / synthetic gold rows
+   * speak the same vocabulary as /care/encounters and the patient
+   * drawer (DI-LEO-AI-523, UN-LEO-AI-096).
+   */
+  search?: string;
 }
 
 function toneFor(score: number | null): ReviewListItem["tone"] {
@@ -65,10 +83,49 @@ function toneFor(score: number | null): ReviewListItem["tone"] {
   return "danger";
 }
 
-function renderChips(entities: Entity[], maps: ChipMaps) {
-  if (entities.length === 0) return null;
+function renderRationaleChips(
+  labelId: string,
+  rationale: MatchRationale,
+  expandedTerms: string[],
+) {
+  if (expandedTerms.length === 0 || rationale.hitTerms.length === 0) return null;
+  return (
+    <Box
+      data-testid="candidate-row-match-rationale"
+      sx={{
+        display: "flex",
+        gap: 0.5,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
+      {rationale.hitTerms.slice(0, 4).map((term, idx) => (
+        <Chip
+          key={`${labelId}-mr-${idx}-${term}`}
+          size="small"
+          label={term}
+          variant="outlined"
+          data-testid="candidate-row-match-rationale-chip"
+          sx={{ height: 20, fontSize: "0.65rem" }}
+        />
+      ))}
+    </Box>
+  );
+}
+
+function renderChips(
+  entities: Entity[],
+  maps: ChipMaps,
+  labelId: string,
+  rationale: MatchRationale,
+  expandedTerms: string[],
+) {
+  const showRationale =
+    expandedTerms.length > 0 && rationale.hitTerms.length > 0;
+  if (entities.length === 0 && !showRationale) return null;
   return (
     <>
+      {renderRationaleChips(labelId, rationale, expandedTerms)}
       {entities.slice(0, 5).map((entity, index) => (
         <EntityChipView
           key={`${entity.text}-${index}`}
@@ -133,14 +190,35 @@ function renderMeta(item: GoldLabel, entities: Entity[]) {
   );
 }
 
-function buildItem(item: GoldLabel, handlers: Props, maps: ChipMaps): ReviewListItem {
+function buildItem(
+  item: GoldLabel,
+  handlers: Props,
+  maps: ChipMaps,
+  search: string | undefined,
+  expandedTerms: string[],
+): ReviewListItem {
   const entities = parseEntities(item.entities_json);
   const id = item.label_id;
   const resetting = handlers.resettingLabelId === id;
+  const truncatedText = truncate(item.text);
+  const matchRationale = computeMatchRationale(item.text, expandedTerms);
+  const highlightTerms = collectHighlightTerms(
+    search,
+    matchRationale.hitTerms,
+  );
   return {
     id,
-    title: truncate(item.text),
-    chips: renderChips(entities, maps),
+    title:
+      highlightTerms.length > 0 ? (
+        <HighlightedText
+          text={truncatedText}
+          terms={highlightTerms}
+          testId="candidate-row-highlight"
+        />
+      ) : (
+        truncatedText
+      ),
+    chips: renderChips(entities, maps, id, matchRationale, expandedTerms),
     meta: renderMeta(item, entities),
     actions: (
       <>
@@ -169,9 +247,17 @@ export default function GoldLabelReviewList(props: Props) {
   );
   const maps = useEntityChipMaps(allEntities);
 
+  const expandedTerms = useMemo(
+    () => expandSearchTerms(props.search),
+    [props.search],
+  );
+
   const reviewItems: ReviewListItem[] = useMemo(
-    () => props.items.map((item) => buildItem(item, props, maps)),
-    [props, maps],
+    () =>
+      props.items.map((item) =>
+        buildItem(item, props, maps, props.search, expandedTerms),
+      ),
+    [props, maps, expandedTerms],
   );
 
   return (

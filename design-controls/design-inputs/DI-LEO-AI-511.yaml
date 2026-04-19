@@ -103,6 +103,73 @@
           "Only the exact code <id> will fire" message and MUST NOT
           call the descendants endpoint. Changing the seed's depth
           while the panel is open SHALL trigger a refetch.
+      - type: "safety"
+        spec: >
+          AC-008: stripNodeIds (and an exported sanitiseCriterion
+          helper) SHALL whitelist the keys forwarded to the BE
+          LogicCriterion / LogicSeed models on save. Allowed
+          criterion keys: snomed_concept_id, preferred_term,
+          semantic_tag, term, seeds, excluded_concept_ids,
+          primary_concept_id. Allowed seed keys: snomed_concept_id,
+          preferred_term, semantic_tag, include_descendants,
+          distance_child. Any LLM-provenance field carried into the
+          editor when the rule was loaded (node_id, source_text,
+          original_phrase, expansion_source, expanded_from,
+          candidates, verification_status, verification_reason,
+          confidence, resolver_turns, needs_human_review,
+          search_history) MUST be stripped before POST. This mirrors
+          model_config={"extra":"forbid"} in
+          services/api/app/services/guidance_rule_edit.py and
+          prevents the silent-422-and-dropped-seeds failure mode
+          (see R-LEO-AI-508 sixth mitigation).
+      - type: "usability"
+        spec: >
+          AC-009: When the save endpoint returns a non-2xx response,
+          the dialog SHALL render the failure as a readable
+          sentence. A FastAPI 422 detail array (list of
+          {loc, msg, type, ...} objects) MUST be formatted as a
+          joined string of "<dotted-loc-without-body-prefix>: <msg>"
+          parts; a plain-string detail MUST pass through unchanged;
+          unexpected shapes MUST fall back to JSON.stringify; null /
+          undefined MUST yield an empty string so the caller falls
+          back to HTTP statusText. The literal "[object Object]"
+          MUST NOT appear in any error surface.
+      - type: "usability"
+        spec: >
+          AC-010: The "Approved in this session" card in
+          RuleReviewSection.tsx SHALL render an "Edit" button next to
+          the "Add to domain" / promotion success Alert. The button
+          MUST sit OUTSIDE the promotedRules ternary so it remains
+          visible after a rule has been added to a domain (the author
+          may still need to tighten criteria after promotion). The
+          button MUST call setEditRule(rule) and reuse the same
+          EditRuleDialog + handleSaveEdit code path used for pending
+          rules; no separate save path may exist for active rules.
+      - type: "usability"
+        spec: >
+          AC-011: RuleReviewSection.tsx SHALL expose a
+          ToggleButtonGroup with values "pending_review" / "active" /
+          "superseded" that drives the GET
+          /api/guidance/rules/review?status=<value> fetch. The default
+          on first paint MUST be "pending_review" so the existing
+          review-first flow is unchanged. The exclusive
+          ToggleButtonGroup MUST guard against the null-on-toggle-off
+          case so a "no filter selected" empty state can never be
+          reached. Each option MUST have a Tooltip explaining what it
+          shows, written in plain English (per
+          .cursor/rules/health-literacy.mdc).
+      - type: "safety"
+        spec: >
+          AC-012: When statusFilter !== "pending_review", the bulk
+          "Approve all" button MUST NOT render and the per-row
+          "Looks right" / "Reject" buttons MUST NOT render. This is
+          enforced by passing onApprove / onReject as undefined to
+          RuleAccordionCard, which renders each button only when its
+          handler is supplied. The Edit button MUST remain available
+          on every status so any rule (pending, active, or
+          superseded) can be opened in the editor; the BE
+          apply_rule_edit already accepts predecessor status in
+          {pending_review, active}.
     constraints:
       - type: "safety"
         spec: >
@@ -123,7 +190,8 @@
         - "services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx"
         - "services/ui/src/app/admin/guidance/EditRuleDialog/SynonymChipEditor.tsx"
         - "services/ui/src/app/admin/guidance/EditRuleDialog/SeedDescendantsList.tsx"
-      estimated_loc: 820
+        - "services/ui/src/app/admin/guidance/RuleReviewSection.tsx"
+      estimated_loc: 980
 
   verification:
     method: "Test"

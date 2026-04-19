@@ -356,15 +356,14 @@ export default function BitmapLifecycleSection() {
               label={`${latestReplay.total_count} patients`}
             />
             <Box sx={{ flex: 1 }} />
-            <Link
+            <Button
+              component={Link}
               href="/admin/knowledge?tab=test-patients"
-              passHref
-              legacyBehavior
+              size="small"
+              variant="text"
             >
-              <Button size="small" variant="text" component="a">
-                Open library
-              </Button>
-            </Link>
+              Open library
+            </Button>
           </Stack>
           {latestReplay.regressions_count > 0 && (
             <Typography variant="caption" color="error">

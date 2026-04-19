@@ -24,6 +24,8 @@
     automation_framework: "jest"
     test_file_paths:
       - "services/ui/src/__tests__/test-patients-page.test.tsx"
+      - "services/api/tests/test_require_admin_or_service.py"
+      - "services/terminology_api/tests/test_post_compile_replay_hook.py"
 
   test_environment:
     environment_type: "development"
@@ -111,6 +113,111 @@
       acceptance_criteria:
         - "Empty state stays in plain English."
 
+    # -- Backend auth coverage for the post-compile replay hook -----------
+    # The terminology-api compile job calls back into core-api at
+    # /guidance/test-patients/replay; that endpoint must accept either an
+    # admin session cookie (admin UI) or a SERVICE_AUTH_SECRET Bearer token
+    # (inter-service). The dev bypass MUST NOT be relied on.
+
+    - case_id: "VT-166-TC-008"
+      case_name: "test_service_auth_bearer_with_correct_secret_returns_service_account"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Set SERVICE_AUTH_SECRET; GET a route protected by require_admin_or_service with Authorization: Bearer <correct>."
+          expected_result: "200 with synthetic service-account admin scope."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Inter-service callers can reach the endpoint without a session cookie."
+
+    - case_id: "VT-166-TC-009"
+      case_name: "test_service_auth_bearer_with_wrong_secret_returns_401"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Set SERVICE_AUTH_SECRET; GET with Authorization: Bearer <wrong>."
+          expected_result: "401 Invalid service auth token."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Forged Bearer tokens are rejected timing-safe."
+
+    - case_id: "VT-166-TC-010"
+      case_name: "test_bearer_header_ignored_when_secret_unset_falls_back_to_session"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Unset SERVICE_AUTH_SECRET; GET with Authorization: Bearer anything and no session cookie."
+          expected_result: "401 Not authenticated -- the dev bypass is not used by this dependency."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Local-dev does not silently widen the auth surface."
+
+    - case_id: "VT-166-TC-011"
+      case_name: "test_session_cookie_admin_returns_admin_scope"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Provide an admin session cookie (no Bearer header)."
+          expected_result: "200 with the session email as admin."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Admin UI continues to work unchanged."
+
+    - case_id: "VT-166-TC-012"
+      case_name: "test_no_session_and_no_bearer_returns_401"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Send no Authorization header and no session cookie."
+          expected_result: "401 Not authenticated."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Endpoint stays closed by default."
+
+    - case_id: "VT-166-TC-013"
+      case_name: "test_session_cookie_non_admin_returns_403"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Provide a session cookie for a non-admin clinician."
+          expected_result: "403 Platform admin access required."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Non-admin sessions cannot replay test patients."
+
+    - case_id: "VT-166-TC-014"
+      case_name: "test_replay_hook_sends_service_auth_bearer_header"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Set SERVICE_AUTH_SECRET; await _trigger_test_patient_replay(); inspect outbound httpx headers."
+          expected_result: "Authorization: Bearer <secret> and X-Requested-With both present on the POST."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "The post-compile hook authenticates against the core-api in deployed environments."
+
+    - case_id: "VT-166-TC-015"
+      case_name: "test_replay_hook_omits_auth_header_when_secret_unset"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Unset SERVICE_AUTH_SECRET; await _trigger_test_patient_replay()."
+          expected_result: "POST goes out with X-Requested-With but no Authorization header."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Local-dev parity preserved; no fake credentials are forged."
+
+    - case_id: "VT-166-TC-016"
+      case_name: "test_replay_hook_swallows_401_and_logs"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Stub core-api to return 401; await _trigger_test_patient_replay()."
+          expected_result: "Hook returns normally and emits a WARNING log naming the 401."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "A failed replay never blocks a successful guideline compile (DI-LEO-AI-167)."
+
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
     blocking_on_failure: true
@@ -135,3 +242,24 @@
         (no DOM mount of the full library page is required for the
         chrome contract) with a focused ReplayResultsDialog DOM
         render and a fetch-mock test of the api client.
+
+    - execution_id: "VT-166-EXEC-002"
+      executed_by: "automated_pytest"
+      executed_date: "2026-04-19"
+      result: "pass"
+      command: "python3 -m pytest services/api/tests/test_require_admin_or_service.py services/terminology_api/tests/test_post_compile_replay_hook.py services/api/tests/test_test_patient_router.py -v"
+      total_cases: 9
+      passed: 9
+      failed: 0
+      notes: >
+        Backend coverage added after observing
+        'Test patient replay returned 401: {"detail":"Not authenticated"}'
+        in the terminology-api logs. The post-compile hook in
+        services/terminology_api/app/routers/guidelines.py now sends
+        the SERVICE_AUTH_SECRET Bearer header (via
+        libs/auth/service_auth.get_service_auth_header), and the
+        /guidance/test-patients/replay endpoint accepts that header
+        through the new app.deps.require_admin_or_service dependency
+        as well as the pre-existing admin session cookie. The fix
+        deliberately does NOT route through the LEO_LOCAL_DEV_BYPASS
+        local-dev shortcut.

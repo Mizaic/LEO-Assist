@@ -48,7 +48,20 @@
           collects every seed.snomed_concept_id and every excluded id
           into the concept_ids set returned for downstream
           _VERIFY_CONCEPTS, so a single Cypher round-trip can confirm
-          all referenced ids exist in :SnomedConcept.
+          all referenced ids exist in the knowledge graph.
+          _VERIFY_CONCEPTS in
+          services/api/app/services/guidance_rule_edit.py SHALL
+          accept a concept that exists under EITHER the canonical
+          (:Concept {id: cid}) node (written by the SNOMED loader and
+          surfaced by /terminology/search and the FE picker) OR the
+          legacy parallel namespace (:SnomedConcept {conceptId: cid})
+          (lazily materialised only by the v1 guidance rule generator
+          for v1-schema rules) and report exists=true when either
+          OPTIONAL MATCH binds. Rejecting only when BOTH fail keeps
+          v1 fixtures working AND lets v2 (logic_tree) rules be
+          edited with concepts pulled from /terminology/search,
+          which return :Concept ids that are never twinned on
+          :SnomedConcept.
       - type: "safety"
         spec: >
           AC-003: validate_logic_tree raises LogicTreeValidationError
@@ -73,6 +86,24 @@
           excluded_concept_ids: []) WITHOUT removing the legacy field
           and WITHOUT changing which concept ids end up in the
           downstream bitmap union.
+      - type: "safety"
+        spec: >
+          AC-006: The literal Cypher of _VERIFY_CONCEPTS in
+          services/api/app/services/guidance_rule_edit.py SHALL
+          contain BOTH ":Concept {id: cid}" and
+          ":SnomedConcept {conceptId: cid}" matchers, and SHALL
+          report exists via "(canonical IS NOT NULL OR legacy IS NOT
+          NULL) AS exists". This is a regression invariant pinned in
+          services/api/tests/test_guidance_rule_edit.py
+          (TestApplyRuleEdit.
+          test_verifier_cypher_targets_canonical_and_legacy_labels)
+          to prevent the parallel-namespace bug from silently
+          returning -- the test fails the build if a future change
+          drops either label or collapses the OR predicate. A
+          companion test
+          (test_accepts_concepts_only_on_canonical_concept_label)
+          exercises the happy path where every picked concept lives
+          only on :Concept (the live FE picker scenario).
     constraints:
       - type: "safety"
         spec: >
@@ -93,7 +124,8 @@
         - "services/api/app/services/guidance_rule_edit.py"
         - "services/ui/src/app/admin/guidance/EditRuleDialog/types.ts"
         - "scripts/migrations/logic_criterion_synonym_set.py"
-      estimated_loc: 320
+        - "services/api/tests/test_guidance_rule_edit.py"
+      estimated_loc: 360
 
   verification:
     method: "Test"

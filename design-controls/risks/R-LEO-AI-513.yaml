@@ -1,0 +1,163 @@
+# -- R-LEO-AI-513 -- Window partitioner overflow leaves an EoC incomplete
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-513"
+  title: "The Episode Engine Window Partitioner safety net cannot fit the focused encounter set in eight or fewer parts, or an LLM merge step would lose / invent a pathway fact during partition stitching"
+
+  hazard:
+    description: >
+      The Window Partitioner (DI-LEO-AI-525) is the safety net
+      for the rare patient whose focused encounter set still
+      exceeds the milestone-extractor's per-part token budget
+      after the Audit Relevance Filter has done its job. Two
+      failure modes are possible:
+        (1) bin-packing requires more than 8 parts, so the
+            partitioner refuses and the EoC is created with
+            needs_human_review = true but no extracted
+            milestones; if the chain failed to flag this
+            clearly the EoC could appear "complete" while
+            actually containing nothing;
+        (2) a future implementation could be tempted to add a
+            second LLM call to merge per-part milestone results,
+            and that merge LLM (an editor-role model) could
+            silently drop a milestone, paraphrase a date, or
+            invent a milestone the per-part output never
+            contained.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A QA reviewer runs the Episode Engine across the cohort. For
+    one patient with a long multi-year cancer journey the focused
+    encounter set is so large that bin-packing would need 11
+    partitions. The partitioner refuses with too_many_parts =
+    True. Without explicit chain handling the EoC could be
+    written to the graph with empty milestones and no audit
+    annotation, which a reviewer scrolling the cohort dashboard
+    might mistake for "this patient genuinely has no pathway
+    milestones". Or, in a future version, a merge LLM could
+    consolidate per-part results in a way that drops the
+    treatment_started milestone for a recurrence the patient
+    had in 2024.
+
+  harm:
+    description: >
+      Wrong clinical decision based on an EoC that either appears
+      empty when the patient genuinely has a multi-year cancer
+      journey (refusal mishandled), or appears complete but is
+      missing / has invented a milestone (LLM merge step). Both
+      modes are serious because the EoC is the summary record
+      that downstream dashboards and individual-patient reviews
+      depend on.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 4
+    rpn: 24
+    risk_level: "medium"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Deterministic Python merge replaces an LLM merge step.
+        merge_milestones_deterministic concatenates per-part
+        MilestoneExtractorResults and de-duplicates milestones
+        on (type, date, encounter_id) keeping the
+        highest-confidence instance with the longest evidence
+        quote. Because no LLM ever sees more than one part at a
+        time, and no LLM is involved in the merge, the
+        editor-induced fact-loss / fact-invention failure mode
+        described by failure (2) is architecturally eliminated
+        -- the same architectural decision that DI-LEO-AI-522
+        made for SBAR Background, validated by R-LEO-AI-511.
+      implemented_by: ["DI-LEO-AI-525"]
+      verified_by: ["VT-LEO-AI-523"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Explicit refusal path for too_many_parts. When
+        bin-packing would need more than 8 parts the chain
+        creates the EoC with needs_human_review = true,
+        audit_filter_overflow = true, and an
+        audit_partition_overflow_error message on the audit
+        trace. Zero LLM invocations are made for the milestone
+        extractor on that EoC, so cost stays bounded. The
+        cohort dashboard MUST surface audit_filter_overflow as
+        a distinct EoC status (not "complete") so a reviewer
+        can see at a glance that this patient needs manual
+        review.
+      implemented_by: ["DI-LEO-AI-525"]
+      verified_by: ["VT-LEO-AI-523"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Per-part failure containment. When one MAP call fails
+        the failed part contributes an empty milestone list
+        with needs_human_review = true and a structured error
+        on the audit trace, while the surviving parts still
+        contribute their milestones. This prevents one Bedrock
+        hiccup from wiping out an EoC that would otherwise
+        have been mostly complete.
+      implemented_by: ["DI-LEO-AI-525"]
+      verified_by: ["VT-LEO-AI-523"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        Every multi-part EoC carries audit_parts > 1 and a
+        per-part trace of {encounter_count, milestones_count,
+        error}. A QA reviewer can therefore see exactly how
+        the safety net behaved on this patient: which parts
+        succeeded, which contributed milestones, and whether
+        any part failed.
+      implemented_by: ["DI-LEO-AI-525"]
+      verified_by: ["VT-LEO-AI-523"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 1
+    rpn: 3
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the deterministic Python merge in place there is no
+      LLM in the merge path so the editor-induced fact-loss /
+      fact-invention failure mode is architecturally
+      impossible. The too_many_parts refusal flips the EoC to
+      needs_human_review with an explicit overflow flag the
+      cohort dashboard can render distinctly, so a reviewer
+      cannot mistake an overflowed EoC for a "complete" one.
+      Residual probability is essentially zero for the
+      LLM-merge mode and confined to "the dashboard renders
+      the overflow flag wrongly" for the refusal mode --
+      detectable via VT-LEO-AI-523 and via cohort QA review.
+
+  monitoring:
+    monitoring_plan: >
+      VT-LEO-AI-523 enforces (per release) the no-LLM-merge
+      invariant, the no-encounter-dropped invariant on
+      partition splits, the per-part failure containment, and
+      the too_many_parts refusal behaviour. The cohort run
+      writes audit_parts and audit_filter_overflow on every
+      EoC so the analytics dashboard can surface multi-part
+      and overflow rates over time.
+    metrics:
+      - "VT-LEO-AI-523 status (must be 'pass' on every release)"
+      - "Count of multi-part EoCs per cohort run (audit_parts > 1)"
+      - "Count of audit_filter_overflow EoCs per cohort run (must remain a small minority)"
+      - "Count of per-part MAP failures per cohort run (per-part LLM stability signal)"
+    review_frequency: "Per release + monthly QA review"
+
+  metadata:
+    identified_by: "Design review 2026-04-19 (Episode Engine focus-first architecture, partition safety net)"
+    identified_date: "2026-04-19"
+    status: "analyzed"
+    tags:
+      - "episode-engine"
+      - "milestone-extractor"
+      - "window-partitioner"
+      - "deterministic-merge"
+      - "too-many-parts"
+      - "llm-safety"

@@ -318,6 +318,50 @@ class TestApplyRuleEdit:
                 reason="x",
             )
 
+    def test_verifier_cypher_targets_canonical_and_legacy_labels(self) -> None:
+        # Regression for the parallel-namespace bug where the verifier
+        # only looked at (:SnomedConcept {conceptId}) -- which is never
+        # written for v2 logic_tree rules. Concepts added via the FE
+        # picker live on (:Concept {id}). The verifier MUST accept either
+        # so a v2 rule whose concepts only exist on :Concept can be saved.
+        from app.services.guidance_rule_edit import _VERIFY_CONCEPTS
+
+        assert ":Concept {id: cid}" in _VERIFY_CONCEPTS, (
+            "Verifier must read the canonical (:Concept {id}) node so "
+            "concepts surfaced by /terminology/search are recognised."
+        )
+        assert ":SnomedConcept {conceptId: cid}" in _VERIFY_CONCEPTS, (
+            "Verifier must keep the legacy fallback so v1 rules and "
+            "older fixtures (only :SnomedConcept) keep working."
+        )
+        assert (
+            "(canonical IS NOT NULL OR legacy IS NOT NULL) AS exists"
+            in _VERIFY_CONCEPTS
+        ), "Verifier must report exists=true when EITHER label matches."
+
+    def test_accepts_concepts_only_on_canonical_concept_label(self) -> None:
+        # End-to-end happy path simulating the live scenario: every
+        # picked concept is a canonical (:Concept {id}) node and there
+        # is no parallel :SnomedConcept twin. The mocked driver answers
+        # the verify round-trip as Neo4j would: a single row per id
+        # with exists=true (because the OR over the two OPTIONAL MATCHes
+        # resolved). The save MUST succeed.
+        client = _mock_kg_client([
+            [{"status": "pending_review", "name": "Old", "strength": "offer",
+              "compile_scope_id": "NG12", "recommendation_id": "rec-1",
+              "verbatim": "Refer..."}],
+            [{"concept_id": "49727002", "exists": True}],
+            [{"id": "rule:rec-1:edit:abcd1234"}],
+        ])
+        result = apply_rule_edit(
+            client,
+            predecessor_rule_id="rule:rec-1:old",
+            updates=self._updates(),
+            reviewer="qa-lead",
+            reason="Picked from terminology search; concept lives on :Concept",
+        )
+        assert result["rule_id"].startswith("rule:rec-1:old:edit:")
+
 
 # -- Router integration ------------------------------------------------------
 

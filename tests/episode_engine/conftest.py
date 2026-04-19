@@ -45,18 +45,37 @@ def tool_use_str(tool_name: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 class FakeLLM:
-    """Drop-in for ``LLMClient`` used by the episode-engine agents."""
+    """Drop-in for ``LLMClient`` used by the episode-engine agents.
 
-    def __init__(self, response: FakeLLMResponse, *, model_id: str = "fake-model"):
+    Pass a single ``FakeLLMResponse`` for the simple single-call tests, or
+    a list of responses for tests that drive a stage which makes more than
+    one Bedrock call (for example the Audit Relevance Filter batches).
+    Each call consumes the next response in order; once exhausted the last
+    response is replayed indefinitely so tests stay forgiving when an extra
+    call slips in.
+    """
+
+    def __init__(
+        self,
+        response: FakeLLMResponse | list[FakeLLMResponse],
+        *,
+        model_id: str = "fake-model",
+    ):
         self.model_id = model_id
         self.tier = "small"
         self.provider = "aws"
-        self._response = response
+        if isinstance(response, list):
+            assert response, "FakeLLM needs at least one response"
+            self._responses: list[FakeLLMResponse] = list(response)
+        else:
+            self._responses = [response]
         self.calls: list[dict[str, Any]] = []
 
     def converse(self, **kwargs: Any) -> FakeLLMResponse:
         self.calls.append(kwargs)
-        return self._response
+        if len(self._responses) > 1:
+            return self._responses.pop(0)
+        return self._responses[0]
 
 
 class RaisingLLM:

@@ -23,6 +23,7 @@ from typing import Any
 import httpx
 
 from app.db.neo4j_client import CodingGraphClient
+from app.services._logic_tree import parse_logic_json, trigger_terms_preview
 from libs.cypher.test_patient_queries import (
     ASSERT_CONCEPTS_PRESENT,
     COUNT_TEST_PATIENTS_BY_ASPECT,
@@ -124,7 +125,16 @@ def list_rules_for_picker(
     The reviewer never sees the raw rule_id unless they want to.
     """
     rows = client.run(LIST_RULES_FOR_PICKER, guideline_id=guideline_id)
-    return [dict(r) for r in rows]
+    out: list[dict] = []
+    for raw in rows:
+        row = dict(raw)
+        tree = parse_logic_json(row.pop("logic_json", None))
+        if tree is not None:
+            row["trigger_terms"] = trigger_terms_preview(tree, limit=3)
+        else:
+            row["trigger_terms"] = list(row.get("trigger_terms") or [])
+        out.append(row)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -139,18 +149,28 @@ def evaluate_against_terminology(
     scope_type: str = "global",
     scope_id: str = "default",
     ruleset_version: str | None = None,
+    pathway_filter: str | None = None,
 ) -> dict:
     """Call POST /terminology/guidelines/evaluate and return its body.
+
+    The terminology evaluator treats ``pathway_id`` on the request body
+    as a guideline-level filter (only rules whose ``guideline_id`` ==
+    ``pathway_id`` are evaluated). Callers that want to override the
+    patient's saved ``payload.pathway_id`` -- for example the rule
+    editor's "Try it on real patients" panel, which always wants to
+    evaluate against the rules of the guideline being edited -- pass
+    ``pathway_filter`` and that wins.
 
     Returns ``{"matched_rules": [...], ...}`` on success.  Raises
     ``RuntimeError`` with a friendly message on failure so callers can
     surface a single error to the UI.
     """
+    effective_pathway = pathway_filter or payload.pathway_id
     body = {
         "patient_codes": payload.normalised_codes(),
         "patient_age": payload.age,
         "patient_sex": payload.sex,
-        "pathway_id": payload.pathway_id,
+        "pathway_id": effective_pathway,
         "scope_type": scope_type,
         "scope_id": scope_id,
         "ruleset_version": ruleset_version,
@@ -1062,8 +1082,17 @@ def replay_one(
     scope_type: str = "global",
     scope_id: str = "default",
     ruleset_version: str | None = None,
+    guideline_id: str | None = None,
 ) -> dict:
-    """Re-evaluate one saved patient and diff against its snapshot."""
+    """Re-evaluate one saved patient and diff against its snapshot.
+
+    ``guideline_id`` (if supplied) restricts evaluation to rules of
+    that guideline. This is the path used by the rule editor's "Try
+    it on real patients" panel: there is one global production bitmap
+    holding rules from every guideline, and the panel passes
+    ``guideline_id`` so the patient is only evaluated against rules
+    belonging to the guideline being edited.
+    """
     payload = PatientPayload(
         codes=list(patient_row.get("codes") or []),
         age=patient_row.get("age"),
@@ -1076,6 +1105,7 @@ def replay_one(
             scope_type=scope_type,
             scope_id=scope_id,
             ruleset_version=ruleset_version,
+            pathway_filter=guideline_id,
         )
     except RuntimeError as exc:
         return {
@@ -1125,6 +1155,7 @@ def replay_scope(
             scope_type=scope_type,
             scope_id=scope_id,
             ruleset_version=ruleset_version,
+            guideline_id=guideline_id,
         )
         for row in rows
     ]

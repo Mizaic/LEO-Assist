@@ -27,8 +27,12 @@ class EngineState(TypedDict, total=False):
     # -- Stage 3: classifier (per-window) ----------------------------------
     classified_windows: list[dict[str, Any]]  # ClassifierResult dicts
 
+    # -- Stage 3.5: audit relevance filter (per cancer-ish window) ---------
+    focused_sets: dict[str, dict[str, Any]]   # window_id -> FocusedSet dict
+
     # -- Stage 4: milestone_extractor (per cancer-ish window) --------------
     extracted: list[dict[str, Any]]           # MilestoneExtractorResult dicts
+    eoc_traces: list[dict[str, Any]]          # EpisodeOfCareTrace dicts
 
     # -- Stage 5: reconciler -----------------------------------------------
     reconciled_episodes: list[dict[str, Any]]  # ReconciledEpisode dicts

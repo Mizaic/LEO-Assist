@@ -273,10 +273,32 @@ def _validate_demographic_node(node: LogicNode) -> None:
 
 # -- Cypher --------------------------------------------------------------------
 
+# Verify that every SNOMED concept referenced by the edited logic tree
+# exists in the knowledge graph.
+#
+# The knowledge graph holds two parallel SNOMED concept node types in this
+# codebase:
+#   - (:Concept {id: "..."}) -- canonical, written by the SNOMED loader and
+#     surfaced by /terminology/search and /terminology/concepts/.../descendants.
+#     Every concept the FE picker can return lives here.
+#   - (:SnomedConcept {conceptId: "..."}) -- a parallel namespace lazily
+#     materialised by the v1 guidance rule generator
+#     (services/api/app/services/guidance_rule_generator.py). v2 (logic_tree)
+#     rules never write these, so any check that targets only :SnomedConcept
+#     will reject every concept added via the FE picker on a v2 rule.
+#
+# Until the v2 generator + bitmap compiler are migrated to read :Concept
+# directly, the verifier accepts EITHER label so that:
+#   - new-style v2 rules (concepts come from the FE picker -> :Concept)
+#     can be edited
+#   - legacy fixtures and v1 rules (concepts only on :SnomedConcept) keep
+#     working without a migration step
 _VERIFY_CONCEPTS = """
 UNWIND $concept_ids AS cid
-OPTIONAL MATCH (c:SnomedConcept {conceptId: cid})
-RETURN cid AS concept_id, c.conceptId IS NOT NULL AS exists
+OPTIONAL MATCH (canonical:Concept {id: cid})
+OPTIONAL MATCH (legacy:SnomedConcept {conceptId: cid})
+RETURN cid AS concept_id,
+       (canonical IS NOT NULL OR legacy IS NOT NULL) AS exists
 """
 
 

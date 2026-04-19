@@ -1,15 +1,33 @@
 "use client";
 
 /**
- * Compact "Test patients" panel embedded in the EditRuleDialog.
+ * Compact "Try it on real patients" panel embedded in the
+ * EditRuleDialog.
  *
- * Shows how many saved test patients target this rule, lets the
- * reviewer launch the Build / Generate dialogs scoped to this rule,
- * and runs an on-demand replay against the rule so they can spot
- * regressions caused by their edits.
+ * This is the rule editor's view onto the centralised Test Patient
+ * library (Knowledge > Test Patients). It does NOT own its own data
+ * model -- all reads and writes go through the central api.ts under
+ *   services/ui/src/app/admin/knowledge/test-patients/
+ *
+ * What the reviewer can do here:
+ *   1. See how many saved test patients exercise this rule (counts
+ *      both EXPECTED_RESULT-linked guideline patients AND
+ *      ExpectedSBAR.matched_rule_ids-linked SBAR patients).
+ *   2. Replay them against the live (production) ruleset.
+ *   3. Replay them against the unsaved draft in a throwaway sandbox.
+ *   4. Author a brand-new patient against this rule with AI -- opens
+ *      the central ScaffoldFromRuleDialog with the rule pre-selected
+ *      and locked.
+ *   5. Jump to the central library pre-filtered to this rule for
+ *      bulk edits / deletes.
+ *
+ * Design controls: UN-50102672, DI-7625C251, DO-EE2C2EA1, R-8C0CC94B,
+ * VT-5BDFE5F7. The legacy /admin/guidance/test-patients folder is
+ * removed in this same change set.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -18,21 +36,26 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import LaunchOutlinedIcon from "@mui/icons-material/LaunchOutlined";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 
-import BuildPatientDialog from "../test-patients/BuildPatientDialog";
-import GeneratePatientsDialog from "../test-patients/GeneratePatientsDialog";
-import ReplayResultsDialog from "../test-patients/ReplayResultsDialog";
-import RulesetNotCompiledBanner from "../test-patients/RulesetNotCompiledBanner";
-import type { RuleContext } from "../test-patients/ReplayResultsDialog";
 import {
   getBitmapStatus,
-  listPatients,
+  listTestPatients,
   replay,
   sandboxReplay,
-} from "../test-patients/api";
-import type { ReplayReport, TestPatient } from "../test-patients/types";
+} from "../../knowledge/test-patients/api";
+import type {
+  ReplayReport,
+  TestPatientRow,
+} from "../../knowledge/test-patients/types";
+import ScaffoldFromRuleDialog from "../../knowledge/test-patients/ScaffoldFromRuleDialog";
+import ReplayResultsDialog, {
+  type RuleContext,
+} from "../../knowledge/test-patients/replay/ReplayResultsDialog";
+import RulesetNotCompiledBanner from "../../knowledge/test-patients/replay/RulesetNotCompiledBanner";
 
 interface Props {
   ruleId: string;
@@ -66,20 +89,29 @@ export default function TestPatientsPanel({
   recommendationText,
   draftRule,
 }: Props) {
-  const [patients, setPatients] = useState<TestPatient[]>([]);
+  const router = useRouter();
+
+  const [patients, setPatients] = useState<TestPatientRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [replaying, setReplaying] = useState(false);
   const [sandboxRunning, setSandboxRunning] = useState(false);
-  const [openBuild, setOpenBuild] = useState(false);
-  const [openGenerate, setOpenGenerate] = useState(false);
+  const [scaffoldOpen, setScaffoldOpen] = useState(false);
   const [openReplay, setOpenReplay] = useState(false);
   const [report, setReport] = useState<ReplayReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [notCompiled, setNotCompiled] = useState(false);
+  // The platform compiles a single production bitmap at scope_type=
+  // "global" / scope_id="default" that holds rules for every guideline.
+  // Per-guideline scopes are only used by sandbox / draft compiles, so
+  // probing scope_type="guideline" gave false "no ruleset" warnings
+  // even when the global bitmap was loaded and contained the rule.
+  // We always check status + replay against global, then pass
+  // guideline_id through to scope the evaluation to just this
+  // guideline (the backend treats guideline_id as a pathway_filter).
   const [scope, setScope] = useState<{ type: string; id: string }>({
-    type: guidelineId ? "guideline" : "global",
-    id: guidelineId || "default",
+    type: "global",
+    id: "default",
   });
   const [reportSandbox, setReportSandbox] = useState(false);
 
@@ -87,7 +119,7 @@ export default function TestPatientsPanel({
     if (!ruleId) return;
     setLoading(true);
     setError(null);
-    listPatients({ rule_id: ruleId })
+    listTestPatients({ rule_id: ruleId, aspect: "all" })
       .then(setPatients)
       .catch(() => setError("Could not load saved patients."))
       .finally(() => setLoading(false));
@@ -103,22 +135,17 @@ export default function TestPatientsPanel({
     setError(null);
     setNotCompiled(false);
     setReportSandbox(false);
-    const liveScope = {
-      type: guidelineId ? "guideline" : "global",
-      id: guidelineId || "default",
-    };
+    const liveScope = { type: "global", id: "default" };
     setScope(liveScope);
     try {
       const result = await replay({
         patient_ids: patients.map((p) => p.id),
         scope_type: liveScope.type,
         scope_id: liveScope.id,
+        guideline_id: guidelineId,
         persist_report: false,
       });
       setReport(result);
-      // Detect "no ruleset" by looking for the per-patient error
-      // string the evaluator surfaces. Every patient hit the same
-      // missing scope, so a single match is enough.
       const looksUncompiled = (result.results || []).some((row) =>
         (row.error || "").toLowerCase().includes("no active ruleset"),
       );
@@ -173,16 +200,13 @@ export default function TestPatientsPanel({
 
   const checkCompiledStatus = useCallback(async () => {
     try {
-      const status = await getBitmapStatus(
-        guidelineId ? "guideline" : "global",
-        guidelineId || "default",
-      );
+      const status = await getBitmapStatus("global", "default");
       setNotCompiled(!status.active_version || status.rule_count === 0);
     } catch {
       // Best-effort: if status is unreachable, the replay-error path
       // below still surfaces the missing ruleset.
     }
-  }, [guidelineId]);
+  }, []);
 
   useEffect(() => {
     checkCompiledStatus();
@@ -208,6 +232,14 @@ export default function TestPatientsPanel({
     [ruleId, ruleName, recommendationText],
   );
 
+  const openInLibrary = useCallback(() => {
+    const qs = new URLSearchParams({
+      tab: "test-patients",
+      rule_id: ruleId,
+    });
+    router.push(`/admin/knowledge?${qs.toString()}`);
+  }, [router, ruleId]);
+
   return (
     <Box
       sx={{
@@ -220,7 +252,7 @@ export default function TestPatientsPanel({
     >
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography variant="subtitle2" sx={{ flex: 1 }}>
-          Test patients for this rule
+          Try it on real patients
         </Typography>
         <Chip
           size="small"
@@ -245,8 +277,9 @@ export default function TestPatientsPanel({
       </Stack>
 
       <Typography variant="caption" color="text.secondary">
-        Patients here run automatically every time you save changes, so you
-        spot any rule that quietly stops matching the way it should.
+        Patients here run automatically every time you save changes, so
+        you spot any rule that quietly stops matching the way it
+        should. They live in the central Test Patient library.
       </Typography>
 
       {error && (
@@ -261,9 +294,6 @@ export default function TestPatientsPanel({
           scopeId={scope.id}
           sandbox={reportSandbox}
           onCompileRequested={() => {
-            // Re-check status periodically -- the compile is async.
-            // The reviewer can also click "Replay now" once the
-            // bitmap finishes building.
             setTimeout(() => {
               checkCompiledStatus();
             }, 4000);
@@ -295,21 +325,29 @@ export default function TestPatientsPanel({
         </Alert>
       )}
 
-      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ mt: 1, flexWrap: "wrap", rowGap: 1 }}
+      >
         <Button
           size="small"
-          variant="outlined"
-          onClick={() => setOpenBuild(true)}
-          disabled={!guidelineId}
+          variant="contained"
+          color="primary"
+          startIcon={<AutoAwesomeOutlinedIcon fontSize="small" />}
+          onClick={() => setScaffoldOpen(true)}
+          aria-label="Author a new test patient with AI, locked to this rule"
         >
-          Build new
+          Author with AI from this rule
         </Button>
         <Button
           size="small"
           variant="outlined"
-          onClick={() => setOpenGenerate(true)}
+          startIcon={<LaunchOutlinedIcon fontSize="small" />}
+          onClick={openInLibrary}
+          aria-label="Open the central Test Patient library filtered by this rule"
         >
-          Generate
+          Open in Test Patient Library
         </Button>
         {loading && <CircularProgress size={16} />}
       </Stack>
@@ -342,9 +380,10 @@ export default function TestPatientsPanel({
           color="text.secondary"
           sx={{ display: "block", mt: 0.25 }}
         >
-          Runs the saved patients against the rule that is already deployed
-          in production (the bitmap currently in Redis). Use this to confirm
-          the SAVED rule still behaves the way you expect.
+          Runs the saved patients against the rule that is already
+          deployed in production (the bitmap currently in Redis). Use
+          this to confirm the SAVED rule still behaves the way you
+          expect.
         </Typography>
         <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
           <Button
@@ -399,10 +438,10 @@ export default function TestPatientsPanel({
             color="text.secondary"
             sx={{ display: "block", mt: 0.25 }}
           >
-            Compiles the rule you are editing right now into a throwaway
-            bitmap, runs the saved patients against it, and discards the
-            sandbox. Production is NOT touched. Use this to see how a
-            pending edit would behave BEFORE saving.
+            Compiles the rule you are editing right now into a
+            throwaway bitmap, runs the saved patients against it, and
+            discards the sandbox. Production is NOT touched. Use this
+            to see how a pending edit would behave BEFORE saving.
           </Typography>
           <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
             <Button
@@ -430,25 +469,15 @@ export default function TestPatientsPanel({
         </Box>
       )}
 
-      {openBuild && guidelineId && (
-        <BuildPatientDialog
-          open={openBuild}
-          onClose={() => setOpenBuild(false)}
-          guidelineId={guidelineId}
-          onSaved={() => {
-            setOpenBuild(false);
-            setRefreshKey((n) => n + 1);
-          }}
-        />
-      )}
-
-      <GeneratePatientsDialog
-        open={openGenerate}
-        onClose={() => setOpenGenerate(false)}
-        guidelineId={guidelineId}
-        ruleId={ruleId}
-        onSaved={(count) => {
-          if (count > 0) setRefreshKey((n) => n + 1);
+      <ScaffoldFromRuleDialog
+        open={scaffoldOpen}
+        initialAspect="summarisation"
+        lockedRuleId={ruleId}
+        lockedRuleHint={ruleName}
+        onClose={() => setScaffoldOpen(false)}
+        onScaffolded={() => {
+          setScaffoldOpen(false);
+          setRefreshKey((n) => n + 1);
         }}
       />
 

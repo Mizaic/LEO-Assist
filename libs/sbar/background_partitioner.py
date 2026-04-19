@@ -42,23 +42,21 @@ from libs.sbar.source_resolver import ResolvedCode, ResolvedSource
 logger = logging.getLogger(__name__)
 
 
-# Mirrors libs/sbar/background_shrinker._CHARS_PER_TOKEN. Conservative
-# estimate -- 3.6 chars per token under-counts for non-English / code,
-# so the resulting token estimate is a slight over-estimate of the
-# real token count, which is what we want for a budget gate.
+# Conservative chars-per-token estimate. 3.6 under-counts for non-English
+# / code, so the resulting token estimate is a slight over-estimate of
+# the real token count, which is what we want for a budget gate.
 _CHARS_PER_TOKEN = 3.6
 
 
-# Per-source character cap. Matches the legacy 4000-char cap so a
-# single-part run is byte-for-byte identical to the historical
-# Background prompt.
+# Per-source character cap for a single record inside a part. Matches
+# the historical 4000-char cap so a single-part run is byte-for-byte
+# identical to the original Background prompt envelope.
 _PER_SOURCE_CHAR_CAP = 4000
 
 
-# Progressive per-source caps, shared with the corner-case shrinker
-# fallback in ``libs/sbar/background_shrinker.py``. The first entry
-# matches ``_PER_SOURCE_CHAR_CAP`` so an under-budget run is a no-op
-# in both modules.
+# Progressive per-source caps used when an oversize record has to be
+# sliced inside its own part. The first entry matches
+# ``_PER_SOURCE_CHAR_CAP`` so an under-budget record is left untouched.
 _PROGRESSIVE_CAPS: tuple[int, ...] = (4000, 2000, 1000, 500, 250)
 
 
@@ -447,13 +445,18 @@ def partition_background_sources(
         "codes": _serialise_codes(codes),
         "sources": [],
     }
-    overhead_text = "CONTEXT:\n```json\n" + json.dumps(overhead_body, default=str) + "\n```"
+    overhead_text = (
+        "CONTEXT:\n```json\n" + json.dumps(overhead_body, default=str) + "\n```"
+    )
     fixed_overhead = _estimate_tokens(overhead_text)
 
     if not sources:
         empty_msg = _build_user_message(
-            [], codes, referring_specialty=referring_specialty,
-            part_index=1, part_total=1,
+            [],
+            codes,
+            referring_specialty=referring_specialty,
+            part_index=1,
+            part_total=1,
         )
         return [
             Partition(
@@ -509,9 +512,7 @@ def partition_background_sources(
         ]
         record_indices = [s.record_index for s in part_slices]
         record_range = (
-            (min(record_indices), max(record_indices))
-            if record_indices
-            else (0, 0)
+            (min(record_indices), max(record_indices)) if record_indices else (0, 0)
         )
         partitions.append(
             Partition(

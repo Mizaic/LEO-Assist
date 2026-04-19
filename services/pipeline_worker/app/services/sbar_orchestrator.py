@@ -220,6 +220,7 @@ class SBAROrchestrator:
                     "code_count": len(aggregated),
                 },
             )
+
             def _on_part_progress(event: dict[str, Any]) -> None:
                 self._emit(
                     run_id,
@@ -490,20 +491,15 @@ class SBAROrchestrator:
         """Convert background notices on the result into FriendlyNotices.
 
         The partition + map + deterministic-stitch flow can produce
-        up to three kinds of notice in a single Background run:
+        up to two kinds of notice in a single Background run:
 
         - ``background_split`` -- "We summarised in N parts."
         - ``background_record_split`` -- "One record was very long
           so we split it into pieces."
-        - ``background_trimmed`` -- legacy shrinker notice (still
-          surfaced when a single record is so long that even the
-          intra-record split path had to cap it).
 
-        ``partition_report`` is the structured source for the first
-        two; ``result['notice']`` is the joined plain-English text
-        that the prompt-call layer also returns. We prefer the
-        structured form when present so the wire payload carries
-        machine-readable codes.
+        Both come from the structured ``partition_report`` returned
+        by ``call_background``. The wire payload carries the
+        machine-readable codes alongside the plain-English text.
         """
         report = result.get("partition_report")
         out: list[FriendlyNotice] = []
@@ -512,14 +508,8 @@ class SBAROrchestrator:
                 out.append(background_split_notice(str(report.notice)))
             if getattr(report, "record_split_notice", None):
                 out.append(
-                    background_record_split_notice(
-                        str(report.record_split_notice)
-                    )
+                    background_record_split_notice(str(report.record_split_notice))
                 )
-        if not out:
-            notice_text = result.get("notice")
-            if notice_text:
-                out.append(background_trimmed_notice(str(notice_text)))
         for notice in out:
             notices.append(notice)
         return out

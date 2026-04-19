@@ -13,6 +13,7 @@ Neo4j instance.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -220,6 +221,22 @@ class TestTC001DataModelInvariants:
 
     def test_list_query_filters_on_test_marker(self) -> None:
         assert "coalesce(tp.is_test, false) = true" in LIST_TEST_PATIENTS
+
+    def test_list_query_rule_id_filter_unions_sbar_matched_rules(self) -> None:
+        # SBAR / referral-triage test patients link to rules via
+        # ExpectedSBAR.matched_rule_ids rather than EXPECTED_RESULT
+        # rels. The rule editor's "Try it on real patients" panel
+        # filters by rule_id so it MUST also match the SBAR path,
+        # otherwise patients created in the central library are
+        # invisible (chip reads "0 saved").
+        assert (
+            "any(e IN expectations WHERE e.rule_id = $rule_id)"
+            in LIST_TEST_PATIENTS
+        )
+        assert (
+            "$rule_id IN coalesce(s.matched_rule_ids, [])"
+            in LIST_TEST_PATIENTS
+        )
 
     def test_count_query_groups_by_aspect(self) -> None:
         assert "coalesce(tp.aspect, 'guidelines') AS aspect" in (
@@ -1215,11 +1232,9 @@ class _ScaffoldFakeClient(FakeGraphClient):
 
     def run(self, cypher: str, **params: Any) -> list[dict]:  # type: ignore[override]
         self.calls.append((cypher, dict(params)))
-        # READ_RULE_FOR_SCAFFOLD
-        if "MATCH (rule:AppropriatenessRule {id: $rule_id})" in cypher and (
-            "READ_RULE_FOR_SCAFFOLD" in cypher
-            or "demographic_constraints" in cypher
-        ):
+        # READ_RULE_FOR_SCAFFOLD -- the unique signature is the
+        # {id: $rule_id} binding (the picker query has no id binding).
+        if "MATCH (rule:AppropriatenessRule {id: $rule_id})" in cypher:
             return [self._rule_row] if self._rule_row else []
         # CREATE_TEST_PATIENT_FOR_ASPECT
         if "CREATE (tp:TestPatient" in cypher and "$aspect" in cypher:
@@ -2295,3 +2310,399 @@ class TestTC012TriageOutcomeFilter:
             "evaluator_outage",
             "unset",
         }
+
+
+# ---------------------------------------------------------------------------
+# TC-014 -- Rule logic_json walker (criteria + demographic constraints)
+# ---------------------------------------------------------------------------
+
+
+# A real-shaped logic tree pulled from
+# rule:NG12:v1:CH002:SEC000:R004 (NICE NG12 mesothelioma 2WW). Trimmed
+# down to keep the fixture readable but preserves the production
+# structure: a top-level AND with a demographic leaf, an OR of three
+# sibling AT_LEAST groups, and concept leaves nested inside AT_LEAST.
+# Some concepts deliberately repeat across branches so we can pin the
+# de-dup behaviour. See _logic_tree.parse_logic_json for the wire shape.
+_REAL_LOGIC_TREE = {
+    "kind": "AND",
+    "children": [
+        {
+            "kind": "demographic",
+            "field": "age",
+            "operator": ">=",
+            "value": 40,
+            "unit": "years",
+        },
+        {
+            "kind": "OR",
+            "children": [
+                {
+                    "kind": "AT_LEAST",
+                    "min": 2,
+                    "children": [
+                        {
+                            "kind": "concept",
+                            "criterion": {
+                                "snomed_concept_id": "49727002",
+                                "preferred_term": "Cough (finding)",
+                                "term": "cough",
+                            },
+                        },
+                        {
+                            "kind": "concept",
+                            "criterion": {
+                                "snomed_concept_id": "267036007",
+                                "preferred_term": "Dyspnea (finding)",
+                                "term": "dyspnoea",
+                            },
+                        },
+                    ],
+                },
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "49727002",
+                        "preferred_term": "Cough (finding)",
+                        "term": "cough",
+                    },
+                },
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "161635002",
+                        "preferred_term": "History of asbestos exposure (situation)",
+                    },
+                },
+            ],
+        },
+    ],
+}
+
+
+class TestTC014LogicTreeWalker:
+    """Pin the shared logic-tree walker that the scaffolder + picker
+    both consume. The walker replaces the broken
+    ``:HAS_CRITERIA_GROUP`` / ``:APPLIES_TO`` cypher walks -- production
+    rules persist criteria inside ``rule.logicJson`` only.
+    """
+
+    def test_extract_concept_triggers_walks_nested_groups_and_dedupes(self) -> None:
+        from app.services._logic_tree import extract_concept_triggers
+
+        triggers = extract_concept_triggers(_REAL_LOGIC_TREE)
+        ids = [t["concept_id"] for t in triggers]
+        # Cough appears 3 times in the tree -- once in AT_LEAST, once
+        # in the parent OR, and not in the asbestos branch -- and must
+        # collapse to a single trigger.
+        assert ids.count("49727002") == 1
+        assert set(ids) == {"49727002", "267036007", "161635002"}
+        # Every trigger keeps the field shape the LLM prompt + the
+        # validator expect.
+        first = triggers[0]
+        assert set(first.keys()) == {
+            "concept_id",
+            "preferred_term",
+            "predicate",
+        }
+        assert first["predicate"] == "LOGIC"
+
+    def test_extract_concept_triggers_falls_back_to_term_then_id(self) -> None:
+        from app.services._logic_tree import extract_concept_triggers
+
+        tree = {
+            "kind": "OR",
+            "children": [
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "111",
+                        "term": "short label only",
+                    },
+                },
+                {
+                    "kind": "concept",
+                    "criterion": {"snomed_concept_id": "222"},  # nothing else
+                },
+            ],
+        }
+        triggers = extract_concept_triggers(tree)
+        labels = {t["concept_id"]: t["preferred_term"] for t in triggers}
+        assert labels["111"] == "short label only"
+        assert labels["222"] == "222"
+
+    def test_extract_demographic_constraints_returns_field_op_value(self) -> None:
+        from app.services._logic_tree import extract_demographic_constraints
+
+        constraints = extract_demographic_constraints(_REAL_LOGIC_TREE)
+        assert constraints == [
+            {"field": "age", "operator": ">=", "value": 40, "unit": "years"}
+        ]
+
+    def test_parse_logic_json_accepts_string_dict_or_garbage(self) -> None:
+        from app.services._logic_tree import parse_logic_json
+
+        # Real production payload: a JSON-encoded string.
+        encoded = (
+            '{"kind": "concept", '
+            '"criterion": {"snomed_concept_id": "49727002"}}'
+        )
+        assert parse_logic_json(encoded) == {
+            "kind": "concept",
+            "criterion": {"snomed_concept_id": "49727002"},
+        }
+        # Already-decoded dicts pass through.
+        decoded = {"kind": "AND", "children": []}
+        assert parse_logic_json(decoded) is decoded
+        # Garbage is tolerated -- callers branch on None.
+        assert parse_logic_json("not-json") is None
+        assert parse_logic_json("") is None
+        assert parse_logic_json(None) is None
+        assert parse_logic_json(["a", "b"]) is None
+
+    def test_trigger_terms_preview_returns_first_three_in_order(self) -> None:
+        from app.services._logic_tree import trigger_terms_preview
+
+        preview = trigger_terms_preview(_REAL_LOGIC_TREE, limit=3)
+        # Document-order is Cough, Dyspnea, then the asbestos history
+        # (Cough's repeat is dropped by extract_concept_triggers).
+        assert preview == [
+            "Cough (finding)",
+            "Dyspnea (finding)",
+            "History of asbestos exposure (situation)",
+        ]
+        assert trigger_terms_preview(_REAL_LOGIC_TREE, limit=2) == [
+            "Cough (finding)",
+            "Dyspnea (finding)",
+        ]
+        assert trigger_terms_preview(None, limit=3) == []
+
+
+# ---------------------------------------------------------------------------
+# TC-015 -- Rule lookup queries pin the logicJson contract
+# ---------------------------------------------------------------------------
+
+
+class TestTC015RuleLookupQueriesUseLogicJson:
+    """Regression invariants for the two cypher queries that read a rule
+    for the test-patient library. Both used to walk
+    ``:HAS_CRITERIA_GROUP -> :CriteriaGroup -> :HAS_CRITERIA`` and
+    ``:APPLIES_TO``, but those labels / relationships do not exist in
+    the production knowledge graph (the v2 writer persists the criteria
+    inside ``rule.logicJson``). Without these tests the silent regression
+    came back as "Rule X has no SNOMED criteria attached" for every
+    real NG12 / NG78 / TA rule the reviewer tried to scaffold.
+    """
+
+    def test_read_rule_for_scaffold_returns_logic_json(self) -> None:
+        from libs.cypher.test_patient_queries import READ_RULE_FOR_SCAFFOLD
+
+        assert "rule.logicJson" in READ_RULE_FOR_SCAFFOLD
+        assert "AS logic_json" in READ_RULE_FOR_SCAFFOLD
+
+    def test_read_rule_for_scaffold_drops_broken_graph_walks(self) -> None:
+        from libs.cypher.test_patient_queries import READ_RULE_FOR_SCAFFOLD
+
+        assert ":HAS_CRITERIA_GROUP" not in READ_RULE_FOR_SCAFFOLD
+        assert ":CriteriaGroup" not in READ_RULE_FOR_SCAFFOLD
+        assert ":APPLIES_TO" not in READ_RULE_FOR_SCAFFOLD
+
+    def test_list_rules_for_picker_returns_logic_json(self) -> None:
+        from libs.cypher.test_patient_queries import LIST_RULES_FOR_PICKER
+
+        assert "rule.logicJson" in LIST_RULES_FOR_PICKER
+        assert "AS logic_json" in LIST_RULES_FOR_PICKER
+
+    def test_list_rules_for_picker_drops_broken_graph_walks(self) -> None:
+        from libs.cypher.test_patient_queries import LIST_RULES_FOR_PICKER
+
+        assert ":HAS_CRITERIA_GROUP" not in LIST_RULES_FOR_PICKER
+        assert ":CriteriaGroup" not in LIST_RULES_FOR_PICKER
+
+
+# ---------------------------------------------------------------------------
+# TC-016 -- load_rule_for_scaffold derives triggers from logic_json
+# ---------------------------------------------------------------------------
+
+
+class TestTC016LoadRuleForScaffold:
+    """End-to-end pin: the scaffolder's rule reader walks ``logic_json``
+    to derive the trigger list and demographic constraints, so the
+    "no SNOMED criteria attached" error no longer fires for production
+    rules.
+    """
+
+    def _row(self, **overrides: Any) -> dict:
+        base = {
+            "rule_id": "rule:NG12:v1:CH002:SEC000:R004:53e182a2",
+            "rule_name": "Rule: 1.1.5",
+            "recommendation_text": (
+                "Offer an urgent chest X-ray (within 2 weeks) to assess "
+                "for mesothelioma in people aged 40 and over."
+            ),
+            "chapter_title": "Recommendations organised by site of cancer",
+            "guideline_id": "NG12",
+            "guideline_title": "Suspected cancer: recognition and referral",
+            "action_priority": "2ww",
+            "logic_json": json.dumps(_REAL_LOGIC_TREE),
+        }
+        base.update(overrides)
+        return base
+
+    def test_derives_triggers_and_constraints_from_logic_json(self) -> None:
+        from app.services.test_patient_scaffolder import load_rule_for_scaffold
+
+        client = _ScaffoldFakeClient(
+            rule_row=self._row(),
+            present_concepts={"49727002", "267036007", "161635002"},
+        )
+        loaded = load_rule_for_scaffold(
+            client, rule_id="rule:NG12:v1:CH002:SEC000:R004:53e182a2"
+        )
+        ids = {t["concept_id"] for t in loaded["triggers"]}
+        assert ids == {"49727002", "267036007", "161635002"}
+        assert loaded["demographic_constraints"] == [
+            {
+                "field": "age",
+                "operator": ">=",
+                "value": 40,
+                "unit": "years",
+            }
+        ]
+        # Other fields the prompt formatter needs are passed through.
+        assert loaded["action_priority"] == "2ww"
+        assert loaded["rule_id"] == "rule:NG12:v1:CH002:SEC000:R004:53e182a2"
+
+    def test_logic_json_with_no_concept_leaves_raises_scaffold_error(
+        self,
+    ) -> None:
+        from app.services.test_patient_scaffolder import (
+            ScaffoldError,
+            load_rule_for_scaffold,
+        )
+
+        # Demographic-only tree: no concept leaves -> the scaffolder
+        # cannot brief Haiku on what symptoms to draft, so it must
+        # fail loud rather than write a half-baked patient.
+        empty_tree = json.dumps(
+            {
+                "kind": "AND",
+                "children": [
+                    {
+                        "kind": "demographic",
+                        "field": "age",
+                        "operator": ">=",
+                        "value": 40,
+                    }
+                ],
+            }
+        )
+        client = _ScaffoldFakeClient(
+            rule_row=self._row(logic_json=empty_tree),
+            present_concepts=set(),
+        )
+        with pytest.raises(ScaffoldError, match="no SNOMED criteria"):
+            load_rule_for_scaffold(client, rule_id="rule:demo:001")
+
+    def test_falls_back_to_legacy_triggers_when_logic_json_missing(
+        self,
+    ) -> None:
+        # Backwards-compat shim: stub rows that pre-date the logic_json
+        # column (older fixtures, 3rd-party callers) keep working as
+        # long as they pre-populate `triggers`. Production rows always
+        # carry `logic_json`.
+        from app.services.test_patient_scaffolder import load_rule_for_scaffold
+
+        legacy_row = self._row(logic_json=None)
+        legacy_row["triggers"] = [
+            {
+                "concept_id": "34436003",
+                "preferred_term": "haematuria",
+                "predicate": "EQ",
+            }
+        ]
+        legacy_row["demographic_constraints"] = []
+        client = _ScaffoldFakeClient(
+            rule_row=legacy_row,
+            present_concepts={"34436003"},
+        )
+        loaded = load_rule_for_scaffold(client, rule_id="rule:legacy:001")
+        assert [t["concept_id"] for t in loaded["triggers"]] == ["34436003"]
+        assert loaded["demographic_constraints"] == []
+
+
+# ---------------------------------------------------------------------------
+# TC-017 -- list_rules_for_picker derives trigger_terms from logic_json
+# ---------------------------------------------------------------------------
+
+
+class TestTC017PickerTriggerTermsFromLogicJson:
+    """The rule picker preview must derive its 3-term trigger preview
+    from the same ``logic_json`` the scaffolder reads, otherwise the
+    picker shows blank cues for every production rule.
+    """
+
+    def test_picker_derives_trigger_terms_from_real_logic_json(self) -> None:
+        from app.services import test_patient_service
+
+        client = FakeGraphClient(
+            responses={
+                "MATCH (rule:AppropriatenessRule)": [
+                    {
+                        "rule_id": "rule:NG12:v1:CH002:SEC000:R004",
+                        "name": "Rule: 1.1.5",
+                        "status": "pending_review",
+                        "recommendation_text": "Offer an urgent chest X-ray",
+                        "chapter_title": "Site-specific recommendations",
+                        "action_priority": "2ww",
+                        "guideline_id": "NG12",
+                        "guideline_title": "Suspected cancer",
+                        "logic_json": json.dumps(_REAL_LOGIC_TREE),
+                    }
+                ]
+            }
+        )
+        rows = test_patient_service.list_rules_for_picker(
+            client, guideline_id=None
+        )
+        assert len(rows) == 1
+        first = rows[0]
+        # logic_json is consumed by the service and never leaks to the
+        # router (which exposes the picker payload).
+        assert "logic_json" not in first
+        assert first["trigger_terms"] == [
+            "Cough (finding)",
+            "Dyspnea (finding)",
+            "History of asbestos exposure (situation)",
+        ]
+
+    def test_picker_uses_legacy_trigger_terms_when_logic_json_missing(
+        self,
+    ) -> None:
+        # Pre-existing fixtures (and the unit tests in TC-009) stub the
+        # picker rows directly with `trigger_terms`. Keep that contract
+        # working so the migration is non-breaking.
+        from app.services import test_patient_service
+
+        client = FakeGraphClient(
+            responses={
+                "MATCH (rule:AppropriatenessRule)": [
+                    {
+                        "rule_id": "rule:legacy:001",
+                        "name": "Legacy",
+                        "status": "active",
+                        "recommendation_text": "Refer adults with haematuria",
+                        "chapter_title": "1.1 Cancer",
+                        "action_priority": "2ww",
+                        "guideline_id": "NG12",
+                        "guideline_title": "Suspected cancer",
+                        "trigger_terms": ["haematuria"],
+                        # logic_json deliberately absent
+                    }
+                ]
+            }
+        )
+        rows = test_patient_service.list_rules_for_picker(
+            client, guideline_id=None
+        )
+        assert rows[0]["trigger_terms"] == ["haematuria"]

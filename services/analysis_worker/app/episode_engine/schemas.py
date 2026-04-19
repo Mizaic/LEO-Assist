@@ -369,3 +369,111 @@ class Episode(BaseModel):
     needs_human_review: bool = False
     merged_from: list[str] = Field(default_factory=list)
     provenance: Provenance
+
+
+# -- Audit Relevance Filter (DI-LEO-AI-524) --------------------------------
+
+
+class FocusedEncounter(BaseModel):
+    """One encounter in the focused set for the milestone extractor.
+
+    Carries the audit reason that put it there so the EoC trace can show
+    a clinician-friendly explanation per encounter.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    encounter_id: str
+    encounter_date: Optional[_date_t] = None
+    kept_by_guard: bool = False
+    guard_reason: Optional[str] = None
+    kept_by_llm: Optional[bool] = None
+    llm_reason: Optional[str] = None
+    kept_by_fallback: bool = False
+
+
+class AuditFilterDrop(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    encounter_id: str
+    reason: str
+
+
+class AuditFilterReport(BaseModel):
+    """Per-window audit trace of the focus filter decisions."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    audit_input_encounters: int = 0
+    audit_kept_by_guards: int = 0
+    audit_kept_by_llm: int = 0
+    audit_dropped_by_llm: list[AuditFilterDrop] = Field(default_factory=list)
+    audit_filter_failed: bool = False
+    audit_filter_overflow: bool = False
+    audit_parts: int = 1
+
+
+class FocusedSet(BaseModel):
+    """Output of the Audit Relevance Filter for one window."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    encounters: list[FocusedEncounter] = Field(default_factory=list)
+    report: AuditFilterReport = Field(default_factory=AuditFilterReport)
+
+
+# -- Window partitioner (DI-LEO-AI-525) ------------------------------------
+
+
+class WindowPartition(BaseModel):
+    """One bin-packed slice of the focused encounter set."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    index: int = Field(..., ge=1)
+    total: int = Field(..., ge=1)
+    encounter_ids: list[str] = Field(default_factory=list)
+    record_range: tuple[int, int] = (0, 0)
+    part_in_encounter: Optional[dict[str, tuple[int, int]]] = None
+
+
+class PartitionReport(BaseModel):
+    """Audit summary of how the partitioner split the focused set."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total_parts: int = 1
+    too_many_parts: bool = False
+    notice: Optional[str] = None
+
+
+class PartTrace(BaseModel):
+    """Per-part trace item recorded on the EoC audit trace."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    part_index: int
+    encounter_count: int = 0
+    milestones_count: int = 0
+    error: Optional[str] = None
+
+
+class EpisodeOfCareTrace(BaseModel):
+    """Per-EoC audit trace for the focus + partition pipeline.
+
+    Carried alongside MilestoneExtractorResult on the engine state so the
+    writer / cohort dashboard can render the audit decisions for one
+    candidate window.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    window_id: str
+    audit_input_encounters: int = 0
+    audit_kept_by_guards: int = 0
+    audit_kept_by_llm: int = 0
+    audit_dropped_by_llm: list[AuditFilterDrop] = Field(default_factory=list)
+    audit_filter_failed: bool = False
+    audit_filter_overflow: bool = False
+    audit_parts: int = 1
+    parts: list[PartTrace] = Field(default_factory=list)

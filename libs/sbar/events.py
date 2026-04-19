@@ -179,9 +179,7 @@ SUMMARISATION_CONTEXT_LABELS: dict[SummarisationContext, str] = {
     ),
     SummarisationContext.mdt_discussion: "MDT prep (primary care)",
     SummarisationContext.ncda: "National Cancer Diagnosis Audit (NCDA)",
-    SummarisationContext.two_week_wait: (
-        "Suspected cancer (2WW / Faster Diagnosis)"
-    ),
+    SummarisationContext.two_week_wait: ("Suspected cancer (2WW / Faster Diagnosis)"),
     SummarisationContext.frailty_pcsp: (
         "Frailty / personalised care and support plan (PCSP)"
     ),
@@ -196,27 +194,17 @@ SUMMARISATION_CONTEXT_LABELS: dict[SummarisationContext, str] = {
     SummarisationContext.outpatient_followup_clinic: (
         "Outpatient follow-up clinic letter"
     ),
-    SummarisationContext.mdt_specialty: (
-        "Specialty MDT (cancer / surgical / neuro)"
-    ),
+    SummarisationContext.mdt_specialty: ("Specialty MDT (cancer / surgical / neuro)"),
     SummarisationContext.pre_op_assessment: "Pre-operative assessment",
     SummarisationContext.procedure_note: "Operation / procedure note summary",
-    SummarisationContext.ward_round_progress: (
-        "Ward round / inpatient progress note"
-    ),
-    SummarisationContext.ed_handover: (
-        "Emergency Department triage / handover"
-    ),
+    SummarisationContext.ward_round_progress: ("Ward round / inpatient progress note"),
+    SummarisationContext.ed_handover: ("Emergency Department triage / handover"),
     SummarisationContext.comprehensive_geriatric_assessment: (
         "Comprehensive Geriatric Assessment (CGA)"
     ),
     SummarisationContext.tertiary_referral: "Tertiary referral letter",
-    SummarisationContext.specialty_letter_to_gp: (
-        "Specialty clinic letter back to GP"
-    ),
-    SummarisationContext.chemotherapy_consent: (
-        "Chemotherapy / SACT consent"
-    ),
+    SummarisationContext.specialty_letter_to_gp: ("Specialty clinic letter back to GP"),
+    SummarisationContext.chemotherapy_consent: ("Chemotherapy / SACT consent"),
     SummarisationContext.palliative_care_mdt: (
         "Palliative care MDT / hospice referral"
     ),
@@ -232,19 +220,11 @@ SUMMARISATION_CONTEXT_LABELS: dict[SummarisationContext, str] = {
         "Insurance / DVLA / occupational report"
     ),
     SummarisationContext.subject_access_request: "Subject access request (SAR)",
-    SummarisationContext.best_interests_dols: (
-        "Best Interests / DoLS meeting"
-    ),
-    SummarisationContext.mental_health_tribunal: (
-        "Mental Health Act tribunal report"
-    ),
+    SummarisationContext.best_interests_dols: ("Best Interests / DoLS meeting"),
+    SummarisationContext.mental_health_tribunal: ("Mental Health Act tribunal report"),
     # Quality assurance
-    SummarisationContext.significant_event_review: (
-        "Significant event review (SEA)"
-    ),
-    SummarisationContext.peer_review_cbd: (
-        "Peer review / Case-based discussion (CBD)"
-    ),
+    SummarisationContext.significant_event_review: ("Significant event review (SEA)"),
+    SummarisationContext.peer_review_cbd: ("Peer review / Case-based discussion (CBD)"),
 }
 
 
@@ -466,9 +446,7 @@ class SBARArtifactRef(BaseModel):
                 raise ValueError("fixed_text artefacts require non-empty text")
             return self
         if not (self.id or "").strip():
-            raise ValueError(
-                f"{self.type.value} artefacts require a Neo4j node id"
-            )
+            raise ValueError(f"{self.type.value} artefacts require a Neo4j node id")
         return self
 
 

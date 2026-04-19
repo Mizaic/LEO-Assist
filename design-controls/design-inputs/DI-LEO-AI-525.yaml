@@ -1,0 +1,185 @@
+# -- DI-LEO-AI-525 -- Episode Engine: Window Partitioner safety net for milestone extraction
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-525"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-097"
+  requirement: >
+    The Episode Engine SHALL provide a Window Partitioner safety net
+    for the milestone extractor so that no focused encounter is
+    silently dropped or truncated when the focused set itself
+    exceeds the per-part token budget. The partitioner SHALL use the
+    same "partition + map + deterministic merge" pattern as the SBAR
+    Background partitioner (DI-LEO-AI-522) but adapted for the
+    Episode Engine output schema:
+
+    (1) PARTITION -- the pure function
+    services/analysis_worker/app/episode_engine/window_partitioner
+    .partition_window() SHALL pack the focused encounter set into
+    the smallest number of Partition objects whose serialised user
+    message fits inside the per-part token budget
+    (EPISODE_ENGINE_MAX_INPUT_TOKENS minus a fixed system-prompt
+    reserve). Each Partition SHALL carry an ordered list of
+    encounter_ids and a record_range (start, end 1-based indices)
+    used for trace logging.
+
+    (2) INTRA-ENCOUNTER SPLIT -- where a single focused encounter's
+    serialised text alone exceeds a part budget, the encounter
+    SHALL be split across consecutive parts with explicit
+    ``part_in_encounter`` metadata in the user message so the LLM
+    treats the halves as one source. This is the fallback for
+    truly oversized records and SHALL NOT be the default code
+    path.
+
+    (3) MAP -- the milestone extractor SHALL be invoked once per
+    Partition, sequentially. Per-part failures SHALL be contained:
+    a failed part contributes an empty milestone list with
+    ``needs_human_review = true`` and a structured error on the
+    EoC audit trace, and the surviving parts still contribute
+    their milestones to the merged result.
+
+    (4) DETERMINISTIC MERGE -- pure-Python merge of the per-part
+    MilestoneExtractorResults SHALL be applied:
+      * ``milestones``: concatenate then de-duplicate on
+        (type, date, encounter_id), keeping the highest-confidence
+        instance and the longest evidence_quote.
+      * ``safety_netting``: union over per-part safety_netting
+        flags; ``present == true`` if any part observed it.
+      * ``disruptions``: concatenate per-part disruption events
+        then de-duplicate on (type, date, encounter_id).
+      * ``needs_human_review``: any-true across parts.
+      * ``reasoning``: concatenated as
+        "Part {i} of {N}: {reasoning}" lines so the auditor can
+        trace which part contributed which decision.
+    There SHALL NOT be a second LLM call to merge the partials,
+    because any LLM merge step is itself a place where pathway
+    facts can be dropped or invented (R-LEO-AI-513).
+
+    (5) HARD CAP -- if bin-packing would need more than 8 parts
+    the partitioner SHALL refuse cleanly
+    (``too_many_parts = True``) and the chain SHALL surface the
+    friendly ``audit_partition_overflow_error`` ("This patient has
+    too much pathway-relevant material to audit in one run -- ask
+    a clinician to review the encounter range manually") with NO
+    LLM invocation. The EoC SHALL still be created with
+    ``needs_human_review = true`` and the audit trace populated
+    with the refusal reason so the cohort run remains complete.
+
+    (6) COMMON-CASE PASS-THROUGH -- when the focused set fits in a
+    single partition, partition_window SHALL return one Partition
+    and the chain SHALL invoke the milestone extractor exactly
+    once with no part-merge metadata. This is the expected path
+    for the great majority of patients after the Audit Relevance
+    Filter (DI-LEO-AI-524) has done its job.
+
+    (7) AUDIT TRACE -- each EoC SHALL record ``audit_parts`` (the
+    number of partitions actually used; 1 in the common case) and
+    a per-part trace of ``{encounter_count, milestones_count,
+    error}`` so the auditor can see how the safety net behaved.
+
+  rationale: >
+    The Audit Relevance Filter (DI-LEO-AI-524) is expected to
+    handle the common case by reducing the milestone-extractor
+    input to a tight, signal-rich set that fits one Haiku call.
+    But for a small minority of genuinely large patients (long
+    multi-year cancer journeys with multiple recurrences, dense
+    discharge letters) the focused set will still exceed the model
+    input window. Without a safety net the timeline_loader's hard
+    truncation would silently drop encounter content and the EoC
+    would be incomplete. The partition + map + deterministic-merge
+    safety net guarantees the no-encounter-silently-dropped
+    invariant under all conditions, while the "deterministic
+    Python merge, no LLM" decision keeps the merge step free of
+    LLM-induced fact loss / hallucination -- the same architectural
+    decision that DI-LEO-AI-522 made for SBAR Background.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          partition_window() returns the smallest N <= 8 partitions
+          that fit the per-part token budget, with every input
+          focused encounter_id appearing in at least one partition
+          (no-encounter-dropped invariant), and
+          report.too_many_parts = True when N would exceed 8.
+      - type: "functional"
+        spec: >
+          When the focused set fits one partition, partition_window
+          returns exactly one Partition and the chain invokes the
+          milestone extractor exactly once with no part-merge
+          metadata or per-part headings on the prompt.
+      - type: "functional"
+        spec: >
+          Multi-partition runs invoke the milestone extractor
+          exactly once per Partition; the deterministic merge
+          de-duplicates milestones on (type, date, encounter_id)
+          keeping the highest-confidence instance, unions
+          safety_netting flags, and concatenates disruptions with
+          the same de-duplication rule.
+      - type: "safety"
+        spec: >
+          When one MAP call fails the failed part contributes an
+          empty milestone list with needs_human_review = true and
+          a structured error on the audit trace, while the
+          surviving parts still contribute their milestones.
+      - type: "safety"
+        spec: >
+          When too_many_parts = True the chain creates the EoC with
+          needs_human_review = true and audit_filter_overflow =
+          true, with zero LLM invocations on the milestone
+          extractor for that EoC.
+      - type: "safety"
+        spec: >
+          Single-partition runs are byte-for-byte identical to the
+          legacy single-call milestone extractor (no per-part
+          headings, no part-merge prefixes on reasoning, no part
+          count on the EoC). The legacy behaviour is the common
+          case and must not regress.
+    constraints:
+      - type: "performance"
+        spec: >
+          Milestone-extractor latency for an N-part run SHALL be no
+          more than N * single-call latency (sequential execution
+          by design; parallelism is intentionally out of scope to
+          keep the worker's Bedrock concurrency budget bounded).
+    dependencies:
+      - "DI-LEO-AI-503"
+      - "DI-LEO-AI-524"
+    downstream_impacts:
+      - "Episode Engine chain orchestrates partition + map + merge for the milestone extractor"
+      - "Reconciler receives a single merged MilestoneExtractorResult"
+      - "EpisodeOfCare audit trace gains audit_parts and per-part status"
+      - "Cohort cost dashboards pick up multi-part runs as audit_parts > 1"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI / analysis_worker"
+      file_structure:
+        - "services/analysis_worker/app/episode_engine/window_partitioner.py"
+        - "services/analysis_worker/app/episode_engine/chain.py"
+        - "services/analysis_worker/app/episode_engine/schemas.py"
+        - "services/analysis_worker/app/episode_engine/timeline_loader.py"
+      estimated_loc: 320
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-523 must pass on all critical and total cases:
+      single-partition common case, multi-part packing preserves
+      every focused encounter, intra-encounter split for an
+      oversized record, deterministic milestone merge across parts,
+      per-part failure containment, and too_many_parts refusal
+      with zero LLM invocations.
+    test_protocol: "VT-LEO-AI-523"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-513"
+  tags:
+    - "episode-engine"
+    - "milestone-extractor"
+    - "window-partitioner"
+    - "deterministic-merge"
+    - "safety-net"
+    - "no-record-dropped"

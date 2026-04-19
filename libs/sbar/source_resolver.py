@@ -220,8 +220,9 @@ RETURN coalesce(c.text, '')        AS text,
 # ---------------------------------------------------------------------------
 
 
-def _coerce_codes(raw: list[dict[str, Any]] | None,
-                  *, source_label: str, source_id: str) -> list[ResolvedCode]:
+def _coerce_codes(
+    raw: list[dict[str, Any]] | None, *, source_label: str, source_id: str
+) -> list[ResolvedCode]:
     """Filter out null/empty rows produced by OPTIONAL MATCH and dedup."""
     if not raw:
         return []
@@ -260,9 +261,7 @@ def get_patient_context(session: Any, patient_id: str) -> dict[str, Any]:
     }
 
 
-def resolve_situation(
-    session: Any, situation: SBARSituationInput
-) -> ResolvedSituation:
+def resolve_situation(session: Any, situation: SBARSituationInput) -> ResolvedSituation:
     """Pull the Patient context + each requested record artefact."""
     summary = get_patient_context(session, situation.patient_id)
     artifacts: list[dict[str, Any]] = []
@@ -281,12 +280,14 @@ def resolve_situation(
                 ref.id or ref.text,
                 exc_info=True,
             )
-            artifacts.append({
-                "type": ref.type.value,
-                "id": ref.id,
-                "text": ref.text,
-                "error": "resolve_failed",
-            })
+            artifacts.append(
+                {
+                    "type": ref.type.value,
+                    "id": ref.id,
+                    "text": ref.text,
+                    "error": "resolve_failed",
+                }
+            )
     return ResolvedSituation(
         patient_id=situation.patient_id,
         patient_summary=summary,
@@ -310,9 +311,7 @@ def _resolve_artifact(
         ctx = ref.context_value
         snippet: str | None = None
         if ctx is not None:
-            snippet = _situation_context_snippet(
-                session, ctx, cache=snippet_cache
-            )
+            snippet = _situation_context_snippet(session, ctx, cache=snippet_cache)
         return {
             "type": ref.type.value,
             "value": ctx.value if ctx is not None else None,
@@ -439,9 +438,7 @@ def _resolve_chunk(session: Any, chunk_id: str) -> ResolvedSource:
             source_id=chunk_id,
             metadata={"error": "not_found"},
         )
-    codes = _coerce_codes(
-        rec["codes"], source_label="Chunk", source_id=chunk_id
-    )
+    codes = _coerce_codes(rec["codes"], source_label="Chunk", source_id=chunk_id)
     return ResolvedSource(
         source_label="Chunk",
         source_id=chunk_id,

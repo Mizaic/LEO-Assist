@@ -77,6 +77,14 @@ async def _proxy_pipeline_worker_json(
         ) from exc
 
 
+# Active-list staleness projection -- updated_at + reviewed_at + reviewer
+# are written by _UPSERT_APPROPRIATENESS_RULE (ON MATCH SET rule.updatedAt
+# = datetime()) and _UPDATE_RULE_STATUS (sets reviewedAt / reviewedBy on
+# every approve / edit / reject). Surfacing them lets the FE sort the
+# Active list "stalest first" so reviewers see the rules most overdue
+# for re-validation at the top of the page (DI-LEO-AI-512 AC-001).
+# updated_at falls back to created_at for rules that have never been
+# edited; reviewed_at is null until the first decision.
 _FETCH_RULES = """
 MATCH (rule:AppropriatenessRule)
 WHERE ($status IS NULL OR rule.status = $status)
@@ -97,14 +105,17 @@ RETURN rule.id AS rule_id,
        rule.logicJson AS logic_json,
        rule.actionJson AS action_json,
        rule.createdAt AS created_at,
+       coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
+       rule.reviewedAt AS reviewed_at,
+       rule.reviewedBy AS reviewed_by,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
        rec.verbatim AS recommendation_text,
        collect({
            predicate: hc.predicate,
-           concept_id: concept.conceptId,
-           preferred_term: coalesce(concept.term, concept.conceptId)
+           concept_id: coalesce(concept.id, concept.conceptId),
+           preferred_term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)
        }) AS criteria,
        pred.id IS NOT NULL AS has_predecessor,
        pred.id AS predecessor_id
@@ -128,8 +139,8 @@ RETURN
     pred.supersededAt AS superseded_at,
     collect(DISTINCT {
         predicate: pred_hc.predicate,
-        concept_id: pred_concept.conceptId,
-        preferred_term: coalesce(pred_concept.term, pred_concept.conceptId)
+        concept_id: coalesce(pred_concept.id, pred_concept.conceptId),
+        preferred_term: coalesce(pred_concept.preferred_term, pred_concept.fsn, pred_concept.term, pred_concept.id, pred_concept.conceptId)
     }) AS predecessor_criteria,
     collect(DISTINCT {
         action: audit.action,
@@ -153,14 +164,17 @@ RETURN rule.id AS rule_id,
        rule.logicJson AS logic_json,
        rule.actionJson AS action_json,
        rule.createdAt AS created_at,
+       coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
+       rule.reviewedAt AS reviewed_at,
+       rule.reviewedBy AS reviewed_by,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
        rec.verbatim AS recommendation_text,
        collect({
            predicate: hc.predicate,
-           concept_id: concept.conceptId,
-           preferred_term: coalesce(concept.term, concept.conceptId)
+           concept_id: coalesce(concept.id, concept.conceptId),
+           preferred_term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)
        }) AS criteria,
        pred.id IS NOT NULL AS has_predecessor,
        pred.id AS predecessor_id
@@ -178,13 +192,16 @@ RETURN rule.id AS rule_id,
        rule.logicJson AS logic_json,
        rule.actionJson AS action_json,
        rule.createdAt AS created_at,
+       coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
+       rule.reviewedAt AS reviewed_at,
+       rule.reviewedBy AS reviewed_by,
        g.id AS guideline_id,
        g.title AS guideline_title,
        rec.verbatim AS recommendation_text,
        collect({
            predicate: hc.predicate,
-           concept_id: concept.conceptId,
-           preferred_term: coalesce(concept.term, concept.conceptId)
+           concept_id: coalesce(concept.id, concept.conceptId),
+           preferred_term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)
        }) AS criteria
 """
 
@@ -225,7 +242,7 @@ RETURN rule.status AS status,
        g.id AS guideline_id,
        domain.id AS domain_id,
        domain.name AS domain_name,
-       collect(DISTINCT {concept_id: concept.conceptId, term: coalesce(concept.term, concept.conceptId)}) AS concepts
+       collect(DISTINCT {concept_id: coalesce(concept.id, concept.conceptId), term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)}) AS concepts
 """
 
 _PROMOTE_CONCEPT_TO_DOMAIN = """
@@ -993,6 +1010,16 @@ def _format_rule(r: dict) -> dict:
         "action": _parse_action_json(r.get("action_json")),
         "criteria_concepts": logic_concepts,
         "created_at": str(r.get("created_at", "")),
+        # updated_at + reviewed_at + reviewed_by are surfaced so the FE
+        # can sort the Active list "stalest first" and show authors when
+        # each rule was last touched (DI-LEO-AI-512 AC-001 / AC-002).
+        # updated_at coalesces to created_at for rules that were never
+        # edited; reviewed_at / reviewed_by are null until the first
+        # decision and serialised as empty strings to keep the JSON
+        # shape stable for FE consumers.
+        "updated_at": str(r.get("updated_at") or r.get("created_at") or ""),
+        "reviewed_at": str(r.get("reviewed_at") or ""),
+        "reviewed_by": str(r.get("reviewed_by") or ""),
         "has_predecessor": bool(r.get("has_predecessor")),
         "predecessor_id": r.get("predecessor_id"),
     }

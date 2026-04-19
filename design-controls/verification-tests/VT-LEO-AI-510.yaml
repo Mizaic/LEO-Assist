@@ -38,6 +38,8 @@
       - "services/ui/src/__tests__/synonym-chip-tree-ops.test.ts"
       - "services/ui/src/__tests__/synonym-chip-tree-to-sentence.test.ts"
       - "services/ui/src/__tests__/synonym-chip-descendants.test.tsx"
+      - "services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/treeOps.test.ts"
+      - "services/ui/src/app/admin/guidance/__tests__/RuleReviewSection.merge.test.ts"
 
   test_environment:
     environment_type: "development"
@@ -244,6 +246,192 @@
         - "Already-blocked descendants are visibly differentiated and reversible."
         - "Depth changes refetch so the preview always reflects the saved configuration."
 
+    - case_id: "VT-510-TC-017"
+      case_name: "stripNodeIds whitelists BE-allowed criterion + seed keys (DI-511 AC-008 / R-508 sixth mitigation)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Build a CONCEPT leaf whose criterion carries every LLM-provenance
+            field written by libs/pipeline_graph/subgraphs/
+            guidance_rule_extraction_v2_impl.py::_apply_leaf_decisions
+            (node_id, source_text, original_phrase, expansion_source,
+            expanded_from, candidates, verification_status,
+            verification_reason, confidence, resolver_turns,
+            needs_human_review, search_history) alongside the BE-allowed
+            keys (snomed_concept_id, preferred_term, semantic_tag, term,
+            seeds, primary_concept_id, excluded_concept_ids). Pass through
+            stripNodeIds.
+          expected_result: >
+            Output criterion contains ONLY the BE-allowed keys. Every
+            LLM-provenance key is absent (not just undefined). Allowed
+            field values are preserved verbatim.
+          verification_method: "automated"
+        - step_number: 2
+          action: >
+            Build a seed with the BE-allowed keys (snomed_concept_id,
+            preferred_term, semantic_tag, include_descendants,
+            distance_child) plus stale extras (node_id, candidates).
+            Pass through stripNodeIds.
+          expected_result: >
+            Each seed in the output retains only the BE-allowed keys.
+            distance_child override is preserved.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "BE LogicCriterion / LogicSeed extra=forbid validators never see an unknown key on save."
+        - "Reviewer edits to a CONCEPT chip persist after Save (no silent 422 + dropped seeds)."
+
+    - case_id: "VT-510-TC-019"
+      case_name: "_VERIFY_CONCEPTS accepts canonical :Concept and legacy :SnomedConcept ids (DI-508 AC-006 / R-508 ninth mitigation)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Static-source pin: read services/api/app/services/
+            guidance_rule_edit.py and assert _VERIFY_CONCEPTS contains
+            two OPTIONAL MATCH lines, one against (:Concept {id: cid})
+            and one against (:SnomedConcept {conceptId: cid}), and
+            returns (canonical IS NOT NULL OR legacy IS NOT NULL)
+            AS exists.
+          expected_result: >
+            Both labels are referenced in the verifier query; either
+            label being present satisfies the existence check.
+          verification_method: "automated"
+        - step_number: 2
+          action: >
+            Stub the BE driver so the verifier returns a row per
+            concept id with exists=true for ids that exist on
+            (:Concept) and exists=false for an unknown id; call
+            apply_rule_edit with a CONCEPT criterion whose seeds
+            reference :Concept-only ids (the canonical terminology
+            search path).
+          expected_result: >
+            apply_rule_edit completes successfully and never raises
+            "Unknown SNOMED concept ids" for an id that exists on
+            (:Concept) but not on (:SnomedConcept). A genuinely
+            missing id still raises.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "v2 rules whose seeds come from the canonical terminology search persist on save."
+        - "Backward compatibility with legacy v1-generated :SnomedConcept ids is preserved."
+        - "An unknown id still fails verification (no false positives)."
+
+    - case_id: "VT-510-TC-020"
+      case_name: "Approved-in-this-session card exposes Edit (DI-511 AC-010)"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Static-source pin: read services/ui/src/app/admin/guidance/
+            RuleReviewSection.tsx and assert it imports EditOutlinedIcon
+            from @mui/icons-material/EditOutlined; assert the
+            "Approved in this session" card contains a Button with
+            aria-label matching /Edit approved rule/ that calls
+            setEditRule(rule); assert the Edit button is declared
+            BEFORE the promotedRules ternary inside the same Stack so
+            it remains visible after promotion.
+          expected_result: >
+            All three assertions pass; the Edit button is wired to
+            the existing handleSaveEdit code path.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewers can edit a rule they have already approved without leaving the page."
+        - "The Edit affordance survives the 'Add to domain' action."
+
+    - case_id: "VT-510-TC-021"
+      case_name: "Pending / Active / Superseded status filter (DI-511 AC-011, AC-012)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Static-source pin: read services/ui/src/app/admin/guidance/
+            RuleReviewSection.tsx and assert the file declares
+            type RuleStatusFilter = "pending_review" | "active" |
+            "superseded" and a STATUS_FILTER_OPTIONS list with all
+            three labels and tooltips written in plain English; assert
+            the fetch URL is interpolated as
+            /api/guidance/rules/review?status=${statusFilter}; assert
+            the useEffect dependency array includes statusFilter;
+            assert the default useState value is "pending_review";
+            assert the exclusive ToggleButtonGroup onChange handler
+            guards against next === null so the filter cannot be
+            unset; assert the Approve-all button render block is
+            wrapped in {statusFilter === "pending_review" && ...};
+            assert onApprove and onReject passed to RuleAccordionCard
+            are conditional on statusFilter === "pending_review"
+            (otherwise undefined); assert onEdit is unconditional.
+          expected_result: >
+            All static-source assertions pass.
+          verification_method: "automated"
+        - step_number: 2
+          action: >
+            Render RuleReviewSection with a fetch mock that returns
+            different lists per ?status= value; assert the Pending
+            review tab is visible on first paint with the pending
+            list and the Approve-all button; click "Show Active rules";
+            assert fetch is called with status=active; assert the
+            Approve-all button disappears; assert the active rules
+            still render the Edit button.
+          expected_result: >
+            The toggle drives the fetch URL, the bulk affordance
+            disappears outside Pending, and Edit remains available
+            on every status.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "A reviewer can find any rule by status without leaving the section."
+        - "Bulk and per-row decision affordances are scoped to Pending so they cannot be misapplied to live rules."
+        - "Edit is always reachable; the BE supports editing both pending and active predecessors."
+
+    - case_id: "VT-510-TC-018"
+      case_name: "Save error UI is readable and post-save cache reflects the persisted tree (DI-511 AC-009 / R-508 seventh + eighth mitigations)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Call formatApiDetail with the array shape FastAPI returns for
+            a 422 (e.g. [{type:'extra_forbidden', loc:['body','updates',
+            'logic_tree','criterion','source_text'], msg:'Extra inputs
+            are not permitted'}, {...candidates...}]).
+          expected_result: >
+            Returns a single readable string that includes both offending
+            keys (source_text, candidates) and the human message; never
+            contains the literal '[object Object]'; the body / updates
+            prefixes are stripped from the loc path.
+          verification_method: "automated"
+        - step_number: 2
+          action: >
+            Call formatApiDetail with a plain string detail, with a
+            nested object detail, and with null / undefined.
+          expected_result: >
+            String passes through unchanged; object becomes its
+            JSON.stringify form; null and undefined return ''.
+          verification_method: "automated"
+        - step_number: 3
+          action: >
+            Call mergeEditedRuleIntoCache(previousRule, newRuleId, payload)
+            where payload.logic_tree is a CONCEPT criterion expanded from
+            one seed to three seeds plus an excluded id, payload.action is
+            omitted, and previousRule has the original single-seed tree.
+          expected_result: >
+            The merged Rule's logic_tree is the payload tree (not the
+            previous one); the inner CONCEPT criterion shows seeds.length
+            === 3 and excluded_concept_ids === ['56294008']; rule_id
+            switches to newRuleId; status flips to 'active'; action keeps
+            the previous coded recommendation (mirrors BE
+            _decide_rule_with_edits coalesce).
+          verification_method: "automated"
+        - step_number: 4
+          action: >
+            Re-call mergeEditedRuleIntoCache with payload.action set to
+            a different SNOMED-coded action.
+          expected_result: >
+            The merged Rule's action.snomed_concept_id matches
+            payload.action.snomed_concept_id (overlay path).
+          verification_method: "automated"
+      acceptance_criteria:
+        - "If save fails, the reviewer sees a sentence describing the offending field, never '[object Object]'."
+        - "If save succeeds, the in-session 'approved this session' card shows the seeds / exclusions the reviewer just added (no stale cache)."
+
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
     blocking_on_failure: true
@@ -255,6 +443,125 @@
     immutability: true
 
   execution_history:
+    - execution_id: "VT-LEO-AI-510-EXEC-2026-04-19-004"
+      execution_date: "2026-04-19"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      cases_executed: 21
+      cases_passed: 21
+      cases_failed: 0
+      duration_seconds: 6.7
+      notes: >
+        Re-run after closing two reviewer-visible gaps surfaced by Rob
+        Smith on 2026-04-19:
+        (1) Save kept failing with "Unknown SNOMED concept ids: ..."
+        for ids that the canonical terminology search had just
+        returned. Root cause: services/api/app/services/
+        guidance_rule_edit.py::_VERIFY_CONCEPTS only looked at
+        (:SnomedConcept {conceptId: cid}), a parallel namespace
+        created by the v1 guidance_rule_generator path. Concepts
+        sourced from the terminology API live as (:Concept {id: cid})
+        and never had a :SnomedConcept twin, so any v2 rule edited
+        through the dialog 422'd. Fix: _VERIFY_CONCEPTS now performs
+        OPTIONAL MATCH against BOTH labels and reports exists when
+        either side is present. Two new pytest cases pinned in
+        services/api/tests/test_guidance_rule_edit.py
+        (test_verifier_cypher_targets_canonical_and_legacy_labels --
+        static source pin; test_accepts_concepts_only_on_canonical_
+        concept_label -- happy path against a :Concept-only graph).
+        Mapped to VT-510-TC-019.
+        (2) After approval there was no surface to edit a rule -- the
+        "Approved in this session" card only offered "Add to domain",
+        and the pending list filter hid every rule the reviewer had
+        just approved. Two FE changes:
+        (a) RuleReviewSection.tsx now renders an Edit button on the
+        approved-card (DI-511 AC-010) wired to setEditRule(rule)
+        through the existing handleSaveEdit path; pinned in
+        services/ui/src/app/admin/guidance/__tests__/
+        RuleReviewSection.merge.test.ts (TC-020).
+        (b) RuleReviewSection.tsx now renders a Pending review /
+        Active / Superseded ToggleButtonGroup (DI-511 AC-011, AC-012)
+        that drives the GET /api/guidance/rules/review?status=...
+        fetch. Approve-all and per-row Looks right / Reject collapse
+        away outside Pending; Edit stays available on every status
+        because the BE apply_rule_edit accepts predecessor status
+        in {pending_review, active}. Pinned in
+        services/ui/src/app/admin/guidance/__tests__/
+        RuleReviewSection.merge.test.ts (10 new static-source cases)
+        and services/ui/src/app/admin/guidance/__tests__/
+        GuidancePage.test.tsx (3 new live-render cases verifying the
+        toggle, the ?status=active fetch, and the Approve-all
+        scoping). Mapped to VT-510-TC-021.
+        Totals across the touched suites:
+        pytest -- 33 of 33 in services/api/tests/
+        test_guidance_rule_edit{,_action}.py green (2 new TC-019
+        cases plus the 31 from EXEC-003);
+        jest -- 160 of 160 across guidance + EditRuleDialog +
+        synonym-chip + RuleReviewSection suites green; the 13 new
+        cases (10 static-source in RuleReviewSection.merge +
+        3 live-render in GuidancePage) cover TC-020 and TC-021.
+        TC-001..TC-018 unchanged since EXEC-003.
+    - execution_id: "VT-LEO-AI-510-EXEC-2026-04-19-003"
+      execution_date: "2026-04-19"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      cases_executed: 18
+      cases_passed: 18
+      cases_failed: 0
+      duration_seconds: 13.4
+      notes: >
+        Re-run after fixing two reviewer-visible bugs in the synonym
+        chip save flow surfaced by Rob Smith on 2026-04-19:
+        (1) BE LogicCriterion / LogicSeed declare model_config={"extra":
+        "forbid"} but the FE was forwarding the criterion wholesale via
+        stripNodeIds, including the LLM-provenance fields written by
+        libs/pipeline_graph/subgraphs/guidance_rule_extraction_v2_impl.py
+        (node_id, source_text, original_phrase, expansion_source,
+        expanded_from, candidates, verification_status,
+        verification_reason, confidence, resolver_turns,
+        needs_human_review, search_history). Every save 422'd and
+        nothing persisted. Fix: new sanitiseCriterion + sanitiseSeed
+        helpers in services/ui/src/app/admin/guidance/EditRuleDialog/
+        treeOps.ts whitelist exactly the BE-allowed keys; stripNodeIds
+        runs each criterion / seed through the whitelist before POST.
+        (2) On save failure, RuleReviewSection.handleSaveEdit was
+        rendering the FastAPI 422 detail array via String(detail)
+        which produced the literal '[object Object],[object Object]
+        ,...' alert and hid the cause. Fix: new exported
+        formatApiDetail helper in
+        services/ui/src/app/admin/guidance/RuleReviewSection.tsx
+        formats Pydantic 422 details as a readable, joined string and
+        strips the 'body / updates' loc prefixes; handleSaveEdit
+        routes the failure path through it. (3) Already-fixed in
+        EXEC-002 and re-verified here: mergeEditedRuleIntoCache
+        always overlays payload.logic_tree (and payload.action when
+        the reviewer changed it) into the in-session 'approved this
+        session' cache so the post-save snapshot reflects what the
+        BE just persisted (previously the cache spread the pre-edit
+        editRule and only overlaid name + strength, so the new seeds
+        appeared to vanish).
+        Two new VT cases added:
+        TC-017 (stripNodeIds whitelists BE-allowed criterion + seed
+        keys; pinned in
+        services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/
+        treeOps.test.ts -- 13 cases, 13 passed) and
+        TC-018 (formatApiDetail produces readable Pydantic 422 errors
+        across the array / string / object / null shapes; pinned in
+        services/ui/src/app/admin/guidance/__tests__/
+        RuleReviewSection.merge.test.ts -- 11 cases including the
+        existing 6 mergeEditedRuleIntoCache regressions, 11 passed).
+        Totals across the new + previously-pinned suites:
+        jest -- 2 suites, 24 of 24 cases green (treeOps.test.ts,
+        RuleReviewSection.merge.test.ts) plus 16 of 16 EditRuleDialog
+        / synonym-chip suites still green (147 of 147 across the
+        guidance + EditRuleDialog + synonym filter);
+        pytest -- 31 of 31 in services/api/tests/
+        test_guidance_rule_edit{,_action}.py still green (no schema
+        change required on the BE side -- the FE now sends a
+        compliant payload).
+        TC-001..TC-016 unchanged since EXEC-002.
     - execution_id: "VT-LEO-AI-510-EXEC-2026-04-19-002"
       execution_date: "2026-04-19"
       executor: "automated"

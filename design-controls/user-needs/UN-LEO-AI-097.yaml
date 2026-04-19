@@ -1,0 +1,70 @@
+# -- UN-LEO-AI-097 -- Cancer pathway audit stays focused; no relevant encounter dropped
+# IEC 62366 / ISO 13485 User Need
+
+- id: "UN-LEO-AI-097"
+  title: "Cancer pathway audits stay focused on pathway-relevant encounters, never silently drop a relevant one, and complete for every patient regardless of record size"
+  description: >
+    As a clinician or QA reviewer running the Episode Engine across the
+    cohort, I need every patient to come back with a complete cancer
+    pathway audit -- the canonical milestones, any safety-netting
+    advice, and any avoidable delays -- regardless of how big or how
+    noisy the patient's underlying record is. The audit should be
+    focused on the cancer pathway: routine non-cancer encounters
+    (BP checks, flu jabs, ear-wax referrals, repeat prescription
+    requests, admin echoes) should not pollute the LLM input, because
+    that dilutes the signal and risks the model missing a real
+    milestone. At the same time, no encounter that is genuinely
+    pathway-relevant -- including any encounter the knowledge graph
+    already codes against the cancer, the first or last encounter in
+    the candidate window, or any encounter the deterministic safety-
+    netting / disruption hints have already flagged -- may be silently
+    dropped. When a patient's window is so large that even the
+    focused set will not fit a single LLM call, the engine should
+    split the focused set across multiple sequential calls and merge
+    the milestone outputs deterministically (no second LLM call), and
+    if even that would need more than eight parts the engine should
+    surface a clear plain-English message rather than dropping data.
+  stakeholder: "Clinician / QA reviewer / cancer pathway lead"
+  priority: "high"
+  rationale: >
+    Today's milestone extractor sees every encounter in a candidate
+    date window, including a long tail of routine non-cancer care and
+    admin echoes. On record-rich patients this dilutes the signal,
+    risks the LLM missing a safety-netting note or a pathway
+    disruption, and -- once the window exceeds the model's input
+    window -- causes a hard truncation in the timeline loader that
+    can silently drop a relevant encounter. The fix is two-pronged:
+    (1) focus the input on encounters that are pathway-relevant,
+    using deterministic always-keep guards plus a cheap Haiku
+    relevance triage so the LLM only ever adjudicates the ambiguous
+    middle; (2) keep a partition + map + deterministic-merge safety
+    net so that even when the focused set is still very large, no
+    encounter is silently dropped. Together this gives the auditor a
+    "complete EoC for every patient" outcome, with full transparency
+    over which encounters were excluded and why.
+
+  acceptance_criteria:
+    - "Every patient in the 103-patient cohort completes the milestone-extraction stage with either a milestone result or a recorded plain-English error -- there is no silent drop of an encounter or a window"
+    - "Encounters with cancer-coded edges in the knowledge graph, the first and last encounter in a candidate window, and encounters already flagged by the deterministic safety-netting / disruption hints are always passed to the milestone extractor regardless of the LLM relevance triage"
+    - "An encounter that is dropped from the milestone extractor input by the relevance triage carries a plain-English reason string (for example 'BP check, no cancer-pathway content') visible on the EoC audit trace"
+    - "When the focused encounter set exceeds the per-part token budget, the engine partitions the focused set into N <= 8 parts, runs the milestone extractor once per part, and merges the milestone / safety_netting / disruption outputs in pure Python with no second LLM call"
+    - "When bin-packing would need more than eight parts the engine refuses cleanly with a plain-English message, instead of dropping encounters or silently truncating snippets"
+    - "Each EpisodeOfCare records audit_input_encounters, audit_kept_by_guards, audit_kept_by_llm, audit_dropped_by_llm and audit_parts so the auditor can see how the focus + partition pipeline behaved on this patient"
+    - "Plain-English error and notice messages target reading age 9-11 and never expose raw AWS / Bedrock exception text"
+
+  design_inputs:
+    - "DI-LEO-AI-524"
+    - "DI-LEO-AI-525"
+
+  metadata:
+    identified_by: "Design review 2026-04-19 (Episode Engine cohort run on record-rich patients)"
+    identified_date: "2026-04-19"
+    status: "approved"
+    tags:
+      - "episode-engine"
+      - "milestone-extractor"
+      - "audit"
+      - "focus"
+      - "partition"
+      - "no-record-dropped"
+      - "health-literacy"

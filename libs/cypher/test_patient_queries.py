@@ -192,16 +192,26 @@ WITH tp, g,
          snapshot_at:              toString(er.snapshot_at),
          ruleset_version:          er.ruleset_version
      }) AS expectations
-WHERE ($rule_id IS NULL OR any(e IN expectations WHERE e.rule_id = $rule_id))
-  AND ($node_id  IS NULL OR
-       any(e IN expectations WHERE $node_id IN coalesce(e.matched_branch_node_ids, [])))
 // Pull the expected SBAR priority + evaluator outage flag so the
 // reviewer can filter the library by triage outcome (2ww / urgent /
 // routine / safety-net / no rule fired / evaluator outage). Only the
 // summarisation aspect has an ExpectedSBAR -- the rest project NULL
 // and the UI shows them under "(no triage outcome)".
+//
+// We also union the SBAR matched_rule_ids into the rule_id filter
+// below so that SBAR / referral-triage test patients (which link to
+// rules via ExpectedSBAR.matched_rule_ids rather than an
+// EXPECTED_RESULT relationship) surface in the rule editor's "Try
+// it on real patients" panel. Without the union the panel would say
+// "0 saved" for any rule that only has SBAR coverage.
 OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)
 WHERE coalesce(s.is_test, false) = true
+WITH tp, g, expectations, s
+WHERE ($rule_id IS NULL
+       OR any(e IN expectations WHERE e.rule_id = $rule_id)
+       OR (s IS NOT NULL AND $rule_id IN coalesce(s.matched_rule_ids, [])))
+  AND ($node_id  IS NULL OR
+       any(e IN expectations WHERE $node_id IN coalesce(e.matched_branch_node_ids, [])))
 WITH tp, g, expectations, s,
      CASE
        WHEN s IS NULL                              THEN NULL
@@ -883,11 +893,24 @@ ORDER BY rule.name
 
 # Read everything the AI scaffolder needs about a rule to draft a test
 # patient: the verbatim NICE recommendation, the chapter / guideline
-# context, the action priority, the SNOMED criteria that must trigger
-# the rule (with their preferred terms so the LLM can echo them in plain
-# clinician shorthand), and any APPLIES_TO demographic constraints
-# (e.g. age >= 60). The scaffolder fails loudly if rule_id is missing
-# so it never silently writes a half-baked patient.
+# context, the action priority, and the rule's logic tree as a raw JSON
+# blob.
+#
+# Why logic_json (not :HAS_CRITERIA edges)?
+#   The v2 guidance rule writer (services/terminology_api guideline
+#   compiler) persists every concept criterion + demographic constraint
+#   inside rule.logicJson. There is NO :CriteriaGroup label and NO
+#   :APPLIES_TO relationship in production -- those were leftovers from
+#   an earlier draft schema. A hard-coded MATCH on them silently
+#   collected zero triggers and zero demographic constraints, which
+#   tripped the "no SNOMED criteria attached" guard for every real
+#   NG12 / NG78 / TA rule. The scaffolder now derives both lists by
+#   walking logic_json on the Python side (see
+#   test_patient_scaffolder._extract_logic_payload), reusing the same
+#   walker the picker uses so they stay consistent.
+#
+# The scaffolder still fails loudly when the walker returns no concept
+# leaves so it never silently writes a half-baked patient.
 READ_RULE_FOR_SCAFFOLD = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
 OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)
@@ -895,45 +918,38 @@ OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)
               -[ha:HAS_ACTION]->(:SnomedConcept)
-WITH rule, rec, g, ch, ha
-OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(:CriteriaGroup)
-              -[hc:HAS_CRITERIA]->(crit:SnomedConcept)
-WITH rule, rec, g, ch, ha,
-     [c IN collect(DISTINCT {
-        concept_id: crit.conceptId,
-        preferred_term: coalesce(crit.term, crit.conceptId),
-        predicate: hc.predicate
-     }) WHERE c.concept_id IS NOT NULL] AS triggers
-OPTIONAL MATCH (rule)-[at:APPLIES_TO]->(:SnomedConcept)
-WITH rule, rec, g, ch, ha, triggers,
-     [c IN collect(DISTINCT {
-        field: at.field,
-        operator: at.operator,
-        value: at.value,
-        unit: at.unit
-     }) WHERE c.field IS NOT NULL OR c.operator IS NOT NULL] AS demographic_constraints
 RETURN rule.id                               AS rule_id,
        rule.name                             AS rule_name,
+       rule.logicJson                        AS logic_json,
        rec.verbatim                          AS recommendation_text,
        ch.title                              AS chapter_title,
        g.id                                  AS guideline_id,
        g.title                               AS guideline_title,
-       ha.priority                           AS action_priority,
-       triggers                              AS triggers,
-       demographic_constraints               AS demographic_constraints
+       ha.priority                           AS action_priority
 """
 
 
 # Picker-friendly rule list used by the SBAR editor's "Matched rule IDs"
-# typeahead. Returns plain-English fields a nurse-grade reader can parse:
+# typeahead and the rule editor's "Try it on real patients" panel.
+# Returns plain-English fields a nurse-grade reader can parse:
 #   - recommendation_text  -- the verbatim NICE text (the actual sentence)
 #   - chapter_title        -- the section heading the rule lives in
 #   - action_priority      -- 2ww | urgent | routine, pulled from the
 #                             ActionGroup's HAS_ACTION edge
-#   - trigger_terms        -- the first 3 SNOMED preferred-terms that
-#                             cause the rule to fire (a concrete cue)
+#   - logic_json           -- the rule's full logic tree as a raw JSON
+#                             blob; the service walks it to derive the
+#                             first 3 SNOMED preferred-terms shown as
+#                             a concrete cue (see
+#                             test_patient_service.list_rules_for_picker).
+#                             The walker is shared with the AI scaffolder
+#                             so the two stay consistent.
+#
 # rule_id stays in the payload so the saved value is still the canonical
 # rule id; the UI just hides it behind the readable label.
+#
+# Why logic_json instead of a graph walk? See the long comment on
+# READ_RULE_FOR_SCAFFOLD above -- the v2 schema persists criteria inside
+# rule.logicJson and there are no :CriteriaGroup nodes in production.
 LIST_RULES_FOR_PICKER = """
 MATCH (rule:AppropriatenessRule)
 WHERE coalesce(rule.status, 'active') IN ['active', 'pending_review']
@@ -947,19 +963,13 @@ OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)
               -[ha:HAS_ACTION]->(:SnomedConcept)
-WITH rule, rec, g, ch, ha
-OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(:CriteriaGroup)
-              -[:HAS_CRITERIA]->(crit:SnomedConcept)
-WITH rule, rec, g, ch, ha,
-     [t IN collect(DISTINCT coalesce(crit.term, crit.conceptId))
-      WHERE t IS NOT NULL][0..3] AS trigger_terms
 RETURN rule.id                                AS rule_id,
        coalesce(rule.status, 'active')        AS status,
        rule.name                              AS name,
+       rule.logicJson                         AS logic_json,
        rec.verbatim                           AS recommendation_text,
        ch.title                               AS chapter_title,
        ha.priority                            AS action_priority,
-       trigger_terms                          AS trigger_terms,
        g.id                                   AS guideline_id,
        g.title                                AS guideline_title
 ORDER BY g.title, ch.title, rule.name

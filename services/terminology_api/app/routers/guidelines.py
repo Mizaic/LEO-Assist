@@ -479,13 +479,13 @@ async def _trigger_test_patient_replay(version: str, scope: CompileScope) -> Non
         "persist_report": True,
     }
     url = f"{CORE_API_URL}/guidance/test-patients/replay"
+    headers = {
+        "X-Requested-With": "XMLHttpRequest",
+        **get_service_auth_header(),
+    }
     try:
         async with httpx.AsyncClient(timeout=_REPLAY_TIMEOUT_S) as client:
-            resp = await client.post(
-                url,
-                json=body,
-                headers={"X-Requested-With": "XMLHttpRequest"},
-            )
+            resp = await client.post(url, json=body, headers=headers)
         if resp.status_code >= 400:
             logger.warning(
                 "Test patient replay returned %s: %s",

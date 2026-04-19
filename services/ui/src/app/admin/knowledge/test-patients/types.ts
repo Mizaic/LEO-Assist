@@ -254,3 +254,149 @@ export interface GuidanceRulePickerEntry {
   guideline_id: string | null;
   guideline_title: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Replay + diagnose + sandbox + bitmap shapes
+//
+// Used by the rule editor's "Try it on real patients" panel and by the
+// shared ReplayResultsDialog / RulesetNotCompiledBanner. Mirrors the
+// API shapes in services/api/app/services/test_patient_service.py.
+// ---------------------------------------------------------------------------
+
+export interface MatchedRule {
+  rule_id: string;
+  name?: string;
+  recommendation_text?: string;
+  guideline_id?: string;
+}
+
+export interface ReplayPatientResult {
+  patient_id: string;
+  patient_name: string;
+  passes: Array<{ rule_id: string; fires: boolean; expected: boolean }>;
+  regressions: Array<{
+    rule_id: string;
+    fires: boolean;
+    expected: boolean;
+    diagnostic?: DiagnoseResponse | null;
+  }>;
+  unexpected_matches: MatchedRule[];
+  total_assertions: number;
+  error?: string;
+}
+
+export interface ReplayReport {
+  id?: string;
+  ruleset_version: string | null;
+  scope_type: string;
+  scope_id: string;
+  guideline_id: string | null;
+  patient_count: number;
+  regressions_count: number;
+  passes_count: number;
+  drift_count: number;
+  results: ReplayPatientResult[];
+}
+
+export type DiagnoseNodeKind =
+  | "CONCEPT"
+  | "DEMOGRAPHIC"
+  | "AND"
+  | "OR"
+  | "NOT"
+  | "AT_LEAST"
+  | "CONCEPT_GROUP";
+
+export interface DiagnoseConceptCriterion {
+  term?: string;
+  snomed_concept_id?: string;
+  preferred_term?: string;
+  semantic_tag?: string;
+}
+
+export interface DiagnoseNode {
+  kind: DiagnoseNodeKind;
+  node_id: string | null;
+  matched: boolean;
+  match_count?: number;
+  matched_count?: number;
+  total_count?: number;
+  min?: number;
+  missing_bitmap?: boolean;
+  criterion?: DiagnoseConceptCriterion;
+  field?: string;
+  operator?: string;
+  value?: number | string | null;
+  unit?: string | null;
+  mode?: string;
+  children?: DiagnoseNode[];
+}
+
+export interface DiagnoseResponse {
+  rule_id: string;
+  rule_name?: string | null;
+  guideline_id?: string | null;
+  schema_version?: number;
+  fires: boolean;
+  annotated_tree: DiagnoseNode | null;
+  not_compiled?: boolean;
+  rule_found?: boolean;
+  message?: string;
+  recompile_hint?: string | null;
+  scope_type?: string;
+  scope_id?: string;
+  patient?: {
+    codes_provided: number;
+    codes_resolved: number;
+    age: number | null;
+    sex: string | null;
+  };
+  active_version: string | null;
+}
+
+export interface SandboxCompileSummary {
+  version: string;
+  rule_count: number;
+  draft_input_count: number;
+  compile_timestamp: string;
+  scope_type: string;
+  scope_id: string;
+  policy_mode: string;
+  draft: boolean;
+  compile_stats?: Record<string, number>;
+}
+
+export interface SandboxReplayResponse {
+  sandbox_id: string;
+  compile: SandboxCompileSummary;
+  report: ReplayReport;
+}
+
+export interface BitmapStatus {
+  active_version: string | null;
+  rule_count: number;
+  compile_timestamp: string | null;
+  scope_type: string;
+  scope_id: string;
+  policy_mode?: string | null;
+  message?: string;
+  compile_stats?: Record<string, number>;
+}
+
+/**
+ * Minimal patient summary the ReplayResultsDialog uses to render the
+ * patient header. Source rows from /test-patients are TestPatientRow
+ * shape, but the dialog only needs id + name + age + sex + codes +
+ * description + pathway. We accept any subset that satisfies these
+ * fields so callers can pass either a TestPatientRow or a richer
+ * snapshot.
+ */
+export interface ReplayPatientSummary {
+  id: string;
+  name: string;
+  description?: string;
+  codes?: string[] | null;
+  age: number | null;
+  sex: string | null;
+  pathway_id: string | null;
+}

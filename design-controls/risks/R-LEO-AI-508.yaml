@@ -99,6 +99,62 @@
       implemented_by: ["DI-LEO-AI-511"]
       verified_by: ["VT-LEO-AI-510"]
       effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        _VERIFY_CONCEPTS in
+        services/api/app/services/guidance_rule_edit.py performs a
+        dual-graph existence check that accepts a concept on EITHER
+        the canonical (:Concept {id: cid}) node (written by the
+        SNOMED loader and surfaced by the FE picker via
+        /terminology/search) OR the legacy parallel namespace
+        (:SnomedConcept {conceptId: cid}) (lazily materialised only
+        for v1-schema rules by guidance_rule_generator.py). Before
+        this fix, every concept added via the FE picker on a v2
+        (logic_tree) rule failed the verifier with "Unknown SNOMED
+        concept ids: ..." -- the save returned a 422 and the
+        reviewer's edit silently disappeared. This control closes
+        the safety loop where a clinical author cannot save an
+        intentionally-broadened synonym set even though the FE
+        picker accepted every code, which would otherwise force them
+        to abandon the edit and ship the original (narrower) rule.
+        The Cypher invariant is pinned in
+        services/api/tests/test_guidance_rule_edit.py
+        (TestApplyRuleEdit.
+        test_verifier_cypher_targets_canonical_and_legacy_labels and
+        test_accepts_concepts_only_on_canonical_concept_label) so a
+        future change cannot silently drop either label.
+      implemented_by: ["DI-LEO-AI-508"]
+      verified_by: ["VT-LEO-AI-510"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Reviewers can now reach the Edit dialog for ANY rule
+        regardless of lifecycle state: the new Pending review /
+        Active / Superseded ToggleButtonGroup in
+        services/ui/src/app/admin/guidance/RuleReviewSection.tsx
+        (DI-LEO-AI-511 AC-011, AC-012) drives the GET
+        /api/guidance/rules/review?status=... fetch, and the same
+        accordion card renders Edit on every status. Before this
+        fix, a rule that had been approved with an incorrect synonym
+        set or a misplaced exclusion was unreachable from the only
+        review surface (the section hard-coded ?status=pending_review)
+        and could only be corrected by re-importing the guideline -- a
+        slow path that left the wrong rule live for hours. The new
+        switcher means an author who spots a misfire on the diagnose
+        UI can navigate directly to the active rule, edit it, and
+        save through the same handleSaveEdit code path used for
+        pending rules; the BE apply_rule_edit already accepts
+        predecessor status in {pending_review, active}. The
+        affordance scoping is pinned in
+        services/ui/src/app/admin/guidance/__tests__/
+        RuleReviewSection.merge.test.ts (10 static-source cases) and
+        services/ui/src/app/admin/guidance/__tests__/
+        GuidancePage.test.tsx (3 live-render cases) so a future
+        change cannot silently re-hide the active list or leak
+        Approve-all / Reject onto live rules.
+      implemented_by: ["DI-LEO-AI-511"]
+      verified_by: ["VT-LEO-AI-510"]
+      effectiveness: "effective"
 
   residual_risk_estimate:
     severity: 3
@@ -111,15 +167,17 @@
       Replay (R/W test patient cohort) catches the most common
       regressions before deploy; the warning chip catches
       author-time misuse; matched_concept_ids gives reviewers a
-      verifiable audit trail; and the inline SeedDescendantsList
-      now lets the author SEE every descendant the bitmap will
-      match before saving (and block any unintended one in a
-      single click), so the "wrong code picked from search"
-      scenario in the hazardous situation is detectable at
-      authoring time. Residual risk now reflects only the case
-      where an author misreads the friendly term in the
-      descendants list, which is mitigated procedurally by the
-      QA peer-review checklist.
+      verifiable audit trail; the inline SeedDescendantsList
+      lets the author SEE every descendant the bitmap will match
+      before saving (and block any unintended one in a single
+      click); and the dual-graph _VERIFY_CONCEPTS check means an
+      author can no longer be silently blocked from saving a
+      legitimate synonym set just because the parallel namespace
+      bug skipped the :SnomedConcept twin (which would otherwise
+      have forced authors to ship the original, narrower rule).
+      Residual risk now reflects only the case where an author
+      misreads the friendly term in the descendants list, which
+      is mitigated procedurally by the QA peer-review checklist.
 
   monitoring:
     monitoring_plan: >

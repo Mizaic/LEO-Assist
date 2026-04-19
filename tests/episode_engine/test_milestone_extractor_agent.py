@@ -272,6 +272,46 @@ def test_milestone_extractor_rejects_unknown_disruption_category():
         _run(llm)
 
 
+def test_milestone_extractor_runs_unchanged_inside_partitioner_pass_through():
+    """VT-523-TC-014 -- the legacy single-call extractor envelope is
+    preserved when the partitioner returns one partition.
+
+    Drives ``milestone_extractor.run`` with a per-encounter formatted
+    body identical to the chain's pass-through and asserts the parsed
+    result is byte-identical to a direct extractor call. Regression for
+    the focus + partition wiring (DI-LEO-AI-525, requirement (6)).
+    """
+
+    payload = {
+        "window_id": "w1",
+        "milestones": [
+            {
+                "type": "referral",
+                "date": "2025-03-26",
+                "encounter_id": "enc-1",
+                "evidence_quote": "Fast track referral",
+                "confidence": 0.9,
+                "reasoning": "explicit 2WW",
+            }
+        ],
+        "needs_human_review": False,
+        "reasoning": "",
+    }
+    llm = FakeLLM(FakeLLMResponse(tool_uses=[tool_use("submit_milestones", payload)]))
+    result, trace = _run(
+        llm,
+        window_full_text="[enc-1] 2025-03-26\nFast track referral",
+    )
+    assert isinstance(result, MilestoneExtractorResult)
+    assert result.window_id == "w1"
+    assert result.milestones[0].encounter_id == "enc-1"
+    assert trace.stage == "milestone_extractor"
+    user_msg = llm.calls[0]["messages"][0]["content"]
+    assert "Part 1 of" not in user_msg, (
+        "single-partition pass-through must not add per-part headings"
+    )
+
+
 def test_milestone_extractor_requires_evidence_quote():
     """VT-503-TC-005: empty evidence_quote violates min_length and is rejected."""
 

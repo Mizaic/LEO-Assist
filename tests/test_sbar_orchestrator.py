@@ -19,7 +19,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from libs.sbar.assessment_formatter import AssessmentNarrative
 from libs.sbar.events import (
     BackgroundSourceType,
     SBARArtifactRef,
@@ -198,16 +197,16 @@ def test_orchestrator_runs_all_stages_and_persists(orchestrator_with_mocks):
 def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
     monkeypatch,
 ):
-    """VT-LEO-AI-514 TC-006 / TC-007: structured errors[] / notices[] on SSE.
+    """VT-LEO-AI-520 TC-006 / TC-007: structured errors[] / notices[] on SSE.
 
     The Bedrock 'Input is too long for requested model' validation
     failure today ends up as a green 'Done (1 errors)' button with no
-    detail. After DI-LEO-AI-513 / DI-LEO-AI-516 the orchestrator MUST:
+    detail. After DI-LEO-AI-522 / DI-LEO-AI-516 the orchestrator MUST:
       - Append a friendly error to errors_detail and to the legacy
         errors[] list.
-      - Forward a background_trimmed notice on the matching
-        sbar_stage_completed event AND aggregate it in the final
-        sbar_completed payload.
+      - Forward a background_split notice (sourced from the partition
+        report) on the matching sbar_stage_completed event AND
+        aggregate it in the final sbar_completed payload.
       - Never echo the raw vendor string (no 'ValidationException' or
         'Converse' substring on the wire).
     """
@@ -222,6 +221,10 @@ def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
             "error_code": None,
         }
 
+    class _FakePartitionReport:
+        notice = "We summarised this patient in 3 parts so no record was dropped."
+        record_split_notice = None
+
     async def _bad_background(*_a, **_kw):
         return {
             "markdown": "",
@@ -232,7 +235,7 @@ def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
                 "shorter ones, and run it again."
             ),
             "error_code": "input_too_long",
-            "notice": "Trimmed 3 records to fit.",
+            "partition_report": _FakePartitionReport(),
         }
 
     async def _ok_recommendation(*_a, **_kw):
@@ -274,8 +277,8 @@ def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
     assert len(result.notices) == 1
     assert result.notices[0] == {
         "stage": "background",
-        "code": "background_trimmed",
-        "message": "Trimmed 3 records to fit.",
+        "code": "background_split",
+        "message": ("We summarised this patient in 3 parts so no record was dropped."),
     }
 
     events = [c.args[1] for c in publish.call_args_list]
@@ -287,7 +290,7 @@ def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
     assert payload["errors"][0]["stage"] == "background"
     assert payload["errors"][0]["code"] == "input_too_long"
     assert isinstance(payload["notices"], list)
-    assert payload["notices"][0]["code"] == "background_trimmed"
+    assert payload["notices"][0]["code"] == "background_split"
 
     bg_stage = [
         e
@@ -296,7 +299,7 @@ def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
     ]
     assert len(bg_stage) == 1
     assert bg_stage[0]["error"]["code"] == "input_too_long"
-    assert bg_stage[0]["notice"]["code"] == "background_trimmed"
+    assert bg_stage[0]["notice"]["code"] == "background_split"
 
     for e in events:
         for value in e.values():

@@ -16,9 +16,13 @@
 import type {
   AspectCounts,
   AspectFilter,
+  BitmapStatus,
   CloneResult,
+  DiagnoseResponse,
   FullTestPatient,
   GuidanceRulePickerEntry,
+  ReplayReport,
+  SandboxReplayResponse,
   SourcePatientPickerEntry,
   TestPatientRow,
   TriageOutcome,
@@ -46,12 +50,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export function listTestPatients(params: {
   aspect?: AspectFilter;
   guideline_id?: string;
+  rule_id?: string;
   triage_outcome?: TriageOutcome;
   limit?: number;
 }): Promise<TestPatientRow[]> {
   const qs = new URLSearchParams();
   if (params.aspect && params.aspect !== "all") qs.set("aspect", params.aspect);
   if (params.guideline_id) qs.set("guideline_id", params.guideline_id);
+  if (params.rule_id) qs.set("rule_id", params.rule_id);
   if (params.triage_outcome && params.triage_outcome !== "all")
     qs.set("triage_outcome", params.triage_outcome);
   if (params.limit) qs.set("limit", String(params.limit));
@@ -266,4 +272,119 @@ export function deleteTestPatient(id: string): Promise<{ deleted: number }> {
     method: "DELETE",
     headers: { "X-Requested-With": "XMLHttpRequest" },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Replay + sandbox + bitmap status
+//
+// These power the rule editor's "Try it on real patients" panel and the
+// shared ReplayResultsDialog. The endpoints live on the same FastAPI
+// router as the rest of the test-patient surface, except for the bitmap
+// status / compile pair which is hosted by the terminology service.
+// ---------------------------------------------------------------------------
+
+export interface ReplayBody {
+  patient_ids?: string[];
+  guideline_id?: string;
+  scope_type?: string;
+  scope_id?: string;
+  ruleset_version?: string | null;
+  persist_report?: boolean;
+}
+
+export function replay(body: ReplayBody): Promise<ReplayReport> {
+  return request("/replay", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
+export interface SandboxReplayBody {
+  rules: Array<Record<string, unknown>>;
+  patient_ids?: string[];
+  guideline_id?: string;
+  sandbox_id?: string;
+  policy_mode?: "advisory" | "strict";
+}
+
+export function sandboxReplay(
+  body: SandboxReplayBody,
+): Promise<SandboxReplayResponse> {
+  return request("/sandbox-replay", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
+export interface DiagnoseBody {
+  rule_id: string;
+  patient: {
+    codes: string[];
+    age: number | null;
+    sex: string | null;
+    pathway_id: string | null;
+    name: string;
+    description: string;
+  };
+  scope_type?: string;
+  scope_id?: string;
+  ruleset_version?: string | null;
+}
+
+export function diagnose(body: DiagnoseBody): Promise<DiagnoseResponse> {
+  return request("/diagnose", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Bitmap status + compile -- hosted by the terminology service, not the
+ * test-patient router. We bypass the BASE prefix and hit the proxy
+ * directly so a single fetch wrapper can stay generic. The "no ruleset
+ * compiled" banner uses both endpoints together: status to detect the
+ * problem, compile to fix it in one click.
+ */
+export async function getBitmapStatus(
+  scopeType: string = "global",
+  scopeId: string = "default",
+): Promise<BitmapStatus> {
+  const qs = new URLSearchParams({
+    scope_type: scopeType,
+    scope_id: scopeId,
+  });
+  const resp = await fetch(
+    `/api/terminology/guidelines/bitmap/status?${qs.toString()}`,
+  );
+  if (!resp.ok) {
+    throw new Error(
+      (await resp.text()) || `Bitmap status failed (${resp.status})`,
+    );
+  }
+  return (await resp.json()) as BitmapStatus;
+}
+
+export async function compileProductionBitmap(
+  scopeType: string = "global",
+  scopeId: string = "default",
+  policyMode: "advisory" | "strict" = "advisory",
+): Promise<{ job_id: string; version: string }> {
+  const resp = await fetch("/api/terminology/guidelines/bitmap/compile", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({
+      scope_type: scopeType,
+      scope_id: scopeId,
+      policy_mode: policyMode,
+    }),
+  });
+  if (!resp.ok) {
+    throw new Error(
+      (await resp.text()) || `Compile request failed (${resp.status})`,
+    );
+  }
+  return (await resp.json()) as { job_id: string; version: string };
 }

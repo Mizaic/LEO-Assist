@@ -376,3 +376,93 @@ def test_replay_scope_skips_persist_when_disabled(
     )
     assert "id" not in report
     assert called["persisted"] is False
+
+
+def test_replay_scope_passes_guideline_id_as_pathway_filter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The single global bitmap holds rules from every guideline, so the
+    rule editor's "Try it on real patients" panel passes guideline_id
+    to scope evaluation to just the guideline being edited.
+
+    This test pins the wiring: replay_scope -> replay_one ->
+    evaluate_against_terminology must propagate guideline_id as the
+    pathway_filter, even when the patient was saved with a different
+    pathway_id (or none at all).
+    """
+    patient = {
+        "id": "tp1",
+        "name": "P1",
+        "codes": ["100"],
+        "age": 70,
+        "sex": "male",
+        "pathway_id": None,
+        "expectations": [{"rule_id": "r1", "fires": True}],
+    }
+    monkeypatch.setattr(svc, "list_patients", lambda *a, **k: [patient])
+    monkeypatch.setattr(svc, "get_patient", lambda *a, **k: patient)
+
+    seen: dict = {}
+
+    def fake_eval(payload, **kwargs):
+        seen["pathway_filter"] = kwargs.get("pathway_filter")
+        seen["scope_type"] = kwargs.get("scope_type")
+        seen["scope_id"] = kwargs.get("scope_id")
+        return {"matched_rules": [{"rule_id": "r1"}]}
+
+    monkeypatch.setattr(svc, "evaluate_against_terminology", fake_eval)
+    monkeypatch.setattr(svc, "_persist_replay_report", lambda *a, **k: "rv")
+
+    svc.replay_scope(
+        MagicMock(),
+        patient_ids=["tp1"],
+        guideline_id="NG12",
+        scope_type="global",
+        scope_id="default",
+        persist_report=False,
+    )
+
+    assert seen["pathway_filter"] == "NG12"
+    assert seen["scope_type"] == "global"
+    assert seen["scope_id"] == "default"
+
+
+def test_evaluate_against_terminology_pathway_filter_overrides_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """pathway_filter wins over payload.pathway_id when both are set,
+    so the rule editor can evaluate a patient saved under one
+    guideline against the rules of another (or the same) guideline.
+    """
+    sent: dict = {}
+
+    class _FakeResp:
+        status_code = 200
+
+        def json(self) -> dict:
+            return {"matched_rules": []}
+
+    class _FakeClient:
+        def __init__(self, *a, **k) -> None:  # noqa: ARG002
+            pass
+
+        def __enter__(self) -> "_FakeClient":
+            return self
+
+        def __exit__(self, *a) -> None:  # noqa: ARG002
+            return None
+
+        def post(self, url: str, json: dict) -> _FakeResp:  # noqa: A002
+            sent["url"] = url
+            sent["body"] = json
+            return _FakeResp()
+
+    monkeypatch.setattr(svc.httpx, "Client", _FakeClient)
+
+    payload = PatientPayload(codes=["100"], pathway_id="NG151")
+    svc.evaluate_against_terminology(payload, pathway_filter="NG12")
+    assert sent["body"]["pathway_id"] == "NG12"
+
+    sent.clear()
+    svc.evaluate_against_terminology(payload)
+    assert sent["body"]["pathway_id"] == "NG151"

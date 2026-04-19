@@ -12,6 +12,11 @@
  * live firing decision.  The annotated tree is rendered hierarchically
  * (preserving AND / OR / NOT / AT_LEAST grouping) so the reviewer can
  * see exactly which branch of the rule did or did not fire.
+ *
+ * Lives under the central Knowledge > Test Patients library so the
+ * rule editor and central library can share one dialog. Uses the
+ * lightweight ReplayPatientSummary shape so callers can pass either
+ * a TestPatientRow or a richer snapshot.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -36,14 +41,14 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import RulesetNotCompiledBanner from "./RulesetNotCompiledBanner";
-import { diagnose } from "./api";
+import { diagnose } from "../api";
 import type {
   DiagnoseNode,
   DiagnoseResponse,
   ReplayPatientResult,
+  ReplayPatientSummary,
   ReplayReport,
-  TestPatient,
-} from "./types";
+} from "../types";
 
 /** Minimal rule context the dialog needs to label a regression heading. */
 export interface RuleContext {
@@ -56,7 +61,7 @@ interface Props {
   onClose: () => void;
   report: ReplayReport | null;
   /** Saved patients in scope, used to render the patient summary. */
-  patients?: TestPatient[];
+  patients?: ReplayPatientSummary[];
   /** Optional rule lookup keyed by rule_id, used for friendly headings. */
   rules?: Record<string, RuleContext>;
   /** Scope passed to the diagnose endpoint (defaults to global/default). */
@@ -82,7 +87,7 @@ export default function ReplayResultsDialog({
   mode = "live",
 }: Props) {
   const patientsById = useMemo(() => {
-    const map: Record<string, TestPatient> = {};
+    const map: Record<string, ReplayPatientSummary> = {};
     (patients ?? []).forEach((p) => {
       map[p.id] = p;
     });
@@ -195,12 +200,6 @@ function ReportHeaderChips({
   report: ReplayReport;
   rulesetMissing: boolean;
 }) {
-  // When no ruleset is compiled the counts are technically correct
-  // but clinically misleading. Every "pass" is just a negative
-  // expectation against an evaluator that returns false for
-  // everything, so we desaturate the chips and add an explicit
-  // warning rather than letting the green colour falsely reassure
-  // the reviewer.
   return (
     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
       <Chip
@@ -242,10 +241,7 @@ function ReportHeaderChips({
         />
       )}
       {report.ruleset_version && (
-        <Chip
-          label={`Ruleset ${report.ruleset_version}`}
-          variant="outlined"
-        />
+        <Chip label={`Ruleset ${report.ruleset_version}`} variant="outlined" />
       )}
     </Stack>
   );
@@ -253,19 +249,11 @@ function ReportHeaderChips({
 
 interface RowProps {
   row: ReplayPatientResult;
-  patient?: TestPatient;
+  patient?: ReplayPatientSummary;
   rules?: Record<string, RuleContext>;
   scopeType?: string;
   scopeId?: string;
   rulesetVersion: string | null;
-  /**
-   * When true, the report-level "no ruleset compiled" banner is
-   * already showing.  We skip the per-row /diagnose calls in that
-   * case so we do not fan out a 404 per regression -- the diagnose
-   * endpoint would just return the same not_compiled payload for
-   * every rule, spamming the server log without telling the
-   * reviewer anything new.
-   */
   rulesetMissing?: boolean;
 }
 
@@ -279,10 +267,6 @@ function PatientResultRow({
   rulesetMissing,
 }: RowProps) {
   const isRegression = row.regressions.length > 0;
-  // Patient "intent" -- did the reviewer save this as a positive
-  // test (rule MUST match), a negative test (rule must NOT match),
-  // or a mix?  All assertions are in passes + regressions; their
-  // ``expected`` flag carries the reviewer's intent.
   const intent = computePatientIntent(row);
   return (
     <Accordion
@@ -397,7 +381,7 @@ function PatientSummary({
   patient,
   fallbackId,
 }: {
-  patient?: TestPatient;
+  patient?: ReplayPatientSummary;
   fallbackId: string;
 }) {
   if (!patient) {
@@ -414,6 +398,7 @@ function PatientSummary({
   ]
     .filter(Boolean)
     .join(", ");
+  const codes = patient.codes ?? [];
   return (
     <Box>
       <Typography variant="subtitle2">The patient</Typography>
@@ -427,14 +412,14 @@ function PatientSummary({
           {ageSex}
         </Typography>
       )}
-      {patient.codes.length > 0 && (
+      {codes.length > 0 && (
         <Stack
           direction="row"
           spacing={0.5}
           flexWrap="wrap"
           sx={{ mt: 0.75, rowGap: 0.5 }}
         >
-          {patient.codes.map((code) => (
+          {codes.map((code) => (
             <Chip
               key={code}
               size="small"
@@ -454,22 +439,11 @@ interface RegressionDetailProps {
   fires: boolean;
   expected: boolean;
   rule?: RuleContext;
-  patient?: TestPatient;
+  patient?: ReplayPatientSummary;
   scopeType?: string;
   scopeId?: string;
   rulesetVersion: string | null;
-  /**
-   * Suppresses the per-row /diagnose call when the report-level
-   * "no ruleset compiled" banner is already showing. Avoids fanning
-   * out one 404 per regression for the same root cause.
-   */
   rulesetMissing?: boolean;
-  /**
-   * Diagnostic computed by the backend at replay time (e.g. by
-   * sandbox_replay before the sandbox bitmap was torn down).  When
-   * present we render this directly instead of calling /diagnose,
-   * which would 404 against a deleted sandbox scope.
-   */
   prebakedDiagnostic?: DiagnoseResponse | null;
 }
 
@@ -497,17 +471,11 @@ function RegressionDetail({
 
   useEffect(() => {
     if (prebakedDiagnostic) {
-      // Backend already computed the diagnostic against the live
-      // sandbox bitmap before tearing it down.  Use it directly --
-      // calling /diagnose now would 404 against the deleted scope.
       setDiagState({ loading: false, data: prebakedDiagnostic, error: null });
       return;
     }
     if (!patient) return;
     if (rulesetMissing) {
-      // Skip the diagnose call entirely -- the report-level banner
-      // already explains the root cause and the endpoint would just
-      // 404 with the same not_compiled payload for every regression.
       setDiagState({ loading: false, data: null, error: null });
       return;
     }
@@ -516,12 +484,12 @@ function RegressionDetail({
     diagnose({
       rule_id: ruleId,
       patient: {
-        codes: patient.codes,
+        codes: patient.codes ?? [],
         age: patient.age,
         sex: patient.sex,
         pathway_id: patient.pathway_id,
         name: patient.name,
-        description: patient.description,
+        description: patient.description ?? "",
       },
       scope_type: scopeType ?? "global",
       scope_id: scopeId ?? "default",
@@ -677,7 +645,10 @@ function DiagnoseNodeRow({ node, depth }: DiagnoseNodeRowProps) {
   const label = describeNode(node);
   const meta = describeMeta(node);
   return (
-    <Box component="li" sx={{ pl: depth === 0 ? 0 : 2, mt: depth === 0 ? 0 : 0.25 }}>
+    <Box
+      component="li"
+      sx={{ pl: depth === 0 ? 0 : 2, mt: depth === 0 ? 0 : 0.25 }}
+    >
       <Stack direction="row" alignItems="flex-start" spacing={0.75}>
         {matched ? (
           <CheckCircleOutlineIcon
@@ -785,22 +756,6 @@ interface PatientIntent {
   tooltip: string;
 }
 
-/**
- * Classify a saved patient by the reviewer's INTENT, derived from the
- * ``expected`` flag on every assertion (passes + regressions).
- *
- *   positive : at least one "must match" assertion, none "must NOT match"
- *   negative : at least one "must NOT match" assertion, none "must match"
- *   mixed    : both kinds present
- *   none     : no assertions at all (unusual -- patient saved without
- *              picking any rule expectation)
- *
- * Surfacing this matters because a "1 pass" verdict means very
- * different things in each case: for a positive test the rule is
- * still firing as expected; for a negative test the rule is
- * correctly NOT over-firing. Reviewers need to see that distinction
- * without opening the row.
- */
 function computePatientIntent(row: ReplayPatientResult): PatientIntent {
   const all = [...row.passes, ...row.regressions];
   const positives = all.filter((a) => a.expected).length;

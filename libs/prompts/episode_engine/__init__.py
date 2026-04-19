@@ -12,6 +12,7 @@ here. Old versions stay so historical traces remain reproducible.
 """
 
 from libs.prompts.episode_engine import (
+    audit_relevance_filter_v1,
     classifier_v1,
     milestone_extractor_v1,
     reconciler_v1,
@@ -23,4 +24,5 @@ __all__ = [
     "classifier_v1",
     "milestone_extractor_v1",
     "reconciler_v1",
+    "audit_relevance_filter_v1",
 ]

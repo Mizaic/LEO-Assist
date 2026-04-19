@@ -161,9 +161,9 @@ def test_no_reduce_call_is_ever_made() -> None:
         seen_systems.append(system)
         # If the implementation ever requests the reduce prompt,
         # fail loudly.
-        assert system != "SYSTEM:sbar_background_reduce", (
-            "call_background must not invoke a reduce prompt"
-        )
+        assert (
+            system != "SYSTEM:sbar_background_reduce"
+        ), "call_background must not invoke a reduce prompt"
         return {"background_markdown": "ok"}
 
     _force_multi_part_env()

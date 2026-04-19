@@ -73,10 +73,79 @@ function normaliseKind(raw: string | undefined): LogicNodeKind {
   return KIND_MAP[upper] ?? "AND";
 }
 
-/** Strip node_id from the tree before sending to the API. */
+// ---------------------------------------------------------------------------
+// Criterion / seed allowlists (mirrors LogicCriterion + LogicSeed in
+// services/api/app/services/guidance_rule_edit.py).
+//
+// Both Pydantic models are declared with model_config = {"extra": "forbid"},
+// so any key the FE forwards that the BE does not know about triggers a 422
+// and the entire save fails. The LLM rule-extraction pipeline writes a much
+// richer criterion into logicJson (node_id, source_text, original_phrase,
+// expansion_source, expanded_from, candidates, verification_status,
+// verification_reason, confidence, resolver_turns, needs_human_review,
+// search_history, etc.) for traceability -- those fields ride back to the
+// editor when the rule is loaded but MUST be stripped before POST.
+//
+// Keep these arrays in lockstep with the BE schema. Adding a new field on
+// the BE means whitelisting it here too; renaming a field means updating
+// both ends in the same change.
+// ---------------------------------------------------------------------------
+
+const ALLOWED_CRITERION_KEYS = new Set<keyof LogicCriterion>([
+  "snomed_concept_id",
+  "preferred_term",
+  "semantic_tag",
+  "term",
+  "seeds",
+  "excluded_concept_ids",
+  "primary_concept_id",
+]);
+
+const ALLOWED_SEED_KEYS = new Set<keyof LogicSeed>([
+  "snomed_concept_id",
+  "preferred_term",
+  "semantic_tag",
+  "include_descendants",
+  "distance_child",
+]);
+
+function sanitiseSeed(seed: LogicSeed): LogicSeed {
+  const out = {} as Record<string, unknown>;
+  for (const [k, v] of Object.entries(seed)) {
+    if (ALLOWED_SEED_KEYS.has(k as keyof LogicSeed)) out[k] = v;
+  }
+  return out as LogicSeed;
+}
+
+/**
+ * Whitelist a criterion to the keys the BE LogicCriterion model accepts.
+ * Drops LLM provenance fields (source_text, candidates, confidence, ...)
+ * and stale UI-only keys so the BE never sees an unknown field.
+ */
+export function sanitiseCriterion(
+  criterion: LogicCriterion,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(criterion)) {
+    if (!ALLOWED_CRITERION_KEYS.has(k as keyof LogicCriterion)) continue;
+    if (k === "seeds" && Array.isArray(v)) {
+      out.seeds = (v as LogicSeed[]).map(sanitiseSeed);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+/**
+ * Strip node_id (and any other UI-only / LLM-only metadata) before sending
+ * the tree to the BE. The criterion on each CONCEPT leaf is also passed
+ * through ``sanitiseCriterion`` so the BE's ``extra: "forbid"`` validator
+ * never sees an unknown key.
+ */
 export function stripNodeIds(node: EditableLogicNode): Record<string, unknown> {
   const out: Record<string, unknown> = { kind: node.kind };
-  if (node.criterion) out.criterion = node.criterion;
+  if (node.criterion) out.criterion = sanitiseCriterion(node.criterion);
   if (node.field !== undefined) out.field = node.field;
   if (node.operator !== undefined) out.operator = node.operator;
   if (node.value !== undefined && node.value !== null) out.value = node.value;

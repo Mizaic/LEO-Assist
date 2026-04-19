@@ -1,0 +1,149 @@
+# -- R-LEO-AI-512 -- Audit Relevance Filter drops a clinically relevant encounter
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-512"
+  title: "The Episode Engine Audit Relevance Filter (Haiku triage) drops a clinically relevant encounter, leading to a missing pathway milestone, missed safety-netting note, or missed avoidable delay on the EpisodeOfCare audit"
+
+  hazard:
+    description: >
+      The Audit Relevance Filter (DI-LEO-AI-524) reduces the
+      milestone-extractor input from "every encounter in the
+      window" to "encounters that look pathway-relevant". The LLM
+      triage step (Haiku) decides keep/drop on every un-guarded
+      encounter and a wrong "drop" decision removes that encounter
+      from the focused set passed to the milestone extractor. If
+      the dropped encounter actually contained a pathway milestone
+      (a referral, a first-seen entry, a cancer safety-netting
+      note, a documented disruption), the resulting EoC is
+      incomplete in a way that may not be visible to the auditor.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A QA reviewer runs the Episode Engine across the cohort. For
+    one patient, a free-text-only consultation note ("patient
+    advised to return urgently if symptoms worsen") has no
+    cancer-coded SNOMED edge, is not the first or last encounter
+    in the window, and the deterministic safety-netting hint
+    detector misses it because the wording does not match any
+    regex. The Haiku triage classifies it as "routine review,
+    drop". The milestone extractor never sees the encounter, and
+    the EoC reports safety_netting.present = false. A clinician
+    reviewing the cohort dashboard concludes that this patient
+    was not safety-netted and acts (or fails to act) on that
+    incorrect conclusion.
+
+  harm:
+    description: >
+      Wrong clinical decision based on an EoC that is missing a
+      pathway milestone, a safety-netting note, or an avoidable
+      delay event. Severity is serious because the EoC is the
+      summary record on which downstream cohort dashboards and
+      individual-patient reviews depend; a silent omission can
+      change the clinical picture without any visible warning.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Always-keep guards (DI-LEO-AI-524 layer 1) are
+        deterministic and final. Encounters with cancer-coded
+        SNOMED edges in the knowledge graph, the first and last
+        encounter in the candidate window, and every encounter
+        already flagged by the deterministic safety-netting or
+        disruption hint detectors are added to the focused set
+        before the LLM is consulted, and the LLM cannot
+        override that decision. This eliminates the failure
+        mode for the most-clinically-relevant encounters.
+      implemented_by: ["DI-LEO-AI-524"]
+      verified_by: ["VT-LEO-AI-522"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        Every encounter dropped by the Haiku triage is recorded
+        on the EoC audit trace as
+        {encounter_id, reason} (up to 10 samples per EoC).
+        The QA reviewer can therefore inspect the dropped set
+        for any patient and spot a wrongly-dropped encounter in
+        one click. The reason text is plain English, reading
+        age 9-11, so it is reviewable by a non-developer.
+      implemented_by: ["DI-LEO-AI-524"]
+      verified_by: ["VT-LEO-AI-522"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Fail-open on Haiku error. When the relevance triage
+        Haiku call fails (network, throttle, parse error) every
+        encounter in that batch flows through to the focused
+        set with kept_by_fallback = true. A transient LLM
+        outage therefore cannot silently turn an encounter into
+        a missing milestone.
+      implemented_by: ["DI-LEO-AI-524"]
+      verified_by: ["VT-LEO-AI-522"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        A spot-check QA procedure runs after every cohort run:
+        for a stratified sample of EoCs the reviewer compares
+        audit_kept_by_llm + audit_kept_by_guards against the
+        full in-window encounter list and inspects
+        audit_dropped_by_llm reasons for any
+        clinically-relevant-looking text the triage missed.
+        Findings feed back into the relevance triage prompt.
+      implemented_by: []
+      verified_by: []
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      With the always-keep guards in place the highest-risk
+      encounter classes (cancer-coded, anchor, deterministic-
+      hint-flagged) cannot be dropped at all. The residual
+      probability is concentrated on free-text-only encounters
+      with no structured code, no anchor position, and no
+      deterministic hint match -- a small minority of pathway-
+      relevant encounters. For those, the dropped reason on the
+      audit trace makes the failure mode visible to a QA
+      reviewer in a single click, and the spot-check procedure
+      provides an out-of-band detection signal. Detectability
+      is therefore much improved over the initial estimate.
+
+  monitoring:
+    monitoring_plan: >
+      VT-LEO-AI-522 enforces (per release) the always-keep guard
+      invariants and the fail-open behaviour. The cohort run
+      writes per-patient audit_input / audit_kept / audit_dropped
+      counts so cohort-level drift in the drop rate is visible
+      on the analytics dashboard. A monthly QA review samples
+      audit_dropped_by_llm reasons for clinically-relevant-
+      sounding text the triage missed.
+    metrics:
+      - "VT-LEO-AI-522 status (must be 'pass' on every release)"
+      - "Cohort drop rate (audit_dropped_by_llm / audit_input_encounters per patient, weekly)"
+      - "Count of fail-open events (kept_by_fallback = true) per week"
+      - "QA spot-check finding rate (wrongly-dropped encounters per 100 reviewed EoCs)"
+    review_frequency: "Per release + monthly QA review"
+
+  metadata:
+    identified_by: "Design review 2026-04-19 (Episode Engine focus-first architecture)"
+    identified_date: "2026-04-19"
+    status: "analyzed"
+    tags:
+      - "episode-engine"
+      - "audit-relevance-filter"
+      - "haiku"
+      - "drop"
+      - "missed-milestone"
+      - "llm-safety"

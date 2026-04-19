@@ -30,9 +30,24 @@
       2. services/terminology_api/app/routers/guidelines.py
          - _trigger_test_patient_replay(version, scope): POSTs the
            new ruleset_version to /guidance/test-patients/replay on
-           the core API after a successful compile.
+           the core API after a successful compile. The POST carries
+           the SERVICE_AUTH_SECRET Bearer header (via
+           libs/auth/service_auth.get_service_auth_header) so the
+           core-api can authenticate the inter-service call without
+           a user session.
          - Errors are logged at WARNING; the compile job's success
            is unaffected (replay is the gate, not the compile).
+
+      2a. services/api/app/deps.py
+         - require_admin_or_service: dependency that accepts EITHER
+           an admin session cookie (admin UI path) OR a valid
+           SERVICE_AUTH_SECRET Bearer token (inter-service path).
+           Applied to /guidance/test-patients/replay so the post-
+           compile hook works in deployed environments without
+           requiring the local-dev bypass (LEO_LOCAL_DEV_BYPASS).
+           Bearer tokens with no configured server-side secret are
+           ignored, so local dev continues to require a session
+           cookie -- the auth surface is never silently widened.
 
       3. services/ui/src/app/admin/guidance/test-patients/page.tsx
          - Library page: scope filter, summary chips, build / generate /
@@ -98,7 +113,19 @@
         description: "replay_one, replay_scope, diff_replay, _persist_replay_report"
       - artifact_type: "source_code"
         location: "services/terminology_api/app/routers/guidelines.py"
-        description: "_trigger_test_patient_replay hook on _run_compile"
+        description: "_trigger_test_patient_replay hook on _run_compile (sends SERVICE_AUTH_SECRET Bearer header)"
+      - artifact_type: "source_code"
+        location: "services/api/app/deps.py"
+        description: "require_admin_or_service dependency: session-cookie OR SERVICE_AUTH_SECRET Bearer"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/test_patients.py"
+        description: "/guidance/test-patients/replay protected by require_admin_or_service"
+      - artifact_type: "test_file"
+        location: "services/api/tests/test_require_admin_or_service.py"
+        description: "Pytest cases for the new dependency (6 cases)"
+      - artifact_type: "test_file"
+        location: "services/terminology_api/tests/test_post_compile_replay_hook.py"
+        description: "Pytest cases for the post-compile replay hook auth header (3 cases)"
       - artifact_type: "source_code"
         location: "services/ui/src/app/admin/guidance/test-patients/page.tsx"
         description: "Test patient library page (Build / Generate / Replay)"

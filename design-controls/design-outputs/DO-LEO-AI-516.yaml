@@ -27,11 +27,13 @@
         and "notice" key keyed to the stage; sbar_completed
         carries the aggregated "errors" and "notices" arrays
         alongside the legacy errors_count / errors counters.
-      - The orchestrator's two new helper methods
-        (_record_stage_error, _record_background_notice) are the
-        only writers of those arrays; they call into
-        libs/sbar/error_messages.translate_error and
-        background_trimmed_notice for every message so no raw
+      - The orchestrator's helper methods
+        (_record_stage_error, _record_background_notices,
+        _record_background_part_errors) are the only writers of
+        those arrays; they call into libs/sbar/error_messages
+        translate_error, background_split_notice,
+        background_record_split_notice, and
+        background_part_failed_error for every message so no raw
         vendor string can escape.
 
       Frontend

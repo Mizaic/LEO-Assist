@@ -1,0 +1,149 @@
+# -- DO-LEO-AI-524 -- Episode Engine: Audit Relevance Filter implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-524"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-524"]
+    user_needs: ["UN-LEO-AI-097"]
+    risks_addressed:
+      - "R-LEO-AI-512"
+    verification_tests: ["VT-LEO-AI-522"]
+
+  specification:
+    title: "Episode Engine Audit Relevance Filter (always-keep guards + Haiku batched relevance)"
+    description: |
+      Implements DI-LEO-AI-524 as a new Episode Engine agent. The
+      filter has two layers:
+
+      (1) Always-keep guards: a pure function inspects every
+      in-window encounter and marks it with kept_by_guard = true
+      if (a) it carries a cancer-coded SNOMED edge in the
+      knowledge graph, (b) it is the first or last encounter in
+      the candidate window (anchor preservation), or (c) it is
+      already flagged by the deterministic safety-netting or
+      disruption hint detectors. Guard decisions are final and
+      cannot be overridden by the LLM.
+
+      (2) Haiku batched relevance triage: the remaining
+      un-guarded encounters are batched in groups of 20 and
+      submitted to a Bedrock Haiku call with a forced
+      submit_relevance tool that returns a per-encounter
+      {encounter_id, keep, reason} object. The prompt is
+      supplied with the segmenter's suspected_site and is
+      instructed to KEEP encounters bearing on the suspected
+      cancer or its workup, treatment, safety-netting, or
+      pathway disruptions; and to DROP routine non-cancer care
+      and administrative echoes.
+
+      The focused set passed to the milestone extractor is the
+      union of guard-kept and LLM-kept encounters, in original
+      chronological order. The chain records audit_input_
+      encounters, audit_kept_by_guards, audit_kept_by_llm, and
+      audit_dropped_by_llm (with up to 10 {encounter_id,
+      reason} samples) on the EoC audit trace. On Haiku failure
+      the filter fails open: every encounter in the failed
+      batch flows through to the focused set so no encounter is
+      silently dropped because of a transient LLM outage.
+
+    acceptance_criteria:
+      - criterion: "always_keep_guards_are_final"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Cancer-coded encounters, first/last anchor encounters,
+          and deterministic-hint-flagged encounters appear in
+          the focused set even when the LLM triage returns
+          keep == false for the same encounter_id.
+      - criterion: "haiku_batched_call_shape"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          The relevance triage Haiku is invoked at most
+          ceil(non_guarded_count / 20) times per window and
+          every batch returns a list of {encounter_id, keep,
+          reason} via a forced submit_relevance tool.
+      - criterion: "fail_open_on_llm_error"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          When the Haiku call raises or returns an unparseable
+          response, every encounter in that batch is added to
+          the focused set with kept_by_fallback = true and a
+          structured warning is logged (no silent drop).
+      - criterion: "audit_trace_populated"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Every EoC carries audit_input_encounters,
+          audit_kept_by_guards, audit_kept_by_llm,
+          audit_dropped_by_llm, and audit_filter_failed on its
+          audit trace.
+      - criterion: "no_duplicate_encounter_in_focused_set"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          The focused set preserves original chronological
+          order and contains no duplicate encounter_ids even
+          when an encounter is both guard-kept and LLM-kept.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/agents/audit_relevance_filter.py"
+        description: >
+          Public entry: run(window, encounters, guard_input, llm)
+          -> FocusedSet. Internal helpers: _apply_guards,
+          _batch_unguarded, _call_relevance_triage,
+          _merge_decisions. Returns FocusedSet plus
+          AuditFilterReport for the audit trace.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/episode_engine/audit_relevance_filter_v1.py"
+        description: >
+          SYSTEM + USER_TEMPLATE + JSON Schema for the
+          submit_relevance tool. Plain-English KEEP / DROP
+          rules; reading age 9-11.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/chain.py"
+        description: >
+          _node_audit_relevance_filter wires the new agent
+          before _node_milestone_extractor. Records audit
+          trace fields on the EoC and writes LLMUsage with
+          stage = audit_relevance_filter.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/analysis_worker/app/episode_engine/schemas.py"
+        description: >
+          New FocusedSet, FocusedEncounter, AuditFilterReport
+          Pydantic models; new audit fields on
+          EpisodeOfCareTrace.
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 380
+      key_functions:
+        - "run"
+        - "_apply_guards"
+        - "_batch_unguarded"
+        - "_call_relevance_triage"
+        - "_merge_decisions"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "always-keep guards (cancer-coded, anchor, deterministic-hint encounters cannot be dropped)"
+      - "fail-open on Haiku error (transient LLM outage never silently drops an encounter)"
+      - "no-duplicate, chronological-order invariant on focused set"
+    risk_control_measures:
+      - "Pure-function guard layer with unit-tested invariants"
+      - "Fallback path on Haiku error keeps every encounter in the focused set"
+      - "Per-EoC audit trace exposes every dropped encounter with a plain-English reason for clinician review"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

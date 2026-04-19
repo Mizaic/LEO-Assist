@@ -33,8 +33,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
@@ -137,6 +139,15 @@ function ageSex(row: TestPatientRow): string {
 // LONG FUNCTION: page orchestrates fetch, filter, and 4 callbacks.
 // Splitting further would scatter the load/refresh state across files.
 export default function TestPatientLibraryKnowledgeTab() {
+  // The rule editor's "Try it on real patients" panel deep-links here
+  // with ?rule_id=<id> so the reviewer lands on the same library
+  // pre-filtered to only the patients that exercise their rule. The
+  // tab key is preserved by the parent KnowledgePage; we only own the
+  // rule_id param here.
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const ruleIdFilter = searchParams.get("rule_id");
+
   const [aspect, setAspect] = useState<AspectFilter>("all");
   const [triageOutcome, setTriageOutcome] = useState<TriageOutcome>("all");
   const [counts, setCounts] = useState<AspectCounts>(ZERO_COUNTS);
@@ -164,7 +175,11 @@ export default function TestPatientLibraryKnowledgeTab() {
     // ExpectedSBAR), so we drop it client-side instead.
     const outcomeForList = showsTriageFilter(aspect) ? triageOutcome : "all";
     Promise.all([
-      listTestPatients({ aspect, triage_outcome: outcomeForList }),
+      listTestPatients({
+        aspect,
+        triage_outcome: outcomeForList,
+        rule_id: ruleIdFilter ?? undefined,
+      }),
       getAspectCounts(),
       getTriageOutcomeCounts(),
     ])
@@ -181,7 +196,14 @@ export default function TestPatientLibraryKnowledgeTab() {
         );
       })
       .finally(() => setLoading(false));
-  }, [aspect, triageOutcome]);
+  }, [aspect, triageOutcome, ruleIdFilter]);
+
+  const clearRuleFilter = useCallback(() => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("rule_id");
+    const qs = next.toString();
+    router.replace(`/admin/knowledge${qs ? `?${qs}` : ""}`);
+  }, [router, searchParams]);
 
   useEffect(() => {
     fetchAll();
@@ -401,6 +423,29 @@ export default function TestPatientLibraryKnowledgeTab() {
   return (
     <Box>
       <StatHero stats={stats} />
+
+      {ruleIdFilter ? (
+        <Alert
+          severity="info"
+          icon={false}
+          sx={{ mb: 2 }}
+          action={
+            <Button
+              size="small"
+              color="inherit"
+              onClick={clearRuleFilter}
+              data-testid="clear-rule-filter"
+            >
+              Show all
+            </Button>
+          }
+          data-testid="rule-filter-banner"
+        >
+          Showing only test patients linked to rule{" "}
+          <strong>{ruleIdFilter}</strong>. This is the same view the rule
+          editor uses on its "Try it on real patients" panel.
+        </Alert>
+      ) : null}
 
       {error ? (
         <Alert

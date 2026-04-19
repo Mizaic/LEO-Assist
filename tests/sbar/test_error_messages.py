@@ -12,7 +12,6 @@ import pytest
 
 from libs.sbar.error_messages import (
     KNOWN_ERROR_CODES,
-    background_trimmed_notice,
     translate_error,
 )
 
@@ -76,12 +75,3 @@ def test_translate_error_unknown_falls_back_to_generic_message() -> None:
     assert result["code"] == "unknown"
     assert "something weird happened" not in result["message"]
     assert "Background" in result["message"]
-
-
-def test_background_trimmed_notice_shape() -> None:
-    notice = background_trimmed_notice("Trimmed 3 records to fit.")
-    assert notice == {
-        "stage": "background",
-        "code": "background_trimmed",
-        "message": "Trimmed 3 records to fit.",
-    }

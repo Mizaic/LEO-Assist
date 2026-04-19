@@ -5,6 +5,8 @@
  * and replay dialog show whenever the bitmap evaluator returns zero
  * matches because nothing was compiled. Without this banner the user
  * cannot tell a missing-ruleset zero from a legitimate zero.
+ *
+ * Lives next to the moved component (central Test Patient library).
  */
 
 import React from "react";
@@ -18,13 +20,11 @@ afterEach(() => {
 
 describe("RulesetNotCompiledBanner", () => {
   it("shows a one-click compile button for the production scope", async () => {
-    const fetchSpy = jest
-      .spyOn(global, "fetch")
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({ job_id: "job-123", version: "v20260417" }),
-        text: async () => "ok",
-      } as Response);
+    const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ job_id: "job-123", version: "v20260417" }),
+      text: async () => "ok",
+    } as Response);
 
     const onCompileRequested = jest.fn();
     render(
@@ -47,9 +47,7 @@ describe("RulesetNotCompiledBanner", () => {
       version: "v20260417",
     });
     const url = String(fetchSpy.mock.calls[0][0]);
-    expect(url).toMatch(
-      /\/api\/terminology\/guidelines\/bitmap\/compile$/,
-    );
+    expect(url).toMatch(/\/api\/terminology\/guidelines\/bitmap\/compile$/);
   });
 
   it("does not offer a compile button in the sandbox variant", () => {
@@ -80,8 +78,6 @@ describe("RulesetNotCompiledBanner", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /compile now/i }));
 
-    await waitFor(() =>
-      expect(screen.getByText(/boom/i)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(/boom/i)).toBeInTheDocument());
   });
 });

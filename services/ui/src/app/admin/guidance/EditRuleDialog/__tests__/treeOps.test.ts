@@ -203,4 +203,124 @@ describe("treeOps", () => {
       "49727002"
     );
   });
+
+  // ---------------------------------------------------------------------
+  // Criterion / seed sanitisation (regression for the 422 bug where the
+  // BE LogicCriterion model rejected LLM-provenance fields the FE was
+  // forwarding wholesale -- save returned 422, nothing persisted).
+  // ---------------------------------------------------------------------
+
+  it("stripNodeIds drops LLM provenance fields from the criterion", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: {
+            // Allowed BE fields
+            snomed_concept_id: "77176002",
+            preferred_term: "Smoker",
+            semantic_tag: "finding",
+            term: "smoker",
+            seeds: [
+              {
+                snomed_concept_id: "77176002",
+                preferred_term: "Smoker",
+                include_descendants: true,
+              },
+            ],
+            primary_concept_id: "77176002",
+            excluded_concept_ids: [],
+            // Forbidden LLM-provenance fields written by the rule
+            // extraction pipeline (see _apply_leaf_decisions in
+            // libs/pipeline_graph/subgraphs/guidance_rule_extraction_v2_impl.py).
+            // The BE LogicCriterion has model_config={"extra":"forbid"},
+            // so any of these reaching the API triggers a 422.
+            node_id: "leaf_1",
+            source_text: "current smoker",
+            original_phrase: "smoker",
+            expansion_source: "llm",
+            expanded_from: ["smoker"],
+            candidates: [{ concept_id: "1", score: 0.9 }],
+            verification_status: "verified",
+            verification_reason: "exact match",
+            confidence: 0.97,
+            resolver_turns: 1,
+            needs_human_review: false,
+            search_history: [{ q: "smoker" }],
+          } as unknown as import("../types").LogicCriterion,
+        },
+      ],
+    });
+
+    const stripped = stripNodeIds(tree);
+    const concept = (stripped.children as Array<Record<string, unknown>>)[0];
+    const crit = concept.criterion as Record<string, unknown>;
+
+    // Allowed keys survive.
+    expect(crit.snomed_concept_id).toBe("77176002");
+    expect(crit.preferred_term).toBe("Smoker");
+    expect(crit.term).toBe("smoker");
+    expect(crit.primary_concept_id).toBe("77176002");
+    expect(Array.isArray(crit.seeds)).toBe(true);
+
+    // Forbidden keys are stripped before POST.
+    for (const k of [
+      "node_id",
+      "source_text",
+      "original_phrase",
+      "expansion_source",
+      "expanded_from",
+      "candidates",
+      "verification_status",
+      "verification_reason",
+      "confidence",
+      "resolver_turns",
+      "needs_human_review",
+      "search_history",
+    ]) {
+      expect(k in crit).toBe(false);
+    }
+  });
+
+  it("stripNodeIds whitelists per-seed keys too (BE LogicSeed extra=forbid)", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: {
+            snomed_concept_id: "77176002",
+            preferred_term: "Smoker",
+            seeds: [
+              {
+                snomed_concept_id: "266919005",
+                preferred_term: "Cigarette smoker",
+                semantic_tag: "finding",
+                include_descendants: true,
+                distance_child: 2,
+                // Forbidden -- a stale node_id rode in via the loaded tree.
+                node_id: "seed_42",
+                candidates: [{ concept_id: "x" }],
+              },
+            ],
+            primary_concept_id: "266919005",
+          } as unknown as import("../types").LogicCriterion,
+        },
+      ],
+    });
+
+    const stripped = stripNodeIds(tree);
+    const concept = (stripped.children as Array<Record<string, unknown>>)[0];
+    const seed = ((concept.criterion as Record<string, unknown>).seeds as Array<
+      Record<string, unknown>
+    >)[0];
+
+    expect(seed.snomed_concept_id).toBe("266919005");
+    expect(seed.preferred_term).toBe("Cigarette smoker");
+    expect(seed.include_descendants).toBe(true);
+    expect(seed.distance_child).toBe(2);
+    expect("node_id" in seed).toBe(false);
+    expect("candidates" in seed).toBe(false);
+  });
 });
