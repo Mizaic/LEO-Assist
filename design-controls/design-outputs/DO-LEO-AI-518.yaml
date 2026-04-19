@@ -1,4 +1,4 @@
-# -- DO-LEO-AI-518 -- Guidance pipeline audit-event unification
+# -- DO-LEO-AI-518 -- SBAR background partition + map + reduce flow
 # ISO 13485 / IEC 62304 Design Output
 
 - id: "DO-LEO-AI-518"
@@ -7,107 +7,142 @@
   status: "draft"
 
   traceability:
-    design_inputs: ["DI-LEO-AI-518"]
-    user_needs: ["UN-LEO-AI-091"]
-    risks_addressed: ["R-LEO-AI-506"]
-    verification_tests: ["VT-LEO-AI-517"]
+    design_inputs: ["DI-LEO-AI-513"]
+    user_needs: ["UN-LEO-AI-095"]
+    risks_addressed:
+      - "R-LEO-AI-185"
+      - "R-LEO-AI-510"
+      - "R-LEO-AI-511"
+    verification_tests: ["VT-LEO-AI-514"]
 
   specification:
-    title: "Guidance rule generator + dry-run unified PipelineRun AuditEvent"
+    title: "SBAR Background partition + map + reduce orchestration"
     description: |
-      Two surgical edits unify guidance LLM telemetry under
-      ``:AuditEvent {type:'PipelineRun'}``:
+      Implements the partition + map + reduce flow that replaces the
+      previous "shrink-or-drop" shrinker for the SBAR Background
+      stage. The implementation is split across four pieces:
 
-      1. ``services/api/app/services/guidance_rule_generator.py``
-         changes the existing ``_write_guidance_audit_event`` props
-         from ``type='GuidanceRuleExtraction'`` to
-         ``type='PipelineRun', subtype='guidance_rule_extraction'``.
-         All other fields (extraction_provider, extraction_model_tier,
-         llm_input_tokens, llm_output_tokens, llm_cached_tokens,
-         llm_cost_usd, plan_definition_id, recommendation_id,
-         encounter_count, evidence_count, status, written_rule_id)
-         are preserved so the operator dashboards continue to work.
+        1. ``libs/sbar/background_partitioner.py`` -- pure-function
+           greedy bin-packer that produces ``Partition`` objects
+           respecting a per-part token budget (default
+           SBAR_BACKGROUND_MAX_INPUT_TOKENS=60000 minus a fixed
+           system-prompt reserve), splits oversized single records
+           into ``_SourceSlice`` fragments with ``part_in_record``
+           metadata, refuses runs that would need more than
+           ``_MAX_PARTS_DEFAULT`` (8) parts, and returns a
+           ``PartitionReport`` with split / record-split notices.
 
-      2. ``services/api/app/routers/guidance_rules.py`` gains a new
-         Cypher constant ``_DRY_RUN_AUDIT_EVENT`` and a helper
-         ``_write_dry_run_audit_event`` invoked from the
-         ``POST /guidance/rules/test/{recommendation_id}`` handler.
-         The helper:
-           * runs after the dry-run extraction completes, regardless
-             of outcome
-           * writes one :AuditEvent {type:'PipelineRun',
-             subtype:'guidance_rule_dry_run'} per call
-           * carries the same four canonical token / cost properties
-             plus a ``would_write`` boolean indicating whether the
-             same call would have produced a rule under the
-             production code path
-           * is wrapped in ``try/except`` so a Neo4j failure logs at
-             WARNING and never blocks the API response
-           * carries provider / tier / prompt metadata so the
-             empty-rate dashboard can group dry-runs by prompt
+        2. ``libs/sbar/prompt_calls.call_background`` -- async
+           orchestrator that:
+             - calls ``partition_background_sources``;
+             - returns a friendly ``too_many_parts`` error early if
+               the partitioner refuses;
+             - runs the existing ``sbar_background`` prompt once per
+               partition sequentially (MAP), wrapping each call in
+               ``_invoke_background_part`` with per-part status
+               (started / completed / failed);
+             - emits ``progress_cb`` callbacks per phase per part;
+             - if there are two or more partitions and every MAP
+               call succeeded, calls the ``sbar_background_reduce``
+               prompt via ``_try_reduce_partials`` (REDUCE); on
+               REDUCE failure or any MAP failure, falls back to
+               ``_stitch_partials_deterministic`` (no LLM) and
+               emits a ``reduce_failed`` notice;
+             - returns a dict carrying ``markdown``, ``raw``,
+               ``error``, ``error_code``, ``notice``,
+               ``partition_report``, and ``parts`` (per-part
+               summaries).
 
-      3. ``libs/cypher/model_config_queries.py::GET_PATIENT_LLM_SPEND``
-         gains a UNION over both subtypes
-         (``guidance_rule_extraction`` and
-         ``guidance_rule_dry_run``) so per-patient guidance spend
-         appears in the drill-down panel when a ``patient_id`` is
-         linked.
+        3. ``services/pipeline_worker/app/services/sbar_orchestrator
+           .py`` -- threads a ``progress_cb`` into ``call_background``
+           that publishes ``sbar_stage_progress`` SSE events
+           ({phase, part_index, part_total, record_count, status})
+           and folds the per-part summaries into the final
+           ``sbar_completed`` payload as ``parts``. Per-part MAP
+           failures are recorded as structured ``FriendlyError``
+           entries with stage labels of the form ``"background:part
+           K of N"`` so the playground can surface them
+           individually.
+
+        4. ``libs/sbar/error_messages.py`` -- adds three new error
+           codes (``too_many_parts``, ``reduce_failed``,
+           ``background_part_failed``) and two notice helpers
+           (``background_split_notice``,
+           ``background_record_split_notice``) so the playground
+           shows plain-English explanations when the partitioner
+           splits records or refuses the run.
+
+      The single-partition path is a direct pass-through (one LLM
+      call, no REDUCE) so the legacy success behaviour is preserved
+      for patients whose record fits in one go.
 
     acceptance_criteria:
-      - criterion: "unified_type"
-        type: "functional"
-        measurement: "Test"
-        target: >
-          Background generator writes :AuditEvent
-          {type:'PipelineRun', subtype:'guidance_rule_extraction'}.
-      - criterion: "dry_run_written"
-        type: "functional"
-        measurement: "Test"
-        target: >
-          /guidance/rules/test endpoint writes one :AuditEvent per
-          call with subtype 'guidance_rule_dry_run' and would_write
-          set correctly.
-      - criterion: "no_raise_on_failure"
+      - criterion: "Partitioner is pure and never drops a record"
         type: "safety"
         measurement: "Test"
-        target: >
-          Failure to write either AuditEvent does not bubble out of
-          the calling service.
+        target: "test_partitioner_no_record_dropped_invariant_under_record_split passes; partition_background_sources never invokes any LLM or DB call"
+      - criterion: "Multi-part runs invoke MAP once per partition then exactly one REDUCE"
+        type: "functional"
+        measurement: "Test"
+        target: "test_multi_partition_runs_map_then_reduce_when_all_parts_succeed records N MAP invocations and 1 REDUCE invocation"
+      - criterion: "REDUCE failure falls back to deterministic stitch"
+        type: "safety"
+        measurement: "Test"
+        target: "test_reduce_failure_falls_back_to_deterministic_stitch_with_notice records the reduce_failed notice and stitched headings, with no extra LLM call"
+      - criterion: "8-part hard cap is enforced before any LLM call"
+        type: "safety"
+        measurement: "Test"
+        target: "test_too_many_parts_returns_friendly_error_and_does_not_invoke_llm asserts zero LLM invocations and a friendly error message"
+      - criterion: "Per-part progress events stream to the playground"
+        type: "functional"
+        measurement: "Test"
+        target: "test_orchestrator_emits_per_part_progress_and_split_notice asserts >= one sbar_stage_progress event per part for each phase"
+      - criterion: "Per-part errors are surfaced individually"
+        type: "functional"
+        measurement: "Test"
+        target: "test_orchestrator_surfaces_per_part_failures_in_sbar_completed asserts a FriendlyError with stage label 'background:part 2 of 2'"
 
   implementation:
     artifacts:
       - artifact_type: "source_code"
-        location: "services/api/app/services/guidance_rule_generator.py"
-        description: >
-          _write_guidance_audit_event props updated to type=PipelineRun,
-          subtype=guidance_rule_extraction.
+        location: "libs/sbar/background_partitioner.py"
+        description: "Pure-function partitioner: greedy pack, intra-record split, 8-part cap, PartitionReport"
         storage_location: "git"
       - artifact_type: "source_code"
-        location: "services/api/app/routers/guidance_rules.py"
-        description: >
-          New _DRY_RUN_AUDIT_EVENT Cypher constant +
-          _write_dry_run_audit_event helper invoked from the dry-run
-          endpoint.
+        location: "libs/sbar/prompt_calls.py"
+        description: "call_background: partition + MAP per partition + REDUCE + deterministic stitch fallback + progress_cb"
         storage_location: "git"
       - artifact_type: "source_code"
-        location: "libs/cypher/model_config_queries.py"
-        description: >
-          GET_PATIENT_LLM_SPEND extended with guidance_rule_extraction
-          + guidance_rule_dry_run UNIONs.
+        location: "services/pipeline_worker/app/services/sbar_orchestrator.py"
+        description: "Wires progress_cb into call_background, emits sbar_stage_progress SSE, folds per-part errors and parts summary into sbar_completed"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/sbar/error_messages.py"
+        description: "New codes too_many_parts / reduce_failed / background_part_failed plus background_split_notice / background_record_split_notice"
         storage_location: "git"
     technical_details:
       language: "Python"
-      loc: 110
+      loc: 600
       key_functions:
-        - "_write_guidance_audit_event"
-        - "_write_dry_run_audit_event"
+        - "partition_background_sources"
+        - "_split_oversize_source"
+        - "call_background"
+        - "_invoke_background_part"
+        - "_try_reduce_partials"
+        - "_stitch_partials_deterministic"
+        - "background_split_notice"
+        - "background_record_split_notice"
 
   safety_characteristics:
     safety_class: "B"
     safety_critical_functions:
-      - "Best-effort telemetry writes (must never raise)"
+      - "partition_background_sources never drops a source unless too_many_parts is True"
+      - "call_background never raises on Bedrock validation / throttle / network errors"
+      - "REDUCE fallback uses deterministic stitch (no LLM) so a reduce failure cannot silently hallucinate"
     risk_control_measures:
-      - "Try/except wrapper on both AuditEvent writes"
+      - "Hard 8-part cap bounds cost and latency; refusal preferred over silent record drop"
+      - "Intra-record slicing preserves oversized single records that would not fit in one part"
+      - "Per-part errors travel as structured FriendlyError objects with stage labels so partial failures are unmissable in the playground"
 
   verification_status:
     verification_method: "Test"

@@ -111,10 +111,10 @@ describe("VT-LEO-AI-519 -- drawer encounter search relevance utility", () => {
       /import\s+\{\s*computeMatchRationale,\s*expandSearchTerms,?\s*\}\s+from\s+["']\.\/encounterRelevance["']/,
     );
     expect(CARD_SRC).toMatch(
-      /const\s+expandedTerms\s*=\s*useMemo\(\(\)\s*=>\s*expandSearchTerms\(search\)/,
+      /const\s+expandedTerms\s*=\s*useMemo\([\s\S]{0,80}expandSearchTerms\(search\)/,
     );
     expect(CARD_SRC).toMatch(
-      /matchRationale\s*=\s*useMemo\(\(\)\s*=>\s*computeMatchRationale\(enc\.text,\s*expandedTerms\)/,
+      /matchRationale\s*=\s*useMemo\([\s\S]{0,120}computeMatchRationale\(enc\.text,\s*expandedTerms\)/,
     );
     expect(CARD_SRC).toMatch(
       /collectHighlightTerms\(search,\s*matchRationale\.hitTerms\)/,

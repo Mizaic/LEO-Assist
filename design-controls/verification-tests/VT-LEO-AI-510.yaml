@@ -214,6 +214,36 @@
       acceptance_criteria:
         - "Synonym chip wiring is present in the editor"
 
+    - case_id: "VT-510-TC-016"
+      case_name: "SeedDescendantsList lets the author audit and block descendants inline (DI-511 AC-007 / R-508 mitigation)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render SeedDescendantsList with includeDescendants=false; assert the static 'Only the exact code <id> will fire' message renders, no Show/Hide button is present, and global fetch was NOT called."
+          expected_result: "Static message rendered; no /api/terminology/concepts/.../descendants request issued."
+          verification_method: "automated"
+        - step_number: 2
+          action: "Render with includeDescendants=true depth=3, click 'Show the codes covered by smoker at depth 3'; assert fetch called once with a URL containing /api/terminology/concepts/77176002/descendants and depth=3; assert the rendered list has one row per response item with the friendly term, SNOMED id and a 'Block <term> from firing this rule' button."
+          expected_result: "Fetch URL matches; list role='list' with N listitems; each row exposes the Block button."
+          verification_method: "automated"
+        - step_number: 3
+          action: "Click the Block button on a row; assert onBlock callback fires with that row's snomed_concept_id."
+          expected_result: "onBlock called once with the SNOMED id of the clicked row."
+          verification_method: "automated"
+        - step_number: 4
+          action: "Render with excludedIds=['266920004']; expand the panel; assert the matching row renders the 'Blocked' badge with strike-through styling and an 'Unblock <term>' button; click Unblock; assert onUnblock callback fires with the same id."
+          expected_result: "Blocked row renders with the badge + line-through; Unblock fires onUnblock('266920004')."
+          verification_method: "automated"
+        - step_number: 5
+          action: "Open the panel at depth=2 (one fetch). Re-render with depth=4 while the panel stays open; assert a second fetch is issued with depth=4."
+          expected_result: "Two fetches total, depths 2 and 4 in order."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Author can audit every descendant the bitmap will match before saving."
+        - "Author can block any unintended descendant in a single click without leaving the popover."
+        - "Already-blocked descendants are visibly differentiated and reversible."
+        - "Depth changes refetch so the preview always reflects the saved configuration."
+
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
     blocking_on_failure: true
@@ -225,6 +255,36 @@
     immutability: true
 
   execution_history:
+    - execution_id: "VT-LEO-AI-510-EXEC-2026-04-19-002"
+      execution_date: "2026-04-19"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      cases_executed: 16
+      cases_passed: 16
+      cases_failed: 0
+      duration_seconds: 4.5
+      notes: >
+        Re-run after adding the SeedDescendantsList inline audit
+        affordance (DI-LEO-AI-511 AC-007 / R-LEO-AI-508 fifth
+        mitigation). New jest suite
+        services/ui/src/__tests__/synonym-chip-descendants.test.tsx
+        adds 4 cases that map to VT-510-TC-016:
+        (a) does not call the descendants endpoint when
+        include_descendants is off and renders the static
+        "exact code only" message;
+        (b) on expand, fetches /api/terminology/concepts/{id}/
+        descendants?depth=3, lists each descendant with friendly
+        term + SNOMED id, and emits add_excluded when Block is
+        clicked;
+        (c) renders excluded ids with the Blocked badge + strike-
+        through and emits remove_excluded when Unblock is clicked;
+        (d) refetches when the seed depth changes from 2 to 4 while
+        the panel is open.
+        All previous TC-001..TC-015 cases continue to pass (10
+        EditRuleDialog jest suites, 82 tests, all green; pytest
+        guidance_rule_edit/compiler/evaluator/SBAR suites unchanged
+        since EXEC-001).
     - execution_id: "VT-LEO-AI-510-EXEC-2026-04-19-001"
       execution_date: "2026-04-19"
       executor: "automated"

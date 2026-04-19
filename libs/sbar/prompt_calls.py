@@ -74,22 +74,6 @@ def _serialise_situation_context(
     return "CONTEXT:\n```json\n" + json.dumps(body, default=str) + "\n```"
 
 
-def _serialise_background_reduce_context(
-    *,
-    parts: list[dict[str, Any]],
-) -> str:
-    """User message for the REDUCE step.
-
-    ``parts`` is the per-part LLM JSON output collected by
-    ``call_background``. Each entry already conforms to
-    ``SBAR_BACKGROUND_OUTPUT_SCHEMA`` so we can pass it through
-    near-verbatim; we only re-stamp ``part_index`` / ``part_total``
-    so the merge prompt's HARD RULES line up with the input.
-    """
-    body = {"parts": parts}
-    return "CONTEXT:\n```json\n" + json.dumps(body, default=str) + "\n```"
-
-
 def _serialise_recommendation_context(
     *,
     situation_md: str,
@@ -124,7 +108,6 @@ PromptFetcher = Callable[[str], str]
 _SBAR_PROMPT_VERSIONS: dict[str, int] = {
     _PROMPT_NAME_SITUATION: 2,
     _PROMPT_NAME_BACKGROUND: 2,
-    _PROMPT_NAME_BACKGROUND_REDUCE: 1,
     _PROMPT_NAME_RECOMMENDATION: 2,
 }
 
@@ -171,31 +154,65 @@ async def call_situation(
     }
 
 
-def _stitch_partials_deterministic(
-    parts: list[dict[str, Any]],
-) -> str:
-    """Fallback stitch when REDUCE is not run or fails.
+def _format_record_range(start: int, end: int) -> str:
+    """Render the ``records {a}-{b}`` clause in a part heading.
 
-    Concatenates each part's ``background_markdown`` under a clear
-    ``### Part i of N`` heading so the reviewer can see exactly
-    which part each bullet came from. Failed parts are rendered as
-    a placeholder so the reader can see the gap rather than
-    silently missing records.
+    ``start == end`` collapses to ``record {a}`` so a single-record
+    part doesn't read awkwardly as "records 7-7".
+    """
+    if start <= 0 or end <= 0:
+        return "no records"
+    if start == end:
+        return f"record {start}"
+    return f"records {start}-{end}"
+
+
+def _stitch_partials_deterministic(parts: list[dict[str, Any]]) -> str:
+    """Stitch per-part Background outputs into one markdown block.
+
+    Each part renders as::
+
+        ### Part {i} of {N} -- records {a}-{b}
+        <!-- sources: id1, id2, ... -->
+
+        {part markdown}
+
+    Failed parts get the heading ``### Part {i} of {N} -- records
+    {a}-{b} -- this part did not finish`` and a placeholder body
+    pointing the reader at the errors panel, so missing parts are
+    visible in the rendered Background rather than silently
+    swallowed.
     """
     chunks: list[str] = []
     for part in parts:
         idx = part.get("part_index")
         total = part.get("part_total")
-        record_count = part.get("record_count") or 0
-        heading = f"### Part {idx} of {total} -- {record_count} records"
+        rr = part.get("record_range") or (0, 0)
+        rr_text = _format_record_range(int(rr[0]), int(rr[1]))
+        source_ids = part.get("source_ids") or []
+        comment = (
+            "<!-- sources: " + ", ".join(source_ids) + " -->" if source_ids else ""
+        )
         if part.get("error_message"):
-            chunks.append(
-                f"{heading}\n\n_This part did not finish: "
-                f"{part['error_message']}_"
+            heading = (
+                f"### Part {idx} of {total} -- {rr_text} "
+                "-- this part did not finish"
             )
+            body = (
+                "(Background for these records could not be generated. "
+                "See the errors panel above.)"
+            )
+            piece = "\n\n".join(p for p in [heading, comment, body] if p)
+            chunks.append(piece)
             continue
+        heading = f"### Part {idx} of {total} -- {rr_text}"
         md = (part.get("background_markdown") or "").strip()
-        chunks.append(f"{heading}\n\n{md}" if md else heading)
+        body_pieces = [heading]
+        if comment:
+            body_pieces.append(comment)
+        if md:
+            body_pieces.append(md)
+        chunks.append("\n\n".join(body_pieces))
     return "\n\n".join(chunks)
 
 
@@ -206,7 +223,8 @@ async def _invoke_background_part(
     invoker: Callable[..., Awaitable[dict[str, Any]]],
     patient_id: str,
 ) -> dict[str, Any]:
-    """Run one map step. Returns a per-part dict suitable for stitch + reduce."""
+    """Run one map step. Returns a per-part dict ready for the
+    deterministic stitch."""
     raw = await invoker(
         system,
         partition.user_message,
@@ -215,12 +233,19 @@ async def _invoke_background_part(
         agent_task="sbar_background",
         patient_id=patient_id,
     )
+    # source_ids preserved in input order (descriptors already are);
+    # de-duplicated so a record split across slices in the same part
+    # only appears once in the heading's HTML comment.
+    seen_ids: list[str] = []
+    for d in partition.descriptors:
+        if d.source_id not in seen_ids:
+            seen_ids.append(d.source_id)
     base: dict[str, Any] = {
         "part_index": partition.index,
         "part_total": partition.total,
-        "record_count": len(
-            {d.source_id for d in partition.descriptors}
-        ),
+        "record_count": len(seen_ids),
+        "record_range": partition.record_range,
+        "source_ids": seen_ids,
         "descriptors": [d.__dict__ for d in partition.descriptors],
         "raw": raw,
     }
@@ -258,63 +283,17 @@ async def _invoke_background_part(
     }
 
 
-async def _try_reduce_partials(
-    parts: list[dict[str, Any]],
-    *,
-    system: str,
-    invoker: Callable[..., Awaitable[dict[str, Any]]],
-    patient_id: str,
-) -> dict[str, Any]:
-    """Run the REDUCE step. Returns dict with merged_markdown or error."""
-    user = _serialise_background_reduce_context(
-        parts=[
-            {
-                "part_index": p["part_index"],
-                "part_total": p["part_total"],
-                "background_markdown": p["background_markdown"],
-                "citations": p["citations"],
-                "missing": p["missing"],
-                "conflicts": p["conflicts"],
-            }
-            for p in parts
-        ],
-    )
-    raw = await invoker(
-        system,
-        user,
-        max_tokens=2048,
-        temperature=0.0,
-        agent_task="sbar_background_reduce",
-        patient_id=patient_id,
-    )
-    if "error" in raw:
-        friendly = translate_error("background", "reduce_failed")
-        return {
-            "markdown": "",
-            "raw": raw,
-            "error_code": friendly["code"],
-            "error_message": friendly["message"],
-        }
-    md = (raw.get("background_markdown") or "").strip()
-    if not md:
-        friendly = translate_error("background", "reduce_failed")
-        return {
-            "markdown": "",
-            "raw": raw,
-            "error_code": friendly["code"],
-            "error_message": friendly["message"],
-        }
-    return {"markdown": md, "raw": raw, "error_code": None, "error_message": None}
-
-
 def _build_part_summary(
     part: dict[str, Any],
 ) -> dict[str, Any]:
     """Slim wire payload for the SSE / orchestrator audit trail."""
+    rr = part.get("record_range") or (0, 0)
     return {
         "index": part["part_index"],
         "total": part["part_total"],
         "record_count": part["record_count"],
+        "record_range": [int(rr[0]), int(rr[1])],
+        "source_ids": list(part.get("source_ids") or []),
         "status": "completed" if not part.get("error_code") else "failed",
         "error_code": part.get("error_code"),
         "error_message": part.get("error_message"),
@@ -333,17 +312,19 @@ async def call_background(
 ) -> dict[str, Any]:
     """Generate the SBAR Background section, splitting the run if needed.
 
-    Strategy: partition + map + reduce.
+    Strategy: partition + map + deterministic stitch (no reduce).
 
     1. PARTITION the sources into N <= 8 LLM-sized parts. Every
        record is preserved; nothing is dropped.
     2. MAP -- run the standard sbar_background prompt once per
-       partition (sequentially). Per-part failures are contained.
-    3. REDUCE -- if N >= 2 AND every part succeeded, run the
-       sbar_background_reduce prompt to merge the partials into a
-       single coherent Background. If the REDUCE call fails, fall
-       back to deterministic stitching with clear "Part i of N"
-       subheadings.
+       partition (sequentially). Per-part failures are contained:
+       a failed part renders as a "this part did not finish"
+       placeholder while the surviving parts still land.
+    3. STITCH -- pure-Python concatenation under
+       ``### Part {i} of {N} -- records {a}-{b}`` headings. There
+       is intentionally no LLM merge step: a reduce call is itself
+       a place the LLM could drop or distort detail, which is the
+       thing this whole feature was built to avoid.
 
     The ``progress_cb`` lets the orchestrator emit per-part
     ``sbar_stage_progress`` SSE events so the UI shows
@@ -418,10 +399,10 @@ async def call_background(
 
     parts_summary = [_build_part_summary(p) for p in part_results]
     failed_parts = [p for p in part_results if p["error_code"]]
-    succeeded_parts = [p for p in part_results if not p["error_code"]]
 
     # Single-partition path: behave like the legacy single-call
-    # Background -- no reduce, no notice, just return the one part.
+    # Background -- no notice, no part heading, just return the
+    # one part's markdown directly.
     if len(part_results) == 1:
         only = part_results[0]
         return {
@@ -433,70 +414,22 @@ async def call_background(
             "parts": parts_summary,
         }
 
-    # Multi-partition path. Attempt REDUCE only when every part
-    # succeeded -- merging a partial set of parts would silently
-    # imply the missing parts were empty, which violates the
-    # no-record-dropped invariant.
-    reduced: dict[str, Any] | None = None
-    if not failed_parts and succeeded_parts:
-        if progress_cb is not None:
-            progress_cb({"phase": "reduce", "status": "started"})
-        system_reduce = prompt_fetcher(_PROMPT_NAME_BACKGROUND_REDUCE)
-        reduced = await _try_reduce_partials(
-            succeeded_parts,
-            system=system_reduce,
-            invoker=invoker,
-            patient_id=patient_id,
-        )
-        if progress_cb is not None:
-            progress_cb(
-                {
-                    "phase": "reduce",
-                    "status": (
-                        "failed" if reduced["error_code"] else "completed"
-                    ),
-                    "error_code": reduced.get("error_code"),
-                }
-            )
-
-    if reduced and not reduced["error_code"]:
-        return {
-            **base_response,
-            "markdown": reduced["markdown"],
-            "raw": reduced["raw"],
-            "error": None,
-            "error_code": None,
-            "parts": parts_summary,
-        }
-
-    # Fallback: deterministic stitch. Either the REDUCE failed, or
-    # at least one MAP part failed (so we don't try to REDUCE).
+    # Multi-partition path: deterministic stitch, always. Each part
+    # renders under its own heading; failed parts render as a
+    # "this part did not finish" placeholder so the gap is visible
+    # in the rendered Background rather than silently swallowed.
     stitched = _stitch_partials_deterministic(part_results)
     error_message: str | None = None
     error_code: str | None = None
     if failed_parts:
-        # background_part_failed wins over reduce_failed because
-        # the reviewer's primary action ("re-run / pick fewer
-        # records") is the same and the part failure is the more
-        # actionable signal.
         friendly = translate_error("background", "background_part_failed")
         error_message = friendly["message"]
         error_code = friendly["code"]
-    elif reduced and reduced["error_code"]:
-        error_message = reduced["error_message"]
-        error_code = reduced["error_code"]
-        # Surface the reduce failure to the reviewer as a notice as
-        # well, so they understand the "side by side" layout.
-        notices.append(
-            "We summarised the records in parts but could not merge "
-            "them into one section, so they are shown side by side."
-        )
-        base_response["notice"] = " ".join(notices)
 
     return {
         **base_response,
         "markdown": stitched,
-        "raw": (reduced or {}).get("raw") or {},
+        "raw": {},
         "error": error_message,
         "error_code": error_code,
         "parts": parts_summary,

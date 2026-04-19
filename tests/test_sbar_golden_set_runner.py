@@ -76,8 +76,16 @@ def fixtures(runner_module):
 # ---------------------------------------------------------------------------
 
 
-def test_exactly_ten_fixtures_present(fixtures) -> None:
-    assert len(fixtures) == 10, [f.path.name for f in fixtures]
+# Expected fixture count grows with the suite. NG12 / referral-triage
+# backfill (2026-04-18) added fixtures 11-19 (six new pathways +
+# two adversarial twins + sarcoma).
+_EXPECTED_FIXTURE_COUNT = 19
+
+
+def test_expected_fixture_count_present(fixtures) -> None:
+    assert len(fixtures) == _EXPECTED_FIXTURE_COUNT, [
+        f.path.name for f in fixtures
+    ]
 
 
 def test_fixture_ids_match_filename(fixtures) -> None:

@@ -1,4 +1,4 @@
-# -- DI-LEO-AI-513 -- Token-budget aware SBAR background prompt shrinker
+# -- DI-LEO-AI-513 -- Token-budget aware SBAR background partition + map + reduce
 # IEC 62304 / ISO 13485 Design Input
 
 - id: "DI-LEO-AI-513"
@@ -6,57 +6,127 @@
   derived_from:
     - "UN-LEO-AI-095"
   requirement: >
-    The SBAR Background stage SHALL apply a deterministic token-budget
-    aware shrinker to the assembled user prompt before invoking the
-    LLM. The shrinker SHALL: (1) estimate the prompt's token count
-    using a conservative char/token heuristic (default 3.6 chars per
-    token); (2) compute a budget equal to
-    SBAR_BACKGROUND_MAX_INPUT_TOKENS (env override; default 60000)
-    minus a fixed margin for the system prompt and model overhead;
-    (3) progressively reduce the per-source character cap from 4000
-    through 2000, 1000, 500 and 250 until the estimated tokens fit
-    the budget; (4) if the prompt still exceeds the budget at the
-    smallest cap, drop sources from the end of the list until the
-    prompt fits or only one source remains; and (5) return a
-    plain-English notice describing what was trimmed (target reading
-    age 9-11) when any trimming occurred. If, after shrinking, the
-    LLM still returns "Input is too long for requested model" or an
-    equivalent context-window validation error, the orchestrator
-    SHALL record a friendly background error and proceed to the
-    remaining stages without raising.
+    The SBAR Background stage SHALL split a patient's resolved
+    background sources across one or more LLM calls so that no
+    clinical record is silently truncated or dropped to make space in
+    the model's input window. The stage SHALL apply a deterministic
+    "partition + map + reduce" flow:
+
+    (1) PARTITION -- a pure function
+    libs/sbar/background_partitioner.partition_background_sources()
+    SHALL pack the resolved sources into one or more
+    ``Partition`` objects whose serialised user message fits inside
+    a per-part token budget equal to SBAR_BACKGROUND_MAX_INPUT_TOKENS
+    (env override; default 60000) minus a fixed reserve for the
+    system prompt and model overhead. A per-source character cap of
+    4000 SHALL be applied as a soft preprocessing step. Where a
+    single record's serialised text alone exceeds a part budget,
+    the record SHALL be split across consecutive parts (intra-record
+    slicing) with explicit ``part_in_record`` metadata so the LLM
+    can be told the slices are halves of the same source. The
+    partitioner SHALL emit at most _MAX_PARTS_DEFAULT (8) parts per
+    run; if more would be required, the partitioner SHALL refuse
+    with a structured ``too_many_parts`` PartitionReport and no LLM
+    invocation occurs.
+
+    (2) MAP -- libs/sbar/prompt_calls.call_background SHALL invoke
+    the existing ``sbar_background`` prompt once per partition,
+    sequentially, capturing per-part status (started / completed /
+    failed) and surfacing the per-part stream via an optional
+    ``progress_cb`` callback. Per-part LLM failures SHALL be
+    contained: a failed part is recorded as a structured
+    ``background_part_failed`` error and does not abort other parts.
+
+    (3) REDUCE -- when there are two or more partitions and every
+    map call succeeded, call_background SHALL invoke a separate
+    ``sbar_background_reduce`` prompt to merge the partial Background
+    sections into one coherent Background section, preserving every
+    medication, date, and value verbatim and deduping only literal
+    duplicates (no new clinical synthesis). If the reduce call fails
+    or any map call failed, call_background SHALL fall back to a
+    deterministic stitch of the partial markdowns ("Part k of N --
+    ...") and surface a ``reduce_failed`` notice; reduce SHALL never
+    invent facts.
+
+    The single-partition path SHALL be a direct pass-through (one
+    LLM call, no reduce) so the legacy success path is preserved
+    when the input fits in one go.
+
+    Returned dict SHALL carry: markdown, raw, error, error_code,
+    notice (split / record-split / reduce notice), partition_report,
+    and parts (per-part summaries). When the LLM still returns a
+    Bedrock ValidationException, throttle, access-denied, or
+    network error after partitioning, the orchestrator SHALL record
+    a friendly background error via libs/sbar/error_messages and
+    proceed to the remaining stages without raising.
   rationale: >
-    Today libs/sbar/prompt_calls.py applies only a per-source 4000-
-    character cap. A patient with many long encounters or chunked
-    discharge summaries can easily produce a prompt that exceeds the
-    Bedrock Claude input window, at which point the LLM call returns
-    a ValidationException and the run silently degrades to a partial
-    SBAR. A pre-emptive, deterministic shrinker keeps the playground
-    usable for large patients and removes the class of "input too
-    long" surprises from production callers.
+    The previous "shrink-or-drop" approach trimmed per-source text
+    or dropped sources to make a patient's record fit one LLM call.
+    That is unsafe in a clinical summary because a truncated
+    discharge letter or a dropped encounter can change the clinical
+    picture and the reviewer has no way of knowing. The
+    partition-first design preserves every record, splits the work
+    across multiple sequential LLM calls, and uses a separate strict
+    reduce prompt to merge partial sections. A hard 8-part cap
+    bounds cost and latency; if more parts would be required the
+    system refuses rather than silently dropping data.
 
   machine_spec:
     acceptance_criteria:
       - type: "functional"
         spec: >
-          libs/sbar/background_shrinker.shrink_background_context()
-          returns a (serialised_user_message, ShrinkReport) pair
-          where ShrinkReport carries original_source_count,
-          kept_source_count, dropped_source_ids,
-          per_source_char_cap, estimated_input_tokens and a
-          plain-English notice (or None when no trimming occurred).
+          libs/sbar/background_partitioner.partition_background_sources()
+          returns (list[Partition], PartitionReport) where
+          PartitionReport carries total_records, total_parts,
+          split_records (record IDs that were split intra-record),
+          too_many_parts, notice (split summary) and
+          record_split_notice (intra-record split summary). Every
+          source ID present in the input appears in at least one
+          partition unless too_many_parts is True.
       - type: "functional"
         spec: >
-          Under SBAR_BACKGROUND_MAX_INPUT_TOKENS=60000 the shrinker
-          returns the original 4000-cap serialisation when the input
-          fits, returns a tighter cap when the input is over budget
-          but every source is kept, and drops sources only when the
-          smallest cap (250 chars) still would exceed the budget.
+          When the input fits in one LLM call, partition_background
+          _sources returns exactly one Partition and no notice; when
+          the input requires N parts (N >= 2 and N <= 8), the
+          function returns N partitions and a plain-English split
+          notice; when the input would require more than 8 parts,
+          the function returns ([], PartitionReport(too_many_parts
+          =True)) and call_background returns a friendly
+          "too_many_parts" error without invoking any LLM.
       - type: "functional"
         spec: >
-          libs/sbar/prompt_calls.call_background invokes the shrinker
-          before invoke_llm_json, threads the notice through the
-          returned dict as "notice", and returns shrink-aware notices
-          even on a success path.
+          When a single source's serialised text exceeds a single
+          part's budget, partition_background_sources splits that
+          record into _SourceSlice fragments with sequential
+          part_in_record numbering, includes the slice header
+          ("This is part k of N of source <id>; treat both slices as
+          the same record") in the user message, and lists the
+          record's ID in PartitionReport.split_records.
+      - type: "functional"
+        spec: >
+          libs/sbar/prompt_calls.call_background calls
+          partition_background_sources first, runs the
+          ``sbar_background`` prompt once per partition (MAP),
+          invokes ``sbar_background_reduce`` exactly once when there
+          are two or more partitions and every MAP call succeeded
+          (REDUCE), and returns a deterministic stitched markdown
+          plus a ``reduce_failed`` notice if reduce fails or any
+          MAP part failed.
+      - type: "functional"
+        spec: >
+          call_background emits per-part progress via the optional
+          progress_cb callback, with one event per phase per part
+          ({phase: 'map'|'reduce', part_index, part_total,
+          record_count, status}) so the orchestrator can stream
+          ``sbar_stage_progress`` SSE events to the playground.
+      - type: "safety"
+        spec: >
+          No source ID present in the input may be missing from the
+          union of all partition slices unless PartitionReport
+          .too_many_parts is True. The "no record dropped" invariant
+          MUST be enforced by a unit test
+          (test_partitioner_no_record_dropped_invariant_under
+          _record_split).
       - type: "safety"
         spec: >
           When invoke_llm_json returns {"error": "...Input is too
@@ -66,48 +136,67 @@
           libs/sbar/error_messages.translate_error.
       - type: "performance"
         spec: >
-          The shrinker SHALL run in O(N) over sources and SHALL not
-          itself call any LLM or Neo4j query (pure function over the
-          ResolvedSource list).
+          The partitioner SHALL run in O(N) over sources and SHALL
+          NOT itself call any LLM or Neo4j query. The total cost of
+          an N-part run is bounded at N MAP calls + at most one
+          REDUCE call, with N <= 8.
     constraints:
       - type: "safety"
         spec: >
-          The shrinker MUST preserve at least one source when sources
-          are non-empty so the Background prompt always carries at
-          least one record reference.
+          The partitioner MUST preserve every source when sources
+          are non-empty unless PartitionReport.too_many_parts is
+          True. Truncating a source body (other than the soft 4000-
+          character preprocessing cap) is forbidden. Dropping a
+          source to make space is forbidden.
+      - type: "safety"
+        spec: >
+          The reduce prompt is an editor-only prompt: it MUST NOT
+          introduce new facts, MUST preserve dates / medications /
+          values verbatim, and MAY only dedupe literal duplicates.
+          See DI-LEO-AI-518.
     dependencies:
       - "DI-LEO-AI-186"
       - "DI-LEO-AI-194"
+      - "DI-LEO-AI-518"
     downstream_impacts:
-      - "SBAR orchestrator (consumer)"
-      - "SBAR Playground (notice rendering, DI-LEO-AI-516)"
+      - "SBAR orchestrator (per-part SSE progress, parts payload)"
+      - "SBAR Playground (per-part chips, parts summary, DI-LEO-AI-516)"
     technical_details:
       language: "Python"
       framework: "FastAPI / pipeline-worker"
       file_structure:
-        - "libs/sbar/background_shrinker.py"
+        - "libs/sbar/background_partitioner.py"
         - "libs/sbar/error_messages.py"
         - "libs/sbar/prompt_calls.py"
-      estimated_loc: 300
+        - "libs/prompts/sbar_background_reduce_v1.py"
+      estimated_loc: 600
 
   verification:
     method: "Test"
     phase: "OQ"
     acceptance: >
-      VT-LEO-AI-514 covers the shrinker's no-op path, progressive
-      cap shrink, source-drop fallback, "always keep at least one"
-      invariant, the friendly translator's coverage of the four
-      known Bedrock failure modes, and the call_background
-      integration that wires the shrinker and translator together.
+      VT-LEO-AI-514 covers the partitioner's single-part no-op path,
+      multi-part packing with the no-record-dropped invariant,
+      intra-record slicing, the 8-part hard cap (too_many_parts),
+      MAP + REDUCE happy path, REDUCE failure -> deterministic
+      stitch with notice, per-part MAP failure containment,
+      progress_cb emission, and the friendly error translator's
+      coverage of the new too_many_parts / reduce_failed /
+      background_part_failed codes alongside the four Bedrock
+      modes. Static-source jest verifies the orchestrator emits
+      ``sbar_stage_progress`` events and the playground renders the
+      per-part progress + parts-summary chips.
     test_protocol: "VT-LEO-AI-514"
 
   safety_class: "B"
   risks:
     - "R-LEO-AI-185"
     - "R-LEO-AI-510"
+    - "R-LEO-AI-511"
   tags:
     - "sbar"
     - "background"
     - "token-budget"
-    - "shrinker"
+    - "partition"
+    - "map-reduce"
     - "error-handling"

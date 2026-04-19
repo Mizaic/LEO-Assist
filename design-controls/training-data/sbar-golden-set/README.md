@@ -96,7 +96,7 @@ asserts on that combination as the discriminator.
 
 ## Running the suite
 
-Run all 10 fixtures, write per-fixture reports under
+Run all fixtures (currently 19), write per-fixture reports under
 `data/sbar-golden-set-reports/<UTC timestamp>/`:
 
 ```bash
