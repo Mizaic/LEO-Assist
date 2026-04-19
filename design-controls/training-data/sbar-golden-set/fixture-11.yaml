@@ -1,0 +1,126 @@
+id: SBAR-GS-11
+title: "Suspected bladder cancer (2WW) - visible haematuria age 67"
+
+# NICE NG12 (suspected cancer): refer adults aged >=45 with unexplained
+# visible haematuria without UTI, OR visible haematuria persisting after
+# treatment of UTI, for an appointment within 2 weeks. This fixture
+# covers the most common 2WW urological pathway not previously in the
+# golden set.
+
+clinical_scenario: |
+  67-year-old male presents to GP with three episodes of painless
+  visible (frank) haematuria over the last 2 weeks. No dysuria, no
+  frequency, no flank pain. Urine dipstick: blood +++, leucocytes
+  negative, nitrites negative. MSU sent, no UTI on culture. No prior
+  haematuria, no recent catheterisation, ex-smoker 25 pack-years.
+  Reviewer must confirm the SBAR routes to a 2WW suspected bladder
+  cancer pathway and that the absence of UTI is explicitly noted as
+  the criterion that takes the patient over the 2WW threshold.
+
+input:
+  patient_id: "pat-gs-11"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-11" }
+  background:
+    - { type: encounter, id: "enc-gs-11" }
+  guideline_ids: ["G-BLADDER-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-11"
+  patient_summary:
+    age_band: "60-69"
+    sex: "M"
+    smoking_status: "ex_smoker_25py"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-11"
+      reason: "Painless visible haematuria, no UTI on culture, ?bladder cancer"
+      referring_specialty: "Urology"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-11
+    text: |
+      GP review 04/2026: three episodes of painless visible haematuria
+      over the past 2 weeks. No dysuria or frequency. Dipstick: blood
+      +++, leucocytes negative, nitrites negative. MSU culture: no
+      growth at 48h. Ex-smoker 25 pack-years, stopped 2015. No flank
+      pain, no recent catheter, no anticoagulants.
+    codes:
+      - { concept_id: "34436003", term: "Haematuria",                       assertion: present }
+      - { concept_id: "63101007", term: "Painless haematuria",              assertion: present }
+      - { concept_id: "68566005", term: "Urinary tract infection",          assertion: absent }
+      - { concept_id: "8517006",  term: "Ex-smoker",                        assertion: present }
+
+llm_transcript:
+  situation:
+    markdown: |
+      67-year-old male ex-smoker referred by GP with three episodes
+      of painless visible haematuria over 2 weeks. MSU culture is
+      negative, so a UTI cause has been ruled out. Triggering this
+      SBAR for the urological 2WW suspected bladder cancer pathway.
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - Three episodes of painless visible haematuria over 2 weeks
+      - Dipstick blood +++, leucocytes and nitrites negative
+      - MSU culture: no growth at 48 hours (no UTI)
+      - Ex-smoker, 25 pack-years, stopped 2015
+      - No dysuria, frequency, flank pain, or recent catheter
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected bladder cancer 2WW pathway
+      (NG12). The visible haematuria is unexplained and the MSU has
+      ruled out a UTI cause, which meets the NG12 referral criteria
+      for adults aged 45 or over. Cystoscopy and CT urogram should
+      be arranged as part of the 2WW work-up.
+    actions:
+      - { action: "Refer 2WW suspected bladder cancer", priority: 2ww, due_days: 14, rule_ids: ["R-BLADDER-001"] }
+      - { action: "Arrange CT urogram",                  priority: urgent, due_days: 14, rule_ids: ["R-BLADDER-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-BLADDER-001
+      name: "Visible haematuria age >=45 without UTI -> 2WW bladder"
+      strength: strong
+      guideline_id: G-BLADDER-2WW
+      guideline_title: "Suspected urological cancer (NG12)"
+      chapter_title: "Bladder cancer referral criteria"
+      recommendation_verbatim: "Refer adults using a suspected cancer pathway referral (for an appointment within 2 weeks) for bladder cancer if they are aged 45 and over and have unexplained visible haematuria without urinary tract infection."
+      action: { priority: 2ww, due_days: 14, name: "2WW bladder referral" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-BLADDER-001"
+    - "without urinary tract infection"
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+    - ["bladder cancer", "suspected bladder cancer"]
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "microscopic haematuria"     # the case is VISIBLE; do not downgrade
+    - "UTI present"                # MSU was negative; do not invent a UTI
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-BLADDER-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. The transcript MUST state the haematuria is visible, not
+       microscopic -- microscopic haematuria has a different rule.
+    2. The transcript MUST note that UTI has been ruled out (MSU
+       negative); without that, NG12 criteria for 2WW are not met.
+    3. The 2WW pathway must dominate the recommendation; "watch
+       and wait" or routine cystoscopy alone is a fail.

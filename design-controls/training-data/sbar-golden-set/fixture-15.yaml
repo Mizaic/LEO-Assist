@@ -1,0 +1,130 @@
+id: SBAR-GS-15
+title: "Suspected head and neck cancer (2WW) - persistent neck lump age 56"
+
+# NICE NG12 (suspected cancer): consider a suspected cancer pathway
+# referral (within 2 weeks) for laryngeal cancer in people aged 45 and
+# over with persistent unexplained hoarseness or an unexplained lump
+# in the neck. This fixture covers the head and neck pathway -- a
+# common presentation not previously in the golden set.
+
+clinical_scenario: |
+  56-year-old male smoker (heavy: 30 pack-years, current) presents to
+  GP with a 6-week history of a non-tender, firm lump in the right
+  side of the neck, level II. No preceding URTI, no fevers, no night
+  sweats, no recent dental work. Lump is approximately 2.5 cm and
+  has not regressed. No hoarseness, no dysphagia, no otalgia.
+  Reviewer must confirm the SBAR routes to a 2WW head and neck
+  cancer pathway and that the duration (>3 weeks unexplained) is
+  explicitly stated.
+
+input:
+  patient_id: "pat-gs-15"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-15" }
+  background:
+    - { type: encounter, id: "enc-gs-15" }
+  guideline_ids: ["G-HNC-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-15"
+  patient_summary:
+    age_band: "55-59"
+    sex: "M"
+    smoking_status: "current_smoker_30py"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-15"
+      reason: "Persistent unexplained neck lump >=3 weeks, ?head and neck cancer"
+      referring_specialty: "ENT / Head and neck"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-15
+    text: |
+      GP review 04/2026: 6-week history of a firm, non-tender, 2.5 cm
+      lump in the right side of the neck (level II). No preceding
+      sore throat or URTI, no fevers, no night sweats, no weight
+      loss, no dental abscess. Current smoker, 30 pack-years.
+      ENT examination: no oral lesion visible, no hoarseness, no
+      dysphagia, no otalgia, no thyroid enlargement.
+    codes:
+      - { concept_id: "300577008", term: "Lesion of neck",                 assertion: present }
+      - { concept_id: "298166008", term: "Persistent lump",                assertion: present }
+      - { concept_id: "77176002",  term: "Smoker",                         assertion: present }
+      - { concept_id: "267102003", term: "Sore throat",                    assertion: absent }
+
+llm_transcript:
+  situation:
+    markdown: |
+      56-year-old male current smoker (30 pack-years) referred by
+      GP with a 6-week persistent, unexplained 2.5 cm lump in the
+      right side of the neck. Triggering this SBAR for the ENT 2WW
+      suspected head and neck cancer pathway.
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - Persistent firm non-tender 2.5 cm right neck lump, level II
+      - Duration 6 weeks (well over the 3-week NG12 threshold)
+      - No preceding URTI, fevers, night sweats, or weight loss
+      - No oral lesion, no hoarseness, no dysphagia
+      - Current smoker, 30 pack-years
+      - No recent dental work or abscess
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected head and neck cancer 2WW
+      pathway (NG12). The lump has been present and unexplained for
+      6 weeks, well above the 3-week threshold, in an adult over
+      45 who is a current smoker. The ENT team should arrange
+      urgent neck ultrasound and fine-needle aspiration cytology
+      as part of the 2WW work-up.
+    actions:
+      - { action: "Refer 2WW suspected head and neck cancer", priority: 2ww, due_days: 14, rule_ids: ["R-HNC-001"] }
+      - { action: "Arrange urgent neck ultrasound",            priority: urgent, due_days: 14, rule_ids: ["R-HNC-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-HNC-001
+      name: "Persistent unexplained neck lump age >=45 -> 2WW head and neck"
+      strength: strong
+      guideline_id: G-HNC-2WW
+      guideline_title: "Suspected head and neck cancer (NG12)"
+      chapter_title: "Laryngeal and head and neck cancer referral criteria"
+      recommendation_verbatim: "Consider a suspected cancer pathway referral (for an appointment within 2 weeks) for laryngeal cancer in people aged 45 and over with persistent unexplained hoarseness or an unexplained lump in the neck."
+      action: { priority: 2ww, due_days: 14, name: "2WW head and neck referral" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-HNC-001"
+    - ["unexplained", "persistent unexplained"]
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+    - ["head and neck cancer", "suspected head and neck cancer"]
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "lymphadenitis"          # do not invent infection
+    - "ENT review in 6 weeks"  # 6 weeks delay is unsafe under NG12
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-HNC-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. The transcript MUST state the lump has been present for
+       more than 3 weeks (here 6) -- the duration is the criterion
+       that takes the lump from "reactive" to "unexplained".
+    2. The transcript MUST NOT label this lymphadenitis or assume
+       a viral cause -- there is no preceding URTI.
+    3. The 2WW pathway must dominate; "review in 6 weeks" or a
+       course of antibiotics first is a fail.

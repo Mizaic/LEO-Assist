@@ -1,0 +1,128 @@
+id: SBAR-GS-14
+title: "Suspected pancreatic cancer (2WW) - painless jaundice + weight loss age 71"
+
+# NICE NG12 (suspected cancer): refer people aged 40 and over with
+# jaundice for an appointment within 2 weeks. Painless jaundice in an
+# older adult with weight loss is the classic pancreatic cancer
+# presentation; jaundice alone is enough for the 2WW route under NG12.
+
+clinical_scenario: |
+  71-year-old male presents to GP with 3 weeks of progressive painless
+  jaundice, dark urine, pale stools, and unintentional weight loss of
+  6 kg over 8 weeks. Pruritus prominent. No abdominal pain, no fever,
+  no recent travel, no IV drug use, no new medications. Examination:
+  visible scleral icterus, no hepatomegaly, no abdominal mass on
+  palpation. Reviewer must confirm the SBAR routes to a 2WW
+  hepatobiliary pathway and that the absence of pain (painless
+  jaundice) is explicitly noted as the high-suspicion feature.
+
+input:
+  patient_id: "pat-gs-14"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-14" }
+  background:
+    - { type: encounter, id: "enc-gs-14" }
+  guideline_ids: ["G-PANCREAS-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-14"
+  patient_summary:
+    age_band: "70-79"
+    sex: "M"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-14"
+      reason: "Painless jaundice + weight loss, ?pancreatic cancer"
+      referring_specialty: "Hepatobiliary surgery"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-14
+    text: |
+      GP review 04/2026: 3-week history of progressive painless
+      jaundice. Dark urine, pale stools, troublesome itching.
+      Unintentional weight loss 6 kg over 8 weeks. No abdominal
+      pain, no fever, no travel history, no IV drug use, no new
+      medication. Examination: scleral icterus visible, abdomen
+      soft, no hepatomegaly, no palpable mass.
+    codes:
+      - { concept_id: "18165001",  term: "Jaundice",                assertion: present }
+      - { concept_id: "57676002",  term: "Joint pain",              assertion: absent }
+      - { concept_id: "21522001",  term: "Abdominal pain",          assertion: absent }
+      - { concept_id: "89362005",  term: "Weight loss",             assertion: present }
+      - { concept_id: "418290006", term: "Itching",                 assertion: present }
+
+llm_transcript:
+  situation:
+    markdown: |
+      71-year-old man referred by GP with 3 weeks of progressive
+      painless jaundice and 6 kg unintentional weight loss. No
+      abdominal pain, no fever. Triggering this SBAR for the
+      hepatobiliary 2WW suspected pancreatic cancer pathway.
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - 3-week progressive painless jaundice (high-suspicion feature)
+      - Dark urine, pale stools, pruritus
+      - Unintentional weight loss 6 kg over 8 weeks
+      - No abdominal pain, no fever, no travel, no IV drug use
+      - Examination: scleral icterus, no hepatomegaly, no mass
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected pancreatic / hepatobiliary
+      cancer 2WW pathway (NG12). Jaundice in an adult aged 40 or
+      over meets the NG12 threshold on its own; painless jaundice
+      with weight loss in this age band is the classic pancreatic
+      cancer presentation. Urgent CT pancreas should be arranged as
+      part of the 2WW work-up.
+    actions:
+      - { action: "Refer 2WW suspected pancreatic cancer", priority: 2ww, due_days: 14, rule_ids: ["R-PANCREAS-001"] }
+      - { action: "Arrange urgent CT pancreas",             priority: urgent, due_days: 14, rule_ids: ["R-PANCREAS-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-PANCREAS-001
+      name: "Jaundice age >=40 -> 2WW pancreatic / hepatobiliary"
+      strength: strong
+      guideline_id: G-PANCREAS-2WW
+      guideline_title: "Suspected pancreatic cancer (NG12)"
+      chapter_title: "Pancreatic cancer referral criteria"
+      recommendation_verbatim: "Refer people using a suspected cancer pathway referral (for an appointment within 2 weeks) for pancreatic cancer if they are aged 40 and over and have jaundice."
+      action: { priority: 2ww, due_days: 14, name: "2WW pancreatic referral" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-PANCREAS-001"
+    - "jaundice"
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+    - ["pancreatic cancer", "suspected pancreatic cancer"]
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "viral hepatitis confirmed"  # not investigated yet
+    - "gallstones confirmed"       # not imaged yet
+    - "no weight loss"             # there IS 6 kg loss
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-PANCREAS-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. The transcript MUST state the jaundice is painless and the
+       patient is over 40 -- jaundice alone is the NG12 threshold.
+    2. The transcript MUST NOT invent a confirmed alternative
+       diagnosis (gallstones, hepatitis) -- bloods + imaging are
+       still pending.
+    3. The 2WW pathway must dominate; routine LFTs alone is a fail.

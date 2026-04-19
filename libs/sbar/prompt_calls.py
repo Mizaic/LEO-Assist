@@ -36,7 +36,6 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_NAME_SITUATION = "sbar_situation"
 _PROMPT_NAME_BACKGROUND = "sbar_background"
-_PROMPT_NAME_BACKGROUND_REDUCE = "sbar_background_reduce"
 _PROMPT_NAME_RECOMMENDATION = "sbar_recommendation"
 
 

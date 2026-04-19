@@ -247,6 +247,7 @@ def _split_oversize_source(
     source: ResolvedSource,
     *,
     per_slice_chars: int,
+    record_index: int,
 ) -> list[_SourceSlice]:
     """Split a single oversize record into roughly equal slices.
 
@@ -258,9 +259,18 @@ def _split_oversize_source(
     text = sanitise_for_prompt(source.text or "")
     if len(text) <= per_slice_chars:
         return [
-            _SourceSlice(source=source, text=text, slice_index=1, slice_total=1)
+            _SourceSlice(
+                source=source,
+                text=text,
+                slice_index=1,
+                slice_total=1,
+                record_index=record_index,
+            )
         ]
-    n = min(_MAX_INTRA_RECORD_SLICES, (len(text) + per_slice_chars - 1) // per_slice_chars)
+    n = min(
+        _MAX_INTRA_RECORD_SLICES,
+        (len(text) + per_slice_chars - 1) // per_slice_chars,
+    )
     n = max(2, n)
     step = (len(text) + n - 1) // n
     slices: list[_SourceSlice] = []
@@ -274,6 +284,7 @@ def _split_oversize_source(
                 text=chunk,
                 slice_index=i + 1,
                 slice_total=n,
+                record_index=record_index,
             )
         )
     return slices
@@ -293,16 +304,20 @@ def _build_slices(
     split_ids: list[str] = []
     per_slice_chars_floor = max(250, _PER_SOURCE_CHAR_CAP)
     available = max(1, per_part_budget_tokens - fixed_overhead_tokens)
-    for source in sources:
+    for record_idx, source in enumerate(sources, start=1):
         text = sanitise_for_prompt(source.text or "")[:_PER_SOURCE_CHAR_CAP]
-        whole = _SourceSlice(source=source, text=text)
+        whole = _SourceSlice(source=source, text=text, record_index=record_idx)
         if _slice_size(whole) <= available:
             slices.append(whole)
             continue
         # Single record too large even at 4000-char cap to fit inside
         # one part by itself. Split it across several slices.
         per_slice_chars = per_slice_chars_floor
-        sub_slices = _split_oversize_source(source, per_slice_chars=per_slice_chars)
+        sub_slices = _split_oversize_source(
+            source,
+            per_slice_chars=per_slice_chars,
+            record_index=record_idx,
+        )
         # If the half-cap is still too big, fall back to the
         # progressive shrinker caps on a per-slice basis. This is the
         # only place we ever shorten clinical text; the notice flags
@@ -316,6 +331,7 @@ def _build_slices(
                     text=ss.text[:cap],
                     slice_index=ss.slice_index,
                     slice_total=ss.slice_total,
+                    record_index=ss.record_index,
                 )
                 for ss in sub_slices
             ]
@@ -429,6 +445,7 @@ def partition_background_sources(
                 user_message=empty_msg,
                 descriptors=[],
                 estimated_input_tokens=_estimate_tokens(empty_msg),
+                record_range=(0, 0),
             )
         ], PartitionReport(total_records=0, total_parts=1)
 
@@ -469,9 +486,16 @@ def partition_background_sources(
                 slice_index=s.slice_index,
                 slice_total=s.slice_total,
                 char_count=len(s.text),
+                record_index=s.record_index,
             )
             for s in part_slices
         ]
+        record_indices = [s.record_index for s in part_slices]
+        record_range = (
+            (min(record_indices), max(record_indices))
+            if record_indices
+            else (0, 0)
+        )
         partitions.append(
             Partition(
                 index=idx,
@@ -479,6 +503,7 @@ def partition_background_sources(
                 user_message=msg,
                 descriptors=descriptors,
                 estimated_input_tokens=_estimate_tokens(msg),
+                record_range=record_range,
             )
         )
 

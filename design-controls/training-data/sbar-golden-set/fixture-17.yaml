@@ -1,0 +1,129 @@
+id: SBAR-GS-17
+title: "Suspected soft-tissue sarcoma (2WW) - enlarging deep lump age 49"
+
+# NICE NG12 (suspected cancer): consider a suspected cancer pathway
+# referral (within 2 weeks) for soft tissue sarcoma in adults if they
+# have an unexplained lump that is increasing in size. This fixture
+# covers the sarcoma pathway -- a less common but high-stakes 2WW
+# route that the SBAR engine has not been tested on previously.
+
+clinical_scenario: |
+  49-year-old female presents to GP with a 10-week history of an
+  enlarging, firm, painless lump in the right thigh, deep to fascia.
+  Lump is now 6 cm diameter and has clearly grown over the past 10
+  weeks (started as a "marble", now a "small plum"). No history of
+  trauma, no overlying skin change, no systemic symptoms. Reviewer
+  must confirm the SBAR routes to a 2WW soft-tissue sarcoma pathway
+  and that the "increasing in size" criterion is stated explicitly,
+  since a static lump of the same size would not meet NG12.
+
+input:
+  patient_id: "pat-gs-17"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-17" }
+  background:
+    - { type: encounter, id: "enc-gs-17" }
+  guideline_ids: ["G-SARCOMA-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-17"
+  patient_summary:
+    age_band: "45-49"
+    sex: "F"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-17"
+      reason: "Enlarging deep soft-tissue lump, ?sarcoma"
+      referring_specialty: "Sarcoma MDT"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-17
+    text: |
+      GP review 04/2026: 10-week history of an enlarging painless
+      lump in the right thigh. Now 6 cm, firm, deep to fascia, no
+      overlying skin change. Patient reports steady growth from
+      "marble-sized" to current size over 10 weeks. No trauma, no
+      preceding infection, no fever, no weight loss, no other
+      lumps. No anticoagulants. No personal or family history of
+      sarcoma.
+    codes:
+      - { concept_id: "298166008", term: "Persistent lump",            assertion: present }
+      - { concept_id: "263738005", term: "Lesion increased in size",   assertion: present }
+      - { concept_id: "302293008", term: "Mass of lower limb",         assertion: present }
+      - { concept_id: "417746004", term: "Traumatic injury",           assertion: absent }
+
+llm_transcript:
+  situation:
+    markdown: |
+      49-year-old woman referred by GP with a 10-week history of an
+      enlarging, painless, deep lump in the right thigh, now 6 cm.
+      Triggering this SBAR for the sarcoma 2WW suspected
+      soft-tissue sarcoma pathway.
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - 10-week enlarging painless lump, right thigh, deep to fascia
+      - Now 6 cm, has grown from marble-sized over 10 weeks
+       (criterion: "increasing in size")
+      - No overlying skin change, no trauma, no preceding infection
+      - No fever, no weight loss, no other lumps
+      - No personal or family history of sarcoma
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected soft-tissue sarcoma 2WW
+      pathway (NG12). The lump is unexplained, painless, deep, and
+      increasing in size, which meets the NG12 referral criteria.
+      Urgent ultrasound (with onward MRI) should be arranged as
+      part of the 2WW work-up. Do not biopsy in primary care.
+    actions:
+      - { action: "Refer 2WW suspected sarcoma",      priority: 2ww, due_days: 14, rule_ids: ["R-SARCOMA-001"] }
+      - { action: "Arrange urgent soft-tissue ultrasound", priority: urgent, due_days: 14, rule_ids: ["R-SARCOMA-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-SARCOMA-001
+      name: "Unexplained lump increasing in size -> 2WW soft-tissue sarcoma"
+      strength: strong
+      guideline_id: G-SARCOMA-2WW
+      guideline_title: "Suspected sarcoma (NG12)"
+      chapter_title: "Soft tissue sarcoma referral criteria"
+      recommendation_verbatim: "Consider a suspected cancer pathway referral (for an appointment within 2 weeks) for soft tissue sarcoma in adults if they have an unexplained lump that is increasing in size."
+      action: { priority: 2ww, due_days: 14, name: "2WW sarcoma referral" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-SARCOMA-001"
+    - ["increasing in size", "growing", "enlarging"]
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+    - ["sarcoma", "soft-tissue sarcoma", "soft tissue sarcoma"]
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "lipoma confirmed"           # not imaged yet
+    - "biopsy in primary care"     # contraindicated
+    - "stable in size"             # the lump is enlarging
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-SARCOMA-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. The transcript MUST state that the lump is increasing in
+       size -- a static lump of the same dimensions would not
+       trigger 2WW under NG12.
+    2. The transcript MUST advise against biopsy in primary care.
+    3. The 2WW pathway must dominate; "review in 6 weeks" is a
+       fail.

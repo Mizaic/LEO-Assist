@@ -37,6 +37,7 @@
       - "tests/test_sbar_assessment_formatter.py"
       - "services/ui/src/__tests__/synonym-chip-tree-ops.test.ts"
       - "services/ui/src/__tests__/synonym-chip-tree-to-sentence.test.ts"
+      - "services/ui/src/__tests__/synonym-chip-descendants.test.tsx"
 
   test_environment:
     environment_type: "development"

@@ -1,0 +1,136 @@
+id: SBAR-GS-18
+title: "Adversarial: visible haematuria WITH active UTI age 36 - NOT 2WW"
+
+# Adversarial twin of fixture-11. Under NICE NG12, visible haematuria
+# only triggers a 2WW bladder referral if the patient is aged 45 or
+# over AND there is no UTI cause. This patient is 36 and has culture-
+# proven UTI, so neither of the NG12 thresholds is met. The expected
+# outcome is "no rule fired" -- treat the UTI, then re-test the urine,
+# and refer routinely (or 2WW if haematuria persists after treatment).
+# This fixture exists so the model is rewarded for NOT escalating
+# every red-flag word.
+
+clinical_scenario: |
+  36-year-old female presents to GP with 4 days of dysuria, frequency,
+  cloudy urine, and one episode of visible haematuria. Urine
+  dipstick: blood ++, leucocytes +++, nitrites positive. MSU sent;
+  culture confirms E. coli >10^5 CFU/mL, sensitive to nitrofurantoin.
+  No flank pain, no fever, no recent catheter, no anticoagulants. No
+  prior UTIs. Reviewer must confirm the SBAR does NOT route to a 2WW
+  bladder pathway, that the UTI is treated first, and that a clear
+  safety-net is in place to re-check post-treatment.
+
+input:
+  patient_id: "pat-gs-18"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-18" }
+  background:
+    - { type: encounter, id: "enc-gs-18" }
+  guideline_ids: ["G-BLADDER-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-18"
+  patient_summary:
+    age_band: "35-39"
+    sex: "F"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-18"
+      reason: "Visible haematuria with culture-proven UTI, age 36"
+      referring_specialty: "Primary care"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-18
+    text: |
+      GP review 04/2026: 4-day history of dysuria, frequency, cloudy
+      urine, one episode of frank haematuria. Dipstick: blood ++,
+      leucocytes +++, nitrites positive. MSU culture: E. coli
+      >10^5 CFU/mL, sensitive to nitrofurantoin. No flank pain, no
+      fever, no recent catheter, no anticoagulants. No prior UTIs,
+      no history of bladder symptoms. Sexually active, no recent
+      change in partner.
+    codes:
+      - { concept_id: "34436003", term: "Haematuria",                       assertion: present }
+      - { concept_id: "68566005", term: "Urinary tract infection",          assertion: present }
+      - { concept_id: "49650001", term: "Dysuria",                          assertion: present }
+      - { concept_id: "302229004", term: "Frequency of micturition",        assertion: present }
+
+llm_transcript:
+  situation:
+    markdown: |
+      36-year-old woman with culture-proven E. coli urinary tract
+      infection and a single episode of visible haematuria during
+      this UTI. NG12 criteria for a 2WW bladder cancer referral are
+      NOT met: the patient is under 45, and the haematuria has a
+      clear infective explanation. Triggering this SBAR for routine
+      primary-care management with a safety-net.
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - 4-day dysuria, frequency, cloudy urine, single visible
+        haematuria episode
+      - Dipstick blood ++, leucocytes +++, nitrites positive
+      - MSU culture: E. coli >10^5 CFU/mL, nitrofurantoin sensitive
+      - No flank pain, no fever, no anticoagulants
+      - No prior UTIs, no history of bladder symptoms
+      - Patient is 36 (under the NG12 age threshold of 45 for the
+        unexplained-haematuria 2WW criterion)
+    error: null
+  recommendation:
+    markdown: |
+      No NG12 2WW criterion is met -- the haematuria is not
+      unexplained (the patient has a culture-proven UTI) and the
+      patient is below the 45-year age threshold for the
+      unexplained-haematuria pathway. Treat the UTI with
+      nitrofurantoin per local guidance. Safety-net: re-test the
+      urine after antibiotic course; if visible haematuria persists
+      after UTI clearance, refer 2WW bladder cancer pathway under
+      the "haematuria persisting after treatment of UTI" criterion.
+    actions:
+      - { action: "Treat UTI with nitrofurantoin",      priority: routine, due_days: 7,  rule_ids: [] }
+      - { action: "Re-test urine after antibiotic course (safety-net)", priority: routine, due_days: 28, rule_ids: [] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules: []   # no rule fires; UTI accounts for the haematuria
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - ["no rule fired", "no NG12 2WW criterion", "criteria not met"]
+    - ["under 45", "below the age threshold", "aged 36"]
+    - ["UTI", "urinary tract infection"]
+  required_phrases_in_recommendation:
+    - ["safety-net", "safety net", "re-test", "recheck"]
+    - "nitrofurantoin"
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "2WW"                      # MUST NOT trigger the 2WW route
+    - "two-week wait"
+    - "two week wait"
+    - "suspected bladder cancer" # NG12 criteria are not met
+    - "refer urgently for cystoscopy"
+  expected_pathway_hints:
+    rtr: "no"                    # no rule fired
+    stt_contains: "no NG12 2WW criterion"
+    stt_evidence_contains: ""    # no rule_id to cite
+  expected_action_priority: "routine"
+  reviewer_focus: |
+    1. The transcript MUST NOT escalate to 2WW just because the
+       words "visible haematuria" appear -- both NG12 criteria
+       (age >=45 AND no UTI cause) must be met.
+    2. The transcript MUST treat the UTI first AND set a clear
+       safety-net to re-test urine post-treatment.
+    3. The transcript MUST explicitly state the "haematuria
+       persisting after UTI treatment" pathway as the route to
+       2WW if the bleeding recurs -- so the next clinician knows
+       what to escalate on.

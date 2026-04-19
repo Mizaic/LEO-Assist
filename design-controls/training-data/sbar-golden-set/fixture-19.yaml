@@ -1,0 +1,140 @@
+id: SBAR-GS-19
+title: "Adversarial: pigmented lesion 7-point score 1 age 28 - NOT 2WW"
+
+# Adversarial twin of fixture-13. Under NICE NG12, a pigmented lesion
+# only triggers a 2WW melanoma referral if the weighted 7-point
+# checklist score is 3 or more. This patient has a single minor
+# feature (largest diameter 8 mm) and presents because of personal
+# anxiety, not change. The expected outcome is "no rule fired" --
+# reassure, photograph for baseline, and review in 8-12 weeks. This
+# fixture exists so the model is rewarded for NOT escalating every
+# pigmented lesion that crosses a primary-care desk.
+
+clinical_scenario: |
+  28-year-old female attends GP after seeing a social-media post
+  about melanoma. She wants a long-standing mole on the upper arm
+  reviewed. Lesion is 8 mm, regular oval shape, single uniform
+  shade of brown, no recent change in size, shape, or colour, no
+  bleeding, oozing, inflammation, or change in sensation. Weighted
+  7-point checklist: largest diameter >=7mm (minor, 1) = 1 point
+  (referral threshold is 3 or more). Reviewer must confirm the
+  SBAR does NOT route to a 2WW melanoma pathway and that the
+  reassurance + safety-net + photograph baseline plan is documented
+  clearly.
+
+input:
+  patient_id: "pat-gs-19"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-19" }
+  background:
+    - { type: encounter, id: "enc-gs-19" }
+  guideline_ids: ["G-MELANOMA-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-19"
+  patient_summary:
+    age_band: "25-29"
+    sex: "F"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-19"
+      reason: "Health-anxiety review of long-standing pigmented lesion"
+      referring_specialty: "Primary care"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-19
+    text: |
+      GP review 04/2026: 28-year-old presents requesting review of
+      a long-standing mole on the upper arm. Lesion is 8 mm,
+      regular oval shape, uniform brown colour. No reported change
+      in size, shape, or colour over the past 12 months. No
+      bleeding, oozing, inflammation, or change in sensation. Skin
+      type II. No personal or family history of melanoma.
+      Weighted 7-point checklist: largest diameter >=7mm (minor, 1)
+      = 1 point total. Patient driven by social-media anxiety, not
+      observed change.
+    codes:
+      - { concept_id: "400106008", term: "Pigmented skin lesion",        assertion: present }
+      - { concept_id: "263738005", term: "Lesion increased in size",     assertion: absent }
+      - { concept_id: "271770003", term: "Irregular skin lesion border", assertion: absent }
+      - { concept_id: "275542004", term: "Bleeding from skin lesion",    assertion: absent }
+
+llm_transcript:
+  situation:
+    markdown: |
+      28-year-old woman attended GP for review of a long-standing
+      8 mm pigmented lesion on the upper arm. Weighted 7-point
+      checklist score is 1 (referral threshold is 3 or more).
+      NG12 criteria for a 2WW melanoma referral are NOT met.
+      Triggering this SBAR for primary-care reassurance with a
+      photograph baseline and a safety-net review.
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - 8 mm pigmented lesion on upper arm, present "for years"
+      - Regular oval shape, uniform single shade of brown
+      - No change in size, shape, or colour over the past 12 months
+      - No bleeding, oozing, inflammation, or change in sensation
+      - Weighted 7-point checklist: 1 point (diameter >=7mm only)
+      - No personal or family history of melanoma
+      - Presentation triggered by social-media health anxiety, not
+        an observed change
+    error: null
+  recommendation:
+    markdown: |
+      No NG12 2WW criterion is met -- the weighted 7-point
+      checklist score is 1, well below the threshold of 3.
+      Reassure the patient, take a photograph of the lesion with a
+      ruler for baseline, and arrange a primary-care review in
+      8-12 weeks to confirm the lesion is stable. Safety-net:
+      return earlier and request 2WW referral if the lesion
+      starts to change in size, shape, colour, or sensation, or
+      if it begins to bleed, ooze, or become inflamed.
+    actions:
+      - { action: "Reassure and photograph lesion for baseline",      priority: routine, due_days: 7,  rule_ids: [] }
+      - { action: "Primary-care review in 8-12 weeks (safety-net)",   priority: routine, due_days: 84, rule_ids: [] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules: []   # 7-point score 1 is well below the 3-point 2WW threshold
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - ["no rule fired", "no NG12 2WW criterion", "below the threshold"]
+    - "7-point"
+    - ["score of 1", "1 point"]
+  required_phrases_in_recommendation:
+    - ["safety-net", "safety net", "review in", "photograph"]
+    - ["return earlier", "come back if", "if the lesion changes"]
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "2WW"                            # MUST NOT trigger the 2WW route
+    - "two-week wait"
+    - "two week wait"
+    - "suspected melanoma"             # criteria not met
+    - "refer urgently for excision"
+    - "biopsy in primary care"         # contraindicated for any ?melanoma
+  expected_pathway_hints:
+    rtr: "no"                          # no rule fired
+    stt_contains: "below the NG12 threshold"
+    stt_evidence_contains: ""          # no rule_id to cite
+  expected_action_priority: "routine"
+  reviewer_focus: |
+    1. The transcript MUST NOT escalate to 2WW just because the
+       words "pigmented lesion" appear -- the 7-point score must
+       be 3 or more.
+    2. The transcript MUST state the calculated score (1) and the
+       threshold (3) so the reasoning is auditable.
+    3. The transcript MUST give a concrete safety-net (photograph
+       for baseline, review in 8-12 weeks, return earlier on any
+       of the 7-point features) -- "reassure" alone is a fail.

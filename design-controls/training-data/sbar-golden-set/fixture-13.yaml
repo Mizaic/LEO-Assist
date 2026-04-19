@@ -1,0 +1,132 @@
+id: SBAR-GS-13
+title: "Suspected melanoma (2WW) - changing pigmented lesion 7-point score 4"
+
+# NICE NG12 (suspected cancer): consider a suspected cancer pathway
+# referral (within 2 weeks) for melanoma if the dermoscopy or weighted
+# 7-point checklist suggests it. The 7-point checklist scores at 3 or
+# more for major (2 pts each: change in size, irregular shape, irregular
+# colour) and minor (1 pt each: largest diameter >=7mm, inflammation,
+# oozing, change in sensation) features.
+
+clinical_scenario: |
+  42-year-old male presents to GP with a 6-month history of a changing
+  pigmented lesion on the back. Spouse first noticed it. Lesion is
+  9 mm, irregular border with two shades of brown, no oozing or
+  bleeding, no inflammation, no change in sensation. Weighted 7-point
+  score: change in size (2) + irregular shape (2) + diameter >=7mm (1)
+  = 5 (referral threshold is 3+). Reviewer must confirm the SBAR
+  routes to a 2WW suspected melanoma pathway and that the 7-point
+  score is calculated correctly and stated explicitly.
+
+input:
+  patient_id: "pat-gs-13"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-13" }
+  background:
+    - { type: encounter, id: "enc-gs-13" }
+  guideline_ids: ["G-MELANOMA-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-13"
+  patient_summary:
+    age_band: "40-49"
+    sex: "M"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-13"
+      reason: "Changing pigmented lesion, 7-point score 5, ?melanoma"
+      referring_specialty: "Dermatology"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-13
+    text: |
+      GP review 04/2026: 6-month history of an enlarging pigmented
+      lesion on the upper back. Now 9 mm, irregular border, two
+      shades of brown. No bleeding, oozing, or inflammation. No
+      change in sensation. Weighted 7-point checklist: change in
+      size (major, 2) + irregular shape (major, 2) + diameter >=7mm
+      (minor, 1) = 5 points. No personal or family history of
+      melanoma. Fitzpatrick skin type II.
+    codes:
+      - { concept_id: "400106008", term: "Pigmented skin lesion",       assertion: present }
+      - { concept_id: "263738005", term: "Lesion increased in size",    assertion: present }
+      - { concept_id: "271770003", term: "Irregular skin lesion border", assertion: present }
+      - { concept_id: "275542004", term: "Bleeding from skin lesion",   assertion: absent }
+
+llm_transcript:
+  situation:
+    markdown: |
+      42-year-old male referred by GP with a 6-month history of an
+      enlarging pigmented lesion on the upper back. Weighted 7-point
+      checklist score is 5 (referral threshold is 3 or more).
+      Triggering this SBAR for the dermatology 2WW suspected
+      melanoma pathway.
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - Pigmented lesion on upper back, 9 mm diameter
+      - Change in size over 6 months (major feature, 2 points)
+      - Irregular shape with 2 shades of brown (major feature, 2 points)
+      - Largest diameter 9 mm (minor feature, 1 point)
+      - Total weighted 7-point score: 5
+      - No bleeding, oozing, inflammation, or change in sensation
+      - No personal or family history of melanoma
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected melanoma 2WW pathway (NG12).
+      The weighted 7-point checklist score is 5, comfortably above
+      the referral threshold of 3. Do not biopsy in primary care --
+      the dermatology team should arrange dermoscopy and excision
+      biopsy as part of the 2WW work-up.
+    actions:
+      - { action: "Refer 2WW suspected melanoma", priority: 2ww, due_days: 14, rule_ids: ["R-MELANOMA-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-MELANOMA-001
+      name: "Weighted 7-point score >=3 -> 2WW melanoma"
+      strength: strong
+      guideline_id: G-MELANOMA-2WW
+      guideline_title: "Suspected skin cancer (NG12)"
+      chapter_title: "Melanoma referral criteria"
+      recommendation_verbatim: "Consider a suspected cancer pathway referral (for an appointment within 2 weeks) for melanoma in people with a suspicious pigmented skin lesion with a weighted 7-point checklist score of 3 or more."
+      action: { priority: 2ww, due_days: 14, name: "2WW melanoma referral" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-MELANOMA-001"
+    - "7-point"
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+    - ["melanoma", "suspected melanoma"]
+    - ["do not biopsy", "Do not biopsy", "do not excise in primary care"]
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "biopsy in primary care"     # explicitly contraindicated by NG12
+    - "shave biopsy"               # contraindicated for ?melanoma
+    - "score of 2"                 # the score is 5
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-MELANOMA-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. The transcript MUST state the calculated 7-point score (5)
+       and that the threshold is 3 or more.
+    2. The transcript MUST advise against biopsy or excision in
+       primary care -- this is a hard NG12 contraindication.
+    3. The 2WW pathway must dominate; "monitor and review in 8
+       weeks" is a fail.

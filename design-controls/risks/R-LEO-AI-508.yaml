@@ -84,22 +84,42 @@
       implemented_by: ["DI-LEO-AI-510"]
       verified_by: ["VT-LEO-AI-510"]
       effectiveness: "partially_effective"
+    - control_type: "design_feature"
+      description: >
+        EditRuleDialog renders an inline SeedDescendantsList under
+        each seed that, on demand, fetches and displays every SNOMED
+        descendant the bitmap will actually match at the seed's
+        effective depth. The author can audit the closure before
+        saving and block any unintended descendant from the same
+        list (one click). Already-blocked descendants render with a
+        strike-through and an explicit unblock affordance, so the
+        carve-out and the closure are visible side-by-side. This
+        closes the audit loop that previously required leaving the
+        editor to inspect the SNOMED hierarchy.
+      implemented_by: ["DI-LEO-AI-511"]
+      verified_by: ["VT-LEO-AI-510"]
+      effectiveness: "effective"
 
   residual_risk_estimate:
     severity: 3
-    probability: 2
+    probability: 1
     detectability: 2
-    rpn: 12
-    risk_level: "medium"
+    rpn: 6
+    risk_level: "low"
     acceptability: "acceptable"
     justification: >
       Replay (R/W test patient cohort) catches the most common
       regressions before deploy; the warning chip catches
       author-time misuse; matched_concept_ids gives reviewers a
-      verifiable audit trail. Residual risk reflects the case
-      where a rule has no test patient covering the impacted
-      subpopulation, which is mitigated procedurally by the
-      QA review checklist.
+      verifiable audit trail; and the inline SeedDescendantsList
+      now lets the author SEE every descendant the bitmap will
+      match before saving (and block any unintended one in a
+      single click), so the "wrong code picked from search"
+      scenario in the hazardous situation is detectable at
+      authoring time. Residual risk now reflects only the case
+      where an author misreads the friendly term in the
+      descendants list, which is mitigated procedurally by the
+      QA peer-review checklist.
 
   monitoring:
     monitoring_plan: >
@@ -117,7 +137,7 @@
   metadata:
     identified_by: "Rob Smith - 2026-04-19 design review of UN-LEO-AI-093 synonym sets + exclusions"
     identified_date: "2026-04-19"
-    status: "analyzed"
+    status: "mitigated"
     tags:
       - "guidance-rules"
       - "exclusion"

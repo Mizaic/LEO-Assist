@@ -3,7 +3,7 @@
 Pins the structural invariants of each manually-curated fixture and
 the runner/harness contract:
 
-- All 10 fixture YAMLs exist and parse with the required keys.
+- All fixture YAMLs (currently 19) exist and parse with the required keys.
 - Every fixture builds a valid SBARRequestPayload.
 - The runner executes every fixture against the orchestrator with the
   recorded LLM transcript and evaluator response, and the rendered
@@ -176,8 +176,10 @@ def test_runner_reports_every_fixture_pass(tmp_path, runner_module) -> None:
 
     summary_path = runner_module.write_run_summary(tmp_path, outcomes)
     summary = json.loads(summary_path.read_text())
-    assert summary["fixture_count"] == 10
-    assert summary["structural_pass_count"] == 10, summary["fixtures"]
+    assert summary["fixture_count"] == _EXPECTED_FIXTURE_COUNT
+    assert summary["structural_pass_count"] == _EXPECTED_FIXTURE_COUNT, (
+        summary["fixtures"]
+    )
 
     # Per-fixture report files all exist.
     for fx in fixtures:
@@ -302,7 +304,7 @@ def test_fixture_06_does_not_require_routine_action(runner_module) -> None:
 def test_signed_ledger_passes_when_all_pass(tmp_path, review_module) -> None:
     verdicts = [
         {"fixture_id": f"SBAR-GS-{i:02d}", "verdict": "pass", "comment": "ok"}
-        for i in range(1, 11)
+        for i in range(1, _EXPECTED_FIXTURE_COUNT + 1)
     ]
     path = review_module._signed_ledger(
         tmp_path, "Dr Test", "QA Lead", verdicts

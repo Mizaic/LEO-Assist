@@ -19,7 +19,10 @@
     (2) "Add another code" entry that searches SNOMED and appends
     a new seed; (3) Excluded codes list with "Add a code to exclude"
     that searches SNOMED scoped to descendants of any seed and
-    appends to excluded_concept_ids. treeOps.ts SHALL gain pure
+    appends to excluded_concept_ids. Each seed row SHALL also
+    expose an inline SeedDescendantsList expander that lets the
+    author audit -- and block one-by-one -- the SNOMED descendants
+    the bitmap will actually match (see AC-007). treeOps.ts SHALL gain pure
     helpers add_seed, remove_seed, set_primary_seed,
     toggle_include_descendants, set_seed_distance, add_excluded,
     remove_excluded; treeToSentence.ts SHALL render the synonym
@@ -83,6 +86,23 @@
           closure, the popover SHALL display a non-blocking warning
           chip ("This code is not in any seed's hierarchy and will
           have no effect") so authors notice the misuse before save.
+      - type: "safety"
+        spec: >
+          AC-007: Each seed row in the popover SHALL expose a
+          "Show codes" expander that, when opened with
+          include_descendants=true, fetches up to 200 descendants
+          from GET /api/terminology/concepts/{id}/descendants at the
+          seed's effective depth (per-seed override or rule default
+          of 3) and renders the friendly term, SNOMED id and
+          semantic tag for each row, with a one-click "Block" button
+          that emits add_excluded for that id. Descendants whose
+          id is already in excluded_concept_ids SHALL render with a
+          "Blocked" badge plus a strike-through and an explicit
+          "Unblock" affordance that emits remove_excluded. When
+          include_descendants=false the panel SHALL render a static
+          "Only the exact code <id> will fire" message and MUST NOT
+          call the descendants endpoint. Changing the seed's depth
+          while the panel is open SHALL trigger a refetch.
     constraints:
       - type: "safety"
         spec: >
@@ -102,7 +122,8 @@
         - "services/ui/src/app/admin/guidance/EditRuleDialog/treeToSentence.ts"
         - "services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx"
         - "services/ui/src/app/admin/guidance/EditRuleDialog/SynonymChipEditor.tsx"
-      estimated_loc: 540
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/SeedDescendantsList.tsx"
+      estimated_loc: 820
 
   verification:
     method: "Test"

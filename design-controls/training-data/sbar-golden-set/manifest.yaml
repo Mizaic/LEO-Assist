@@ -18,3 +18,15 @@ fixtures:
   - { id: SBAR-GS-08, file: fixture-08.yaml, theme: "Conflict surfacing",      summary: "Penicillin allergy disagreement across two sources" }
   - { id: SBAR-GS-09, file: fixture-09.yaml, theme: "Missing data flag",       summary: "Missing eGFR for renal pathway" }
   - { id: SBAR-GS-10, file: fixture-10.yaml, theme: "Multi-rule prioritisation", summary: "2WW upper GI + routine MSK; 2WW must dominate" }
+  # NG12 / referral-triage backfill (2026-04-18). Six new pathways +
+  # two adversarial twins so the SBAR aspect has wide NG12 coverage
+  # and is rewarded for NOT escalating when criteria are not met.
+  - { id: SBAR-GS-11, file: fixture-11.yaml, theme: "Bladder 2WW",        summary: "Visible haematuria age 67 without UTI; classic NG12 urology 2WW" }
+  - { id: SBAR-GS-12, file: fixture-12.yaml, theme: "Endometrial 2WW",    summary: "Post-menopausal bleeding age 58; NG12 gynae 2WW" }
+  - { id: SBAR-GS-13, file: fixture-13.yaml, theme: "Melanoma 2WW",       summary: "Changing pigmented lesion, weighted 7-point score 5" }
+  - { id: SBAR-GS-14, file: fixture-14.yaml, theme: "Pancreatic 2WW",     summary: "Painless jaundice + weight loss age 71; NG12 hepatobiliary 2WW" }
+  - { id: SBAR-GS-15, file: fixture-15.yaml, theme: "Head and neck 2WW",  summary: "Persistent unexplained neck lump age 56, smoker; NG12 ENT 2WW" }
+  - { id: SBAR-GS-16, file: fixture-16.yaml, theme: "Prostate 2WW",       summary: "Raised PSA + abnormal DRE age 65; pairs with fixture-04 routine" }
+  - { id: SBAR-GS-17, file: fixture-17.yaml, theme: "Sarcoma 2WW",        summary: "Enlarging deep soft-tissue lump age 49; NG12 sarcoma 2WW" }
+  - { id: SBAR-GS-18, file: fixture-18.yaml, theme: "Adversarial: NOT 2WW", summary: "Visible haematuria with culture-proven UTI age 36; NG12 criteria NOT met" }
+  - { id: SBAR-GS-19, file: fixture-19.yaml, theme: "Adversarial: NOT 2WW", summary: "Pigmented lesion 7-point score 1 age 28; below NG12 threshold" }

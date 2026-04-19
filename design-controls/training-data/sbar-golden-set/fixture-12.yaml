@@ -1,0 +1,127 @@
+id: SBAR-GS-12
+title: "Suspected endometrial cancer (2WW) - post-menopausal bleeding age 58"
+
+# NICE NG12 (suspected cancer): refer women aged 55 and over with
+# post-menopausal bleeding (unexplained vaginal bleeding more than 12
+# months after menstruation has stopped) for an appointment within 2
+# weeks. This fixture covers the most common 2WW gynaecology pathway.
+
+clinical_scenario: |
+  58-year-old female reports a single episode of fresh red vaginal
+  bleeding 18 months after her last menstrual period. No HRT use, no
+  vaginal atrophy on examination, no recent intercourse trauma. BMI
+  31. The reviewer must confirm the SBAR routes to a 2WW suspected
+  endometrial cancer pathway and that the SBAR explicitly notes the
+  patient is post-menopausal (>12 months amenorrhoea), since this is
+  the criterion that makes the bleeding "post-menopausal" under NG12.
+
+input:
+  patient_id: "pat-gs-12"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-12" }
+  background:
+    - { type: encounter, id: "enc-gs-12" }
+  guideline_ids: ["G-ENDOMETRIAL-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-12"
+  patient_summary:
+    age_band: "55-59"
+    sex: "F"
+    menopausal_status: "post_menopausal_18m"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-12"
+      reason: "Post-menopausal vaginal bleeding, ?endometrial cancer"
+      referring_specialty: "Gynaecology"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-12
+    text: |
+      GP review 04/2026: single episode of fresh red vaginal bleeding
+      4 days ago. Last menstrual period 18 months ago, confirmed
+      post-menopausal. No HRT. Vaginal examination: no atrophic
+      changes, cervix grossly normal. BMI 31. No anticoagulants. No
+      personal or family history of endometrial or breast cancer.
+    codes:
+      - { concept_id: "405729008", term: "Post-menopausal bleeding", assertion: present }
+      - { concept_id: "289903006", term: "Post-menopausal state",    assertion: present }
+      - { concept_id: "162864005", term: "Body mass index 30+ - obesity", assertion: present }
+      - { concept_id: "228440001", term: "Hormone replacement therapy", assertion: absent }
+
+llm_transcript:
+  situation:
+    markdown: |
+      58-year-old post-menopausal woman referred by GP with a single
+      episode of fresh red vaginal bleeding, 18 months after the last
+      menstrual period. Not on HRT. Triggering this SBAR for the
+      gynaecology 2WW suspected endometrial cancer pathway.
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - One episode of fresh red post-menopausal bleeding 4 days ago
+      - Last menstrual period 18 months ago (confirmed post-menopausal)
+      - Not taking HRT
+      - Vaginal examination: no atrophy, cervix grossly normal
+      - BMI 31 (raised endometrial cancer risk)
+      - No personal or family history of gynaecological cancer
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected endometrial cancer 2WW
+      pathway (NG12). The bleeding is unexplained, the patient is
+      confirmed post-menopausal (>12 months amenorrhoea), and she is
+      not on HRT, which meets the NG12 referral criteria. Transvaginal
+      ultrasound and outpatient hysteroscopy should be arranged as
+      part of the 2WW work-up.
+    actions:
+      - { action: "Refer 2WW suspected endometrial cancer", priority: 2ww, due_days: 14, rule_ids: ["R-ENDOMETRIAL-001"] }
+      - { action: "Arrange transvaginal ultrasound",         priority: urgent, due_days: 14, rule_ids: ["R-ENDOMETRIAL-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-ENDOMETRIAL-001
+      name: "Post-menopausal bleeding age >=55 -> 2WW endometrial"
+      strength: strong
+      guideline_id: G-ENDOMETRIAL-2WW
+      guideline_title: "Suspected gynaecological cancer (NG12)"
+      chapter_title: "Endometrial cancer referral criteria"
+      recommendation_verbatim: "Refer women using a suspected cancer pathway referral (for an appointment within 2 weeks) for endometrial cancer if they are aged 55 and over with post-menopausal bleeding (unexplained vaginal bleeding more than 12 months after menstruation has stopped because of the menopause)."
+      action: { priority: 2ww, due_days: 14, name: "2WW endometrial referral" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-ENDOMETRIAL-001"
+    - "post-menopausal"
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+    - ["endometrial cancer", "suspected endometrial cancer"]
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "intermenstrual bleeding"  # patient is post-menopausal, not pre
+    - "on HRT"                   # explicitly NOT on HRT
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-ENDOMETRIAL-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. The transcript MUST confirm the patient is post-menopausal
+       (>12 months amenorrhoea); without that wording the NG12
+       criterion is not met.
+    2. The transcript MUST NOT call this intermenstrual bleeding
+       (the patient is post-menopausal, not pre-menopausal).
+    3. The 2WW pathway must dominate; routine ultrasound alone is
+       a fail.

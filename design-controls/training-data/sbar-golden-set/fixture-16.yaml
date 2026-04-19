@@ -1,0 +1,137 @@
+id: SBAR-GS-16
+title: "Suspected prostate cancer (2WW) - raised PSA + abnormal DRE age 65"
+
+# NICE NG12 (suspected cancer): refer men using a suspected cancer
+# pathway referral (for an appointment within 2 weeks) for prostate
+# cancer if their prostate feels malignant on digital rectal
+# examination, or their PSA levels are above the age-specific
+# reference range. This fixture pairs with fixture-04 (mild LUTS,
+# normal PSA, age 65 -> ROUTINE) so the rule engine has both the
+# 2WW positive and the routine negative for the same demographic.
+
+clinical_scenario: |
+  65-year-old male presents to GP with new lower urinary tract
+  symptoms (slow stream, hesitancy, nocturia x2). PSA 8.4 ng/mL
+  (age-adjusted reference range <=4.5 ng/mL for age 60-69, so PSA
+  is approximately twice the upper limit). Digital rectal
+  examination: prostate hard with a discrete craggy nodule on the
+  right lobe. No haematuria, no bone pain. Reviewer must confirm
+  the SBAR routes to a 2WW prostate cancer pathway and that BOTH
+  the raised PSA AND the abnormal DRE are stated explicitly --
+  either alone is enough under NG12, but both together strengthen
+  the case.
+
+input:
+  patient_id: "pat-gs-16"
+  situation:
+    artifacts:
+      - { type: referral_request, id: "rr-gs-16" }
+  background:
+    - { type: encounter, id: "enc-gs-16" }
+  guideline_ids: ["G-PROSTATE-2WW"]
+
+resolved_situation:
+  patient_id: "pat-gs-16"
+  patient_summary:
+    age_band: "65-69"
+    sex: "M"
+  artifacts:
+    - kind: referral_request
+      id: "rr-gs-16"
+      reason: "Raised PSA + abnormal DRE, ?prostate cancer"
+      referring_specialty: "Urology"
+
+resolved_background:
+  - source_label: Encounter
+    source_id: enc-gs-16
+    text: |
+      GP review 04/2026: 4-month history of slow urinary stream,
+      hesitancy, and nocturia x2. PSA 8.4 ng/mL (age-adjusted
+      reference range <=4.5 ng/mL for ages 60-69). DRE: prostate
+      enlarged and hard, with a discrete craggy nodule palpable on
+      the right lobe. No haematuria, no haemospermia, no bone pain,
+      no perineal pain. No recent UTI, no recent prostate
+      examination, no recent ejaculation in 48h.
+    codes:
+      - { concept_id: "276493005", term: "Raised prostate specific antigen", assertion: present }
+      - { concept_id: "402972008", term: "Prostate nodule",                  assertion: present }
+      - { concept_id: "267023003", term: "Lower urinary tract symptoms",     assertion: present }
+      - { concept_id: "34436003",  term: "Haematuria",                       assertion: absent }
+
+llm_transcript:
+  situation:
+    markdown: |
+      65-year-old man referred by GP with new LUTS, raised PSA
+      (8.4 ng/mL, age-adjusted upper limit 4.5 ng/mL), and an
+      abnormal DRE with a discrete craggy nodule on the right
+      lobe of the prostate. Triggering this SBAR for the urology
+      2WW suspected prostate cancer pathway.
+    actions: []
+    error: null
+  background:
+    markdown: |
+      - 4-month history of slow stream, hesitancy, nocturia x2
+      - PSA 8.4 ng/mL (almost twice the age-adjusted upper limit
+        of 4.5 ng/mL for ages 60-69)
+      - DRE: hard prostate with a discrete craggy nodule, right lobe
+      - No haematuria, no bone pain, no recent UTI
+      - No recent ejaculation, prostate exam, or instrumentation in
+        the previous 48 hours that could spuriously raise PSA
+    error: null
+  recommendation:
+    markdown: |
+      Refer urgently under the suspected prostate cancer 2WW pathway
+      (NG12). Both NG12 criteria are met: the prostate feels
+      malignant on DRE AND the PSA is above the age-specific
+      reference range. Multiparametric MRI prostate before biopsy
+      should be arranged as part of the 2WW work-up.
+    actions:
+      - { action: "Refer 2WW suspected prostate cancer", priority: 2ww, due_days: 14, rule_ids: ["R-PROSTATE-001"] }
+      - { action: "Arrange multiparametric MRI prostate", priority: urgent, due_days: 14, rule_ids: ["R-PROSTATE-001"] }
+    error: null
+
+evaluator_response:
+  outage: false
+  matched_rules:
+    - rule_id: R-PROSTATE-001
+      name: "Raised PSA OR malignant-feeling DRE -> 2WW prostate"
+      strength: strong
+      guideline_id: G-PROSTATE-2WW
+      guideline_title: "Suspected prostate cancer (NG12)"
+      chapter_title: "Prostate cancer referral criteria"
+      recommendation_verbatim: "Refer men using a suspected cancer pathway referral (for an appointment within 2 weeks) for prostate cancer if their prostate feels malignant on digital rectal examination, or their PSA levels are above the age-specific reference range."
+      action: { priority: 2ww, due_days: 14, name: "2WW prostate referral" }
+      confidence: 1.0
+
+reviewer_expectations:
+  required_section_headings:
+    - "## Situation"
+    - "## Background"
+    - "## Assessment"
+    - "## Recommendation"
+  required_phrases_in_assessment:
+    - "R-PROSTATE-001"
+    - ["raised PSA", "PSA above"]
+    - ["abnormal DRE", "malignant", "craggy"]
+  required_phrases_in_recommendation:
+    - ["2WW", "two-week wait", "two week wait"]
+    - ["prostate cancer", "suspected prostate cancer"]
+  banned_phrases:
+    - "as an AI"
+    - "I cannot"
+    - "PSA within range"        # PSA is 8.4, range upper limit 4.5
+    - "normal DRE"              # DRE is abnormal
+    - "benign prostatic"        # do not assume BPH; nodule is craggy
+  expected_pathway_hints:
+    rtr: "yes"
+    stt_contains: "two-week wait"
+    stt_evidence_contains: "R-PROSTATE-001"
+  expected_action_priority: "2ww"
+  reviewer_focus: |
+    1. The transcript MUST state the PSA value (8.4 ng/mL) AND the
+       age-specific upper limit (4.5 ng/mL) so the reader can see
+       why it counts as raised.
+    2. The transcript MUST describe the DRE as abnormal / malignant
+       / craggy -- not "enlarged" alone, which would be BPH.
+    3. The 2WW pathway must dominate; alpha-blocker trial alone
+       is a fail.

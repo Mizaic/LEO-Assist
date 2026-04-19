@@ -1,0 +1,111 @@
+# -- DO-LEO-AI-520 -- Drawer encounter search relevance utility + match rationale chips
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-520"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-520"]
+    user_needs: ["UN-LEO-AI-096"]
+    risks_addressed:
+      - "R-LEO-AI-063"
+      - "R-LEO-AI-174"
+    verification_tests: ["VT-LEO-AI-519"]
+
+  specification:
+    title: "encounterRelevance.ts shared utility + drawer card chip integration"
+    description: |
+      Brings the deterministic part of the /care/encounters server
+      query understanding to the patient drawer's in-memory search
+      so reviewers see the same result set and the same "why this
+      matched" chip taxonomy on both surfaces.
+
+      Implementation pieces:
+
+        1. New module
+           `services/ui/src/components/mission-control/encounterRelevance.ts`
+           that mirrors the server's `_TYPO_MAP`, `_SYNONYM_MAP`,
+           `_normalise_tokens`, `_expand_terms`, and
+           `feature_match_rationale` (see
+           `services/analytics_api/app/services/encounter_query_understanding.py`).
+           Pure TypeScript, no React imports, so future surfaces
+           (dry-run candidates, gold-editor sentence search) can
+           reuse the same vocabulary without dragging in MUI.
+
+        2. `encounterFilters.ts` switches `applyCommonFilters` from
+           `text.toLowerCase().includes(query.toLowerCase())` to
+           `hasAnyExpandedHit(text, expandSearchTerms(query))`,
+           so a query for "lump" matches encounters that mention
+           "mass", "swelling", or "nodule".
+
+        3. `EncounterCard.tsx` computes `expandedTerms` and
+           `matchRationale` via the new module, passes
+           `matchRationale.hitTerms` into `collectHighlightTerms`
+           so the amber highlighter paints synonyms too, and
+           renders an outlined chip row in the card header
+           (max 4 chips, height 20, fontSize 0.65rem,
+           variant="outlined") when the query expands and at
+           least one hit term is found in the text.
+
+      The change is additive: when the reviewer's query has no
+      synonym match the chip row is hidden, the highlighter falls
+      back to the literal query tokens, and the filter behaves the
+      same as before for the original query token.
+
+    acceptance_criteria:
+      - criterion: "Shared utility exposes the documented surface"
+        type: "functional"
+        measurement: "Static-source"
+        target: "encounterRelevance.ts default-exports expandSearchTerms, computeMatchRationale, hasAnyExpandedHit and embeds the same TYPO_MAP / SYNONYM_MAP entries as the server"
+      - criterion: "applyCommonFilters delegates to expandSearchTerms"
+        type: "functional"
+        measurement: "Static-source"
+        target: "encounterFilters.ts no longer does a bare text.includes; uses expandSearchTerms + hasAnyExpandedHit"
+      - criterion: "Drawer card renders match-rationale chips"
+        type: "functional"
+        measurement: "Static-source"
+        target: "EncounterCard.tsx renders chips with data-testid encounter-card-match-rationale-chip when expandedTerms and matchRationale.hitTerms are both non-empty, capped at 4"
+      - criterion: "Highlighter receives synonym hit terms"
+        type: "functional"
+        measurement: "Static-source"
+        target: "EncounterCard.tsx calls collectHighlightTerms(search, matchRationale.hitTerms) so the amber highlighter paints synonyms"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/encounterRelevance.ts"
+        description: "Shared deterministic query understanding (typo + synonym + match rationale)"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/encounterFilters.ts"
+        description: "applyCommonFilters now delegates to expandSearchTerms + hasAnyExpandedHit"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/components/mission-control/EncounterCard.tsx"
+        description: "Renders match-rationale chips and feeds synonym hits into the highlighter"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript"
+      loc: 130
+      key_functions:
+        - "expandSearchTerms"
+        - "computeMatchRationale"
+        - "hasAnyExpandedHit"
+        - "applyCommonFilters"
+        - "EncounterCard match-rationale chip row"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Synonym expansion must not affect coded concept attachment, gold-editor save path, or recode flow"
+      - "Drawer card chip taxonomy must mirror the host row chip taxonomy so reviewers do not misread synonym hits as new clinical findings"
+    risk_control_measures:
+      - "Mirrors the server's TYPO_MAP / SYNONYM_MAP byte-for-byte; cross-reference comment in encounterRelevance.ts header"
+      - "expandSearchTerms returns [] for blank input; applyCommonFilters preserves prior no-query behaviour"
+      - "Chip row uses the same height/fontSize/variant as the host row (no new visual token)"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false
