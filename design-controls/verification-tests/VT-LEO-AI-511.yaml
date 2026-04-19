@@ -1,0 +1,170 @@
+# -- VT-LEO-AI-511 -- Stepped widescreen rule editor (Change this rule)
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-511"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-512"
+    risks:
+      - "R-LEO-AI-509"
+
+  metadata:
+    title: "Stepped EditRuleDialog: rail navigation, live preview, before/after, save gating, save payload, reading age"
+    description: >
+      Verifies the widescreen four-step EditRuleDialog. A static-source
+      Jest case asserts the file structure and that the orchestrator
+      mounts a three-column grid with StepRail, the current step
+      and LivePreviewPane. Live-render Jest cases (React Testing
+      Library + user-event) cover rail navigation, ready-state
+      transitions, live preview updates, the before/after variant
+      on step 4, and save gating. A live-render save payload case
+      verifies that the action SNOMED is omitted when the reviewer
+      never opens step 2's action panel and is included when they
+      do. A copy-readability case sweeps every chrome string in
+      copy.ts and asserts Flesch-Kincaid grade <= 6.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "jest"
+    test_file_paths:
+      - "services/ui/src/__tests__/edit-rule-dialog-stepped-shell.test.tsx"
+      - "services/ui/src/__tests__/edit-rule-dialog-stepped-rail.test.tsx"
+      - "services/ui/src/__tests__/edit-rule-dialog-stepped-live-preview.test.tsx"
+      - "services/ui/src/__tests__/edit-rule-dialog-stepped-save-gating.test.tsx"
+      - "services/ui/src/__tests__/edit-rule-dialog-stepped-save-payload.test.tsx"
+      - "services/ui/src/__tests__/edit-rule-dialog-stepped-copy-reading-age.test.ts"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Node 20+ / jest 30 / @testing-library/react / user-event"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-511-TC-001"
+      case_name: "Static-source: orchestrator mounts StepRail + step routing + LivePreviewPane in a three-column grid"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/src/app/admin/guidance/EditRuleDialog/index.tsx as a string; assert imports for StepRail, LivePreviewPane, Step1Who, Step2Suggest, Step3Try, Step4Save and a gridTemplateColumns declaration with three columns"
+          expected_result: "All imports and the three-column gridTemplateColumns declaration are present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Module structure matches DO-LEO-AI-512"
+
+    - case_id: "VT-511-TC-002"
+      case_name: "StepRail renders four numbered jump-able steps with ready-state chips"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EditRuleDialog with a valid rule. Assert four buttons inside the StepRail with names containing '1.', '2.', '3.', '4.'. Click step 4; assert currentStepId is 'save' (the Save reason textarea appears)."
+          expected_result: "Four numbered steps render; clicking a rail item navigates to that step's content"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Rail is jump-able and current step content is rendered"
+
+    - case_id: "VT-511-TC-003"
+      case_name: "LivePreviewPane updates within a render tick when the tree is edited"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EditRuleDialog on step 1 with a rule whose tree contains one CONCEPT leaf 'Smoker'. Edit the leaf via treeOps to 'Cigarette smoker' and assert the LivePreviewPane sentence now contains 'cigarette smoker' without any network call."
+          expected_result: "Preview text reflects the edited concept; no fetch is made"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Preview is purely client-side and reactive to tree edits"
+
+    - case_id: "VT-511-TC-004"
+      case_name: "Step 4 swaps LivePreviewPane to a Before/After variant"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EditRuleDialog. Edit the tree on step 1, then jump to step 4. Assert two preview columns labelled 'Before' and 'After' are present and that the 'After' column matches the edited sentence while the 'Before' column matches the original rule sentence."
+          expected_result: "Two-column Before / After variant renders with correct sentences in each column"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewer can compare the original to the edited rule before saving"
+
+    - case_id: "VT-511-TC-005"
+      case_name: "Save changes is disabled until reason >= 3 chars AND tree is valid"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EditRuleDialog with a valid rule. Assert Save changes is disabled. Jump to step 4, type 'AB' into the reason; assert still disabled. Type a third character; assert enabled. Clear the reason; assert disabled again."
+          expected_result: "Save changes button enabled / disabled state matches the canSave invariant"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Save gating cannot be bypassed by step navigation"
+
+    - case_id: "VT-511-TC-006"
+      case_name: "Save payload omits criterion when the action chip was never touched"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EditRuleDialog with a valid rule and a populated action SNOMED. Type a reason on step 4 and click Save changes. Assert onSave was called with payload { action: 'edit', updates: { name, strength, logic_tree (no node_ids) }, reason } and NO criterion field."
+          expected_result: "Payload shape preserved; criterion absent"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Server-side action JSON is preserved when the reviewer did not edit the action"
+
+    - case_id: "VT-511-TC-007"
+      case_name: "Save payload includes criterion when the action chip was touched"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EditRuleDialog. Jump to step 2, edit the action SNOMED via the action panel, then jump to step 4 and type a reason. Click Save. Assert onSave was called with criterion populated by the new action SNOMED."
+          expected_result: "Payload includes criterion with the edited SNOMED id and term"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Action edits are persisted when the reviewer made one"
+
+    - case_id: "VT-511-TC-008"
+      case_name: "node_ids are stripped from logic_tree in the save payload"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Render EditRuleDialog, type a reason and click Save. Walk the logic_tree in the captured onSave payload and assert no node has a node_id field."
+          expected_result: "logic_tree round-trip is server-shape only; no client-only ids leak"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Server contract is unchanged from the legacy editor"
+
+    - case_id: "VT-511-TC-009"
+      case_name: "Reading age sweep on copy.ts chrome strings"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Import every exported string constant from copy.ts (STEP_TITLES, STEP_HELPERS, STEP_SHORT_TITLES, STEP_STATE_LABELS, ALL_READY_LABEL, ADD_BAR_LABELS). Concatenate them into one corpus and run a Flesch-Kincaid grade calculation. Assert grade <= 6."
+          expected_result: "Grade <= 6 for the chrome corpus"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Future copy edits cannot regress reading age below the UN-094 acceptance criterion"
+
+    - case_id: "VT-511-TC-010"
+      case_name: "Cancel still calls onClose with no save side-effect"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render EditRuleDialog, type a reason, click Cancel; assert onClose was called and onSave was NOT called"
+          expected_result: "Cancel discards in-flight edits"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewer can always abandon without persisting"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-511/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history: []

@@ -48,6 +48,7 @@ import {
   friendlyTerm,
 } from "./copy";
 import { detectVaguePhrase } from "./vaguePhrases";
+import SynonymChipEditor from "./SynonymChipEditor";
 import {
   DEMOGRAPHIC_FIELDS,
   DEMOGRAPHIC_OPERATORS,
@@ -691,6 +692,9 @@ function ConceptChipInline({
           onClick={(anchor) => onRequestCoach(node.node_id, anchor)}
         />
       )}
+      {node.criterion?.snomed_concept_id && (
+        <SynonymChipEditor node={node} onUpdate={onUpdate} />
+      )}
     </Stack>
   );
 }
@@ -878,6 +882,9 @@ function ConceptNodeView({
           term={label}
           onClick={(anchor) => onRequestCoach(node.node_id, anchor)}
         />
+      )}
+      {node.criterion?.snomed_concept_id && (
+        <SynonymChipEditor node={node} onUpdate={onUpdate} />
       )}
     </Stack>
   );

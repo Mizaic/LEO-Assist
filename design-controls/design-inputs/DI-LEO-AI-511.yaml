@@ -1,0 +1,125 @@
+# -- DI-LEO-AI-511 -- Synonym chip + popover editor in EditRuleDialog
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-511"
+  type: "Usability"
+  derived_from:
+    - "UN-LEO-AI-093"
+  requirement: >
+    services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx
+    SHALL render a CONCEPT chip whose criterion has more than one
+    seed (or any excluded_concept_ids) as a "synonym chip" labelled
+    with the primary preferred term followed by a parenthesised
+    seed count (for example "Smoker (3 codes)"). The chip's existing
+    click affordance still selects the leaf for the right-column
+    SNOMED search panel (used to swap or add a seed). A new pencil
+    button next to the chip opens an inline popover with three
+    sections: (1) Seeds list with per-row include-descendants
+    toggle, distance_child override, primary radio, and remove X;
+    (2) "Add another code" entry that searches SNOMED and appends
+    a new seed; (3) Excluded codes list with "Add a code to exclude"
+    that searches SNOMED scoped to descendants of any seed and
+    appends to excluded_concept_ids. treeOps.ts SHALL gain pure
+    helpers add_seed, remove_seed, set_primary_seed,
+    toggle_include_descendants, set_seed_distance, add_excluded,
+    remove_excluded; treeToSentence.ts SHALL render the synonym
+    chip headline as "is a smoker (or any kind of smoker)" when
+    descendants are included on every seed and "is a smoker
+    (or one of: cigarette smoker, pipe smoker)" when descendants
+    are off; the exclusion list adds ", except trial of smoking".
+    All copy SHALL meet the project's plain-English standard.
+
+  rationale: >
+    The chip is the smallest unit of authoring; it must hold the
+    full intent ("any of these codes, with these carve-outs") in
+    one visual unit so the pathway view stays scannable. Hiding the
+    detail in a popover keeps the default rendering identical to
+    today (a single chip) while giving authors a discoverable
+    affordance when they need synonyms or carve-outs. Pure
+    treeOps helpers keep the dialog testable in isolation and
+    re-usable from the search-panel click handler.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          AC-001: A criterion with seeds.length === 1 and no
+          excluded_concept_ids renders as a single chip identical
+          to today's behaviour (label = primary preferred term,
+          colour reflects vague/coded/selected state).
+      - type: "functional"
+        spec: >
+          AC-002: A criterion with seeds.length >= 2 renders as
+          a synonym chip with label "{primary preferred term}
+          ({n} codes)" and a tooltip listing every seed term plus
+          any exclusions.
+      - type: "functional"
+        spec: >
+          AC-003: treeOps.ts exports add_seed, remove_seed,
+          set_primary_seed, toggle_include_descendants,
+          set_seed_distance, add_excluded, remove_excluded; each
+          returns a NEW tree (no mutation), preserves node_id, and
+          keeps primary_concept_id valid (re-points to the first
+          remaining seed if the primary is removed).
+      - type: "functional"
+        spec: >
+          AC-004: treeToSentence.ts produces "is a smoker (or any
+          kind of smoker)" when seeds.length === 1 and the seed
+          has include_descendants === true; "is one of: smoker,
+          cigarette smoker, pipe smoker" when seeds.length >= 2 and
+          NO seed has descendants; appends ", except <term>" for
+          each exclusion (joined by "and" when multiple).
+      - type: "safety"
+        spec: >
+          AC-005: The popover MUST disable the "Remove" button on
+          the only remaining seed (a chip with zero seeds is
+          invalid and would silently drop the criterion). The
+          popover MUST disable "Set as primary" on the seed that
+          is already primary.
+      - type: "safety"
+        spec: >
+          AC-006: When the author adds a code to
+          excluded_concept_ids that does not appear in any seed
+          closure, the popover SHALL display a non-blocking warning
+          chip ("This code is not in any seed's hierarchy and will
+          have no effect") so authors notice the misuse before save.
+    constraints:
+      - type: "safety"
+        spec: >
+          The chip MUST never display a raw SNOMED concept id; the
+          tooltip is the only place ids appear, in muted text.
+    dependencies:
+      - "DI-LEO-AI-508"
+    downstream_impacts:
+      - "EditRuleDialog summary card (treeToSentence output)"
+      - "Concept search panel (gets a new 'add seed' / 'add exclusion' mode)"
+    technical_details:
+      language: "TypeScript / React"
+      framework: "Next.js + MUI"
+      file_structure:
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/types.ts"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/treeOps.ts"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/treeToSentence.ts"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/SynonymChipEditor.tsx"
+      estimated_loc: 540
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-510 covers the new treeOps helpers (jest unit),
+      treeToSentence narrative output (jest), and a
+      static-source check that LogicTreeEditor.tsx imports the new
+      SynonymChipEditor primitive and renders a synonym chip when
+      seeds.length >= 2.
+    test_protocol: "VT-LEO-AI-510"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-508"
+  tags:
+    - "ui"
+    - "edit-rule-dialog"
+    - "synonym-chip"
+    - "exclusion"

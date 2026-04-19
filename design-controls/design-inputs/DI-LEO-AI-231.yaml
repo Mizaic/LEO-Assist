@@ -8,14 +8,24 @@
   requirement: >
     The SBAR pipeline contract SHALL replace the free-text
     `fixed_text` Situation artefact with a typed
-    `SummarisationContext` enum covering 20 NHS-aligned reasons a
-    clinician asks LEO for an SBAR summary (clinic appointment prep,
-    long-term condition annual review, structured medication review,
-    discharge summary, ReSPECT, etc.). The Admin UI SHALL surface
-    this enum through a grouped dropdown primitive
-    (Primary care / Acute / Statutory & social / Quality assurance)
-    with plain-English friendly labels and one-sentence
-    descriptions targeting reading age 9-11.
+    `SummarisationContext` enum covering 34 NHS-aligned reasons a
+    clinician asks LEO for an SBAR summary, spanning primary care,
+    secondary care, statutory / social, and quality assurance
+    settings. The Admin UI SHALL surface this enum through a card-
+    grid picker dialog (Primary care / Secondary care / Statutory
+    and social / Quality assurance) with a search field that filters
+    across labels and descriptions, plain-English friendly labels and
+    one-sentence descriptions targeting reading age 9-11. The picker
+    is opened from a button on the SBAR Playground form; selecting a
+    card sets the value and closes the dialog.
+    The "Acute" group is renamed to "Secondary care" and absorbs
+    the full secondary-care taxonomy (admission, discharge, OOH,
+    outpatient new / follow-up clinic, specialty MDT, pre-op,
+    procedure note, ward round, ED handover, CGA, tertiary
+    referral, specialty letter to GP, chemotherapy / SACT consent,
+    palliative MDT). The existing `mdt_discussion` value is
+    preserved and its label is clarified to "MDT prep (primary
+    care)" to disambiguate it from the new `mdt_specialty` value.
   rationale: >
     Free-text Situation framing made every prompt run different,
     blocked golden-set comparison, and gave reviewers no shared
@@ -30,25 +40,44 @@
       - type: "functional"
         spec: >
           libs/sbar/events.SummarisationContext enum exists with
-          exactly 20 snake_case members covering the contexts
-          documented in DC-SRS-001 section "SBAR contexts".
+          exactly 34 snake_case members covering the contexts
+          documented in DC-SRS-001 section "SBAR contexts" (8
+          primary care + 15 secondary care + 9 statutory and social
+          + 2 quality assurance).
       - type: "functional"
         spec: >
           libs/sbar/events.SUMMARISATION_CONTEXT_LABELS and
           SUMMARISATION_CONTEXT_PROMPTS provide a friendly UK English
-          label and a short prompt fragment per enum value.
+          label and a short prompt fragment per enum value (34 of
+          each, no gaps).
       - type: "functional"
         spec: >
           SBARArtifactRef accepts type='summarisation_context' with
           a context_value of SummarisationContext, and the
           source_resolver passes the matching prompt fragment into
-          the Situation stage.
+          the Situation stage. The runtime now reads the snippet
+          from a :PromptConfig node when one is present (see
+          DI-LEO-AI-507) and falls back to the enum dict otherwise.
       - type: "functional"
         spec: >
-          SummarisationContextSelect renders a grouped MUI Select
-          with 4 ListSubheader groups and 20 MenuItem options, plus
-          a helper-text region that shows the selected option's
-          friendly description.
+          SummarisationContextSelect renders a trigger button that
+          opens a Dialog containing (a) a search field that filters
+          options by label, description and value substring, and
+          (b) a responsive CSS grid of selectable cards (1 / 2 / 3
+          columns) grouped under 4 section headers (Primary care,
+          Secondary care, Statutory and social, Quality assurance)
+          covering 34 options. Each card shows the friendly label and
+          a one-sentence description; the selected card carries an
+          aria-pressed=true state and a check icon. A helper-text
+          region beneath the trigger button shows the selected
+          option's description. The legacy "Acute" group label is
+          removed and the legacy MUI Select / ListSubheader / MenuItem
+          markup is gone.
+      - type: "functional"
+        spec: >
+          The label for `mdt_discussion` is "MDT prep (primary care)"
+          to disambiguate it from the new `mdt_specialty` value
+          which sits in the Secondary care group.
       - type: "safety"
         spec: >
           The legacy `fixed_text` enum value remains accepted by
@@ -58,8 +87,9 @@
       - type: "safety"
         spec: >
           Frontend SummarisationContextValue union MUST mirror the
-          Python enum exactly. Mismatch is caught by VT-LEO-AI-231
-          static parity test.
+          Python enum exactly (34 values). Mismatch is caught by
+          VT-LEO-AI-509 static parity test (which supersedes the
+          20-value parity assertion previously in VT-LEO-AI-231).
     dependencies:
       - "DI-LEO-AI-186"
     downstream_impacts:
@@ -79,10 +109,14 @@
     method: "Test"
     phase: "OQ"
     acceptance: >
-      VT-LEO-AI-231 covers Pydantic enum validation, source-resolver
-      prompt-fragment injection and frontend / backend enum parity
-      via a static-source VT.
-    test_protocol: "VT-LEO-AI-231"
+      VT-LEO-AI-231 covers the original Pydantic enum validation,
+      source-resolver prompt-fragment injection and frontend /
+      backend enum parity at 20 values; VT-LEO-AI-509 supersedes
+      the 20-value assertions with the 34-value (post-secondary-
+      care-expansion) versions and adds the Neo4j-first lookup,
+      fallback, per-call cache and AI Instructions categoriser
+      cases.
+    test_protocol: "VT-LEO-AI-509"
 
   safety_class: "B"
   risks:

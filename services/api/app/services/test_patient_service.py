@@ -24,6 +24,7 @@ import httpx
 
 from app.db.neo4j_client import CodingGraphClient
 from libs.cypher.test_patient_queries import (
+    ASSERT_CONCEPTS_PRESENT,
     COUNT_TEST_PATIENTS_BY_ASPECT,
     CREATE_TEST_PATIENT,
     CREATE_TEST_PATIENT_FOR_ASPECT,
@@ -33,10 +34,16 @@ from libs.cypher.test_patient_queries import (
     GET_TEST_PATIENT,
     LIST_GUIDELINES_FOR_PICKER,
     LIST_REPLAY_REPORTS,
+    LIST_RULES_FOR_PICKER,
     LIST_RULES_IN_SCOPE,
     LIST_TEST_PATIENTS,
+    READ_TEST_PATIENT_FULL,
+    RESET_TEST_PATIENT_CHILDREN,
+    SEED_EXPECTED_SBAR,
     TEST_PATIENT_ASPECTS,
     UPDATE_TEST_PATIENT,
+    UPDATE_TEST_PATIENT_PROFILE,
+    WRITE_EDITOR_ENCOUNTER,
     WRITE_EXPECTED_RESULT,
     WRITE_REPLAY_REPORT,
 )
@@ -96,6 +103,26 @@ def list_rules_in_scope(
     rows = client.run(
         LIST_RULES_IN_SCOPE, guideline_id=guideline_id, rule_id=rule_id
     )
+    return [dict(r) for r in rows]
+
+
+def list_rules_for_picker(
+    client: CodingGraphClient,
+    *,
+    guideline_id: str | None = None,
+) -> list[dict]:
+    """Plain-English picker payload for the SBAR Matched rule IDs field.
+
+    Joins the rule with its Recommendation, Chapter, ActionGroup and the
+    first three SNOMED criteria so the dropdown can show:
+      - the verbatim NICE recommendation (a real sentence),
+      - the chapter title (a familiar section reference),
+      - the action priority (2ww / urgent / routine), and
+      - up to three SNOMED triggers (a concrete cue).
+
+    The reviewer never sees the raw rule_id unless they want to.
+    """
+    rows = client.run(LIST_RULES_FOR_PICKER, guideline_id=guideline_id)
     return [dict(r) for r in rows]
 
 
@@ -622,6 +649,259 @@ def build_blank_patient_for_aspect(
 def delete_patient(client: CodingGraphClient, *, patient_id: str) -> int:
     rows = client.run(DELETE_TEST_PATIENT, id=patient_id)
     return int(rows[0]["deleted"]) if rows else 0
+
+
+# ---------------------------------------------------------------------------
+# Per-aspect editor: GET /full + PATCH /full
+# ---------------------------------------------------------------------------
+#
+# The Edit drawer in Knowledge > Test Patients reads and writes the
+# whole editable subgraph in one shot:
+#
+#   :TestPatient                        -- root profile
+#       -[:HAS_ENCOUNTER]-> :Encounter  -- free text + date + source label
+#                       -[:DOCUMENTS]-> :Concept (term + assertion)
+#       -[:HAS_EXPECTED_SBAR]-> :ExpectedSBAR (S/B/A/R + phrases)
+#
+# Concepts are MERGE'd against pre-loaded :Concept nodes (no concept
+# is ever created by the editor). The pre-flight ASSERT_CONCEPTS_PRESENT
+# call mirrors the cross-graph clone guarantee -- we never write a
+# DOCUMENTS edge to a SNOMED id that is not already in the graph.
+
+
+class EditorError(ValueError):
+    """Raised when the editor cannot apply an update (missing concept,
+    blank name, etc.). Translates to HTTP 4xx in the router."""
+
+
+def get_full_patient(
+    client: CodingGraphClient, *, patient_id: str
+) -> dict | None:
+    """Read the entire editable subgraph for one test patient.
+
+    Returns ``None`` when no patient with that id is found, otherwise
+    the full editable shape: root profile + encounters (with codes)
+    + optional expected SBAR for the summarisation aspect.
+    """
+    rows = client.run(READ_TEST_PATIENT_FULL, id=patient_id)
+    if not rows:
+        return None
+    row = dict(rows[0])
+    row["encounters"] = list(row.get("encounters") or [])
+    return row
+
+
+def _normalise_codes(codes: list[dict] | None) -> list[dict]:
+    """Filter and normalise the editor's per-encounter code list."""
+    if not codes:
+        return []
+    out: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for code in codes:
+        cid = str((code or {}).get("concept_id") or "").strip()
+        if not cid:
+            continue
+        assertion = str(
+            (code or {}).get("assertion") or "present"
+        ).strip().lower() or "present"
+        key = (cid, assertion)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(
+            {
+                "concept_id": cid,
+                "term": (code.get("term") or "").strip() or None,
+                "assertion": assertion,
+            }
+        )
+    return out
+
+
+def _collect_concept_ids_from_encounters(
+    encounters: list[dict],
+) -> list[str]:
+    """Return every distinct SNOMED id referenced by the encounter list."""
+    ids: set[str] = set()
+    for enc in encounters or []:
+        for code in enc.get("codes") or []:
+            cid = code.get("concept_id")
+            if cid:
+                ids.add(str(cid))
+    return sorted(ids)
+
+
+def _assert_editor_concepts_present(
+    client: CodingGraphClient, concept_ids: list[str]
+) -> None:
+    """Loud failure when any expected SNOMED id is missing.
+
+    Mirrors the cross-graph clone behaviour so the editor cannot
+    silently MERGE against a non-existent concept (which would
+    otherwise create an empty placeholder node and corrupt every
+    downstream NLP / SBAR scoring run).
+    """
+    if not concept_ids:
+        return
+    rows = client.run(ASSERT_CONCEPTS_PRESENT, concept_ids=concept_ids)
+    missing = (rows[0].get("missing") if rows else []) or []
+    if missing:
+        raise EditorError(
+            "Cannot save: the knowledge graph is missing "
+            f"{len(missing)} SNOMED concept(s) referenced by the "
+            "editor: " + ", ".join(sorted(missing))
+        )
+
+
+def _write_editor_encounters(
+    client: CodingGraphClient,
+    *,
+    patient_id: str,
+    encounters: list[dict],
+) -> int:
+    """Write each editor-supplied encounter under the test patient."""
+    written = 0
+    for index, enc in enumerate(encounters or [], start=1):
+        encounter_id = (
+            (enc.get("id") or f"{patient_id}_enc_{index:03d}").strip()
+        )
+        client.run(
+            WRITE_EDITOR_ENCOUNTER,
+            tp_id=patient_id,
+            encounter_id=encounter_id,
+            source_label=(enc.get("source_label") or "").strip() or None,
+            source_id=(enc.get("source_id") or "").strip() or None,
+            text=(enc.get("text") or ""),
+            date=(enc.get("date") or None),
+            codes=_normalise_codes(enc.get("codes")),
+        )
+        written += 1
+    return written
+
+
+def _write_expected_sbar(
+    client: CodingGraphClient,
+    *,
+    patient_id: str,
+    expected: dict | None,
+) -> bool:
+    """Write or refresh the :ExpectedSBAR for a summarisation patient.
+
+    Returns True when an ExpectedSBAR was written, False when the
+    caller passed ``None`` (i.e. clear the expected SBAR).
+    """
+    if not expected:
+        return False
+    sbar_id = str(
+        expected.get("id") or f"{patient_id}_expected_sbar"
+    ).strip()
+    client.run(
+        SEED_EXPECTED_SBAR,
+        tp_id=patient_id,
+        sbar_id=sbar_id,
+        fixture_id=expected.get("fixture_id"),
+        situation_md=expected.get("situation_md") or "",
+        background_md=expected.get("background_md") or "",
+        recommendation_md=expected.get("recommendation_md") or "",
+        matched_rule_ids=list(expected.get("matched_rule_ids") or []),
+        required_phrases=list(expected.get("required_phrases") or []),
+        banned_phrases=list(expected.get("banned_phrases") or []),
+        expected_action_priority=expected.get("expected_action_priority"),
+        reviewer_focus=expected.get("reviewer_focus") or "",
+        evaluator_outage=bool(expected.get("evaluator_outage", False)),
+    )
+    return True
+
+
+_GUIDELINES_ASPECT = "guidelines"
+
+
+def update_full_patient(
+    client: CodingGraphClient,
+    *,
+    patient_id: str,
+    aspect: str,
+    name: str,
+    description: str = "",
+    age: float | None = None,
+    sex: str | None = None,
+    encounters: list[dict] | None = None,
+    expected_sbar: dict | None = None,
+    updated_by: str = "",
+) -> dict:
+    """Replace the editable subgraph for one test patient atomically.
+
+    Steps (in this order):
+
+    1. Validate the patient exists. Returns ``{updated: False}`` when
+       not, so the router can translate that to a 404.
+    2. Pre-flight every SNOMED concept referenced by the encounters
+       against the knowledge graph. Raises :class:`EditorError` on any
+       missing id (loud failure -- never MERGE blindly).
+    3. Update the root profile (name / description / age / sex).
+    4. Detach + delete every editor-managed child node (encounters,
+       documents, expected SBAR) so the next step writes a clean
+       subgraph.
+    5. Re-create the encounter list and (for summarisation) the
+       expected SBAR row.
+
+    The Guidelines aspect is rejected at this entry point because its
+    rule-fire snapshot lives on EXPECTED_RESULT relationships under
+    ``UPDATE_TEST_PATIENT`` / ``WRITE_EXPECTED_RESULT``. Editing
+    Guidelines test patients should continue to flow through the
+    existing ``update_patient`` service so the snapshot is preserved.
+    """
+    aspect_norm = (aspect or "").strip().lower()
+    if aspect_norm == _GUIDELINES_ASPECT:
+        raise EditorError(
+            "Guidelines aspect uses update_patient (rule-fire snapshot)."
+        )
+    if aspect_norm not in TEST_PATIENT_ASPECTS:
+        raise EditorError(
+            f"Aspect must be one of {sorted(TEST_PATIENT_ASPECTS)}."
+        )
+    clean_name = (name or "").strip()
+    if not clean_name:
+        raise EditorError("Give the test patient a short name first.")
+    safe_name = clean_name if clean_name.startswith("test_") else f"test_{clean_name}"
+
+    encounters = list(encounters or [])
+    concept_ids = _collect_concept_ids_from_encounters(encounters)
+    _assert_editor_concepts_present(client, concept_ids)
+
+    root_rows = client.run(
+        UPDATE_TEST_PATIENT_PROFILE,
+        id=patient_id,
+        name=safe_name,
+        description=(description or "").strip(),
+        age=age,
+        sex=(sex or "").strip().lower() or None,
+        updated_by=(updated_by or "").strip(),
+    )
+    if not root_rows:
+        return {
+            "id": patient_id,
+            "updated": False,
+            "encounters_written": 0,
+            "expected_sbar_written": False,
+        }
+
+    client.run(RESET_TEST_PATIENT_CHILDREN, id=patient_id)
+    encounters_written = _write_editor_encounters(
+        client, patient_id=patient_id, encounters=encounters
+    )
+    expected_written = False
+    if aspect_norm == "summarisation":
+        expected_written = _write_expected_sbar(
+            client, patient_id=patient_id, expected=expected_sbar
+        )
+    return {
+        "id": patient_id,
+        "updated": True,
+        "aspect": aspect_norm,
+        "encounters_written": encounters_written,
+        "expected_sbar_written": expected_written,
+    }
 
 
 def update_patient(

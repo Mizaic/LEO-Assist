@@ -27,13 +27,17 @@
          passes the matching prompt fragment into the Situation
          stage.
 
-      3. UI primitive SummarisationContextSelect -- grouped MUI
-         Select with 4 ListSubheader groups (Primary care, Acute,
-         Statutory and social, Quality assurance) and 20
-         MenuItem options. The selected option's friendly
-         description is shown as helper text so a non-clinical
-         reviewer understands what they are asking the model to
-         do.
+      3. UI primitive SummarisationContextSelect -- a trigger
+         button that opens a Dialog containing a search field and a
+         responsive grid of selectable cards. Cards are grouped
+         under 4 section headers (Primary care, Secondary care,
+         Statutory and social, Quality assurance) covering 34
+         options; each card shows the friendly label and a one-
+         sentence description. The selected card carries an
+         aria-pressed=true state and a check icon, and the picker
+         button below shows the selected option's description as
+         helper text so a non-clinical reviewer understands what
+         they are asking the model to do.
 
       The legacy `fixed_text` SituationArtifactType remains
       accepted by SBARArtifactRef for one minor version with a
@@ -69,7 +73,7 @@
         description: "_resolve_artifact branch for summarisation_context"
       - artifact_type: "source_code"
         location: "services/ui/src/components/sbar-playground/SummarisationContextSelect.tsx"
-        description: "Grouped MUI Select primitive + SUMMARISATION_CONTEXT_GROUPS data"
+        description: "Card-grid Dialog picker (search + grouped grid) + SUMMARISATION_CONTEXT_GROUPS data"
     storage_location: "git"
     technical_details:
       language: "TypeScript + Python"

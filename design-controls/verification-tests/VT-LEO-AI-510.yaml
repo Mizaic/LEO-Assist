@@ -1,0 +1,268 @@
+# -- VT-LEO-AI-510 -- Synonym sets, descendant control, exclusions end-to-end
+# IEC 62304 Verification Test Protocol
+
+- id: "VT-LEO-AI-510"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs:
+      - "DI-LEO-AI-508"
+      - "DI-LEO-AI-509"
+      - "DI-LEO-AI-510"
+      - "DI-LEO-AI-511"
+    risks: ["R-LEO-AI-508"]
+
+  metadata:
+    title: "Synonym sets + per-seed descendants + carve-outs across schema, compiler, evaluator, SBAR and UI"
+    description: >
+      Pytest verifies the new LogicCriterion shape, the
+      validator's accept / reject branches, the bitmap compiler's
+      union + exclusion logic, the evaluator's matched_concept_ids
+      population, the diagnose endpoint pass-through, the SBAR
+      _rule_snapshot pass-through, and the migration script's
+      idempotent / lossless behaviour. Jest verifies the
+      treeOps helpers, the treeToSentence narrative and a
+      static-source check that LogicTreeEditor wires up the new
+      SynonymChipEditor primitive when seeds.length >= 2.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest + jest"
+    test_file_paths:
+      - "services/api/tests/test_guidance_rule_edit.py"
+      - "services/terminology_api/tests/test_guideline_compiler.py"
+      - "services/terminology_api/tests/test_guideline_evaluator.py"
+      - "tests/test_sbar_assessment_formatter.py"
+      - "services/ui/src/__tests__/synonym-chip-tree-ops.test.ts"
+      - "services/ui/src/__tests__/synonym-chip-tree-to-sentence.test.ts"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "Python 3.11+ / pytest"
+      - "Node 20+ / jest 30"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-510-TC-001"
+      case_name: "LogicCriterion accepts legacy single-seed shape unchanged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "LogicCriterion.model_validate({snomed_concept_id: '77176002', preferred_term: 'Smoker'})"
+          expected_result: "Validation succeeds, seeds defaults to []"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Existing rules continue to round-trip through the validator"
+
+    - case_id: "VT-510-TC-002"
+      case_name: "LogicCriterion accepts new multi-seed shape with primary"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "LogicCriterion.model_validate with seeds=[{snomed_concept_id:'77176002', preferred_term:'Smoker'}, {snomed_concept_id:'230063004', preferred_term:'Cigarette smoker'}], primary_concept_id='77176002', excluded_concept_ids=[]"
+          expected_result: "Validation succeeds; legacy snomed_concept_id auto-derived from primary_concept_id"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Legacy field stays populated for backward readers"
+
+    - case_id: "VT-510-TC-003"
+      case_name: "validate_logic_tree rejects empty / overlapping / inconsistent criteria"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run validate_logic_tree on a tree with (a) seeds=[] and snomed_concept_id='', (b) seeds=[s1] with primary_concept_id='other', (c) seeds=[s1] with excluded_concept_ids=[s1.id]"
+          expected_result: "Each call raises LogicTreeValidationError with a plain-English message"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Author cannot persist a criterion that would silently drop the leaf or contradict itself"
+
+    - case_id: "VT-510-TC-004"
+      case_name: "validate_logic_tree returns the union of seed ids and excluded ids"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Build a tree with one CONCEPT leaf having seeds=[s1, s2] and excluded_concept_ids=[x1]; call validate_logic_tree"
+          expected_result: "Returned set == {s1, s2, x1}"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Existing _VERIFY_CONCEPTS round-trip catches unknown ids in one Cypher pass"
+
+    - case_id: "VT-510-TC-005"
+      case_name: "Compiler legacy single-seed parity"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Compile a CONCEPT leaf with criterion={snomed_concept_id:'X', distance_child:3} against a stubbed _closure_ids that returns ['X','X1','X2']; capture the int-id list passed to put_bitmap"
+          expected_result: "Sorted, deduplicated int-id list matches the pre-change behaviour exactly"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "No clinical-output drift when migrated rules compile"
+
+    - case_id: "VT-510-TC-006"
+      case_name: "Compiler unions multi-seed closures and subtracts exclusions"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Compile seeds=[A,B] with include_descendants=true and excluded_concept_ids=['Bx'] against a stubbed _closure_ids returning {A:[A,A1], B:[B,B1,Bx]}"
+          expected_result: "Int-id list passed to put_bitmap == sorted, deduplicated mapping of {A,A1,B,B1} (Bx excluded); compiled-leaf seed_concept_ids == ['A','A1','B','B1']"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Union + exclusion semantics correct in one pass"
+
+    - case_id: "VT-510-TC-007"
+      case_name: "Per-seed include_descendants false forces exact-match for that seed only"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Compile seeds=[A include=true, B include=false] with rule-level distance_child=3"
+          expected_result: "_closure_ids called with (A, 3, 0) and (B, 0, 0); int-id union == {A,A1,...} union {B}"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Per-seed flag overrides rule-level default"
+
+    - case_id: "VT-510-TC-008"
+      case_name: "Evaluator surfaces matched_concept_ids per leaf and per rule"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Evaluate a patient with codes [c1, c2, c3] against a rule whose CONCEPT leaf bitmap intersects on c1 and c3 (compiled-leaf seed_concept_ids = [c1, c3, c4])"
+          expected_result: "_annotate_logic_tree leaf has matched_concept_ids == [c1, c3] (input order); rule.matched_concept_ids deduplicated union across leaves"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Reviewers see exactly which patient code satisfied the rule"
+
+    - case_id: "VT-510-TC-009"
+      case_name: "Evaluator filters excluded ids from matched_concept_ids (defence in depth)"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Force a stale compiled-leaf where seed_concept_ids includes an id that the criterion also lists in excluded_concept_ids; evaluate against a patient who has that id"
+          expected_result: "matched_concept_ids does NOT contain the excluded id; rule still evaluates correctly"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "A future regression in the compiler cannot leak an excluded id through to the SBAR narrative"
+
+    - case_id: "VT-510-TC-010"
+      case_name: "_rule_snapshot passes matched_concept_ids and matched_via through"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Build a rule dict with matched_concept_ids and matched_via populated; call _rule_snapshot; build a legacy rule dict without those fields and call _rule_snapshot"
+          expected_result: "First snapshot carries the new fields verbatim; second snapshot carries [] for both"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "SBAR formatter is back-compat for legacy rule payloads"
+
+    - case_id: "VT-510-TC-011"
+      case_name: "Migration script is idempotent and preserves the int-id set"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run upgrade_concept_leaf on a legacy {snomed_concept_id:'X', preferred_term:'Smoker'} criterion; capture the output; run upgrade_concept_leaf again on the output; assert byte-identical second pass"
+          expected_result: "Second pass output == first pass output; seeds == [{X, include_descendants:true, distance_child:3}], primary_concept_id=='X', excluded_concept_ids==[], legacy snomed_concept_id stays 'X'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Re-running migration is safe; no clinical-output drift"
+
+    - case_id: "VT-510-TC-012"
+      case_name: "treeOps helpers add_seed/remove_seed/set_primary/toggle_include_descendants/set_seed_distance/add_excluded/remove_excluded are pure"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "For each helper, build a tree with one CONCEPT leaf, apply the helper, assert the input was not mutated, the result is a new object, node_id is preserved, and the criterion fields were updated as expected"
+          expected_result: "All assertions pass for every helper"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Helpers are safe to call from event handlers without surprise re-renders"
+
+    - case_id: "VT-510-TC-013"
+      case_name: "remove_seed re-points primary_concept_id when the primary is removed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Build a CONCEPT leaf with seeds=[A,B,C], primary='B'; call remove_seed(B); call remove_seed on the only remaining seed afterwards"
+          expected_result: "After remove(B): primary_concept_id == 'A' (first remaining); after remove on the last seed: helper returns the input unchanged (cannot drop the only seed)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Primary-seed invariant is enforced; cannot accidentally empty the criterion"
+
+    - case_id: "VT-510-TC-014"
+      case_name: "treeToSentence renders synonym + descendant + exclusion forms"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Render three trees: (a) seeds=[Smoker] include_descendants=true, exclusions=[]; (b) seeds=[Smoker, Cigarette smoker, Pipe smoker] all include=false; (c) seeds=[Smoker] include=true, excluded=[Trial of smoking]"
+          expected_result: "(a) sentence contains 'is a smoker (or any kind of smoker)'; (b) contains 'is one of: smoker, cigarette smoker, pipe smoker'; (c) contains 'is a smoker (or any kind of smoker), except trial of smoking'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Authors and reviewers see the synonym set in plain English"
+
+    - case_id: "VT-510-TC-015"
+      case_name: "Static-source: LogicTreeEditor renders SynonymChipEditor when criterion has multi-seed or exclusion"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Read services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx and SynonymChipEditor.tsx as strings; assert LogicTreeEditor imports SynonymChipEditor and references it where seeds.length is checked"
+          expected_result: "Imports and references present"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Synonym chip wiring is present in the editor"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-510/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - execution_id: "VT-LEO-AI-510-EXEC-2026-04-19-001"
+      execution_date: "2026-04-19"
+      executor: "automated"
+      environment: "development"
+      result: "pass"
+      cases_executed: 15
+      cases_passed: 15
+      cases_failed: 0
+      duration_seconds: 6.0
+      notes: >
+        Verified across the full pipeline:
+        Pytest -- 5 new synonym-set tests in
+        services/api/tests/test_guidance_rule_edit.py (TestLogicCriterionSynonymSet,
+        covering legacy back-compat, derived-from-primary, full id collection,
+        primary-not-in-seeds reject, seed/exclusion overlap reject)
+        and 5 new compiler tests in
+        services/terminology_api/tests/test_guideline_compiler.py
+        (back-compat, multi-seed union, exclusion subtraction,
+        include_descendants=false skips closure lookup, fallback to primary
+        when every seed is excluded) and 5 new evaluator tests in
+        services/terminology_api/tests/test_guideline_evaluator.py
+        (matched_via attributes hit to descendant seed, primary-only hit,
+        multi-seed hit, schema v1 has no matched_via, diagnose annotates
+        leaf with matched_concept_ids) and 4 new SBAR tests in
+        tests/test_sbar_assessment_formatter.py
+        (markdown names descendant code, primary-only renders chip label,
+        snapshot pass-through, no-matched-via legacy back-compat).
+        Jest -- 15 unit tests in
+        services/ui/src/__tests__/synonym-chip-tree-ops.test.ts
+        (addSeed / removeSeed / setPrimarySeed / toggleIncludeDescendants /
+        setSeedDistance / addExcluded / removeExcluded plus applyUpdate
+        routing and findValidationError edge cases) and 5 unit tests in
+        services/ui/src/__tests__/synonym-chip-tree-to-sentence.test.ts
+        (legacy back-compat, two-seed-with-descendants narrative,
+        include_descendants=false uses 'one of:' phrasing, exclusions
+        resolved via TermResolver, exclusions fall back to 'code <id>').
+        Totals: 19 new pytest cases (49 of 49 in compiler+evaluator,
+        23 of 23 in API guidance_rule_edit, 9 of 9 in SBAR
+        assessment_formatter all green) plus 20 new jest cases
+        (synonym-chip-tree-ops + synonym-chip-tree-to-sentence). All
+        critical and non-critical cases pass; back-compat with legacy
+        single-seed criteria is verified end-to-end.

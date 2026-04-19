@@ -3,20 +3,32 @@
 /**
  * EncounterPreviewDialog (DI-LEO-AI-223).
  *
- * Thin wrapper around the shared GoldLabelEditorDialog used on the
- * /care/encounters mission-control surface. It seeds a gold label from
- * the live encounter, mounts the shared editor in dual-save mode, and
- * surfaces the search match rationale (date, match type, rationale
- * chips) in the dialog header so reviewers retain the context that
- * brought them to this encounter.
+ * Two-stage dialog used on the /care/encounters mission-control
+ * surface:
  *
- * Saving the dialog
- *   - updates :DOCUMENTS coded links on the live encounter, and
- *   - mirrors a de-identified copy onto the linked GoldLabel for
- *     training (DI-LEO-AI-220/221).
+ *   1. Read-only preview (default). Shows the encounter date,
+ *      patient id, search-match rationale chips and the full
+ *      encounter text already returned by the search response. No
+ *      API call is made on open, so the dialog is fast and works
+ *      even if the reviewer cannot mount the gold editor (for
+ *      example, when the patient is out of org scope).
+ *
+ *   2. Edit codes (explicit). When the reviewer clicks "Edit
+ *      codes", the wrapper calls
+ *      `createGoldLabelFromEncounter` (DI-LEO-AI-220) to seed a
+ *      draft GoldLabel and then mounts the shared
+ *      `GoldLabelEditorDialog` in dual-save mode (DI-LEO-AI-221).
+ *      Saves still update :DOCUMENTS coded links on the live
+ *      encounter and mirror a de-identified copy onto the linked
+ *      GoldLabel.
+ *
+ * The match-rationale header (date, patient, match chips, "why
+ * this matched your search") is shown in both stages, either
+ * inline in the preview body or via the editor's `headerChrome`
+ * slot.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -24,6 +36,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -40,6 +53,11 @@ import type { EncounterListItem } from "@/lib/missionControlApi";
 interface Props {
   item: EncounterListItem | null;
   onClose: () => void;
+  /** Free-text query the reviewer typed into the search box. Used
+   *  alongside `item.match_rationale` to highlight hits in the
+   *  encounter text. Optional -- omit on surfaces that don't have a
+   *  query (e.g. when previewing from a deep link). */
+  searchQuery?: string;
   /** Optional callback fired after a successful dual save so the host
    *  can refresh its list (e.g. updated coded counts). */
   onCodingChanged?: () => void;
@@ -117,13 +135,134 @@ function MatchRationaleHeader({
   );
 }
 
+// Tokens shorter than this are skipped so a stray "a" or "in" from
+// the user's query does not paint the entire encounter yellow.
+const MIN_HIGHLIGHT_LEN = 3;
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function collectHighlightTerms(
+  searchQuery: string | undefined,
+  rationale: string[] | undefined,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (raw: string) => {
+    const t = raw.trim();
+    if (t.length < MIN_HIGHLIGHT_LEN) return;
+    const key = t.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(t);
+  };
+  // Split the user's query on whitespace + common punctuation so
+  // "breast cancer screening" highlights all three words.
+  if (searchQuery) {
+    for (const tok of searchQuery.split(/[\s,.;:/()\[\]"']+/)) push(tok);
+  }
+  if (rationale) for (const tok of rationale) push(tok);
+  // Match longer terms first so "cancer screening" wins over "cancer".
+  out.sort((a, b) => b.length - a.length);
+  return out;
+}
+
+function HighlightedText({
+  text,
+  terms,
+}: {
+  text: string;
+  terms: string[];
+}) {
+  if (!terms.length) return <>{text}</>;
+  const pattern = new RegExp(
+    `(${terms.map(escapeRegex).join("|")})`,
+    "gi",
+  );
+  const parts = text.split(pattern);
+  return (
+    <>
+      {parts.map((part, idx) => {
+        if (!part) return null;
+        // Even indices are non-matches, odd indices are captured hits
+        // (because the pattern is a single capturing group).
+        if (idx % 2 === 1) {
+          return (
+            <Box
+              key={`hl-${idx}`}
+              component="mark"
+              data-testid="encounter-preview-highlight"
+              sx={{
+                bgcolor: "#fef3c7",
+                color: "inherit",
+                px: 0.25,
+                borderRadius: 0.5,
+              }}
+            >
+              {part}
+            </Box>
+          );
+        }
+        return <span key={`hl-${idx}`}>{part}</span>;
+      })}
+    </>
+  );
+}
+
+function EncounterTextBlock({
+  text,
+  terms,
+}: {
+  text: string | null;
+  terms: string[];
+}) {
+  if (!text || !text.trim()) {
+    return (
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        data-testid="encounter-preview-empty"
+      >
+        This encounter has no text recorded.
+      </Typography>
+    );
+  }
+  return (
+    <Box
+      data-testid="encounter-preview-text"
+      sx={{
+        maxHeight: 360,
+        overflowY: "auto",
+        p: 1.5,
+        borderRadius: 1,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.default",
+        whiteSpace: "pre-wrap",
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontSize: "0.82rem",
+        lineHeight: 1.5,
+      }}
+    >
+      <HighlightedText text={text} terms={terms} />
+    </Box>
+  );
+}
+
 export default function EncounterPreviewDialog({
   item,
   onClose,
+  searchQuery,
   onCodingChanged,
 }: Props) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const highlightTerms = useMemo(
+    () => collectHighlightTerms(searchQuery, item?.match_rationale),
+    [searchQuery, item?.match_rationale],
+  );
+  // Edit-mode state: only set once the reviewer clicks "Edit codes".
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const [target, setTarget] = useState<GoldLabel | null>(null);
   const [context, setContext] =
     useState<DualSaveEncounterContext | null>(null);
@@ -131,26 +270,26 @@ export default function EncounterPreviewDialog({
   const reset = useCallback(() => {
     setTarget(null);
     setContext(null);
-    setError(null);
-    setLoading(false);
+    setEditError(null);
+    setEditLoading(false);
   }, []);
 
+  // Reset edit state whenever the host opens a different encounter
+  // or closes the dialog. The preview itself does NOT trigger any
+  // API call -- the encounter text is already on `item`.
   useEffect(() => {
-    if (!item) {
-      reset();
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    setTarget(null);
-    setContext(null);
+    if (!item) reset();
+  }, [item, reset]);
+
+  const handleEditCodes = useCallback(() => {
+    if (!item) return;
+    setEditLoading(true);
+    setEditError(null);
     void createGoldLabelFromEncounter({
       patient_id: item.patient_id,
       encounter_id: item.encounter_id,
     })
       .then((seed) => {
-        if (cancelled) return;
         setContext({
           patient_id: item.patient_id,
           encounter_id: item.encounter_id,
@@ -159,20 +298,16 @@ export default function EncounterPreviewDialog({
         setTarget(seed.gold_label);
       })
       .catch((err) => {
-        if (cancelled) return;
-        setError(
+        setEditError(
           err instanceof Error
             ? err.message
-            : "Could not open the encounter editor.",
+            : "Could not open the codes editor for this encounter.",
         );
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        setEditLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [item, reset]);
+  }, [item]);
 
   const dualSaver = useDualSaveAdapter({
     labelId: target?.label_id ?? "",
@@ -207,37 +342,46 @@ export default function EncounterPreviewDialog({
   }
 
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Encounter detail</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           <MatchRationaleHeader item={item} />
-          {loading && (
-            <Stack
-              direction="row"
-              spacing={1.5}
-              alignItems="center"
-              data-testid="encounter-preview-loading"
-            >
-              <CircularProgress size={20} />
-              <Typography variant="body2" color="text.secondary">
-                Preparing the editor for this encounter...
-              </Typography>
-            </Stack>
-          )}
-          {error && (
+          <Divider flexItem />
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ textTransform: "uppercase", letterSpacing: 0.4 }}
+          >
+            Encounter text
+          </Typography>
+          <EncounterTextBlock text={item.text} terms={highlightTerms} />
+          {editError && (
             <Typography
               variant="body2"
               color="error"
               data-testid="encounter-preview-error"
             >
-              {error}
+              {editError}
             </Typography>
           )}
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
+        <Button
+          onClick={handleEditCodes}
+          variant="contained"
+          disabled={editLoading}
+          startIcon={
+            editLoading ? (
+              <CircularProgress size={16} aria-label="Loading" />
+            ) : undefined
+          }
+          data-testid="encounter-preview-edit-codes"
+        >
+          {editLoading ? "Opening editor..." : "Edit codes"}
+        </Button>
       </DialogActions>
     </Dialog>
   );

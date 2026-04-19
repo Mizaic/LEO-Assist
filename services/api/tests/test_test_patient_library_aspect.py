@@ -38,8 +38,13 @@ from libs.cypher.test_patient_queries import (
     READ_SOURCE_DOCUMENTS,
     READ_SOURCE_ENCOUNTERS,
     READ_SOURCE_PATIENT_FOR_CLONE,
+    READ_TEST_PATIENT_FULL,
+    RESET_TEST_PATIENT_CHILDREN,
+    SEED_EXPECTED_SBAR,
     TEST_PATIENT_ASPECTS,
     TEST_PATIENT_CONSTRAINTS,
+    UPDATE_TEST_PATIENT_PROFILE,
+    WRITE_EDITOR_ENCOUNTER,
     WRITE_TEST_CONCEPT_EDGE,
     WRITE_TEST_DOCUMENT,
     WRITE_TEST_ENCOUNTER,
@@ -642,6 +647,497 @@ class TestTC007BuildBlankPatientForAspect:
                 created_by="qa@example.com",
             )
         assert client.calls == []
+
+
+# ---------------------------------------------------------------------------
+# TC-008 -- Per-aspect editor (GET /full + PATCH /full)
+# ---------------------------------------------------------------------------
+
+
+class TestTC008PerAspectEditor:
+    """The Edit drawer reads the editable subgraph in one shot and
+    rewrites it atomically. Concept ids are pre-flighted before any
+    write so a missing SNOMED id fails loudly. Guidelines aspect is
+    rejected at /full to preserve the rule-fire snapshot path."""
+
+    def test_read_full_returns_encounters_and_expected_sbar(self) -> None:
+        # Verify the query shape exposes everything the editor needs.
+        for token in (
+            "MATCH (tp:TestPatient { id: $id })",
+            "OPTIONAL MATCH (tp)-[:HAS_ENCOUNTER]->(e:Encounter)",
+            "OPTIONAL MATCH (e)-[d:DOCUMENTS]->(c:Concept)",
+            "OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)",
+            "AS encounters",
+            "AS expected_sbar",
+        ):
+            assert token in READ_TEST_PATIENT_FULL, token
+
+    def test_reset_only_touches_test_marked_children(self) -> None:
+        # The reset must not delete legacy non-test children attached
+        # by accident (e.g. a hand-seeded concept node), so each
+        # OPTIONAL MATCH has the is_test guard.
+        guard = "WHERE coalesce(e.is_test, false) = true"
+        assert guard in RESET_TEST_PATIENT_CHILDREN
+        assert "DETACH DELETE e" in RESET_TEST_PATIENT_CHILDREN
+        assert "DETACH DELETE s" in RESET_TEST_PATIENT_CHILDREN
+        assert "DETACH DELETE d" in RESET_TEST_PATIENT_CHILDREN
+
+    def test_editor_encounter_query_merges_concept_by_id(self) -> None:
+        # Loud failure on missing concept is enforced by MATCH (not
+        # MERGE) on the :Concept lookup -- if a concept is not in the
+        # knowledge graph the UNWIND row drops to zero.
+        assert "MATCH (c:Concept { id: code.concept_id })" in (
+            WRITE_EDITOR_ENCOUNTER
+        )
+        assert "is_test:      true" in WRITE_EDITOR_ENCOUNTER
+        assert "MERGE (e)-[d:DOCUMENTS]->(c)" in WRITE_EDITOR_ENCOUNTER
+        assert "d.is_test    = true" in WRITE_EDITOR_ENCOUNTER
+
+    def test_profile_update_preserves_guideline_snapshot(self) -> None:
+        # The editor profile update touches name / desc / age / sex
+        # only -- never EXPECTED_RESULT or codes. Guidelines aspect
+        # therefore continues to flow through UPDATE_TEST_PATIENT.
+        assert "EXPECTED_RESULT" not in UPDATE_TEST_PATIENT_PROFILE
+        assert "tp.codes" not in UPDATE_TEST_PATIENT_PROFILE
+        assert "tp.name        = $name" in UPDATE_TEST_PATIENT_PROFILE
+        assert "tp.age         = $age" in UPDATE_TEST_PATIENT_PROFILE
+
+    def test_get_full_returns_none_when_missing(self) -> None:
+        from app.services import test_patient_service
+
+        client = FakeGraphClient()
+        result = test_patient_service.get_full_patient(
+            client, patient_id="missing"
+        )
+        assert result is None
+
+    def test_get_full_returns_row(self) -> None:
+        from app.services import test_patient_service
+
+        client = FakeGraphClient(
+            responses={
+                "MATCH (tp:TestPatient { id: $id })": [
+                    {
+                        "id": "test_abc",
+                        "name": "test_one",
+                        "description": "demo",
+                        "aspect": "summarisation",
+                        "is_test": True,
+                        "encounters": [
+                            {
+                                "id": "enc1",
+                                "text": "cough",
+                                "date": None,
+                                "codes": [
+                                    {
+                                        "concept_id": "12345",
+                                        "term": "Cough",
+                                        "assertion": "present",
+                                    }
+                                ],
+                            }
+                        ],
+                        "expected_sbar": {
+                            "id": "expsbar1",
+                            "situation_md": "S",
+                            "background_md": "B",
+                            "recommendation_md": "R",
+                        },
+                    }
+                ]
+            }
+        )
+        row = test_patient_service.get_full_patient(client, patient_id="test_abc")
+        assert row is not None
+        assert row["aspect"] == "summarisation"
+        assert len(row["encounters"]) == 1
+        assert row["expected_sbar"]["situation_md"] == "S"
+
+    def test_update_full_rejects_guidelines(self) -> None:
+        from app.services import test_patient_service
+        from app.services.test_patient_service import EditorError
+
+        client = FakeGraphClient()
+        with pytest.raises(EditorError, match="Guidelines"):
+            test_patient_service.update_full_patient(
+                client,
+                patient_id="test_abc",
+                aspect="guidelines",
+                name="test_one",
+            )
+        assert client.calls == []
+
+    def test_update_full_rejects_blank_name(self) -> None:
+        from app.services import test_patient_service
+        from app.services.test_patient_service import EditorError
+
+        client = FakeGraphClient()
+        with pytest.raises(EditorError, match="name"):
+            test_patient_service.update_full_patient(
+                client,
+                patient_id="test_abc",
+                aspect="nlp",
+                name="   ",
+            )
+        assert client.calls == []
+
+    def test_update_full_fails_loudly_on_missing_concept(self) -> None:
+        from app.services import test_patient_service
+        from app.services.test_patient_service import EditorError
+
+        client = _knowledge_graph_with_concepts(present={"33334"})
+        with pytest.raises(EditorError, match="missing"):
+            test_patient_service.update_full_patient(
+                client,
+                patient_id="test_abc",
+                aspect="nlp",
+                name="cough patient",
+                encounters=[
+                    {
+                        "id": "enc1",
+                        "text": "patient with cough",
+                        "codes": [
+                            {"concept_id": "99999", "term": "Unknown"},
+                            {"concept_id": "33334", "term": "Known"},
+                        ],
+                    }
+                ],
+            )
+        # The pre-flight runs before the profile update, so no write
+        # should have been attempted against the encounter.
+        cyphers_called = [c for c, _ in client.calls]
+        assert UPDATE_TEST_PATIENT_PROFILE not in cyphers_called
+
+    def test_update_full_returns_404_marker_when_root_missing(self) -> None:
+        from app.services import test_patient_service
+
+        # Knowledge graph that has every concept but the profile
+        # update returns no rows (patient does not exist).
+        client = _knowledge_graph_with_concepts(present={"12345"})
+
+        original_run = client.run
+
+        def run(cypher: str, **params: Any) -> list[dict]:
+            if cypher == UPDATE_TEST_PATIENT_PROFILE:
+                client.calls.append((cypher, dict(params)))
+                return []
+            return original_run(cypher, **params)
+
+        client.run = run  # type: ignore[assignment]
+        result = test_patient_service.update_full_patient(
+            client,
+            patient_id="test_missing",
+            aspect="nlp",
+            name="cough patient",
+            encounters=[
+                {
+                    "text": "demo",
+                    "codes": [{"concept_id": "12345", "term": "Cough"}],
+                }
+            ],
+        )
+        assert result == {
+            "id": "test_missing",
+            "updated": False,
+            "encounters_written": 0,
+            "expected_sbar_written": False,
+        }
+
+    def test_update_full_writes_encounters_and_expected_sbar(self) -> None:
+        from app.services import test_patient_service
+
+        client = _knowledge_graph_with_concepts(present={"12345"})
+        # Make UPDATE_TEST_PATIENT_PROFILE return one row so the
+        # service treats the patient as existing.
+        original_run = client.run
+
+        def run(cypher: str, **params: Any) -> list[dict]:
+            if cypher == UPDATE_TEST_PATIENT_PROFILE:
+                client.calls.append((cypher, dict(params)))
+                return [{"id": params["id"]}]
+            return original_run(cypher, **params)
+
+        client.run = run  # type: ignore[assignment]
+
+        result = test_patient_service.update_full_patient(
+            client,
+            patient_id="test_abc",
+            aspect="summarisation",
+            name="cough handover",
+            description="patient with persistent cough",
+            age=72,
+            sex="male",
+            encounters=[
+                {
+                    "id": "enc1",
+                    "text": "GP review: cough 4w",
+                    "date": "2026-04-01",
+                    "source_label": "Encounter",
+                    "codes": [
+                        {
+                            "concept_id": "12345",
+                            "term": "Cough",
+                            "assertion": "present",
+                        }
+                    ],
+                }
+            ],
+            expected_sbar={
+                "situation_md": "older man with cough",
+                "background_md": "smoker, 4w cough",
+                "recommendation_md": "refer 2WW lung",
+                "matched_rule_ids": ["R-LUNG-001"],
+                "required_phrases": ["2WW"],
+                "banned_phrases": ["as an AI"],
+                "reviewer_focus": "must keep 2WW",
+            },
+            updated_by="qa@example.com",
+        )
+        assert result["updated"] is True
+        assert result["aspect"] == "summarisation"
+        assert result["encounters_written"] == 1
+        assert result["expected_sbar_written"] is True
+        cyphers = [c for c, _ in client.calls]
+        # The order matters: pre-flight, profile, reset, encounters,
+        # expected sbar. Profile must come BEFORE reset so a missing
+        # patient short-circuits without dropping its children.
+        assert ASSERT_CONCEPTS_PRESENT in cyphers
+        assert (
+            cyphers.index(ASSERT_CONCEPTS_PRESENT)
+            < cyphers.index(UPDATE_TEST_PATIENT_PROFILE)
+        )
+        assert (
+            cyphers.index(UPDATE_TEST_PATIENT_PROFILE)
+            < cyphers.index(RESET_TEST_PATIENT_CHILDREN)
+        )
+        assert WRITE_EDITOR_ENCOUNTER in cyphers
+        assert SEED_EXPECTED_SBAR in cyphers
+        # Profile name carries the test_ prefix even though the
+        # caller did not include it.
+        profile_call = next(
+            params for cypher, params in client.calls
+            if cypher == UPDATE_TEST_PATIENT_PROFILE
+        )
+        assert profile_call["name"].startswith("test_")
+
+    def test_update_full_skips_expected_sbar_for_non_summarisation(
+        self,
+    ) -> None:
+        from app.services import test_patient_service
+
+        client = _knowledge_graph_with_concepts(present={"12345"})
+        original_run = client.run
+
+        def run(cypher: str, **params: Any) -> list[dict]:
+            if cypher == UPDATE_TEST_PATIENT_PROFILE:
+                client.calls.append((cypher, dict(params)))
+                return [{"id": params["id"]}]
+            return original_run(cypher, **params)
+
+        client.run = run  # type: ignore[assignment]
+
+        result = test_patient_service.update_full_patient(
+            client,
+            patient_id="test_abc",
+            aspect="nlp",
+            name="cough patient",
+            encounters=[
+                {
+                    "text": "GP review: cough",
+                    "codes": [{"concept_id": "12345", "term": "Cough"}],
+                }
+            ],
+            expected_sbar={"situation_md": "ignored"},
+        )
+        assert result["expected_sbar_written"] is False
+        cyphers = [c for c, _ in client.calls]
+        assert SEED_EXPECTED_SBAR not in cyphers
+
+
+# ---------------------------------------------------------------------------
+# TC-009 -- Guidance rule lookup powers the SBAR Matched rule IDs picker
+# ---------------------------------------------------------------------------
+
+
+class TestTC009GuidanceRuleLookup:
+    """The SBAR editor's Matched rule IDs field is a tree-dialog picker
+    over the live appropriateness rule library. The /test-patients/rules
+    endpoint returns a plain-English payload (display label, chapter,
+    action priority, SNOMED triggers) so the dialog can render readable
+    rows and group them by guideline -- not by raw rule id."""
+
+    def test_rules_endpoint_returns_plain_english_payload(self) -> None:
+        # Verify the router payload -- nothing the picker needs is left
+        # to the rule_id alone (which is opaque to a nurse). Internal
+        # columns (e.g. logic_json) must NOT leak.
+        from app.routers import test_patients as router
+
+        client = FakeGraphClient(
+            responses={
+                "MATCH (rule:AppropriatenessRule)": [
+                    {
+                        "rule_id": "rule:NG12:v1:CH002:R001:abc",
+                        "name": "Rule 1.1.1",
+                        "status": "active",
+                        "recommendation_text": (
+                            "Refer adults with unexplained haematuria for an "
+                            "X-ray within 2 weeks."
+                        ),
+                        "chapter_title": "1.1 -- Suspected cancer",
+                        "action_priority": "2ww",
+                        "trigger_terms": ["haematuria", "abdominal mass"],
+                        "guideline_id": "NG12",
+                        "guideline_title": "Suspected cancer",
+                        "logic_json": "{should-not-leak}",
+                    },
+                ]
+            }
+        )
+
+        original_client = router._client
+        router._client = lambda: client  # type: ignore[assignment]
+        try:
+            rows = router.list_rules(
+                guideline_id=None,
+                q=None,
+                limit=100,
+                scope=None,  # type: ignore[arg-type]
+            )
+        finally:
+            router._client = original_client  # type: ignore[assignment]
+
+        assert isinstance(rows, list)
+        assert len(rows) == 1
+        first = rows[0]
+        assert set(first.keys()) == {
+            "rule_id",
+            "status",
+            "name",
+            "display_label",
+            "recommendation_text",
+            "chapter_title",
+            "action_priority",
+            "trigger_terms",
+            "guideline_id",
+            "guideline_title",
+        }
+        # display_label leads with the verbatim NICE recommendation so a
+        # nurse-grade reader knows what the rule is for at a glance.
+        assert first["display_label"].startswith(
+            "Refer adults with unexplained haematuria"
+        )
+        assert first["action_priority"] == "2ww"
+        assert first["trigger_terms"] == ["haematuria", "abdominal mass"]
+        assert "logic_json" not in first
+
+    def test_rules_endpoint_falls_back_to_chapter_when_no_recommendation(
+        self,
+    ) -> None:
+        # When the recommendation text is missing the picker still needs
+        # something readable -- the chapter title plus the first SNOMED
+        # trigger is the documented fallback.
+        from app.routers import test_patients as router
+
+        client = FakeGraphClient(
+            responses={
+                "MATCH (rule:AppropriatenessRule)": [
+                    {
+                        "rule_id": "rule:NG12:v1:CH002:R002:xyz",
+                        "name": "Rule 1.1.2",
+                        "status": "active",
+                        "recommendation_text": None,
+                        "chapter_title": "1.1 -- Suspected cancer",
+                        "action_priority": None,
+                        "trigger_terms": ["weight loss"],
+                        "guideline_id": "NG12",
+                        "guideline_title": "Suspected cancer",
+                    },
+                ]
+            }
+        )
+        original_client = router._client
+        router._client = lambda: client  # type: ignore[assignment]
+        try:
+            rows = router.list_rules(
+                guideline_id=None, q=None, limit=10, scope=None  # type: ignore[arg-type]
+            )
+        finally:
+            router._client = original_client  # type: ignore[assignment]
+
+        assert rows[0]["display_label"] == "1.1 -- Suspected cancer -- weight loss"
+
+    def test_rules_endpoint_filters_by_q_substring(self) -> None:
+        # The tree dialog drives a single substring search across rule,
+        # chapter, recommendation, guideline and triggers -- so a nurse
+        # can type a symptom (e.g. "haematuria") or a section (e.g.
+        # "1.1.5") instead of a rule id.
+        from app.routers import test_patients as router
+
+        client = FakeGraphClient(
+            responses={
+                "MATCH (rule:AppropriatenessRule)": [
+                    {
+                        "rule_id": "rule:NG12:R001",
+                        "name": "Rule 1.1.1",
+                        "status": "active",
+                        "recommendation_text": (
+                            "Refer adults with haematuria for an X-ray."
+                        ),
+                        "chapter_title": "1.1 Cancer",
+                        "trigger_terms": ["haematuria"],
+                        "guideline_id": "NG12",
+                        "guideline_title": "Suspected cancer",
+                    },
+                    {
+                        "rule_id": "rule:NG28:R002",
+                        "name": "HbA1c review",
+                        "status": "active",
+                        "recommendation_text": "Recheck HbA1c in 3 months.",
+                        "chapter_title": "Monitoring",
+                        "trigger_terms": ["raised HbA1c"],
+                        "guideline_id": "NG28",
+                        "guideline_title": "Type 2 diabetes",
+                    },
+                ]
+            }
+        )
+        original_client = router._client
+        router._client = lambda: client  # type: ignore[assignment]
+        try:
+            # Searching by symptom matches the recommendation text.
+            rows = router.list_rules(
+                guideline_id=None, q="haematuria", limit=10, scope=None,  # type: ignore[arg-type]
+            )
+            assert [r["rule_id"] for r in rows] == ["rule:NG12:R001"]
+            # Searching by guideline title matches the parent label.
+            rows = router.list_rules(
+                guideline_id=None, q="diabetes", limit=10, scope=None,  # type: ignore[arg-type]
+            )
+            assert [r["rule_id"] for r in rows] == ["rule:NG28:R002"]
+        finally:
+            router._client = original_client  # type: ignore[assignment]
+
+    def test_rules_endpoint_passes_guideline_filter_to_cypher(self) -> None:
+        from app.routers import test_patients as router
+
+        client = FakeGraphClient(
+            responses={"MATCH (rule:AppropriatenessRule)": []}
+        )
+        original_client = router._client
+        router._client = lambda: client  # type: ignore[assignment]
+        try:
+            router.list_rules(
+                guideline_id="NG28",
+                q=None,
+                limit=100,
+                scope=None,  # type: ignore[arg-type]
+            )
+        finally:
+            router._client = original_client  # type: ignore[assignment]
+
+        assert client.calls, "Cypher query should have been issued."
+        _, params = client.calls[-1]
+        assert params.get("guideline_id") == "NG28"
 
 
 # ---------------------------------------------------------------------------

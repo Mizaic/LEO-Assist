@@ -1,0 +1,107 @@
+# -- VAL-LEO-AI-015 -- Synonym set + exclusion authoring on a real NICE rule
+# IEC 62304 Validation Test Protocol
+
+- id: "VAL-LEO-AI-015"
+  version: "1.0"
+  status: "draft"
+
+  traceability:
+    user_needs: ["UN-LEO-AI-093"]
+    design_inputs:
+      - "DI-LEO-AI-508"
+      - "DI-LEO-AI-509"
+      - "DI-LEO-AI-510"
+      - "DI-LEO-AI-511"
+    risks: ["R-LEO-AI-508"]
+    verification_tests: ["VT-LEO-AI-510"]
+
+  metadata:
+    title: "Author validates a Smoker synonym set + Trial-of-smoking exclusion against a real NICE rule"
+    description: |
+      A clinical lead opens an existing NICE NG12 rule whose
+      primary CONCEPT leaf is "Smoker" (77176002). They use the
+      EditRuleDialog synonym chip popover to add "Cigarette
+      smoker" (230063004) and "Pipe smoker" (230065006) as
+      additional seeds, set include_descendants=true on the
+      primary "Smoker" seed (sweep all descendants), and add
+      "Trial of smoking" (266920004) to excluded_concept_ids
+      (carve out one false-positive descendant). They save the
+      edit. They confirm via the Clinical Guidelines page replay
+      banner that no saved test patient regresses, and via the
+      diagnose UI that a patient with code 230063004 still
+      matches the rule and the matched_concept_ids field reports
+      230063004 (not 77176002).
+    validation_phase: "pre-deployment"
+    test_type: "functional"
+    automation_level: "semi-automated"
+    participants:
+      user_type: "clinical_reviewer"
+      count: 1
+      selection_criteria: "Clinical lead with prior EditRuleDialog usage"
+
+  test_environment:
+    environment_name: "staging"
+    prerequisites:
+      - "VT-LEO-AI-510 status = passed"
+      - "Migration script run against staging Neo4j"
+      - "Test patient library populated for the affected rule"
+
+  acceptance_criteria:
+    - criterion: "No replay regression"
+      target: "0 replay regressions reported by the Clinical Guidelines banner after save"
+      measurement: "Replay diff endpoint response"
+      rationale: "Synonym additions and the carve-out should not flip any saved patient that the original primary code already matched"
+    - criterion: "Matched code surfaced"
+      target: "Diagnose UI shows matched_concept_ids = ['230063004'] for the Cigarette smoker patient"
+      measurement: "Diagnose response JSON inspection"
+      rationale: "Reviewers can verify the synonym is firing correctly"
+    - criterion: "Exclusion respected"
+      target: "A patient whose only smoking code is 266920004 (Trial of smoking) does NOT match the rule"
+      measurement: "Diagnose response shows matched_rules == []"
+      rationale: "Carve-out actually subtracts the excluded id from the leaf bitmap"
+    - criterion: "SBAR narrative names the matched term"
+      target: "Recommendation prose mentions 'cigarette smoker' when the patient matched on 230063004"
+      measurement: "Manual inspection of generated SBAR narrative"
+      rationale: "Closes the audit loop from rule firing to clinician-visible language"
+
+  user_scenarios:
+    - scenario_id: "VAL-015-SCENARIO-001"
+      scenario_name: "Author adds two synonyms and one carve-out to a Smoker rule"
+      user_role: "Clinical lead"
+      steps:
+        - step_number: 1
+          action: "Open the NG12 Smoker rule in EditRuleDialog; click the pencil button on the Smoker chip"
+          expected_result: "SynonymChipEditor popover opens; 'Smoker' is the only seed; primary radio is selected; include_descendants is on"
+          success_criteria: "Popover renders and seed list shows the existing seed only"
+        - step_number: 2
+          action: "Click 'Add another code'; search for 'Cigarette smoker'; select 230063004; repeat for 'Pipe smoker' (230065006)"
+          expected_result: "Both seeds appear in the seeds list; chip label updates to 'Smoker (3 codes)'"
+          success_criteria: "Chip label and tooltip reflect the new seed count and terms"
+        - step_number: 3
+          action: "Click 'Add a code to exclude'; search for 'Trial of smoking'; select 266920004"
+          expected_result: "Exclusion row appears; if the code is not in any seed's closure a warning chip appears"
+          success_criteria: "Exclusion is captured and authoring drift is visible"
+        - step_number: 4
+          action: "Click Save"
+          expected_result: "Replay banner reports 0 regressions; new rule version is active"
+          success_criteria: "Edit completes without flipping any saved test patient"
+        - step_number: 5
+          action: "Open Diagnose for a synthetic patient whose only relevant code is 230063004"
+          expected_result: "Rule appears in matched_rules; matched_concept_ids includes 230063004"
+          success_criteria: "Author can verify which code satisfied the rule"
+        - step_number: 6
+          action: "Open Diagnose for a synthetic patient whose only relevant code is 266920004"
+          expected_result: "Rule does NOT appear in matched_rules"
+          success_criteria: "Carve-out is enforced end-to-end"
+
+  evidence_bundle:
+    bundle_id: "VAL-015-EXEC-PLACEHOLDER"
+    blob_path: "/evidence-bundles/LEO-AI/validation/VAL-LEO-AI-015/"
+    immutability: true
+    evidence_types:
+      - "Diagnose response JSON for the three patient probes"
+      - "Replay diff report"
+      - "SBAR narrative output for the Cigarette smoker patient"
+      - "EditRuleDialog session screen recording"
+
+  execution_history: []

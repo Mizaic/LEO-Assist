@@ -1,50 +1,60 @@
 "use client";
 
 /**
- * Centred dialog for editing an AI-generated guidance rule before approval.
+ * Widescreen step-rail editor for an AI-generated guidance rule.
  *
  * Layout:
- *   - Top: editable rule name + recommended-action dropdown.
- *   - Below: two-column body. Left = LogicTreeEditor (the editable tree).
- *            Right = ConceptSearchPanel (SNOMED search bound to the focused
- *            CONCEPT chip or the focused group's "Add concept" action).
- *   - Bottom: required reason field + Save / Cancel buttons.
+ *   - Left column (rail): four numbered steps, jump-able. The current
+ *     step gets the canonical 3px accent strip; ready steps show a
+ *     green tick.
+ *   - Centre column (canvas): one focused step body at a time. Steps
+ *     are presentational components in ./steps/, fed from the state
+ *     held in this orchestrator.
+ *   - Right column (preview): always-on plain-English mirror of the
+ *     rule + a "what the system will do" recap. On step 4 the pane
+ *     swaps to a Before / After diff so the reviewer can see exactly
+ *     what they are saving.
+ *
+ * Footer: sticky DialogActions with Back / Next / Save. Save is the
+ * single primary action; it is gated on a >=3-character reason and a
+ * valid tree, exactly as in the previous design.
  *
  * Saving POSTs to /api/guidance/rules/review/{id}/decision with
  * ``{ action: "edit", reason, updates: { name, strength, logic_tree } }``.
  * The backend writes a new versioned rule and returns the new rule_id.
+ *
+ * Design Controls: UN-LEO-AI-094, DI-LEO-AI-512, DO-LEO-AI-512,
+ *                  R-LEO-AI-509, VT-LEO-AI-511.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import Collapse from "@mui/material/Collapse";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
-import Link from "@mui/material/Link";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
-import SearchIcon from "@mui/icons-material/Search";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 
-import ActionPanel from "./ActionPanel";
 import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
-import LogicTreeEditor from "./LogicTreeEditor";
-import SummaryCard from "./SummaryCard";
-import TestPatientsPanel from "./TestPatientsPanel";
-import { GROUP_KIND_SHORT, STRENGTH_LABELS, friendlyTerm } from "./copy";
+import LivePreviewPane from "./LivePreviewPane";
+import StepRail, { type StepDescriptor, type StepState } from "./StepRail";
+import Step1Who from "./steps/Step1Who";
+import Step2Suggest from "./steps/Step2Suggest";
+import Step3Try from "./steps/Step3Try";
+import Step4Save from "./steps/Step4Save";
+import { GROUP_KIND_SHORT, STEP_IDS, friendlyTerm, type StepId } from "./copy";
 import {
   applyUpdate,
   assignNodeIds,
@@ -85,8 +95,6 @@ interface Props {
   }) => void;
 }
 
-const STRENGTH_OPTIONS = STRENGTH_LABELS;
-
 interface SearchTarget {
   mode: "replace" | "add" | "replace_action" | "idle";
   parentNodeId: string | null;
@@ -111,8 +119,12 @@ export default function EditRuleDialog({
   onSave,
 }: Props) {
   const [tree, setTree] = useState<EditableLogicNode | null>(null);
+  const [originalTree, setOriginalTree] = useState<EditableLogicNode | null>(
+    null,
+  );
   const [name, setName] = useState("");
   const [strength, setStrength] = useState("unspecified");
+  const [originalStrength, setOriginalStrength] = useState("unspecified");
   const [reason, setReason] = useState("");
   const [searchTarget, setSearchTarget] = useState<SearchTarget>(IDLE_TARGET);
   const [showRecommendation, setShowRecommendation] = useState(false);
@@ -129,7 +141,11 @@ export default function EditRuleDialog({
   // touched it, so the server preserves the predecessor's actionJson
   // unchanged (DI-LEO-AI-170 safety constraint).
   const [action, setAction] = useState<LogicCriterion | null>(null);
+  const [originalAction, setOriginalAction] = useState<LogicCriterion | null>(
+    null,
+  );
   const [actionDirty, setActionDirty] = useState(false);
+  const [currentStepId, setCurrentStepId] = useState<StepId>("who");
 
   useEffect(() => {
     if (!rule) return;
@@ -138,18 +154,26 @@ export default function EditRuleDialog({
         ? assignNodeIds(rule.logic_tree as EditableLogicNode)
         : assignNodeIds({ kind: "AND", children: [] });
     setTree(initialTree);
+    setOriginalTree(initialTree);
     setName(rule.name ?? "");
     setStrength(rule.strength || "unspecified");
+    setOriginalStrength(rule.strength || "unspecified");
     setReason("");
     setSearchTarget(IDLE_TARGET);
     setShowRecommendation(false);
     setSearchPanelPinned(false);
     setCoach(null);
     setAction(rule.action ?? null);
+    setOriginalAction(rule.action ?? null);
     setActionDirty(false);
+    setCurrentStepId("who");
   }, [rule]);
 
   const summary = useMemo(() => treeToSentence(tree), [tree]);
+  const beforeSummary = useMemo(
+    () => treeToSentence(originalTree),
+    [originalTree],
+  );
   const duplicates = useMemo(() => findDuplicateConceptGroups(tree), [tree]);
   // Hash of the current tree -- used by TestPatientsPanel to auto-replay
   // whenever the reviewer's edits could change which patients match.
@@ -161,11 +185,58 @@ export default function EditRuleDialog({
   // The right-hand search column is "open" when the user is actively
   // picking a concept OR when they have explicitly pinned it open via
   // the slim rail. Otherwise it collapses to a 56px rail so the tree
-  // gets the full dialog width.
+  // gets the full step width.
   const searchPanelOpen = searchTarget.mode !== "idle" || searchPanelPinned;
 
   const validationError = useMemo(() => findValidationError(tree), [tree]);
-  const canSave = !!tree && !validationError && reason.trim().length >= 3 && !saving;
+  const reasonReady = reason.trim().length >= 3;
+  const canSave =
+    !!tree && !validationError && reasonReady && !saving;
+
+  const stepDescriptors: StepDescriptor[] = useMemo(() => {
+    const whoState: StepState = !tree
+      ? "not_started"
+      : validationError
+        ? "in_progress"
+        : "ready";
+    const suggestState: StepState =
+      action && action.snomed_concept_id
+        ? "ready"
+        : strength === "unspecified" && !action
+          ? "not_started"
+          : "in_progress";
+    // Step 3 is opt-in evidence -- it never blocks save, so we mark
+    // it ready unconditionally so the user does not feel pressured
+    // to compile a sandbox before saving a wording-only fix.
+    const tryState: StepState = "ready";
+    const saveState: StepState = reasonReady ? "ready" : "not_started";
+    return [
+      { id: "who", state: whoState },
+      { id: "suggest", state: suggestState },
+      { id: "try", state: tryState },
+      { id: "save", state: saveState },
+    ];
+  }, [tree, validationError, action, strength, reasonReady]);
+
+  const handleJumpStep = useCallback((next: StepId) => {
+    setCurrentStepId(next);
+    setSearchTarget(IDLE_TARGET);
+    setSearchPanelPinned(false);
+  }, []);
+
+  const currentIndex = STEP_IDS.indexOf(currentStepId);
+  const isFirstStep = currentIndex === 0;
+  const isLastStep = currentIndex === STEP_IDS.length - 1;
+
+  const handleNext = useCallback(() => {
+    if (isLastStep) return;
+    handleJumpStep(STEP_IDS[currentIndex + 1]);
+  }, [currentIndex, isLastStep, handleJumpStep]);
+
+  const handleBack = useCallback(() => {
+    if (isFirstStep) return;
+    handleJumpStep(STEP_IDS[currentIndex - 1]);
+  }, [currentIndex, isFirstStep, handleJumpStep]);
 
   function handleUpdate(update: NodeUpdate) {
     setTree((curr) => (curr ? applyUpdate(curr, update) : curr));
@@ -305,18 +376,26 @@ export default function EditRuleDialog({
       onClose={onClose}
       fullWidth
       fullScreen={fullscreen}
-      maxWidth="lg"
+      maxWidth="xl"
       aria-labelledby="edit-rule-dialog-title"
       PaperProps={{
         sx: fullscreen
           ? { display: "flex", flexDirection: "column" }
-          : { minHeight: "70vh", display: "flex", flexDirection: "column" },
+          : {
+              minHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+            },
       }}
     >
       <DialogTitle id="edit-rule-dialog-title" component="div" sx={{ pb: 1 }}>
         <Stack direction="row" alignItems="center" spacing={1}>
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" component="h2" sx={{ fontWeight: 700, fontSize: "1.05rem" }}>
+            <Typography
+              variant="h6"
+              component="h2"
+              sx={{ fontWeight: 700, fontSize: "1.05rem" }}
+            >
               Change this rule
             </Typography>
             {rule?.chapter_title && (
@@ -349,199 +428,155 @@ export default function EditRuleDialog({
           </IconButton>
         </Stack>
       </DialogTitle>
-      <DialogContent dividers>
-        <Stack spacing={2}>
-          <SummaryCard summary={summary} />
-          {duplicates.length > 0 && (
-            <Alert
-              severity="info"
-              role="status"
-              aria-label="Repeated symptom set warning"
-              sx={{ py: 0.5 }}
-            >
-              {duplicates.length === 1 ? (
-                <>
-                  This rule has the <strong>same symptom set</strong> in two
-                  places: {duplicates[0].preview.join(", ")}
-                  {duplicates[0].preview.length < 3 ? "" : ", ..."}. Keeping
-                  duplicates is fine, but you can remove one to keep the rule
-                  shorter.
-                </>
-              ) : (
-                <>
-                  This rule has <strong>{duplicates.length} repeated symptom
-                  sets</strong>. Removing duplicates keeps the rule easier to
-                  read.
-                </>
-              )}
-            </Alert>
-          )}
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ lineHeight: 1.5 }}
+      <DialogContent dividers sx={{ p: 0 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "minmax(220px, 3fr) minmax(0, 6fr) minmax(280px, 4fr)",
+            },
+            minHeight: "100%",
+          }}
+        >
+          <StepRail
+            steps={stepDescriptors}
+            currentStepId={currentStepId}
+            onJump={handleJumpStep}
+          />
+          <Box
+            role="region"
+            aria-label={`Step ${currentIndex + 1} of ${STEP_IDS.length}`}
+            sx={{ p: { xs: 2, md: 3 }, minWidth: 0 }}
           >
-            Click any green pill to swap a symptom. Use the{" "}
-            <strong>+ Add</strong> buttons to add more. A yellow lightbulb
-            means the term is vague -- click it for clearer suggestions.
-          </Typography>
-
-          {rule?.recommendation_text && (
-            <Box>
-              <Link
-                component="button"
-                type="button"
-                variant="caption"
-                onClick={() => setShowRecommendation((v) => !v)}
-                sx={{ textTransform: "none" }}
+            {validationError && currentStepId === "who" && (
+              <Alert
+                severity="warning"
+                sx={{ py: 0.5, mb: 2 }}
+                role="status"
               >
-                {showRecommendation
-                  ? "Hide the original NICE text"
-                  : "Show the original NICE text"}
-              </Link>
-              {showRecommendation && (
-                <Box
-                  sx={{
-                    mt: 0.5,
-                    p: 1.25,
-                    borderRadius: 1,
-                    bgcolor: "grey.50",
-                    border: "1px solid",
-                    borderColor: "grey.200",
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontStyle: "italic", lineHeight: 1.6 }}>
-                    &ldquo;{rule.recommendation_text}&rdquo;
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          )}
-
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <TextField
-              size="small"
-              label="Short name for this rule"
-              helperText="Shown to clinicians in the review queue."
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              inputProps={{ "aria-label": "Short name for this rule", maxLength: 200 }}
-              sx={{ flex: 2 }}
-            />
-            <Box sx={{ flex: 1, minWidth: 220 }}>
-              <Typography
-                variant="caption"
-                component="label"
-                htmlFor="edit-rule-strength"
-                sx={{ display: "block", color: "text.secondary", mb: 0.25, ml: 0.5 }}
-              >
-                What should the system suggest?
-              </Typography>
-              <Select
-                id="edit-rule-strength"
-                size="small"
-                fullWidth
-                value={strength}
-                onChange={(e) => setStrength(String(e.target.value))}
-                inputProps={{ "aria-label": "What should the system suggest" }}
-              >
-                {STRENGTH_OPTIONS.map((o) => (
-                  <MenuItem key={o.value} value={o.value}>
-                    {o.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Box>
-          </Stack>
-
-          {validationError && (
-            <Alert severity="warning" sx={{ py: 0.5 }} role="status">
-              {validationError}
-            </Alert>
-          )}
-
-          {rule?.rule_id && (
-            <TestPatientsPanel
-              ruleId={rule.rule_id}
-              guidelineId={rule.guideline_id}
-              ruleSignature={ruleSignature}
-              ruleName={name || rule.name}
-              recommendationText={rule.recommendation_text}
-              draftRule={
-                tree
-                  ? {
-                      rule_id: rule.rule_id,
-                      name: name || rule.name || "",
-                      strength: strength || "unspecified",
-                      guideline_id: rule.guideline_id,
-                      guideline_title: rule.chapter_title || "",
-                      chapter_title: rule.chapter_title,
-                      recommendation_verbatim: rule.recommendation_text || "",
-                      logic_tree: stripNodeIds(tree),
-                      ...(actionDirty && action ? { action } : {}),
-                    }
-                  : null
-              }
-            />
-          )}
-
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={2}
-            alignItems="stretch"
-          >
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Stack spacing={1.5}>
-                <ActionPanel
+                {validationError}
+              </Alert>
+            )}
+            {currentStepId === "who" && (
+              <Step1Who
+                tree={tree}
+                selectedNodeId={searchTarget.nodeId}
+                duplicates={duplicates}
+                recommendationText={rule?.recommendation_text}
+                showRecommendation={showRecommendation}
+                onToggleRecommendation={() =>
+                  setShowRecommendation((v) => !v)
+                }
+                searchTarget={{
+                  mode:
+                    searchTarget.mode === "replace_action"
+                      ? "idle"
+                      : searchTarget.mode,
+                  initialQuery: searchTarget.initialQuery,
+                  focusLabel: searchTarget.focusLabel,
+                  nodeId: searchTarget.nodeId,
+                }}
+                searchPanelOpen={
+                  searchPanelOpen && searchTarget.mode !== "replace_action"
+                }
+                onOpenSearchPanel={() => setSearchPanelPinned(true)}
+                onPickConcept={handlePick}
+                onSelectNode={handleSelectNode}
+                onUpdate={handleUpdate}
+                onRequestAdd={handleRequestAdd}
+                onRequestCoach={handleRequestCoach}
+              />
+            )}
+            {currentStepId === "suggest" && (
+              <Stack spacing={2}>
+                <Step2Suggest
+                  name={name}
+                  onNameChange={setName}
+                  strength={strength}
+                  onStrengthChange={setStrength}
                   action={action}
-                  isSelected={searchTarget.mode === "replace_action"}
-                  onSelect={handleSelectAction}
+                  isActionSelected={searchTarget.mode === "replace_action"}
+                  onSelectAction={handleSelectAction}
                 />
-                {tree && (
-                  <LogicTreeEditor
-                    root={tree}
-                    selectedNodeId={searchTarget.nodeId}
-                    onSelect={handleSelectNode}
-                    onUpdate={handleUpdate}
-                    onRequestAdd={handleRequestAdd}
-                    onRequestCoach={handleRequestCoach}
-                  />
+                {searchTarget.mode === "replace_action" && (
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      borderRadius: 1.5,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      bgcolor: "background.paper",
+                    }}
+                  >
+                    <ConceptSearchPanel
+                      mode="replace_action"
+                      focusLabel={searchTarget.focusLabel}
+                      initialQuery={searchTarget.initialQuery}
+                      onPick={handlePick}
+                    />
+                  </Box>
                 )}
               </Stack>
-            </Box>
-            <Box
-              sx={{
-                display: { xs: "block", md: "flex" },
-                alignItems: "stretch",
-                minWidth: 0,
-              }}
-            >
-              <Collapse
-                in={searchPanelOpen}
-                orientation="horizontal"
-                timeout={200}
-                unmountOnExit
-                sx={{
-                  "& .MuiCollapse-wrapperInner": {
-                    width: { xs: "100%", md: 380 },
-                  },
-                }}
-              >
-                <Box sx={{ width: { xs: "100%", md: 380 }, pl: { md: 1.5 } }}>
-                  <ConceptSearchPanel
-                    mode={searchTarget.mode === "idle" ? "idle" : searchTarget.mode}
-                    focusLabel={searchTarget.focusLabel}
-                    initialQuery={searchTarget.initialQuery}
-                    onPick={handlePick}
-                  />
-                </Box>
-              </Collapse>
-              {!searchPanelOpen && (
-                <SearchPanelRail onOpen={() => setSearchPanelPinned(true)} />
-              )}
-            </Box>
-          </Stack>
-        </Stack>
+            )}
+            {currentStepId === "try" && rule?.rule_id && (
+              <Step3Try
+                ruleId={rule.rule_id}
+                guidelineId={rule.guideline_id}
+                ruleSignature={ruleSignature}
+                ruleName={name || rule.name}
+                recommendationText={rule.recommendation_text}
+                draftRule={
+                  tree
+                    ? {
+                        rule_id: rule.rule_id,
+                        name: name || rule.name || "",
+                        strength: strength || "unspecified",
+                        guideline_id: rule.guideline_id,
+                        guideline_title: rule.chapter_title || "",
+                        chapter_title: rule.chapter_title,
+                        recommendation_verbatim:
+                          rule.recommendation_text || "",
+                        logic_tree: stripNodeIds(tree),
+                        ...(actionDirty && action ? { action } : {}),
+                      }
+                    : null
+                }
+              />
+            )}
+            {currentStepId === "save" && (
+              <Step4Save
+                reason={reason}
+                onReasonChange={setReason}
+                saving={saving}
+                reasonError={
+                  validationError
+                    ? `Fix the rule first: ${validationError}`
+                    : undefined
+                }
+              />
+            )}
+          </Box>
+          <Box
+            sx={{
+              borderLeft: { xs: "none", md: "1px solid" },
+              borderTop: { xs: "1px solid", md: "none" },
+              borderColor: { xs: "divider", md: "divider" },
+              bgcolor: "grey.50",
+              minWidth: 0,
+            }}
+          >
+            <LivePreviewPane
+              summary={summary}
+              strength={strength}
+              action={action}
+              showBeforeAfter={currentStepId === "save"}
+              beforeSummary={beforeSummary}
+              beforeStrength={originalStrength}
+              beforeAction={originalAction}
+            />
+          </Box>
+        </Box>
       </DialogContent>
       <DialogActions
         sx={{
@@ -553,29 +588,35 @@ export default function EditRuleDialog({
           borderTop: "1px solid",
           borderColor: "divider",
           zIndex: 1,
+          gap: 1,
         }}
       >
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1 }}>
-          <TextField
-            size="small"
-            label="Why are you changing this rule?"
-            placeholder="For example: NICE updated the age threshold."
-            helperText="At least 3 characters. Saved with the change so others can see why."
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            inputProps={{
-              "aria-label": "Why are you changing this rule",
-              minLength: 3,
-            }}
-            required
-            sx={{ flex: 1 }}
-            disabled={saving}
-          />
-          {saving && <CircularProgress size={18} aria-label="Saving your changes" />}
-        </Stack>
         <Button onClick={onClose} disabled={saving}>
           Cancel
         </Button>
+        <Box sx={{ flex: 1 }} />
+        {saving && (
+          <CircularProgress size={18} aria-label="Saving your changes" />
+        )}
+        <Button
+          onClick={handleBack}
+          disabled={isFirstStep || saving}
+          startIcon={<ArrowBackRoundedIcon fontSize="small" />}
+          aria-label="Go back to the previous step"
+        >
+          Back
+        </Button>
+        {!isLastStep && (
+          <Button
+            variant="outlined"
+            onClick={handleNext}
+            disabled={saving}
+            endIcon={<ArrowForwardRoundedIcon fontSize="small" />}
+            aria-label="Go to the next step"
+          >
+            Next
+          </Button>
+        )}
         <Button
           variant="contained"
           onClick={handleSave}
@@ -603,54 +644,6 @@ export default function EditRuleDialog({
         );
       })()}
     </Dialog>
-  );
-}
-
-/**
- * Slim 56px rail shown when the search panel is collapsed. Click to pin
- * the panel open. Acts as a constant signpost so the reviewer knows the
- * search is one click away even when not in use.
- */
-function SearchPanelRail({ onOpen }: { onOpen: () => void }) {
-  return (
-    <Tooltip title="Open search to pick a clinical term" placement="left">
-      <Box
-        component="button"
-        type="button"
-        onClick={onOpen}
-        aria-label="Open search to pick a clinical term"
-        sx={{
-          width: { xs: "100%", md: 56 },
-          minHeight: { xs: 48, md: 240 },
-          ml: { md: 1 },
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 1,
-          border: "1px dashed",
-          borderColor: "divider",
-          borderRadius: 1,
-          bgcolor: "transparent",
-          color: "text.secondary",
-          cursor: "pointer",
-          py: 1,
-          "&:hover": { bgcolor: "action.hover", color: "text.primary" },
-        }}
-      >
-        <SearchIcon fontSize="small" />
-        <Typography
-          variant="caption"
-          sx={{
-            writingMode: { md: "vertical-rl" },
-            transform: { md: "rotate(180deg)" },
-            letterSpacing: 0.5,
-          }}
-        >
-          Search clinical terms
-        </Typography>
-      </Box>
-    </Tooltip>
   );
 }
 

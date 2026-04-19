@@ -401,3 +401,179 @@ async def test_compile_and_store_includes_compile_timestamp(compiler, store):
 
     assert "compile_timestamp" in summary
     assert summary["compile_timestamp"] is not None
+
+
+# -- Synonym set + exclusions (UN-LEO-AI-093 / DI-LEO-AI-509) ----------------
+
+
+def _v2_concept_row(logic_json):
+    """Helper to build a schema-v2 row carrying just a CONCEPT logic tree."""
+    import json
+
+    return _make_row(
+        group_id=None,
+        concept_id=None,
+        schema_version=2,
+        logic_json=json.dumps(logic_json),
+    )
+
+
+def test_synonym_set_back_compat_single_seed(compiler, store, mock_session):
+    """Legacy single-snomed_concept_id criterion compiles to identical bitmap."""
+    rows = [
+        _v2_concept_row(
+            {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "snomed_concept_id": "443416000",
+                    "preferred_term": "Smoker",
+                    "semantic_tag": "finding",
+                },
+            }
+        )
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session)
+    leaf = ruleset["rules"][0]["logic_tree"]
+    assert leaf["seed_concept_ids"] == ["443416000"]
+    assert leaf["criterion"]["primary_concept_id"] == "443416000"
+    assert leaf["criterion"]["seeds"][0]["snomed_concept_id"] == "443416000"
+
+
+def test_synonym_set_unions_multiple_seed_closures(compiler, store, mock_session):
+    """Multi-seed criterion compiles to UNION of every seed's closure."""
+
+    def fake_run(query, params=None, **kwargs):
+        # Each seed expands to itself + a stub child via the IS_A query.
+        bag = params if isinstance(params, dict) else kwargs
+        seed = bag.get("concept_id")
+        return [
+            {"concept_id": seed},
+            {"concept_id": f"{seed}_child"},
+        ]
+
+    mock_session.run.side_effect = fake_run
+    rows = [
+        _v2_concept_row(
+            {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "primary_concept_id": "1",
+                    "preferred_term": "Smoker",
+                    "seeds": [
+                        {
+                            "snomed_concept_id": "1",
+                            "preferred_term": "Smoker",
+                            "include_descendants": True,
+                        },
+                        {
+                            "snomed_concept_id": "2",
+                            "preferred_term": "Cigarette smoker",
+                            "include_descendants": True,
+                        },
+                    ],
+                },
+            }
+        )
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session)
+    leaf = ruleset["rules"][0]["logic_tree"]
+    assert set(leaf["seed_concept_ids"]) == {"1", "2", "1_child", "2_child"}
+
+
+def test_synonym_set_excluded_ids_subtracted_from_bitmap(compiler, store, mock_session):
+    """excluded_concept_ids are dropped from the union before bitmap lookup."""
+
+    def fake_run(query, params=None, **kwargs):
+        bag = params if isinstance(params, dict) else kwargs
+        seed = bag.get("concept_id")
+        return [
+            {"concept_id": seed},
+            {"concept_id": f"{seed}_child"},
+        ]
+
+    mock_session.run.side_effect = fake_run
+    rows = [
+        _v2_concept_row(
+            {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "primary_concept_id": "1",
+                    "preferred_term": "Smoker",
+                    "seeds": [
+                        {
+                            "snomed_concept_id": "1",
+                            "preferred_term": "Smoker",
+                            "include_descendants": True,
+                        },
+                    ],
+                    "excluded_concept_ids": ["1_child"],
+                },
+            }
+        )
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session)
+    leaf = ruleset["rules"][0]["logic_tree"]
+    assert "1_child" not in leaf["seed_concept_ids"]
+    assert "1" in leaf["seed_concept_ids"]
+    assert leaf["criterion"]["excluded_concept_ids"] == ["1_child"]
+
+
+def test_synonym_seed_with_include_descendants_false_skips_closure_lookup(
+    compiler, store, mock_session
+):
+    """A seed with include_descendants=False contributes only its own id."""
+    rows = [
+        _v2_concept_row(
+            {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "primary_concept_id": "1",
+                    "preferred_term": "Cigarette smoker",
+                    "seeds": [
+                        {
+                            "snomed_concept_id": "1",
+                            "preferred_term": "Cigarette smoker",
+                            "include_descendants": False,
+                        },
+                    ],
+                },
+            }
+        )
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session)
+    leaf = ruleset["rules"][0]["logic_tree"]
+    assert leaf["seed_concept_ids"] == ["1"]
+    mock_session.run.assert_not_called()
+
+
+def test_synonym_set_empty_after_exclusions_falls_back_to_primary(
+    compiler, store, mock_session
+):
+    """If every seed id is excluded, fall back to the primary so the rule still compiles."""
+    rows = [
+        _v2_concept_row(
+            {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "primary_concept_id": "1",
+                    "preferred_term": "Smoker",
+                    "seeds": [
+                        {
+                            "snomed_concept_id": "1",
+                            "preferred_term": "Smoker",
+                            "include_descendants": False,
+                        },
+                    ],
+                    "excluded_concept_ids": ["1"],
+                },
+            }
+        )
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session)
+    leaf = ruleset["rules"][0]["logic_tree"]
+    assert leaf["seed_concept_ids"] == ["1"]

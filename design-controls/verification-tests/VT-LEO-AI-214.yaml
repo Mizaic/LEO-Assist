@@ -13,14 +13,19 @@
       - "R-LEO-AI-207"
 
   metadata:
-    title: "EncounterPreviewDialog wrapper -- shared dialog mount, dual save, headerChrome"
+    title: "EncounterPreviewDialog wrapper -- read-only preview, search highlight, on-demand dual-save editor"
     description: >
       Static-source verification per ui-testing.mdc. Confirms the
-      /care/encounters preview wrapper consumes the shared dialog
-      in saveMode='dual', seeds via createGoldLabelFromEncounter,
-      surfaces match-rationale chrome via headerChrome, and that
-      EncounterMissionControl no longer prefetches coded links for
-      the preview path.
+      /care/encounters preview wrapper opens as a read-only
+      preview that renders the encounter text from item.text and
+      highlights the search query plus match-rationale terms via
+      <mark> elements, without making any backend call on open.
+      An explicit "Edit codes" footer button seeds via
+      createGoldLabelFromEncounter and mounts the shared dialog in
+      saveMode='dual'. Seed failures keep the preview open with an
+      inline error so the encounter text stays readable.
+      EncounterMissionControl forwards the search query and no
+      longer prefetches coded links for the preview path.
     test_level: "unit"
     test_type: "functional"
     safety_class: "B"
@@ -48,25 +53,25 @@
           verification_method: "automated"
 
     - case_id: "VT-214-TC-002"
-      case_name: "Wrapper seeds the gold label from the live encounter"
+      case_name: "Read-only preview renders encounter text without an API call on open"
       priority: "critical"
       test_steps:
         - step_number: 1
-          action: "Search for createGoldLabelFromEncounter call"
-          expected_result: "Call passes patient_id and encounter_id from the item; baseline_concept_ids stored in context"
+          action: "Read EncounterPreviewDialog.tsx and inspect mount-time effects"
+          expected_result: "EncounterTextBlock with data-testid='encounter-preview-text' (and 'encounter-preview-empty' fallback) is present; the only useEffect in the file is the cancellation reset; createGoldLabelFromEncounter is only called from handleEditCodes"
           verification_method: "automated"
 
     - case_id: "VT-214-TC-003"
-      case_name: "Wrapper mounts the shared editor in saveMode='dual'"
+      case_name: "'Edit codes' button seeds gold label and mounts shared editor in dual-save mode"
       priority: "critical"
       test_steps:
         - step_number: 1
-          action: "Search for saveMode=dual and entitySaver"
-          expected_result: "Dialog props include saveMode='dual', entitySaver={dualSaver}, onAfterSave callback"
+          action: "Search for the edit-codes button, the seed call, and the dual-save mount"
+          expected_result: "Footer button data-testid='encounter-preview-edit-codes' triggers createGoldLabelFromEncounter(patient_id, encounter_id); baseline_concept_ids stored in context; dialog mounted with saveMode='dual', entitySaver={dualSaver}, onAfterSave callback"
           verification_method: "automated"
 
     - case_id: "VT-214-TC-004"
-      case_name: "Match rationale is passed via headerChrome"
+      case_name: "Match rationale chrome is rendered in preview and forwarded via headerChrome"
       priority: "critical"
       test_steps:
         - step_number: 1
@@ -75,6 +80,24 @@
           verification_method: "automated"
 
     - case_id: "VT-214-TC-005"
+      case_name: "Encounter text highlights search query and rationale terms via <mark>"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Read EncounterPreviewDialog.tsx and inspect the highlight helpers"
+          expected_result: "HighlightedText + collectHighlightTerms helpers exist; <Box component='mark' data-testid='encounter-preview-highlight'> wraps each hit; pattern is built with new RegExp(..., 'gi'); MIN_HIGHLIGHT_LEN constant + longest-first sort are present"
+          verification_method: "automated"
+
+    - case_id: "VT-214-TC-006"
+      case_name: "Seed failure keeps the preview open with an inline error"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Search for the editError surface in the preview body"
+          expected_result: "data-testid='encounter-preview-error' is rendered after the EncounterTextBlock so the encounter text stays visible when the seed call fails"
+          verification_method: "automated"
+
+    - case_id: "VT-214-TC-007"
       case_name: "GoldLabelDetailDialog renders headerChrome when provided"
       priority: "high"
       test_steps:
@@ -83,22 +106,13 @@
           expected_result: "Source contains headerChrome?: React.ReactNode and data-testid='gold-dialog-header-chrome'"
           verification_method: "automated"
 
-    - case_id: "VT-214-TC-006"
-      case_name: "EncounterMissionControl no longer prefetches coded links for the preview path"
+    - case_id: "VT-214-TC-008"
+      case_name: "EncounterMissionControl does not prefetch coded links and forwards searchQuery"
       priority: "high"
       test_steps:
         - step_number: 1
           action: "Read EncounterMissionControl.tsx"
-          expected_result: "fetchEncounterCodedLinks, previewCodedLinks, previewLinksLoading, previewLinksError are NOT present"
-          verification_method: "automated"
-
-    - case_id: "VT-214-TC-007"
-      case_name: "Mission-control forwards onCodingChanged to refresh the list after save"
-      priority: "high"
-      test_steps:
-        - step_number: 1
-          action: "Read EncounterMissionControl.tsx"
-          expected_result: "EncounterPreviewDialog mounted with onCodingChanged that calls loadAll(false)"
+          expected_result: "fetchEncounterCodedLinks/previewCodedLinks/previewLinksLoading/previewLinksError are NOT present; EncounterPreviewDialog is mounted with searchQuery={search.query} and onCodingChanged that calls loadAll(false)"
           verification_method: "automated"
 
   pass_fail_criteria:
@@ -117,3 +131,15 @@
       executor: "Rob Smith (developer)"
       result: "pass"
       notes: "7 cases pass under jest 30 + ts-jest."
+    - run_id: "VT-214-EXEC-002"
+      timestamp: "2026-04-19T08:05:00Z"
+      executor: "Rob Smith (developer)"
+      result: "pass"
+      notes: >
+        8 cases pass under jest 30 + ts-jest after splitting the
+        preview from the editor: read-only preview by default,
+        search-term highlighting via <mark>, on-demand
+        GoldLabelEditorDialog mount via the 'Edit codes' button,
+        and an inline seed-failure error that does not hide the
+        encounter text. searchQuery is now forwarded by
+        EncounterMissionControl.

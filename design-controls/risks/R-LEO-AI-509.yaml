@@ -1,0 +1,135 @@
+# -- R-LEO-AI-509 -- Reviewer saves the wrong rule edit because the editor felt overwhelming
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-509"
+  title: "A non-specialist reviewer (audit clerk, junior coder, clinical lead with no AI / NLP background) saves a clinical guidance rule edit that does not match what they intended, because the editor presented too many concerns at once for them to follow"
+
+  hazard:
+    description: >
+      The "Change this rule" dialog edits Class B clinical guidance
+      rules. If a reviewer with low health / NLP literacy cannot
+      see, in plain English, what the rule will do after their
+      edit, they may save a rule that fires on the wrong patients
+      (or stops firing at all). A widened audit cohort (8-80,
+      reading age 7-11) means the editor MUST not assume any prior
+      knowledge of boolean logic, SNOMED hierarchy, or the bitmap
+      compiler.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinical lead opens the legacy one-column editor to add a
+    "Cigarette smoker" synonym to a 2WW lung referral rule. The
+    1200px modal stacks the rule summary, duplicate alert, NICE
+    source, name, suggestion strength, sandbox state, recommended
+    procedure, logic tree and reason in a single column. They
+    cannot find the live consequence of their edit, lose track of
+    where the rule preview is in relation to the edit they just
+    made, and either (a) save a half-finished tree because the
+    Save button looked active, or (b) abandon the task and leave
+    the rule stale. NICE updates therefore do not flow through to
+    the clinical pipeline.
+
+  harm:
+    description: >
+      A patient who clinically meets a NICE recommendation
+      (referral, urgent investigation, escalation) is either not
+      surfaced on the safety-net dashboard, or is surfaced under
+      the wrong recommendation, with downstream delayed diagnosis
+      / treatment risk.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        The dialog is restructured as a four-step wizard
+        (Who / Suggest / Try / Save) with a sticky step rail that
+        shows a per-step ready state, so the reviewer can see at a
+        glance which jobs are done and which are still missing.
+      implemented_by: ["DI-LEO-AI-512"]
+      verified_by: ["VT-LEO-AI-511"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        A sticky LivePreviewPane shows the rule in plain English
+        on every step (treeToSentence + STRENGTH_LABELS recap), so
+        the reviewer can see the consequence of every edit without
+        parsing the logic tree.
+      implemented_by: ["DI-LEO-AI-512"]
+      verified_by: ["VT-LEO-AI-511"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        On step 4 the preview pane swaps to a Before / After
+        two-column variant so the reviewer can compare the
+        original rule to the edited rule before saving.
+      implemented_by: ["DI-LEO-AI-512"]
+      verified_by: ["VT-LEO-AI-511"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Save changes is the single primary action and is gated on
+        (a) tree validity and (b) reason length >= 3. The reason
+        field is on its own step (step 4) so the reviewer must
+        confront a "why am I changing this?" prompt before the
+        save button can ever go enabled.
+      implemented_by: ["DI-LEO-AI-512"]
+      verified_by: ["VT-LEO-AI-511"]
+      effectiveness: "effective"
+    - control_type: "information_for_safety"
+      description: >
+        All chrome copy (step titles, helpers, rail state chips,
+        empty states) reads at UK reading age 7-11 -- centralised
+        in copy.ts and verified by a Hemingway-grade sweep so
+        future copy changes cannot regress readability.
+      implemented_by: ["DI-LEO-AI-512"]
+      verified_by: ["VT-LEO-AI-511"]
+      effectiveness: "effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The wizard layout, the always-on plain-English preview, and
+      the explicit before/after step taken together leave the
+      reviewer no place where their edit is invisible. The
+      reason-gated Save button forces a deliberate confirmation
+      before any change reaches the pipeline. The remaining
+      residual risk is the case where a reviewer reads the
+      preview but mis-interprets it; this is mitigated procedurally
+      by the QA peer-review of every published rule edit.
+
+  monitoring:
+    monitoring_plan: >
+      Telemetry on EditRuleDialog: time-on-step, step-skip rate,
+      cancel rate per step, and post-save rollback rate per
+      reviewer. Monthly review of any rule edit that was rolled
+      back within 7 days of save (signal of a confused edit).
+    metrics:
+      - "Median time-on-step per step (target: step 1 < 90s)"
+      - "Cancel-after-edit rate (target: < 10%)"
+      - "Post-save rollback within 7 days (target: 0)"
+      - "Reviewer-reported confusion in monthly UX review"
+    review_frequency: "Monthly"
+
+  metadata:
+    identified_by: "Rob Smith - 2026-04-19 EditRuleDialog accessibility / step-by-step redesign request"
+    identified_date: "2026-04-19"
+    status: "mitigated"
+    tags:
+      - "ui"
+      - "guidance-rules"
+      - "rule-editor"
+      - "usability"
+      - "health-literacy"
+      - "clinical-safety"

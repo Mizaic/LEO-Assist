@@ -239,6 +239,9 @@ def _render_rule_bullet(rule: dict[str, Any]) -> str:
     out = "".join(parts)
     if rec:
         out += f"\n  - Recommendation: {rec}"
+    matched_via_line = _render_matched_via(rule.get("matched_via"))
+    if matched_via_line:
+        out += f"\n  - Matched on: {matched_via_line}"
     if action_name:
         if due_days:
             out += f"\n  - Action: {action_name} (within {due_days} days)"
@@ -251,9 +254,51 @@ def _render_rule_bullet(rule: dict[str, Any]) -> str:
     return out
 
 
+def _render_matched_via(matched_via: list[dict[str, Any]] | None) -> str:
+    """Render per-leaf hits as a short, plain-English line for SBAR.
+
+    Implements UN-LEO-AI-093 acceptance criterion: name the matched code
+    rather than only the rule. Output uses sentence case and short labels
+    so the reading age stays at 9-11 (per `health-literacy.mdc`).
+
+    Examples:
+        - One leaf, one hit, exact match  -> "Smoker"
+        - One leaf, one hit, descendant   -> "Cigarette smoker (a kind of Smoker)"
+        - One leaf, two hits              -> "Cigarette smoker, Pipe smoker (kinds of Smoker)"
+        - Two leaves                      -> "Smoker; History of asbestos exposure"
+    """
+    if not matched_via:
+        return ""
+    fragments: list[str] = []
+    for entry in matched_via:
+        hits = list(entry.get("matched_concept_ids") or [])
+        if not hits:
+            continue
+        primary = entry.get("primary_concept_id")
+        chip_label = (entry.get("preferred_term") or "").strip() or "matched code"
+        # Best-effort: strip a trailing semantic-tag bracket for readability.
+        if " (" in chip_label and chip_label.endswith(")"):
+            chip_label = chip_label.rsplit(" (", 1)[0]
+        if hits == [primary]:
+            fragments.append(chip_label)
+            continue
+        if len(hits) == 1:
+            fragments.append(f"`{hits[0]}` (a kind of {chip_label})")
+        else:
+            joined = ", ".join(f"`{h}`" for h in hits)
+            fragments.append(f"{joined} (kinds of {chip_label})")
+    return "; ".join(fragments)
+
+
 def _rule_snapshot(rule: dict[str, Any]) -> dict[str, Any]:
-    """Trim the rule payload to a JSON-serialisable snapshot."""
-    return {
+    """Trim the rule payload to a JSON-serialisable snapshot.
+
+    ``matched_via`` (DI-LEO-AI-510) is preserved so downstream renderers
+    and audit tooling can show *which* synonym seed on the patient caused
+    the rule to fire (e.g. "matched on Cigarette smoker (a kind of
+    Smoker)") rather than only naming the rule.
+    """
+    snapshot = {
         "rule_id": rule.get("rule_id"),
         "name": rule.get("name"),
         "strength": rule.get("strength"),
@@ -264,6 +309,10 @@ def _rule_snapshot(rule: dict[str, Any]) -> dict[str, Any]:
         "action": rule.get("action"),
         "confidence": rule.get("confidence"),
     }
+    matched_via = rule.get("matched_via")
+    if matched_via:
+        snapshot["matched_via"] = list(matched_via)
+    return snapshot
 
 
 def _derive_pathway_hints(rules: list[dict[str, Any]]) -> dict[str, Any]:

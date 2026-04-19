@@ -91,7 +91,39 @@ function formatDate(iso: string): string | null {
   }
 }
 
-function categorise(name: string): PromptCategory {
+// Visual styling per SBAR context group, keyed by the [<Group>] prefix
+// the seed script writes into the PromptConfig description (DI-LEO-AI-507).
+const SBAR_CONTEXT_GROUP_STYLE: Record<
+  string,
+  { color: string; bg: string }
+> = {
+  "Primary care": { color: "#1565c0", bg: "#e3f2fd" },
+  "Secondary care": { color: "#ad1457", bg: "#fce4ec" },
+  "Statutory and social": { color: "#4527a0", bg: "#ede7f6" },
+  "Quality assurance": { color: "#2e7d32", bg: "#e8f5e9" },
+};
+
+const SBAR_CONTEXT_GROUP_FALLBACK = {
+  color: "#37474f",
+  bg: "#eceff1",
+};
+
+function categorise(name: string, description?: string): PromptCategory {
+  // SBAR per-context Situation snippets group by the `[<Group>]`
+  // prefix in their seeded description so the AI Instructions list
+  // shows them under the clinical setting (Primary / Secondary /
+  // Statutory / Quality assurance) rather than dumped under General.
+  if (name.startsWith("sbar_situation_context_")) {
+    const match = description?.match(/^\[([^\]]+)\]/);
+    const group = match?.[1]?.trim() ?? "Summarisation context";
+    const style = SBAR_CONTEXT_GROUP_STYLE[group] ?? SBAR_CONTEXT_GROUP_FALLBACK;
+    return {
+      color: style.color,
+      bg: style.bg,
+      icon: <CategoryIcon sx={{ fontSize: 18 }} />,
+      label: group,
+    };
+  }
   const n = name.toLowerCase();
   if (n.includes("extract")) {
     return {
@@ -157,6 +189,12 @@ function categorise(name: string): PromptCategory {
   };
 }
 
+// Convenience wrapper so call sites that have a PromptConfig can pass
+// both name and description without restructuring args at every site.
+function categoriseFromPrompt(p: PromptConfig): PromptCategory {
+  return categorise(p.name, p.description);
+}
+
 function humanName(raw: string): string {
   return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -167,7 +205,9 @@ const CATEGORY_ALL = "All";
 
 function computeStats(prompts: PromptConfig[]): StatTile[] {
   const total = prompts.length;
-  const categories = new Set(prompts.map((p) => categorise(p.name).label)).size;
+  const categories = new Set(
+    prompts.map((p) => categoriseFromPrompt(p).label),
+  ).size;
   const withDoubleCheck = prompts.filter((p) => p.verification).length;
   const withExamples = prompts.filter((p) => p.fewShotCount > 0).length;
   return [
@@ -196,7 +236,7 @@ function computeStats(prompts: PromptConfig[]): StatTile[] {
 // -- Row helpers -------------------------------------------------------------
 
 function promptTitle(p: PromptConfig): React.ReactNode {
-  const cat = categorise(p.name);
+  const cat = categoriseFromPrompt(p);
   return (
     <Stack direction="row" alignItems="center" spacing={1.25}>
       <Box
@@ -250,7 +290,7 @@ function promptMeta(p: PromptConfig): React.ReactNode {
 }
 
 function promptChips(p: PromptConfig): React.ReactNode {
-  const cat = categorise(p.name);
+  const cat = categoriseFromPrompt(p);
   return (
     <>
       <Chip
@@ -372,7 +412,7 @@ export default function PromptsPage() {
 
   const allCategories = useMemo(() => {
     const cats = Array.from(
-      new Set(prompts.map((p) => categorise(p.name).label)),
+      new Set(prompts.map((p) => categoriseFromPrompt(p).label)),
     ).sort();
     return [CATEGORY_ALL, ...cats];
   }, [prompts]);
@@ -382,7 +422,7 @@ export default function PromptsPage() {
     const f = prompts.filter((p) => {
       const matchCat =
         activeCategory === CATEGORY_ALL ||
-        categorise(p.name).label === activeCategory;
+        categoriseFromPrompt(p).label === activeCategory;
       const matchSearch =
         !q ||
         humanName(p.name).toLowerCase().includes(q) ||
@@ -394,7 +434,7 @@ export default function PromptsPage() {
 
   const grouped = useMemo(() => {
     const map = filtered.reduce<Record<string, PromptConfig[]>>((acc, p) => {
-      const cat = categorise(p.name).label;
+      const cat = categoriseFromPrompt(p).label;
       (acc[cat] ??= []).push(p);
       return acc;
     }, {});
@@ -423,7 +463,9 @@ export default function PromptsPage() {
         const count =
           cat === CATEGORY_ALL
             ? prompts.length
-            : prompts.filter((p) => categorise(p.name).label === cat).length;
+            : prompts.filter(
+                (p) => categoriseFromPrompt(p).label === cat,
+              ).length;
         return { id: cat, label: cat, count };
       }),
     [allCategories, prompts],
@@ -529,7 +571,7 @@ export default function PromptsPage() {
       ) : (
         <Stack spacing={3} data-testid="prompts-grouped">
           {grouped.map(([groupLabel, items]) => {
-            const cat = categorise(items[0].name);
+            const cat = categoriseFromPrompt(items[0]);
             return (
               <Box key={groupLabel}>
                 <Stack

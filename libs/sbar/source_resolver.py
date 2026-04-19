@@ -25,6 +25,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
+from libs.cypher.prompt_config_queries import GET_PROMPT_BY_NAME
 from libs.sbar.events import (
     BackgroundSourceType,
     SBARArtifactRef,
@@ -33,9 +34,64 @@ from libs.sbar.events import (
     SUMMARISATION_CONTEXT_LABELS,
     SUMMARISATION_CONTEXT_PROMPTS,
     SituationArtifactType,
+    SummarisationContext,
 )
 
 logger = logging.getLogger(__name__)
+
+
+# Name + version of the :PromptConfig nodes that hold the editable
+# per-context Situation framing snippets. See DI-LEO-AI-507. The
+# resolver fetches the snippet from Neo4j first and falls back to
+# SUMMARISATION_CONTEXT_PROMPTS so the Situation prompt can never
+# regress to an unframed state under partial outage.
+SBAR_SITUATION_CONTEXT_PROMPT_PREFIX = "sbar_situation_context_"
+SBAR_SITUATION_CONTEXT_PROMPT_VERSION = 1
+
+
+def _situation_context_snippet(
+    session: Any,
+    context: SummarisationContext,
+    *,
+    cache: dict[SummarisationContext, str] | None = None,
+) -> str:
+    """Return the framing snippet for ``context``.
+
+    Prefers the live ``:PromptConfig`` text (so admin edits via
+    /admin/knowledge?tab=ai-instructions are honoured) and falls back
+    to the hardcoded ``SUMMARISATION_CONTEXT_PROMPTS`` dict on any
+    failure path (no session, missing node, query error). The cache
+    keeps a single ``resolve_situation`` call to at most one PromptConfig
+    lookup per distinct context.
+    """
+    if cache is not None and context in cache:
+        return cache[context]
+    fallback = SUMMARISATION_CONTEXT_PROMPTS.get(context, "")
+    snippet = fallback
+    if session is not None:
+        try:
+            row = session.run(
+                GET_PROMPT_BY_NAME,
+                name=f"{SBAR_SITUATION_CONTEXT_PROMPT_PREFIX}{context.value}",
+                version=SBAR_SITUATION_CONTEXT_PROMPT_VERSION,
+            ).single()
+            if row is not None:
+                # Neo4j driver Records support both attribute and item
+                # access. Normalise to a dict so a fake session that
+                # hands back a plain dict (used in tests) also works.
+                rec = dict(row) if not isinstance(row, dict) else row
+                fetched = (rec.get("systemPrompt") or "").strip()
+                if fetched:
+                    snippet = fetched
+        except Exception:
+            logger.debug(
+                "_situation_context_snippet: PromptConfig lookup failed for %s",
+                context.value,
+                exc_info=True,
+            )
+    if cache is not None:
+        cache[context] = snippet
+    return snippet
 
 
 # ---------------------------------------------------------------------------
@@ -210,9 +266,14 @@ def resolve_situation(
     """Pull the Patient context + each requested record artefact."""
     summary = get_patient_context(session, situation.patient_id)
     artifacts: list[dict[str, Any]] = []
+    # Per-call cache so two artefacts with the same context value only
+    # trigger one :PromptConfig lookup against the session.
+    snippet_cache: dict[SummarisationContext, str] = {}
     for ref in situation.artifacts:
         try:
-            artifacts.append(_resolve_artifact(session, ref))
+            artifacts.append(
+                _resolve_artifact(session, ref, snippet_cache=snippet_cache)
+            )
         except Exception:
             logger.warning(
                 "resolve_situation: failed to resolve artefact %s/%s",
@@ -233,19 +294,30 @@ def resolve_situation(
     )
 
 
-def _resolve_artifact(session: Any, ref: SBARArtifactRef) -> dict[str, Any]:
+def _resolve_artifact(
+    session: Any,
+    ref: SBARArtifactRef,
+    *,
+    snippet_cache: dict[SummarisationContext, str] | None = None,
+) -> dict[str, Any]:
     if ref.type is SituationArtifactType.summarisation_context:
         # New typed-context artefact. The orchestrator picks up
         # `prompt_snippet` and prepends it to the Situation prompt so
         # the LLM emphasises the right framing for that summary type.
+        # The snippet is fetched from Neo4j first (so admin edits via
+        # /admin/knowledge?tab=ai-instructions take effect immediately)
+        # with a hardcoded-dict fallback for safety. See DI-LEO-AI-507.
         ctx = ref.context_value
+        snippet: str | None = None
+        if ctx is not None:
+            snippet = _situation_context_snippet(
+                session, ctx, cache=snippet_cache
+            )
         return {
             "type": ref.type.value,
             "value": ctx.value if ctx is not None else None,
             "label": SUMMARISATION_CONTEXT_LABELS.get(ctx) if ctx else None,
-            "prompt_snippet": (
-                SUMMARISATION_CONTEXT_PROMPTS.get(ctx) if ctx else None
-            ),
+            "prompt_snippet": snippet,
         }
     if ref.type is SituationArtifactType.fixed_text:
         # Legacy free-text label retained for one minor version.

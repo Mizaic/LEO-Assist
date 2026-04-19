@@ -64,13 +64,65 @@ function demographicToText(node: EditableLogicNode): string {
   return `has ${field} ${op} ${value} ${unit}`.trim();
 }
 
-function conceptText(node: EditableLogicNode): string {
-  const term = friendlyTerm(node.criterion?.preferred_term);
-  return term.toLowerCase() || "an unfilled symptom";
+/**
+ * Lookup map from SNOMED concept id to a plain-English term.
+ * The popover passes one in built from the recent SNOMED searches so the
+ * exclusion list can render as ", except trial of smoking" instead of
+ * ", except code 266920004".
+ */
+export type TermResolver = (conceptId: string) => string | undefined;
+
+function conceptText(node: EditableLogicNode, resolve?: TermResolver): string {
+  const c = node.criterion;
+  const seeds = c?.seeds ?? [];
+  const exclusions = c?.excluded_concept_ids ?? [];
+
+  // Legacy single-seed shape (or empty seeds): use the headline term.
+  if (seeds.length === 0) {
+    const term = friendlyTerm(c?.preferred_term);
+    return term.toLowerCase() || "an unfilled symptom";
+  }
+
+  let body: string;
+  if (seeds.length === 1) {
+    const term = friendlyTerm(seeds[0].preferred_term).toLowerCase();
+    body =
+      seeds[0].include_descendants !== false
+        ? `${term} (or any kind of ${term})`
+        : term;
+  } else {
+    const allIncludeDescendants = seeds.every(
+      (s) => s.include_descendants !== false,
+    );
+    const terms = seeds.map((s) =>
+      friendlyTerm(s.preferred_term).toLowerCase(),
+    );
+    if (allIncludeDescendants) {
+      const primaryTerm = friendlyTerm(c?.preferred_term).toLowerCase();
+      body = `${primaryTerm} (or any kind of: ${terms.join(", ")})`;
+    } else {
+      body = `one of: ${terms.join(", ")}`;
+    }
+  }
+
+  if (exclusions.length === 0) return body;
+
+  const labels = exclusions.map((id) => {
+    const term = resolve?.(id);
+    return term ? friendlyTerm(term).toLowerCase() : `code ${id}`;
+  });
+  const tail =
+    labels.length === 1
+      ? labels[0]
+      : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+  return `${body}, except ${tail}`;
 }
 
-function listOfConcepts(nodes: EditableLogicNode[]): string {
-  const items = nodes.map(conceptText);
+function listOfConcepts(
+  nodes: EditableLogicNode[],
+  resolve?: TermResolver,
+): string {
+  const items = nodes.map((n) => conceptText(n, resolve));
   return joinWithLast(items, "or");
 }
 
@@ -81,20 +133,25 @@ function joinWithLast(items: string[], lastSep: "and" | "or"): string {
   return `${items.slice(0, -1).join(", ")}, ${lastSep} ${items[items.length - 1]}`;
 }
 
-function leafToCondition(node: EditableLogicNode): string {
+function leafToCondition(
+  node: EditableLogicNode,
+  resolve?: TermResolver,
+): string {
   if (node.kind === "DEMOGRAPHIC") return demographicToText(node);
-  if (node.kind === "CONCEPT") return `has ${conceptText(node)}`;
+  if (node.kind === "CONCEPT") return `has ${conceptText(node, resolve)}`;
   if (node.kind === "AT_LEAST") {
     const concepts = (node.children ?? []).filter((c) => c.kind === "CONCEPT");
-    const list = listOfConcepts(concepts);
+    const list = listOfConcepts(concepts, resolve);
     return `has at least ${node.min ?? 1} of: ${list}`;
   }
   if (node.kind === "NOT") {
     const inner = node.children?.[0];
-    return inner ? `does NOT have ${stripVerbPrefix(leafToCondition(inner))}` : "(empty NOT)";
+    return inner
+      ? `does NOT have ${stripVerbPrefix(leafToCondition(inner, resolve))}`
+      : "(empty NOT)";
   }
   // Nested AND / OR: render compactly inline
-  const parts = (node.children ?? []).map(leafToCondition);
+  const parts = (node.children ?? []).map((c) => leafToCondition(c, resolve));
   const sep = node.kind === "AND" ? "and" : "or";
   return joinWithLast(parts, sep);
 }
@@ -106,11 +163,14 @@ function stripVerbPrefix(text: string): string {
     .replace(/^does\s+(?:not\s+)?have\s+/i, "");
 }
 
-function pathwayConditions(node: EditableLogicNode): string[] {
+function pathwayConditions(
+  node: EditableLogicNode,
+  resolve?: TermResolver,
+): string[] {
   if (node.kind === "AND") {
-    return (node.children ?? []).map(leafToCondition);
+    return (node.children ?? []).map((c) => leafToCondition(c, resolve));
   }
-  return [leafToCondition(node)];
+  return [leafToCondition(node, resolve)];
 }
 
 function pathwayHeadline(node: EditableLogicNode, index: number): string {
@@ -124,7 +184,10 @@ function pathwayHeadline(node: EditableLogicNode, index: number): string {
  * splits it into a lead sentence + pathway list. Other shapes fall
  * back to a single sentence.
  */
-export function treeToSentence(node: EditableLogicNode | null): RuleSummary {
+export function treeToSentence(
+  node: EditableLogicNode | null,
+  resolve?: TermResolver,
+): RuleSummary {
   if (!node) {
     return {
       lead: "This rule has no conditions yet. Add a symptom or patient detail to get started.",
@@ -141,20 +204,23 @@ export function treeToSentence(node: EditableLogicNode | null): RuleSummary {
 
     if (orChildren.length === 1 && otherCount === 0) {
       const orChild = orChildren[0];
-      const demoText = joinWithLast(demos.map(leafToCondition), "and");
+      const demoText = joinWithLast(
+        demos.map((d) => leafToCondition(d, resolve)),
+        "and",
+      );
       const lead = demoText
         ? `Applies to patients who ${demoText}, AND match one of these pathways:`
         : "Applies to patients who match any of these pathways:";
       const pathways: PathwaySummary[] = (orChild.children ?? []).map((p, i) => ({
         connector: i === 0 ? "" : "OR",
         headline: pathwayHeadline(p, i),
-        conditions: pathwayConditions(p),
+        conditions: pathwayConditions(p, resolve),
       }));
       return { lead, pathways, isWellShaped: true };
     }
 
     // Flat AND of leaves
-    const allParts = children.map(leafToCondition);
+    const allParts = children.map((c) => leafToCondition(c, resolve));
     return {
       lead: `Applies to patients who ${joinWithLast(allParts, "and")}.`,
       isWellShaped: true,
@@ -165,7 +231,7 @@ export function treeToSentence(node: EditableLogicNode | null): RuleSummary {
     const pathways: PathwaySummary[] = (node.children ?? []).map((p, i) => ({
       connector: i === 0 ? "" : "OR",
       headline: pathwayHeadline(p, i),
-      conditions: pathwayConditions(p),
+      conditions: pathwayConditions(p, resolve),
     }));
     return {
       lead: "Applies to patients who match any of these pathways:",
@@ -175,7 +241,7 @@ export function treeToSentence(node: EditableLogicNode | null): RuleSummary {
   }
 
   return {
-    lead: `Applies to patients who ${leafToCondition(node)}.`,
+    lead: `Applies to patients who ${leafToCondition(node, resolve)}.`,
     isWellShaped: true,
   };
 }

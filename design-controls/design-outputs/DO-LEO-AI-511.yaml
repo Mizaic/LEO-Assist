@@ -1,0 +1,112 @@
+# -- DO-LEO-AI-511 -- Synonym chip + popover editor
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-511"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-511"]
+    user_needs: ["UN-LEO-AI-093"]
+    risks_addressed: ["R-LEO-AI-508"]
+    verification_tests: ["VT-LEO-AI-510"]
+
+  specification:
+    title: "Synonym-set authoring affordance in EditRuleDialog"
+    description: |
+      A new presentational primitive
+      ``SynonymChipEditor.tsx`` renders the popover. The
+      ``LogicTreeEditor.tsx`` ``ConceptNodeView`` and
+      ``ConceptChipInline`` pick the synonym chip layout when
+      ``criterion.seeds.length >= 2`` OR
+      ``criterion.excluded_concept_ids.length >= 1``. A pencil
+      IconButton opens the popover anchored to the chip.
+
+      ``treeOps.ts`` gains pure helpers: ``add_seed(node, seed)``,
+      ``remove_seed(node, conceptId)``,
+      ``set_primary_seed(node, conceptId)``,
+      ``toggle_include_descendants(node, conceptId)``,
+      ``set_seed_distance(node, conceptId, distance)``,
+      ``add_excluded(node, conceptId)``,
+      ``remove_excluded(node, conceptId)``. The corresponding
+      ``NodeUpdate`` discriminator entries are added to
+      ``types.ts``. ``applyUpdate`` switches on each new kind.
+
+      ``treeToSentence.ts`` ``conceptText`` produces a synonym-set
+      narrative: "smoker (or any kind of smoker)" for one seed +
+      descendants; "one of: smoker, cigarette smoker, pipe smoker"
+      for multiple seeds without descendants; appends ", except
+      <term>" for each exclusion.
+
+      Search-panel scaffolding for "Add seed" and "Add exclusion"
+      modes is added as new optional props on the existing
+      ConceptSearchPanel; default mode (replace_concept) is
+      preserved.
+    acceptance_criteria:
+      - criterion: "Single-seed back-compat"
+        type: "functional"
+        measurement: "Test"
+        target: "A criterion with seeds.length === 1 and no exclusions renders identically to today's chip (label, colour, click-to-select)"
+      - criterion: "Synonym chip label"
+        type: "functional"
+        measurement: "Test"
+        target: "A criterion with seeds.length === 3 renders a chip whose label ends with '(3 codes)' and tooltip lists every seed term"
+      - criterion: "treeOps purity"
+        type: "functional"
+        measurement: "Test"
+        target: "Each new helper returns a new tree with the same node_id and never mutates the input"
+      - criterion: "Primary-seed invariant"
+        type: "safety"
+        measurement: "Test"
+        target: "remove_seed re-points primary_concept_id to the first remaining seed when the removed seed was primary"
+      - criterion: "treeToSentence narrative"
+        type: "functional"
+        measurement: "Test"
+        target: "treeToSentence renders each of the three forms (single+descendants, multi-seed, with exclusions) deterministically"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/types.ts"
+        description: "LogicSeed type + new NodeUpdate variants"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/treeOps.ts"
+        description: "add_seed/remove_seed/set_primary/toggle_descendants/set_distance/add_excluded/remove_excluded helpers"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/treeToSentence.ts"
+        description: "conceptText synonym-set narrative"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/SynonymChipEditor.tsx"
+        description: "Popover editor component"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx"
+        description: "Synonym chip detection + pencil button + popover wiring"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript / React"
+      loc: 540
+      key_functions:
+        - "SynonymChipEditor"
+        - "ConceptChipInline"
+        - "ConceptNodeView"
+        - "applyUpdate"
+        - "conceptText"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Primary-seed re-pointing keeps the rule headline visible"
+      - "Disable Remove on the only remaining seed"
+    risk_control_measures:
+      - "Default chip rendering unchanged for legacy criteria"
+      - "Warning chip when an exclusion is unreachable"
+      - "Plain-English copy throughout"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

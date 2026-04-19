@@ -17,8 +17,12 @@ import type {
   AspectCounts,
   AspectFilter,
   CloneResult,
+  FullTestPatient,
+  GuidanceRulePickerEntry,
   SourcePatientPickerEntry,
   TestPatientRow,
+  UpdateFullBody,
+  UpdateFullResult,
 } from "./types";
 
 const BASE = "/api/guidance/test-patients";
@@ -97,6 +101,58 @@ export function buildBlankTestPatient(
   body: BuildBlankBody,
 ): Promise<BuildBlankResult> {
   return request("/build", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
+export function getTestPatientFull(id: string): Promise<FullTestPatient> {
+  return request(`/${encodeURIComponent(id)}/full`);
+}
+
+export function updateTestPatientFull(
+  id: string,
+  body: UpdateFullBody,
+): Promise<UpdateFullResult> {
+  return request(`/${encodeURIComponent(id)}/full`, {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  });
+}
+
+export function listGuidanceRules(params: {
+  guideline_id?: string;
+  q?: string;
+  limit?: number;
+} = {}): Promise<GuidanceRulePickerEntry[]> {
+  const qs = new URLSearchParams();
+  if (params.guideline_id) qs.set("guideline_id", params.guideline_id);
+  if (params.q) qs.set("q", params.q);
+  if (params.limit) qs.set("limit", String(params.limit));
+  const tail = qs.toString();
+  return request(`/rules${tail ? `?${tail}` : ""}`);
+}
+
+export interface ScaffoldFromRuleBody {
+  rule_id: string;
+  aspect: "nlp" | "episodes" | "summarisation";
+}
+
+export interface ScaffoldFromRuleResult {
+  patient_id: string;
+  aspect: string;
+  rule_id: string;
+  encounters_written: number;
+  expected_sbar_written: boolean;
+  notes: string;
+}
+
+export function scaffoldFromRule(
+  body: ScaffoldFromRuleBody,
+): Promise<ScaffoldFromRuleResult> {
+  return request("/scaffold-from-rule", {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(body),

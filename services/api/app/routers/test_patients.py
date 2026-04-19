@@ -15,6 +15,7 @@ Endpoints:
   GET    /guidance/test-patients/replay-reports        -- list reports
   GET    /guidance/test-patients/replay-reports/{id}   -- one report
   GET    /guidance/test-patients/guidelines  -- scope picker helper
+  GET    /guidance/test-patients/rules       -- rule picker helper
 """
 
 from __future__ import annotations
@@ -30,11 +31,13 @@ from app.deps import require_admin
 from app.services import (
     test_patient_clone,
     test_patient_generator,
+    test_patient_scaffolder,
     test_patient_service,
 )
 from app.services.test_patient_clone import CloneError
 from app.services.test_patient_redactor import get_default_redactor
-from app.services.test_patient_service import PatientPayload
+from app.services.test_patient_scaffolder import ScaffoldError
+from app.services.test_patient_service import EditorError, PatientPayload
 from libs.auth.org_scope import CallerScope
 from libs.cypher.test_patient_queries import TEST_PATIENT_ASPECTS
 
@@ -166,6 +169,73 @@ class CloneFromRealRequest(BaseModel):
     source_patient_id: str
     aspect: Literal["nlp", "episodes", "guidelines", "summarisation"]
     description: str = ""
+
+
+class EditorCodeBody(BaseModel):
+    """One expected SNOMED code attached to an editor encounter."""
+
+    concept_id: str
+    term: str | None = None
+    assertion: Literal[
+        "present", "absent", "history_of", "suspected", "uncertain"
+    ] = "present"
+
+
+class EditorEncounterBody(BaseModel):
+    """One encounter as edited in the per-aspect drawer.
+
+    The editor surfaces a small, plain-English form per encounter:
+    a free-text note, an optional date and source label, and the
+    expected SNOMED codes the AI should pick out of that note. Codes
+    are MERGE'd against pre-loaded :Concept nodes -- the service
+    layer fails loudly when a code is missing from the knowledge
+    graph (mirrors the cross-graph clone guarantee).
+    """
+
+    id: str | None = None
+    source_label: str | None = None
+    source_id: str | None = None
+    date: str | None = None
+    text: str = ""
+    codes: list[EditorCodeBody] = Field(default_factory=list)
+
+
+class EditorExpectedSbarBody(BaseModel):
+    """Expected SBAR transcript for the summarisation aspect."""
+
+    id: str | None = None
+    fixture_id: str | None = None
+    situation_md: str = ""
+    background_md: str = ""
+    recommendation_md: str = ""
+    matched_rule_ids: list[str] = Field(default_factory=list)
+    required_phrases: list[str] = Field(default_factory=list)
+    banned_phrases: list[str] = Field(default_factory=list)
+    expected_action_priority: str | None = None
+    reviewer_focus: str = ""
+    evaluator_outage: bool = False
+
+
+class EditorFullUpdateBody(BaseModel):
+    """Body for ``PATCH /test-patients/{id}/full``.
+
+    The editor sends the entire editable subgraph in one shot. The
+    service rewrites the encounter list (and, for summarisation, the
+    expected SBAR) atomically; old children are detached and replaced
+    so the saved subgraph matches the body exactly.
+
+    Guidelines aspect is rejected at this entry point and must use
+    ``PATCH /test-patients/{id}`` instead so the rule-fire snapshot
+    is preserved.
+    """
+
+    aspect: Literal["nlp", "episodes", "summarisation"]
+    name: str
+    description: str = ""
+    age: float | None = None
+    sex: Literal["male", "female", "other"] | None = None
+    encounters: list[EditorEncounterBody] = Field(default_factory=list)
+    expected_sbar: EditorExpectedSbarBody | None = None
 
 
 class BuildBlankRequest(BaseModel):
@@ -416,6 +486,66 @@ def build_blank_patient(
         client.close()
 
 
+class ScaffoldFromRuleRequest(BaseModel):
+    """POST body for the AI scaffold-from-rule endpoint."""
+
+    rule_id: str = Field(..., description="AppropriatenessRule id from the picker")
+    aspect: Literal["nlp", "episodes", "summarisation"] = Field(
+        default="summarisation",
+        description="Which AI feature the test patient is for",
+    )
+
+
+@router.post("/test-patients/scaffold-from-rule")
+def scaffold_from_rule(
+    body: ScaffoldFromRuleRequest, scope: CallerScope = Depends(require_admin)
+) -> dict:
+    """Draft a test patient that should fire the picked rule.
+
+    AI-assisted authoring, flow 1. The reviewer picks one rule from
+    the tree picker; we ask Haiku to draft 1-2 plausible UK GP notes
+    that mention every trigger SNOMED in the rule's criteria, plus a
+    plausible age and sex inside any APPLIES_TO constraints. The
+    expected SBAR is filled in deterministically from the rule (the
+    LLM never drafts the test's own ground-truth answer).
+
+    The new patient is persisted immediately and stamped with
+    aiAssisted=true so the library can flag AI drafts for review.
+    Failures (rule missing, LLM produced unusable JSON, demographic
+    constraint broken, trigger missing from notes) raise
+    :class:`ScaffoldError` and surface as HTTP 422 with a clear reason
+    -- the reviewer can retry, fall back to Build a patient, or fix
+    the rule.
+    """
+    client = _client()
+    try:
+        result = test_patient_scaffolder.scaffold_patient_from_rule_sync(
+            client,
+            rule_id=body.rule_id,
+            aspect=body.aspect,
+            created_by=getattr(scope, "user_email", "") or "unknown",
+        )
+    except ScaffoldError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:  # noqa: BLE001 - log + 5xx
+        logger.exception("scaffold-from-rule failed")
+        raise HTTPException(
+            status_code=500, detail=f"Scaffold failed: {exc}"
+        ) from exc
+    finally:
+        client.close()
+    return {
+        "patient_id": result.patient_id,
+        "aspect": result.aspect,
+        "rule_id": result.rule_id,
+        "encounters_written": result.encounters_written,
+        "expected_sbar_written": result.expected_sbar_written,
+        "notes": result.notes,
+    }
+
+
 @router.get("/test-patients/guidelines")
 def list_guidelines(scope: CallerScope = Depends(require_admin)) -> list[dict]:
     """Return guidelines that have at least one active rule (for the picker)."""
@@ -425,6 +555,100 @@ def list_guidelines(scope: CallerScope = Depends(require_admin)) -> list[dict]:
         return test_patient_service.list_guidelines_for_picker(client)
     finally:
         client.close()
+
+
+@router.get("/test-patients/rules")
+def list_rules(
+    guideline_id: str | None = Query(default=None),
+    q: str | None = Query(default=None, description="Case-insensitive substring filter"),
+    limit: int = Query(default=200, ge=1, le=1000),
+    scope: CallerScope = Depends(require_admin),
+) -> list[dict]:
+    """Return active / pending appropriateness rules for a picker.
+
+    Powers the SBAR editor's "Matched rule IDs" lookup. The reviewer sees
+    a plain-English label (the verbatim NICE recommendation), the chapter
+    it lives in, the action priority and a few SNOMED triggers. The raw
+    rule_id is kept in the payload because it is the saved value, but
+    the UI never has to lead with it.
+    """
+    _ = scope
+    client = _client()
+    try:
+        rows = test_patient_service.list_rules_for_picker(
+            client, guideline_id=guideline_id
+        )
+    finally:
+        client.close()
+
+    needle = (q or "").strip().lower()
+    slim: list[dict] = []
+    for row in rows:
+        triggers = [str(t) for t in (row.get("trigger_terms") or []) if t]
+        display_label = _pick_display_label(row, triggers)
+        item = {
+            "rule_id": row.get("rule_id"),
+            "status": row.get("status"),
+            "name": row.get("name"),
+            "display_label": display_label,
+            "recommendation_text": row.get("recommendation_text"),
+            "chapter_title": row.get("chapter_title"),
+            "action_priority": row.get("action_priority"),
+            "trigger_terms": triggers,
+            "guideline_id": row.get("guideline_id"),
+            "guideline_title": row.get("guideline_title"),
+        }
+        if needle:
+            haystack = " ".join(
+                str(item.get(key) or "")
+                for key in (
+                    "rule_id",
+                    "name",
+                    "display_label",
+                    "recommendation_text",
+                    "chapter_title",
+                    "guideline_id",
+                    "guideline_title",
+                )
+            )
+            haystack += " " + " ".join(triggers)
+            if needle not in haystack.lower():
+                continue
+        slim.append(item)
+        if len(slim) >= limit:
+            break
+    return slim
+
+
+def _pick_display_label(row: dict, triggers: list[str]) -> str:
+    """Pick the most readable label we have for a rule.
+
+    Order of preference:
+      1. The verbatim NICE recommendation text (real sentence).
+      2. The chapter title plus the first SNOMED trigger ("Section -- term").
+      3. The chapter title alone.
+      4. The (less helpful) rule.name.
+      5. The raw rule id as a last resort.
+    Truncated to keep the dropdown row visually tidy.
+    """
+    text = (row.get("recommendation_text") or "").strip()
+    if text:
+        return _truncate(text, 140)
+    chapter = (row.get("chapter_title") or "").strip()
+    if chapter and triggers:
+        return _truncate(f"{chapter} -- {triggers[0]}", 140)
+    if chapter:
+        return _truncate(chapter, 140)
+    name = (row.get("name") or "").strip()
+    if name:
+        return _truncate(name, 140)
+    return str(row.get("rule_id") or "")
+
+
+def _truncate(value: str, limit: int) -> str:
+    if len(value) <= limit:
+        return value
+    return value[: limit - 1].rstrip() + "..."
 
 
 @router.get("/test-patients/replay-reports")
@@ -460,6 +684,77 @@ def get_replay_report(
         if not report:
             raise HTTPException(status_code=404, detail="Replay report not found")
         return report
+    finally:
+        client.close()
+
+
+@router.get("/test-patients/{patient_id}/full")
+def get_patient_full(
+    patient_id: str, scope: CallerScope = Depends(require_admin)
+) -> dict:
+    """Return the entire editable subgraph for one test patient.
+
+    Used by the Knowledge > Test Patients > Edit drawer so the form
+    can render encounters, codes and (for summarisation) the expected
+    SBAR transcript without repeated round-trips.
+    """
+    _ = scope
+    client = _client()
+    try:
+        row = test_patient_service.get_full_patient(
+            client, patient_id=patient_id
+        )
+        if not row:
+            raise HTTPException(
+                status_code=404, detail="Test patient not found"
+            )
+        return row
+    finally:
+        client.close()
+
+
+@router.patch("/test-patients/{patient_id}/full")
+def update_patient_full(
+    patient_id: str,
+    body: EditorFullUpdateBody,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Replace the whole editable subgraph for one test patient.
+
+    Atomic: validates SNOMED concepts first (loud failure when a
+    referenced id is missing), updates the root profile, detaches
+    every editor-managed child, then writes the new encounter list
+    and (when aspect=summarisation) the expected SBAR. Returns 404
+    when ``patient_id`` does not exist.
+
+    Guidelines aspect is rejected here -- use ``PATCH /test-patients/{id}``
+    so the rule-fire snapshot is preserved.
+    """
+    client = _client()
+    try:
+        result = test_patient_service.update_full_patient(
+            client,
+            patient_id=patient_id,
+            aspect=body.aspect,
+            name=body.name,
+            description=body.description,
+            age=body.age,
+            sex=body.sex,
+            encounters=[enc.model_dump() for enc in body.encounters],
+            expected_sbar=(
+                body.expected_sbar.model_dump()
+                if body.expected_sbar is not None
+                else None
+            ),
+            updated_by=getattr(scope, "user_email", "") or "unknown",
+        )
+        if not result.get("updated"):
+            raise HTTPException(
+                status_code=404, detail="Test patient not found"
+            )
+        return result
+    except EditorError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     finally:
         client.close()
 

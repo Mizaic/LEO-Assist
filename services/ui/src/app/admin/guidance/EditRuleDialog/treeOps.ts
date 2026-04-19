@@ -15,6 +15,7 @@ import type {
   EditableLogicNode,
   LogicCriterion,
   LogicNodeKind,
+  LogicSeed,
   NodeUpdate,
 } from "./types";
 
@@ -85,6 +86,166 @@ export function stripNodeIds(node: EditableLogicNode): Record<string, unknown> {
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// Synonym-chip helpers (UN-LEO-AI-093)
+// ---------------------------------------------------------------------------
+
+/**
+ * Promote a legacy single-seed criterion into the synonym-set shape so the
+ * helpers below can operate on it uniformly. Returns a NEW criterion. Safe
+ * to call repeatedly (idempotent when ``seeds`` is already populated).
+ */
+function ensureSeeds(criterion: LogicCriterion): LogicCriterion {
+  const seeds = criterion.seeds ?? [];
+  if (seeds.length > 0) {
+    return {
+      ...criterion,
+      seeds,
+      excluded_concept_ids: criterion.excluded_concept_ids ?? [],
+      primary_concept_id:
+        criterion.primary_concept_id || seeds[0].snomed_concept_id,
+    };
+  }
+  if (!criterion.snomed_concept_id) return criterion;
+  const primary: LogicSeed = {
+    snomed_concept_id: criterion.snomed_concept_id,
+    preferred_term: criterion.preferred_term,
+    semantic_tag: criterion.semantic_tag,
+    include_descendants: true,
+  };
+  return {
+    ...criterion,
+    seeds: [primary],
+    excluded_concept_ids: criterion.excluded_concept_ids ?? [],
+    primary_concept_id: criterion.snomed_concept_id,
+  };
+}
+
+function withCriterion(
+  node: EditableLogicNode,
+  fn: (c: LogicCriterion) => LogicCriterion,
+): EditableLogicNode {
+  if (node.kind !== "CONCEPT" || !node.criterion) return node;
+  return { ...node, criterion: fn(ensureSeeds(node.criterion)) };
+}
+
+function syncLegacyFields(criterion: LogicCriterion): LogicCriterion {
+  const seeds = criterion.seeds ?? [];
+  if (seeds.length === 0) return criterion;
+  const primary =
+    seeds.find((s) => s.snomed_concept_id === criterion.primary_concept_id) ??
+    seeds[0];
+  return {
+    ...criterion,
+    primary_concept_id: primary.snomed_concept_id,
+    snomed_concept_id: primary.snomed_concept_id,
+    preferred_term: primary.preferred_term,
+    semantic_tag: primary.semantic_tag ?? criterion.semantic_tag ?? "",
+  };
+}
+
+export function addSeed(
+  node: EditableLogicNode,
+  seed: LogicSeed,
+): EditableLogicNode {
+  return withCriterion(node, (c) => {
+    const seeds = c.seeds ?? [];
+    if (seeds.some((s) => s.snomed_concept_id === seed.snomed_concept_id)) {
+      return c;
+    }
+    return syncLegacyFields({
+      ...c,
+      seeds: [
+        ...seeds,
+        { include_descendants: true, ...seed },
+      ],
+    });
+  });
+}
+
+export function removeSeed(
+  node: EditableLogicNode,
+  conceptId: string,
+): EditableLogicNode {
+  return withCriterion(node, (c) => {
+    const seeds = c.seeds ?? [];
+    if (seeds.length <= 1) return c;
+    const next = seeds.filter((s) => s.snomed_concept_id !== conceptId);
+    if (next.length === seeds.length) return c;
+    let primary = c.primary_concept_id;
+    if (primary === conceptId) primary = next[0].snomed_concept_id;
+    return syncLegacyFields({ ...c, seeds: next, primary_concept_id: primary });
+  });
+}
+
+export function setPrimarySeed(
+  node: EditableLogicNode,
+  conceptId: string,
+): EditableLogicNode {
+  return withCriterion(node, (c) => {
+    const seeds = c.seeds ?? [];
+    if (!seeds.some((s) => s.snomed_concept_id === conceptId)) return c;
+    return syncLegacyFields({ ...c, primary_concept_id: conceptId });
+  });
+}
+
+export function toggleIncludeDescendants(
+  node: EditableLogicNode,
+  conceptId: string,
+): EditableLogicNode {
+  return withCriterion(node, (c) => {
+    const seeds = (c.seeds ?? []).map((s) =>
+      s.snomed_concept_id === conceptId
+        ? { ...s, include_descendants: !(s.include_descendants ?? true) }
+        : s,
+    );
+    return { ...c, seeds };
+  });
+}
+
+export function setSeedDistance(
+  node: EditableLogicNode,
+  conceptId: string,
+  distance: number | null,
+): EditableLogicNode {
+  return withCriterion(node, (c) => {
+    const next =
+      distance === null || Number.isNaN(distance)
+        ? null
+        : Math.max(0, Math.floor(distance));
+    const seeds = (c.seeds ?? []).map((s) =>
+      s.snomed_concept_id === conceptId ? { ...s, distance_child: next } : s,
+    );
+    return { ...c, seeds };
+  });
+}
+
+export function addExcluded(
+  node: EditableLogicNode,
+  conceptId: string,
+): EditableLogicNode {
+  return withCriterion(node, (c) => {
+    if (!conceptId) return c;
+    const seeds = c.seeds ?? [];
+    if (seeds.some((s) => s.snomed_concept_id === conceptId)) return c;
+    const excluded = c.excluded_concept_ids ?? [];
+    if (excluded.includes(conceptId)) return c;
+    return { ...c, excluded_concept_ids: [...excluded, conceptId] };
+  });
+}
+
+export function removeExcluded(
+  node: EditableLogicNode,
+  conceptId: string,
+): EditableLogicNode {
+  return withCriterion(node, (c) => {
+    const excluded = c.excluded_concept_ids ?? [];
+    const next = excluded.filter((id) => id !== conceptId);
+    if (next.length === excluded.length) return c;
+    return { ...c, excluded_concept_ids: next };
+  });
+}
+
 function mapNode(
   node: EditableLogicNode,
   fn: (n: EditableLogicNode) => EditableLogicNode | null,
@@ -153,6 +314,38 @@ export function applyUpdate(
           ? appendChild(n, makeDemographicNode())
           : n,
       );
+    case "add_seed":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId ? addSeed(n, update.seed) : n,
+      );
+    case "remove_seed":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId ? removeSeed(n, update.conceptId) : n,
+      );
+    case "set_primary_seed":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId ? setPrimarySeed(n, update.conceptId) : n,
+      );
+    case "toggle_include_descendants":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId
+          ? toggleIncludeDescendants(n, update.conceptId)
+          : n,
+      );
+    case "set_seed_distance":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId
+          ? setSeedDistance(n, update.conceptId, update.distance)
+          : n,
+      );
+    case "add_excluded":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId ? addExcluded(n, update.conceptId) : n,
+      );
+    case "remove_excluded":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId ? removeExcluded(n, update.conceptId) : n,
+      );
     default:
       return root;
   }
@@ -220,8 +413,25 @@ export function findValidationError(node: EditableLogicNode | null): string | nu
     return "This rule needs at least one condition. Click + to add a symptom or patient detail.";
   }
   if (node.kind === "CONCEPT") {
-    if (!node.criterion?.snomed_concept_id) {
+    const c = node.criterion;
+    const seeds = c?.seeds ?? [];
+    const hasLegacy = !!c?.snomed_concept_id;
+    if (seeds.length === 0 && !hasLegacy) {
       return "Pick a symptom or sign for the empty pill. Use the search box on the right.";
+    }
+    if (seeds.length > 0) {
+      const seedIds = new Set(seeds.map((s) => s.snomed_concept_id));
+      for (const x of c?.excluded_concept_ids ?? []) {
+        if (seedIds.has(x)) {
+          return "A code is in both the seeds and the exclude list. Remove it from one of the two.";
+        }
+      }
+      if (
+        c?.primary_concept_id &&
+        !seedIds.has(c.primary_concept_id)
+      ) {
+        return "The chip's main code is no longer in the seed list. Pick a new main code.";
+      }
     }
     return null;
   }

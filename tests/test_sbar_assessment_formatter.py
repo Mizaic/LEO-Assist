@@ -86,3 +86,64 @@ def test_rule_snapshot_is_trimmed_and_serialisable() -> None:
     assert snap["rule_id"] == "R-1"
     assert "recommendation_verbatim" in snap
     assert snap["action"]["priority"] == "urgent"
+
+
+# -- Synonym set: matched_via rendering (UN-LEO-AI-093 / DI-LEO-AI-510) ------
+
+
+def test_matched_via_renders_specific_seed_in_markdown() -> None:
+    """Markdown bullet names the descendant code that fired the rule."""
+    rule = _rule("R-1", priority="urgent", name="Smoker rule")
+    rule["matched_via"] = [
+        {
+            "node_id": "n1",
+            "primary_concept_id": "1",
+            "preferred_term": "Smoker",
+            "matched_concept_ids": ["2"],
+        }
+    ]
+    out = format_assessment(matched_rules=[rule], patient_codes=["2"])
+    assert "Matched on" in out.markdown
+    assert "Smoker" in out.markdown
+    assert "kind of Smoker" in out.markdown
+    assert "`2`" in out.markdown
+
+
+def test_matched_via_renders_primary_only_when_primary_id_hits() -> None:
+    """When only the primary id hit, the rendered text is just the chip label."""
+    rule = _rule("R-1", priority="urgent", name="Smoker rule")
+    rule["matched_via"] = [
+        {
+            "node_id": "n1",
+            "primary_concept_id": "1",
+            "preferred_term": "Smoker",
+            "matched_concept_ids": ["1"],
+        }
+    ]
+    out = format_assessment(matched_rules=[rule], patient_codes=["1"])
+    assert "Matched on: Smoker" in out.markdown
+    assert "kind of" not in out.markdown
+
+
+def test_matched_via_preserved_in_rule_snapshot() -> None:
+    """matched_via survives into the JSON snapshot the LLM prompt consumes."""
+    rule = _rule("R-1", priority="urgent")
+    rule["matched_via"] = [
+        {
+            "node_id": "n1",
+            "primary_concept_id": "1",
+            "preferred_term": "Smoker",
+            "matched_concept_ids": ["2"],
+        }
+    ]
+    out = format_assessment(matched_rules=[rule], patient_codes=["2"])
+    assert "matched_via" in out.rules[0]
+    assert out.rules[0]["matched_via"][0]["matched_concept_ids"] == ["2"]
+
+
+def test_no_matched_via_keeps_legacy_markdown_behaviour() -> None:
+    """Rules without matched_via render exactly as before (back-compat)."""
+    rule = _rule("R-1", priority="urgent")
+    out = format_assessment(matched_rules=[rule], patient_codes=["1"])
+    assert "Matched on" not in out.markdown
+    assert "matched_via" not in out.rules[0]

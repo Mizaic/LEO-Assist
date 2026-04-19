@@ -23,7 +23,12 @@ import json
 import uuid
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+# Default IS_A descendant depth applied when a seed asks for descendant
+# expansion but does not override distance_child. Matches the historical
+# default used by the bitmap compiler before UN-LEO-AI-093.
+DEFAULT_DESCENDANT_DEPTH = 3
 
 # -- Tree limits ---------------------------------------------------------------
 # Caps that defend against pathological trees pushed via the edit API. Real
@@ -41,13 +46,86 @@ _ALL_KINDS = _GROUP_KINDS | _LEAF_KINDS
 # -- Pydantic models -----------------------------------------------------------
 
 
-class LogicCriterion(BaseModel):
-    """Resolved SNOMED criterion attached to a CONCEPT node."""
+class LogicSeed(BaseModel):
+    """One SNOMED code in a CONCEPT criterion's synonym set (UN-LEO-AI-093).
+
+    Each seed is independently expandable into its IS_A descendants via the
+    bitmap compiler's ``_closure_ids``. ``include_descendants=False`` forces
+    exact-match for that seed even when the rule-level distance_child default
+    is non-zero.
+    """
+
+    model_config = {"extra": "forbid"}
 
     snomed_concept_id: str = Field(min_length=1)
     preferred_term: str = Field(min_length=1)
     semantic_tag: str = ""
+    include_descendants: bool = True
+    distance_child: int | None = None
+
+
+class LogicCriterion(BaseModel):
+    """Resolved SNOMED criterion attached to a CONCEPT node.
+
+    Backwards compatible: legacy callers may supply ``snomed_concept_id`` +
+    ``preferred_term`` only and ``seeds`` defaults to an empty list. New
+    callers may supply ``seeds`` (with optional ``primary_concept_id`` and
+    ``excluded_concept_ids``); the legacy fields are auto-derived from the
+    primary seed so downstream readers always see a non-empty
+    ``snomed_concept_id``.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    snomed_concept_id: str = ""
+    preferred_term: str = ""
+    semantic_tag: str = ""
     term: str = ""
+    seeds: list[LogicSeed] = Field(default_factory=list)
+    excluded_concept_ids: list[str] = Field(default_factory=list)
+    primary_concept_id: str = ""
+
+    @model_validator(mode="after")
+    def _normalise(self) -> "LogicCriterion":
+        # Legacy single-seed shape: nothing to normalise.
+        if not self.seeds:
+            if not self.snomed_concept_id:
+                raise ValueError(
+                    "CONCEPT criterion must have at least one seed or a "
+                    "snomed_concept_id (legacy shape)."
+                )
+            return self
+
+        # Multi-seed shape: derive primary + legacy fields when missing.
+        if not self.primary_concept_id:
+            self.primary_concept_id = self.seeds[0].snomed_concept_id
+        primary = next(
+            (s for s in self.seeds if s.snomed_concept_id == self.primary_concept_id),
+            None,
+        )
+        if primary is None:
+            raise ValueError(
+                f"primary_concept_id {self.primary_concept_id!r} does not match any seed."
+            )
+        if not self.snomed_concept_id:
+            self.snomed_concept_id = primary.snomed_concept_id
+        if not self.preferred_term:
+            self.preferred_term = primary.preferred_term
+        if not self.semantic_tag:
+            self.semantic_tag = primary.semantic_tag
+
+        seed_ids = {s.snomed_concept_id for s in self.seeds}
+        excluded = list(self.excluded_concept_ids or [])
+        if len(excluded) != len(set(excluded)):
+            raise ValueError("excluded_concept_ids contains duplicates.")
+        for x in excluded:
+            if not x:
+                raise ValueError("excluded_concept_ids contains an empty id.")
+            if x in seed_ids:
+                raise ValueError(
+                    f"Concept id {x!r} is in both seeds and excluded_concept_ids."
+                )
+        return self
 
 
 class LogicNode(BaseModel):
@@ -135,7 +213,14 @@ def _walk(
     kind = node.kind
     if kind == "CONCEPT":
         _validate_concept_node(node)
-        concept_ids.add(node.criterion.snomed_concept_id)  # type: ignore[union-attr]
+        crit = node.criterion  # type: ignore[union-attr]
+        if crit.seeds:
+            for seed in crit.seeds:
+                concept_ids.add(seed.snomed_concept_id)
+            for x in crit.excluded_concept_ids:
+                concept_ids.add(x)
+        else:
+            concept_ids.add(crit.snomed_concept_id)
         return
     if kind == "DEMOGRAPHIC":
         _validate_demographic_node(node)
@@ -161,8 +246,11 @@ def _walk(
 def _validate_concept_node(node: LogicNode) -> None:
     if node.criterion is None:
         raise LogicTreeValidationError("CONCEPT node is missing a criterion.")
-    if not node.criterion.snomed_concept_id:
-        raise LogicTreeValidationError("CONCEPT criterion is missing snomed_concept_id.")
+    crit = node.criterion
+    if not crit.seeds and not crit.snomed_concept_id:
+        raise LogicTreeValidationError(
+            "CONCEPT criterion needs at least one SNOMED code (seed or snomed_concept_id)."
+        )
 
 
 _VALID_DEMOGRAPHIC_FIELDS = {"age", "sex"}
@@ -346,11 +434,13 @@ def apply_rule_edit(
 
 
 __all__ = [
+    "DEFAULT_DESCENDANT_DEPTH",
     "MAX_NODE_COUNT",
     "MAX_TREE_DEPTH",
     "EditNotApplicable",
     "LogicCriterion",
     "LogicNode",
+    "LogicSeed",
     "LogicTreeValidationError",
     "RuleUpdates",
     "apply_rule_edit",

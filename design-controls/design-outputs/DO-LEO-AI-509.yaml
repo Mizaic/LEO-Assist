@@ -1,0 +1,94 @@
+# -- DO-LEO-AI-509 -- Bitmap compiler synonym union + exclusion subtraction
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-509"
+  version: "1.0.0"
+  type: "Algorithm"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-509"]
+    user_needs: ["UN-LEO-AI-093"]
+    risks_addressed: ["R-LEO-AI-508"]
+    verification_tests: ["VT-LEO-AI-510"]
+
+  specification:
+    title: "Compile CONCEPT leaves from union of seed closures minus exclusions"
+    description: |
+      ``_compile_logic_tree_node`` is extended with a new helper
+      ``_compile_concept_leaf(criterion, session, policy,
+      distance_child_override, distance_parent_override)``. The
+      helper:
+
+        1. Resolves the seed list (legacy single seed when seeds is
+           empty/missing).
+        2. For each seed, calls ``_closure_ids`` with the seed's
+           own include_descendants / distance_child override (or
+           the rule-level override / default).
+        3. Unions the closures into a set of SNOMED string ids.
+        4. Subtracts the criterion's excluded_concept_ids list from
+           that set (after closure expansion, before int-id
+           mapping).
+        5. Logs a warning if any excluded id is unreachable from
+           any seed closure (no compile error).
+        6. Maps the remaining ids to int ids via
+           ``get_or_assign_int_id`` and calls ``put_bitmap`` on the
+           sorted, deduplicated list.
+        7. Echoes the new criterion shape in the compiled-leaf dict
+           PLUS the legacy ``snomed_concept_id`` field (always set
+           to primary_concept_id) PLUS a new ``seed_concept_ids``
+           array (every SNOMED string id contributing to the
+           bitmap).
+
+      Cache: the per-compile ``_closure_cache`` already keys on
+      ``(seed, dc, dp)`` so multi-seed reuse is free. ``put_bitmap``
+      digests the sorted int set so identical (seeds, exclusions,
+      depths) re-use the same bitmap_id.
+    acceptance_criteria:
+      - criterion: "Legacy single-seed parity"
+        type: "functional"
+        measurement: "Test"
+        target: "Compiling a criterion with only the legacy single snomed_concept_id and distance_child=3 produces the same sorted int-id list as the pre-change compiler"
+      - criterion: "Multi-seed union"
+        type: "functional"
+        measurement: "Test"
+        target: "Compiling seeds=[s1, s2] with include_descendants=true unions _closure_ids(s1) and _closure_ids(s2); the bitmap contains every id from both closures and only those ids"
+      - criterion: "Exclusion subtraction"
+        type: "safety"
+        measurement: "Test"
+        target: "An id present in a seed closure AND in excluded_concept_ids is NOT in the int-id list passed to put_bitmap"
+      - criterion: "Per-seed include_descendants false"
+        type: "functional"
+        measurement: "Test"
+        target: "A seed with include_descendants=false contributes only its own id to the union, regardless of any rule-level distance_child override"
+      - criterion: "seed_concept_ids echo"
+        type: "functional"
+        measurement: "Test"
+        target: "Compiled-leaf dict contains a seed_concept_ids list with the deduplicated, sorted SNOMED string ids that contribute to the bitmap"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/guideline_compiler.py"
+        description: "_compile_concept_leaf + _compile_logic_tree_node changes"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 180
+      key_functions:
+        - "_compile_concept_leaf"
+        - "_compile_logic_tree_node"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Bitmap construction for every CONCEPT leaf"
+      - "Exclusion enforcement (carve-outs cannot fire the rule)"
+    risk_control_measures:
+      - "Legacy parity test asserts no int-id drift on migration"
+      - "Exclusion is applied AFTER closure to defend against ordering bugs"
+      - "Closure failure on one seed degrades to exact-match for that seed; other seeds unaffected"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

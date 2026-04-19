@@ -1,0 +1,116 @@
+# -- DI-LEO-AI-508 -- LogicCriterion supports synonym seeds and exclusions
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-508"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-093"
+  requirement: >
+    The persisted CONCEPT criterion shape (Pydantic LogicCriterion in
+    services/api/app/services/guidance_rule_edit.py and the matching
+    TypeScript LogicCriterion in
+    services/ui/src/app/admin/guidance/EditRuleDialog/types.ts) SHALL
+    accept an optional ``seeds`` list of objects, each carrying
+    ``snomed_concept_id`` (required), ``preferred_term``,
+    ``semantic_tag``, ``include_descendants`` (default true) and an
+    optional ``distance_child`` override; an optional
+    ``excluded_concept_ids`` list of SNOMED string ids; and an
+    optional ``primary_concept_id`` that names which seed supplies
+    the chip's headline label. The legacy ``snomed_concept_id`` field
+    SHALL be preserved for backward compatibility and SHALL be
+    auto-derived from ``primary_concept_id`` when only ``seeds`` is
+    supplied. Server-side validation SHALL reject criteria where
+    ``seeds`` is empty when ``snomed_concept_id`` is also empty,
+    where ``primary_concept_id`` does not match any seed, where any
+    seed id or excluded id is empty, and where the same id appears
+    in both the seed list and the excluded list.
+
+  rationale: >
+    All downstream layers (compiler, evaluator, SBAR formatter, UI)
+    read the criterion shape from the persisted ``logicJson`` blob.
+    Adding ``seeds`` + ``excluded_concept_ids`` here in a strictly
+    additive, backwards-compatible way means existing rules
+    continue to load and existing tests continue to pass without a
+    rule-by-rule migration before the compiler change lands.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          AC-001: LogicCriterion.model_validate accepts a payload with
+          {snomed_concept_id, preferred_term} only (legacy shape) AND a
+          payload with {seeds: [...], excluded_concept_ids: [...],
+          primary_concept_id} (new shape) AND a payload that mixes
+          both (legacy field preserved alongside seeds).
+      - type: "functional"
+        spec: >
+          AC-002: When only seeds is supplied, validate_logic_tree
+          collects every seed.snomed_concept_id and every excluded id
+          into the concept_ids set returned for downstream
+          _VERIFY_CONCEPTS, so a single Cypher round-trip can confirm
+          all referenced ids exist in :SnomedConcept.
+      - type: "safety"
+        spec: >
+          AC-003: validate_logic_tree raises LogicTreeValidationError
+          when (a) seeds is empty AND snomed_concept_id is empty,
+          (b) primary_concept_id is set but does not match any seed
+          id, (c) any seed.snomed_concept_id is empty, (d) the same
+          id appears in both seeds and excluded_concept_ids,
+          (e) excluded_concept_ids contains a duplicate.
+      - type: "functional"
+        spec: >
+          AC-004: The TypeScript LogicCriterion mirrors the Pydantic
+          shape one-for-one (seeds, excluded_concept_ids,
+          primary_concept_id are optional and never required for
+          backward compatibility).
+      - type: "functional"
+        spec: >
+          AC-005: A migration script under
+          scripts/migrations/2026_logic_criterion_synonym_set.py
+          upgrades every persisted v2 AppropriatenessRule.logicJson
+          to the new shape (seeds populated from the existing single
+          snomed_concept_id; primary_concept_id set to that id;
+          excluded_concept_ids: []) WITHOUT removing the legacy field
+          and WITHOUT changing which concept ids end up in the
+          downstream bitmap union.
+    constraints:
+      - type: "safety"
+        spec: >
+          The legacy snomed_concept_id field MUST remain populated on
+          every persisted criterion for at least one minor release
+          after the migration so a partial roll-back of the API
+          layer does not leave criteria unreadable.
+    dependencies: []
+    downstream_impacts:
+      - "Bitmap compiler (DI-509)"
+      - "Evaluator + diagnose (DI-510)"
+      - "Edit Rule Dialog UI (DI-511)"
+      - "Migration of persisted Neo4j AppropriatenessRule rows"
+    technical_details:
+      language: "Python + TypeScript"
+      framework: "Pydantic + Next.js"
+      file_structure:
+        - "services/api/app/services/guidance_rule_edit.py"
+        - "services/ui/src/app/admin/guidance/EditRuleDialog/types.ts"
+        - "scripts/migrations/logic_criterion_synonym_set.py"
+      estimated_loc: 320
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-510 covers the new validator branches (legacy shape
+      accepted, new shape accepted, mixed shape accepted, every
+      rejection case raises LogicTreeValidationError) and the
+      migration script (round-trip through assignNodeIds /
+      stripNodeIds + compiler bitmap parity).
+    test_protocol: "VT-LEO-AI-510"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-508"
+  tags:
+    - "guidance-rules"
+    - "schema"
+    - "synonym-set"
+    - "back-compat"

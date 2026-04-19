@@ -80,3 +80,50 @@ export const ADD_BAR_LABELS = {
   group: "Add a sub-group",
   detail: "Add a patient detail",
 };
+
+/**
+ * Step IDs for the four-step rule editor.
+ *
+ * Kept in display order so a `STEP_ORDER` slice is the canonical
+ * "next/prev" lookup.
+ */
+export const STEP_IDS = ["who", "suggest", "try", "save"] as const;
+export type StepId = (typeof STEP_IDS)[number];
+
+/** Plain-English labels for each step.
+ *
+ * Reading age 7-11. Numbered titles are added by the rail itself
+ * ("1. Who", "2. What", ...).
+ */
+export const STEP_TITLES: Record<StepId, string> = {
+  who: "Who is this rule about?",
+  suggest: "What should the system suggest?",
+  try: "Try it on real patients",
+  save: "Save your change",
+};
+
+/** Short label used inside the rail chip when space is tight. */
+export const STEP_SHORT_TITLES: Record<StepId, string> = {
+  who: "Who",
+  suggest: "Suggest",
+  try: "Try it",
+  save: "Save",
+};
+
+/** Helper text shown under each step's heading. One short sentence each. */
+export const STEP_HELPERS: Record<StepId, string> = {
+  who: "Pick which patients this rule is about. Tap a green pill to swap a sign. Tap + Add to add another.",
+  suggest: "Pick what the system should tell the clinician when this rule matches.",
+  try: "Make sure your change still works for real patients before you save.",
+  save: "Tell us why you are changing this rule. Then save.",
+};
+
+/** Tone-chip labels for the rail's per-step state. */
+export const STEP_STATE_LABELS = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  ready: "Ready",
+} as const;
+
+/** Footer label shown at the bottom of the rail when every step is ready. */
+export const ALL_READY_LABEL = "All ready to save";

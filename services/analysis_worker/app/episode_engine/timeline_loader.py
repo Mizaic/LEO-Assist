@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # Cap text per encounter in the trunk view. Full text is preserved in
 # encounter_index for downstream stages that need it.
 _TRUNK_SNIPPET_CHARS = 240
-_FULL_SNIPPET_CHARS = 1200
+_FULL_SNIPPET_CHARS = 4000
 
 _WHITESPACE_RX = re.compile(r"[ \t]+")
 _NEWLINES_RX = re.compile(r"\s*\n\s*")

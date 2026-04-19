@@ -113,7 +113,8 @@ class GuidelineEvaluator:
             if pathway_filter and rule.get("guideline_id") != pathway_filter:
                 continue
             if self._rule_matches(rule, patient_bitmap, patient_age, patient_sex):
-                matches.append(_format_match(rule))
+                matched_via = self._collect_matched_via(rule, patient_bitmap)
+                matches.append(_format_match(rule, matched_via=matched_via))
 
         return {
             "matched_rules": matches,
@@ -309,14 +310,19 @@ class GuidelineEvaluator:
             bitmap_id = node.get("bitmap_id")
             bm = self._store.get_bitmap(bitmap_id) if bitmap_id else None
             criterion = dict(node.get("criterion") or {})
+            seed_concept_ids = list(node.get("seed_concept_ids") or [])
             if bm is None:
                 matched = False
                 missing_bitmap = True
                 match_count = 0
+                matched_concept_ids: list[str] = []
             else:
                 missing_bitmap = False
                 match_count = len(bm & patient_bm)
                 matched = match_count > 0
+                matched_concept_ids = self._matched_seed_ids(
+                    seed_concept_ids, patient_bm
+                )
             return {
                 "kind": "CONCEPT",
                 "node_id": node_id,
@@ -324,6 +330,7 @@ class GuidelineEvaluator:
                 "matched": matched,
                 "match_count": match_count,
                 "missing_bitmap": missing_bitmap,
+                "matched_concept_ids": matched_concept_ids,
             }
         if kind == "DEMOGRAPHIC":
             matched = _check_demographic_node(node, patient_age, patient_sex)
@@ -364,6 +371,78 @@ class GuidelineEvaluator:
         }
         if kind == "AT_LEAST":
             out["min"] = int(node.get("min") or 1)
+        return out
+
+    def _matched_seed_ids(
+        self,
+        seed_concept_ids: list[str],
+        patient_bm: BitMap,
+    ) -> list[str]:
+        """Return the subset of ``seed_concept_ids`` present in the patient bitmap.
+
+        Used to populate ``matched_concept_ids`` (per CONCEPT leaf) and
+        ``matched_via`` (per matched rule) so callers can name which exact
+        SNOMED code(s) caused the rule to fire (UN-LEO-AI-093, DI-LEO-AI-510).
+        Empty input returns an empty list.
+        """
+        if not seed_concept_ids:
+            return []
+        out: list[str] = []
+        for cid in seed_concept_ids:
+            iid = self._store.get_int_id(cid)
+            if iid is not None and iid in patient_bm:
+                out.append(cid)
+        return out
+
+    def _collect_matched_via(
+        self,
+        rule: dict,
+        patient_bm: BitMap,
+    ) -> list[dict[str, Any]]:
+        """Walk the compiled logic tree and return per-CONCEPT-leaf hit info.
+
+        Returns one entry per CONCEPT leaf whose bitmap intersects with the
+        patient bitmap, in tree-traversal order. Each entry has:
+
+          - ``node_id``: the leaf's stable id
+          - ``primary_concept_id``: the chip's preferred-term anchor
+          - ``preferred_term``: chip label (best-effort)
+          - ``matched_concept_ids``: which seed ids hit (>=1)
+
+        Schema v1 rules (no ``logic_tree``) return an empty list; schema v1
+        does not store enough information to attribute hits to a specific
+        synonym seed. Callers that need attribution should recompile to v2.
+        """
+        if int(rule.get("schema_version") or 1) != 2:
+            return []
+        out: list[dict[str, Any]] = []
+
+        def _walk(node: dict[str, Any] | None) -> None:
+            if not node:
+                return
+            kind = str(node.get("kind") or "").upper()
+            if kind == "CONCEPT":
+                seed_ids = list(node.get("seed_concept_ids") or [])
+                hits = self._matched_seed_ids(seed_ids, patient_bm)
+                if hits:
+                    criterion = dict(node.get("criterion") or {})
+                    out.append(
+                        {
+                            "node_id": node.get("node_id"),
+                            "primary_concept_id": (
+                                criterion.get("primary_concept_id")
+                                or criterion.get("snomed_concept_id")
+                            ),
+                            "preferred_term": criterion.get("preferred_term")
+                            or criterion.get("term"),
+                            "matched_concept_ids": hits,
+                        }
+                    )
+                return
+            for child in (node.get("children") or []):
+                _walk(child)
+
+        _walk(rule.get("logic_tree"))
         return out
 
     def _build_patient_bitmap(self, concept_ids: list[str]) -> BitMap:
@@ -649,20 +728,19 @@ def _check_demographic_node(
     return False
 
 
-def _format_match(rule: dict) -> dict:
+def _format_match(
+    rule: dict,
+    *,
+    matched_via: list[dict[str, Any]] | None = None,
+) -> dict:
     """Format a matched rule for the API response.
 
-    Args:
-        rule: Compiled rule dict from the ruleset.
-
-    Returns:
-        Response dict with rule metadata and ``action`` sub-dict when a
-        SNOMED procedure was coded for the rule.  ``action.priority`` is one of
-        ``"2ww"`` | ``"urgent"`` | ``"routine"``.  ``action.due_days`` is the
-        maximum calendar days allowed (14 for 2WW, 2 for urgent 48h, etc.)
-        or ``null`` for routine actions.
+    ``matched_via`` (DI-LEO-AI-510) lists which exact SNOMED code(s) on the
+    patient caused each CONCEPT chip in the rule to fire. The SBAR
+    formatter uses this so narratives can say "matched on Cigarette
+    smoker" rather than only naming the rule.
     """
-    return {
+    payload = {
         "rule_id": rule["rule_id"],
         "name": rule.get("name"),
         "strength": rule.get("strength"),
@@ -673,3 +751,6 @@ def _format_match(rule: dict) -> dict:
         "action": rule.get("action"),
         "confidence": 1.0,
     }
+    if matched_via:
+        payload["matched_via"] = matched_via
+    return payload

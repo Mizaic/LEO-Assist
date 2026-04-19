@@ -6,15 +6,25 @@
   derived_from:
     - "UN-LEO-AI-088"
   requirement: >
-    The /care/patients encounter card and the /care/encounters
-    search-results preview SHALL replace their bespoke editors with
-    the shared `GoldLabelEditorDialog` mounted in `saveMode='dual'`.
-    Each surface SHALL seed the dialog via
-    `createGoldLabelFromEncounter` (DI-LEO-AI-220) and persist via
-    `useDualSaveAdapter` -> `syncCodedLinksFromGold`
-    (DI-LEO-AI-221). On /care/encounters the search match-rationale
-    chips SHALL be passed into the dialog via the `headerChrome`
-    slot. The legacy full-page editor routes
+    The /care/patients encounter card SHALL replace its bespoke
+    editor with the shared `GoldLabelEditorDialog` mounted in
+    `saveMode='dual'`, seeded via
+    `createGoldLabelFromEncounter` (DI-LEO-AI-220) and persisted
+    via `useDualSaveAdapter` -> `syncCodedLinksFromGold`
+    (DI-LEO-AI-221).
+
+    The /care/encounters search-results preview
+    (`EncounterPreviewDialog`) SHALL open as a read-only encounter
+    preview by default. The preview SHALL render the search match
+    rationale (date, patient id, match type, rationale chips) and
+    the full encounter text already returned by the search response,
+    WITHOUT making any additional API call on open. An explicit
+    "Edit codes" footer button SHALL trigger the seed call and
+    mount the shared `GoldLabelEditorDialog` in `saveMode='dual'`,
+    passing the same match-rationale chips into the dialog's
+    `headerChrome` slot.
+
+    The legacy full-page editor routes
     (`/patients/{id}/encounters/{eid}` and
     `/patients/{id}/encounters/view/{eid}`) and the
     `EncounterCodedView` component SHALL be retired with redirects
@@ -26,6 +36,15 @@
     keyboard shortcuts and validation rules, and we delete a
     full-page route's worth of code that we no longer need to
     maintain.
+
+    Reviewers on /care/encounters click rows mainly to read the
+    encounter text and confirm the search hit. Auto-mounting the
+    full editor on every click made the dialog feel slow and broke
+    completely when the seed call returned 404 (out-of-scope
+    patient, missing :HAS_ENCOUNTER edge), leaving the reviewer
+    with a blank dialog and no encounter text at all. Splitting
+    preview from edit keeps the dialog usable in both cases and
+    avoids wasted seed work for read-only inspections.
 
   machine_spec:
     acceptance_criteria:
@@ -39,12 +58,41 @@
       - type: "functional"
         spec: >
           The /care/encounters preview wrapper
-          (`EncounterPreviewDialog`) MUST seed the dialog via
-          `createGoldLabelFromEncounter`, mount the shared dialog
-          with `saveMode='dual'`, and pass the search match
-          rationale (date, match type, rationale chips) into the
-          dialog's `headerChrome`
-          (`data-testid="encounter-preview-rationale"`).
+          (`EncounterPreviewDialog`) MUST open in a read-only
+          preview state by default. The preview body MUST render
+          the match rationale chrome
+          (`data-testid="encounter-preview-rationale"`) and the
+          encounter text from `item.text`
+          (`data-testid="encounter-preview-text"`, or
+          `encounter-preview-empty` when the encounter has no text)
+          WITHOUT calling any backend endpoint on open.
+      - type: "functional"
+        spec: >
+          The preview MUST highlight matches of the reviewer's
+          search query and the `item.match_rationale` terms inside
+          the encounter text using `<mark>` elements
+          (`data-testid="encounter-preview-highlight"`). Matching
+          MUST be case-insensitive, MUST skip tokens shorter than
+          three characters to avoid noise, and MUST prefer longer
+          terms over shorter overlapping ones.
+      - type: "functional"
+        spec: >
+          The preview wrapper MUST expose an explicit "Edit codes"
+          footer button
+          (`data-testid="encounter-preview-edit-codes"`). Clicking
+          it MUST call `createGoldLabelFromEncounter`, then mount
+          the shared `GoldLabelEditorDialog` with `saveMode='dual'`,
+          `entitySaver` from `useDualSaveAdapter`, an `onAfterSave`
+          that triggers a refresh of the encounter's coded links,
+          and the match-rationale chrome supplied via the
+          dialog's `headerChrome` slot.
+      - type: "functional"
+        spec: >
+          If the seed call fails, the preview MUST stay open with
+          the encounter text still visible and surface the failure
+          as a plain-English error
+          (`data-testid="encounter-preview-error"`). It MUST NOT
+          replace the preview with a bare error banner.
       - type: "functional"
         spec: >
           Both surfaces MUST surface optimistic-concurrency errors

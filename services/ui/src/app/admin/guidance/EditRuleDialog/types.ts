@@ -16,11 +16,41 @@ export type LogicNodeKind =
   | "CONCEPT"
   | "DEMOGRAPHIC";
 
+/**
+ * One SNOMED code in a CONCEPT criterion's synonym set (UN-LEO-AI-093).
+ *
+ * Each seed is independently expandable via the bitmap compiler's
+ * IS_A descendant closure. ``include_descendants: false`` forces an
+ * exact-match-only contribution from this seed.
+ */
+export interface LogicSeed {
+  snomed_concept_id: string;
+  preferred_term: string;
+  semantic_tag?: string;
+  /** Default true; mirrors LogicSeed.include_descendants on the API side. */
+  include_descendants?: boolean;
+  /** Per-seed override of the rule-level distance_child default (3). */
+  distance_child?: number | null;
+}
+
+/**
+ * Backwards compatible: legacy single-seed callers populate
+ * ``snomed_concept_id`` + ``preferred_term`` only. New synonym-set
+ * callers populate ``seeds`` (and optionally ``primary_concept_id``
+ * and ``excluded_concept_ids``); the legacy fields are auto-derived
+ * from the primary seed by the API model_validator.
+ */
 export interface LogicCriterion {
   snomed_concept_id: string;
   preferred_term: string;
   semantic_tag?: string;
   term?: string;
+  /** Optional synonym-set seeds. Empty / absent means legacy single-seed. */
+  seeds?: LogicSeed[];
+  /** SNOMED ids subtracted from the union of seed closures before bitmap. */
+  excluded_concept_ids?: string[];
+  /** Names which seed supplies the chip's headline label. */
+  primary_concept_id?: string;
 }
 
 export interface EditableLogicNode {
@@ -52,7 +82,15 @@ export type NodeUpdate =
   | { kind: "remove"; nodeId: string }
   | { kind: "add_concept"; parentNodeId: string; criterion: LogicCriterion }
   | { kind: "add_group"; parentNodeId: string; groupKind: "AND" | "OR" | "NOT" | "AT_LEAST" }
-  | { kind: "add_demographic"; parentNodeId: string };
+  | { kind: "add_demographic"; parentNodeId: string }
+  // -- Synonym chip ops (UN-LEO-AI-093) --
+  | { kind: "add_seed"; nodeId: string; seed: LogicSeed }
+  | { kind: "remove_seed"; nodeId: string; conceptId: string }
+  | { kind: "set_primary_seed"; nodeId: string; conceptId: string }
+  | { kind: "toggle_include_descendants"; nodeId: string; conceptId: string }
+  | { kind: "set_seed_distance"; nodeId: string; conceptId: string; distance: number | null }
+  | { kind: "add_excluded"; nodeId: string; conceptId: string }
+  | { kind: "remove_excluded"; nodeId: string; conceptId: string };
 
 export const GROUP_KINDS: ReadonlyArray<LogicNodeKind> = ["AND", "OR", "NOT", "AT_LEAST"];
 export const LEAF_KINDS: ReadonlyArray<LogicNodeKind> = ["CONCEPT", "DEMOGRAPHIC"];

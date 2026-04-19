@@ -61,9 +61,19 @@
         SummarisationContext enum (DI-LEO-AI-231) and added the
         capped 500-char Concern field (DI-LEO-AI-233) so the
         playground prompt surface is bounded and reproducible
-        rather than open-ended free text.
-      implemented_by: ["DI-LEO-AI-231", "DI-LEO-AI-233"]
-      verified_by: ["VT-LEO-AI-231", "VT-LEO-AI-233"]
+        rather than open-ended free text. The per-context framing
+        snippets are now PromptConfig nodes editable in the AI
+        Instructions surface (DI-LEO-AI-507) with a hardcoded
+        fallback dict so the runtime cannot regress to an unframed
+        Situation prompt.
+      implemented_by:
+        - "DI-LEO-AI-231"
+        - "DI-LEO-AI-233"
+        - "DI-LEO-AI-507"
+      verified_by:
+        - "VT-LEO-AI-231"
+        - "VT-LEO-AI-233"
+        - "VT-LEO-AI-509"
       effectiveness: "effective"
     - control_type: "procedural_control"
       description: >

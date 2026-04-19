@@ -1,0 +1,100 @@
+# -- DO-LEO-AI-510 -- Evaluator + diagnose + SBAR pass through matched_concept_ids
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-510"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-510"]
+    user_needs: ["UN-LEO-AI-093"]
+    risks_addressed: ["R-LEO-AI-508"]
+    verification_tests: ["VT-LEO-AI-510"]
+
+  specification:
+    title: "Surface which patient codes satisfied each CONCEPT leaf"
+    description: |
+      ``_annotate_logic_tree`` for kind == CONCEPT computes
+      ``matched_int_ids = (rule_bm & patient_bm).to_array()`` and
+      maps each int back to a SNOMED string id using the
+      ``seed_concept_ids`` echo from the compiled leaf when
+      available, otherwise via a reverse-lookup helper on
+      BitmapStore. The annotated leaf gains
+      ``matched_concept_ids: list[str]`` ordered by first
+      appearance in the patient's input code list.
+
+      ``_format_match`` (or its caller in evaluate_patient and
+      diagnose) aggregates matched_concept_ids across every matched
+      CONCEPT leaf, deduplicates, and emits a per-rule
+      ``matched_concept_ids`` field on the rule dict.
+
+      ``_rule_snapshot`` in libs/sbar/assessment_formatter.py
+      includes the new field plus a per-leaf ``matched_via`` list
+      built from ``rule.matched_via`` when present (a list of
+      ``{leaf_term, matched_concept_id, matched_term,
+      primary_concept_id}`` produced by the evaluator). Legacy rule
+      dicts without the field produce a snapshot with
+      matched_concept_ids = [] and matched_via = [].
+
+      libs/prompts/sbar_recommendation_v1.py system prompt is
+      extended with a new paragraph instructing the model to name
+      the matched term when it differs from the headline preferred
+      term and to never expose raw SNOMED ids.
+    acceptance_criteria:
+      - criterion: "Per-leaf matched_concept_ids"
+        type: "functional"
+        measurement: "Test"
+        target: "When patient codes [c1, c2, c3] intersect a leaf bitmap on c1 and c3, _annotate_logic_tree returns matched_concept_ids = [c1, c3] in input order"
+      - criterion: "Per-rule aggregation"
+        type: "functional"
+        measurement: "Test"
+        target: "evaluate_patient response: matched_rules[i].matched_concept_ids is the deduplicated union of every matched leaf's matched_concept_ids"
+      - criterion: "Diagnose surfaces field"
+        type: "functional"
+        measurement: "Test"
+        target: "diagnose response logic_tree CONCEPT leaves carry matched_concept_ids when matched"
+      - criterion: "Snapshot back-compat"
+        type: "functional"
+        measurement: "Test"
+        target: "_rule_snapshot accepts a rule dict without matched_concept_ids and produces a snapshot with the field set to []"
+      - criterion: "Recommendation prompt updated"
+        type: "functional"
+        measurement: "Inspection"
+        target: "sbar_recommendation_v1 system prompt mentions descendant-match framing and forbids raw SNOMED ids"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/guideline_evaluator.py"
+        description: "_annotate_logic_tree + matched_concept_ids aggregation"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/sbar/assessment_formatter.py"
+        description: "_rule_snapshot pass-through"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/prompts/sbar_recommendation_v1.py"
+        description: "Recommendation prompt instructing matched-term framing"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 220
+      key_functions:
+        - "_annotate_logic_tree"
+        - "_format_match"
+        - "_rule_snapshot"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Match verdict is unchanged (defence in depth)"
+      - "matched_concept_ids cannot include excluded ids"
+    risk_control_measures:
+      - "Matched verdict still driven by bitmap intersection only"
+      - "Reverse-lookup uses compiler echo first (no new Cypher)"
+      - "Defence-in-depth check filters excluded ids from matched_concept_ids"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

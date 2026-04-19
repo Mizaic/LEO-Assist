@@ -1,0 +1,160 @@
+# -- DO-LEO-AI-512 -- Stepped widescreen rule editor (Change this rule)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-512"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-512"]
+    user_needs: ["UN-LEO-AI-094"]
+    risks_addressed: ["R-LEO-AI-509"]
+    verification_tests: ["VT-LEO-AI-511"]
+
+  specification:
+    title: "Widescreen step-by-step EditRuleDialog with sticky live preview"
+    description: |
+      ``EditRuleDialog/index.tsx`` is refactored from a single
+      vertical column into a thin orchestrator that mounts a
+      three-column CSS Grid inside a ``Dialog`` with
+      ``maxWidth="xl"``. The grid columns are
+      ``minmax(220px, 3fr) minmax(0, 6fr) minmax(280px, 4fr)`` at
+      the ``md`` breakpoint and collapse to a single column on
+      ``xs``. The orchestrator owns the dialog state (tree, name,
+      strength, reason, action, searchTarget, currentStepId,
+      fullscreen, showRecommendation) and routes which step
+      content is rendered.
+
+      A new ``StepRail.tsx`` primitive renders four numbered
+      jump-able steps. Each ``StepRailItem`` displays a
+      ``Not started / In progress / Ready`` chip computed from
+      the dialog state, and the current step gets a 3px-wide
+      left accent strip and a 12px corner radius, matching
+      design-system-ui.mdc.
+
+      A new ``LivePreviewPane.tsx`` reuses the existing
+      ``SummaryCard`` and adds a one-sentence "What the system
+      will do" recap built from ``STRENGTH_LABELS`` and the
+      action SNOMED friendly term. On step 4 it swaps to a
+      two-column ``Before / After`` variant computed from
+      ``rule.logic_tree`` (before) and the edited tree (after),
+      using ``treeToSentence`` for both columns.
+
+      Each step lives in its own module under
+      ``EditRuleDialog/steps/``: ``Step1Who`` hosts the
+      ``LogicTreeEditor``, the duplicate-set alert, the NICE
+      source toggle, the concept-coach popover and a slide-in
+      ``ConceptSearchPanel`` drawer; ``Step2Suggest`` renders
+      the ``ActionPanel``, the strength ``Select`` and the
+      short-name ``TextField`` in a responsive 2-column grid
+      and inlines the ``ConceptSearchPanel`` when
+      ``searchTarget.mode === "replace_action"``; ``Step3Try``
+      hosts the ``TestPatientsPanel`` unchanged; ``Step4Save``
+      renders the reason ``TextField`` and the save guidance.
+
+      All chrome strings (step titles, helpers, rail labels,
+      ready-state chips, footer affordances) live in
+      ``copy.ts`` and read at UK reading age 7-11 (Hemingway
+      grade 6 or below).
+
+      The save handler is unchanged in shape: ``onSave`` posts
+      ``{ action: "edit", updates: { name, strength, logic_tree
+      (node ids stripped) }, reason }`` and only includes the
+      action SNOMED criterion when ``actionDirty`` is true,
+      preserving the predecessor's stored action when the
+      reviewer never opens step 2's action panel.
+
+    acceptance_criteria:
+      - criterion: "Three-column widescreen layout"
+        type: "functional"
+        measurement: "Test"
+        target: "At md breakpoint and above the dialog renders three columns (StepRail | step canvas | LivePreviewPane). At xs the columns stack vertically."
+      - criterion: "Numbered jump-able rail with ready states"
+        type: "functional"
+        measurement: "Test"
+        target: "StepRail renders four numbered items (Who / Suggest / Try / Save). Each shows one of three states. Clicking a rail item sets currentStepId to that step."
+      - criterion: "Live preview updates on edit"
+        type: "functional"
+        measurement: "Test"
+        target: "Editing a chip's concept anywhere in steps 1-2 updates the LivePreviewPane sentence within the same render tick (no network call)."
+      - criterion: "Before / After on step 4"
+        type: "functional"
+        measurement: "Test"
+        target: "Navigating to step 4 swaps the LivePreviewPane into a two-column Before/After variant whose left column matches the original rule sentence and right column matches the edited rule sentence."
+      - criterion: "Save gating"
+        type: "safety"
+        measurement: "Test"
+        target: "The Save changes button is disabled until reason.trim().length >= 3 AND findValidationError(tree) is null AND saving === false. The button is the single contained primary in DialogActions."
+      - criterion: "Save payload shape preserved"
+        type: "safety"
+        measurement: "Test"
+        target: "When the reviewer does not touch the action chip, onSave is called with payload that does NOT include criterion. When they DO touch the action chip, onSave is called with criterion populated. node ids are stripped from logic_tree in both cases."
+      - criterion: "Reading age of chrome copy"
+        type: "functional"
+        measurement: "Test"
+        target: "Every string exported from copy.ts (step titles, helpers, rail labels, ready-state chips, footer affordances) scores Flesch-Kincaid grade <= 6 in the readability sweep."
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/index.tsx"
+        description: "Orchestrator: dialog shell, three-column grid, step routing, save gating, sticky footer"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/StepRail.tsx"
+        description: "StepRail and StepRailItem primitives with ready-state chips and accent strip"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewPane.tsx"
+        description: "Sticky preview with What-the-system-will-do recap and Before/After variant"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step1Who.tsx"
+        description: "Who-is-this-rule-about step (logic tree + duplicate alert + NICE source + coach + search drawer)"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step2Suggest.tsx"
+        description: "What-should-the-system-suggest step (action panel + strength select + short name)"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step3Try.tsx"
+        description: "Try-it-on-real-patients step hosting TestPatientsPanel"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step4Save.tsx"
+        description: "Save-your-change step (reason textarea + save guidance)"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/copy.ts"
+        description: "Plain-English chrome copy at reading age 7-11"
+        storage_location: "git"
+    technical_details:
+      language: "TypeScript / React"
+      loc: 950
+      key_functions:
+        - "EditRuleDialog"
+        - "StepRail"
+        - "StepRailItem"
+        - "LivePreviewPane"
+        - "Step1Who"
+        - "Step2Suggest"
+        - "Step3Try"
+        - "Step4Save"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "canSave gating on tree validity AND reason length"
+      - "Save payload shape preservation (action SNOMED omitted when actionDirty is false)"
+      - "Always-on plain-English preview so reviewer can see consequence of every edit"
+      - "Before / After comparison on step 4 prevents save without comparison"
+    risk_control_measures:
+      - "Single primary action in DialogActions; Cancel + Back + Next are non-primary"
+      - "Step rail surfaces missing prerequisites visibly on every screen"
+      - "Reason gate forces a deliberate why-am-I-changing-this prompt before save"
+      - "All chrome copy read-age 7-11 to avoid mis-reading by non-specialist reviewers"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

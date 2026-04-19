@@ -151,6 +151,94 @@ class TestValidateLogicTree:
             LogicNode.model_validate({"kind": "MAYBE", "children": [_concept_node()]})
 
 
+# -- Synonym set (UN-LEO-AI-093 / DI-LEO-AI-508) ----------------------------
+
+
+class TestLogicCriterionSynonymSet:
+    """LogicCriterion accepts seeds + exclusions and stays back-compat."""
+
+    def _seed(self, cid: str, term: str, **extra) -> dict:
+        return {
+            "snomed_concept_id": cid,
+            "preferred_term": term,
+            "semantic_tag": "finding",
+            **extra,
+        }
+
+    def test_legacy_single_concept_id_still_validates(self) -> None:
+        node = LogicNode.model_validate(_concept_node("1", "Smoker"))
+        assert node.criterion.snomed_concept_id == "1"
+        assert node.criterion.seeds == []
+        assert validate_logic_tree(node) == {"1"}
+
+    def test_seeds_only_payload_derives_legacy_fields(self) -> None:
+        """Posting a synonym set without snomed_concept_id derives it from primary."""
+        node = LogicNode.model_validate(
+            {
+                "kind": "CONCEPT",
+                "criterion": {
+                    "snomed_concept_id": "",
+                    "preferred_term": "",
+                    "primary_concept_id": "1",
+                    "seeds": [
+                        self._seed("1", "Smoker"),
+                        self._seed("2", "Cigarette smoker"),
+                    ],
+                },
+            }
+        )
+        assert node.criterion.snomed_concept_id == "1"
+        assert node.criterion.preferred_term == "Smoker"
+        assert {s.snomed_concept_id for s in node.criterion.seeds} == {"1", "2"}
+
+    def test_validate_logic_tree_collects_every_seed_and_exclusion_id(self) -> None:
+        node = LogicNode.model_validate(
+            {
+                "kind": "CONCEPT",
+                "criterion": {
+                    "snomed_concept_id": "1",
+                    "preferred_term": "Smoker",
+                    "primary_concept_id": "1",
+                    "seeds": [
+                        self._seed("1", "Smoker"),
+                        self._seed("2", "Cigarette smoker"),
+                    ],
+                    "excluded_concept_ids": ["3"],
+                },
+            }
+        )
+        assert validate_logic_tree(node) == {"1", "2", "3"}
+
+    def test_rejects_primary_id_not_in_seeds(self) -> None:
+        with pytest.raises(Exception):
+            LogicNode.model_validate(
+                {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                        "snomed_concept_id": "1",
+                        "preferred_term": "Smoker",
+                        "primary_concept_id": "9999",
+                        "seeds": [self._seed("1", "Smoker")],
+                    },
+                }
+            )
+
+    def test_rejects_seed_overlap_with_exclusions(self) -> None:
+        """A seed id MUST NOT also appear in excluded_concept_ids."""
+        with pytest.raises(Exception):
+            LogicNode.model_validate(
+                {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                        "snomed_concept_id": "1",
+                        "preferred_term": "Smoker",
+                        "seeds": [self._seed("1", "Smoker")],
+                        "excluded_concept_ids": ["1"],
+                    },
+                }
+            )
+
+
 # -- apply_rule_edit ----------------------------------------------------------
 
 

@@ -423,6 +423,7 @@ export default function EncounterMissionControl() {
 
       <EncounterPreviewDialog
         item={activePreview}
+        searchQuery={search.query}
         onClose={() => setActivePreview(null)}
         onCodingChanged={() => {
           void loadAll(false);

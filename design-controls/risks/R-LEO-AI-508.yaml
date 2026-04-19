@@ -1,0 +1,125 @@
+# -- R-LEO-AI-508 -- Misconfigured exclusion or seed list silently drops a real match
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-508"
+  title: "An author silently drops a clinically meaningful patient match by adding the wrong concept to a criterion's excluded_concept_ids list, by removing the only seed, or by leaving a synonym set incomplete after a hierarchy revision"
+
+  hazard:
+    description: >
+      Synonym sets and exclusion carve-outs give authors more
+      expressive power than today, including the power to make a
+      rule fire on FEWER patients than the original author
+      intended. A wrong exclusion (for example, excluding
+      "Cigarette smoker" from a Smoker rule) means the rule
+      stops firing on real smokers; an incomplete synonym set
+      means the rule misses common coding variants; a removed
+      seed leaves the criterion empty and the rule dead.
+    category: "clinical_safety"
+
+  hazardous_situation: >
+    A clinical author edits an existing AppropriatenessRule that
+    currently fires correctly on a population of patients. They
+    add an entry to excluded_concept_ids intending to remove a
+    rare false-positive descendant, but pick the wrong code from
+    the SNOMED search results. The compiler subtracts the wrong
+    id from the leaf bitmap. A safety-net rule (2WW referral,
+    cancer pathway) stops firing on patients who would previously
+    have matched. The Assessment narrative stops mentioning the
+    rule. No alert is raised because the rule still compiles and
+    still fires on the remaining (smaller) patient set, so
+    superficial smoke tests pass.
+
+  harm:
+    description: >
+      A patient who clinically meets a NICE recommendation does
+      not appear on the safety-net dashboard, is not flagged for
+      the recommended action (2WW referral, urgent X-ray, MDT
+      discussion), and may experience delayed diagnosis or
+      treatment.
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        EditRuleDialog displays a non-blocking warning chip when
+        an excluded_concept_id is not in any seed's closure
+        (visible drift signal at authoring time).
+      implemented_by: ["DI-LEO-AI-511"]
+      verified_by: ["VT-LEO-AI-510"]
+      effectiveness: "partially_effective"
+    - control_type: "design_feature"
+      description: >
+        EditRuleDialog disables the "Remove" button on the only
+        remaining seed and re-points primary_concept_id when the
+        primary seed is removed (prevents accidental empty
+        criterion).
+      implemented_by: ["DI-LEO-AI-511"]
+      verified_by: ["VT-LEO-AI-510"]
+      effectiveness: "effective"
+    - control_type: "protective_measure"
+      description: >
+        The terminology API ruleset replay (UN-LEO-AI-076) re-runs
+        every saved test patient against the new ruleset version
+        after every compile and surfaces any rule that flips from
+        firing to not firing as a regression banner on the
+        Clinical Guidelines page; an author cannot save an edit
+        that regresses an asserted patient.
+      implemented_by: ["DI-LEO-AI-181"]
+      verified_by: ["VT-LEO-AI-189"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        The evaluator's matched_concept_ids field surfaces WHICH
+        patient code matched each leaf, so reviewers can confirm
+        from the diagnose UI that the expected synonyms are
+        actually firing (and that exclusions are subtracting the
+        intended ids only).
+      implemented_by: ["DI-LEO-AI-510"]
+      verified_by: ["VT-LEO-AI-510"]
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 2
+    detectability: 2
+    rpn: 12
+    risk_level: "medium"
+    acceptability: "acceptable"
+    justification: >
+      Replay (R/W test patient cohort) catches the most common
+      regressions before deploy; the warning chip catches
+      author-time misuse; matched_concept_ids gives reviewers a
+      verifiable audit trail. Residual risk reflects the case
+      where a rule has no test patient covering the impacted
+      subpopulation, which is mitigated procedurally by the
+      QA review checklist.
+
+  monitoring:
+    monitoring_plan: >
+      Weekly review of RulesetReplay diff reports (UN-LEO-AI-076)
+      for any rule whose matched-patient count drops by >20%
+      between consecutive ruleset versions. Quarterly clinical
+      lead review of any rule whose excluded_concept_ids list
+      grew during the period.
+    metrics:
+      - "Count of rules with excluded_concept_ids growth per release"
+      - "Replay regressions blocked at save time"
+      - "Diff between matched-patient counts across ruleset versions"
+    review_frequency: "Weekly (replay reports), Quarterly (exclusion drift)"
+
+  metadata:
+    identified_by: "Rob Smith - 2026-04-19 design review of UN-LEO-AI-093 synonym sets + exclusions"
+    identified_date: "2026-04-19"
+    status: "analyzed"
+    tags:
+      - "guidance-rules"
+      - "exclusion"
+      - "synonym-set"
+      - "clinical-safety"

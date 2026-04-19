@@ -47,11 +47,18 @@ HARD RULES (12)
     a guideline outside that list, do NOT include the rule.
 12. Output MUST be a single JSON object conforming to the supplied
     output schema -- no prose outside JSON, no code fences.
+13. MATCHED CODE -- when a rule snapshot includes ``matched_via`` and
+    the matched code is more specific than the chip label (e.g. matched
+    on "Cigarette smoker" for a chip labelled "Smoker"), name the
+    specific match in plain English the first time the rule is
+    referenced (e.g. "matched on cigarette smoker (a kind of smoker)").
+    Do not include raw SNOMED IDs in the narrative.
 
 WORKFLOW
 - Read CONTEXT.situation, CONTEXT.background, CONTEXT.assessment (the
   Markdown produced by the earlier prompts), CONTEXT.assessment_rules
-  (structured rule snapshots), and CONTEXT.guideline_titles.
+  (structured rule snapshots, which may include ``matched_via``), and
+  CONTEXT.guideline_titles.
 - Produce ``recommendation_markdown`` per the rules above.
 - Populate ``actions`` with one entry per discrete action. Each entry
   has: ``action`` (short imperative), ``priority`` ('2ww', 'urgent',

@@ -1,0 +1,101 @@
+# -- DO-LEO-AI-508 -- LogicCriterion seeds + exclusions schema
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-508"
+  version: "1.0.0"
+  type: "Schema"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-508"]
+    user_needs: ["UN-LEO-AI-093"]
+    risks_addressed: ["R-LEO-AI-508"]
+    verification_tests: ["VT-LEO-AI-510"]
+
+  specification:
+    title: "Backwards-compatible synonym-set criterion shape"
+    description: |
+      LogicCriterion (Pydantic + TypeScript) gains three optional
+      fields: ``seeds`` (list of objects), ``excluded_concept_ids``
+      (list of SNOMED string ids), and ``primary_concept_id``
+      (string). The legacy ``snomed_concept_id`` and
+      ``preferred_term`` fields stay required for back-compat. When
+      ``seeds`` is supplied, the validator ignores
+      ``snomed_concept_id`` for the seed enumeration but copies
+      ``primary_concept_id`` into ``snomed_concept_id`` so legacy
+      readers always see a non-empty value.
+
+      ``validate_logic_tree`` walks every CONCEPT node and returns a
+      flat set of every referenced SNOMED id (seeds + exclusions),
+      so the existing _VERIFY_CONCEPTS round-trip continues to
+      catch unknown ids in one Cypher pass.
+
+      ``scripts/migrations/2026_logic_criterion_synonym_set.py``
+      reads every v2 AppropriatenessRule.logicJson, walks each
+      CONCEPT leaf, populates ``seeds`` from the existing single
+      seed, sets ``primary_concept_id``, sets
+      ``excluded_concept_ids: []``, and writes the upgraded JSON
+      back. The legacy field is preserved.
+    acceptance_criteria:
+      - criterion: "Legacy shape accepted"
+        type: "functional"
+        measurement: "Test"
+        target: "LogicCriterion.model_validate({snomed_concept_id, preferred_term}) succeeds and seeds defaults to []"
+      - criterion: "New shape accepted"
+        type: "functional"
+        measurement: "Test"
+        target: "LogicCriterion.model_validate({seeds: [...], excluded_concept_ids: [...], primary_concept_id, preferred_term}) succeeds without snomed_concept_id"
+      - criterion: "Empty criterion rejected"
+        type: "safety"
+        measurement: "Test"
+        target: "validate_logic_tree raises LogicTreeValidationError when both seeds and snomed_concept_id are empty"
+      - criterion: "Seed/exclusion overlap rejected"
+        type: "safety"
+        measurement: "Test"
+        target: "validate_logic_tree raises LogicTreeValidationError when an id appears in seeds and excluded_concept_ids"
+      - criterion: "Concept-id collection covers seeds + exclusions"
+        type: "functional"
+        measurement: "Test"
+        target: "validate_logic_tree returns the union of every seed.snomed_concept_id and every excluded_concept_ids id"
+      - criterion: "Migration is idempotent and lossless"
+        type: "functional"
+        measurement: "Test"
+        target: "Running the migration twice on the same rule yields a byte-identical second-pass output and the int-id set passed to put_bitmap is unchanged"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/guidance_rule_edit.py"
+        description: "LogicCriterion + LogicSeed + validate_logic_tree changes"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/EditRuleDialog/types.ts"
+        description: "Mirror of the new TypeScript LogicCriterion + LogicSeed"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "scripts/migrations/logic_criterion_synonym_set.py"
+        description: "One-shot migration of persisted v2 AppropriatenessRule.logicJson"
+        storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript"
+      loc: 320
+      key_functions:
+        - "LogicCriterion"
+        - "LogicSeed"
+        - "validate_logic_tree"
+        - "_validate_concept_node"
+        - "upgrade_concept_leaf"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Concept-id enumeration for _VERIFY_CONCEPTS"
+      - "Migration parity (no clinical-output drift)"
+    risk_control_measures:
+      - "Legacy field preserved; partial roll-back is safe"
+      - "Validator rejects empty / overlapping / inconsistent criteria"
+      - "Migration script asserts byte-identical second-pass output"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

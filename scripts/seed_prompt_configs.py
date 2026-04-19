@@ -923,6 +923,42 @@ _add(
     ),
 )
 
+# -- SBAR per-context Situation framing snippets ------------------------------
+# DI-LEO-AI-507 / UN-LEO-AI-092: each SummarisationContext value gets its
+# own :PromptConfig node so platform admins can refine the framing
+# wording at runtime via /admin/knowledge?tab=ai-instructions. The
+# `[<Group>]` description prefix drives the AI Instructions list grouping.
+# Source-of-truth for the snippet text is
+# libs.sbar.events.SUMMARISATION_CONTEXT_PROMPTS; this loop just routes
+# it into PromptConfig entries.
+from libs.sbar.events import (
+    SUMMARISATION_CONTEXT_GROUPS,
+    SUMMARISATION_CONTEXT_LABELS,
+    SUMMARISATION_CONTEXT_PROMPTS,
+    SummarisationContext,
+)
+
+for _ctx in SummarisationContext:
+    _label = SUMMARISATION_CONTEXT_LABELS[_ctx]
+    _group = SUMMARISATION_CONTEXT_GROUPS[_ctx]
+    _snippet = SUMMARISATION_CONTEXT_PROMPTS[_ctx]
+    SEED_PROMPTS.append(
+        {
+            "name": f"sbar_situation_context_{_ctx.value}",
+            "version": 1,
+            "description": (
+                f"[{_group}] {_label} -- per-context framing snippet "
+                f"prepended to the SBAR Situation prompt. Edit to tune "
+                f"what the LLM emphasises for this clinical setting."
+            ),
+            "system_prompt": _snippet,
+            "output_schema": "{}",
+            "verification": False,
+            "few_shot_examples": [],
+            "max_few_shot": 0,
+        }
+    )
+
 
 def _get_driver():
     """Return a Neo4j driver for the Knowledge Graph."""

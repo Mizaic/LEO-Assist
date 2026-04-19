@@ -1,0 +1,458 @@
+"""AI-assisted scaffolder for the Knowledge > Test Patients tab.
+
+Flow 1 of the AI-assisted authoring story: the reviewer picks one
+AppropriatenessRule, we ask Haiku to draft a synthetic patient that
+should make that rule fire, and the result lands in the editor for
+the reviewer to tweak and save.
+
+Design notes:
+  - The expected SBAR is filled in DETERMINISTICALLY (we copy the
+    rule's verbatim recommendation into the Recommendation section and
+    the action priority into expected_action_priority). The LLM never
+    drafts the test's own ground-truth answer; that is a hard rule
+    because otherwise the test would be checking the LLM against
+    itself.
+  - SNOMED concept ids come straight from the rule's HAS_CRITERIA edges
+    (the Knowledge graph). The LLM never invents SNOMED ids; it only
+    paraphrases the preferred terms into encounter prose.
+  - Every saved patient is stamped with `aiAssisted: true`,
+    `aiSourceKind: 'rule'`, and `aiSourceId: <rule_id>` so we can
+    distinguish AI-scaffolded patients from manual / clone / SBAR-seed
+    in the library and later add a "review AI drafts" queue.
+  - The LLM call is INJECTABLE (`generator` parameter) so unit tests
+    drive the service without a Bedrock connection. The default
+    generator goes through `libs.llm_client.json_helper.invoke_llm_json`.
+
+Failure mode: if Haiku returns malformed JSON, fails to mention every
+trigger SNOMED, or breaks a demographic constraint we raise
+:class:`ScaffoldError` and write NOTHING. The router translates that
+into a 4xx so the reviewer sees the failure rather than a half-baked
+patient.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from dataclasses import dataclass
+from datetime import date, timedelta
+from typing import Any, Awaitable, Callable
+
+from app.db.neo4j_client import CodingGraphClient
+from app.services import test_patient_service
+from libs.cypher.test_patient_queries import READ_RULE_FOR_SCAFFOLD
+from libs.prompts.test_patient_scaffold_v1 import (
+    SYSTEM_PROMPT,
+    build_user_prompt,
+    expected_field_set,
+)
+
+logger = logging.getLogger(__name__)
+
+
+_VALID_SEX = {"male", "female"}
+_NON_GUIDELINE_ASPECTS = {"nlp", "episodes", "summarisation"}
+_DEFAULT_ASPECT_FOR_RULE = "summarisation"
+
+
+class ScaffoldError(ValueError):
+    """Raised when the AI draft is unusable.
+
+    The router translates this into HTTP 422 -- the reviewer sees the
+    reason and can either retry, fall back to Build a patient, or fix
+    the rule.
+    """
+
+
+@dataclass(frozen=True)
+class ScaffoldResult:
+    """What the router returns to the UI on success."""
+
+    patient_id: str
+    aspect: str
+    rule_id: str
+    encounters_written: int
+    expected_sbar_written: bool
+    notes: str
+
+
+# Type alias for the injectable LLM call. Async so the production
+# implementation can stream from Bedrock without blocking the worker.
+GeneratorFn = Callable[[str, str], Awaitable[dict[str, Any]]]
+
+
+async def _default_generator(system_prompt: str, user_prompt: str) -> dict[str, Any]:
+    """Production generator -- routes to Bedrock via invoke_llm_json.
+
+    Imported lazily so the unit tests don't drag in boto3 / Bedrock.
+    """
+    from libs.llm_client.json_helper import invoke_llm_json
+
+    return await invoke_llm_json(
+        system_prompt=system_prompt,
+        user_message=user_prompt,
+        max_tokens=1500,
+        temperature=0.2,
+        agent_task="test_patient_scaffold_v1",
+        max_retries=2,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Rule reader
+# ---------------------------------------------------------------------------
+
+
+def load_rule_for_scaffold(
+    client: CodingGraphClient, *, rule_id: str
+) -> dict[str, Any]:
+    """Pull every field the scaffolder needs about one rule.
+
+    Raises :class:`ScaffoldError` if the rule does not exist (so the
+    router returns a 404-like 422 with a clear reason).
+    """
+    rows = client.run(READ_RULE_FOR_SCAFFOLD, rule_id=rule_id)
+    if not rows:
+        raise ScaffoldError(
+            f"Rule {rule_id!r} was not found. Pick a rule from the tree "
+            "picker -- only active or pending rules can be scaffolded."
+        )
+    row = dict(rows[0])
+    triggers = list(row.get("triggers") or [])
+    if not triggers:
+        raise ScaffoldError(
+            f"Rule {rule_id!r} has no SNOMED criteria attached. The "
+            "scaffolder cannot draft notes without at least one trigger "
+            "concept -- fix the rule before scaffolding."
+        )
+    row["triggers"] = triggers
+    row["demographic_constraints"] = list(row.get("demographic_constraints") or [])
+    return row
+
+
+# ---------------------------------------------------------------------------
+# Validation of the LLM response
+# ---------------------------------------------------------------------------
+
+
+def _validate_demographics(
+    demographics: dict[str, Any],
+    constraints: list[dict],
+) -> dict[str, Any]:
+    """Normalise + sanity-check the LLM-supplied demographics block."""
+    if not isinstance(demographics, dict):
+        raise ScaffoldError("AI response: 'demographics' must be an object.")
+    age_raw = demographics.get("age")
+    sex_raw = (demographics.get("sex") or "").strip().lower()
+    try:
+        age = int(age_raw) if age_raw is not None else None
+    except (TypeError, ValueError):
+        raise ScaffoldError(f"AI response: bad age value {age_raw!r}.")
+    if age is None or not (0 < age < 130):
+        raise ScaffoldError(f"AI response: age {age_raw!r} is outside 1-129.")
+    if sex_raw not in _VALID_SEX:
+        raise ScaffoldError(
+            f"AI response: sex must be male/female, got {sex_raw!r}."
+        )
+    for c in constraints or []:
+        field = (c.get("field") or "").strip().lower()
+        op = (c.get("operator") or "").strip()
+        value = c.get("value")
+        if field == "age" and value is not None:
+            try:
+                v = float(value)
+            except (TypeError, ValueError):
+                continue
+            if op in {">=", "ge"} and age < v:
+                raise ScaffoldError(
+                    f"AI response: age {age} breaks APPLIES_TO age >= {v}."
+                )
+            if op in {">", "gt"} and age <= v:
+                raise ScaffoldError(
+                    f"AI response: age {age} breaks APPLIES_TO age > {v}."
+                )
+            if op in {"<=", "le"} and age > v:
+                raise ScaffoldError(
+                    f"AI response: age {age} breaks APPLIES_TO age <= {v}."
+                )
+            if op in {"<", "lt"} and age >= v:
+                raise ScaffoldError(
+                    f"AI response: age {age} breaks APPLIES_TO age < {v}."
+                )
+        if field == "sex" and value:
+            v = str(value).strip().lower()
+            if v in _VALID_SEX and v != sex_raw:
+                raise ScaffoldError(
+                    f"AI response: sex {sex_raw!r} breaks APPLIES_TO sex={v!r}."
+                )
+    return {
+        "age": age,
+        "sex": sex_raw,
+        "display_hint": (demographics.get("display_hint") or "").strip(),
+    }
+
+
+def _validate_encounters(
+    encounters: Any,
+    triggers: list[dict],
+) -> list[dict[str, Any]]:
+    """Normalise + sanity-check the LLM-supplied encounter list."""
+    if not isinstance(encounters, list) or not encounters:
+        raise ScaffoldError(
+            "AI response: 'encounters' must be a non-empty list."
+        )
+    today = date.today()
+    cleaned: list[dict[str, Any]] = []
+    for index, raw in enumerate(encounters, start=1):
+        if not isinstance(raw, dict):
+            raise ScaffoldError(
+                f"AI response: encounter #{index} must be an object."
+            )
+        text = (raw.get("text") or "").strip()
+        if len(text) < 20:
+            raise ScaffoldError(
+                f"AI response: encounter #{index} text is too short."
+            )
+        offset = raw.get("date_offset_days")
+        try:
+            offset_int = int(offset) if offset is not None else 0
+        except (TypeError, ValueError):
+            offset_int = 0
+        encounter_date = today + timedelta(days=min(offset_int, 0))
+        cleaned.append(
+            {
+                "source_label": (raw.get("source_label") or "GP consultation").strip(),
+                "date": encounter_date.isoformat(),
+                "text": text,
+                "codes": [
+                    {
+                        "concept_id": str(t.get("concept_id")).strip(),
+                        "term": (t.get("preferred_term") or "").strip() or None,
+                        "assertion": "present",
+                    }
+                    for t in triggers
+                    if (t or {}).get("concept_id")
+                ]
+                if index == 1
+                else [],  # codes attach to the first encounter only
+            }
+        )
+    _assert_triggers_in_text(cleaned, triggers)
+    return cleaned
+
+
+def _assert_triggers_in_text(
+    encounters: list[dict],
+    triggers: list[dict],
+) -> None:
+    """Every trigger preferred-term must appear in at least one note.
+
+    The check is deliberately loose: we lower-case everything and look
+    for the preferred term as a substring. The LLM is told to use the
+    exact preferred term wherever possible, but a near-synonym ("blood
+    in the urine" for "haematuria") will pass too as long as it is in
+    SOME encounter -- the production NER pipeline is what actually has
+    to recover the SNOMED, this check just guards against a draft that
+    forgot to mention the symptom altogether.
+    """
+    blob = " ".join((e.get("text") or "") for e in encounters).lower()
+    missing: list[str] = []
+    for t in triggers:
+        term = (t.get("preferred_term") or "").strip().lower()
+        if not term:
+            continue
+        head = term.split("(")[0].strip()
+        if head and head in blob:
+            continue
+        missing.append(t.get("preferred_term") or t.get("concept_id") or "?")
+    if missing:
+        raise ScaffoldError(
+            "AI response: encounter notes did not mention every trigger "
+            f"({', '.join(missing)}). Retry the scaffold or edit the "
+            "draft by hand."
+        )
+
+
+# ---------------------------------------------------------------------------
+# Expected SBAR (deterministic -- never asks the LLM)
+# ---------------------------------------------------------------------------
+
+
+def _expected_sbar_from_rule(rule: dict[str, Any], reviewer_focus: str) -> dict:
+    """Build the ground-truth SBAR straight from the rule, not the LLM.
+
+    The test exists to check the AI; it MUST NOT use the AI's own words
+    as the ground truth. Situation / Background are left for the
+    reviewer to flesh out (they depend on the encounter text the LLM
+    drafted), but Recommendation, action priority and matched rule are
+    set deterministically from the rule.
+    """
+    rec = (rule.get("recommendation_text") or "").strip()
+    chapter = (rule.get("chapter_title") or "").strip()
+    guideline = (rule.get("guideline_title") or "").strip()
+    return {
+        "situation_md": "",
+        "background_md": "",
+        "recommendation_md": rec or "(rule has no recommendation text on file)",
+        "matched_rule_ids": [rule["rule_id"]],
+        "required_phrases": [],
+        "banned_phrases": [],
+        "expected_action_priority": (rule.get("action_priority") or "").strip() or None,
+        "reviewer_focus": (
+            reviewer_focus.strip()
+            or f"Confirm the {guideline or 'rule'} fires for this scenario."
+        ),
+        "evaluator_outage": False,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Top-level orchestration
+# ---------------------------------------------------------------------------
+
+
+async def scaffold_patient_from_rule(
+    client: CodingGraphClient,
+    *,
+    rule_id: str,
+    aspect: str = _DEFAULT_ASPECT_FOR_RULE,
+    created_by: str = "",
+    generator: GeneratorFn | None = None,
+) -> ScaffoldResult:
+    """Draft + persist a test patient that should fire `rule_id`.
+
+    Raises :class:`ScaffoldError` for any user-recoverable failure
+    (rule not found, LLM produced a bad draft, concept missing from
+    the knowledge graph, ...). The router maps this to HTTP 422.
+    """
+    aspect_lc = (aspect or _DEFAULT_ASPECT_FOR_RULE).strip().lower()
+    if aspect_lc not in _NON_GUIDELINE_ASPECTS:
+        raise ScaffoldError(
+            f"Aspect {aspect!r} is not supported by the scaffolder. "
+            f"Choose one of {sorted(_NON_GUIDELINE_ASPECTS)}."
+        )
+
+    rule = load_rule_for_scaffold(client, rule_id=rule_id)
+    user_prompt = build_user_prompt(
+        rule_id=rule["rule_id"],
+        rule_label=(rule.get("rule_name") or "").strip() or rule["rule_id"],
+        recommendation_text=rule.get("recommendation_text"),
+        chapter_title=rule.get("chapter_title"),
+        guideline_title=rule.get("guideline_title"),
+        action_priority=rule.get("action_priority"),
+        triggers=rule.get("triggers") or [],
+        demographic_constraints=rule.get("demographic_constraints") or [],
+    )
+    gen = generator or _default_generator
+    draft = await gen(SYSTEM_PROMPT, user_prompt)
+    if not isinstance(draft, dict) or "error" in draft:
+        raise ScaffoldError(
+            "AI scaffolder did not return JSON: "
+            f"{draft.get('error') if isinstance(draft, dict) else draft!r}"
+        )
+    missing_keys = expected_field_set() - set(draft)
+    if missing_keys:
+        raise ScaffoldError(
+            f"AI response missing required keys: {sorted(missing_keys)}."
+        )
+
+    demographics = _validate_demographics(
+        draft.get("demographics") or {},
+        rule.get("demographic_constraints") or [],
+    )
+    encounters = _validate_encounters(
+        draft.get("encounters"), rule.get("triggers") or []
+    )
+    reviewer_focus = (draft.get("reviewer_focus") or "").strip()
+    expected_sbar = (
+        _expected_sbar_from_rule(rule, reviewer_focus)
+        if aspect_lc == "summarisation"
+        else None
+    )
+
+    display_hint = demographics["display_hint"]
+    name = display_hint or f"AI scaffold for {rule['rule_id']}"
+    description = (
+        f"AI-scaffolded test patient for rule {rule['rule_id']}"
+        + (f" ({rule.get('guideline_title')})" if rule.get("guideline_title") else "")
+    )
+
+    blank = test_patient_service.build_blank_patient_for_aspect(
+        client,
+        aspect=aspect_lc,
+        name=name,
+        description=description,
+        age=float(demographics["age"]),
+        sex=demographics["sex"],
+        created_by=created_by,
+    )
+    patient_id = blank["id"]
+
+    # Stamp the AI provenance properties so the library can filter and
+    # later show a "review AI drafts" badge. The properties live on the
+    # root TestPatient node next to the existing source_patient_id
+    # field used by the cross-graph clone.
+    client.run(
+        """
+        MATCH (tp:TestPatient {id: $id, is_test: true})
+        SET tp.aiAssisted    = true,
+            tp.aiSourceKind  = 'rule',
+            tp.aiSourceId    = $rule_id,
+            tp.aiPromptVersion = 'test_patient_scaffold_v1',
+            tp.generation_source = 'ai_scaffold_from_rule',
+            tp.updated_at    = datetime()
+        """,
+        id=patient_id,
+        rule_id=rule["rule_id"],
+    )
+
+    update = test_patient_service.update_full_patient(
+        client,
+        patient_id=patient_id,
+        aspect=aspect_lc,
+        name=name,
+        description=description,
+        age=float(demographics["age"]),
+        sex=demographics["sex"],
+        encounters=encounters,
+        expected_sbar=expected_sbar,
+        updated_by=created_by,
+    )
+
+    return ScaffoldResult(
+        patient_id=patient_id,
+        aspect=aspect_lc,
+        rule_id=rule["rule_id"],
+        encounters_written=int(update.get("encounters_written") or 0),
+        expected_sbar_written=bool(update.get("expected_sbar_written")),
+        notes=(
+            f"Scaffolded a {aspect_lc} test patient against {rule['rule_id']} "
+            f"with {len(encounters)} encounter(s). Expected SBAR was "
+            f"{'pre-filled' if expected_sbar else 'skipped (non-SBAR aspect)'} "
+            "from the rule. Open the editor to review and edit before saving."
+        ),
+    )
+
+
+def scaffold_patient_from_rule_sync(
+    client: CodingGraphClient,
+    *,
+    rule_id: str,
+    aspect: str = _DEFAULT_ASPECT_FOR_RULE,
+    created_by: str = "",
+    generator: GeneratorFn | None = None,
+) -> ScaffoldResult:
+    """Synchronous entrypoint for FastAPI handlers.
+
+    FastAPI's sync routes can't await directly; we run the coroutine
+    in a fresh event loop so the rest of this module can stay async.
+    """
+    return asyncio.run(
+        scaffold_patient_from_rule(
+            client,
+            rule_id=rule_id,
+            aspect=aspect,
+            created_by=created_by,
+            generator=generator,
+        )
+    )

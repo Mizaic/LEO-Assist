@@ -43,6 +43,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FileCopyOutlinedIcon from "@mui/icons-material/FileCopyOutlined";
 
 import {
@@ -70,6 +71,7 @@ import {
 } from "./api";
 import BuildPatientDialog from "./BuildPatientDialog";
 import CopyFromRealDialog from "./CopyFromRealDialog";
+import EditTestPatientDrawer from "./editor/EditTestPatientDrawer";
 
 const ZERO_COUNTS: AspectCounts = {
   all: 0,
@@ -117,6 +119,7 @@ export default function TestPatientLibraryKnowledgeTab() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [buildOpen, setBuildOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchAll = useCallback(() => {
     setLoading(true);
@@ -255,19 +258,40 @@ export default function TestPatientLibraryKnowledgeTab() {
         id: "actions",
         header: "",
         align: "right",
-        width: "72px",
+        width: "120px",
         render: (row) => (
-          <Tooltip title={`Delete ${row.name}`} arrow>
-            <span>
-              <IconButton
-                size="small"
-                onClick={() => handleDelete(row)}
-                aria-label={`Delete test patient ${row.name}`}
-              >
-                <DeleteOutlineIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
+          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+            <Tooltip
+              title={
+                row.aspect === "guidelines"
+                  ? `Edit ${row.name} in the guideline editor`
+                  : `Edit ${row.name}`
+              }
+              arrow
+            >
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => setEditingId(row.id)}
+                  aria-label={`Edit test patient ${row.name}`}
+                  disabled={row.aspect === "guidelines"}
+                >
+                  <EditOutlinedIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={`Delete ${row.name}`} arrow>
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => handleDelete(row)}
+                  aria-label={`Delete test patient ${row.name}`}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
         ),
       },
     ],
@@ -352,6 +376,13 @@ export default function TestPatientLibraryKnowledgeTab() {
         initialAspect={aspect}
         onClose={() => setCopyOpen(false)}
         onCloned={() => setRefreshKey((n) => n + 1)}
+      />
+
+      <EditTestPatientDrawer
+        patientId={editingId}
+        open={editingId !== null}
+        onClose={() => setEditingId(null)}
+        onSaved={() => setRefreshKey((n) => n + 1)}
       />
     </Box>
   );

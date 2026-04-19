@@ -492,6 +492,158 @@ RETURN count(*) AS deleted
 
 
 # ---------------------------------------------------------------------
+# Per-aspect editor (read + write the full editable subgraph)
+# ---------------------------------------------------------------------
+#
+# Backs the Edit drawer in the Knowledge > Test Patients tab. The
+# editor needs the whole editable surface in one shot so the form
+# can render encounter timelines, expected SNOMED codes per chunk,
+# and the expected SBAR transcript without N round-trips.
+#
+# Important: this is the read used by the EDITOR. It is intentionally
+# distinct from GET_TEST_PATIENT (which only returns the root + the
+# guideline-aspect EXPECTED_RESULT snapshot). The editor needs:
+#
+#   :TestPatient  -- root profile (demographics, name, source)
+#       -[:HAS_ENCOUNTER]-> :Encounter (text + date + source label)
+#                   -[:DOCUMENTS]-> :Concept (term + assertion)
+#       -[:HAS_EXPECTED_SBAR]-> :ExpectedSBAR (S/B/A/R + phrases)
+#
+# The knowledge graph stores :Concept nodes by SNOMED id; the editor
+# never invents new concepts, it only attaches existing ones (loud
+# failure is enforced by ASSERT_CONCEPTS_PRESENT before any write).
+
+READ_TEST_PATIENT_FULL = """
+MATCH (tp:TestPatient { id: $id })
+WHERE coalesce(tp.is_test, false) = true
+OPTIONAL MATCH (tp)-[:FIXTURE_FOR]->(g:Guideline)
+OPTIONAL MATCH (tp)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE coalesce(e.is_test, false) = true
+OPTIONAL MATCH (e)-[d:DOCUMENTS]->(c:Concept)
+WITH tp, g, e,
+     collect(DISTINCT
+       CASE WHEN c IS NULL THEN NULL ELSE {
+         concept_id: c.id,
+         term:       coalesce(d.term, c.preferredTerm, c.fsn),
+         assertion:  coalesce(d.assertion, 'present')
+       } END
+     ) AS code_rows
+WITH tp, g,
+     collect(DISTINCT
+       CASE WHEN e IS NULL THEN NULL ELSE {
+         id:           e.id,
+         text:         coalesce(e.text, ''),
+         date:         toString(e.date),
+         source_label: e.source_label,
+         source_id:    e.source_id,
+         codes:        [code IN code_rows WHERE code IS NOT NULL]
+       } END
+     ) AS encounter_rows
+OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)
+WHERE coalesce(s.is_test, false) = true
+WITH tp, g, encounter_rows,
+     CASE WHEN s IS NULL THEN NULL ELSE {
+       id:                       s.id,
+       situation_md:             coalesce(s.situation_md, ''),
+       background_md:            coalesce(s.background_md, ''),
+       recommendation_md:        coalesce(s.recommendation_md, ''),
+       matched_rule_ids:         coalesce(s.matched_rule_ids, []),
+       required_phrases:         coalesce(s.required_phrases, []),
+       banned_phrases:           coalesce(s.banned_phrases, []),
+       expected_action_priority: s.expected_action_priority,
+       reviewer_focus:           coalesce(s.reviewer_focus, '')
+     } END AS expected_sbar
+RETURN tp.id              AS id,
+       tp.name            AS name,
+       tp.description     AS description,
+       coalesce(tp.aspect, 'guidelines')  AS aspect,
+       coalesce(tp.is_test, true)         AS is_test,
+       tp.source_patient_id               AS source_patient_id,
+       tp.codes           AS codes,
+       tp.age             AS age,
+       tp.sex             AS sex,
+       tp.pathway_id      AS pathway_id,
+       tp.generation_source AS generation_source,
+       g.id               AS guideline_id,
+       g.title            AS guideline_title,
+       toString(tp.created_at) AS created_at,
+       toString(tp.updated_at) AS updated_at,
+       tp.created_by      AS created_by,
+       tp.updated_by      AS updated_by,
+       [enc IN encounter_rows WHERE enc IS NOT NULL] AS encounters,
+       expected_sbar      AS expected_sbar
+"""
+
+
+# Detach + delete every editor-managed child node under one
+# :TestPatient, in one shot. Used as the reset step before the
+# editor re-writes the new encounter list and expected SBAR. Only
+# touches nodes that carry ``is_test = true`` so a hand-seeded
+# fixture cannot poison a manual edit and vice versa.
+RESET_TEST_PATIENT_CHILDREN = """
+MATCH (tp:TestPatient { id: $id })
+OPTIONAL MATCH (tp)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE coalesce(e.is_test, false) = true
+DETACH DELETE e
+WITH tp
+OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)
+WHERE coalesce(s.is_test, false) = true
+DETACH DELETE s
+WITH tp
+OPTIONAL MATCH (tp)-[:HAS_DOCUMENT]->(d:Document)
+WHERE coalesce(d.is_test, false) = true
+DETACH DELETE d
+RETURN 1 AS reset
+"""
+
+
+# Update the editable demographic + name fields on a :TestPatient
+# without touching guideline-only properties (codes / pathway_id /
+# content_hash) and without dropping the EXPECTED_RESULT snapshot
+# the guidelines aspect maintains via UPDATE_TEST_PATIENT.
+UPDATE_TEST_PATIENT_PROFILE = """
+MATCH (tp:TestPatient { id: $id })
+WHERE coalesce(tp.is_test, false) = true
+SET tp.name        = $name,
+    tp.description = $description,
+    tp.age         = $age,
+    tp.sex         = $sex,
+    tp.updated_at  = datetime(),
+    tp.updated_by  = $updated_by
+RETURN tp.id AS id
+"""
+
+
+# Create one editor-authored encounter under a :TestPatient and link
+# its expected SNOMED codes. Concept ids are MERGE'd against
+# pre-loaded :Concept nodes -- the service layer pre-flights every
+# id with ASSERT_CONCEPTS_PRESENT and fails loudly if any id is
+# missing, so a missing match here is a programmer error.
+WRITE_EDITOR_ENCOUNTER = """
+MATCH (tp:TestPatient { id: $tp_id })
+WHERE coalesce(tp.is_test, false) = true
+CREATE (e:Encounter {
+    id:           $encounter_id,
+    is_test:      true,
+    source_label: $source_label,
+    source_id:    $source_id,
+    text:         coalesce($text, ''),
+    date:         $date
+})
+MERGE (tp)-[r:HAS_ENCOUNTER]->(e)
+SET r.is_test = true
+WITH e
+UNWIND $codes AS code
+MATCH (c:Concept { id: code.concept_id })
+MERGE (e)-[d:DOCUMENTS]->(c)
+SET d.is_test    = true,
+    d.assertion  = coalesce(code.assertion, 'present'),
+    d.term       = code.term
+RETURN count(DISTINCT c) AS codes_linked
+"""
+
+
+# ---------------------------------------------------------------------
 # SBAR golden-set seeding (knowledge graph)
 # ---------------------------------------------------------------------
 #
@@ -685,6 +837,91 @@ RETURN rule.id          AS rule_id,
        g.id             AS guideline_id,
        g.title          AS guideline_title
 ORDER BY rule.name
+"""
+
+
+# Read everything the AI scaffolder needs about a rule to draft a test
+# patient: the verbatim NICE recommendation, the chapter / guideline
+# context, the action priority, the SNOMED criteria that must trigger
+# the rule (with their preferred terms so the LLM can echo them in plain
+# clinician shorthand), and any APPLIES_TO demographic constraints
+# (e.g. age >= 60). The scaffolder fails loudly if rule_id is missing
+# so it never silently writes a half-baked patient.
+READ_RULE_FOR_SCAFFOLD = """
+MATCH (rule:AppropriatenessRule {id: $rule_id})
+OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)
+              <-[:HAS_RECOMMENDATION]-(g:Guideline)
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)
+              -[ha:HAS_ACTION]->(:SnomedConcept)
+WITH rule, rec, g, ch, ha
+OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(:CriteriaGroup)
+              -[hc:HAS_CRITERIA]->(crit:SnomedConcept)
+WITH rule, rec, g, ch, ha,
+     [c IN collect(DISTINCT {
+        concept_id: crit.conceptId,
+        preferred_term: coalesce(crit.term, crit.conceptId),
+        predicate: hc.predicate
+     }) WHERE c.concept_id IS NOT NULL] AS triggers
+OPTIONAL MATCH (rule)-[at:APPLIES_TO]->(:SnomedConcept)
+WITH rule, rec, g, ch, ha, triggers,
+     [c IN collect(DISTINCT {
+        field: at.field,
+        operator: at.operator,
+        value: at.value,
+        unit: at.unit
+     }) WHERE c.field IS NOT NULL OR c.operator IS NOT NULL] AS demographic_constraints
+RETURN rule.id                               AS rule_id,
+       rule.name                             AS rule_name,
+       rec.verbatim                          AS recommendation_text,
+       ch.title                              AS chapter_title,
+       g.id                                  AS guideline_id,
+       g.title                               AS guideline_title,
+       ha.priority                           AS action_priority,
+       triggers                              AS triggers,
+       demographic_constraints               AS demographic_constraints
+"""
+
+
+# Picker-friendly rule list used by the SBAR editor's "Matched rule IDs"
+# typeahead. Returns plain-English fields a nurse-grade reader can parse:
+#   - recommendation_text  -- the verbatim NICE text (the actual sentence)
+#   - chapter_title        -- the section heading the rule lives in
+#   - action_priority      -- 2ww | urgent | routine, pulled from the
+#                             ActionGroup's HAS_ACTION edge
+#   - trigger_terms        -- the first 3 SNOMED preferred-terms that
+#                             cause the rule to fire (a concrete cue)
+# rule_id stays in the payload so the saved value is still the canonical
+# rule id; the UI just hides it behind the readable label.
+LIST_RULES_FOR_PICKER = """
+MATCH (rule:AppropriatenessRule)
+WHERE coalesce(rule.status, 'active') IN ['active', 'pending_review']
+  AND ($guideline_id IS NULL OR
+       EXISTS {
+         MATCH (g:Guideline { id: $guideline_id })
+               -[:HAS_RECOMMENDATION]->()-[:HAS_RULE]->(rule)
+       })
+OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)
+              <-[:HAS_RECOMMENDATION]-(g:Guideline)
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)
+              -[ha:HAS_ACTION]->(:SnomedConcept)
+WITH rule, rec, g, ch, ha
+OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(:CriteriaGroup)
+              -[:HAS_CRITERIA]->(crit:SnomedConcept)
+WITH rule, rec, g, ch, ha,
+     [t IN collect(DISTINCT coalesce(crit.term, crit.conceptId))
+      WHERE t IS NOT NULL][0..3] AS trigger_terms
+RETURN rule.id                                AS rule_id,
+       coalesce(rule.status, 'active')        AS status,
+       rule.name                              AS name,
+       rec.verbatim                           AS recommendation_text,
+       ch.title                               AS chapter_title,
+       ha.priority                            AS action_priority,
+       trigger_terms                          AS trigger_terms,
+       g.id                                   AS guideline_id,
+       g.title                                AS guideline_title
+ORDER BY g.title, ch.title, rule.name
 """
 
 

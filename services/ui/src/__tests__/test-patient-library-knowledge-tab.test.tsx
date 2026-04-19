@@ -176,6 +176,177 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     );
   });
 
+  test("TC-011: Knowledge page wires the Edit drawer per row", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    expect(src).toMatch(
+      /from\s+"\.\/editor\/EditTestPatientDrawer"/,
+    );
+    // The state machine that opens the drawer.
+    expect(src).toMatch(/setEditingId\(/);
+    expect(src).toMatch(/patientId=\{editingId\}/);
+    // Edit button is keyboard-accessible and aria-labelled.
+    expect(src).toMatch(/Edit test patient/);
+    // Guidelines aspect is intentionally disabled at the row icon
+    // (the drawer routes that user back to the guideline editor).
+    expect(src).toMatch(/disabled=\{row\.aspect === "guidelines"\}/);
+    // The Save handler refreshes the table.
+    expect(src).toMatch(/onSaved=\{[^}]*setRefreshKey/);
+  });
+
+  test("TC-012: api.ts exposes typed full-patient editor helpers", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/api.ts",
+    );
+    expect(src).toMatch(/export function getTestPatientFull\(/);
+    expect(src).toMatch(/export function updateTestPatientFull\(/);
+    expect(src).toMatch(/\/full/);
+    expect(src).toMatch(/method:\s*"PATCH"/);
+  });
+
+  test("TC-013: editor types model encounters + expected SBAR", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/types.ts",
+    );
+    expect(src).toMatch(/EditorCode/);
+    expect(src).toMatch(/EditorEncounter/);
+    expect(src).toMatch(/EditorExpectedSbar/);
+    expect(src).toMatch(/FullTestPatient/);
+    expect(src).toMatch(/UpdateFullBody/);
+    // Plain-English assertion vocabulary, capped to the same five
+    // values the API enforces.
+    expect(src).toMatch(
+      /ASSERTION_VALUES.*"present".*"absent".*"history_of".*"suspected".*"uncertain"/s,
+    );
+  });
+
+  test("TC-014: EncounterListEditor renders SNOMED / term / assertion + add button", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/editor/EncounterListEditor.tsx",
+    );
+    expect(src).toMatch(/SNOMED ID/);
+    expect(src).toMatch(/Term \(optional\)/);
+    expect(src).toMatch(/label="Assertion"/);
+    expect(src).toMatch(/Add code/);
+    expect(src).toMatch(/Add note/);
+    // The component must surface the date and source fields when
+    // the parent enables them so Episodes / SBAR can show timelines.
+    expect(src).toMatch(/showDate/);
+    expect(src).toMatch(/showSource/);
+    // Audience standard: no IT jargon in primary copy.
+    expect(src).not.toMatch(/encounter_id/);
+  });
+
+  test("TC-015: ExpectedSbarEditor surfaces S/B/A/R + must-include / must-not-say lists", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/editor/ExpectedSbarEditor.tsx",
+    );
+    expect(src).toMatch(/label="Situation"/);
+    expect(src).toMatch(/label="Background"/);
+    expect(src).toMatch(/label="Recommendation"/);
+    expect(src).toMatch(/Must-include phrases/);
+    expect(src).toMatch(/Must-not-say phrases/);
+    expect(src).toMatch(/Action priority/);
+    expect(src).toMatch(/Rules that should fire/);
+    expect(src).toMatch(/Reviewer notes/);
+  });
+
+  test("TC-017: Matched rule IDs uses the tree-dialog picker, not free text or a flat dropdown", () => {
+    const editor = read(
+      "services/ui/src/app/admin/knowledge/test-patients/editor/ExpectedSbarEditor.tsx",
+    );
+    // The editor delegates to the tree dialog and never imports the
+    // flat MUI Autocomplete for this field.
+    expect(editor).toMatch(/import RulePickerDialog from "\.\/RulePickerDialog"/);
+    expect(editor).not.toMatch(/from "@mui\/material\/Autocomplete"/);
+    expect(editor).toMatch(/listGuidanceRules\(/);
+    // The visible trigger is a "Browse rules" button + a chip strip,
+    // and the field name is nurse-friendly.
+    expect(editor).toMatch(/Rules that should fire/);
+    expect(editor).toMatch(/Browse rules/);
+    expect(editor).toMatch(/setPickerOpen\(true\)/);
+    expect(editor).toMatch(/data-testid="matched-rule-ids-picker"/);
+    // The dialog is wired with the live rule list, the current
+    // selection, and an Apply callback that dedupes the chosen ids.
+    expect(editor).toMatch(/<RulePickerDialog/);
+    expect(editor).toMatch(/applyPickerSelection/);
+    expect(editor).toMatch(/selectedRuleIds=\{value\.matched_rule_ids/);
+    // Selected chips show plain-English labels, not raw rule IDs, and
+    // each chip is removable.
+    expect(editor).toMatch(/rule\.display_label \|\| rule\.rule_id/);
+    expect(editor).toMatch(/onDelete=\{[\s\S]*?removeRule\(rule\.rule_id\)/);
+    // The legacy textarea wiring is gone for this field.
+    expect(editor).not.toMatch(
+      /update\(\{\s*matched_rule_ids:\s*textToList/,
+    );
+
+    const api = read(
+      "services/ui/src/app/admin/knowledge/test-patients/api.ts",
+    );
+    expect(api).toMatch(/export function listGuidanceRules\(/);
+    expect(api).toMatch(/`\/rules\$\{tail/);
+
+    const types = read(
+      "services/ui/src/app/admin/knowledge/test-patients/types.ts",
+    );
+    expect(types).toMatch(/GuidanceRulePickerEntry/);
+    expect(types).toMatch(/display_label:\s*string/);
+    expect(types).toMatch(/recommendation_text:\s*string \| null/);
+    expect(types).toMatch(/chapter_title:\s*string \| null/);
+    expect(types).toMatch(/action_priority:\s*string \| null/);
+    expect(types).toMatch(/trigger_terms:\s*string\[\]/);
+  });
+
+  test("TC-018: RulePickerDialog renders a 3-level tree with bulk select + search", () => {
+    const dlg = read(
+      "services/ui/src/app/admin/knowledge/test-patients/editor/RulePickerDialog.tsx",
+    );
+    // Three-level tree: Guideline -> Chapter -> Rule. The build
+    // function groups by guideline first then chapter, with a
+    // rule_count visible on each branch.
+    expect(dlg).toMatch(/buildTree/);
+    expect(dlg).toMatch(/guideline_title/);
+    expect(dlg).toMatch(/chapter_title/);
+    // Bulk select via tri-state checkboxes (parent ticks all children;
+    // partial selections show as indeterminate).
+    expect(dlg).toMatch(/indeterminate=/);
+    expect(dlg).toMatch(/setBulk\(/);
+    // Expand / collapse plumbing -- search auto-expands matched
+    // branches so the reviewer sees hits without clicking.
+    expect(dlg).toMatch(/Collapse/);
+    expect(dlg).toMatch(/expandAll/);
+    expect(dlg).toMatch(/collapseAll/);
+    expect(dlg).toMatch(/effectiveExpanded/);
+    // Plain-English search across guideline / section / symptom / rule.
+    expect(dlg).toMatch(
+      /Search by guideline, section, symptom or rule/,
+    );
+    // Each rule row shows the priority chip and the SNOMED triggers.
+    expect(dlg).toMatch(/rule\.action_priority/);
+    expect(dlg).toMatch(/rule\.trigger_terms/);
+    expect(dlg).toMatch(/Triggers:/);
+    // Apply / Cancel: Cancel discards, Apply fires the callback with
+    // the new id set.
+    expect(dlg).toMatch(/onApply\(Array\.from\(draft\)\)/);
+    expect(dlg).toMatch(/data-testid="rule-picker-tree"/);
+  });
+
+  test("TC-016: EditTestPatientDrawer dispatches by aspect and blocks guidelines", () => {
+    const src = read(
+      "services/ui/src/app/admin/knowledge/test-patients/editor/EditTestPatientDrawer.tsx",
+    );
+    expect(src).toMatch(/getTestPatientFull\(/);
+    expect(src).toMatch(/updateTestPatientFull\(/);
+    // Aspect dispatch: SBAR section only when aspect=summarisation;
+    // encounter editor only when aspect != guidelines.
+    expect(src).toMatch(/loaded\.aspect === "summarisation"/);
+    expect(src).toMatch(/!guidelinesAspect/);
+    // The drawer talks to the user about why guidelines is read-only
+    // here -- the snapshot lives in the guideline editor.
+    expect(src).toMatch(/guideline editor/);
+  });
+
   test("TC-006: legacy /admin/guidance/test-patients route file is removed", () => {
     expect(
       exists("services/ui/src/app/admin/guidance/test-patients/page.tsx"),

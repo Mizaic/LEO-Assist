@@ -429,3 +429,140 @@ class TestSchemaV2LogicTree:
         )
         result = ev.evaluate_patient(["code1"])
         assert result["matched_rules"] == []
+
+
+# -- Synonym set: matched_via attribution (UN-LEO-AI-093 / DI-LEO-AI-510) ----
+
+
+def _make_v2_concept_rule(rule_id, bitmap_id, primary_id, seed_ids, label):
+    """Compiled schema-v2 rule with a single CONCEPT logic-tree leaf."""
+    return {
+        "rule_id": rule_id,
+        "name": label,
+        "strength": "refer",
+        "guideline_id": "NG12",
+        "guideline_title": "Suspected cancer",
+        "chapter_title": None,
+        "recommendation_verbatim": f"Refer for {label}.",
+        "schema_version": 2,
+        "logic_tree": {
+            "kind": "CONCEPT",
+            "node_id": "n1",
+            "bitmap_id": bitmap_id,
+            "criterion": {
+                "primary_concept_id": primary_id,
+                "snomed_concept_id": primary_id,
+                "preferred_term": label,
+            },
+            "seed_concept_ids": list(seed_ids),
+        },
+        "action": None,
+    }
+
+
+def test_matched_via_attributes_hit_to_specific_synonym_seed(evaluator_factory):
+    """When a descendant seed matches, matched_via names that exact code."""
+    bm = BitMap([2])
+    rule = _make_v2_concept_rule(
+        rule_id="r1",
+        bitmap_id="bm1",
+        primary_id="1",
+        seed_ids=["1", "2"],
+        label="Smoker",
+    )
+    ev = evaluator_factory(
+        current_ruleset={"version": "v1", "rules": [rule]},
+        int_id_map={"1": 1, "2": 2},
+        bitmaps={"bm1": bm},
+    )
+    result = ev.evaluate_patient(["2"])
+    assert len(result["matched_rules"]) == 1
+    matched_via = result["matched_rules"][0]["matched_via"]
+    assert len(matched_via) == 1
+    entry = matched_via[0]
+    assert entry["primary_concept_id"] == "1"
+    assert entry["matched_concept_ids"] == ["2"]
+
+
+def test_matched_via_omitted_when_only_primary_seed_hits(evaluator_factory):
+    """matched_via is still populated for the primary seed (single-hit case)."""
+    bm = BitMap([1])
+    rule = _make_v2_concept_rule(
+        rule_id="r1",
+        bitmap_id="bm1",
+        primary_id="1",
+        seed_ids=["1", "2"],
+        label="Smoker",
+    )
+    ev = evaluator_factory(
+        current_ruleset={"version": "v1", "rules": [rule]},
+        int_id_map={"1": 1, "2": 2},
+        bitmaps={"bm1": bm},
+    )
+    result = ev.evaluate_patient(["1"])
+    matched_via = result["matched_rules"][0]["matched_via"]
+    assert matched_via == [
+        {
+            "node_id": "n1",
+            "primary_concept_id": "1",
+            "preferred_term": "Smoker",
+            "matched_concept_ids": ["1"],
+        }
+    ]
+
+
+def test_matched_via_lists_every_hit_when_multiple_seeds_present(evaluator_factory):
+    """If two seeds both hit, both ids appear in matched_concept_ids."""
+    bm = BitMap([1, 2])
+    rule = _make_v2_concept_rule(
+        rule_id="r1",
+        bitmap_id="bm1",
+        primary_id="1",
+        seed_ids=["1", "2"],
+        label="Smoker",
+    )
+    ev = evaluator_factory(
+        current_ruleset={"version": "v1", "rules": [rule]},
+        int_id_map={"1": 1, "2": 2},
+        bitmaps={"bm1": bm},
+    )
+    result = ev.evaluate_patient(["1", "2"])
+    matched_via = result["matched_rules"][0]["matched_via"]
+    assert matched_via[0]["matched_concept_ids"] == ["1", "2"]
+
+
+def test_matched_via_absent_for_schema_v1_rule(evaluator_factory):
+    """v1 rules have no logic_tree; matched_via is omitted entirely."""
+    bm = BitMap([1])
+    rule = _make_rule(
+        criteria_groups=[{"mode": "ALL", "bitmap_id": "bm1"}],
+    )
+    ev = evaluator_factory(
+        current_ruleset={"version": "v1", "rules": [rule]},
+        int_id_map={"443416000": 1},
+        bitmaps={"bm1": bm},
+    )
+    result = ev.evaluate_patient(["443416000"])
+    assert "matched_via" not in result["matched_rules"][0]
+
+
+def test_diagnose_annotates_concept_leaf_with_matched_concept_ids(evaluator_factory):
+    """The annotated_tree leaf surfaces matched_concept_ids for UI display."""
+    bm = BitMap([2])
+    rule = _make_v2_concept_rule(
+        rule_id="r1",
+        bitmap_id="bm1",
+        primary_id="1",
+        seed_ids=["1", "2"],
+        label="Smoker",
+    )
+    ev = evaluator_factory(
+        current_ruleset={"version": "v1", "rules": [rule]},
+        int_id_map={"1": 1, "2": 2},
+        bitmaps={"bm1": bm},
+    )
+    out = ev.diagnose("r1", ["2"])
+    assert out["fires"] is True
+    leaf = out["annotated_tree"]
+    assert leaf["matched_concept_ids"] == ["2"]
+    assert leaf["matched"] is True

@@ -1,0 +1,458 @@
+"use client";
+
+/**
+ * Popover editor for the synonym set + exclusions on a CONCEPT chip.
+ *
+ * Implements UN-LEO-AI-093 / DI-LEO-AI-511. The editor lets a guideline
+ * author:
+ *   - add one or more equivalent SNOMED codes to a single chip (e.g.
+ *     "Smoker", "Cigarette smoker", "Pipe smoker")
+ *   - nominate which seed supplies the chip's preferred-term label
+ *   - opt each seed in / out of descendant expansion (and override the
+ *     per-rule distance_child default when needed)
+ *   - exclude specific SNOMED codes that should NOT fire the rule, even
+ *     if they would otherwise fall inside one of the seed closures
+ *
+ * The editor is intentionally headless of any concept search infra --
+ * adding seeds and exclusions reuses ConceptSearchPanel via a small
+ * inline search dialog so we do not duplicate the terminology lookup.
+ *
+ * Plain-English copy follows `health-literacy.mdc` (reading age 9-11).
+ */
+
+import { useMemo, useState } from "react";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
+import Popover from "@mui/material/Popover";
+import Radio from "@mui/material/Radio";
+import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
+import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import HubIcon from "@mui/icons-material/Hub";
+import BlockIcon from "@mui/icons-material/Block";
+
+import ConceptSearchPanel from "./ConceptSearchPanel";
+import { friendlyTerm } from "./copy";
+import type {
+  EditableLogicNode,
+  LogicCriterion,
+  LogicSeed,
+  NodeUpdate,
+} from "./types";
+
+interface Props {
+  node: EditableLogicNode;
+  onUpdate: (u: NodeUpdate) => void;
+}
+
+/**
+ * Trigger badge that opens the editor popover. We keep the badge
+ * subtle (28px chip-ish button, neutral colour) so it does not
+ * compete with the primary "Click to swap" affordance on the chip.
+ *
+ * The badge label adapts to the current state:
+ *   - 0 extra seeds, 0 exclusions  -> "synonyms" (icon-only tooltip)
+ *   - N>=1 extra seeds             -> "+N"
+ *   - any exclusions               -> a "no-entry" icon is added
+ */
+export default function SynonymChipEditor({ node, onUpdate }: Props) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const open = Boolean(anchor);
+
+  const criterion = node.criterion ?? ({} as LogicCriterion);
+  const seeds = useMemo<LogicSeed[]>(() => {
+    if (criterion.seeds && criterion.seeds.length > 0) return criterion.seeds;
+    if (criterion.snomed_concept_id) {
+      return [
+        {
+          snomed_concept_id: criterion.snomed_concept_id,
+          preferred_term: criterion.preferred_term,
+          semantic_tag: criterion.semantic_tag,
+          include_descendants: true,
+        },
+      ];
+    }
+    return [];
+  }, [criterion]);
+  const excluded = criterion.excluded_concept_ids ?? [];
+  const primaryId =
+    criterion.primary_concept_id || seeds[0]?.snomed_concept_id || "";
+
+  const extraSeedCount = Math.max(0, seeds.length - 1);
+  const hasExclusions = excluded.length > 0;
+  const badgeLabel =
+    extraSeedCount > 0 ? `+${extraSeedCount}` : "synonyms";
+  const tooltip =
+    extraSeedCount === 0 && !hasExclusions
+      ? "Add other codes that mean the same thing, or block specific codes."
+      : `${seeds.length} code(s) on this chip${hasExclusions ? `, ${excluded.length} blocked` : ""}.`;
+
+  return (
+    <>
+      <Tooltip title={tooltip} arrow>
+        <Chip
+          icon={
+            hasExclusions ? (
+              <BlockIcon sx={{ fontSize: 14 }} />
+            ) : (
+              <HubIcon sx={{ fontSize: 14 }} />
+            )
+          }
+          label={badgeLabel}
+          size="small"
+          variant="outlined"
+          color={extraSeedCount > 0 || hasExclusions ? "info" : "default"}
+          onClick={(e) => setAnchor(e.currentTarget)}
+          sx={{ height: 22, fontSize: "0.7rem", ml: 0.25 }}
+          aria-label={`Edit synonyms and blocked codes for ${friendlyTerm(criterion.preferred_term)}`}
+        />
+      </Tooltip>
+      <Popover
+        open={open}
+        anchorEl={anchor}
+        onClose={() => setAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        slotProps={{ paper: { sx: { p: 1.5, width: 460, maxWidth: "90vw" } } }}
+      >
+        <SynonymEditorBody
+          nodeId={node.node_id}
+          seeds={seeds}
+          excluded={excluded}
+          primaryId={primaryId}
+          chipLabel={friendlyTerm(criterion.preferred_term) || "this chip"}
+          onUpdate={onUpdate}
+        />
+      </Popover>
+    </>
+  );
+}
+
+function SynonymEditorBody({
+  nodeId,
+  seeds,
+  excluded,
+  primaryId,
+  chipLabel,
+  onUpdate,
+}: {
+  nodeId: string;
+  seeds: LogicSeed[];
+  excluded: string[];
+  primaryId: string;
+  chipLabel: string;
+  onUpdate: (u: NodeUpdate) => void;
+}) {
+  const [searchMode, setSearchMode] =
+    useState<"none" | "add_seed" | "add_excluded">("none");
+
+  return (
+    <Stack spacing={1.5}>
+      <Box>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+          Synonyms and blocked codes
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Add other codes that mean the same as &quot;{chipLabel}&quot;, or
+          block codes that should not fire this rule.
+        </Typography>
+      </Box>
+
+      <Box>
+        <Typography variant="caption" sx={{ fontWeight: 700 }}>
+          Codes on this chip ({seeds.length})
+        </Typography>
+        <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+          {seeds.map((seed) => (
+            <SeedRow
+              key={seed.snomed_concept_id}
+              seed={seed}
+              isPrimary={seed.snomed_concept_id === primaryId}
+              canRemove={seeds.length > 1}
+              onPickPrimary={() =>
+                onUpdate({
+                  kind: "set_primary_seed",
+                  nodeId,
+                  conceptId: seed.snomed_concept_id,
+                })
+              }
+              onToggleDescendants={() =>
+                onUpdate({
+                  kind: "toggle_include_descendants",
+                  nodeId,
+                  conceptId: seed.snomed_concept_id,
+                })
+              }
+              onSetDistance={(d) =>
+                onUpdate({
+                  kind: "set_seed_distance",
+                  nodeId,
+                  conceptId: seed.snomed_concept_id,
+                  distance: d,
+                })
+              }
+              onRemove={() =>
+                onUpdate({
+                  kind: "remove_seed",
+                  nodeId,
+                  conceptId: seed.snomed_concept_id,
+                })
+              }
+            />
+          ))}
+        </Stack>
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={() => setSearchMode("add_seed")}
+          sx={{ mt: 0.75 }}
+        >
+          Add another code that means the same
+        </Button>
+      </Box>
+
+      <Box>
+        <Typography variant="caption" sx={{ fontWeight: 700 }}>
+          Blocked codes ({excluded.length})
+        </Typography>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block" }}
+        >
+          These codes will NOT fire the rule, even if they sit under a
+          chip code.
+        </Typography>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          sx={{ mt: 0.5, flexWrap: "wrap" }}
+        >
+          {excluded.length === 0 ? (
+            <Typography variant="caption" color="text.secondary">
+              None.
+            </Typography>
+          ) : (
+            excluded.map((cid) => (
+              <Chip
+                key={cid}
+                label={`code ${cid}`}
+                size="small"
+                variant="outlined"
+                color="error"
+                onDelete={() =>
+                  onUpdate({
+                    kind: "remove_excluded",
+                    nodeId,
+                    conceptId: cid,
+                  })
+                }
+                deleteIcon={<CloseIcon sx={{ fontSize: 14 }} />}
+                sx={{ height: 22, fontSize: "0.7rem", mb: 0.25 }}
+              />
+            ))
+          )}
+        </Stack>
+        <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
+          <Button
+            size="small"
+            startIcon={<BlockIcon />}
+            onClick={() => setSearchMode("add_excluded")}
+          >
+            Search a code to block
+          </Button>
+          <ManualBlockField
+            onAdd={(cid) =>
+              onUpdate({ kind: "add_excluded", nodeId, conceptId: cid })
+            }
+          />
+        </Stack>
+      </Box>
+
+      {searchMode !== "none" && (
+        <Box sx={{ borderTop: 1, borderColor: "divider", pt: 1 }}>
+          <ConceptSearchPanel
+            mode={searchMode === "add_seed" ? "add" : "replace"}
+            focusLabel={
+              searchMode === "add_seed"
+                ? `Add a synonym to "${chipLabel}"`
+                : `Block a code under "${chipLabel}"`
+            }
+            initialQuery=""
+            onPick={(criterion: LogicCriterion) => {
+              if (searchMode === "add_seed") {
+                onUpdate({
+                  kind: "add_seed",
+                  nodeId,
+                  seed: {
+                    snomed_concept_id: criterion.snomed_concept_id,
+                    preferred_term: criterion.preferred_term,
+                    semantic_tag: criterion.semantic_tag,
+                    include_descendants: true,
+                  },
+                });
+              } else {
+                onUpdate({
+                  kind: "add_excluded",
+                  nodeId,
+                  conceptId: criterion.snomed_concept_id,
+                });
+              }
+              setSearchMode("none");
+            }}
+          />
+          <Button
+            size="small"
+            onClick={() => setSearchMode("none")}
+            sx={{ mt: 0.5 }}
+          >
+            Cancel
+          </Button>
+        </Box>
+      )}
+    </Stack>
+  );
+}
+
+function SeedRow({
+  seed,
+  isPrimary,
+  canRemove,
+  onPickPrimary,
+  onToggleDescendants,
+  onSetDistance,
+  onRemove,
+}: {
+  seed: LogicSeed;
+  isPrimary: boolean;
+  canRemove: boolean;
+  onPickPrimary: () => void;
+  onToggleDescendants: () => void;
+  onSetDistance: (d: number | null) => void;
+  onRemove: () => void;
+}) {
+  const includeDescendants = seed.include_descendants ?? true;
+  const friendly = friendlyTerm(seed.preferred_term);
+  return (
+    <Stack
+      direction="row"
+      spacing={0.5}
+      alignItems="center"
+      sx={{
+        p: 0.5,
+        borderRadius: 1,
+        bgcolor: isPrimary ? "action.selected" : "transparent",
+      }}
+    >
+      <Tooltip title="Use as the chip label" arrow>
+        <Radio
+          size="small"
+          checked={isPrimary}
+          onChange={onPickPrimary}
+          inputProps={{ "aria-label": `Use ${friendly} as the chip label` }}
+          sx={{ p: 0.25 }}
+        />
+      </Tooltip>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: isPrimary ? 700 : 400, lineHeight: 1.2 }}
+          noWrap
+        >
+          {friendly}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          code {seed.snomed_concept_id}
+          {seed.semantic_tag ? ` -- ${seed.semantic_tag}` : ""}
+        </Typography>
+      </Box>
+      <Tooltip
+        title={
+          includeDescendants
+            ? "Also matches more specific codes (descendants). Click to switch off."
+            : "Only matches this exact code. Click to also include more specific codes."
+        }
+        arrow
+      >
+        <Switch
+          size="small"
+          checked={includeDescendants}
+          onChange={onToggleDescendants}
+          inputProps={{
+            "aria-label": `Include descendants for ${friendly}`,
+          }}
+        />
+      </Tooltip>
+      {includeDescendants && (
+        <TextField
+          size="small"
+          type="number"
+          value={seed.distance_child ?? ""}
+          placeholder="depth"
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw === "") {
+              onSetDistance(null);
+              return;
+            }
+            const n = Number(raw);
+            onSetDistance(Number.isFinite(n) ? n : null);
+          }}
+          inputProps={{
+            min: 0,
+            max: 12,
+            "aria-label": `Descendant depth for ${friendly}`,
+          }}
+          sx={{ width: 64 }}
+        />
+      )}
+      <Tooltip title={canRemove ? "Remove this code" : "A chip needs at least one code."} arrow>
+        <span>
+          <IconButton
+            size="small"
+            disabled={!canRemove}
+            onClick={onRemove}
+            aria-label={`Remove ${friendly} from this chip`}
+          >
+            <CloseIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Stack>
+  );
+}
+
+function ManualBlockField({ onAdd }: { onAdd: (conceptId: string) => void }) {
+  const [value, setValue] = useState("");
+  const trimmed = value.trim();
+  const isNumeric = /^\d{4,18}$/.test(trimmed);
+  return (
+    <Stack direction="row" spacing={0.5} alignItems="center">
+      <TextField
+        size="small"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="paste SNOMED id"
+        inputProps={{ "aria-label": "Block a SNOMED code by id" }}
+        sx={{ width: 160 }}
+      />
+      <Button
+        size="small"
+        variant="outlined"
+        disabled={!isNumeric}
+        onClick={() => {
+          onAdd(trimmed);
+          setValue("");
+        }}
+      >
+        Block
+      </Button>
+    </Stack>
+  );
+}

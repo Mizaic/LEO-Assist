@@ -928,6 +928,152 @@ ORDER BY rule.id, concept.conceptId
         )
         return {"rules": compiled_rules}
 
+    def _seeds_from_criterion(
+        self, criterion: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Resolve the synonym-set seeds for a CONCEPT criterion (UN-LEO-AI-093).
+
+        Backwards compatible: when ``seeds`` is empty / missing, we synthesise
+        a single seed from the legacy ``snomed_concept_id`` so the rest of
+        the compile path is uniform. ``include_descendants`` defaults to
+        True to match historical behaviour where descendants were always
+        swept up to ``distance_child`` levels.
+        """
+        seeds_in = list(criterion.get("seeds") or [])
+        if seeds_in:
+            return [
+                {
+                    "snomed_concept_id": str(s["snomed_concept_id"]),
+                    "include_descendants": bool(s.get("include_descendants", True)),
+                    "distance_child": s.get("distance_child"),
+                }
+                for s in seeds_in
+                if s.get("snomed_concept_id")
+            ]
+        cid = criterion.get("snomed_concept_id")
+        if not cid:
+            return []
+        return [
+            {
+                "snomed_concept_id": str(cid),
+                "include_descendants": True,
+                "distance_child": criterion.get("distance_child"),
+            }
+        ]
+
+    def _compile_concept_leaf(
+        self,
+        node: dict[str, Any],
+        session,
+        *,
+        policy: CompilePolicy,
+        distance_child_override: int | None = None,
+        distance_parent_override: int | None = None,
+    ) -> dict[str, Any] | None:
+        """Compile one CONCEPT leaf into a bitmap echo dict.
+
+        Implements DI-LEO-AI-509: union of every seed's IS_A closure, minus
+        ``excluded_concept_ids``. When the criterion is the legacy single-seed
+        shape, the int-id set passed to ``put_bitmap`` is identical to the
+        pre-change behaviour (no clinical-output drift on migration).
+        """
+        criterion = dict(node.get("criterion") or {})
+        seeds = self._seeds_from_criterion(criterion)
+        if not seeds:
+            logger.error(
+                "Schema v2 concept leaf %r has no SNOMED code -- rule will be excluded from compilation.",
+                criterion.get("node_id"),
+            )
+            return None
+
+        excluded_ids = {str(x) for x in (criterion.get("excluded_concept_ids") or []) if x}
+        primary_id = str(
+            criterion.get("primary_concept_id")
+            or criterion.get("snomed_concept_id")
+            or seeds[0]["snomed_concept_id"]
+        )
+
+        union_ids: set[str] = set()
+        for seed in seeds:
+            seed_id = seed["snomed_concept_id"]
+            if seed["include_descendants"]:
+                rule_default = (
+                    distance_child_override
+                    if distance_child_override is not None
+                    else (seed["distance_child"] if seed["distance_child"] is not None else 3)
+                )
+                dc = max(0, int(rule_default))
+            else:
+                dc = 0
+            dp = int(
+                distance_parent_override
+                if distance_parent_override is not None
+                else (criterion.get("distance_parent") or 0)
+            )
+            try:
+                closure = self._closure_ids(session, seed_id, dc, dp)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Synonym seed %s closure lookup failed; falling back to exact-match for this seed only. err=%s",
+                    seed_id,
+                    exc,
+                )
+                closure = [seed_id]
+            for cid in closure:
+                union_ids.add(str(cid))
+
+        unreachable = excluded_ids - union_ids
+        if unreachable:
+            logger.warning(
+                "Concept leaf %r has %d excluded id(s) that are not in any seed closure (no-op): %s",
+                criterion.get("node_id"),
+                len(unreachable),
+                sorted(unreachable),
+            )
+
+        union_ids -= excluded_ids
+
+        if policy.allowed_concept_ids:
+            union_ids = {cid for cid in union_ids if cid in policy.allowed_concept_ids}
+            if not union_ids:
+                if policy.mode == "strict":
+                    return None
+                # Fallback to the primary id so the leaf still compiles to a bitmap.
+                union_ids = {primary_id}
+
+        if not union_ids:
+            # Defensive: every seed's closure was empty AND every id was excluded.
+            # Fall back to the primary id so the rule does not silently disappear.
+            union_ids = {primary_id}
+
+        sorted_ids = sorted(union_ids)
+        int_ids = sorted({self._store.get_or_assign_int_id(cid) for cid in sorted_ids})
+        bitmap_id = self._store.put_bitmap(int_ids)
+
+        echo_seeds = [
+            {
+                "snomed_concept_id": s["snomed_concept_id"],
+                "include_descendants": s["include_descendants"],
+                "distance_child": s["distance_child"],
+            }
+            for s in seeds
+        ]
+        return {
+            "kind": "concept",
+            "node_id": criterion.get("node_id"),
+            "bitmap_id": bitmap_id,
+            "criterion": {
+                "term": criterion.get("term"),
+                "snomed_concept_id": primary_id,
+                "preferred_term": criterion.get("preferred_term"),
+                "semantic_tag": criterion.get("semantic_tag"),
+                "primary_concept_id": primary_id,
+                "seeds": echo_seeds,
+                "excluded_concept_ids": sorted(excluded_ids),
+            },
+            "seed_concept_ids": sorted_ids,
+        }
+
     def _compile_logic_tree_node(
         self,
         node: dict[str, Any] | None,
@@ -941,56 +1087,13 @@ ORDER BY rule.id, concept.conceptId
             return None
         kind = str(node.get("kind") or "").lower()
         if kind == "concept":
-            criterion = dict(node.get("criterion") or {})
-            concept_id = criterion.get("snomed_concept_id")
-            if not concept_id:
-                logger.error(
-                    "Schema v2 concept leaf %r has no SNOMED code — rule will be excluded from compilation.",
-                    criterion.get("node_id"),
-                )
-                return None
-            if (
-                policy.allowed_concept_ids
-                and str(concept_id) not in policy.allowed_concept_ids
-            ):
-                self._compile_stats["policy_violations"] += 1
-                self._compile_stats["out_of_scope_concepts"] += 1
-                if policy.mode == "strict":
-                    return None
-            closure = self._closure_ids(
+            return self._compile_concept_leaf(
+                node,
                 session,
-                str(concept_id),
-                int(
-                    distance_child_override
-                    if distance_child_override is not None
-                    else criterion.get("distance_child") or 3
-                ),
-                int(
-                    distance_parent_override
-                    if distance_parent_override is not None
-                    else criterion.get("distance_parent") or 0
-                ),
+                policy=policy,
+                distance_child_override=distance_child_override,
+                distance_parent_override=distance_parent_override,
             )
-            if policy.allowed_concept_ids:
-                closure = [
-                    cid for cid in closure if str(cid) in policy.allowed_concept_ids
-                ]
-                if not closure and policy.mode == "strict":
-                    return None
-                if not closure:
-                    closure = [str(concept_id)]
-            int_ids = [self._store.get_or_assign_int_id(cid) for cid in closure]
-            return {
-                "kind": "concept",
-                "node_id": criterion.get("node_id"),
-                "bitmap_id": self._store.put_bitmap(sorted(set(int_ids))),
-                "criterion": {
-                    "term": criterion.get("term"),
-                    "snomed_concept_id": concept_id,
-                    "preferred_term": criterion.get("preferred_term"),
-                    "semantic_tag": criterion.get("semantic_tag"),
-                },
-            }
         if kind == "demographic":
             return {
                 "kind": "demographic",
