@@ -309,6 +309,28 @@ WITH tp, g,
          snapshot_at:              toString(er.snapshot_at),
          ruleset_version:          er.ruleset_version
      }) AS expectations
+// SBAR / referral-triage test patients do not write EXPECTED_RESULT
+// edges -- their rule expectations live on (:ExpectedSBAR).matched_rule_ids
+// instead. Project them here so replay_one can union them into the
+// expectations list without making a second Cypher call. Each id is
+// surfaced individually so the replay layer can map them to the same
+// {rule_id, fires} shape EXPECTED_RESULT uses.
+OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)
+WHERE coalesce(s.is_test, false) = true
+WITH tp, g, expectations,
+     coalesce(s.matched_rule_ids, []) AS expected_sbar_rule_ids
+// The AI scaffolder + clone path attach SNOMED codes to the patient
+// via :Encounter -[:DOCUMENTS]-> :Concept (with a present / absent /
+// negated assertion). The bitmap evaluator only reads ``tp.codes``,
+// so a SBAR patient whose codes property is null would silently fire
+// zero rules. We project the union of ``present`` document codes here
+// and let the replay layer fall back to it when ``tp.codes`` is empty.
+OPTIONAL MATCH (tp)-[:HAS_ENCOUNTER]->(:Encounter)
+            -[d:DOCUMENTS]->(c:Concept)
+WHERE coalesce(d.context, d.assertion, 'present') = 'present'
+WITH tp, g, expectations, expected_sbar_rule_ids,
+     [cid IN collect(DISTINCT toString(c.id)) WHERE cid IS NOT NULL AND cid <> '']
+       AS document_codes
 RETURN tp.id              AS id,
        tp.name            AS name,
        tp.description     AS description,
@@ -327,7 +349,9 @@ RETURN tp.id              AS id,
        g.title            AS guideline_title,
        toString(tp.created_at) AS created_at,
        tp.created_by      AS created_by,
-       [e IN expectations WHERE e.rule_id IS NOT NULL] AS expectations
+       [e IN expectations WHERE e.rule_id IS NOT NULL] AS expectations,
+       expected_sbar_rule_ids,
+       document_codes
 """
 
 
@@ -917,7 +941,7 @@ OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)
               <-[:HAS_RECOMMENDATION]-(g:Guideline)
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)
-              -[ha:HAS_ACTION]->(:SnomedConcept)
+              -[ha:HAS_ACTION]->(_action_target)
 RETURN rule.id                               AS rule_id,
        rule.name                             AS rule_name,
        rule.logicJson                        AS logic_json,
@@ -962,7 +986,7 @@ OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)
               <-[:HAS_RECOMMENDATION]-(g:Guideline)
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)
-              -[ha:HAS_ACTION]->(:SnomedConcept)
+              -[ha:HAS_ACTION]->(_action_target)
 RETURN rule.id                                AS rule_id,
        coalesce(rule.status, 'active')        AS status,
        rule.name                              AS name,

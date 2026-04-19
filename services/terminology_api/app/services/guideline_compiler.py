@@ -74,7 +74,7 @@ class CompilePolicy:
     enforce_action_scope: bool = False
 
 
-# DUAL-GRAPH NOTE (DI-LEO-AI-512):
+# DUAL-GRAPH NOTE (DI-LEO-AI-528):
 # Earlier versions of the rule generator wrote criteria / action / applies_to
 # concepts as the legacy parallel label `(:SnomedConcept {conceptId})` with
 # `term` / `semanticTag` properties. The canonical SNOMED loader writes
@@ -522,13 +522,14 @@ class GuidelineCompiler:
         elif scope.scope_type in {"domain", "subdomain"}:
             where.append("dom.id = $scope_domain_id")
         where_clause = " AND ".join(where)
+        # Dual-graph tolerance: see DUAL-GRAPH NOTE above _FETCH_ACTIVE_RULES.
         return f"""
 MATCH (g:Guideline)-[:HAS_RECOMMENDATION]->(rec:Recommendation)-[:HAS_RULE]->(rule:AppropriatenessRule)
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (g)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp:CriteriaGroup)
 OPTIONAL MATCH (grp)-[hc:HAS_CRITERIA]->(concept)
-OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc:Procedure)
+OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc)
 WITH g, rec, rule, ch, dom, grp, hc, concept, ag, ha, proc
 WHERE {where_clause}
 RETURN
@@ -546,14 +547,14 @@ RETURN
     grp.id               AS group_id,
     coalesce(grp.type, 'ALL') AS group_mode,
     hc.predicate         AS predicate,
-    concept.conceptId    AS concept_id,
+    coalesce(concept.id, concept.conceptId)         AS concept_id,
     coalesce(hc.distanceChild,  0) AS distance_child,
     coalesce(hc.distanceParent, 0) AS distance_parent,
-    proc.conceptId       AS action_concept_id,
-    proc.term            AS action_name,
+    coalesce(proc.id, proc.conceptId)               AS action_concept_id,
+    coalesce(proc.preferred_term, proc.fsn, proc.term, proc.id, proc.conceptId) AS action_name,
     ha.priority          AS action_priority,
     ha.dueDays           AS action_due_days
-ORDER BY rule.id, grp.id, concept.conceptId
+ORDER BY rule.id, grp.id, coalesce(concept.id, concept.conceptId)
 """
 
     def _build_fetch_applies_to_query(self, scope: CompileScope) -> str:
@@ -563,22 +564,23 @@ ORDER BY rule.id, grp.id, concept.conceptId
         elif scope.scope_type in {"domain", "subdomain"}:
             where.append("dom.id = $scope_domain_id")
         where_clause = " AND ".join(where)
+        # Dual-graph tolerance: see DUAL-GRAPH NOTE above _FETCH_ACTIVE_RULES.
         return f"""
-MATCH (rule:AppropriatenessRule)-[at:APPLIES_TO]->(concept:SnomedConcept)
+MATCH (rule:AppropriatenessRule)-[at:APPLIES_TO]->(concept)
 OPTIONAL MATCH (rec:Recommendation)-[:HAS_RULE]->(rule)<-[:HAS_RECOMMENDATION]-(g:Guideline)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
 WITH rule, at, concept, dom, g
 WHERE {where_clause}
 RETURN
     rule.id              AS rule_id,
     dom.id               AS guideline_domain_id,
-    concept.conceptId    AS concept_id,
-    concept.term         AS preferred_term,
-    concept.semanticTag  AS semantic_tag,
+    coalesce(concept.id, concept.conceptId)        AS concept_id,
+    coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId) AS preferred_term,
+    coalesce(concept.semantic_tag, concept.semanticTag) AS semantic_tag,
     at.rawTerm           AS raw_term,
     at.operator          AS operator,
     at.value             AS value,
     at.unit              AS unit
-ORDER BY rule.id, concept.conceptId
+ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
 """
 
     def _build_policy(
@@ -705,16 +707,28 @@ ORDER BY rule.id, concept.conceptId
             self._closure_cache[cache_key] = result
             return result
 
-        # Build parameterised closure query — variable-length paths must be
-        # literal in Cypher, so we interpolate the hop counts into the template.
-        parts = ["MATCH (t:SnomedConcept {conceptId: $concept_id})", "WITH t"]
-        collect_parts = ["collect(DISTINCT t.conceptId)"]
+        # Dual-graph closure (DI-LEO-AI-528):
+        # The canonical SNOMED loader writes (:Concept {id})-[:IS_A]->(:Concept)
+        # for every active concept; the legacy guidance generator wrote
+        # (:SnomedConcept {conceptId}) WITHOUT IS_A edges, so descendant
+        # expansion only ever worked through the canonical graph anyway.
+        # We bind the seed unlabeled (so `:Concept` and `:SnomedConcept`
+        # both match), follow IS_A on `:Concept` only -- that is the only
+        # graph that actually has hierarchy -- and fall back silently to
+        # `[concept_id]` when neither label is present, mirroring the
+        # previous exact-match behaviour for missing concepts.
+        parts = [
+            "MATCH (t) WHERE (t:Concept AND t.id = $concept_id) "
+            "OR (t:SnomedConcept AND t.conceptId = $concept_id)",
+            "WITH t",
+        ]
+        collect_parts = ["collect(DISTINCT coalesce(t.id, t.conceptId))"]
         if dc > 0:
-            parts.append(f"OPTIONAL MATCH (d:SnomedConcept)-[:IS_A*1..{dc}]->(t)")
-            collect_parts.append("collect(DISTINCT d.conceptId)")
+            parts.append(f"OPTIONAL MATCH (d:Concept)-[:IS_A*1..{dc}]->(t)")
+            collect_parts.append("collect(DISTINCT d.id)")
         if dp > 0:
-            parts.append(f"OPTIONAL MATCH (t)-[:IS_A*1..{dp}]->(a:SnomedConcept)")
-            collect_parts.append("collect(DISTINCT a.conceptId)")
+            parts.append(f"OPTIONAL MATCH (t)-[:IS_A*1..{dp}]->(a:Concept)")
+            collect_parts.append("collect(DISTINCT a.id)")
 
         q = "\n".join(parts)
         q += f"\nWITH {' + '.join(collect_parts)} AS ids"
@@ -726,7 +740,7 @@ ORDER BY rule.id, concept.conceptId
             result = ids if ids else [concept_id]
         except Exception as exc:
             logger.warning(
-                "SNOMED closure query FAILED for concept %s (d_child=%d, d_parent=%d) — "
+                "SNOMED closure query FAILED for concept %s (d_child=%d, d_parent=%d) -- "
                 "falling back to exact-match only. IS_A hierarchy expansion is DISABLED "
                 "for this concept. Rules using it will only fire on exact code matches, "
                 "not descendant concepts. Error: %s",

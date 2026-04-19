@@ -51,7 +51,6 @@ from libs.cypher.test_patient_queries import (
     WRITE_TEST_ENCOUNTER,
 )
 
-
 # ---------------------------------------------------------------------------
 # Test doubles
 # ---------------------------------------------------------------------------
@@ -229,22 +228,14 @@ class TestTC001DataModelInvariants:
         # filters by rule_id so it MUST also match the SBAR path,
         # otherwise patients created in the central library are
         # invisible (chip reads "0 saved").
-        assert (
-            "any(e IN expectations WHERE e.rule_id = $rule_id)"
-            in LIST_TEST_PATIENTS
-        )
-        assert (
-            "$rule_id IN coalesce(s.matched_rule_ids, [])"
-            in LIST_TEST_PATIENTS
-        )
+        assert "any(e IN expectations WHERE e.rule_id = $rule_id)" in LIST_TEST_PATIENTS
+        assert "$rule_id IN coalesce(s.matched_rule_ids, [])" in LIST_TEST_PATIENTS
 
     def test_count_query_groups_by_aspect(self) -> None:
         assert "coalesce(tp.aspect, 'guidelines') AS aspect" in (
             COUNT_TEST_PATIENTS_BY_ASPECT
         )
-        assert "coalesce(tp.is_test, false) = true" in (
-            COUNT_TEST_PATIENTS_BY_ASPECT
-        )
+        assert "coalesce(tp.is_test, false) = true" in (COUNT_TEST_PATIENTS_BY_ASPECT)
 
     def test_backfill_query_idempotent_shape(self) -> None:
         assert "tp.is_test IS NULL OR tp.aspect IS NULL" in (
@@ -372,9 +363,7 @@ class TestTC003CrossGraphClone:
 
     def test_clone_returns_summary_when_concepts_present(self) -> None:
         patient_graph = _patient_graph_with_one_source()
-        knowledge_graph = _knowledge_graph_with_concepts(
-            present={"12345001", "33334"}
-        )
+        knowledge_graph = _knowledge_graph_with_concepts(present={"12345001", "33334"})
         result = clone_patient_as_test_patient(
             patient_graph,
             knowledge_graph,
@@ -393,9 +382,7 @@ class TestTC003CrossGraphClone:
 
     def test_clone_writes_age_and_sex_only_to_new_root(self) -> None:
         patient_graph = _patient_graph_with_one_source()
-        knowledge_graph = _knowledge_graph_with_concepts(
-            present={"12345001", "33334"}
-        )
+        knowledge_graph = _knowledge_graph_with_concepts(present={"12345001", "33334"})
         clone_patient_as_test_patient(
             patient_graph,
             knowledge_graph,
@@ -429,9 +416,7 @@ class TestTC003CrossGraphClone:
 
     def test_clone_runs_redactor_on_encounter_text(self) -> None:
         patient_graph = _patient_graph_with_one_source()
-        knowledge_graph = _knowledge_graph_with_concepts(
-            present={"12345001", "33334"}
-        )
+        knowledge_graph = _knowledge_graph_with_concepts(present={"12345001", "33334"})
 
         class CapturingRedactor(NoopRedactor):
             def __init__(self) -> None:
@@ -471,9 +456,7 @@ class TestTC003CrossGraphClone:
 
     def test_clone_refuses_when_redactor_omitted(self) -> None:
         patient_graph = _patient_graph_with_one_source()
-        knowledge_graph = _knowledge_graph_with_concepts(
-            present={"12345001", "33334"}
-        )
+        knowledge_graph = _knowledge_graph_with_concepts(present={"12345001", "33334"})
         with pytest.raises(CloneError):
             clone_patient_as_test_patient(
                 patient_graph,
@@ -703,9 +686,7 @@ class TestTC008PerAspectEditor:
         # Loud failure on missing concept is enforced by MATCH (not
         # MERGE) on the :Concept lookup -- if a concept is not in the
         # knowledge graph the UNWIND row drops to zero.
-        assert "MATCH (c:Concept { id: code.concept_id })" in (
-            WRITE_EDITOR_ENCOUNTER
-        )
+        assert "MATCH (c:Concept { id: code.concept_id })" in (WRITE_EDITOR_ENCOUNTER)
         assert "is_test:      true" in WRITE_EDITOR_ENCOUNTER
         assert "MERGE (e)-[d:DOCUMENTS]->(c)" in WRITE_EDITOR_ENCOUNTER
         assert "d.is_test    = true" in WRITE_EDITOR_ENCOUNTER
@@ -723,9 +704,7 @@ class TestTC008PerAspectEditor:
         from app.services import test_patient_service
 
         client = FakeGraphClient()
-        result = test_patient_service.get_full_patient(
-            client, patient_id="missing"
-        )
+        result = test_patient_service.get_full_patient(client, patient_id="missing")
         assert result is None
 
     def test_get_full_returns_row(self) -> None:
@@ -919,20 +898,19 @@ class TestTC008PerAspectEditor:
         # expected sbar. Profile must come BEFORE reset so a missing
         # patient short-circuits without dropping its children.
         assert ASSERT_CONCEPTS_PRESENT in cyphers
-        assert (
-            cyphers.index(ASSERT_CONCEPTS_PRESENT)
-            < cyphers.index(UPDATE_TEST_PATIENT_PROFILE)
+        assert cyphers.index(ASSERT_CONCEPTS_PRESENT) < cyphers.index(
+            UPDATE_TEST_PATIENT_PROFILE
         )
-        assert (
-            cyphers.index(UPDATE_TEST_PATIENT_PROFILE)
-            < cyphers.index(RESET_TEST_PATIENT_CHILDREN)
+        assert cyphers.index(UPDATE_TEST_PATIENT_PROFILE) < cyphers.index(
+            RESET_TEST_PATIENT_CHILDREN
         )
         assert WRITE_EDITOR_ENCOUNTER in cyphers
         assert SEED_EXPECTED_SBAR in cyphers
         # Profile name carries the test_ prefix even though the
         # caller did not include it.
         profile_call = next(
-            params for cypher, params in client.calls
+            params
+            for cypher, params in client.calls
             if cypher == UPDATE_TEST_PATIENT_PROFILE
         )
         assert profile_call["name"].startswith("test_")
@@ -1123,12 +1101,18 @@ class TestTC009GuidanceRuleLookup:
         try:
             # Searching by symptom matches the recommendation text.
             rows = router.list_rules(
-                guideline_id=None, q="haematuria", limit=10, scope=None,  # type: ignore[arg-type]
+                guideline_id=None,
+                q="haematuria",
+                limit=10,
+                scope=None,  # type: ignore[arg-type]
             )
             assert [r["rule_id"] for r in rows] == ["rule:NG12:R001"]
             # Searching by guideline title matches the parent label.
             rows = router.list_rules(
-                guideline_id=None, q="diabetes", limit=10, scope=None,  # type: ignore[arg-type]
+                guideline_id=None,
+                q="diabetes",
+                limit=10,
+                scope=None,  # type: ignore[arg-type]
             )
             assert [r["rule_id"] for r in rows] == ["rule:NG28:R002"]
         finally:
@@ -1137,9 +1121,7 @@ class TestTC009GuidanceRuleLookup:
     def test_rules_endpoint_passes_guideline_filter_to_cypher(self) -> None:
         from app.routers import test_patients as router
 
-        client = FakeGraphClient(
-            responses={"MATCH (rule:AppropriatenessRule)": []}
-        )
+        client = FakeGraphClient(responses={"MATCH (rule:AppropriatenessRule)": []})
         original_client = router._client
         router._client = lambda: client  # type: ignore[assignment]
         try:
@@ -1322,9 +1304,7 @@ class TestTC010ScaffoldFromRule:
         if rule_row is self._UNSET:
             rule_row = _GOOD_RULE_ROW
         present_concepts = (
-            present_concepts
-            if present_concepts is not None
-            else {"34436003"}
+            present_concepts if present_concepts is not None else {"34436003"}
         )
         client = _ScaffoldFakeClient(
             rule_row=rule_row,
@@ -1375,7 +1355,9 @@ class TestTC010ScaffoldFromRule:
         # 4. Concept pre-flight is enforced.
         assert any("missing" in c and "concept_ids" in c for c in cyphers)
         # 5. Encounter write happened.
-        assert any("MERGE (tp)-[:HAS_ENCOUNTER]" in c or "HAS_ENCOUNTER" in c for c in cyphers)
+        assert any(
+            "MERGE (tp)-[:HAS_ENCOUNTER]" in c or "HAS_ENCOUNTER" in c for c in cyphers
+        )
         # 6. Expected SBAR write happened (summarisation aspect).
         assert any("MERGE (s:ExpectedSBAR" in c for c in cyphers)
 
@@ -1390,11 +1372,7 @@ class TestTC010ScaffoldFromRule:
         # SEED_EXPECTED_SBAR is the only write that carries
         # `recommendation_md`; the RESET cypher mentions ExpectedSBAR
         # too but as a delete, so we filter on the write parameter.
-        sbar_calls = [
-            (c, p)
-            for c, p in client.calls
-            if "MERGE (s:ExpectedSBAR" in c
-        ]
+        sbar_calls = [(c, p) for c, p in client.calls if "MERGE (s:ExpectedSBAR" in c]
         assert sbar_calls, "Expected SBAR write should have happened."
         _, params = sbar_calls[0]
         assert params["recommendation_md"].startswith(
@@ -1407,9 +1385,7 @@ class TestTC010ScaffoldFromRule:
         client, result = self._scaffold(aspect="nlp")
         assert result.aspect == "nlp"
         assert result.expected_sbar_written is False
-        assert not any(
-            "MERGE (s:ExpectedSBAR" in c for c, _ in client.calls
-        )
+        assert not any("MERGE (s:ExpectedSBAR" in c for c, _ in client.calls)
 
     def test_rejects_guidelines_aspect(self) -> None:
         from app.services.test_patient_scaffolder import ScaffoldError
@@ -1517,9 +1493,7 @@ class TestTC010ScaffoldFromRule:
                 rule_id="rule:missing", aspect="summarisation"
             )
             with pytest.raises(HTTPException) as exc_info:
-                router.scaffold_from_rule(
-                    body, scope=None  # type: ignore[arg-type]
-                )
+                router.scaffold_from_rule(body, scope=None)  # type: ignore[arg-type]
         finally:
             test_patient_scaffolder.scaffold_patient_from_rule_sync = original  # type: ignore[assignment]
 
@@ -1606,9 +1580,7 @@ def _good_scenario_draft() -> dict:
                 ],
             }
         ],
-        "reviewer_focus": (
-            "Confirm 2WW urology rule fires on the haematuria mention."
-        ),
+        "reviewer_focus": ("Confirm 2WW urology rule fires on the haematuria mention."),
     }
 
 
@@ -1713,16 +1685,14 @@ class TestTC011ScaffoldFromScenario:
         def fake_evaluator(_payload):
             return eval_result if isinstance(eval_result, dict) else {}
 
-        result = (
-            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
-                client,
-                scenario=scenario,
-                aspect=aspect,
-                created_by="qa@example.com",
-                generator=fake_generator,
-                resolver=_scenario_resolver(resolver_hits or {}),
-                evaluator=fake_evaluator,
-            )
+        result = test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
+            client,
+            scenario=scenario,
+            aspect=aspect,
+            created_by="qa@example.com",
+            generator=fake_generator,
+            resolver=_scenario_resolver(resolver_hits or {}),
+            evaluator=fake_evaluator,
         )
         return client, result
 
@@ -1774,9 +1744,7 @@ class TestTC011ScaffoldFromScenario:
         """
         client, _ = self._scaffold()
 
-        sbar_calls = [
-            (c, p) for c, p in client.calls if "MERGE (s:ExpectedSBAR" in c
-        ]
+        sbar_calls = [(c, p) for c, p in client.calls if "MERGE (s:ExpectedSBAR" in c]
         assert sbar_calls, "Expected SBAR write should have happened."
         _, params = sbar_calls[0]
         assert params["recommendation_md"].startswith(
@@ -1796,9 +1764,7 @@ class TestTC011ScaffoldFromScenario:
         client, result = self._scaffold(eval_result={"matched_rules": []})
 
         assert result.matched_rules == []
-        sbar_calls = [
-            (c, p) for c, p in client.calls if "MERGE (s:ExpectedSBAR" in c
-        ]
+        sbar_calls = [(c, p) for c, p in client.calls if "MERGE (s:ExpectedSBAR" in c]
         assert sbar_calls
         _, params = sbar_calls[0]
         assert "No rule fires" in params["recommendation_md"]
@@ -1862,25 +1828,21 @@ class TestTC011ScaffoldFromScenario:
         async def gen(_s, _u):
             return _good_scenario_draft()
 
-        result = (
-            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
-                client,
-                scenario="67yo woman with haematuria.",
-                aspect="nlp",
-                created_by="qa@example.com",
-                generator=gen,
-                resolver=_scenario_resolver(_GOOD_RESOLVER_HITS),
-                evaluator=_evaluator,
-            )
+        result = test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
+            client,
+            scenario="67yo woman with haematuria.",
+            aspect="nlp",
+            created_by="qa@example.com",
+            generator=gen,
+            resolver=_scenario_resolver(_GOOD_RESOLVER_HITS),
+            evaluator=_evaluator,
         )
 
         assert result.aspect == "nlp"
         assert result.expected_sbar_written is False
         assert result.matched_rules == []
         assert eval_called["hit"] is False
-        assert not any(
-            "MERGE (s:ExpectedSBAR" in c for c, _ in client.calls
-        )
+        assert not any("MERGE (s:ExpectedSBAR" in c for c, _ in client.calls)
 
     # -- loud-failure paths -----------------------------------------
 
@@ -1954,9 +1916,7 @@ class TestTC011ScaffoldFromScenario:
         def broken_resolver(_terms: list[str]):
             raise RuntimeError("terminology API timeout")
 
-        with pytest.raises(
-            ScenarioScaffoldError, match="terminology service"
-        ):
+        with pytest.raises(ScenarioScaffoldError, match="terminology service"):
             test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
                 client,
                 scenario="67yo woman with haematuria.",
@@ -1983,9 +1943,7 @@ class TestTC011ScaffoldFromScenario:
         def broken_evaluator(_payload):
             raise RuntimeError("rule engine 502")
 
-        with pytest.raises(
-            ScenarioScaffoldError, match="rule engine"
-        ):
+        with pytest.raises(ScenarioScaffoldError, match="rule engine"):
             test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
                 client,
                 scenario="67yo woman with haematuria.",
@@ -2038,9 +1996,7 @@ class TestTC011ScaffoldFromScenario:
             notes="Scaffolded a summarisation test patient.",
         )
 
-        original = (
-            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync
-        )
+        original = test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync
         test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync = (  # type: ignore[assignment]
             lambda *_a, **_kw: canned
         )
@@ -2078,9 +2034,7 @@ class TestTC011ScaffoldFromScenario:
         def _raise(*_a, **_kw):
             raise ScenarioScaffoldError("scenario too short")
 
-        original = (
-            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync
-        )
+        original = test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync
         test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync = (  # type: ignore[assignment]
             _raise
         )
@@ -2126,7 +2080,9 @@ class TestTC012TriageOutcomeFilter:
         )
 
         for cypher in (LIST_TEST_PATIENTS, COUNT_TEST_PATIENTS_BY_TRIAGE_OUTCOME):
-            assert "OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)" in cypher
+            assert (
+                "OPTIONAL MATCH (tp)-[:HAS_EXPECTED_SBAR]->(s:ExpectedSBAR)" in cypher
+            )
             assert "coalesce(s.evaluator_outage, false)" in cypher
             assert "s.expected_action_priority IS NOT NULL" in cypher
             assert "size(coalesce(s.matched_rule_ids, [])) = 0" in cypher
@@ -2143,8 +2099,7 @@ class TestTC012TriageOutcomeFilter:
         assert "$triage_outcome = 'all'" in LIST_TEST_PATIENTS
         assert "triage_outcome = $triage_outcome" in LIST_TEST_PATIENTS
         assert (
-            "$triage_outcome = 'unset' AND triage_outcome IS NULL"
-            in LIST_TEST_PATIENTS
+            "$triage_outcome = 'unset' AND triage_outcome IS NULL" in LIST_TEST_PATIENTS
         )
         assert "triage_outcome     AS triage_outcome" in LIST_TEST_PATIENTS
 
@@ -2444,8 +2399,7 @@ class TestTC014LogicTreeWalker:
 
         # Real production payload: a JSON-encoded string.
         encoded = (
-            '{"kind": "concept", '
-            '"criterion": {"snomed_concept_id": "49727002"}}'
+            '{"kind": "concept", ' '"criterion": {"snomed_concept_id": "49727002"}}'
         )
         assert parse_logic_json(encoded) == {
             "kind": "concept",
@@ -2639,7 +2593,290 @@ class TestTC016LoadRuleForScaffold:
         )
         loaded = load_rule_for_scaffold(client, rule_id="rule:legacy:001")
         assert [t["concept_id"] for t in loaded["triggers"]] == ["34436003"]
+        # Legacy rows don't carry a separate satisfying-path subset, so
+        # the loader mirrors the legacy trigger list into `all_triggers`
+        # to keep the briefing / full-union contract symmetric.
+        assert [t["concept_id"] for t in loaded["all_triggers"]] == ["34436003"]
         assert loaded["demographic_constraints"] == []
+
+
+# ---------------------------------------------------------------------------
+# TC-018 -- Satisfying-path walker briefs the LLM with the smallest subset
+# ---------------------------------------------------------------------------
+
+
+class TestTC018SatisfyingPathWalker:
+    """Pin ``extract_satisfying_concepts``: it must return the smallest
+    trigger subset that fires the rule. Without it, the validator
+    demands every concept in an OR / AT_LEAST tree appears in the
+    notes, and Haiku is set up to fail any rule with more than two or
+    three trigger SNOMEDs (e.g. NG12 mesothelioma, six-symptom OR).
+    """
+
+    def test_or_picks_smallest_branch_in_document_order(self) -> None:
+        from app.services._logic_tree import extract_satisfying_concepts
+
+        result = extract_satisfying_concepts(_REAL_LOGIC_TREE)
+        # OR children in document order:
+        #   AT_LEAST 2 of [Cough, Dyspnea] -> 2 concepts
+        #   Cough                         -> 1 concept
+        #   Asbestos                      -> 1 concept
+        # Smallest is 1 concept; document order picks Cough first.
+        ids = [t["concept_id"] for t in result]
+        assert ids == ["49727002"]
+
+    def test_at_least_picks_min_smallest_satisfying_children(self) -> None:
+        from app.services._logic_tree import extract_satisfying_concepts
+
+        # AT_LEAST 2 of [single-concept Cough, single-concept Dyspnea,
+        # AND of three concepts] -> walker takes the two singletons,
+        # not the three-concept AND, because its size is smaller.
+        tree = {
+            "kind": "AT_LEAST",
+            "min": 2,
+            "children": [
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "49727002",
+                        "preferred_term": "Cough (finding)",
+                    },
+                },
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "267036007",
+                        "preferred_term": "Dyspnea (finding)",
+                    },
+                },
+                {
+                    "kind": "AND",
+                    "children": [
+                        {
+                            "kind": "concept",
+                            "criterion": {
+                                "snomed_concept_id": "X",
+                                "preferred_term": "Big A",
+                            },
+                        },
+                        {
+                            "kind": "concept",
+                            "criterion": {
+                                "snomed_concept_id": "Y",
+                                "preferred_term": "Big B",
+                            },
+                        },
+                        {
+                            "kind": "concept",
+                            "criterion": {
+                                "snomed_concept_id": "Z",
+                                "preferred_term": "Big C",
+                            },
+                        },
+                    ],
+                },
+            ],
+        }
+        ids = sorted(t["concept_id"] for t in extract_satisfying_concepts(tree))
+        assert ids == ["267036007", "49727002"]
+
+    def test_and_unions_every_concept_child(self) -> None:
+        from app.services._logic_tree import extract_satisfying_concepts
+
+        tree = {
+            "kind": "AND",
+            "children": [
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "111",
+                        "preferred_term": "Smoker (finding)",
+                    },
+                },
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "222",
+                        "preferred_term": "Cough (finding)",
+                    },
+                },
+            ],
+        }
+        ids = [t["concept_id"] for t in extract_satisfying_concepts(tree)]
+        assert ids == ["111", "222"]
+
+    def test_demographic_and_not_leaves_contribute_nothing(self) -> None:
+        from app.services._logic_tree import extract_satisfying_concepts
+
+        tree = {
+            "kind": "AND",
+            "children": [
+                {
+                    "kind": "demographic",
+                    "field": "age",
+                    "operator": ">=",
+                    "value": 40,
+                },
+                {
+                    "kind": "NOT",
+                    "children": [
+                        {
+                            "kind": "concept",
+                            "criterion": {
+                                "snomed_concept_id": "999",
+                                "preferred_term": "Excluded condition",
+                            },
+                        }
+                    ],
+                },
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "111",
+                        "preferred_term": "Smoker (finding)",
+                    },
+                },
+            ],
+        }
+        ids = [t["concept_id"] for t in extract_satisfying_concepts(tree)]
+        # NOT'd concept (999) MUST NOT be briefed to the LLM, and the
+        # demographic leaf is handled separately. Only concept 111
+        # belongs in the briefing.
+        assert ids == ["111"]
+
+    def test_at_least_unsatisfiable_yields_empty_subset(self) -> None:
+        from app.services._logic_tree import extract_satisfying_concepts
+
+        # AT_LEAST 3 with only two concept children -> impossible.
+        tree = {
+            "kind": "AT_LEAST",
+            "min": 3,
+            "children": [
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "111",
+                        "preferred_term": "A",
+                    },
+                },
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "222",
+                        "preferred_term": "B",
+                    },
+                },
+            ],
+        }
+        assert extract_satisfying_concepts(tree) == []
+
+    def test_full_mesothelioma_tree_picks_two_simplest_symptoms(self) -> None:
+        from app.services._logic_tree import extract_satisfying_concepts
+
+        # Faithful copy of the production NG12 mesothelioma tree:
+        #   AND[ age>=40,
+        #        OR[ AT_LEAST 2 of six symptoms,
+        #            AND[ smoker, AT_LEAST 1 of six symptoms ],
+        #            AND[ asbestos, AT_LEAST 1 of six symptoms ] ] ]
+        symptoms = [
+            ("49727002", "Cough (finding)"),
+            ("84229001", "Fatigue (finding)"),
+            ("267036007", "Dyspnea (finding)"),
+            ("29857009", "Chest pain (finding)"),
+            ("89362005", "Weight decreased (finding)"),
+            ("79890006", "Loss of appetite (finding)"),
+        ]
+
+        def _concept(cid: str, term: str) -> dict:
+            return {
+                "kind": "concept",
+                "criterion": {"snomed_concept_id": cid, "preferred_term": term},
+            }
+
+        symptom_leaves = [_concept(cid, term) for cid, term in symptoms]
+        tree = {
+            "kind": "AND",
+            "children": [
+                {
+                    "kind": "demographic",
+                    "field": "age",
+                    "operator": ">=",
+                    "value": 40,
+                    "unit": "years",
+                },
+                {
+                    "kind": "OR",
+                    "children": [
+                        {
+                            "kind": "AT_LEAST",
+                            "min": 2,
+                            "children": symptom_leaves,
+                        },
+                        {
+                            "kind": "AND",
+                            "children": [
+                                _concept("77176002", "Smoker (finding)"),
+                                {
+                                    "kind": "AT_LEAST",
+                                    "min": 1,
+                                    "children": symptom_leaves,
+                                },
+                            ],
+                        },
+                        {
+                            "kind": "AND",
+                            "children": [
+                                _concept(
+                                    "161635002",
+                                    "History of asbestos exposure (situation)",
+                                ),
+                                {
+                                    "kind": "AT_LEAST",
+                                    "min": 1,
+                                    "children": symptom_leaves,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        }
+        ids = [t["concept_id"] for t in extract_satisfying_concepts(tree)]
+        # Every OR branch resolves to exactly 2 concepts:
+        #   AT_LEAST 2 -> two symptoms
+        #   smoker AND AT_LEAST 1 -> smoker + one symptom
+        #   asbestos AND AT_LEAST 1 -> asbestos + one symptom
+        # All tied; document order picks AT_LEAST 2 of the symptoms.
+        # The walker chooses the first two children of the AT_LEAST,
+        # i.e. cough + fatigue.
+        assert ids == ["49727002", "84229001"]
+
+    def test_unknown_kind_is_silently_skipped(self) -> None:
+        from app.services._logic_tree import extract_satisfying_concepts
+
+        tree = {
+            "kind": "MAGIC",
+            "children": [
+                {
+                    "kind": "concept",
+                    "criterion": {
+                        "snomed_concept_id": "111",
+                        "preferred_term": "Cough",
+                    },
+                }
+            ],
+        }
+        # Unknown kinds yield nothing rather than raising -- a
+        # half-edited rule still scaffolds against branches the walker
+        # does understand.
+        assert extract_satisfying_concepts(tree) == []
+
+    def test_non_dict_node_returns_empty_list(self) -> None:
+        from app.services._logic_tree import extract_satisfying_concepts
+
+        assert extract_satisfying_concepts(None) == []
+        assert extract_satisfying_concepts("not a tree") == []
+        assert extract_satisfying_concepts([]) == []
 
 
 # ---------------------------------------------------------------------------
@@ -2673,9 +2910,7 @@ class TestTC017PickerTriggerTermsFromLogicJson:
                 ]
             }
         )
-        rows = test_patient_service.list_rules_for_picker(
-            client, guideline_id=None
-        )
+        rows = test_patient_service.list_rules_for_picker(client, guideline_id=None)
         assert len(rows) == 1
         first = rows[0]
         # logic_json is consumed by the service and never leaks to the
@@ -2713,7 +2948,5 @@ class TestTC017PickerTriggerTermsFromLogicJson:
                 ]
             }
         )
-        rows = test_patient_service.list_rules_for_picker(
-            client, guideline_id=None
-        )
+        rows = test_patient_service.list_rules_for_picker(client, guideline_id=None)
         assert rows[0]["trigger_terms"] == ["haematuria"]

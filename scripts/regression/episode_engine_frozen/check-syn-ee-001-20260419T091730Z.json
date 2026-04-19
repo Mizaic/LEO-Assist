@@ -1,0 +1,447 @@
+{
+  "synthetic_id": "SYN-EE-001",
+  "trace_id": "eet-7e116b9f358549e3",
+  "encounter_count": 300,
+  "wall_clock_s": 127.627461,
+  "errors": [],
+  "eoc_traces": [
+    {
+      "window_id": "w1",
+      "audit_input_encounters": 139,
+      "audit_kept_by_guards": 5,
+      "audit_kept_by_llm": 58,
+      "audit_dropped_by_llm": [
+        {
+          "encounter_id": "20831b58-9a29-4dde-950d-2349634efb59",
+          "reason": "Routine repeat prescription request for pain relief and hormone replacement."
+        },
+        {
+          "encounter_id": "4612f1a1-120c-4a7b-a581-09ebeec63b77",
+          "reason": "Administrative processing of repeat prescriptions unrelated to cancer."
+        },
+        {
+          "encounter_id": "b163ea65-c537-4d71-9a8d-f383d586bf75",
+          "reason": "Routine repeat prescription request for pain relief medication."
+        },
+        {
+          "encounter_id": "5cffc19c-3a6c-4b52-8909-fdbde32f0cd6",
+          "reason": "Routine repeat prescription processing for pain relief medication."
+        },
+        {
+          "encounter_id": "0dee5752-147c-497a-becb-ca89db7e7cc9",
+          "reason": "Administrative record with no clinical content about the cancer pathway."
+        },
+        {
+          "encounter_id": "62fff315-883c-4f2c-ac33-c340a8b094b3",
+          "reason": "Text message about travel form booking, not related to cancer pathway."
+        },
+        {
+          "encounter_id": "734cd977-dc60-4b0d-8799-b0057c7738bc",
+          "reason": "Appointment booking confirmation with no clinical cancer pathway content."
+        },
+        {
+          "encounter_id": "99474aad-4206-4352-8aea-9541257957a2",
+          "reason": "Incomplete record with no clinical information."
+        },
+        {
+          "encounter_id": "c93f7a73-cc88-4f04-bea0-615cb0c14c76",
+          "reason": "Routine repeat medication request with no cancer pathway details."
+        },
+        {
+          "encounter_id": "4e58e6f0-66cc-45a7-a0df-18f212ccbf81",
+          "reason": "Cataract referral is routine non-cancer care."
+        }
+      ],
+      "audit_filter_failed": false,
+      "audit_filter_overflow": false,
+      "audit_parts": 1,
+      "parts": [
+        {
+          "part_index": 1,
+          "encounter_count": 63,
+          "milestones_count": 6,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "episodes": [
+    {
+      "episode_id": "ep-0f95151534751f4b",
+      "patient_id": "4802892365",
+      "suspected_site": "breast",
+      "episode_type": "cancer",
+      "window_start": "2025-03-26",
+      "window_end": null,
+      "milestones": [
+        {
+          "type": "first_presentation",
+          "date": "2025-03-26",
+          "encounter_id": "5a68c66a-e26f-4f75-8e93-354afcd8afcf",
+          "evidence_quote": "Has found lump on R breast / Noticed it a couple of days ago",
+          "treatment_type": null,
+          "presentation_place": "telephone_consultation",
+          "confidence": 0.95,
+          "reasoning": "Duty telephone call on 2025-03-26 at 09:09 with Dr Bridges is the first documented encounter where the patient reports the right breast lump \u2014 the symptom that initiated the cancer pathway. Presentation place is telephone_consultation as this was a GP duty call."
+        },
+        {
+          "type": "referral",
+          "date": "2025-03-26",
+          "encounter_id": "64678558-69b8-4897-be39-2480a8920267",
+          "evidence_quote": "PRISM 2WW Breast Female - questionnaire started - (finalised: 26 Mar 2025 11:46) / Fast track referral for suspected breast cancer (XaMeC)",
+          "treatment_type": null,
+          "presentation_place": null,
+          "confidence": 0.95,
+          "reasoning": "Structured PRISM 2WW referral form completed by Dr Bridges at 11:46 on 2025-03-26, with SNOMED code XaMeC confirming formal 2WW referral for suspected breast cancer. Highest-fidelity source for the referral milestone."
+        },
+        {
+          "type": "first_seen",
+          "date": "2025-04-28",
+          "encounter_id": "621e5db9-0a87-4dfb-961f-c86b709580d8",
+          "evidence_quote": "Seen in fast track suspected breast cancer clinic (XaPyQ)",
+          "treatment_type": null,
+          "presentation_place": null,
+          "confidence": 0.9,
+          "reasoning": "First specialist contact at the fast-track suspected breast cancer clinic on 2025-04-28, documented with SNOMED code XaPyQ. This is the first_seen milestone in secondary care."
+        },
+        {
+          "type": "diagnosis_confirmed",
+          "date": "2025-04-28",
+          "encounter_id": "2e96eda1-449c-426a-97a0-64253a0de9f7",
+          "evidence_quote": "Major: Invasive carcinoma of breast (Ya0ln) - lobular (New Episode) / Invasive carcinoma of breast (Ya0ln) - lobular",
+          "treatment_type": null,
+          "presentation_place": null,
+          "confidence": 0.85,
+          "reasoning": "Structured problem entry with SNOMED code Ya0ln and (New Episode) marker confirms invasive lobular carcinoma of breast. The date is aligned with the first_seen clinic visit on 2025-04-28, though the record entry may have been made by medical secretary shortly after. Confidence slightly reduced as the exact moment of confirmation (clinic vs. subsequent letter) is not fully explicit, but the structured code and New Episode marker are strong evidence."
+        },
+        {
+          "type": "treatment_started",
+          "date": "2025-05-19",
+          "encounter_id": "d441ef76-d6c5-454a-9d05-53a0d870663b",
+          "evidence_quote": "pt commenced on letrozole 2.5mg od by breast surgeon, added to repeat and issued",
+          "treatment_type": "endocrine",
+          "presentation_place": null,
+          "confidence": 0.9,
+          "reasoning": "Pharmacist medication reconciliation on 2025-05-19 documents letrozole 2.5mg once daily commenced by the breast surgeon, sourced from the Breast Clinic letter dated 28/04/25. This is the real treatment_started for neoadjuvant/adjuvant endocrine therapy \u2014 not any earlier 'Failed encounter' admin task."
+        },
+        {
+          "type": "treatment_started",
+          "date": "2025-07-28",
+          "encounter_id": "2a38a6e4-72a4-4127-9b0b-0edb04597e81",
+          "evidence_quote": "Major: Mastectomy of right breast (XacLJ) (New Episode)",
+          "treatment_type": "surgery",
+          "presentation_place": null,
+          "confidence": 0.95,
+          "reasoning": "Structured problem entry on 2025-07-28 with SNOMED code XacLJ and (New Episode) marker confirms right breast mastectomy as the definitive surgical treatment. Admission and discharge records corroborate the date."
+        }
+      ],
+      "safety_netting": null,
+      "disruptions": [],
+      "confidence": 0.93,
+      "reasoning": "Single candidate window w1 for a confirmed right breast invasive lobular carcinoma. No merging or splitting required. The pathway is well-evidenced: telephone presentation \u2192 2WW referral (same day) \u2192 first seen at fast-track clinic \u2192 diagnosis confirmed (invasive lobular carcinoma, Ya0ln) \u2192 endocrine therapy started (letrozole, pharmacist reconciliation) \u2192 definitive surgery (mastectomy, XacLJ). The diagnosis_confirmed milestone carries slightly reduced confidence (0.85) due to ambiguity over whether confirmation occurred at the clinic visit or via a subsequent letter, but the structured SNOMED code and New Episode marker are strong supporting evidence. No safety netting documentation was identified in the source records. No disruptions were recorded in the upstream window. needs_human_review is set false as all milestones meet the 0.6 confidence threshold and no guesswork was required in reconciliation.",
+      "needs_human_review": false,
+      "merged_from": [
+        "w1"
+      ],
+      "provenance": {
+        "trace_id": "eet-7e116b9f358549e3",
+        "stages": [
+          {
+            "stage": "segmenter",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 24368,
+            "output_tokens": 564,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.029907,
+            "latency_ms": 6344,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "classifier",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 11917,
+            "output_tokens": 310,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.014814,
+            "latency_ms": 3528,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "audit_relevance_filter",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 3486,
+            "output_tokens": 1328,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.011139,
+            "latency_ms": 11941,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "audit_relevance_filter",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 3462,
+            "output_tokens": 1331,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.011129,
+            "latency_ms": 11591,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "audit_relevance_filter",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 3393,
+            "output_tokens": 1355,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.011185,
+            "latency_ms": 11120,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "audit_relevance_filter",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 3603,
+            "output_tokens": 1396,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.011641,
+            "latency_ms": 12598,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "audit_relevance_filter",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 3180,
+            "output_tokens": 1362,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.010989,
+            "latency_ms": 10823,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "audit_relevance_filter",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 3420,
+            "output_tokens": 1347,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.01117,
+            "latency_ms": 11548,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "audit_relevance_filter",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 2580,
+            "output_tokens": 933,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.00797,
+            "latency_ms": 7064,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "milestone_extractor",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "tier": "small",
+            "input_tokens": 12173,
+            "output_tokens": 1909,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.02389,
+            "latency_ms": 17525,
+            "ok": true,
+            "error": ""
+          },
+          {
+            "stage": "reconciler",
+            "prompt_version": "v1",
+            "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+            "tier": "big",
+            "input_tokens": 2136,
+            "output_tokens": 1856,
+            "cached_input_tokens": 0,
+            "cost_usd": 0.037673,
+            "latency_ms": 23085,
+            "ok": true,
+            "error": ""
+          }
+        ],
+        "total_input_tokens": 73718,
+        "total_output_tokens": 13691,
+        "total_cached_input_tokens": 0,
+        "total_cost_usd": 0.181507,
+        "total_latency_ms": 127167,
+        "timeline_encounter_count": 300
+      }
+    }
+  ],
+  "stage_traces": [
+    {
+      "stage": "segmenter",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 24368,
+      "output_tokens": 564,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.029907,
+      "latency_ms": 6344,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "classifier",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 11917,
+      "output_tokens": 310,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.014814,
+      "latency_ms": 3528,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "audit_relevance_filter",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 3486,
+      "output_tokens": 1328,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.011139,
+      "latency_ms": 11941,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "audit_relevance_filter",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 3462,
+      "output_tokens": 1331,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.011129,
+      "latency_ms": 11591,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "audit_relevance_filter",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 3393,
+      "output_tokens": 1355,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.011185,
+      "latency_ms": 11120,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "audit_relevance_filter",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 3603,
+      "output_tokens": 1396,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.011641,
+      "latency_ms": 12598,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "audit_relevance_filter",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 3180,
+      "output_tokens": 1362,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.010989,
+      "latency_ms": 10823,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "audit_relevance_filter",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 3420,
+      "output_tokens": 1347,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.01117,
+      "latency_ms": 11548,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "audit_relevance_filter",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 2580,
+      "output_tokens": 933,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.00797,
+      "latency_ms": 7064,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "milestone_extractor",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+      "tier": "small",
+      "input_tokens": 12173,
+      "output_tokens": 1909,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.02389,
+      "latency_ms": 17525,
+      "ok": true,
+      "error": ""
+    },
+    {
+      "stage": "reconciler",
+      "prompt_version": "v1",
+      "model_id": "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-6",
+      "tier": "big",
+      "input_tokens": 2136,
+      "output_tokens": 1856,
+      "cached_input_tokens": 0,
+      "cost_usd": 0.037673,
+      "latency_ms": 23085,
+      "ok": true,
+      "error": ""
+    }
+  ]
+}

@@ -21,9 +21,9 @@ from app.services.test_patient_service import (
     PatientPayload,
     diff_replay,
     _check_demographic,
+    _rule_stem,
     _walk_satisfied,
 )
-
 
 # -- PatientPayload --------------------------------------------------------
 
@@ -97,9 +97,7 @@ def test_walk_satisfied_not_inverts() -> None:
 
 
 def test_check_demographic_age_and_sex() -> None:
-    assert _check_demographic(
-        {"field": "age", "operator": ">=", "value": 65}, 70, None
-    )
+    assert _check_demographic({"field": "age", "operator": ">=", "value": 65}, 70, None)
     assert not _check_demographic(
         {"field": "age", "operator": ">=", "value": 65}, 60, None
     )
@@ -219,9 +217,7 @@ def test_update_patient_rewrites_profile_and_expectations() -> None:
         [{"rule_id": "r1"}],
         [{"rule_id": "r2"}],
     ]
-    payload = PatientPayload(
-        codes=["100", "200"], age=71, sex="female", name="Edited"
-    )
+    payload = PatientPayload(codes=["100", "200"], age=71, sex="female", name="Edited")
     result = svc.update_patient(
         client,
         patient_id="tp_existing",
@@ -321,6 +317,87 @@ def test_diff_replay_buckets_pass_regression_unexpected() -> None:
     assert diff["total_assertions"] == 3
 
 
+# -- _rule_stem + edited-rule replay ---------------------------------------
+
+
+def test_rule_stem_strips_edit_chain() -> None:
+    """Every rule edit appends ``:edit:<8 hex>`` -- the stem is what's
+    before the FIRST ``:edit:``, regardless of how many edits stack on
+    top. This is what diff_replay uses to recognise an edited rule as
+    the same logical rule.
+    """
+    base = "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13"
+    one_edit = f"{base}:edit:dd11e8d3"
+    two_edits = f"{base}:edit:dd11e8d3:edit:a0b74f59"
+    assert _rule_stem(base) == base
+    assert _rule_stem(one_edit) == base
+    assert _rule_stem(two_edits) == base
+    assert _rule_stem(None) == ""
+    assert _rule_stem("   ") == ""
+
+
+def test_diff_replay_matches_edited_rule_id_as_pass() -> None:
+    """A test patient saved against rule X should still report a pass
+    after the rule is edited -- the edit just appends ``:edit:<hex>`` to
+    the predecessor id, but the logical rule (and the patient codes that
+    fire it) are unchanged.
+
+    Reproduces the user-reported bug where a scaffolded mesothelioma
+    SBAR patient was reported as a regression purely because the saved
+    expectation pinned the pre-edit id.
+    """
+    base = "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13"
+    saved = f"{base}:edit:dd11e8d3:edit:a0b74f59"
+    active = base  # ruleset only carries the original (or differently edited)
+    diff = diff_replay(
+        [{"rule_id": saved, "fires": True}],
+        [{"rule_id": active, "name": "NG12 mesothelioma chest X-ray"}],
+    )
+    assert diff["regressions"] == []
+    assert len(diff["passes"]) == 1
+    pass_entry = diff["passes"][0]
+    assert pass_entry["rule_id"] == saved
+    assert pass_entry["fires"] is True
+    # The rebound id is surfaced so the UI can label "matched as <id>".
+    assert pass_entry["matched_as"] == active
+
+
+def test_diff_replay_does_not_flag_edited_rule_as_unexpected() -> None:
+    """When an expectation matches a rule by stem, the actually-matched
+    rule must not also leak into ``unexpected_matches`` -- otherwise the
+    UI would render the same logical rule as both a pass and an
+    unasserted match.
+    """
+    base = "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13"
+    saved = f"{base}:edit:dd11e8d3"
+    active = f"{base}:edit:a0b74f59"
+    diff = diff_replay(
+        [{"rule_id": saved, "fires": True}],
+        [{"rule_id": active, "name": "NG12 edited"}],
+    )
+    assert diff["unexpected_matches"] == []
+    assert len(diff["passes"]) == 1
+
+
+def test_diff_replay_reports_real_regression_when_no_stem_match() -> None:
+    """If neither the literal id nor any rule with the matching stem
+    fires, the expectation is still a regression. Stem matching must not
+    silently 'pass' a rule that genuinely stopped matching.
+    """
+    saved = "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3"
+    diff = diff_replay(
+        [{"rule_id": saved, "fires": True}],
+        [{"rule_id": "rule:OTHER:v1:CH001:SEC000:R001:abc", "name": "Other"}],
+    )
+    assert diff["passes"] == []
+    assert len(diff["regressions"]) == 1
+    regression = diff["regressions"][0]
+    assert regression["rule_id"] == saved
+    assert regression["fires"] is False
+    assert regression["expected"] is True
+    assert "matched_as" not in regression
+
+
 # -- replay_scope ----------------------------------------------------------
 
 
@@ -349,9 +426,7 @@ def test_replay_scope_persists_report(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(svc, "_persist_replay_report", fake_persist)
 
     client = MagicMock()
-    report = svc.replay_scope(
-        client, guideline_id="g1", ruleset_version="v1"
-    )
+    report = svc.replay_scope(client, guideline_id="g1", ruleset_version="v1")
     assert report["id"] == "rv_test"
     assert report["passes_count"] == 1
     assert report["regressions_count"] == 0
@@ -371,9 +446,7 @@ def test_replay_scope_skips_persist_when_disabled(
 
     monkeypatch.setattr(svc, "_persist_replay_report", fake_persist)
 
-    report = svc.replay_scope(
-        MagicMock(), guideline_id="g1", persist_report=False
-    )
+    report = svc.replay_scope(MagicMock(), guideline_id="g1", persist_report=False)
     assert "id" not in report
     assert called["persisted"] is False
 
@@ -466,3 +539,117 @@ def test_evaluate_against_terminology_pathway_filter_overrides_payload(
     sent.clear()
     svc.evaluate_against_terminology(payload)
     assert sent["body"]["pathway_id"] == "NG151"
+
+
+# -- _resolve_replay_inputs (SBAR replay parity) --------------------------
+#
+# A scaffolded SBAR / referral-triage patient stores its rule
+# expectations on (:ExpectedSBAR).matched_rule_ids and its concept
+# evidence on :Encounter -[:DOCUMENTS]-> :Concept. Without the SBAR
+# fallbacks these patients reported "no assertions / 0 pass / 0 regress"
+# in the Knowledge > Test Patients replay surface even when the rule
+# would actually fire. These tests pin the fix.
+
+
+def test_resolve_replay_inputs_keeps_saved_codes_and_expectations() -> None:
+    row = {
+        "codes": ["111", "222"],
+        "expectations": [{"rule_id": "r1", "fires": True}],
+        "document_codes": ["999"],
+        "expected_sbar_rule_ids": [],
+    }
+    codes, expectations = svc._resolve_replay_inputs(row)
+    assert codes == ["111", "222"]
+    assert expectations == [{"rule_id": "r1", "fires": True}]
+
+
+def test_resolve_replay_inputs_falls_back_to_document_codes_for_sbar() -> None:
+    """SBAR patients have no tp.codes; replay must use the codes
+    attached to encounters via :DOCUMENTS edges or the bitmap will
+    fire zero rules and every expectation becomes a regression."""
+    row = {
+        "codes": [],
+        "expectations": [],
+        "document_codes": ["3091000119103", "76499000"],
+        "expected_sbar_rule_ids": ["rule:NG12:meso:R004"],
+    }
+    codes, expectations = svc._resolve_replay_inputs(row)
+    assert sorted(codes) == ["3091000119103", "76499000"]
+    assert expectations == [
+        {
+            "rule_id": "rule:NG12:meso:R004",
+            "fires": True,
+            "matched_branch_node_ids": [],
+            "snapshot_at": None,
+            "ruleset_version": None,
+            "source": "expected_sbar",
+        }
+    ]
+
+
+def test_resolve_replay_inputs_unions_sbar_rule_ids_without_duplicating() -> None:
+    """If a patient somehow carries both EXPECTED_RESULT and
+    ExpectedSBAR.matched_rule_ids for the same rule, the SBAR id must
+    not double-count or override the snapshot's fires value."""
+    row = {
+        "codes": ["100"],
+        "expectations": [{"rule_id": "r1", "fires": False}],
+        "document_codes": [],
+        "expected_sbar_rule_ids": ["r1", "r2"],
+    }
+    codes, expectations = svc._resolve_replay_inputs(row)
+    assert codes == ["100"]
+    rule_ids = [e["rule_id"] for e in expectations]
+    assert rule_ids == ["r1", "r2"]
+    # r1 keeps its snapshot fires=False (does NOT get overwritten by
+    # the SBAR list's implicit fires=True).
+    assert expectations[0] == {"rule_id": "r1", "fires": False}
+    assert expectations[1]["fires"] is True
+    assert expectations[1]["source"] == "expected_sbar"
+
+
+def test_resolve_replay_inputs_drops_blank_ids_and_codes() -> None:
+    row = {
+        "codes": ["", "  "],
+        "expectations": [{"rule_id": ""}, None, {"rule_id": "r1", "fires": True}],
+        "document_codes": ["", "  ", "777"],
+        "expected_sbar_rule_ids": ["", "  ", "r2"],
+    }
+    codes, expectations = svc._resolve_replay_inputs(row)
+    assert codes == ["777"]
+    rule_ids = [e["rule_id"] for e in expectations]
+    assert rule_ids == ["r1", "r2"]
+
+
+def test_replay_one_scores_sbar_patient_as_pass(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """End-to-end pin for the bug the user hit: a SBAR test patient
+    with ExpectedSBAR.matched_rule_ids and DOCUMENTS-derived codes
+    must score as a pass when the bitmap fires the matching rule."""
+    patient = {
+        "id": "test_meso_001",
+        "name": "test_retired shipyard worker with persistent cough",
+        "aspect": "summarisation",
+        "codes": [],
+        "age": 67,
+        "sex": "male",
+        "pathway_id": None,
+        "expectations": [],
+        "expected_sbar_rule_ids": ["rule:NG12:meso:R004"],
+        "document_codes": ["49727002", "84229001", "267036007"],
+    }
+    captured: dict = {}
+
+    def fake_eval(payload, **kwargs):
+        captured["codes"] = list(payload.codes)
+        return {"matched_rules": [{"rule_id": "rule:NG12:meso:R004"}]}
+
+    monkeypatch.setattr(svc, "evaluate_against_terminology", fake_eval)
+    result = svc.replay_one(MagicMock(), patient)
+
+    assert sorted(captured["codes"]) == ["267036007", "49727002", "84229001"]
+    assert result["total_assertions"] == 1
+    assert [p["rule_id"] for p in result["passes"]] == ["rule:NG12:meso:R004"]
+    assert result["regressions"] == []
+    assert result["unexpected_matches"] == []

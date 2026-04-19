@@ -104,21 +104,36 @@ MERGE (rec)-[:HAS_RULE]->(rule)
 RETURN rule.id AS id
 """
 
-# Merge the SNOMED concept node (creates it if not yet in the graph) then link
-# to the criteria group.  Using MERGE on conceptId ensures idempotency.
+# SCHEMA UNIFICATION (DI-LEO-AI-528):
+# Earlier versions of this generator wrote criteria / action / applies_to
+# concepts as the legacy parallel label `(:SnomedConcept {conceptId})`,
+# which sat alongside the canonical SNOMED loader's `(:Concept {id})` and
+# caused two bugs:
+#   1. `_VERIFY_CONCEPTS` in services/api/app/services/guidance_rule_edit.py
+#      had to OR-match both labels (the dual-graph fallback documented in
+#      DI-LEO-AI-508) -- a band-aid for a schema split.
+#   2. `_closure_ids` in services/terminology_api/app/services/
+#      guideline_compiler.py walked IS_A on `:SnomedConcept`, which the
+#      generator NEVER wrote -- so descendant expansion silently fell back
+#      to exact-match only for every guidance-only concept.
+# We now write the canonical label + property names (`id`, `preferred_term`,
+# `semantic_tag`) so both bugs disappear at the source. Existing data is
+# rewired by scripts/migrations/2026_link_or_delete_orphan_snomed_concepts.py
+# (idempotent; safe to re-run; never touches patient :SnomedConcept nodes
+# connected via :DOCUMENTS).
 # distanceChild=1 means the bitmap compiler will also match any SNOMED child
-# concepts (one hop via IS_A) — e.g. a rule for "haematuria" will fire even
+# concepts (one hop via IS_A) -- e.g. a rule for "haematuria" will fire even
 # when the patient record contains a more specific haematuria subtype.
 _UPSERT_CONCEPT_AND_CRITERIA = """
 MATCH (grp:CriteriaGroup {id: $group_id})
-MERGE (concept:SnomedConcept {conceptId: $concept_id})
+MERGE (concept:Concept {id: $concept_id})
 ON CREATE SET
-    concept.term        = $preferred_term,
-    concept.semanticTag = $semantic_tag,
-    concept.source      = 'guidance_rule_extraction',
-    concept.createdAt   = datetime()
+    concept.preferred_term = $preferred_term,
+    concept.semantic_tag   = $semantic_tag,
+    concept.source         = 'guidance_rule_extraction',
+    concept.createdAt      = datetime()
 ON MATCH SET
-    concept.term        = $preferred_term
+    concept.preferred_term = coalesce($preferred_term, concept.preferred_term)
 MERGE (grp)-[e:HAS_CRITERIA]->(concept)
 ON CREATE SET
     e.predicate      = $predicate,
@@ -150,16 +165,22 @@ MERGE (rule)-[:HAS_ACTION_GROUP]->(ag)
 RETURN ag.id AS id
 """
 
+# Action concepts now write the canonical (:Concept {id}) without the
+# legacy :Procedure sub-label. The bitmap compiler binds action targets
+# unlabeled (the HAS_ACTION relationship is the constraint -- see
+# guideline_compiler._FETCH_ACTIVE_RULES), so dropping :Procedure has no
+# read-side impact and removes one more pollution path on the canonical
+# terminology graph (DI-LEO-AI-528).
 _UPSERT_ACTION_CONCEPT = """
 MATCH (ag:ActionGroup {id: $group_id})
-MERGE (proc:SnomedConcept:Procedure {conceptId: $concept_id})
+MERGE (proc:Concept {id: $concept_id})
 ON CREATE SET
-    proc.term        = $preferred_term,
-    proc.semanticTag = 'procedure',
-    proc.source      = 'guidance_rule_extraction',
-    proc.createdAt   = datetime()
+    proc.preferred_term = $preferred_term,
+    proc.semantic_tag   = 'procedure',
+    proc.source         = 'guidance_rule_extraction',
+    proc.createdAt      = datetime()
 ON MATCH SET
-    proc.term        = $preferred_term
+    proc.preferred_term = coalesce($preferred_term, proc.preferred_term)
 MERGE (ag)-[ha:HAS_ACTION]->(proc)
 ON CREATE SET
     ha.rawTerm  = $raw_term,
@@ -172,14 +193,14 @@ ON MATCH SET
 
 _UPSERT_APPLIES_TO = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
-MERGE (concept:SnomedConcept {conceptId: $concept_id})
+MERGE (concept:Concept {id: $concept_id})
 ON CREATE SET
-    concept.term        = $preferred_term,
-    concept.semanticTag = $semantic_tag,
-    concept.source      = 'guidance_rule_extraction',
-    concept.createdAt   = datetime()
+    concept.preferred_term = $preferred_term,
+    concept.semantic_tag   = $semantic_tag,
+    concept.source         = 'guidance_rule_extraction',
+    concept.createdAt      = datetime()
 ON MATCH SET
-    concept.term        = $preferred_term
+    concept.preferred_term = coalesce($preferred_term, concept.preferred_term)
 MERGE (rule)-[at:APPLIES_TO {conceptId: $concept_id, rawTerm: $raw_term}]->(concept)
 ON CREATE SET
     at.operator  = $operator,

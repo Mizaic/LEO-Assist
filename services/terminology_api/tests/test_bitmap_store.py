@@ -234,3 +234,74 @@ def test_get_current_version_name_scoped(store):
 
     assert version == "v20260308"
     r.get.assert_called_with(_scoped_current_key("guideline", "NG12"))
+
+
+class TestClientCache:
+    """Pin the module-level connection pooling behaviour.
+
+    Regression guard for the `/terminology/guidelines/evaluate` 30s
+    timeout: REDIS_URL points at Azure Cache for Redis over TLS, so
+    constructing a new client per call adds ~100-300ms of TLS
+    handshake. We MUST reuse a single client per URL.
+    """
+
+    def setup_method(self) -> None:
+        from services.terminology_api.app.services.bitmap_store import (
+            reset_client_cache,
+        )
+
+        reset_client_cache()
+
+    def teardown_method(self) -> None:
+        from services.terminology_api.app.services.bitmap_store import (
+            reset_client_cache,
+        )
+
+        reset_client_cache()
+
+    def test_get_client_reuses_same_instance_per_url(self):
+        from services.terminology_api.app.services import bitmap_store as bs
+
+        with patch.object(bs.redis, "from_url") as factory:
+            factory.side_effect = lambda *_a, **_kw: MagicMock(name=f"c{factory.call_count}")
+            first = bs._get_client("rediss://example:10000")
+            second = bs._get_client("rediss://example:10000")
+
+        assert first is second
+        assert factory.call_count == 1
+
+    def test_get_client_returns_distinct_clients_for_distinct_urls(self):
+        from services.terminology_api.app.services import bitmap_store as bs
+
+        with patch.object(bs.redis, "from_url") as factory:
+            factory.side_effect = lambda *_a, **_kw: MagicMock(name=f"c{factory.call_count}")
+            a = bs._get_client("rediss://primary:10000")
+            b = bs._get_client("rediss://secondary:10000")
+
+        assert a is not b
+        assert factory.call_count == 2
+
+    def test_bitmap_store_instances_share_same_client(self):
+        """Two BitmapStore objects on the same URL must share the pool."""
+        from services.terminology_api.app.services import bitmap_store as bs
+
+        with patch.object(bs.redis, "from_url") as factory:
+            factory.side_effect = lambda *_a, **_kw: MagicMock(name=f"c{factory.call_count}")
+            store_a = BitmapStore(redis_url="rediss://shared:10000")
+            store_b = BitmapStore(redis_url="rediss://shared:10000")
+            client_a = store_a._client()
+            client_b = store_b._client()
+
+        assert client_a is client_b
+        assert factory.call_count == 1
+
+    def test_reset_client_cache_drops_cached_clients(self):
+        from services.terminology_api.app.services import bitmap_store as bs
+
+        with patch.object(bs.redis, "from_url") as factory:
+            factory.side_effect = lambda *_a, **_kw: MagicMock(name=f"c{factory.call_count}")
+            bs._get_client("rediss://reset-me:10000")
+            bs.reset_client_cache()
+            bs._get_client("rediss://reset-me:10000")
+
+        assert factory.call_count == 2

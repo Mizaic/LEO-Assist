@@ -82,7 +82,7 @@ async def _proxy_pipeline_worker_json(
 # = datetime()) and _UPDATE_RULE_STATUS (sets reviewedAt / reviewedBy on
 # every approve / edit / reject). Surfacing them lets the FE sort the
 # Active list "stalest first" so reviewers see the rules most overdue
-# for re-validation at the top of the page (DI-LEO-AI-512 AC-001).
+# for re-validation at the top of the page (DI-LEO-AI-528 AC-001).
 # updated_at falls back to created_at for rules that have never been
 # edited; reviewed_at is null until the first decision.
 _FETCH_RULES = """
@@ -245,6 +245,10 @@ RETURN rule.status AS status,
        collect(DISTINCT {concept_id: coalesce(concept.id, concept.conceptId), term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)}) AS concepts
 """
 
+# Promotion writes the canonical (:Concept {id}) so the new ValueSet
+# concepts share the same node identity as terminology search results
+# and as the rule's own criteria nodes. See DI-LEO-AI-528 for the
+# wider schema-unification rationale.
 _PROMOTE_CONCEPT_TO_DOMAIN = """
 MATCH (domain:AuditDomain {id: $domain_id})
 MERGE (vs:ValueSet {id: $valueset_id})
@@ -255,8 +259,8 @@ ON CREATE SET
 MERGE (domain)-[:HAS_VALUESET]->(vs)
 WITH vs
 UNWIND $concepts AS c
-MERGE (concept:SnomedConcept {conceptId: c.concept_id})
-ON CREATE SET concept.term = c.term
+MERGE (concept:Concept {id: c.concept_id})
+ON CREATE SET concept.preferred_term = c.term
 MERGE (vs)-[r:INCLUDES_CONCEPT]->(concept)
 ON CREATE SET r.addedAt    = datetime(),
               r.ruleId     = $rule_id,
@@ -1012,7 +1016,7 @@ def _format_rule(r: dict) -> dict:
         "created_at": str(r.get("created_at", "")),
         # updated_at + reviewed_at + reviewed_by are surfaced so the FE
         # can sort the Active list "stalest first" and show authors when
-        # each rule was last touched (DI-LEO-AI-512 AC-001 / AC-002).
+        # each rule was last touched (DI-LEO-AI-528 AC-001 / AC-002).
         # updated_at coalesces to created_at for rules that were never
         # edited; reviewed_at / reviewed_by are null until the first
         # decision and serialised as empty strings to keep the JSON

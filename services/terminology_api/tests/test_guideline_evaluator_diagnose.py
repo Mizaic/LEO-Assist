@@ -297,3 +297,129 @@ class TestDiagnoseSchemaV1:
         kinds = [c["kind"] for c in tree["children"]]
         assert "DEMOGRAPHIC" in kinds
         assert "CONCEPT_GROUP" in kinds
+
+
+class TestDiagnoseRebindsEditedRules:
+    """Pin the rebind behaviour for rules that have been edited.
+
+    Every rule edit appends ``:edit:<8 hex>`` to the predecessor id (see
+    ``services/api/app/services/guidance_rule_edit.py``). The compiled
+    bitmap only carries the head of the SUPERSEDES chain, so a saved
+    test patient's ``ExpectedSBAR.matched_rule_ids`` (or
+    ``EXPECTED_RESULT.fires``) can pin a stale id. Diagnose must fall
+    back to the latest rule whose stem matches, rather than 404 with
+    "rule not present in the active ruleset".
+    """
+
+    _BASE = "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13"
+
+    def _ruleset_with_edited_rule(self, active_id: str) -> dict:
+        return {
+            "version": "v1",
+            "rules": [
+                {
+                    "rule_id": active_id,
+                    "name": "NG12 mesothelioma chest X-ray",
+                    "schema_version": 2,
+                    "guideline_id": "NG12",
+                    "logic_tree": {
+                        "kind": "CONCEPT",
+                        "node_id": "n0",
+                        "bitmap_id": "bm:cough",
+                        "criterion": {
+                            "snomed_concept_id": "49727002",
+                            "preferred_term": "Cough (finding)",
+                        },
+                    },
+                }
+            ],
+        }
+
+    def test_diagnose_rebinds_to_edited_rule_when_literal_id_missing(self):
+        active_id = f"{self._BASE}:edit:newhash"
+        saved_id = f"{self._BASE}:edit:dd11e8d3:edit:a0b74f59"
+        store = _make_store(
+            ruleset=self._ruleset_with_edited_rule(active_id),
+            int_ids={"49727002": 1},
+            bitmaps={"bm:cough": BitMap([1])},
+        )
+        ev = GuidelineEvaluator(store=store)
+        result = ev.diagnose(saved_id, ["49727002"])
+        assert result is not None
+        assert result["rule_found"] is True
+        assert result["fires"] is True
+        # The response carries the actually-diagnosed rule_id so the UI
+        # can label "matched as <X>" instead of repeating the stale id.
+        assert result["rule_id"] == active_id
+        assert result["requested_rule_id"] == saved_id
+        assert result["rebound_from"] == saved_id
+        assert active_id in (result.get("rebind_reason") or "")
+
+    def test_diagnose_returns_not_found_when_no_stem_match(self):
+        active_id = "rule:OTHER:v1:CH001:SEC000:R001:abc"
+        saved_id = f"{self._BASE}:edit:dd11e8d3:edit:a0b74f59"
+        store = _make_store(
+            ruleset=self._ruleset_with_edited_rule(active_id),
+            int_ids={"49727002": 1},
+            bitmaps={"bm:cough": BitMap([1])},
+        )
+        ev = GuidelineEvaluator(store=store)
+        result = ev.diagnose(saved_id, ["49727002"])
+        assert result is not None
+        assert result["rule_found"] is False
+        assert result["fires"] is False
+        assert "not present" in (result.get("message") or "").lower()
+
+    def test_diagnose_picks_latest_descendant_when_multiple_stem_matches(self):
+        """When several rules share the same stem (which can happen
+        transiently if a compile pulls in two edits), diagnose picks the
+        longest id -- that is the most-edited variant, i.e. the latest
+        descendant.
+        """
+        one_edit = f"{self._BASE}:edit:dd11e8d3"
+        two_edits = f"{self._BASE}:edit:dd11e8d3:edit:a0b74f59"
+        ruleset = {
+            "version": "v1",
+            "rules": [
+                {
+                    "rule_id": one_edit,
+                    "name": "NG12 mesothelioma chest X-ray (edit 1)",
+                    "schema_version": 2,
+                    "guideline_id": "NG12",
+                    "logic_tree": {
+                        "kind": "CONCEPT",
+                        "node_id": "n0",
+                        "bitmap_id": "bm:cough",
+                        "criterion": {
+                            "snomed_concept_id": "49727002",
+                            "preferred_term": "Cough (finding)",
+                        },
+                    },
+                },
+                {
+                    "rule_id": two_edits,
+                    "name": "NG12 mesothelioma chest X-ray (edit 2)",
+                    "schema_version": 2,
+                    "guideline_id": "NG12",
+                    "logic_tree": {
+                        "kind": "CONCEPT",
+                        "node_id": "n0",
+                        "bitmap_id": "bm:cough",
+                        "criterion": {
+                            "snomed_concept_id": "49727002",
+                            "preferred_term": "Cough (finding)",
+                        },
+                    },
+                },
+            ],
+        }
+        store = _make_store(
+            ruleset=ruleset,
+            int_ids={"49727002": 1},
+            bitmaps={"bm:cough": BitMap([1])},
+        )
+        ev = GuidelineEvaluator(store=store)
+        result = ev.diagnose(self._BASE, ["49727002"])
+        assert result is not None
+        assert result["rule_found"] is True
+        assert result["rule_id"] == two_edits

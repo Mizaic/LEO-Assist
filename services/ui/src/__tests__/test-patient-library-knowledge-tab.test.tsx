@@ -284,6 +284,19 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     );
     expect(picker).toMatch(/SNOMED \{hit\.snomed_concept_id\}/);
     expect(picker).toMatch(/"data-testid":\s*dataTestId/);
+    // Regression guard: MUI v5.13+ injects `key` into renderOption's
+    // props bag. React drops keys passed via spread, so the key MUST
+    // be destructured out of props and passed explicitly on the <li>
+    // root. Without the destructure, the dropdown logs "each child in
+    // a list should have a unique key" every time the user types a
+    // letter into the picker.
+    expect(picker).toContain("const { key: muiKey, ...liProps } = props");
+    expect(picker).toContain("key={muiKey ?? hit.snomed_concept_id}");
+    expect(picker).toContain("{...liProps}");
+    // The legacy "spread props then set our own key after" pattern
+    // must NOT come back -- it silenced the warning briefly but lost
+    // MUI's own key resolution and re-introduced the bug.
+    expect(picker).not.toMatch(/\{\.\.\.props\}\s*\n?\s*key=\{hit\.snomed_concept_id\}/);
   });
 
   test("TC-029: searchTerminology helper hits /api/terminology/search and rejects empty queries", () => {
@@ -615,6 +628,88 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(page).toMatch(/id:\s*"triage_outcome"/);
     expect(page).toMatch(/header:\s*"Triage outcome"/);
     expect(page).toMatch(/row\.triage_outcome === "2ww"[\s\S]*?\?\s*"error"/);
+  });
+
+  test("TC-030: library page exposes per-row Test, Test selected and Test all buttons wired to /replay", () => {
+    const page = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    // Calls the same /replay endpoint and renders the same dialog as
+    // the rule editor's "Try it on real patients" panel, so reviewers
+    // never have to learn two flows.
+    expect(page).toMatch(/from\s+"\.\/api"[\s\S]*?\breplay\b/);
+    expect(page).toMatch(
+      /import ReplayResultsDialog from "\.\/replay\/ReplayResultsDialog"/,
+    );
+    expect(page).toMatch(
+      /import RulesetNotCompiledBanner from "\.\/replay\/RulesetNotCompiledBanner"/,
+    );
+    // Per-row Test button
+    expect(page).toMatch(/data-testid=\{`test-now-\$\{row\.id\}`\}/);
+    expect(page).toMatch(/aspectSupportsReplay\(row\.aspect\)/);
+    // Action strip + bulk buttons
+    expect(page).toMatch(/data-testid="test-action-strip"/);
+    expect(page).toMatch(/data-testid="test-selected-button"/);
+    expect(page).toMatch(/data-testid="test-all-button"/);
+    expect(page).toMatch(/`Test selected \(\$\{selectedCount\}\)`/);
+    expect(page).toMatch(/`Test all visible \(\$\{visibleEligibleCount\}\)`/);
+    // Selection scaffolding -- testids are passed through inputProps
+    // because MUI Checkbox spreads them onto the underlying <input>.
+    expect(page).toMatch(/"data-testid":\s*"select-all-checkbox"/);
+    expect(page).toMatch(/"data-testid":\s*`select-row-\$\{row\.id\}`/);
+    // Replay payload uses the shared scope and never persists a report
+    // (the library is a manual triage surface, not a regression
+    // baseline; the nightly scheduler still owns persisted reports).
+    expect(page).toMatch(/scope_type:\s*"global"/);
+    expect(page).toMatch(/scope_id:\s*"default"/);
+    expect(page).toMatch(/persist_report:\s*false/);
+  });
+
+  test("TC-031: NLP and Episodes patients cannot be replayed and the UI says why", () => {
+    const page = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    // The helper short-list is the single source of truth -- guidelines
+    // and SBAR / referral triage carry rule-firing expectations the
+    // bitmap evaluator can score, the others do not.
+    expect(page).toMatch(
+      /aspectSupportsReplay[\s\S]*?aspect === "guidelines"[\s\S]*?aspect === "summarisation"/,
+    );
+    // The disabled tooltip explains the gap in plain English.
+    expect(page).toMatch(/REPLAY_UNSUPPORTED_HINT\s*=/);
+    expect(page).toMatch(/NLP and Episodes patients do not yet have/);
+    // Disabled state on the per-row button is wired to the helper.
+    expect(page).toMatch(/disabled=\{!supportsReplay \|\| replaying\}/);
+    // The bulk callback drops ineligible patients and surfaces the skip
+    // count instead of silently calling /replay with mixed input.
+    expect(page).toMatch(
+      /const eligible = patientsToTest\.filter\(\(p\) => aspectSupportsReplay\(p\.aspect\)\)/,
+    );
+    expect(page).toMatch(/Skipped \$\{skipped\} patient/);
+  });
+
+  test("TC-032: selection clears when the visible cohort changes", () => {
+    // A reviewer who selects 3 SBAR rows then switches to NLP would
+    // otherwise be carrying around invisible selections that "Test
+    // selected" would silently include. The page resets the set on
+    // every filter change.
+    const page = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    expect(page).toMatch(
+      /useEffect\(\(\) => \{\s*setSelectedIds\(new Set\(\)\);\s*\},\s*\[aspect, triageOutcome, ruleIdFilter, refreshKey\]\)/,
+    );
+  });
+
+  test("TC-033: ReplayResultsDialog is mounted on the library page in live mode", () => {
+    const page = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    // The dialog is mounted unconditionally so its open state is the
+    // single source of truth -- the page never renders two dialogs.
+    expect(page).toMatch(
+      /<ReplayResultsDialog\s*\n\s*open=\{replayOpen\}\s*\n\s*onClose=\{\(\) => setReplayOpen\(false\)\}\s*\n\s*report=\{replayReport\}\s*\n\s*patients=\{replayPatients\}\s*\n\s*mode="live"\s*\n\s*\/>/,
+    );
   });
 
   test("TC-006: legacy /admin/guidance/test-patients folder is removed end-to-end", () => {

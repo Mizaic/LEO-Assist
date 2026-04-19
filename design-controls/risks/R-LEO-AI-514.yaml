@@ -1,0 +1,195 @@
+# -- R-LEO-AI-514 -- Migration silently corrupts SNOMED graph or silently regresses guidance writes
+# ISO 14971 / IEC 62304 Risk
+
+- id: "R-LEO-AI-514"
+  title: "The guidance schema-unification migration silently rewires or deletes a SNOMED node it must NOT touch (patient-coding nodes connected via :DOCUMENTS), or a future code change silently re-introduces parallel `:SnomedConcept` writes that bypass the canonical IS_A graph"
+
+  hazard:
+    description: >
+      Two coupled hazards in the guidance schema-unification work
+      (DI-LEO-AI-528):
+
+      (1) The migration script
+      (`scripts/migrations/2026_link_or_delete_orphan_snomed_concepts.py`)
+      walks every `:SnomedConcept` node and either rewires it onto a
+      canonical `:Concept` twin or deletes it as orphaned. The same
+      `:SnomedConcept` label is also used by the patient-coding
+      pipeline (`(:Encounter)-[:DOCUMENTS]->(:SnomedConcept)`), and a
+      mis-scoped migration query would silently corrupt patient
+      coding history -- detaching real coded encounters from real
+      patients and breaking every downstream analytic, audit, and
+      safety alert that depends on patient SNOMED coding.
+
+      (2) A future change to the guidance generator / promotion code
+      could silently re-introduce a `MERGE (... :SnomedConcept ...)`
+      statement and re-create the dual namespace, bringing back the
+      "Unknown SNOMED concept ids" verifier failures and the silent
+      collapse of descendant expansion in the bitmap compiler. Both
+      regressions look harmless in normal smoke tests because the
+      legacy nodes still exist and the dual-tolerant read fallbacks
+      mask the symptom.
+    category: "data_protection"
+
+  hazardous_situation: >
+    A platform engineer runs the schema-unification migration in
+    production. A query selector that should have been gated on
+    `NOT (legacy)<-[:DOCUMENTS]-()` instead matches every
+    `:SnomedConcept` node. The migration rewires patient-coding
+    SNOMED nodes onto canonical `:Concept` twins, dropping the
+    `:DOCUMENTS` relationships. Patient coding history is silently
+    lost. Or, separately, a developer adds a new MERGE in
+    `guidance_rule_generator.py` that targets `(:SnomedConcept
+    {conceptId})` -- the change passes integration tests because the
+    dual-tolerant compiler reads still return results, but every
+    rule that uses the new code paths silently loses descendant
+    expansion in the bitmap compiler (because the legacy nodes have
+    no `IS_A` hierarchy) and the verifier silently rejects FE-picker
+    edits the day after deploy.
+  harm:
+    description: >
+      Patient coding history loss leads to: (a) missing entries on
+      patient timelines, (b) safety alerts that no longer fire on
+      real patients (cancer pathway, 2WW), (c) audit/governance
+      reports that under-count real activity, and (d) loss of
+      training-data provenance for downstream model work. Silent
+      regression of the dual-graph bug leads to a return of
+      R-LEO-AI-508 (silent loss of real matches; reviewer cannot
+      save legitimate edits; safety-net rules misfire).
+    severity: "serious"
+
+  initial_risk_estimate:
+    severity: 3
+    probability: 3
+    detectability: 4
+    rpn: 36
+    risk_level: "high"
+
+  mitigation_measures:
+    - control_type: "design_feature"
+      description: >
+        Every `:SnomedConcept` selector in the migration script
+        (`_COUNT_GUIDANCE_LEGACY`, `_MERGE_CANONICAL_TWINS`,
+        `_REWIRE_REL_TEMPLATE`, `_COUNT_REL_TEMPLATE`,
+        `_DELETE_ORPHANS`, `_AUDIT_REMAINING`) is explicitly gated
+        on `NOT (legacy)<-[:DOCUMENTS]-()`, AND every selector is
+        additionally constrained to require a guidance-only
+        relationship (`HAS_CRITERIA` / `HAS_ACTION` / `APPLIES_TO`
+        / `INCLUDES_CONCEPT`) so a patient-coding node cannot match
+        even if the `:DOCUMENTS` guard regressed.
+      implemented_by: ["DI-LEO-AI-528"]
+      verified_by: ["VT-LEO-AI-526"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        The migration script requires explicit `--apply` or
+        `--dry-run` and refuses both together (mutually exclusive,
+        argparse-enforced). `--dry-run` runs only read-side
+        `_COUNT_REL_TEMPLATE` queries and never executes the rewire
+        template (which contains MERGE + DELETE). Operators can see
+        the exact rewire counts before mutating production.
+      implemented_by: ["DI-LEO-AI-528"]
+      verified_by: ["VT-LEO-AI-526"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        Migration is strictly idempotent: the canonical MERGE is
+        content-addressed on `id`, every per-rel rewire is
+        content-addressed on the source rel's properties, and
+        `_DELETE_ORPHANS` only matches nodes with zero remaining
+        relationships of any kind. A second `--apply` pass is a
+        verified no-op (zero rewires, zero deletes), so re-running
+        after an interruption is safe.
+      implemented_by: ["DI-LEO-AI-528"]
+      verified_by: ["VT-LEO-AI-526"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        `tests/test_guidance_schema_invariants.py::TestCanonicalWrites`
+        forbids any `MERGE (... :SnomedConcept ...)` Cypher pattern
+        in `services/api/app/services/guidance_rule_generator.py`
+        and `services/api/app/routers/guidance_rules.py` outside
+        documented exceptions, and the closing sweep
+        (`test_no_unexpected_legacy_label_mentions_in_guidance_production_code`)
+        forbids `:SnomedConcept` mentions across the guidance
+        production tree except for the verifier fallback, the
+        compiler's documented dual-tolerant seed match, the
+        migration script, and patient-coding paths. Any future
+        change that silently re-introduces the dual namespace
+        fails CI before it can ship.
+      implemented_by: ["DI-LEO-AI-528"]
+      verified_by: ["VT-LEO-AI-526"]
+      effectiveness: "effective"
+    - control_type: "design_feature"
+      description: >
+        `tests/test_guidance_schema_invariants.py::TestDualTolerantReads`
+        pins the compiler's dual-tolerant read pattern (unlabeled
+        bind + coalesce ids + canonical IS_A walk) and the
+        router's surfaced fields (`updated_at` / `reviewed_at` /
+        `reviewed_by`). A future "tidy-up" that removes the
+        `OR (t:SnomedConcept ...)` seed match before every
+        environment has migrated would be caught at CI time, not
+        in production.
+      implemented_by: ["DI-LEO-AI-528"]
+      verified_by: ["VT-LEO-AI-526"]
+      effectiveness: "effective"
+    - control_type: "procedural_control"
+      description: >
+        Every production migration run is logged in the operator
+        runbook with: dry-run output (rewire + delete counts per
+        relationship type), explicit operator sign-off, and a
+        post-apply re-dry-run to verify zero residual legacy nodes.
+        The operator runbook explicitly forbids running --apply
+        without first running --dry-run on the same database in
+        the same session.
+      implemented_by: ["DI-LEO-AI-528"]
+      verified_by: ["VT-LEO-AI-526"]
+      effectiveness: "partially_effective"
+
+  residual_risk_estimate:
+    severity: 3
+    probability: 1
+    detectability: 2
+    rpn: 6
+    risk_level: "low"
+    acceptability: "acceptable"
+    justification: >
+      The :DOCUMENTS guard plus the guidance-relationship guard
+      means a patient-coding node would have to fail BOTH guards
+      simultaneously to be touched -- that requires a mis-edit to
+      the migration script that defeats both, which the static-
+      source test (`test_every_legacy_selector_excludes_patient_documents_subgraph`)
+      catches before merge. The mutual-exclusion of --apply /
+      --dry-run plus the read-only --dry-run path means operators
+      can always see what the migration would do before mutating
+      data. Idempotency means re-runs are harmless. The schema
+      invariant test catches any future regression of the dual-
+      graph bug at CI time. Residual risk reduces to operator
+      error in the runbook (procedurally mitigated).
+
+  monitoring:
+    monitoring_plan: >
+      Quarterly query of `MATCH (s:SnomedConcept) WHERE NOT
+      (s)<-[:DOCUMENTS]-() RETURN count(s)` to detect any new
+      guidance-legacy nodes appearing post-migration. Any non-zero
+      result triggers investigation of the most recent code
+      changes to the guidance generator / promotion paths and a
+      re-run of the migration in dry-run mode against the
+      offending environment.
+    metrics:
+      - "Count of guidance-legacy `:SnomedConcept` nodes per environment per quarter (target: 0 after migration)"
+      - "Count of `:SnomedConcept` nodes touched by any migration run (audit log)"
+      - "Count of CI failures on `tests/test_guidance_schema_invariants.py` (early-warning of attempted regressions)"
+    review_frequency: "Quarterly (post-migration audit), Per-deploy (schema invariant CI gate)"
+
+  metadata:
+    identified_by: "Rob Smith - 2026-04-19 design review of the guidance schema-unification work (DI-LEO-AI-528)"
+    identified_date: "2026-04-19"
+    status: "mitigated"
+    tags:
+      - "guidance-rules"
+      - "schema-unification"
+      - "snomed"
+      - "migration"
+      - "data-integrity"
+      - "patient-coding"
+      - "clinical-safety"

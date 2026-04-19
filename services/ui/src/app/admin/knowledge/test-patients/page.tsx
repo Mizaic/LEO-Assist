@@ -37,6 +37,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
@@ -48,6 +49,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FileCopyOutlinedIcon from "@mui/icons-material/FileCopyOutlined";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 
 import {
   DataGridCard,
@@ -68,6 +70,7 @@ import {
   TRIAGE_OUTCOME_VALUES,
   type AspectCounts,
   type AspectFilter,
+  type ReplayReport,
   type TestPatientRow,
   type TriageOutcome,
   type TriageOutcomeCounts,
@@ -75,14 +78,18 @@ import {
 import {
   deleteTestPatient,
   getAspectCounts,
+  getBitmapStatus,
   getTriageOutcomeCounts,
   listTestPatients,
+  replay,
 } from "./api";
 import BuildPatientDialog from "./BuildPatientDialog";
 import CopyFromRealDialog from "./CopyFromRealDialog";
 import ScaffoldFromRuleDialog from "./ScaffoldFromRuleDialog";
 import ScaffoldFromScenarioDialog from "./ScaffoldFromScenarioDialog";
 import EditTestPatientDrawer from "./editor/EditTestPatientDrawer";
+import ReplayResultsDialog from "./replay/ReplayResultsDialog";
+import RulesetNotCompiledBanner from "./replay/RulesetNotCompiledBanner";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 const ZERO_COUNTS: AspectCounts = {
@@ -108,6 +115,21 @@ const ZERO_TRIAGE_COUNTS: TriageOutcomeCounts = {
 function showsTriageFilter(aspect: AspectFilter): boolean {
   return aspect === "summarisation" || aspect === "all";
 }
+
+// Which aspects can be replayed against the production / sandbox
+// roaring-bitmap ruleset today. Guidelines and SBAR / referral
+// triage carry rule-firing expectations (EXPECTED_RESULT or
+// ExpectedSBAR.matched_rule_ids) that the bitmap evaluator can
+// score against. NLP and Episodes do not have a one-click rerun
+// endpoint yet -- the per-row Test button is disabled with a
+// tooltip explaining this so reviewers can't fire a no-op replay.
+function aspectSupportsReplay(aspect: AspectFilter | string): boolean {
+  return aspect === "guidelines" || aspect === "summarisation";
+}
+
+const REPLAY_UNSUPPORTED_HINT =
+  "Replay only works for Guidelines and SBAR / referral triage today. " +
+  "NLP and Episodes patients do not yet have a one-click rerun.";
 
 function buildStats(counts: AspectCounts): StatTile[] {
   return ASPECT_VALUES.map((key) => {
@@ -165,6 +187,17 @@ export default function TestPatientLibraryKnowledgeTab() {
   const [pendingDelete, setPendingDelete] = useState<TestPatientRow | null>(
     null,
   );
+  // Replay state. Mirrors the rule editor's TestPatientsPanel so the
+  // ReplayResultsDialog renders the exact same regression / pass /
+  // drift breakdown reviewers already know from the rule editor.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [replayReport, setReplayReport] = useState<ReplayReport | null>(null);
+  const [replayPatients, setReplayPatients] = useState<TestPatientRow[]>([]);
+  const [replayOpen, setReplayOpen] = useState(false);
+  const [replaying, setReplaying] = useState(false);
+  const [runningRowId, setRunningRowId] = useState<string | null>(null);
+  const [replayError, setReplayError] = useState<string | null>(null);
+  const [notCompiled, setNotCompiled] = useState(false);
 
   const fetchAll = useCallback(() => {
     setLoading(true);
@@ -229,6 +262,121 @@ export default function TestPatientLibraryKnowledgeTab() {
     }
   }, [pendingDelete]);
 
+  // Drop the selection whenever the visible row set changes. Otherwise
+  // a reviewer who selects 3 SBAR rows then switches to NLP would still
+  // be carrying around three invisible selections that "Test selected"
+  // would silently include.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [aspect, triageOutcome, ruleIdFilter, refreshKey]);
+
+  // Probe the production bitmap once on mount so the "no ruleset
+  // compiled" banner can show even before the reviewer fires their
+  // first replay. Cheap (cached server-side) and matches the rule
+  // editor panel's UX.
+  useEffect(() => {
+    let cancelled = false;
+    getBitmapStatus("global", "default")
+      .then((status) => {
+        if (cancelled) return;
+        setNotCompiled(!status.active_version || status.rule_count === 0);
+      })
+      .catch(() => {
+        // Best-effort: if the status endpoint is unreachable, the
+        // replay-error path below still surfaces the missing ruleset.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
+
+  const runReplayFor = useCallback(
+    async (patientsToTest: TestPatientRow[], runningId: string | null) => {
+      // Drop NLP / Episodes rows -- the bitmap evaluator only knows
+      // how to score guideline-firing expectations, so feeding it
+      // anything else would either error or silently return zero
+      // results. We surface the skip count to the reviewer instead
+      // of failing the whole batch.
+      const eligible = patientsToTest.filter((p) => aspectSupportsReplay(p.aspect));
+      const skipped = patientsToTest.length - eligible.length;
+      if (eligible.length === 0) {
+        setReplayError(REPLAY_UNSUPPORTED_HINT);
+        return;
+      }
+      setReplaying(true);
+      setRunningRowId(runningId);
+      setReplayError(null);
+      try {
+        const result = await replay({
+          patient_ids: eligible.map((p) => p.id),
+          scope_type: "global",
+          scope_id: "default",
+          persist_report: false,
+        });
+        setReplayReport(result);
+        setReplayPatients(eligible);
+        const looksUncompiled = (result.results || []).some((row) =>
+          (row.error || "").toLowerCase().includes("no active ruleset"),
+        );
+        setNotCompiled(looksUncompiled);
+        if (skipped > 0) {
+          setReplayError(
+            `Skipped ${skipped} patient${skipped === 1 ? "" : "s"} ` +
+              "from NLP / Episodes -- they cannot be replayed yet.",
+          );
+        }
+        setReplayOpen(true);
+      } catch (exc) {
+        const msg =
+          exc instanceof Error ? exc.message : "Could not replay the patients.";
+        if (msg.toLowerCase().includes("no active ruleset")) {
+          setNotCompiled(true);
+        } else {
+          setReplayError(msg);
+        }
+      } finally {
+        setReplaying(false);
+        setRunningRowId(null);
+      }
+    },
+    [],
+  );
+
+  // Master-checkbox state derived from the visible rows + selection
+  // set. Indeterminate when 1+ but not all visible rows are selected.
+  const allSelected = useMemo(
+    () => rows.length > 0 && rows.every((r) => selectedIds.has(r.id)),
+    [rows, selectedIds],
+  );
+  const someSelected = useMemo(
+    () => !allSelected && rows.some((r) => selectedIds.has(r.id)),
+    [rows, selectedIds, allSelected],
+  );
+
+  const toggleAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (rows.every((r) => prev.has(r.id)) && rows.length > 0) {
+        return new Set();
+      }
+      return new Set(rows.map((r) => r.id));
+    });
+  }, [rows]);
+
+  const toggleRow = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectedCount = selectedIds.size;
+  const visibleEligibleCount = useMemo(
+    () => rows.filter((r) => aspectSupportsReplay(r.aspect)).length,
+    [rows],
+  );
+
   const stats = useMemo(() => buildStats(counts), [counts]);
 
   const filterTabs = useMemo(
@@ -277,6 +425,42 @@ export default function TestPatientLibraryKnowledgeTab() {
 
   const columns: DataGridColumn<TestPatientRow>[] = useMemo(
     () => [
+      {
+        id: "select",
+        header: (
+          <Tooltip
+            title={
+              allSelected
+                ? "Clear selection"
+                : "Select every visible test patient"
+            }
+            arrow
+          >
+            <Checkbox
+              size="small"
+              checked={allSelected}
+              indeterminate={someSelected}
+              onChange={toggleAll}
+              inputProps={{
+                "aria-label": "Select all visible test patients",
+                "data-testid": "select-all-checkbox",
+              }}
+            />
+          </Tooltip>
+        ),
+        width: "44px",
+        render: (row) => (
+          <Checkbox
+            size="small"
+            checked={selectedIds.has(row.id)}
+            onChange={() => toggleRow(row.id)}
+            inputProps={{
+              "aria-label": `Select ${row.name}`,
+              "data-testid": `select-row-${row.id}`,
+            }}
+          />
+        ),
+      },
       {
         id: "name",
         header: "Name",
@@ -367,44 +551,83 @@ export default function TestPatientLibraryKnowledgeTab() {
         id: "actions",
         header: "",
         align: "right",
-        width: "120px",
-        render: (row) => (
-          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-            <Tooltip
-              title={
-                row.aspect === "guidelines"
-                  ? `Edit ${row.name} in the guideline editor`
-                  : `Edit ${row.name}`
-              }
-              arrow
-            >
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={() => setEditingId(row.id)}
-                  aria-label={`Edit test patient ${row.name}`}
-                  disabled={row.aspect === "guidelines"}
-                >
-                  <EditOutlinedIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Tooltip title={`Delete ${row.name}`} arrow>
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={() => handleDelete(row)}
-                  aria-label={`Delete test patient ${row.name}`}
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Stack>
-        ),
+        width: "160px",
+        render: (row) => {
+          const supportsReplay = aspectSupportsReplay(row.aspect);
+          const rowReplaying = runningRowId === row.id;
+          return (
+            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+              <Tooltip
+                title={
+                  supportsReplay
+                    ? `Test ${row.name} against the live ruleset`
+                    : REPLAY_UNSUPPORTED_HINT
+                }
+                arrow
+              >
+                <span>
+                  <IconButton
+                    size="small"
+                    color="success"
+                    onClick={() => runReplayFor([row], row.id)}
+                    aria-label={`Test ${row.name} against the live ruleset`}
+                    disabled={!supportsReplay || replaying}
+                    data-testid={`test-now-${row.id}`}
+                  >
+                    {rowReplaying ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <PlayCircleOutlineIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip
+                title={
+                  row.aspect === "guidelines"
+                    ? `Edit ${row.name} in the guideline editor`
+                    : `Edit ${row.name}`
+                }
+                arrow
+              >
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => setEditingId(row.id)}
+                    aria-label={`Edit test patient ${row.name}`}
+                    disabled={row.aspect === "guidelines"}
+                  >
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+              <Tooltip title={`Delete ${row.name}`} arrow>
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDelete(row)}
+                    aria-label={`Delete test patient ${row.name}`}
+                  >
+                    <DeleteOutlineIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Stack>
+          );
+        },
       },
     ],
-    [handleDelete],
+    [
+      handleDelete,
+      runReplayFor,
+      runningRowId,
+      replaying,
+      selectedIds,
+      allSelected,
+      someSelected,
+      toggleAll,
+      toggleRow,
+    ],
   );
 
   const emptyState = (
@@ -519,6 +742,116 @@ export default function TestPatientLibraryKnowledgeTab() {
         </Box>
       ) : null}
 
+      {replayError ? (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2 }}
+          onClose={() => setReplayError(null)}
+          data-testid="replay-warning"
+        >
+          {replayError}
+        </Alert>
+      ) : null}
+
+      {notCompiled ? (
+        <Box sx={{ mb: 2 }} data-testid="not-compiled-banner">
+          <RulesetNotCompiledBanner
+            scopeType="global"
+            scopeId="default"
+            sandbox={false}
+            onCompileRequested={() => {
+              setTimeout(() => {
+                getBitmapStatus("global", "default")
+                  .then((status) =>
+                    setNotCompiled(
+                      !status.active_version || status.rule_count === 0,
+                    ),
+                  )
+                  .catch(() => undefined);
+              }, 4000);
+            }}
+          />
+        </Box>
+      ) : null}
+
+      {/*
+       * Test action strip. Lives ABOVE the data grid so a reviewer
+       * can replay the visible cohort without scrolling. Mirrors the
+       * rule editor's "Try it on real patients" panel: same replay
+       * endpoint, same ReplayResultsDialog, so the reviewer never has
+       * to learn two flows.
+       */}
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ mb: 1.5, flexWrap: "wrap", rowGap: 1, alignItems: "center" }}
+        data-testid="test-action-strip"
+      >
+        <Tooltip
+          title={
+            selectedCount === 0
+              ? "Tick a box on the left of any row to enable this."
+              : `Test ${selectedCount} selected patient${
+                  selectedCount === 1 ? "" : "s"
+                } against the live ruleset.`
+          }
+          arrow
+        >
+          <span>
+            <Button
+              size="small"
+              variant="contained"
+              color="success"
+              startIcon={
+                replaying && runningRowId === null ? (
+                  <CircularProgress size={14} color="inherit" />
+                ) : (
+                  <PlayCircleOutlineIcon fontSize="small" />
+                )
+              }
+              disabled={selectedCount === 0 || replaying}
+              onClick={() => {
+                const picked = rows.filter((r) => selectedIds.has(r.id));
+                runReplayFor(picked, null);
+              }}
+              data-testid="test-selected-button"
+              aria-label={`Test ${selectedCount} selected test patients against the live ruleset`}
+            >
+              {replaying && runningRowId === null
+                ? "Testing..."
+                : `Test selected (${selectedCount})`}
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip
+          title={
+            visibleEligibleCount === 0
+              ? "No replay-able patients in this view."
+              : `Replay every visible Guidelines / SBAR test patient (${visibleEligibleCount}).`
+          }
+          arrow
+        >
+          <span>
+            <Button
+              size="small"
+              variant="outlined"
+              color="success"
+              startIcon={<PlayCircleOutlineIcon fontSize="small" />}
+              disabled={visibleEligibleCount === 0 || replaying}
+              onClick={() => runReplayFor(rows, null)}
+              data-testid="test-all-button"
+              aria-label="Test all visible test patients against the live ruleset"
+            >
+              {`Test all visible (${visibleEligibleCount})`}
+            </Button>
+          </span>
+        </Tooltip>
+        <Typography variant="caption" color="text.secondary">
+          Replay runs against the live (production) ruleset and never
+          changes saved patients.
+        </Typography>
+      </Stack>
+
       {loading ? (
         <Stack alignItems="center" sx={{ pt: 6 }}>
           <CircularProgress size={28} />
@@ -591,6 +924,14 @@ export default function TestPatientLibraryKnowledgeTab() {
           onCancel={() => setPendingDelete(null)}
         />
       ) : null}
+
+      <ReplayResultsDialog
+        open={replayOpen}
+        onClose={() => setReplayOpen(false)}
+        report={replayReport}
+        patients={replayPatients}
+        mode="live"
+      />
     </Box>
   );
 }

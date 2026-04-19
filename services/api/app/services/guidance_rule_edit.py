@@ -276,23 +276,25 @@ def _validate_demographic_node(node: LogicNode) -> None:
 # Verify that every SNOMED concept referenced by the edited logic tree
 # exists in the knowledge graph.
 #
-# The knowledge graph holds two parallel SNOMED concept node types in this
-# codebase:
-#   - (:Concept {id: "..."}) -- canonical, written by the SNOMED loader and
-#     surfaced by /terminology/search and /terminology/concepts/.../descendants.
-#     Every concept the FE picker can return lives here.
-#   - (:SnomedConcept {conceptId: "..."}) -- a parallel namespace lazily
-#     materialised by the v1 guidance rule generator
-#     (services/api/app/services/guidance_rule_generator.py). v2 (logic_tree)
-#     rules never write these, so any check that targets only :SnomedConcept
-#     will reject every concept added via the FE picker on a v2 rule.
+# Historically the knowledge graph held two parallel SNOMED concept node
+# types -- canonical `(:Concept {id})` written by the SNOMED loader and a
+# legacy `(:SnomedConcept {conceptId})` parallel namespace written by the
+# v1 guidance rule generator. DI-LEO-AI-528 unified writes onto the
+# canonical label and shipped a one-shot migration
+# (`scripts/migrations/2026_link_or_delete_orphan_snomed_concepts.py`)
+# that rewires legacy guidance edges onto canonical nodes.
 #
-# Until the v2 generator + bitmap compiler are migrated to read :Concept
-# directly, the verifier accepts EITHER label so that:
+# This verifier still accepts EITHER label so that:
 #   - new-style v2 rules (concepts come from the FE picker -> :Concept)
-#     can be edited
-#   - legacy fixtures and v1 rules (concepts only on :SnomedConcept) keep
-#     working without a migration step
+#     can be edited even before the migration runs.
+#   - legacy fixtures and any environment where the migration has not
+#     yet completed keep working without breaking edits.
+#
+# Once the migration has run in every environment AND we have at least
+# one release of breathing room to roll back, the legacy match below
+# can be deleted. Until then it costs one OPTIONAL MATCH per id with a
+# label index, and prevents a class of "Unknown SNOMED concept ids"
+# errors that we have already burned reviewer time chasing.
 _VERIFY_CONCEPTS = """
 UNWIND $concept_ids AS cid
 OPTIONAL MATCH (canonical:Concept {id: cid})

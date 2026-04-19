@@ -513,21 +513,52 @@ class TestActionGroup:
         ), "ActionGroup must NOT be written when SNOMED code is absent"
 
 
-class TestSnomedConceptMerge:
-    """Concept nodes are MERGED (not just matched) so new SNOMED codes are persisted."""
+class TestCanonicalConceptMerge:
+    """Concept nodes are MERGED into the CANONICAL `:Concept {id}` graph
+    (not the legacy parallel `:SnomedConcept {conceptId}` namespace) so
+    every guidance node shares identity with terminology search results
+    and with the SNOMED loader's IS_A hierarchy.
 
-    def test_concept_node_merged_not_just_matched(self):
-        """The Cypher for criteria must use MERGE (concept:SnomedConcept ...) not MATCH."""
+    See DI-LEO-AI-528 + scripts/migrations/2026_link_or_delete_orphan_
+    snomed_concepts.py for the wider schema-unification work that this
+    test pins in place.
+    """
+
+    def test_criteria_concept_merged_on_canonical_label(self):
         from app.services.guidance_rule_generator import _UPSERT_CONCEPT_AND_CRITERIA
 
-        assert "MERGE (concept:SnomedConcept" in _UPSERT_CONCEPT_AND_CRITERIA, (
-            "Concept nodes must be MERGEd so that SNOMED codes returned by "
-            "the Terminology API are persisted even if not yet in the KG"
+        # New canonical write -- single source of truth.
+        assert "MERGE (concept:Concept {id: $concept_id})" in _UPSERT_CONCEPT_AND_CRITERIA
+        # Legacy parallel namespace MUST NOT be reintroduced.
+        assert ":SnomedConcept" not in _UPSERT_CONCEPT_AND_CRITERIA, (
+            "Generator must not write the legacy :SnomedConcept label -- "
+            "see DI-LEO-AI-528."
         )
-        assert "MATCH (concept" not in _UPSERT_CONCEPT_AND_CRITERIA, (
-            "Must not use bare MATCH for concept — that would silently skip "
-            "concepts not already in the graph"
-        )
+        # Property names must match the SNOMED loader so terminology
+        # search and guidance reads project the same fields.
+        assert "concept.preferred_term" in _UPSERT_CONCEPT_AND_CRITERIA
+        assert "concept.semantic_tag" in _UPSERT_CONCEPT_AND_CRITERIA
+        # Bare MATCH would silently skip newly-coded SNOMED ids.
+        assert "MATCH (concept" not in _UPSERT_CONCEPT_AND_CRITERIA
+
+    def test_action_concept_merged_on_canonical_label_no_procedure_subtype(self):
+        from app.services.guidance_rule_generator import _UPSERT_ACTION_CONCEPT
+
+        assert "MERGE (proc:Concept {id: $concept_id})" in _UPSERT_ACTION_CONCEPT
+        assert ":SnomedConcept" not in _UPSERT_ACTION_CONCEPT
+        # The legacy generator wrote (:SnomedConcept:Procedure ...) which
+        # polluted the canonical `:Concept` graph with sub-labels. The
+        # bitmap compiler binds action targets unlabeled (HAS_ACTION is
+        # the constraint), so dropping :Procedure is safe and necessary.
+        assert ":Procedure" not in _UPSERT_ACTION_CONCEPT
+        assert "proc.preferred_term" in _UPSERT_ACTION_CONCEPT
+
+    def test_applies_to_concept_merged_on_canonical_label(self):
+        from app.services.guidance_rule_generator import _UPSERT_APPLIES_TO
+
+        assert "MERGE (concept:Concept {id: $concept_id})" in _UPSERT_APPLIES_TO
+        assert ":SnomedConcept" not in _UPSERT_APPLIES_TO
+        assert "concept.preferred_term" in _UPSERT_APPLIES_TO
 
 
 class TestDistanceOnCriteriaEdge:

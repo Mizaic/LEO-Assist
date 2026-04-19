@@ -1,0 +1,213 @@
+# -- DO-LEO-AI-528 -- Guidance schema unification + Active-list staleness signal
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-528"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-528"]
+    user_needs: ["UN-LEO-AI-098"]
+    risks_addressed:
+      - "R-LEO-AI-508"
+      - "R-LEO-AI-514"
+    verification_tests: ["VT-LEO-AI-526"]
+
+  specification:
+    title: "Canonical-only guidance writes + dual-tolerant reads + Active-list staleness sort"
+    description: |
+      Three bundled software changes that share a single user need
+      (UN-LEO-AI-098):
+
+      1. Canonical writes. The v1 guidance generator (`_UPSERT_*` in
+         `services/api/app/services/guidance_rule_generator.py`) and
+         the value-set promotion endpoint (`_PROMOTE_CONCEPT_TO_DOMAIN`
+         in `services/api/app/routers/guidance_rules.py`) now MERGE
+         only `(:Concept {id})` with canonical property names
+         (`preferred_term`, `semantic_tag`, `source`). The legacy
+         `:SnomedConcept` label is no longer written by guidance.
+
+      2. Dual-tolerant reads + canonical IS_A walk. The bitmap
+         compiler (`services/terminology_api/app/services/guideline_compiler.py`)
+         binds concept and procedure nodes unlabeled in
+         `_FETCH_ACTIVE_RULES`, `_FETCH_APPLIES_TO`, and the underlying
+         builder helpers, projecting ids/display fields via
+         `coalesce(concept.id, concept.conceptId)` /
+         `coalesce(concept.preferred_term, concept.fsn, concept.term, ...)`
+         so legacy and canonical nodes both bind during the migration
+         window. `_closure_ids` walks `IS_A` on `:Concept` only --
+         the only graph that carries hierarchy -- and falls back
+         silently to exact-match when no canonical seed is found. The
+         router's read queries
+         (`_FETCH_RULES`, `_FETCH_RULE_BY_ID`, `_FETCH_RULE_DETAIL`,
+         `_FETCH_RULE_DIFF`, `_FETCH_RULE_FOR_PROMOTION`) follow the
+         same coalesce pattern.
+
+      3. Active-list staleness signal. `_FETCH_RULES` /
+         `_FETCH_RULE_BY_ID` / `_FETCH_RULE_DETAIL` now project
+         `coalesce(rule.updatedAt, rule.createdAt) AS updated_at`,
+         `rule.reviewedAt`, and `rule.reviewedBy`; the dict
+         serialiser (`_format_rule_for_review`) surfaces those three
+         fields in the API response.
+         `services/ui/src/app/admin/guidance/RuleReviewSection.tsx`
+         exports two pure helpers (`formatRelativeUpdatedAt`,
+         `sortRulesForStatus`) and uses them to:
+           - sort `active` rules stalest-first by `updated_at` ASC
+             with deterministic `rule_id` tie-breaks;
+           - leave `pending_review` and `superseded` in BE order;
+           - render an italic `Updated <relative>` hint
+             (`data-testid="rule-updated-relative"`) on every active
+             rule card.
+
+      4. One-shot migration.
+         `scripts/migrations/2026_link_or_delete_orphan_snomed_concepts.py`
+         rewires every guidance-legacy `:SnomedConcept` node onto its
+         canonical `:Concept` twin (HAS_CRITERIA / HAS_ACTION /
+         APPLIES_TO / INCLUDES_CONCEPT) and deletes orphans. The
+         script is strictly idempotent (the canonical MERGE and
+         per-rel rewire are content-addressed; a second `--apply` is
+         a no-op), refuses `--apply --dry-run` together, and never
+         touches `:SnomedConcept` nodes connected via `:DOCUMENTS`
+         (every selector is gated on `NOT (legacy)<-[:DOCUMENTS]-()`).
+
+      5. Schema invariant. `tests/test_guidance_schema_invariants.py`
+         pins the canonical-write contract across the generator,
+         router, and compiler so the dual-graph bug cannot regress.
+
+    acceptance_criteria:
+      - criterion: "Canonical writes in generator + promotion"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          `_UPSERT_CONCEPT_AND_CRITERIA`, `_UPSERT_ACTION_CONCEPT`,
+          `_UPSERT_APPLIES_TO`, `_PROMOTE_CONCEPT_TO_DOMAIN` MERGE
+          only `(:Concept {id})`; no `MERGE (... :SnomedConcept ...)`
+          in production guidance code outside the migration script.
+      - criterion: "Dual-tolerant reads"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          `_FETCH_RULES`, `_FETCH_RULE_BY_ID`, `_FETCH_RULE_DETAIL`,
+          `_FETCH_ACTIVE_RULES`, `_FETCH_APPLIES_TO` use
+          `coalesce(concept.id, concept.conceptId)` and
+          `coalesce(concept.preferred_term, concept.fsn, ...)`; the
+          compiler binds concept + proc unlabeled.
+      - criterion: "Closure walks canonical IS_A"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          `_closure_ids` MATCH binds the seed via
+          `(t:Concept AND t.id = $concept_id) OR (t:SnomedConcept AND
+          t.conceptId = $concept_id)` and walks IS_A on `:Concept`
+          only; falls back to `[concept_id]` when neither label is
+          present.
+      - criterion: "BE projects updated_at / reviewed_at / reviewed_by"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          `_FETCH_RULES` / `_FETCH_RULE_BY_ID` / `_FETCH_RULE_DETAIL`
+          project `coalesce(rule.updatedAt, rule.createdAt) AS
+          updated_at`, `rule.reviewedAt AS reviewed_at`,
+          `rule.reviewedBy AS reviewed_by`; the API dict surfaces
+          all three on every rule.
+      - criterion: "FE Active list sorts stalest-first with stable ties"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          `sortRulesForStatus(rules, "active")` sorts ascending by
+          `updated_at` with `rule_id.localeCompare` tie-break;
+          `pending_review` and `superseded` are returned in BE
+          order; the helper returns a NEW array (never mutates).
+      - criterion: "FE renders 'Updated <relative>' hint per active rule"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          `formatRelativeUpdatedAt(rule.updated_at)` rendered in a
+          `<Typography>` with `data-testid="rule-updated-relative"`;
+          returns `Updated just now` for sub-minute / future deltas;
+          singular/plural units across minutes/hours/days/months/years.
+      - criterion: "Migration is idempotent + DOCUMENTS-safe"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          `_COUNT_GUIDANCE_LEGACY`, `_MERGE_CANONICAL_TWINS`,
+          `_DELETE_ORPHANS`, and `_AUDIT_REMAINING` all gate on
+          `NOT (legacy)<-[:DOCUMENTS]-()`. `--apply` and `--dry-run`
+          are mutually exclusive and one MUST be supplied. A second
+          `--apply` pass is a no-op (zero rewires, zero deletes).
+      - criterion: "Schema invariant test pins the contract"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          `tests/test_guidance_schema_invariants.py::TestCanonicalWrites`
+          asserts the generator + router only MERGE `:Concept`;
+          `TestDualTolerantReads` asserts coalescing + unlabeled
+          binds + canonical IS_A walk; the closing sweep forbids
+          `:SnomedConcept` Cypher in guidance production code outside
+          the documented exceptions.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "services/api/app/services/guidance_rule_generator.py"
+        description: "_UPSERT_CONCEPT_AND_CRITERIA, _UPSERT_ACTION_CONCEPT, _UPSERT_APPLIES_TO -- canonical Concept writes"
+      - artifact_type: "source_code"
+        location: "services/api/app/routers/guidance_rules.py"
+        description: "_FETCH_RULES + sibling reads (coalesce + updated_at projection) and _PROMOTE_CONCEPT_TO_DOMAIN (canonical write)"
+      - artifact_type: "source_code"
+        location: "services/terminology_api/app/services/guideline_compiler.py"
+        description: "_FETCH_ACTIVE_RULES + _FETCH_APPLIES_TO unlabeled binds; _closure_ids canonical IS_A walk"
+      - artifact_type: "source_code"
+        location: "services/api/app/services/guidance_rule_edit.py"
+        description: "_VERIFY_CONCEPTS dual-graph fallback retained; comments updated to reference DI-528 + migration"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/guidance/RuleReviewSection.tsx"
+        description: "Rule interface + formatRelativeUpdatedAt + sortRulesForStatus + per-row hint render"
+      - artifact_type: "source_code"
+        location: "libs/cypher/test_patient_queries.py"
+        description: "READ_RULE_FOR_SCAFFOLD + LIST_RULES_FOR_PICKER unlabeled HAS_ACTION targets"
+      - artifact_type: "source_code"
+        location: "scripts/migrations/2026_link_or_delete_orphan_snomed_concepts.py"
+        description: "Idempotent legacy -> canonical rewire + orphan delete (DOCUMENTS-safe)"
+      - artifact_type: "test"
+        location: "tests/test_guidance_schema_invariants.py"
+        description: "Pins canonical-write contract across generator / router / compiler"
+      - artifact_type: "test"
+        location: "tests/scripts/test_link_or_delete_orphan_snomed_concepts.py"
+        description: "Migration script static-source guards + behavioural tests"
+      - artifact_type: "test"
+        location: "services/ui/src/app/admin/guidance/__tests__/RuleReviewSection.merge.test.ts"
+        description: "FE static-source + helper unit tests for the staleness signal"
+    storage_location: "git"
+    technical_details:
+      language: "Python 3.12 + TypeScript 5"
+      loc: 410
+      key_functions:
+        - "guidance_rule_generator._UPSERT_CONCEPT_AND_CRITERIA"
+        - "guidance_rule_generator._UPSERT_ACTION_CONCEPT"
+        - "guidance_rule_generator._UPSERT_APPLIES_TO"
+        - "guidance_rules._PROMOTE_CONCEPT_TO_DOMAIN"
+        - "guidance_rules._FETCH_RULES (updated_at projection)"
+        - "guideline_compiler._closure_ids"
+        - "guideline_compiler._build_fetch_active_rules_query"
+        - "RuleReviewSection.formatRelativeUpdatedAt"
+        - "RuleReviewSection.sortRulesForStatus"
+        - "2026_link_or_delete_orphan_snomed_concepts.run_migration"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Generator + promotion writes (any silent regression to :SnomedConcept re-introduces R-LEO-AI-508 verifier failures)"
+      - "Compiler closure expansion (silent fallback to exact-match means a real safety-net rule misses real patients)"
+      - "Migration script (rewire + delete on a live SNOMED graph; the :DOCUMENTS guard MUST hold)"
+    risk_control_measures:
+      - "Canonical-only MERGEs: single concept identity across the whole guidance subsystem"
+      - "Dual-tolerant reads keep the system safe during the migration window (legacy nodes still bind)"
+      - "Closure walks the only graph with IS_A; descendants are never silently dropped for canonical concepts"
+      - "Migration is idempotent + DOCUMENTS-safe + requires explicit --apply (no implicit mutation)"
+      - "Schema invariant test fails CI on any future MERGE :SnomedConcept in guidance production code"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: true

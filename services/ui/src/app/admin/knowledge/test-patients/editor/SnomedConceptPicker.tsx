@@ -147,14 +147,26 @@ export default function SnomedConceptPicker({
       }}
       renderOption={(props, opt) => {
         const hit = opt as TerminologyHit;
+        // MUI v5.13+ injects `key` into `props`. React drops keys from
+        // spread props, so destructure it and pass it explicitly --
+        // otherwise React logs "each child should have a unique key".
+        // SNOMED ids alone are not unique within an option list (the
+        // same concept can be returned twice for different surface
+        // forms), so fall back to MUI's key when ids collide.
+        const { key: muiKey, ...liProps } = props as typeof props & {
+          key?: string | number;
+        };
         return (
           <Box
             component="li"
-            {...props}
-            key={hit.snomed_concept_id}
+            key={muiKey ?? hit.snomed_concept_id}
+            {...liProps}
             sx={{ display: "block !important", py: 0.75 }}
           >
-            <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 500, lineHeight: 1.2 }}
+            >
               {hit.term || "(no term)"}
             </Typography>
             <Typography variant="caption" color="text.secondary">

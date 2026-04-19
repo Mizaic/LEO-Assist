@@ -152,9 +152,7 @@ def load_rule_for_scaffold(
         legacy = list(row.get("triggers") or [])
         row["triggers"] = legacy
         row["all_triggers"] = legacy
-        row["demographic_constraints"] = list(
-            row.get("demographic_constraints") or []
-        )
+        row["demographic_constraints"] = list(row.get("demographic_constraints") or [])
     if not row["triggers"]:
         raise ScaffoldError(
             f"Rule {rule_id!r} has no SNOMED criteria attached. The "
@@ -185,9 +183,7 @@ def _validate_demographics(
     if age is None or not (0 < age < 130):
         raise ScaffoldError(f"AI response: age {age_raw!r} is outside 1-129.")
     if sex_raw not in _VALID_SEX:
-        raise ScaffoldError(
-            f"AI response: sex must be male/female, got {sex_raw!r}."
-        )
+        raise ScaffoldError(f"AI response: sex must be male/female, got {sex_raw!r}.")
     for c in constraints or []:
         field = (c.get("field") or "").strip().lower()
         op = (c.get("operator") or "").strip()
@@ -232,21 +228,15 @@ def _validate_encounters(
 ) -> list[dict[str, Any]]:
     """Normalise + sanity-check the LLM-supplied encounter list."""
     if not isinstance(encounters, list) or not encounters:
-        raise ScaffoldError(
-            "AI response: 'encounters' must be a non-empty list."
-        )
+        raise ScaffoldError("AI response: 'encounters' must be a non-empty list.")
     today = date.today()
     cleaned: list[dict[str, Any]] = []
     for index, raw in enumerate(encounters, start=1):
         if not isinstance(raw, dict):
-            raise ScaffoldError(
-                f"AI response: encounter #{index} must be an object."
-            )
+            raise ScaffoldError(f"AI response: encounter #{index} must be an object.")
         text = (raw.get("text") or "").strip()
         if len(text) < 20:
-            raise ScaffoldError(
-                f"AI response: encounter #{index} text is too short."
-            )
+            raise ScaffoldError(f"AI response: encounter #{index} text is too short.")
         offset = raw.get("date_offset_days")
         try:
             offset_int = int(offset) if offset is not None else 0
@@ -258,17 +248,19 @@ def _validate_encounters(
                 "source_label": (raw.get("source_label") or "GP consultation").strip(),
                 "date": encounter_date.isoformat(),
                 "text": text,
-                "codes": [
-                    {
-                        "concept_id": str(t.get("concept_id")).strip(),
-                        "term": (t.get("preferred_term") or "").strip() or None,
-                        "assertion": "present",
-                    }
-                    for t in triggers
-                    if (t or {}).get("concept_id")
-                ]
-                if index == 1
-                else [],  # codes attach to the first encounter only
+                "codes": (
+                    [
+                        {
+                            "concept_id": str(t.get("concept_id")).strip(),
+                            "term": (t.get("preferred_term") or "").strip() or None,
+                            "assertion": "present",
+                        }
+                        for t in triggers
+                        if (t or {}).get("concept_id")
+                    ]
+                    if index == 1
+                    else []
+                ),  # codes attach to the first encounter only
             }
         )
     _assert_triggers_in_text(cleaned, triggers)
@@ -406,9 +398,8 @@ async def scaffold_patient_from_rule(
 
     display_hint = demographics["display_hint"]
     name = display_hint or f"AI scaffold for {rule['rule_id']}"
-    description = (
-        f"AI-scaffolded test patient for rule {rule['rule_id']}"
-        + (f" ({rule.get('guideline_title')})" if rule.get("guideline_title") else "")
+    description = f"AI-scaffolded test patient for rule {rule['rule_id']}" + (
+        f" ({rule.get('guideline_title')})" if rule.get("guideline_title") else ""
     )
 
     blank = test_patient_service.build_blank_patient_for_aspect(

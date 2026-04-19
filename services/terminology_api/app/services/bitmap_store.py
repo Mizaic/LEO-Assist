@@ -18,6 +18,7 @@ import hashlib
 import json
 import logging
 import os
+import threading
 
 import redis
 from pyroaring import BitMap
@@ -32,15 +33,64 @@ _CURRENT_KEY = "ruleset:current"
 _DEFAULT_SCOPE_TYPE = "global"
 _DEFAULT_SCOPE_ID = "default"
 
+# Module-level cache so every BitmapStore instance reuses the SAME
+# redis.Redis (and therefore the SAME ConnectionPool) per URL.
+#
+# Why this matters: REDIS_URL points at Azure Cache for Redis over
+# rediss:// in dev / staging / prod (see secrets/.env.secrets), so
+# every fresh client opens a new TCP connection and a fresh TLS
+# handshake (~100-300ms over UK-South). Without pooling, /evaluate's
+# per-leaf bitmap reads + per-code int_id lookups multiplied that
+# cost by N and could push a single replay request past the caller's
+# 30s timeout. Caching the client lets redis-py's ConnectionPool
+# reuse warm TLS connections so a typical evaluate completes in tens
+# of ms instead of multiple seconds.
+_CLIENT_CACHE: dict[str, redis.Redis] = {}
+_CLIENT_CACHE_LOCK = threading.Lock()
+
 
 def _get_client(url: str | None = None) -> redis.Redis:
-    return redis.from_url(
-        url or os.getenv("REDIS_URL", "redis://localhost:6379"),
-        decode_responses=False,
-        socket_connect_timeout=5,
-        socket_timeout=5,
-        retry_on_timeout=True,
-    )
+    """Return a cached :class:`redis.Redis` client for ``url``.
+
+    The same client instance is returned for the lifetime of the
+    process (or until :func:`reset_client_cache` is called from a
+    test). redis-py's ``ConnectionPool`` is thread-safe, so sharing a
+    single client across threads is the documented happy path.
+    """
+    key = url or os.getenv("REDIS_URL", "redis://localhost:6379")
+    cached = _CLIENT_CACHE.get(key)
+    if cached is not None:
+        return cached
+    with _CLIENT_CACHE_LOCK:
+        cached = _CLIENT_CACHE.get(key)
+        if cached is not None:
+            return cached
+        client = redis.from_url(
+            key,
+            decode_responses=False,
+            socket_connect_timeout=5,
+            socket_timeout=5,
+            retry_on_timeout=True,
+            health_check_interval=30,
+        )
+        _CLIENT_CACHE[key] = client
+        return client
+
+
+def reset_client_cache() -> None:
+    """Drop the cached clients -- intended for use in tests only.
+
+    Tests that monkeypatch ``REDIS_URL`` or swap out the redis module
+    must call this between cases to avoid leaking a stale client into
+    the next test's environment.
+    """
+    with _CLIENT_CACHE_LOCK:
+        for client in _CLIENT_CACHE.values():
+            try:
+                client.close()
+            except Exception:  # noqa: BLE001 - best-effort cleanup
+                pass
+        _CLIENT_CACHE.clear()
 
 
 def _bitmap_key(bitmap_id: str) -> str:

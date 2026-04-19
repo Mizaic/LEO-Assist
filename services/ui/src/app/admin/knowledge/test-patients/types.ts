@@ -273,11 +273,23 @@ export interface MatchedRule {
 export interface ReplayPatientResult {
   patient_id: string;
   patient_name: string;
-  passes: Array<{ rule_id: string; fires: boolean; expected: boolean }>;
+  passes: Array<{
+    rule_id: string;
+    fires: boolean;
+    expected: boolean;
+    /**
+     * Set when the saved expectation pinned a pre-edit rule_id that no
+     * longer exists in the active ruleset, but a later edit of the same
+     * logical rule (same stem) does fire. Lets the UI label "matched as
+     * <new id>" instead of misreporting a regression.
+     */
+    matched_as?: string;
+  }>;
   regressions: Array<{
     rule_id: string;
     fires: boolean;
     expected: boolean;
+    matched_as?: string;
     diagnostic?: DiagnoseResponse | null;
   }>;
   unexpected_matches: MatchedRule[];
@@ -352,6 +364,16 @@ export interface DiagnoseResponse {
     sex: string | null;
   };
   active_version: string | null;
+  /**
+   * The original rule_id the caller asked about, populated only when
+   * the evaluator rebound to a stem-matching descendant (because the
+   * literal id has been edited away). Lets the UI explain "this rule
+   * was edited; diagnosed against <rule_id>" instead of looking like a
+   * silent id swap.
+   */
+  requested_rule_id?: string;
+  rebound_from?: string;
+  rebind_reason?: string;
 }
 
 export interface SandboxCompileSummary {

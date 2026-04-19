@@ -80,7 +80,7 @@ interface Rule {
   has_predecessor: boolean;
   predecessor_id?: string;
   // Surfaced by the BE list endpoint for the Active-list staleness sort
-  // (DI-LEO-AI-512 AC-001 / AC-002). updated_at coalesces server-side
+  // (DI-LEO-AI-528 AC-001 / AC-002). updated_at coalesces server-side
   // to created_at when the rule has never been edited; reviewed_at +
   // reviewed_by are empty strings until the first decision lands so
   // the JSON shape stays stable for FE consumers.
@@ -768,7 +768,7 @@ function RuleAccordionCard({
 
 // ---- Main section ------------------------------------------------------------
 
-// ---- Active-list staleness helpers (DI-LEO-AI-512) --------------------------
+// ---- Active-list staleness helpers (DI-LEO-AI-528) --------------------------
 //
 // formatRelativeUpdatedAt renders an ISO 8601 timestamp (the BE returns
 // rule.updated_at -- coalesced to created_at when the rule has never

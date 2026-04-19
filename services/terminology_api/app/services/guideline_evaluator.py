@@ -28,6 +28,24 @@ from services.terminology_api.app.services.bitmap_store import BitmapStore
 logger = logging.getLogger(__name__)
 
 
+def _rule_stem(rule_id: str | None) -> str:
+    """Return the canonical rule identity, stripping any ``:edit:*`` chain.
+
+    Mirrors :func:`services.api.app.services.test_patient_service._rule_stem`
+    -- duplicated here to keep the terminology service free of an upstream
+    import. Every rule edit appends ``:edit:<8 hex>`` to the predecessor id;
+    the compiled bitmap only carries the head of the SUPERSEDES chain, so a
+    saved rule_id may be one or more edits behind the active version. The
+    stem (everything before the first ``:edit:``) is the stable logical
+    identity reviewers actually care about when reading a diagnostic.
+    """
+    rid = (rule_id or "").strip()
+    if not rid:
+        return ""
+    idx = rid.find(":edit:")
+    return rid[:idx] if idx >= 0 else rid
+
+
 class GuidelineEvaluator:
     """Evaluates a patient's SNOMED code set against the active ruleset.
 
@@ -172,10 +190,23 @@ class GuidelineEvaluator:
                 "scope_id": scope_id or "default",
             }
 
-        rule = next(
-            (r for r in ruleset.get("rules", []) if r.get("rule_id") == rule_id),
-            None,
-        )
+        rules = ruleset.get("rules", [])
+        rule = next((r for r in rules if r.get("rule_id") == rule_id), None)
+        rebound_from: str | None = None
+        if not rule:
+            # Fall back to rule-stem match: every edit appends
+            # ``:edit:<8 hex>`` to the predecessor id, so a saved rule_id
+            # may be one or more edits behind (or ahead of) the active
+            # version. Pick the longest descendant whose stem matches --
+            # that is the most-edited variant currently compiled.
+            stem = _rule_stem(rule_id)
+            if stem:
+                candidates = [r for r in rules if _rule_stem(r.get("rule_id")) == stem]
+                if candidates:
+                    rule = max(
+                        candidates, key=lambda r: len(str(r.get("rule_id") or ""))
+                    )
+                    rebound_from = rule_id
         if not rule:
             return {
                 "rule_id": rule_id,
@@ -207,8 +238,8 @@ class GuidelineEvaluator:
         resolved_count = sum(
             1 for c in effective_codes if self._store.get_int_id(c) is not None
         )
-        return {
-            "rule_id": rule_id,
+        result: dict[str, Any] = {
+            "rule_id": rule.get("rule_id") or rule_id,
             "rule_name": rule.get("name"),
             "guideline_id": rule.get("guideline_id"),
             "schema_version": int(rule.get("schema_version") or 1),
@@ -226,6 +257,14 @@ class GuidelineEvaluator:
             "scope_type": ruleset.get("scope_type") or scope_type or "global",
             "scope_id": ruleset.get("scope_id") or scope_id or "default",
         }
+        if rebound_from and rebound_from != result["rule_id"]:
+            result["requested_rule_id"] = rebound_from
+            result["rebound_from"] = rebound_from
+            result["rebind_reason"] = (
+                f"Rule {rebound_from} has been edited; diagnosed against the "
+                f"latest active version {result['rule_id']}."
+            )
+        return result
 
     def _annotate_rule(
         self,

@@ -417,20 +417,20 @@ describe("RuleReviewSection -- status filter (Tier 1)", () => {
     expect(RULE_REVIEW_SOURCE).toMatch(/onReject\?: \(\) => void;/);
   });
 
-  it("declares Rule.updated_at / reviewed_at / reviewed_by so the FE can sort and label staleness (DI-LEO-AI-512 AC-001 / AC-002)", () => {
+  it("declares Rule.updated_at / reviewed_at / reviewed_by so the FE can sort and label staleness (DI-LEO-AI-528 AC-001 / AC-002)", () => {
     expect(RULE_REVIEW_SOURCE).toMatch(/created_at\?: string;/);
     expect(RULE_REVIEW_SOURCE).toMatch(/updated_at\?: string;/);
     expect(RULE_REVIEW_SOURCE).toMatch(/reviewed_at\?: string;/);
     expect(RULE_REVIEW_SOURCE).toMatch(/reviewed_by\?: string;/);
   });
 
-  it("renders the per-row 'Updated <relative>' hint via formatRelativeUpdatedAt (DI-LEO-AI-512 AC-002)", () => {
+  it("renders the per-row 'Updated <relative>' hint via formatRelativeUpdatedAt (DI-LEO-AI-528 AC-002)", () => {
     expect(RULE_REVIEW_SOURCE).toMatch(
       /data-testid="rule-updated-relative"[\s\S]*?formatRelativeUpdatedAt\(rule\.updated_at\)/,
     );
   });
 
-  it("sorts the rendered list with sortRulesForStatus(rules, statusFilter) so Active surfaces stalest first (DI-LEO-AI-512 AC-001)", () => {
+  it("sorts the rendered list with sortRulesForStatus(rules, statusFilter) so Active surfaces stalest first (DI-LEO-AI-528 AC-001)", () => {
     expect(RULE_REVIEW_SOURCE).toMatch(
       /sortRulesForStatus\(rules, statusFilter\)\.map\(\(rule\) => \(/,
     );
@@ -451,7 +451,7 @@ describe("RuleReviewSection -- status filter (Tier 1)", () => {
   });
 });
 
-// ---- formatRelativeUpdatedAt + sortRulesForStatus (DI-LEO-AI-512) -----------
+// ---- formatRelativeUpdatedAt + sortRulesForStatus (DI-LEO-AI-528) -----------
 //
 // These are pure helpers; we drive them with a fixed `now` so the tests
 // are deterministic across CI runs and time-zones. The hint copy MUST

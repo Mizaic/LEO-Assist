@@ -197,9 +197,7 @@ def _concept_to_trigger(criterion: Any) -> dict | None:
     if not concept_id:
         return None
     preferred = (
-        criterion.get("preferred_term")
-        or criterion.get("term")
-        or str(concept_id)
+        criterion.get("preferred_term") or criterion.get("term") or str(concept_id)
     )
     return {
         "concept_id": str(concept_id),

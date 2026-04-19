@@ -102,9 +102,7 @@ def list_rules_in_scope(
     guideline_id: str | None = None,
     rule_id: str | None = None,
 ) -> list[dict]:
-    rows = client.run(
-        LIST_RULES_IN_SCOPE, guideline_id=guideline_id, rule_id=rule_id
-    )
+    rows = client.run(LIST_RULES_IN_SCOPE, guideline_id=guideline_id, rule_id=rule_id)
     return [dict(r) for r in rows]
 
 
@@ -450,9 +448,7 @@ def dry_run(
         scope_id=scope_id,
         ruleset_version=ruleset_version,
     )
-    matched_ids = [
-        r.get("rule_id") for r in (eval_result.get("matched_rules") or [])
-    ]
+    matched_ids = [r.get("rule_id") for r in (eval_result.get("matched_rules") or [])]
     branch_paths: dict[str, list[str]] = {}
     if matched_ids:
         rules = list_rules_in_scope(client)
@@ -606,11 +602,7 @@ def list_patients(
     else:
         aspect_param = None
     outcome_param: str | None
-    if (
-        triage_outcome is None
-        or triage_outcome == ""
-        or triage_outcome == "all"
-    ):
+    if triage_outcome is None or triage_outcome == "" or triage_outcome == "all":
         outcome_param = None
     elif triage_outcome in TRIAGE_OUTCOMES:
         outcome_param = triage_outcome
@@ -743,9 +735,7 @@ class EditorError(ValueError):
     blank name, etc.). Translates to HTTP 4xx in the router."""
 
 
-def get_full_patient(
-    client: CodingGraphClient, *, patient_id: str
-) -> dict | None:
+def get_full_patient(client: CodingGraphClient, *, patient_id: str) -> dict | None:
     """Read the entire editable subgraph for one test patient.
 
     Returns ``None`` when no patient with that id is found, otherwise
@@ -770,9 +760,9 @@ def _normalise_codes(codes: list[dict] | None) -> list[dict]:
         cid = str((code or {}).get("concept_id") or "").strip()
         if not cid:
             continue
-        assertion = str(
-            (code or {}).get("assertion") or "present"
-        ).strip().lower() or "present"
+        assertion = (
+            str((code or {}).get("assertion") or "present").strip().lower() or "present"
+        )
         key = (cid, assertion)
         if key in seen:
             continue
@@ -831,9 +821,7 @@ def _write_editor_encounters(
     """Write each editor-supplied encounter under the test patient."""
     written = 0
     for index, enc in enumerate(encounters or [], start=1):
-        encounter_id = (
-            (enc.get("id") or f"{patient_id}_enc_{index:03d}").strip()
-        )
+        encounter_id = (enc.get("id") or f"{patient_id}_enc_{index:03d}").strip()
         client.run(
             WRITE_EDITOR_ENCOUNTER,
             tp_id=patient_id,
@@ -861,9 +849,7 @@ def _write_expected_sbar(
     """
     if not expected:
         return False
-    sbar_id = str(
-        expected.get("id") or f"{patient_id}_expected_sbar"
-    ).strip()
+    sbar_id = str(expected.get("id") or f"{patient_id}_expected_sbar").strip()
     client.run(
         SEED_EXPECTED_SBAR,
         tp_id=patient_id,
@@ -922,13 +908,9 @@ def update_full_patient(
     """
     aspect_norm = (aspect or "").strip().lower()
     if aspect_norm == _GUIDELINES_ASPECT:
-        raise EditorError(
-            "Guidelines aspect uses update_patient (rule-fire snapshot)."
-        )
+        raise EditorError("Guidelines aspect uses update_patient (rule-fire snapshot).")
     if aspect_norm not in TEST_PATIENT_ASPECTS:
-        raise EditorError(
-            f"Aspect must be one of {sorted(TEST_PATIENT_ASPECTS)}."
-        )
+        raise EditorError(f"Aspect must be one of {sorted(TEST_PATIENT_ASPECTS)}.")
     clean_name = (name or "").strip()
     if not clean_name:
         raise EditorError("Give the test patient a short name first.")
@@ -1019,9 +1001,7 @@ def update_patient(
             test_patient_id=patient_id,
             rule_id=rid,
             fires=bool(exp.get("fires")),
-            matched_branch_node_ids=list(
-                exp.get("matched_branch_node_ids") or []
-            ),
+            matched_branch_node_ids=list(exp.get("matched_branch_node_ids") or []),
             ruleset_version=ruleset_version or "",
             snapshot_by=updated_by,
         )
@@ -1038,9 +1018,29 @@ def update_patient(
 # ---------------------------------------------------------------------------
 
 
-def diff_replay(
-    expectations: list[dict], current_matches: list[dict]
-) -> dict:
+def _rule_stem(rule_id: str | None) -> str:
+    """Return the canonical rule identity, stripping any edit chain.
+
+    Every rule edit (see ``services/api/app/services/guidance_rule_edit.py``
+    line 427) appends ``:edit:<8 hex>`` to the predecessor id, so a single
+    logical rule can have a chain like
+    ``rule:NG12:...:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59``. The compiled
+    bitmap only carries whichever id is currently ``status: 'active'`` (the
+    head of the SUPERSEDES chain), but a ``:ExpectedSBAR`` or
+    ``:EXPECTED_RESULT`` snapshot is pinned to whatever id was active at
+    scaffold time. After an edit the literal ids no longer match, but the
+    rule's logical identity (the part before the first ``:edit:``) is
+    stable -- so we compare on that stem when bucketing replay results.
+    Returns ``""`` for falsy / blank input.
+    """
+    rid = (rule_id or "").strip()
+    if not rid:
+        return ""
+    idx = rid.find(":edit:")
+    return rid[:idx] if idx >= 0 else rid
+
+
+def diff_replay(expectations: list[dict], current_matches: list[dict]) -> dict:
     """Compare a saved snapshot to a fresh evaluation result.
 
     Buckets each expectation into one of:
@@ -1048,24 +1048,57 @@ def diff_replay(
       - regression:  rule asserted to fire and now doesn't (or vice versa)
       - drift:       branch_paths changed but fires/doesn't_fire is unchanged
     Unasserted matches surface in ``unexpected_matches`` for visibility.
+
+    Matching is rule-stem-aware: after a rule edit the ``:edit:<hex>`` chain
+    on the active rule_id can diverge from whatever was pinned on the saved
+    expectation, so we compare on the stem (see :func:`_rule_stem`) and
+    record the actually-matched id as ``matched_as`` so the UI can label
+    "this rule was edited; matched as <new_id>" without misreporting a
+    regression.
     """
-    matched_ids = {m.get("rule_id") for m in current_matches}
-    asserted_ids = {e.get("rule_id") for e in expectations}
+    matched_by_stem: dict[str, str] = {}
+    matched_ids: set[str] = set()
+    for m in current_matches:
+        rid = m.get("rule_id")
+        if not rid:
+            continue
+        matched_ids.add(rid)
+        stem = _rule_stem(rid)
+        if stem and stem not in matched_by_stem:
+            matched_by_stem[stem] = rid
+
+    asserted_stems: set[str] = set()
     passes, regressions = [], []
     for exp in expectations:
         rid = exp.get("rule_id")
+        stem = _rule_stem(rid)
+        if stem:
+            asserted_stems.add(stem)
         expected_fires = bool(exp.get("fires"))
-        actual_fires = rid in matched_ids
-        if expected_fires == actual_fires:
-            passes.append(
-                {"rule_id": rid, "fires": actual_fires, "expected": expected_fires}
-            )
+        if rid in matched_ids:
+            actual_fires = True
+            matched_as = rid
+        elif stem and stem in matched_by_stem:
+            actual_fires = True
+            matched_as = matched_by_stem[stem]
         else:
-            regressions.append(
-                {"rule_id": rid, "fires": actual_fires, "expected": expected_fires}
-            )
+            actual_fires = False
+            matched_as = None
+        bucket_entry = {
+            "rule_id": rid,
+            "fires": actual_fires,
+            "expected": expected_fires,
+        }
+        if matched_as and matched_as != rid:
+            bucket_entry["matched_as"] = matched_as
+        if expected_fires == actual_fires:
+            passes.append(bucket_entry)
+        else:
+            regressions.append(bucket_entry)
     unexpected = [
-        m for m in current_matches if m.get("rule_id") not in asserted_ids
+        m
+        for m in current_matches
+        if _rule_stem(m.get("rule_id")) not in asserted_stems
     ]
     return {
         "passes": passes,
@@ -1073,6 +1106,64 @@ def diff_replay(
         "unexpected_matches": unexpected,
         "total_assertions": len(expectations),
     }
+
+
+def _resolve_replay_inputs(patient_row: dict) -> tuple[list[str], list[dict]]:
+    """Return the (codes, expectations) pair the bitmap evaluator needs.
+
+    Two fallbacks bridge the gap between the saved data shape and what
+    the bitmap evaluator + diff layer expect:
+
+    1. ``codes``: Guidelines patients carry their SNOMED list on
+       ``tp.codes`` directly. SBAR / referral-triage patients are
+       authored via the AI scaffolder or the per-aspect editor and
+       attach codes via ``:Encounter -[:DOCUMENTS]-> :Concept`` with
+       an assertion. We fall back to the union of ``present`` document
+       concepts in that case so replay actually has something to
+       evaluate against.
+
+    2. ``expectations``: Guidelines patients snapshot expectations as
+       ``EXPECTED_RESULT`` edges. SBAR patients store the same intent
+       on ``(:ExpectedSBAR).matched_rule_ids`` instead. We project
+       every id in that list as a synthetic ``fires=True`` expectation
+       so a SBAR patient whose ExpectedSBAR carries one or more rule
+       ids no longer reports as "no assertions".
+
+    Both fallbacks are additive -- if the primary field is populated
+    we keep using it, and any SBAR-derived expectations are unioned in
+    on top so a patient that somehow carries both still scores cleanly.
+    """
+    saved_codes = [str(c) for c in (patient_row.get("codes") or []) if str(c).strip()]
+    if not saved_codes:
+        document_codes = [
+            str(c) for c in (patient_row.get("document_codes") or []) if str(c).strip()
+        ]
+        codes = document_codes
+    else:
+        codes = saved_codes
+
+    expectations = [
+        dict(e)
+        for e in (patient_row.get("expectations") or [])
+        if e and e.get("rule_id")
+    ]
+    asserted_ids = {e.get("rule_id") for e in expectations}
+    for rid in patient_row.get("expected_sbar_rule_ids") or []:
+        rid_str = str(rid).strip()
+        if not rid_str or rid_str in asserted_ids:
+            continue
+        expectations.append(
+            {
+                "rule_id": rid_str,
+                "fires": True,
+                "matched_branch_node_ids": [],
+                "snapshot_at": None,
+                "ruleset_version": None,
+                "source": "expected_sbar",
+            }
+        )
+        asserted_ids.add(rid_str)
+    return codes, expectations
 
 
 def replay_one(
@@ -1093,8 +1184,9 @@ def replay_one(
     ``guideline_id`` so the patient is only evaluated against rules
     belonging to the guideline being edited.
     """
+    codes, expectations = _resolve_replay_inputs(patient_row)
     payload = PatientPayload(
-        codes=list(patient_row.get("codes") or []),
+        codes=codes,
         age=patient_row.get("age"),
         sex=patient_row.get("sex"),
         pathway_id=patient_row.get("pathway_id"),
@@ -1115,10 +1207,10 @@ def replay_one(
             "passes": [],
             "regressions": [],
             "unexpected_matches": [],
-            "total_assertions": len(patient_row.get("expectations") or []),
+            "total_assertions": len(expectations),
         }
     diff = diff_replay(
-        list(patient_row.get("expectations") or []),
+        expectations,
         list(eval_result.get("matched_rules") or []),
     )
     return {

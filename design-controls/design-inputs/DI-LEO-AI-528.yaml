@@ -1,0 +1,213 @@
+# -- DI-LEO-AI-528 -- Guidance schema unification + Active-list staleness signal
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-528"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-098"
+  requirement: >
+    The guidance subsystem SHALL write every coded SNOMED concept
+    (criteria, action, applies-to, value-set promotion) to the
+    canonical `(:Concept {id})` node graph populated by the SNOMED
+    loader, never to the legacy parallel `(:SnomedConcept {conceptId})`
+    namespace. The bitmap compiler and the /api/guidance/rules/* read
+    queries SHALL bind concept nodes unlabeled and project ids /
+    display fields via coalesce so both canonical and legacy nodes
+    bind during the migration window. The bitmap compiler's
+    `_closure_ids` SHALL walk IS_A on `:Concept` (the only graph that
+    carries hierarchy) and fall back to exact-match when no canonical
+    seed is found.
+
+    A one-shot migration script
+    (`scripts/migrations/2026_link_or_delete_orphan_snomed_concepts.py`)
+    SHALL rewire every guidance-legacy `:SnomedConcept` node onto its
+    canonical `:Concept` twin, deleting orphans, while being strictly
+    idempotent (a second `--apply` pass is a no-op) and never touching
+    patient-coding `:SnomedConcept` nodes connected via `:DOCUMENTS`.
+
+    The /api/guidance/rules/review endpoint SHALL project
+    `rule.updatedAt` (coalesced to `rule.createdAt` for legacy rows),
+    `rule.reviewedAt`, and `rule.reviewedBy` on every rule in the
+    response, so the FE can sort the Active list stalest-first and
+    surface a short plain-English `Updated <relative>` hint on each
+    rule card.
+
+    The /admin/guidance `RuleReviewSection.tsx` SHALL sort the Active
+    list stalest-first using a pure helper `sortRulesForStatus(rules,
+    statusFilter)` that:
+    (a) preserves BE order for `pending_review` and `superseded`;
+    (b) sorts `active` by `updated_at` ascending; and
+    (c) breaks ties on `rule_id` so the order is stable across renders.
+
+    Each rule row SHALL render a `formatRelativeUpdatedAt(rule.updated_at)`
+    string in an italic `Typography variant="caption"` with
+    `data-testid="rule-updated-relative"`, returning short copy of the
+    form `Updated 5 minutes ago` / `Updated 1 hour ago` /
+    `Updated 7 days ago` / `Updated 1 month ago` / `Updated 1 year ago`,
+    with `Updated just now` as the floor for sub-minute and future
+    timestamps (clock-skew safe).
+
+  rationale: >
+    The dual SNOMED-namespace schema caused two real production bugs
+    -- `_VERIFY_CONCEPTS` rejected every FE-picker concept on v2 rules
+    until DI-LEO-AI-508 added a dual-graph fallback, and the bitmap
+    compiler's descendant expansion silently fell back to exact-match
+    for every guidance-only concept because the legacy
+    `:SnomedConcept` nodes had no IS_A hierarchy. Unifying writes onto
+    the canonical `:Concept` graph removes both root causes; the
+    migration + dual-tolerant reads make the rollout safe in any
+    environment; the schema-invariant test pins the contract so the
+    bug cannot regress.
+
+    The Active-list staleness sort is the single most useful re-ordering
+    of that list because every other sort dimension (rule name,
+    guideline id, strength) is visible on the card already. Today's
+    newest-first sort actively misleads reviewers: it pushes recently-
+    edited rules (the ones a reviewer has already looked at) to the
+    top and buries the rules most likely to disagree with current
+    evidence. The "Updated <relative>" hint gives a 1-glance staleness
+    signal without forcing the reviewer to expand each card.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          Every MERGE in
+          `services/api/app/services/guidance_rule_generator.py`
+          (_UPSERT_CONCEPT_AND_CRITERIA, _UPSERT_ACTION_CONCEPT,
+          _UPSERT_APPLIES_TO) AND `_PROMOTE_CONCEPT_TO_DOMAIN` in
+          `services/api/app/routers/guidance_rules.py` MUST target the
+          canonical `(:Concept {id})` node with `preferred_term`,
+          `semantic_tag`, and `source` properties. The legacy
+          `:SnomedConcept` label MUST NOT appear in any production
+          guidance MERGE.
+      - type: "functional"
+        spec: >
+          `_FETCH_RULES`, `_FETCH_RULE_BY_ID`, `_FETCH_RULE_DETAIL`,
+          `_FETCH_RULE_DIFF`, and `_FETCH_RULE_FOR_PROMOTION` in
+          `services/api/app/routers/guidance_rules.py` MUST project
+          ids via `coalesce(concept.id, concept.conceptId)` and
+          display text via
+          `coalesce(concept.preferred_term, concept.fsn, concept.term, ...)`.
+      - type: "functional"
+        spec: >
+          `_FETCH_ACTIVE_RULES`, `_FETCH_APPLIES_TO`,
+          `_build_fetch_active_rules_query`, and
+          `_build_fetch_applies_to_query` in
+          `services/terminology_api/app/services/guideline_compiler.py`
+          MUST bind concept and proc nodes unlabeled, projecting ids
+          and display fields via the same coalesce pattern.
+      - type: "functional"
+        spec: >
+          `_closure_ids` in
+          `services/terminology_api/app/services/guideline_compiler.py`
+          MUST bind the seed via
+          `(t:Concept AND t.id = $concept_id) OR (t:SnomedConcept AND t.conceptId = $concept_id)`,
+          walk IS_A on `:Concept` only (descendants and ancestors), and
+          fall back silently to `[concept_id]` when neither label is
+          present.
+      - type: "functional"
+        spec: >
+          `scripts/migrations/2026_link_or_delete_orphan_snomed_concepts.py`
+          MUST be idempotent (the canonical MERGE and per-rel rewire
+          are content-addressed), MUST NEVER touch `:SnomedConcept`
+          nodes connected via `:DOCUMENTS` (every selector is gated
+          on `NOT (legacy)<-[:DOCUMENTS]-()`), MUST require explicit
+          `--apply` or `--dry-run`, and MUST refuse `--apply --dry-run`
+          together.
+      - type: "functional"
+        spec: >
+          `_FETCH_RULES`, `_FETCH_RULE_BY_ID`, and
+          `_FETCH_RULE_DETAIL` MUST also project
+          `coalesce(rule.updatedAt, rule.createdAt) AS updated_at`,
+          `rule.reviewedAt AS reviewed_at`, and
+          `rule.reviewedBy AS reviewed_by`. The dict serialiser MUST
+          surface those three fields on every rule in the API response
+          as ISO-8601 strings (or empty strings for null).
+      - type: "functional"
+        spec: >
+          `services/ui/src/app/admin/guidance/RuleReviewSection.tsx`
+          MUST export pure helpers `formatRelativeUpdatedAt(iso, now?)`
+          and `sortRulesForStatus(rules, statusFilter)`. The Rule
+          interface MUST declare `created_at?: string`,
+          `updated_at?: string`, `reviewed_at?: string`, and
+          `reviewed_by?: string`. The render block MUST call
+          `sortRulesForStatus(rules, statusFilter).map(...)` and each
+          row MUST render the relative-time hint via
+          `formatRelativeUpdatedAt(rule.updated_at)` inside a
+          `<Typography>` with `data-testid="rule-updated-relative"`.
+    constraints:
+      - type: "safety"
+        spec: >
+          The verifier dual-graph fallback in
+          `services/api/app/services/guidance_rule_edit.py`
+          (`_VERIFY_CONCEPTS`) MUST be retained until the migration
+          has run in every environment AND we have at least one
+          release of breathing room to roll back. Removing it before
+          then would re-introduce the "Unknown SNOMED concept ids"
+          edit failure for any environment that has not yet migrated.
+      - type: "safety"
+        spec: >
+          The migration script MUST refuse to run in `--apply` mode
+          without explicit operator opt-in (no implicit default to
+          mutate); the `--dry-run` path MUST execute only the read-
+          side `_COUNT_REL_TEMPLATE` queries and NEVER the rewire
+          template (which MERGEs and DELETEs).
+      - type: "performance"
+        spec: >
+          `formatRelativeUpdatedAt` and `sortRulesForStatus` MUST be
+          pure (no side effects, deterministic given an explicit
+          `now`). `sortRulesForStatus` MUST copy its input array
+          before sorting so React state holding the fetched response
+          is never silently re-ordered.
+    dependencies:
+      - "DI-LEO-AI-508"
+      - "DI-LEO-AI-511"
+    downstream_impacts:
+      - "Generator + promotion + verifier converge on a single canonical SNOMED concept identity"
+      - "Bitmap compiler descendant expansion works for every guidance-only concept"
+      - "Active list surfaces stalest rules first; reviewer time is spent on the rules most overdue"
+      - "Migration script enables dropping the verifier dual-graph fallback in a future release"
+    technical_details:
+      language: "Python 3.12 + TypeScript 5"
+      framework: "FastAPI + Neo4j 5 + React 18 + Next.js 16 + MUI v7"
+      file_structure:
+        - "services/api/app/services/guidance_rule_generator.py"
+        - "services/api/app/routers/guidance_rules.py"
+        - "services/terminology_api/app/services/guideline_compiler.py"
+        - "services/api/app/services/guidance_rule_edit.py"
+        - "services/ui/src/app/admin/guidance/RuleReviewSection.tsx"
+        - "libs/cypher/test_patient_queries.py"
+        - "scripts/migrations/2026_link_or_delete_orphan_snomed_concepts.py"
+        - "tests/test_guidance_schema_invariants.py"
+        - "tests/scripts/test_link_or_delete_orphan_snomed_concepts.py"
+        - "services/ui/src/app/admin/guidance/__tests__/RuleReviewSection.merge.test.ts"
+      estimated_loc: 410
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-526 verifies the schema unification and the Active-list
+      staleness sort: TC-001..TC-006 pin the canonical writes across
+      the generator, router, and compiler; TC-007..TC-009 verify the
+      dual-tolerant reads in the compiler and the router (including
+      the new `updated_at` / `reviewed_at` / `reviewed_by` projection);
+      TC-010..TC-014 verify the migration script (idempotent,
+      :DOCUMENTS-safe, ordered apply, default-safe dry-run); TC-015..
+      TC-018 verify the FE `formatRelativeUpdatedAt` +
+      `sortRulesForStatus` helpers and the per-row hint rendering.
+    test_protocol: "VT-LEO-AI-526"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-508"
+    - "R-LEO-AI-514"
+  tags:
+    - "guidance-rules"
+    - "schema-unification"
+    - "snomed"
+    - "active-list-sort"
+    - "staleness-signal"
+    - "migration"
+    - "clinical-safety"
