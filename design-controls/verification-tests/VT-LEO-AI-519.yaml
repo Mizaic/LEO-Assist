@@ -3,7 +3,7 @@
 
 - id: "VT-LEO-AI-519"
   version: "1.0"
-  status: "draft"
+  status: "passed"
 
   traceability:
     design_inputs:
@@ -123,4 +123,17 @@
     retention_period: "7 years"
     immutability: true
 
-  execution_history: []
+  execution_history:
+    - run_id: "VT-519-EXEC-001"
+      timestamp: "2026-04-19T12:35:00Z"
+      executor: "Rob Smith (developer)"
+      result: "pass"
+      notes: >
+        8 cases pass under jest 30 + ts-jest in 0.56s. Wider
+        regression sweep across all encounter / mission-control /
+        drawer suites: 151 tests across 16 suites, all green.
+        Confirms that lifting the deterministic query understanding
+        to the drawer (typo + synonym + match rationale) does not
+        regress the row template (VT-LEO-AI-512), the timeline
+        wrapper (VT-LEO-AI-515), the preview wrapper (VT-LEO-AI-214),
+        or the patient-detail scrubber (VT-LEO-AI-173).
