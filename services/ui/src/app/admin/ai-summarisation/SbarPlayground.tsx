@@ -507,6 +507,17 @@ export default function SbarPlayground() {
                           sx={{ height: 20, fontSize: "0.65rem" }}
                         />
                       )}
+                      {s.partProgress &&
+                        s.partProgress.partTotal > 1 &&
+                        s.status === "running" && (
+                          <Chip
+                            size="small"
+                            color="info"
+                            label={`part ${s.partProgress.partIndex} of ${s.partProgress.partTotal}`}
+                            sx={{ height: 20, fontSize: "0.65rem" }}
+                            data-testid={`sbar-stage-${stage}-part-progress`}
+                          />
+                        )}
                     </Stack>
                     {s.preview && (
                       <Box

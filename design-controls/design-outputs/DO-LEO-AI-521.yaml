@@ -1,0 +1,163 @@
+# -- DO-LEO-AI-521 -- SBAR Background partition + map + deterministic stitch implementation
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-521"
+  version: "1.0.0"
+  type: "Software_Module"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-522"]
+    user_needs: ["UN-LEO-AI-095"]
+    risks_addressed:
+      - "R-LEO-AI-510"
+      - "R-LEO-AI-511"
+    verification_tests: ["VT-LEO-AI-520"]
+
+  specification:
+    title: "SBAR Background partitioner + map + deterministic stitch"
+    description: |
+      Implements the partition + map + deterministic-stitch flow
+      described by DI-LEO-AI-522. The partitioner is a pure
+      function that bin-packs ResolvedSource objects into N <= 8
+      Partitions whose serialised user message fits inside the
+      configured per-part token budget; oversized single records
+      are split across consecutive parts and labelled with
+      part_in_record metadata so the LLM can treat the halves as
+      one source. call_background calls the standard
+      sbar_background prompt once per Partition (sequentially,
+      with a per-part progress callback), then concatenates the
+      partial markdowns under deterministic
+      "### Part {i} of {N} -- records {a}-{b}" headings with one
+      "<!-- sources: id1, id2, ... -->" HTML traceability comment
+      per part. There is intentionally no second LLM call to
+      "merge" partials -- the merge is pure Python so no clinical
+      fact can be dropped or invented during stitching
+      (R-LEO-AI-511). Per-part failures are contained: a failed
+      part renders as a placeholder body that points the reviewer
+      at the errors panel, the surviving parts still land, and the
+      orchestrator surfaces a "background:part i of N" structured
+      error so the playground can group it under the Background
+      stage without polluting the per-stage error count. The
+      orchestrator emits an sbar_stage_progress SSE event per part
+      so the UI hook can render "Generating background (part i of
+      N)..." and the SBAR Playground can show a per-stage chip
+      with the live counter.
+
+    acceptance_criteria:
+      - criterion: "no_record_dropped_invariant"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          Every input source_id appears in at least one Partition
+          for any N <= 8 partition split, including when one or
+          more records are intra-record split.
+      - criterion: "no_reduce_call_invariant"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          The LLM invoker is called exactly once per Partition;
+          no second call to a "reduce" prompt is ever made
+          (test_no_reduce_call_is_ever_made).
+      - criterion: "deterministic_stitch_format"
+        type: "functional"
+        measurement: "Test"
+        target: >
+          Multi-part Background renders one
+          "### Part {i} of {N} -- records {a}-{b}" heading per
+          part and one "<!-- sources: ... -->" HTML comment per
+          part with sorted, de-duplicated source IDs.
+      - criterion: "per_part_failure_containment"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          When one MAP call fails the failed part renders the
+          literal placeholder "(Background for these records
+          could not be generated. See the errors panel above.)"
+          and call_background returns
+          error_code=background_part_failed while the surviving
+          parts still appear in the markdown.
+      - criterion: "too_many_parts_refusal"
+        type: "safety"
+        measurement: "Test"
+        target: >
+          When bin-packing would need more than 8 parts the
+          partitioner refuses with too_many_parts=True and the
+          caller returns the friendly too_many_parts error with
+          zero LLM invocations.
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/sbar/background_partitioner.py"
+        description: >
+          Pure-function partitioner. Public entry:
+          partition_background_sources(). Returns
+          (List[Partition], PartitionReport). _SourceSlice carries
+          the 1-based record_index; Partition carries the
+          (start, end) record_range used for stitched headings.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/sbar/prompt_calls.py"
+        description: >
+          call_background -- partition + map + deterministic
+          stitch. _stitch_partials_deterministic builds the
+          stitched markdown; _invoke_background_part wraps one
+          MAP call and surfaces structured errors. No reduce
+          prompt is fetched or invoked.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/sbar/error_messages.py"
+        description: >
+          background_part_failed_error and
+          background_partition_overflow_error helpers, plus the
+          existing background_split / background_record_split
+          notices used by the partitioner.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/pipeline_worker/app/services/sbar_orchestrator.py"
+        description: >
+          _on_part_progress callback that translates the
+          call_background progress events into sbar_stage_progress
+          SSE events; _record_background_part_errors uses
+          background_part_failed_error to surface per-part errors.
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/hooks/useSbarStream.ts"
+        description: >
+          on('sbar_stage_progress') handler that builds a typed
+          SbarStagePartProgress object on the relevant stage and
+          updates the status string to
+          "Generating {stage} (part {i} of {N})...".
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx"
+        description: >
+          Renders the per-stage "part i of N" chip while the
+          stage is running and partTotal > 1.
+        storage_location: "git"
+    technical_details:
+      language: "Python + TypeScript"
+      loc: 250
+      key_functions:
+        - "partition_background_sources"
+        - "_stitch_partials_deterministic"
+        - "_invoke_background_part"
+        - "_on_part_progress"
+        - "background_part_failed_error"
+        - "background_partition_overflow_error"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "no-record-dropped invariant during partition"
+      - "no-reduce-call invariant during stitch"
+      - "per-part failure containment in the rendered Background"
+    risk_control_measures:
+      - "Pure-function partitioner with unit-tested invariants"
+      - "Deterministic Python stitch removes the reduce LLM step that R-LEO-AI-511 identified as a fact-loss / hallucination vector"
+      - "Hard cap at 8 parts; refusal returns a friendly 'pick fewer records' error before any LLM call"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

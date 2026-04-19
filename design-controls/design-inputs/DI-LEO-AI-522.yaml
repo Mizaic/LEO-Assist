@@ -1,0 +1,175 @@
+# -- DI-LEO-AI-522 -- SBAR Background partition + map + deterministic stitch (no reduce)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-522"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-095"
+  requirement: >
+    The SBAR Background stage SHALL split a patient's resolved
+    background sources across one or more LLM calls so that no
+    clinical record is silently truncated or dropped to make space in
+    the model's input window. The stage SHALL apply a deterministic
+    "partition + map + stitch" flow with NO REDUCE LLM call:
+
+    (1) PARTITION -- the pure function
+    libs/sbar/background_partitioner.partition_background_sources()
+    SHALL pack the resolved sources into the smallest number of
+    Partition objects whose serialised user message fits inside a
+    per-part token budget (SBAR_BACKGROUND_MAX_INPUT_TOKENS minus a
+    fixed system-prompt reserve). A per-source character cap of 4000
+    SHALL be applied as a soft preprocessing step. Where a single
+    record's serialised text alone exceeds a part budget, the
+    record SHALL be split across consecutive parts (intra-record
+    slicing) with explicit ``part_in_record`` metadata in the user
+    message so the LLM treats the halves as one source. Each
+    partition SHALL carry a ``record_range`` (start, end 1-based
+    indices of the original sources covered by the part).
+
+    (2) MAP -- libs/sbar/prompt_calls.call_background SHALL call the
+    standard sbar_background prompt once per partition,
+    sequentially. Per-part failures SHALL be contained: a failed
+    part renders as a placeholder body that points the reviewer to
+    the errors panel, and the surviving parts still land in the
+    final Background. A progress callback SHALL be invoked once at
+    "started" and once at "completed" / "failed" per part so the
+    orchestrator can emit ``sbar_stage_progress`` SSE events.
+
+    (3) STITCH -- pure-Python concatenation under
+    ``### Part {i} of {N} -- records {a}-{b}`` headings, with one
+    HTML ``<!-- sources: id1, id2, ... -->`` traceability comment
+    per part listing the original source IDs. There SHALL NOT be a
+    second LLM call (e.g. a "reduce" prompt) to merge the partials,
+    because any LLM merge step is itself a place where clinical
+    facts can be dropped, paraphrased, or invented (R-LEO-AI-511);
+    deterministic stitching is the safest possible merge.
+
+    (4) HARD CAP -- if bin-packing would need more than 8 parts the
+    partitioner SHALL refuse cleanly (``too_many_parts=True``) and
+    the caller SHALL surface the friendly
+    ``background_partition_overflow_error`` (translated as "Pick
+    fewer records and run it again") with NO LLM invocation.
+
+    (5) USER-FACING NOTICE -- when N >= 2 the run SHALL emit the
+    plain-English notice "This patient has a lot of records, so we
+    summarised them in N parts. Every record is included; nothing
+    was dropped." When at least one record is intra-record split
+    the run SHALL also emit the ``background_record_split_notice``
+    naming the affected source IDs.
+
+    (6) PROGRESS UI -- the SBAR Playground stage card SHALL render a
+    ``part i of N`` chip on the Background row while a multi-part
+    run is in flight, and the hook status string SHALL render
+    "Generating background (part i of N)..." so the reviewer is
+    not staring at a frozen card during a 30-90s multi-part run.
+
+  rationale: >
+    The original Background prompt fit one LLM call when the patient
+    had a small to medium record set, but exceeded the model input
+    window for record-rich patients. The DI-LEO-AI-513 strategy
+    handled this by shrinking or dropping records, which silently
+    deletes clinical facts the recommendation hinges on. The
+    DI-LEO-AI-518 / DI-LEO-AI-521 strategy then added a "reduce"
+    LLM call to merge partial Backgrounds, but R-LEO-AI-511
+    correctly identified that a second LLM step is itself a
+    plausible source of fact loss or hallucination, however well-
+    bounded the prompt is. This design input retires both prior
+    strategies in favour of split + summarise + deterministic
+    stitch: every record is preserved; the LLM only ever sees the
+    same per-part Background prompt that was already validated; and
+    the merge is pure Python so no clinical fact can be dropped or
+    invented during stitching. The reviewer pays for this in
+    visible structure (a Part 1 / Part 2 / ... heading) and that
+    structure is exactly what tells the reviewer the run was a
+    multi-part summary, not a single coherent narrative -- matching
+    the existing usability framing of UN-LEO-AI-095.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          partition_background_sources() returns the smallest N <= 8
+          partitions that fit the budget, with every input source_id
+          appearing in at least one partition (no-record-dropped
+          invariant), and report.too_many_parts=True when N would
+          exceed 8.
+      - type: "functional"
+        spec: >
+          call_background invokes the LLM exactly once per
+          partition; the invoker count equals partition count, and
+          a "reduce" prompt is never fetched or invoked.
+      - type: "functional"
+        spec: >
+          The stitched Background renders one
+          "### Part {i} of {N} -- records {a}-{b}" heading per part
+          (or "record {a}" when a part covers a single record), and
+          one "<!-- sources: id1, id2, ... -->" HTML comment per
+          part with sorted, de-duplicated source IDs.
+      - type: "safety"
+        spec: >
+          When one or more parts fail, the failed part renders as
+          the literal placeholder "(Background for these records
+          could not be generated. See the errors panel above.)" and
+          call_background returns error_code=background_part_failed
+          while the surviving part bodies still appear in the
+          markdown.
+      - type: "safety"
+        spec: >
+          Single-partition runs are byte-for-byte identical to the
+          legacy single-call Background: no part heading, no
+          sources comment, no notice. The legacy behaviour is the
+          common case and must not regress.
+    constraints:
+      - type: "performance"
+        spec: >
+          Background latency for an N-part run SHALL be no more
+          than N * single-call latency (sequential execution by
+          design; parallelism is intentionally out of scope to keep
+          the worker's Bedrock concurrency budget bounded).
+    dependencies:
+      - "DI-LEO-AI-516"
+    downstream_impacts:
+      - "SBAR Playground (part-progress chip on stage card)"
+      - "SBAR orchestrator (sbar_stage_progress SSE event per part)"
+      - "Plain-English error / notice surfaces"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI / pipeline-worker"
+      file_structure:
+        - "libs/sbar/background_partitioner.py"
+        - "libs/sbar/prompt_calls.py"
+        - "libs/sbar/error_messages.py"
+        - "services/pipeline_worker/app/services/sbar_orchestrator.py"
+        - "services/ui/src/hooks/useSbarStream.ts"
+        - "services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx"
+      estimated_loc: 250
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      Pytest cases in tests/sbar/test_background_partitioner.py and
+      tests/sbar/test_prompt_calls_background_partitioned.py verify
+      every acceptance criterion, including the "no reduce call"
+      invariant (test_no_reduce_call_is_ever_made), the per-part
+      progress callback (test_progress_cb_is_called_per_part_with
+      _no_reduce_phase), the records-range stitching format
+      (test_stitched_markdown_includes_records_range_and_source
+      _ids) and the too_many_parts refusal
+      (test_too_many_parts_returns_friendly_error_and_does_not
+      _invoke_llm). Jest cases in
+      services/ui/src/__tests__/sbar-playground-chrome.test.tsx
+      verify the hook+UI surfaces (sbar_stage_progress handler and
+      part-progress chip).
+    test_protocol: "VT-LEO-AI-520"
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-510"
+    - "R-LEO-AI-511"
+  tags:
+    - "sbar"
+    - "background"
+    - "partition"
+    - "deterministic-stitch"
+    - "no-reduce"

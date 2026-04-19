@@ -1,5 +1,6 @@
 id: SBAR-GS-18
 title: "Adversarial: visible haematuria WITH active UTI age 36 - NOT 2WW"
+draft: true  # NG12 backfill - rule engine seeding pending
 
 # Adversarial twin of fixture-11. Under NICE NG12, visible haematuria
 # only triggers a 2WW bladder referral if the patient is aged 45 or

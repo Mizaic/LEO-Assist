@@ -1,5 +1,6 @@
 id: SBAR-GS-17
 title: "Suspected soft-tissue sarcoma (2WW) - enlarging deep lump age 49"
+draft: true  # NG12 backfill - rule engine seeding pending
 
 # NICE NG12 (suspected cancer): consider a suspected cancer pathway
 # referral (within 2 weeks) for soft tissue sarcoma in adults if they

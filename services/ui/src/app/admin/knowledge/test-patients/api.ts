@@ -222,6 +222,45 @@ export function scaffoldFromScenario(
   });
 }
 
+// -- Terminology lookup ----------------------------------------------------
+//
+// Hits come straight from the production terminology service (the same
+// endpoint the rule editor and the operations console use), so a SNOMED
+// code picked here is guaranteed to exist in the knowledge graph and the
+// PATCH /test-patients/{id}/full pre-flight will not reject it.
+//
+// We deliberately bypass the /api/guidance/test-patients BASE here
+// because /api/terminology/search is a sibling router (not nested under
+// guidance) and re-exposing it under the test-patients prefix would be
+// duplicative.
+
+export interface TerminologyHit {
+  snomed_concept_id: string;
+  term: string;
+  read_code?: string;
+  semantic_tag?: string;
+  module_id?: string;
+  score?: number;
+  from_surface_form?: boolean;
+}
+
+export async function searchTerminology(
+  q: string,
+  limit = 15,
+): Promise<TerminologyHit[]> {
+  const trimmed = q.trim();
+  if (trimmed.length < 2) return [];
+  const params = new URLSearchParams({ q: trimmed, limit: String(limit) });
+  const resp = await fetch(`/api/terminology/search?${params}`, {
+    headers: { "X-Requested-With": "XMLHttpRequest" },
+  });
+  if (!resp.ok) {
+    throw new Error(`Terminology search failed (${resp.status})`);
+  }
+  const rows = (await resp.json()) as TerminologyHit[];
+  return Array.isArray(rows) ? rows : [];
+}
+
 export function deleteTestPatient(id: string): Promise<{ deleted: number }> {
   return request(`/${encodeURIComponent(id)}`, {
     method: "DELETE",

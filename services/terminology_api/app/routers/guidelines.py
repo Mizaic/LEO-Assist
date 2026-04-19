@@ -21,6 +21,7 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from libs.auth.service_auth import get_service_auth_header
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 from services.terminology_api.app.services.guideline_compiler import (
     CompileScope,

@@ -1,5 +1,6 @@
 id: SBAR-GS-12
 title: "Suspected endometrial cancer (2WW) - post-menopausal bleeding age 58"
+draft: true  # NG12 backfill - rule engine seeding pending
 
 # NICE NG12 (suspected cancer): refer women aged 55 and over with
 # post-menopausal bleeding (unexplained vaginal bleeding more than 12

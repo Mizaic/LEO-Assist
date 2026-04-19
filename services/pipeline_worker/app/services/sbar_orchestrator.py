@@ -41,9 +41,9 @@ from libs.sbar.assessment_formatter import (
 from libs.sbar.error_messages import (
     FriendlyError,
     FriendlyNotice,
+    background_part_failed_error,
     background_record_split_notice,
     background_split_notice,
-    background_trimmed_notice,
     translate_error,
 )
 from libs.sbar.events import (
@@ -489,8 +489,8 @@ class SBAROrchestrator:
     ) -> list[FriendlyNotice]:
         """Convert background notices on the result into FriendlyNotices.
 
-        The new partition + map + reduce flow can produce up to three
-        kinds of notice in a single Background run:
+        The partition + map + deterministic-stitch flow can produce
+        up to three kinds of notice in a single Background run:
 
         - ``background_split`` -- "We summarised in N parts."
         - ``background_record_split`` -- "One record was very long
@@ -546,14 +546,11 @@ class SBAROrchestrator:
             code = part.get("error_code")
             if not code:
                 continue
-            stage_label = f"background:part {part.get('index')} of {part.get('total')}"
-            message = part.get("error_message") or ""
-            friendly: FriendlyError = {
-                "stage": stage_label,
-                "code": str(code),
-                "message": str(message),
-            }
-            errors.append(f"{stage_label}:{message}")
+            index = int(part.get("index") or 0)
+            total = int(part.get("total") or 0)
+            message = str(part.get("error_message") or "")
+            friendly = background_part_failed_error(index, total, message)
+            errors.append(f"{friendly['stage']}:{message}")
             errors_detail.append(friendly)
 
     def _client_or_default(self):

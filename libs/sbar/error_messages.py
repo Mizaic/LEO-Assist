@@ -215,21 +215,6 @@ class FriendlyNotice(TypedDict):
     message: str
 
 
-def background_trimmed_notice(message: str) -> FriendlyNotice:
-    """Build a notice for the background_trimmed code.
-
-    Kept as a small helper so the orchestrator and the prompt-call
-    layer build the same shape without re-typing the dict literal.
-
-    "background_trimmed" is the legacy code from when the only
-    coping strategy was the shrinker. New runs prefer the
-    partitioner ("background_split", below) and only emit
-    "background_trimmed" when one individual record is so long
-    that the shrinker had to cap it inside its own part.
-    """
-    return {"stage": "background", "code": "background_trimmed", "message": message}
-
-
 def background_split_notice(message: str) -> FriendlyNotice:
     """Build a notice for the background_split code.
 
@@ -250,4 +235,46 @@ def background_record_split_notice(message: str) -> FriendlyNotice:
         "stage": "background",
         "code": "background_record_split",
         "message": message,
+    }
+
+
+def background_part_failed_error(
+    part_index: int,
+    part_total: int,
+    message: str,
+) -> FriendlyError:
+    """Build a per-part error for the background_part_failed code.
+
+    Surfaced once per failed part so the reviewer can see which
+    parts of a multi-part Background did not finish (e.g. "part 3
+    of 5"), in addition to the aggregated "Background" stage error.
+    The stage label is intentionally enriched with the part index
+    so the playground groups it under Background without inflating
+    the per-stage error count.
+    """
+    return {
+        "stage": f"background:part {part_index} of {part_total}",
+        "code": "background_part_failed",
+        "message": (
+            f"Background (part {part_index} of {part_total}): {message}"
+        ),
+    }
+
+
+def background_partition_overflow_error(parts_needed: int) -> FriendlyError:
+    """Build the friendly overflow error when bin-packing > 8 parts.
+
+    Returned when a patient is so record-rich that fitting every
+    record inside the per-part token budget would need more than
+    the 8-part hard cap. No LLM calls are made -- the reviewer is
+    asked to pick fewer records and re-run.
+    """
+    return {
+        "stage": "background",
+        "code": "too_many_parts",
+        "message": (
+            "This patient has too many records to summarise in one go "
+            f"(would need {parts_needed} parts; max is 8). Pick fewer "
+            "records and run it again."
+        ),
     }

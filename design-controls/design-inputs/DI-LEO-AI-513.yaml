@@ -153,11 +153,11 @@
           The reduce prompt is an editor-only prompt: it MUST NOT
           introduce new facts, MUST preserve dates / medications /
           values verbatim, and MAY only dedupe literal duplicates.
-          See DI-LEO-AI-518.
+          See DI-LEO-AI-521.
     dependencies:
       - "DI-LEO-AI-186"
       - "DI-LEO-AI-194"
-      - "DI-LEO-AI-518"
+      - "DI-LEO-AI-521"
     downstream_impacts:
       - "SBAR orchestrator (per-part SSE progress, parts payload)"
       - "SBAR Playground (per-part chips, parts summary, DI-LEO-AI-516)"
@@ -189,6 +189,18 @@
     test_protocol: "VT-LEO-AI-514"
 
   safety_class: "B"
+  status: "superseded"
+  superseded_by: "DI-LEO-AI-522"
+  superseded_rationale: >
+    The "partition + map + reduce" flow was retired in favour of a
+    "partition + map + deterministic stitch" flow (DI-LEO-AI-522).
+    The reduce LLM step was removed entirely after R-LEO-AI-511
+    confirmed an editor-role LLM is itself a plausible source of
+    fact loss or hallucination, however well-bounded the prompt.
+    Pure-Python stitching under "### Part {i} of {N} -- records
+    {a}-{b}" headings is the safest possible merge: the LLM only
+    ever sees the same per-part Background prompt, and no clinical
+    fact can be dropped or invented during the merge.
   risks:
     - "R-LEO-AI-185"
     - "R-LEO-AI-510"
@@ -200,3 +212,4 @@
     - "partition"
     - "map-reduce"
     - "error-handling"
+    - "superseded"

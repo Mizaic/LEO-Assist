@@ -187,6 +187,38 @@ describe("VT-LEO-AI-184 SBAR playground chrome", () => {
     expect(src).toMatch(/d\.notice\s*\?\?\s*null/);
   });
 
+  // VT-LEO-AI-520 TC-010 / TC-011 -- per-part progress events for
+  // the partitioned Background flow. The hook MUST translate the
+  // sbar_stage_progress wire event into a typed per-stage
+  // partProgress object and the playground MUST surface a
+  // "part i of N" chip on the running stage so the reviewer is not
+  // staring at a frozen card while a multi-part Background is in
+  // flight.
+  it("hook handles sbar_stage_progress and exposes typed partProgress", () => {
+    const src = read(FILES.hook);
+    expect(src).toContain("export interface SbarStagePartProgress");
+    expect(src).toContain('on("sbar_stage_progress"');
+    // Status string is rendered in plain English and includes the
+    // part counter so users see progress in the running label too.
+    expect(src).toMatch(/Generating \$\{stage\} \(part \$\{partIndex\} of \$\{partTotal\}\)/);
+    // There is intentionally no "reduce" phase any more -- per
+    // the no-reduce architecture switch.
+    expect(src).not.toMatch(/phase\s*===?\s*"reduce"/);
+    expect(src).not.toMatch(/Combining stage parts/);
+  });
+
+  it("playground renders the part progress chip on the running stage", () => {
+    const src = read(FILES.playgroundComponent);
+    expect(src).toMatch(/partProgress/);
+    expect(src).toMatch(/part \$\{s\.partProgress\.partIndex\} of \$\{s\.partProgress\.partTotal\}/);
+    expect(src).toContain('data-testid={`sbar-stage-${stage}-part-progress`}');
+    // The chip only shows for multi-part runs that are still
+    // running; once the stage completes the chip is hidden so the
+    // final preview is not cluttered.
+    expect(src).toMatch(/partTotal\s*>\s*1/);
+    expect(src).toMatch(/s\.status\s*===?\s*"running"/);
+  });
+
   it("playground renders sbar-errors-alert and sbar-notices-alert with friendly text", () => {
     const src = read(FILES.playgroundComponent);
     expect(src).toContain('data-testid="sbar-errors-alert"');

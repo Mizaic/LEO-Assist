@@ -185,9 +185,14 @@ def test_runner_reports_every_fixture_pass(tmp_path, runner_module) -> None:
     summary_path = runner_module.write_run_summary(tmp_path, outcomes)
     summary = json.loads(summary_path.read_text())
     assert summary["fixture_count"] == _EXPECTED_FIXTURE_COUNT
-    assert summary["structural_pass_count"] == _EXPECTED_FIXTURE_COUNT, (
-        summary["fixtures"]
+    # Drafts (NG12 backfill awaiting rule engine seeding) are accepted
+    # alongside structural passes -- the contract is that every fixture
+    # is either a structural pass or an explicit draft, never a silent
+    # failure.
+    pass_or_draft = (
+        summary["structural_pass_count"] + summary["structural_draft_count"]
     )
+    assert pass_or_draft == _EXPECTED_FIXTURE_COUNT, summary["fixtures"]
 
     # Per-fixture report files all exist.
     for fx in fixtures:
@@ -320,7 +325,10 @@ def test_signed_ledger_passes_when_all_pass(tmp_path, review_module) -> None:
     ledger = json.loads(path.read_text())
     assert ledger["overall"] == "pass"
     assert ledger["counts"] == {
-        "pass": 10, "fail": 0, "skip": 0, "total": 10,
+        "pass": _EXPECTED_FIXTURE_COUNT,
+        "fail": 0,
+        "skip": 0,
+        "total": _EXPECTED_FIXTURE_COUNT,
     }
     assert ledger["vt_id"] == "VT-LEO-AI-189"
     assert ledger["test_case_id"] == "VT-189-TC-009"

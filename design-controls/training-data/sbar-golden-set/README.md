@@ -162,9 +162,25 @@ to the VT-LEO-AI-189 evidence bundle.
 
 A run is considered TC-009 pass when:
 
-- Every structural check is `pass`, AND
+- Every structural check is `pass` or `draft`, AND
 - The reviewer marks every fixture `pass`, AND
 - The signed ledger is countersigned by Clinical Safety Officer.
+
+## Draft fixtures (NG12 backfill)
+
+A fixture marked `draft: true` at the top of its YAML documents the
+expected SBAR shape for an NG12 pathway whose appropriateness rules are
+not yet seeded into the rule engine. The runner will:
+
+- Skip the structural assertions on those fixtures (they have nothing to
+  check against until a rule fires).
+- Mark them `structural_status: "draft"` in `run_summary.json`.
+- Still write the per-fixture report so reviewers can see the
+  recommendation prose and `reviewer_expectations:` block side-by-side.
+
+When the corresponding rule is added to the rule engine, remove the
+`draft: true` line and re-run the runner. The fixture will then be held
+to the same structural bar as the rest of the suite.
 
 ## Updating the suite
 

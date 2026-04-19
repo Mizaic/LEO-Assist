@@ -1,0 +1,205 @@
+# -- VT-LEO-AI-520 -- SBAR Background partition + map + deterministic stitch (no reduce)
+# IEC 62304 / ISO 13485 Verification Test
+
+- id: "VT-LEO-AI-520"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-522"]
+    risks:
+      - "R-LEO-AI-510"
+      - "R-LEO-AI-511"
+
+  metadata:
+    title: "SBAR Background partition + map + deterministic stitch"
+    description: >
+      Verifies the no-reduce architecture: Background sources are
+      bin-packed into N <= 8 partitions with no record dropped, the
+      LLM is called exactly once per partition, the partials are
+      stitched deterministically with "### Part {i} of {N} --
+      records {a}-{b}" headings + sources comments, per-part
+      failures render a placeholder body without hiding surviving
+      parts, the LLM is never invoked when bin-packing would need
+      > 8 parts, the progress callback fires per part, and the UI
+      hook + playground surface the per-part progress to the
+      reviewer in plain English.
+    test_level: "unit"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest + jest"
+    test_file_paths:
+      - "tests/sbar/test_background_partitioner.py"
+      - "tests/sbar/test_prompt_calls_background_partitioned.py"
+      - "services/ui/src/__tests__/sbar-playground-chrome.test.tsx"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites: []
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-520-TC-001"
+      case_name: "Single partition: legacy under-budget path is unchanged"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call call_background with 2 small sources fitting one partition."
+          expected_result: "result.markdown is the single-call output, no '### Part' heading, no notice; invoker called once."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result['notice'] is None"
+        - "'### Part' not in result['markdown']"
+        - "len(invoker_calls) == 1"
+
+    - case_id: "VT-520-TC-002"
+      case_name: "Multi-partition: deterministic stitch with part headings"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Force a 12-source budget that requires N >= 2 partitions and run call_background."
+          expected_result: "Markdown contains '### Part 1 of N' and '### Part N of N' with each per-part body, plus an HTML sources comment."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "All MAP calls used the standard sbar_background prompt"
+        - "Markdown contains '<!-- sources:'"
+        - "Notice text contains 'summarised them in'"
+
+    - case_id: "VT-520-TC-003"
+      case_name: "Per-part failure is contained and surfaced as background_part_failed"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Force the second MAP call to return an input-too-long error; let the others succeed."
+          expected_result: "Failed part renders the literal '(Background for these records could not be generated. ...)' placeholder; surviving part bodies still appear; result.error_code='background_part_failed'."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "result['error_code'] == 'background_part_failed'"
+        - "'### Part 2 of' in markdown"
+        - "'could not be generated' in markdown"
+
+    - case_id: "VT-520-TC-004"
+      case_name: "No reduce call is ever made"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run a multi-partition call_background with an invoker that asserts on a 'sbar_background_reduce' system prompt."
+          expected_result: "Run completes without the assertion firing; invoker call count equals partition count."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "len(seen_systems) == len(result['parts'])"
+        - "All systems == 'SYSTEM:sbar_background'"
+
+    - case_id: "VT-520-TC-005"
+      case_name: "too_many_parts returns friendly error and does not invoke LLM"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Run call_background with 50 large sources and a tiny budget so >8 parts would be needed."
+          expected_result: "result.error_code='too_many_parts', markdown=='', invoker call count == 0; raw vendor strings absent."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "invoked_count == 0"
+        - "'8 parts' in result['error']"
+        - "'ValidationException' not in result['error']"
+
+    - case_id: "VT-520-TC-006"
+      case_name: "Progress callback fires per part with no reduce phase"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run a multi-partition call_background with a progress callback that records every event."
+          expected_result: "Exactly N started + N completed map events; zero reduce events; each event carries part_index/part_total."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "len(map_started) == len(result['parts'])"
+        - "len(map_completed) == len(result['parts'])"
+        - "reduce_events == []"
+
+    - case_id: "VT-520-TC-007"
+      case_name: "Stitched markdown includes records range and source IDs"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Run a multi-partition call_background and inspect the stitched markdown."
+          expected_result: "Headings include 'records 1' (range start) and every original source ID appears in some sources comment."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "'records 1' in markdown"
+        - "Every input enc-N appears in markdown"
+
+    - case_id: "VT-520-TC-008"
+      case_name: "Partitioner returns one partition when sources fit under budget"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call partition_background_sources with 3 small sources and a generous budget."
+          expected_result: "len(parts) == 1; report.too_many_parts is False; report.notice is None; every source_id in the partition."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "report.total_parts == 1"
+        - "report.too_many_parts is False"
+
+    - case_id: "VT-520-TC-009"
+      case_name: "Partitioner splits multiple parts preserving every source"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call partition_background_sources with 12 large sources and a tight budget."
+          expected_result: "2 <= N <= 8; every source_id appears in some part; per-part user_message includes the part header."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "len(parts) >= 2 and <= 8"
+        - "All input source_ids present across parts (no drop)"
+
+    - case_id: "VT-520-TC-010"
+      case_name: "Hook handles sbar_stage_progress and exposes typed partProgress"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Static-source assertion on services/ui/src/hooks/useSbarStream.ts."
+          expected_result: "Source declares SbarStagePartProgress, an on('sbar_stage_progress') handler, plain-English status string, and no reduce-phase code paths."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "'export interface SbarStagePartProgress' in source"
+        - "'Generating ${stage} (part ${partIndex} of ${partTotal})' in source"
+        - "'phase === \"reduce\"' NOT in source"
+
+    - case_id: "VT-520-TC-011"
+      case_name: "Playground renders per-part progress chip while running"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Static-source assertion on SbarPlayground.tsx."
+          expected_result: "Source renders a chip 'part {i} of {N}' gated on partTotal>1 and status==='running'; chip carries data-testid 'sbar-stage-{stage}-part-progress'."
+          verification_method: "automated"
+      acceptance_criteria:
+        - "'partProgress' in source"
+        - "'sbar-stage-${stage}-part-progress' in source"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-520/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - executed_on: "2026-04-18"
+      executed_by: "agent"
+      environment: "local-dev"
+      result: "pass"
+      notes: >
+        pytest tests/sbar -v -> 46 passed (13 partitioner+stitch
+        cases: TC-001..TC-007 in test_prompt_calls_background_
+        partitioned.py and TC-008..TC-009 in test_background_
+        partitioner.py); jest sbar-playground-chrome -> 15
+        passed (TC-010..TC-011 covered by the new
+        "hook handles sbar_stage_progress" and "playground
+        renders the part progress chip" cases).

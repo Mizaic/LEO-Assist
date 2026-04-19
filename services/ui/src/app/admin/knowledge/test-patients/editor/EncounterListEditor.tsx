@@ -38,6 +38,7 @@ import {
   type EditorCode,
   type EditorEncounter,
 } from "../types";
+import SnomedConceptPicker from "./SnomedConceptPicker";
 
 interface EncounterListEditorProps {
   encounters: EditorEncounter[];
@@ -281,30 +282,17 @@ export default function EncounterListEditor({
                     key={`code-${index}-${codeIndex}`}
                     sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
                   >
-                    <TextField
-                      label="SNOMED ID"
-                      size="small"
-                      value={code.concept_id}
-                      onChange={(event) =>
+                    <SnomedConceptPicker
+                      conceptId={code.concept_id}
+                      term={code.term ?? null}
+                      onChange={(next) =>
                         updateCode(index, codeIndex, {
-                          concept_id: event.target.value.trim(),
+                          concept_id: next.conceptId,
+                          term: next.term,
                         })
                       }
                       disabled={disabled}
-                      sx={{ minWidth: 160 }}
-                      required
-                    />
-                    <TextField
-                      label="Term (optional)"
-                      size="small"
-                      value={code.term ?? ""}
-                      onChange={(event) =>
-                        updateCode(index, codeIndex, {
-                          term: event.target.value,
-                        })
-                      }
-                      disabled={disabled}
-                      sx={{ flex: 1, minWidth: 200 }}
+                      testIdSuffix={`${index}-${codeIndex}`}
                     />
                     <TextField
                       select

@@ -1492,46 +1492,70 @@ under-counting AI spend.
 
 ---
 
-## SBAR Background Shrinker + Plain-English Error Surfacing (April 2026)
+## SBAR Background Partition + Map + Reduce + Plain-English Error Surfacing (April 2026)
 
 This programme contains the "Input is too long for requested model"
-Bedrock failure mode and removes the misleading green "Done (1 errors)"
-button from the AI Summarisation playground. Two changes ship together:
+Bedrock failure mode without ever silently truncating or dropping a
+clinical record, and removes the misleading green "Done (1 errors)"
+button from the AI Summarisation playground. Three changes ship
+together:
 
-1. A pre-emptive token-budget aware shrinker on the SBAR Background
-   stage prompt. The shrinker estimates the assembled prompt's token
-   count, applies progressive per-source character caps
-   (4000 -> 2000 -> 1000 -> 500 -> 250) and, only if the prompt still
-   exceeds the budget at the smallest cap, drops sources from the end
-   until it fits. At least one source is always kept so the prompt
-   never goes empty. Reviewers see a plain-English notice when any
-   trimming happened.
-2. Structured `errors` and `notices` arrays on the SSE wire format
-   plus matching MUI Alerts in the playground. Every `sbar_completed`
-   event now carries `errors` and `notices` arrays of
-   `{stage, code, message}` triples sourced from the friendly
-   translator (no raw vendor strings). Every `sbar_stage_completed`
-   event carries the same shape keyed to the stage. The playground
-   renders a warning Alert with `data-testid="sbar-errors-alert"`
-   and an info Alert with `data-testid="sbar-notices-alert"`, and
-   shifts the result button from green to amber when any stage
-   failed so a partial SBAR cannot be confused with a complete one.
+1. A pre-emptive token-budget aware **partition + map + reduce** flow
+   on the SBAR Background stage. `libs/sbar/background_partitioner`
+   greedy-packs the patient's resolved sources into one or more
+   partitions whose serialised user message fits a per-part budget;
+   oversized single records are split intra-record so even a giant
+   discharge bundle survives without truncation. `call_background`
+   then runs the existing `sbar_background` prompt once per
+   partition (MAP), runs a new strict editor prompt
+   `sbar_background_reduce` exactly once when there are two or more
+   partitions and every MAP succeeded (REDUCE), and falls back to a
+   deterministic stitch ("## Background -- part k of N") with a
+   `reduce_failed` notice on REDUCE failure or per-part MAP failure.
+   The single-partition path is a direct pass-through (one LLM call,
+   no REDUCE) so the legacy success behaviour is preserved when the
+   input fits in one go. A hard 8-part cap bounds cost and latency;
+   if more parts would be required the system refuses with a
+   `too_many_parts` error rather than dropping records.
+2. The reduce prompt
+   (`libs/prompts/sbar_background_reduce_v1.SBAR_BACKGROUND_REDUCE_SYSTEM_V1`)
+   is a strict editor with six HARD RULES (NO NEW FACTS, NO LOSS,
+   PRESERVE DATES / MEDICATIONS / VALUES verbatim, DEDUPE LITERAL
+   DUPLICATES ONLY, PRESERVE CITATIONS, EDITOR-NOT-CLINICIAN). It is
+   registered at version 1 in the prompt registry and gated on
+   all-MAP-succeeded so it can never run over a poisoned input set.
+3. Structured `errors`, `notices`, and `parts` arrays on the SSE
+   wire format plus matching MUI Alerts and per-part progress Chips
+   in the playground. Every `sbar_completed` event now carries
+   `errors` and `notices` arrays of `{stage, code, message}` triples
+   sourced from the friendly translator (no raw vendor strings),
+   plus a `parts` summary for the Background stage. A new
+   `sbar_stage_progress` event streams per-part / per-phase progress
+   so the playground shows live "Generating Background, part 2 of
+   5..." chips. The result button shifts from green to amber when
+   any stage failed so a partial SBAR cannot be confused with a
+   complete one.
 
 | Artefact | ID | Status | Description |
 |----------|----|--------|-------------|
-| User Need | UN-LEO-AI-095 | approved | Reviewers can run SBAR on patients with large records and still get an output. When something does go wrong they see a plain-English explanation (UK reading age 9-11) of which section did not finish and what to try next, never a raw AWS error. |
-| Design Input | DI-LEO-AI-513 | draft | Token-budget aware SBAR background prompt shrinker + friendly Bedrock error translator. `libs/sbar/background_shrinker.shrink_background_context()` returns a `(serialised_user_message, ShrinkReport)` pair where the report carries `original_source_count`, `kept_source_count`, `dropped_source_ids`, `per_source_char_cap`, `estimated_input_tokens` and a plain-English `notice` (or `None` when no trimming occurred). `libs/sbar/error_messages.translate_error()` maps Bedrock failure modes (input_too_long / throttled / access_denied / network / missing_section / unknown) to friendly stage-aware messages. `libs/sbar/prompt_calls.call_background` invokes the shrinker before `invoke_llm_json`, threads the notice through, and translates any returned error. `call_situation` and `call_recommendation` use the same translator. |
-| Design Input | DI-LEO-AI-516 | draft | Surface SBAR run errors and notices to the reviewer (SSE + UI). The orchestrator emits structured `errors` and `notices` arrays on every `sbar_completed` event (always present, empty when nothing happened), plus per-stage `error` and `notice` keys on every `sbar_stage_completed` event. Each item is a `{stage, code, message}` triple where `code` is from the translator vocabulary and `message` is plain English at reading age 9-11 (no `ValidationException` / `Converse` / AWS request id substrings). The /admin/knowledge AI Summarisation playground renders an MUI Alert `severity="warning"` with `data-testid="sbar-errors-alert"` when errors are present, an Alert `severity="info"` with `data-testid="sbar-notices-alert"` when notices are present, and demotes the "View full SBAR" result button from `colour="success"` to `colour="warning"` with a label that names the failed-section count in plain English. |
-| Design Output | DO-LEO-AI-515 | draft | `libs/sbar/background_shrinker.py` (`shrink_background_context`, `ShrinkReport`, `_estimate_tokens`) + `libs/sbar/error_messages.py` (`translate_error`, `KNOWN_ERROR_CODES`, `background_trimmed_notice`) + `libs/sbar/prompt_calls.py` updates to `call_background` (uses shrinker + translator), `call_situation` and `call_recommendation` (use translator). |
-| Design Output | DO-LEO-AI-516 | draft | `services/pipeline_worker/app/services/sbar_orchestrator.py` (`SBAResult.errors_detail` / `notices`, `_record_stage_error`, `_record_background_notice`, `sbar_completed` and `sbar_stage_completed` payload changes) + `services/ui/src/hooks/useSbarStream.ts` (`SbarErrorDetail` / `SbarNotice` types, `SbarStreamState.errors` / `notices`, `Array.isArray` reads from `d.errors` / `d.notices`) + `services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx` (`sbar-errors-alert` + `sbar-notices-alert` Alerts, dynamic result button colour). |
-| Risk | R-LEO-AI-185 | analyzed | (Updated mitigations) Adds a 4th mitigation to the existing playground risk: pre-emptive shrinker plus structured errors / notices on the wire and warning / info Alerts in the playground. The result button shifts from green to amber when any stage failed so a partial SBAR can no longer be confused with a complete one. Implemented_by includes DI-LEO-AI-513 and DI-LEO-AI-516; verified_by includes VT-LEO-AI-514. |
-| Risk | R-LEO-AI-510 | analyzed | A reviewer mistakes a partially-failed SBAR for a complete one because errors are hidden behind a green "Done" button. Mitigated by the shrinker (removes the dominant cause), structured errors / notices on the wire (DI-LEO-AI-516), the warning Alert + amber button in the playground, and the translator-only message text invariant. Initial RPN 36 (high) -> residual RPN 6 (low). |
-| Verification Test | VT-LEO-AI-514 | passed | 9/9 cases. Run 1: `python3 -m pytest tests/sbar/ tests/test_sbar_orchestrator.py` -- 33 tests passed in 0.77s covering TC-001 (shrinker no-op under budget), TC-002 (progressive cap then drop, always-keep-one invariant), TC-003 (`call_background` threads notice on success), TC-004 (friendly error after Bedrock validation failure, no `ValidationException` substring), TC-005 (translator covers four known modes + missing_section + unknown fallback, plus safe-message and stage-noun invariants), TC-006 / TC-007 (`sbar_completed` carries structured `errors` / `notices` arrays and the matching `sbar_stage_completed` background event carries the per-stage error / notice with no raw AWS strings). Run 2: `cd services/ui && npx jest --no-coverage --testPathPatterns "sbar-playground-chrome"` -- TC-008 ('hook exposes errors and notices arrays populated from `sbar_completed`') and TC-009 (Playground renders `sbar-errors-alert` + `sbar-notices-alert` and the result button shifts to `colour='warning'` when errors are present, plus the negative invariant that no raw `ValidationException` / `Converse operation` substring appears in the playground source). |
+| User Need | UN-LEO-AI-095 | approved | Big patient records still produce a useful SBAR, no clinical record is silently truncated or dropped to make space (the work is split across multiple LLM calls and merged back), and any failure is explained in plain English (UK reading age 9-11) naming which section / which part did not finish, never a raw AWS error. |
+| Design Input | DI-LEO-AI-513 | superseded | [SUPERSEDED by DI-LEO-AI-522] Original "partition + map + reduce" Background design. The reduce LLM call was retired in favour of a pure-Python deterministic stitch so no clinical fact can be lost or invented during merge (R-LEO-AI-511 mitigated by design). |
+| Design Input | DI-LEO-AI-522 | draft | SBAR Background partition + map + deterministic stitch (NO REDUCE LLM call). `libs/sbar/background_partitioner.partition_background_sources()` bin-packs `ResolvedSource` records into N <= 8 `Partition` objects respecting a per-part token budget; single oversized records are split intra-record with `part_in_record` metadata; the partitioner refuses cleanly with `too_many_parts` when N would exceed 8. `libs/sbar/prompt_calls.call_background` calls the standard `sbar_background` prompt once per Partition (sequentially) with a per-part progress callback; per-part failures render as a placeholder body that points the reviewer at the errors panel while surviving parts still land. `_stitch_partials_deterministic` concatenates partials under `### Part {i} of {N} -- records {a}-{b}` headings with one `<!-- sources: id1, id2, ... -->` HTML comment per part for traceability. There is intentionally NO second LLM call to merge partials; the merge is pure Python. The orchestrator emits an `sbar_stage_progress` SSE event per part and the SBAR Playground renders a "part i of N" chip on the Background stage card while running. |
+| Design Input | DI-LEO-AI-516 | draft | Surface SBAR run errors, notices, parts, and per-part progress to the reviewer (SSE + UI). The orchestrator emits structured `errors` and `notices` arrays on every `sbar_completed` event, per-stage `error` / `notice` / `parts` keys on every `sbar_stage_completed` event, and a new `sbar_stage_progress` event per Background part / phase (`{phase, part_index, part_total, record_count, status}`) so the playground shows live "Generating Background, part 2 of 5" progress. The /admin/knowledge AI Summarisation playground renders an MUI Alert `severity="warning"` with `data-testid="sbar-errors-alert"`, an Alert `severity="info"` with `data-testid="sbar-notices-alert"`, per-part progress / reduce / parts-summary Chips (`sbar-part-progress-${stage}`, `sbar-reduce-progress-${stage}`, `sbar-parts-summary-${stage}`), and demotes the "View full SBAR" result button from `colour="success"` to `colour="warning"` when errors are present. |
+| Design Input | DI-LEO-AI-521 | superseded | [SUPERSEDED by DI-LEO-AI-522] Duplicate of DI-LEO-AI-518; both retired when the reduce LLM step was removed in favour of pure-Python deterministic stitching. |
+| Design Output | DO-LEO-AI-521 | draft | `libs/sbar/background_partitioner.py` (`partition_background_sources`, `_split_oversize_source`, `Partition`, `PartitionReport`, `_SourceSlice` with `record_index` / `record_range`) + `libs/sbar/prompt_calls.py` (`call_background` uses partitioner + per-part map + deterministic stitch + `progress_cb`; `_invoke_background_part`, `_stitch_partials_deterministic` writes `### Part {i} of {N} -- records {a}-{b}` headings with `<!-- sources: ... -->` comments) + `services/pipeline_worker/app/services/sbar_orchestrator.py` (`sbar_stage_progress` emission, `parts` payload, per-part FriendlyError stage labels via `background_part_failed_error`) + `libs/sbar/error_messages.py` (`background_part_failed_error`, `background_partition_overflow_error`). |
+| Design Output | DO-LEO-AI-516 | draft | `services/pipeline_worker/app/services/sbar_orchestrator.py` (`SBAResult.errors_detail` / `notices`, `_record_stage_error`, `_record_background_notices`, `_record_background_part_errors`, `sbar_stage_progress` emission, `sbar_completed` and `sbar_stage_completed` payload changes including `parts` summary) + `services/ui/src/hooks/useSbarStream.ts` (`SbarErrorDetail` / `SbarNotice` / `SbarStagePart` / `SbarStagePartProgress` types, `SbarStageState.parts` / `partProgress` fields, `on('sbar_stage_progress')` handler) + `services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx` (`sbar-errors-alert` + `sbar-notices-alert` Alerts; per-stage `sbar-part-progress`, `sbar-reduce-progress`, `sbar-parts-summary` Chips; dynamic result button colour). |
+| Design Output | DO-LEO-AI-522 | draft | `libs/prompts/sbar_background_reduce_v1.py::SBAR_BACKGROUND_REDUCE_SYSTEM_V1` (six HARD RULES system prompt) + `scripts/seed_prompt_configs.py` (registers `sbar_background_reduce@1`) + `libs/sbar/prompt_calls.py::_try_reduce_partials` (single reduce invocation per multi-part successful run; `_serialise_background_reduce_context` user-message serialiser). |
+| Risk | R-LEO-AI-185 | analyzed | (Updated mitigations) Adds a 4th mitigation to the existing playground risk: token-budget aware partition + map + reduce flow plus structured errors / notices / per-part progress on the wire and warning / info Alerts + per-part Chips in the playground. The result button shifts from green to amber when any stage failed. Implemented_by includes DI-LEO-AI-513, DI-LEO-AI-516, and DI-LEO-AI-521; verified_by includes VT-LEO-AI-514. |
+| Risk | R-LEO-AI-510 | analyzed | A reviewer mistakes a partially-failed SBAR for a complete one because errors are hidden behind a green "Done" button. Mitigated by the partition + map + deterministic stitch flow (DI-LEO-AI-522 -- removes the dominant cause without dropping records), structured errors / notices on the wire (DI-LEO-AI-516), per-part `sbar_stage_progress` SSE events, the warning Alert + amber button in the playground, and the translator-only message text invariant. Initial RPN 36 (high) -> residual RPN 6 (low). |
+| Risk | R-LEO-AI-511 | mitigated (by design) | The original Background reduce LLM step could silently lose a clinical fact or invent one when merging partial Backgrounds. Mitigated by removing the reduce step entirely: DI-LEO-AI-522 stitches partials in pure Python under `### Part {i} of {N} -- records {a}-{b}` headings with `<!-- sources: ... -->` comments. Verified by VT-LEO-AI-520 (no-reduce-call invariant + deterministic stitch). Residual risk reduced to low (only nondeterminism is per-part LLM variation, contained per partition). |
+| Verification Test | VT-LEO-AI-514 | passed | (Original suite -- now subsumed by VT-LEO-AI-520 for the no-reduce flow.) 18/18 cases on the legacy partition + map + reduce design. Retained for historical evidence. |
+| Verification Test | VT-LEO-AI-520 | draft | New suite for DI-LEO-AI-522. `tests/sbar/test_background_partitioner.py` (record_index / record_range invariants) + `tests/sbar/test_prompt_calls_background_partitioned.py` (single-part parity, multi-part deterministic stitching with `### Part {i} of {N} -- records {a}-{b}` headings + `<!-- sources: ... -->` comments, per-part failure containment, no-reduce-call invariant, too_many_parts refusal, progress_cb emission) + `services/ui/src/__tests__/sbar-playground-chrome.test.tsx` (sbar_stage_progress chip rendering, no "reduce" phase mentions). |
 
 | Artefact | ID | Risk | VT |
 |----------|----|------|-----|
-| DI-LEO-AI-513 | Token-budget aware SBAR background shrinker + friendly error translator (UN-LEO-AI-095). | R-LEO-AI-185, R-LEO-AI-510 | VT-LEO-AI-514 |
-| DI-LEO-AI-516 | Structured SBAR errors / notices on SSE + Playground surfacing (UN-LEO-AI-095). | R-LEO-AI-185, R-LEO-AI-510 | VT-LEO-AI-514 |
+| DI-LEO-AI-516 | Structured SBAR errors / notices / parts / progress on SSE + Playground surfacing (UN-LEO-AI-095). | R-LEO-AI-185, R-LEO-AI-510 | VT-LEO-AI-514 |
+| DI-LEO-AI-522 | SBAR Background partition + map + deterministic stitch (NO REDUCE LLM call) (UN-LEO-AI-095). Supersedes DI-LEO-AI-513, DI-LEO-AI-518, DI-LEO-AI-521. | R-LEO-AI-510, R-LEO-AI-511 | VT-LEO-AI-520 |
 
 ---
 

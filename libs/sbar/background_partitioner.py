@@ -23,7 +23,9 @@ unbounded number of LLM calls.
 Pure function -- no LLM calls, no Neo4j queries. Safe to call from
 tests and from the prompt-call layer.
 
-See DI-LEO-AI-513 / DI-LEO-AI-517 / DO-LEO-AI-515 / DO-LEO-AI-517.
+See DI-LEO-AI-522 / DO-LEO-AI-521 / VT-LEO-AI-520. Supersedes the
+shrink-or-drop strategy described in DI-LEO-AI-513 and the
+reduce-prompt step described in DI-LEO-AI-518 / DI-LEO-AI-521.
 """
 
 from __future__ import annotations
@@ -51,6 +53,13 @@ _CHARS_PER_TOKEN = 3.6
 # single-part run is byte-for-byte identical to the historical
 # Background prompt.
 _PER_SOURCE_CHAR_CAP = 4000
+
+
+# Progressive per-source caps, shared with the corner-case shrinker
+# fallback in ``libs/sbar/background_shrinker.py``. The first entry
+# matches ``_PER_SOURCE_CHAR_CAP`` so an under-budget run is a no-op
+# in both modules.
+_PROGRESSIVE_CAPS: tuple[int, ...] = (4000, 2000, 1000, 500, 250)
 
 
 # Reserved budget for the system prompt + model overhead (header,
@@ -117,12 +126,16 @@ class _SourceSlice:
     For the common case (record fits in one partition at the 4000-
     char cap) ``slice_index`` and ``slice_total`` are both 1 and
     ``text`` is the full sanitised text capped at 4000 chars.
+    ``record_index`` is the 1-based position of the parent source
+    in the original input list and is what the stitched Background
+    headings render as ``records {a}-{b}``.
     """
 
     source: ResolvedSource
     text: str
     slice_index: int = 1  # 1-indexed
     slice_total: int = 1
+    record_index: int = 0  # 1-indexed position in input source list
 
     @property
     def source_id(self) -> str:
@@ -147,6 +160,7 @@ class PartitionDescriptor:
     slice_index: int
     slice_total: int
     char_count: int
+    record_index: int = 0  # 1-indexed position in original sources
 
 
 @dataclass
@@ -156,7 +170,9 @@ class Partition:
     ``user_message`` is ready to pass to ``invoke_llm_json``. It uses
     the same JSON-in-fence shape as the legacy single-call Background
     user message so the existing system prompt does not need to
-    change.
+    change. ``record_range`` is (start, end) 1-based positions of the
+    original input records covered by this partition; used for the
+    stitched ``### Part i of N -- records {a}-{b}`` headings.
     """
 
     index: int  # 1-indexed
@@ -164,6 +180,7 @@ class Partition:
     user_message: str
     descriptors: list[PartitionDescriptor]
     estimated_input_tokens: int
+    record_range: tuple[int, int] = (0, 0)
 
 
 @dataclass

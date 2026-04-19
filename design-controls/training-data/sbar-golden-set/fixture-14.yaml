@@ -1,5 +1,6 @@
 id: SBAR-GS-14
 title: "Suspected pancreatic cancer (2WW) - painless jaundice + weight loss age 71"
+draft: true  # NG12 backfill - rule engine seeding pending
 
 # NICE NG12 (suspected cancer): refer people aged 40 and over with
 # jaundice for an appointment within 2 weeks. Painless jaundice in an

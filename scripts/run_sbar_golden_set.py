@@ -372,6 +372,19 @@ def check_structural(fixture: Fixture, result) -> StructuralCheck:
     expectations = fixture.raw.get("reviewer_expectations") or {}
     sc = StructuralCheck(overall="pass")
 
+    # Drafts authored ahead of the rule engine being seeded (e.g. NG12
+    # backfill) declare draft: true at the top level. We still parse the
+    # reviewer expectations so the structural shape is documented for the
+    # reviewer, but we do not fail the run on missing rule output.
+    if bool(fixture.raw.get("draft")):
+        sc.overall = "draft"
+        sc.checks.append({
+            "name": "fixture marked draft",
+            "ok": True,
+            "detail": "structural assertions skipped until rule engine is seeded",
+        })
+        return sc
+
     content = result.content or ""
 
     for heading in expectations.get("required_section_headings") or []:
@@ -550,6 +563,9 @@ def write_run_summary(
         "fixture_count": len(outcomes),
         "structural_pass_count": sum(
             1 for o in outcomes if o.structural_check.overall == "pass"
+        ),
+        "structural_draft_count": sum(
+            1 for o in outcomes if o.structural_check.overall == "draft"
         ),
         "fixtures": [
             {

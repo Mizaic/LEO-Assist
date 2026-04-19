@@ -1,0 +1,108 @@
+# -- DO-LEO-AI-522 -- SBAR background reduce prompt (lossless editor)
+# ISO 13485 / IEC 62304 Design Output
+
+- id: "DO-LEO-AI-522"
+  version: "1.0.0"
+  type: "Algorithm"
+  status: "draft"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-521"]
+    user_needs: ["UN-LEO-AI-095"]
+    risks_addressed:
+      - "R-LEO-AI-185"
+      - "R-LEO-AI-511"
+    verification_tests: ["VT-LEO-AI-514"]
+
+  specification:
+    title: "sbar_background_reduce v1 system prompt + registry wiring"
+    description: |
+      Provides the dedicated ``sbar_background_reduce`` LLM prompt
+      that merges two or more partial Background sections produced
+      by the partition + map step (DO-LEO-AI-521) into a single
+      coherent Background section.
+
+      The system prompt
+      (``libs/prompts/sbar_background_reduce_v1
+      .SBAR_BACKGROUND_REDUCE_SYSTEM_V1``) imposes six hard
+      editorial rules:
+
+        1. NO NEW FACTS -- never add a clinical fact, date,
+           medication, dose, or value not present in any input part.
+        2. NO LOSS -- every clinical fact in any input part MUST
+           appear in the merged output unless it is a literal
+           duplicate.
+        3. PRESERVE DATES, MEDICATIONS, AND VALUES verbatim
+           (including units).
+        4. DEDUPE LITERAL DUPLICATES ONLY (character-for-character
+           equal after whitespace normalisation).
+        5. PRESERVE CITATIONS -- inline document / encounter ID
+           markers from the input parts are preserved.
+        6. EDITOR-NOT-CLINICIAN -- the LLM is told it is an editor
+           and MUST NOT invent synthesis, "tidying", or paraphrasing
+           that adds interpretation.
+
+      The prompt is registered at version 1 in the Neo4j prompt
+      registry by
+      ``scripts/seed_prompt_configs.py`` against the existing
+      ``SBAR_BACKGROUND_OUTPUT_SCHEMA`` so the response shape is
+      identical to the per-part Background prompt and consumers
+      (call_background, the playground) can treat reduce output as
+      a drop-in replacement for a single-part Background result.
+
+      ``call_background`` invokes this prompt exactly once per run,
+      only when there are two or more partitions and every MAP call
+      succeeded. On failure the deterministic stitch (DO-LEO-AI-521)
+      takes over and a ``reduce_failed`` notice is surfaced --
+      reduce never invents content.
+
+    acceptance_criteria:
+      - criterion: "All six hard rules appear verbatim in the system prompt"
+        type: "safety"
+        measurement: "Inspection"
+        target: "Static-source assertions on SBAR_BACKGROUND_REDUCE_SYSTEM_V1 for each rule keyword"
+      - criterion: "Prompt is registered at version 1 in the seed script"
+        type: "functional"
+        measurement: "Test"
+        target: "scripts/seed_prompt_configs.py contains an entry for sbar_background_reduce@1 referencing SBAR_BACKGROUND_REDUCE_SYSTEM_V1 and SBAR_BACKGROUND_OUTPUT_SCHEMA"
+      - criterion: "Reduce is called exactly once per multi-part run"
+        type: "functional"
+        measurement: "Test"
+        target: "test_multi_partition_runs_map_then_reduce_when_all_parts_succeed records 1 reduce invocation when N >= 2 and all MAP succeeded"
+
+  implementation:
+    artifacts:
+      - artifact_type: "source_code"
+        location: "libs/prompts/sbar_background_reduce_v1.py"
+        description: "SBAR_BACKGROUND_REDUCE_SYSTEM_V1 system prompt"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "scripts/seed_prompt_configs.py"
+        description: "Registers sbar_background_reduce@1 in the Neo4j prompt registry"
+        storage_location: "git"
+      - artifact_type: "source_code"
+        location: "libs/sbar/prompt_calls.py"
+        description: "_try_reduce_partials invokes the reduce prompt once per multi-part run"
+        storage_location: "git"
+    technical_details:
+      language: "Python"
+      loc: 100
+      key_functions:
+        - "SBAR_BACKGROUND_REDUCE_SYSTEM_V1 (system prompt constant)"
+        - "_try_reduce_partials (call_background helper)"
+        - "_serialise_background_reduce_context"
+
+  safety_characteristics:
+    safety_class: "B"
+    safety_critical_functions:
+      - "Reduce prompt MUST NOT introduce new facts, MUST preserve dates / meds / values verbatim, MAY only dedupe literal duplicates"
+      - "Deterministic stitch fallback (DO-LEO-AI-521) bounds the worst case if the editor LLM itself fails or hallucinates -- the stitched output is then a faithful concatenation of the per-part markdowns"
+    risk_control_measures:
+      - "System prompt explicitly tells the model it is an editor and not a clinician"
+      - "No-new-facts and preserve-verbatim rules are stated as HARD RULES in the system message"
+      - "Reduce is gated on all-MAP-succeeded so a single failed MAP cannot poison the merged narrative"
+      - "Reduce invocation count is asserted in unit tests (must be exactly 1 per multi-part successful run)"
+
+  verification_status:
+    verification_method: "Test"
+    verification_complete: false

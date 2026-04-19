@@ -21,7 +21,6 @@ from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.prompts.registry import get_prompt
 from libs.sbar.background_partitioner import (
     Partition,
-    PartitionReport,
     partition_background_sources,
 )
 from libs.sbar.error_messages import translate_error

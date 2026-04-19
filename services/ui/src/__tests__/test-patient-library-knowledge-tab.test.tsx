@@ -224,21 +224,84 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     );
   });
 
-  test("TC-014: EncounterListEditor renders SNOMED / term / assertion + add button", () => {
+  test("TC-014: EncounterListEditor delegates the SNOMED + term inputs to SnomedConceptPicker", () => {
     const src = read(
       "services/ui/src/app/admin/knowledge/test-patients/editor/EncounterListEditor.tsx",
     );
-    expect(src).toMatch(/SNOMED ID/);
-    expect(src).toMatch(/Term \(optional\)/);
+    // The standalone SNOMED ID + Term TextFields are gone; the editor
+    // now delegates to the terminology-backed picker so a code typed
+    // here is guaranteed to exist in the knowledge graph.
+    expect(src).toMatch(
+      /import SnomedConceptPicker from "\.\/SnomedConceptPicker"/,
+    );
+    expect(src).toMatch(/<SnomedConceptPicker/);
+    expect(src).toMatch(/conceptId=\{code\.concept_id\}/);
+    expect(src).toMatch(/term=\{code\.term \?\? null\}/);
+    expect(src).toMatch(/testIdSuffix=\{`\$\{index\}-\$\{codeIndex\}`\}/);
+    // The label "SNOMED ID" and the standalone "Term (optional)"
+    // textfield are no longer rendered from the encounter editor --
+    // the picker owns that copy now.
+    expect(src).not.toMatch(/label="SNOMED ID"/);
+    expect(src).not.toMatch(/label="Term \(optional\)"/);
+    // Assertion select + add buttons + date / source field controls
+    // are still owned by the encounter editor.
     expect(src).toMatch(/label="Assertion"/);
     expect(src).toMatch(/Add code/);
     expect(src).toMatch(/Add note/);
-    // The component must surface the date and source fields when
-    // the parent enables them so Episodes / SBAR can show timelines.
     expect(src).toMatch(/showDate/);
     expect(src).toMatch(/showSource/);
-    // Audience standard: no IT jargon in primary copy.
     expect(src).not.toMatch(/encounter_id/);
+  });
+
+  test("TC-028: SnomedConceptPicker calls /api/terminology/search and is debounced + free-solo", () => {
+    const picker = read(
+      "services/ui/src/app/admin/knowledge/test-patients/editor/SnomedConceptPicker.tsx",
+    );
+    // Uses the shared terminology helper from the test-patients api module
+    // so the endpoint is the SAME one the rule editor and the operations
+    // console use -- no parallel codepath that could drift.
+    expect(picker).toMatch(
+      /import \{ searchTerminology, type TerminologyHit \} from "\.\.\/api"/,
+    );
+    expect(picker).toMatch(/searchTerminology\(trimmed\)/);
+    // Debounce matches ConceptSearchPanel (250ms) so we do not hammer
+    // the terminology service while the reviewer is still typing, and
+    // a stale request guard prevents an old response overwriting a new
+    // selection.
+    expect(picker).toMatch(/DEBOUNCE_MS = 250/);
+    expect(picker).toMatch(/window\.setTimeout/);
+    expect(picker).toMatch(/reqRef\.current/);
+    // freeSolo lets a reviewer paste a known SNOMED id directly so we
+    // do not trap them behind a forced lookup when they already know
+    // the code.
+    expect(picker).toMatch(/freeSolo/);
+    // Audience standard: plain-English label + placeholder, and the
+    // helper text explains that picking a result keeps the id and the
+    // term in sync.
+    expect(picker).toMatch(/label="Clinical term"/);
+    expect(picker).toMatch(
+      /placeholder="Search a clinical term, like cough or weight loss"/,
+    );
+    expect(picker).toMatch(/SNOMED \{hit\.snomed_concept_id\}/);
+    expect(picker).toMatch(/"data-testid":\s*dataTestId/);
+  });
+
+  test("TC-029: searchTerminology helper hits /api/terminology/search and rejects empty queries", () => {
+    const api = read(
+      "services/ui/src/app/admin/knowledge/test-patients/api.ts",
+    );
+    expect(api).toMatch(
+      /export async function searchTerminology\(\s*q: string,\s*limit\s*=\s*15,?\s*\)/,
+    );
+    expect(api).toMatch(/\/api\/terminology\/search\?\$\{params\}/);
+    // Short queries are short-circuited client-side so we do not waste
+    // a round-trip while the reviewer is still typing the first letter.
+    expect(api).toMatch(/if \(trimmed\.length < 2\) return \[\]/);
+    // The hit shape matches the existing legacy.searchTerms response so
+    // the same backend contract is exercised by both surfaces.
+    expect(api).toMatch(/snomed_concept_id: string/);
+    expect(api).toMatch(/term: string/);
+    expect(api).toMatch(/semantic_tag\?: string/);
   });
 
   test("TC-015: ExpectedSbarEditor surfaces S/B/A/R + must-include / must-not-say lists", () => {
@@ -501,6 +564,55 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(page).toMatch(
       /<ScaffoldFromScenarioDialog[\s\S]*?onScaffolded=\{\(newPatientId\)\s*=>[\s\S]*?setEditingId\(newPatientId\)/,
     );
+  });
+
+  test("TC-025: api client + types expose the triage outcome filter", () => {
+    const api = read(
+      "services/ui/src/app/admin/knowledge/test-patients/api.ts",
+    );
+    expect(api).toMatch(/TriageOutcome,/);
+    expect(api).toMatch(/TriageOutcomeCounts,/);
+    expect(api).toMatch(/triage_outcome\?:\s*TriageOutcome/);
+    expect(api).toMatch(
+      /params\.triage_outcome[\s\S]*?qs\.set\("triage_outcome",\s*params\.triage_outcome\)/,
+    );
+    expect(api).toMatch(/getTriageOutcomeCounts\(\):\s*Promise<TriageOutcomeCounts>/);
+    expect(api).toMatch(/\/triage-outcome-counts/);
+  });
+
+  test("TC-026: triage outcome vocabulary is plain English and matches the backend", () => {
+    const types = read(
+      "services/ui/src/app/admin/knowledge/test-patients/types.ts",
+    );
+    expect(types).toMatch(
+      /TRIAGE_OUTCOME_VALUES\s*=\s*\[\s*"all",\s*"2ww",\s*"urgent",\s*"routine",\s*"no_rule_fired",\s*"evaluator_outage",\s*"unset",?\s*\]/,
+    );
+    expect(types).toMatch(/"2ww":\s*"2 week wait \(suspected cancer\)"/);
+    expect(types).toMatch(/no_rule_fired:\s*"No rule fired"/);
+    expect(types).toMatch(/evaluator_outage:\s*"Evaluator outage"/);
+    expect(types).toMatch(/NICE NG12 suspected-cancer referrals/);
+    expect(types).toMatch(
+      /triage_outcome:\s*Exclude<TriageOutcome,\s*"all">\s*\|\s*null/,
+    );
+  });
+
+  test("TC-027: page wires the triage chip group, fetches counts, and resets on aspect switch", () => {
+    const page = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    expect(page).toMatch(/triageOutcome,\s*setTriageOutcome/);
+    expect(page).toMatch(/showsTriageFilter\(aspect\)/);
+    expect(page).toMatch(/if \(!showsTriageFilter\(next\)\)\s*setTriageOutcome\("all"\)/);
+    expect(page).toMatch(/data-testid=\{`triage-chip-\$\{value\}`\}/);
+    expect(page).toMatch(/TRIAGE_OUTCOME_HINT\[value\]/);
+    expect(page).toMatch(/TRIAGE_OUTCOME_LABEL\[value\]/);
+    expect(page).toMatch(
+      /listTestPatients\(\{\s*aspect,\s*triage_outcome:\s*outcomeForList\s*\}\)/,
+    );
+    expect(page).toMatch(/getTriageOutcomeCounts\(\)/);
+    expect(page).toMatch(/id:\s*"triage_outcome"/);
+    expect(page).toMatch(/header:\s*"Triage outcome"/);
+    expect(page).toMatch(/row\.triage_outcome === "2ww"[\s\S]*?\?\s*"error"/);
   });
 
   test("TC-006: legacy /admin/guidance/test-patients route file is removed", () => {

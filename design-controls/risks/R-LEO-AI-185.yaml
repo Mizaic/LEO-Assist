@@ -86,21 +86,29 @@
       effectiveness: "partially_effective"
     - control_type: "design_feature"
       description: >
-        Pre-emptive token-budget aware shrinker (DI-LEO-AI-513)
-        prevents the most common cause of silent partial SBARs
-        (Bedrock 'Input is too long for requested model'
-        ValidationException on the Background stage) by trimming
-        per-source text and dropping the lowest-priority sources
-        before the LLM call, with a plain-English notice surfaced
-        to the reviewer. Structured errors[] and notices[]
-        (DI-LEO-AI-516) are emitted on every sbar_completed and
-        sbar_stage_completed SSE event and rendered in the
-        playground as warning / info Alerts; the result button
-        shifts from green to amber when any stage failed so the
-        visual signal matches the run state and a partial SBAR can
-        no longer be confused with a complete one. See R-LEO-AI-510
-        for the dedicated risk record.
-      implemented_by: ["DI-LEO-AI-513", "DI-LEO-AI-516"]
+        Token-budget aware partition + map + reduce flow
+        (DI-LEO-AI-513 + DI-LEO-AI-521) prevents the most common
+        cause of silent partial SBARs (Bedrock 'Input is too long
+        for requested model' ValidationException on the Background
+        stage) by splitting the patient's records across multiple
+        sequential LLM calls and merging the partial Backgrounds
+        with a strict editor prompt. No record is silently
+        truncated or dropped; if the run would need more than 8
+        parts the partitioner refuses with a plain-English error
+        rather than dropping records. Structured errors[] and
+        notices[] (DI-LEO-AI-516) are emitted on every
+        sbar_completed and sbar_stage_completed SSE event and
+        rendered in the playground as warning / info Alerts; the
+        result button shifts from green to amber when any stage
+        failed so the visual signal matches the run state and a
+        partial SBAR can no longer be confused with a complete one.
+        See R-LEO-AI-510 (silent partial SBAR) and R-LEO-AI-511
+        (reduce-step loss / hallucination) for the dedicated risk
+        records.
+      implemented_by:
+        - "DI-LEO-AI-513"
+        - "DI-LEO-AI-516"
+        - "DI-LEO-AI-521"
       verified_by: ["VT-LEO-AI-514"]
       effectiveness: "effective"
 

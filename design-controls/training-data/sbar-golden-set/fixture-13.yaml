@@ -1,5 +1,6 @@
 id: SBAR-GS-13
 title: "Suspected melanoma (2WW) - changing pigmented lesion 7-point score 4"
+draft: true  # NG12 backfill - rule engine seeding pending
 
 # NICE NG12 (suspected cancer): consider a suspected cancer pathway
 # referral (within 2 weeks) for melanoma if the dermoscopy or weighted

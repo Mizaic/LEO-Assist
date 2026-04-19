@@ -49,10 +49,24 @@ import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 
 import { friendlyTerm } from "./copy";
 
+/**
+ * The terminology API returns rows shaped like:
+ *   { snomed_concept_id, term, semantic_tag, surface_form_count?, surface_forms? }
+ * (see DESCENDANTS_TEMPLATE in services/api/app/models/neo4j_schema.py
+ *  -- d.fsn AS term).
+ *
+ * We accept ``preferred_term`` too so other callers / mocks that use the
+ * search-endpoint shape keep working.
+ */
 interface DescendantRow {
   snomed_concept_id: string;
-  preferred_term: string;
+  term?: string;
+  preferred_term?: string;
   semantic_tag?: string;
+}
+
+function rowTerm(r: DescendantRow): string {
+  return r.preferred_term || r.term || "";
 }
 
 interface Props {
@@ -284,7 +298,7 @@ function DescendantRowView({
   onBlock: (conceptId: string) => void;
   onUnblock: (conceptId: string) => void;
 }) {
-  const friendly = friendlyTerm(row.preferred_term);
+  const friendly = friendlyTerm(rowTerm(row)) || `code ${row.snomed_concept_id}`;
   return (
     <Stack
       direction="row"

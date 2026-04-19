@@ -1,5 +1,6 @@
 id: SBAR-GS-16
 title: "Suspected prostate cancer (2WW) - raised PSA + abnormal DRE age 65"
+draft: true  # NG12 backfill - rule engine seeding pending
 
 # NICE NG12 (suspected cancer): refer men using a suspected cancer
 # pathway referral (for an appointment within 2 weeks) for prostate

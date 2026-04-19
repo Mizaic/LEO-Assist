@@ -27,7 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
-from app.deps import require_admin
+from app.deps import require_admin, require_admin_or_service
 from app.services import (
     test_patient_clone,
     test_patient_generator,
@@ -992,9 +992,17 @@ def generate_patients(
 
 @router.post("/test-patients/replay")
 def replay(
-    body: ReplayRequest, scope: CallerScope = Depends(require_admin)
+    body: ReplayRequest,
+    scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict:
-    """Replay saved patients and diff against their snapshots."""
+    """Replay saved patients and diff against their snapshots.
+
+    Accepts either an admin session cookie (admin UI) or a valid
+    SERVICE_AUTH_SECRET Bearer token, so the post-compile hook in
+    terminology-api (DI-LEO-AI-167) can replay test patients without a
+    user session. Internal-network call only -- shared secret is the
+    authentication boundary.
+    """
     _ = scope
     client = _client()
     try:

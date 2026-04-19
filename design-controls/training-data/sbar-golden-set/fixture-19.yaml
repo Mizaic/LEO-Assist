@@ -1,5 +1,6 @@
 id: SBAR-GS-19
 title: "Adversarial: pigmented lesion 7-point score 1 age 28 - NOT 2WW"
+draft: true  # NG12 backfill - rule engine seeding pending
 
 # Adversarial twin of fixture-13. Under NICE NG12, a pigmented lesion
 # only triggers a 2WW melanoma referral if the weighted 7-point

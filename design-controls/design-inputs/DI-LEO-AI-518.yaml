@@ -124,6 +124,16 @@
     test_protocol: "VT-LEO-AI-514"
 
   safety_class: "B"
+  status: "superseded"
+  superseded_by: "DI-LEO-AI-522"
+  superseded_rationale: >
+    The reduce prompt was removed entirely from the SBAR Background
+    flow (DI-LEO-AI-522). R-LEO-AI-511 confirmed that an editor-
+    role LLM is itself a plausible source of fact loss or
+    hallucination, regardless of how strictly the prompt is
+    bounded. Deterministic Python stitching under "### Part {i} of
+    {N} -- records {a}-{b}" headings is now the canonical merge
+    strategy.
   risks:
     - "R-LEO-AI-511"
   tags:
@@ -132,3 +142,4 @@
     - "reduce"
     - "prompt"
     - "lossless"
+    - "superseded"

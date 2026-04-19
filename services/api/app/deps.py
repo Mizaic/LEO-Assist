@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import hmac
+import os
 from typing import Annotated, Literal
 
-from fastapi import Cookie, Depends, HTTPException
+from fastapi import Cookie, Depends, HTTPException, Request
 
 from libs.auth.org_scope import CallerScope, ScopeType, resolve_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
 from app.services.session_store import COOKIE_NAME, load_session
+
+SERVICE_ACCOUNT_EMAIL = "service-account@leo.local"
 
 # Mapping of org type → permitted child org types for delegated onboarding.
 # A Cancer Alliance admin can create ICBs; an ICB admin can create PCNs or GPs, etc.
@@ -92,6 +96,87 @@ def require_admin(
     scope: CallerScope = Depends(get_caller_scope_from_request),
 ) -> CallerScope:
     """Dependency that raises 403 unless the caller is a platform admin (GAP-003)."""
+    if not scope.is_admin:
+        raise HTTPException(status_code=403, detail="Platform admin access required")
+    return scope
+
+
+def _service_account_scope() -> CallerScope:
+    """Synthetic admin scope for inter-service callers that pass service auth."""
+    return CallerScope(
+        email=SERVICE_ACCOUNT_EMAIL,
+        is_admin=True,
+        org_ids=[],
+        scope_type=None,
+        primary_org_id=None,
+    )
+
+
+def _service_token_scope_or_none(request: Request) -> CallerScope | None:
+    """Return a service-account scope if a valid SERVICE_AUTH_SECRET token is
+    present, raise 401 if a Bearer token is supplied but wrong, otherwise
+    return None so the caller can fall back to the session-cookie path.
+
+    When SERVICE_AUTH_SECRET is unset (local dev), no Bearer header path is
+    accepted -- callers must use the session cookie. This matches the
+    existing security posture in libs/auth/service_auth.py while keeping the
+    admin UI working unchanged.
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    expected = os.environ.get("SERVICE_AUTH_SECRET", "")
+    if not expected:
+        return None
+    provided = auth_header.removeprefix("Bearer ").strip()
+    if not hmac.compare_digest(provided.encode(), expected.encode()):
+        raise HTTPException(status_code=401, detail="Invalid service auth token")
+    return _service_account_scope()
+
+
+def require_admin_or_service(
+    request: Request,
+    leo_session: Annotated[str | None, Cookie(alias=COOKIE_NAME)] = None,
+) -> CallerScope:
+    """Allow either an admin session OR a valid SERVICE_AUTH_SECRET Bearer token.
+
+    Used on endpoints that can legitimately be called from the admin UI
+    (session cookie) and from another internal service over ACA's internal
+    network (e.g. terminology-api -> /guidance/test-patients/replay after a
+    successful guideline compile, see DI-LEO-AI-167).
+
+    Behaviour:
+      - Bearer token + SERVICE_AUTH_SECRET configured: validate timing-safe,
+        return synthetic admin scope on match; 401 on mismatch.
+      - Bearer token without configured secret (local dev): ignored; falls
+        through to the session check.
+      - Otherwise: identical to require_admin (cookie-backed admin scope).
+    """
+    service_scope = _service_token_scope_or_none(request)
+    if service_scope is not None:
+        return service_scope
+
+    if not leo_session:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    data = load_session(leo_session)
+    if not data:
+        raise HTTPException(status_code=401, detail="Session expired")
+    caller_email = (data.get("email") or "").strip().lower()
+    if not caller_email:
+        raise HTTPException(status_code=401, detail="No user email in session")
+    if data.get("is_platform_admin") is True:
+        return CallerScope(
+            email=caller_email,
+            is_admin=True,
+            org_ids=[],
+            scope_type=None,
+            primary_org_id=None,
+        )
+    client = PatientGraphClient()
+    try:
+        scope = resolve_caller_scope(client, caller_email)
+    finally:
+        client.close()
     if not scope.is_admin:
         raise HTTPException(status_code=403, detail="Platform admin access required")
     return scope

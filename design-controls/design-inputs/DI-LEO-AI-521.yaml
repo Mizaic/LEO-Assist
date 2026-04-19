@@ -1,0 +1,143 @@
+# -- DI-LEO-AI-521 -- SBAR background reduce prompt (lossless editor)
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-521"
+  type: "Safety"
+  derived_from:
+    - "UN-LEO-AI-095"
+  requirement: >
+    The system SHALL provide a dedicated ``sbar_background_reduce``
+    LLM prompt (libs/prompts/sbar_background_reduce_v1
+    .SBAR_BACKGROUND_REDUCE_SYSTEM_V1) used only by
+    libs/sbar/prompt_calls.call_background to merge two or more
+    partial Background sections (one per partition produced by
+    DI-LEO-AI-513) into a single coherent Background section.
+
+    The reduce prompt SHALL impose hard editorial rules in the
+    system message: (a) NO NEW FACTS -- the merged Background MUST
+    NOT contain any clinical fact, date, medication, dose, or value
+    that is not literally present in at least one input part; (b) NO
+    LOSS -- every clinical fact present in any input part MUST
+    appear in the merged output unless it is a literal duplicate;
+    (c) PRESERVE DATES, MEDICATIONS, AND VALUES verbatim, including
+    units; (d) DEDUPE LITERAL DUPLICATES ONLY -- two strings
+    counted as duplicates only when they are character-for-character
+    equal after whitespace normalisation; (e) PRESERVE CITATIONS --
+    any inline citation markers (e.g. document IDs, encounter IDs)
+    in the input parts are preserved in the output; (f) the LLM is
+    explicitly instructed it is an editor and not a clinician and
+    MUST NOT invent synthesis, "tidying", or paraphrasing that adds
+    interpretation.
+
+    The reduce prompt SHALL be registered in the prompt registry at
+    version 1 via scripts/seed_prompt_configs.py so it can be
+    audited and rolled forward through the existing prompt
+    versioning workflow.
+
+    If the reduce LLM call fails (network, throttle, validation,
+    missing markdown), call_background SHALL fall back to a
+    deterministic stitch that concatenates the partial markdowns
+    under "## Background -- part k of N" headings (no LLM
+    involvement) and emit a ``reduce_failed`` notice -- never invent
+    a merged narrative. See DI-LEO-AI-513.
+  rationale: >
+    Splitting Background into multiple LLM calls (DI-LEO-AI-513)
+    produces N partial Background sections that must be stitched
+    together for the reviewer. A naive concatenation produces a
+    visibly fragmented Background; an unconstrained LLM merge risks
+    introducing facts the model invents during "tidying". A
+    dedicated, strictly-bounded reduce prompt is the safer middle
+    ground: the LLM acts only as an editor, with explicit no-new-
+    facts and no-loss rules, and a deterministic stitch fallback
+    bounds the worst case if the editor itself fails.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          libs/prompts/sbar_background_reduce_v1
+          .SBAR_BACKGROUND_REDUCE_SYSTEM_V1 exists and contains the
+          six hard rules (NO NEW FACTS, NO LOSS, PRESERVE DATES /
+          MEDICATIONS / VALUES, DEDUPE LITERAL DUPLICATES ONLY,
+          PRESERVE CITATIONS, EDITOR-NOT-CLINICIAN) named verbatim
+          in the system message.
+      - type: "functional"
+        spec: >
+          scripts/seed_prompt_configs.py registers the
+          ``sbar_background_reduce`` prompt at version 1 against
+          SBAR_BACKGROUND_REDUCE_SYSTEM_V1 and reuses
+          SBAR_BACKGROUND_OUTPUT_SCHEMA so the response schema is
+          identical to the per-part Background prompt.
+      - type: "functional"
+        spec: >
+          libs/sbar/prompt_calls.call_background invokes the reduce
+          prompt exactly once when there are two or more
+          partitions, every MAP call succeeded, and falls back to a
+          deterministic stitch with a ``reduce_failed`` notice
+          otherwise.
+      - type: "safety"
+        spec: >
+          The deterministic stitch fallback MUST NOT call any LLM
+          (verified by call_background unit tests that count LLM
+          invocations).
+    constraints:
+      - type: "safety"
+        spec: >
+          The reduce prompt MUST NOT contain any directive that
+          encourages the LLM to "tidy", "improve", "summarise", or
+          "paraphrase" the partial Background sections beyond
+          dedup-by-equality.
+    dependencies:
+      - "DI-LEO-AI-513"
+    downstream_impacts:
+      - "SBAR Playground (parts summary, reduce notice rendering)"
+      - "SBAR orchestrator (sbar_stage_progress reduce phase)"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI / pipeline-worker"
+      file_structure:
+        - "libs/prompts/sbar_background_reduce_v1.py"
+        - "libs/sbar/prompt_calls.py"
+        - "scripts/seed_prompt_configs.py"
+      estimated_loc: 100
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-514 (extended) covers: (a) the reduce prompt is
+      invoked exactly once when there are two or more successful
+      MAP parts (test_multi_partition_runs_map_then_reduce_when
+      _all_parts_succeed); (b) reduce failure falls back to
+      deterministic stitch with ``reduce_failed`` notice
+      (test_reduce_failure_falls_back_to_deterministic_stitch
+      _with_notice); (c) per-part MAP failure prevents the reduce
+      call entirely (test_per_part_failure_is_contained_and
+      _surfaced_as_part_failed); (d) progress_cb emits a reduce
+      phase pair (test_progress_cb_is_called_per_part_and_for
+      _reduce); (e) the ``sbar_background_reduce`` prompt is
+      registered at version 1 in the seed script
+      (test_seed_prompt_configs_sbar_background_reduce). The
+      reduce prompt's system message itself is asserted by a
+      static-source test that loads SBAR_BACKGROUND_REDUCE_SYSTEM_V1
+      and checks each of the six hard rules is present verbatim.
+    test_protocol: "VT-LEO-AI-514"
+
+  safety_class: "B"
+  status: "superseded"
+  superseded_by: "DI-LEO-AI-522"
+  superseded_rationale: >
+    Duplicate of DI-LEO-AI-518; both described the now-retired
+    sbar_background_reduce prompt. Both are superseded by
+    DI-LEO-AI-522, which retires the reduce step entirely in favour
+    of deterministic Python stitching. See R-LEO-AI-511 for the
+    safety justification.
+  risks:
+    - "R-LEO-AI-511"
+  tags:
+    - "sbar"
+    - "background"
+    - "reduce"
+    - "prompt"
+    - "lossless"
+    - "superseded"

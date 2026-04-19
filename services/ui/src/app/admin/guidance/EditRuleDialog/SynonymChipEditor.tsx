@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Popover editor for the synonym set + exclusions on a CONCEPT chip.
+ * Modal editor for the synonym set + exclusions on a CONCEPT chip.
  *
  * Implements UN-LEO-AI-093 / DI-LEO-AI-511. The editor lets a guideline
  * author:
@@ -12,6 +12,15 @@
  *     per-rule distance_child default when needed)
  *   - exclude specific SNOMED codes that should NOT fire the rule, even
  *     if they would otherwise fall inside one of the seed closures
+ *
+ * Why a Dialog and not a Popover (R-LEO-AI-509 / DI-512 v3):
+ *   The editor body grows and shrinks as the author adds seeds, opens
+ *   the descendants list, or starts a search. A chip-anchored MUI
+ *   Popover repositions on every content change and overflows the
+ *   parent dialog when its width exceeds the available right-of-chip
+ *   space. A small centred Dialog stays put, scrolls internally, never
+ *   leaves the viewport, and can carry an explicit "Done" button so
+ *   the reviewer always has a clear close affordance.
  *
  * The editor is intentionally headless of any concept search infra --
  * adding seeds and exclusions reuses ConceptSearchPanel via a small
@@ -25,8 +34,11 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
-import Popover from "@mui/material/Popover";
 import Radio from "@mui/material/Radio";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
@@ -40,6 +52,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 
 import ConceptSearchPanel from "./ConceptSearchPanel";
+import SeedDescendantsList from "./SeedDescendantsList";
 import { friendlyTerm } from "./copy";
 import type {
   EditableLogicNode,
@@ -64,8 +77,9 @@ interface Props {
  *   - any exclusions               -> a "no-entry" icon is added
  */
 export default function SynonymChipEditor({ node, onUpdate }: Props) {
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  const open = Boolean(anchor);
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
 
   const criterion = node.criterion ?? ({} as LogicCriterion);
   const seeds = useMemo<LogicSeed[]>(() => {
@@ -112,7 +126,7 @@ export default function SynonymChipEditor({ node, onUpdate }: Props) {
       <Tooltip title={tooltip} arrow>
         {isPopulated ? (
           <ButtonBase
-            onClick={(e) => setAnchor(e.currentTarget)}
+            onClick={handleOpen}
             aria-label={ariaLabel}
             sx={{
               height: 22,
@@ -166,7 +180,7 @@ export default function SynonymChipEditor({ node, onUpdate }: Props) {
         ) : (
           <IconButton
             size="small"
-            onClick={(e) => setAnchor(e.currentTarget)}
+            onClick={handleOpen}
             aria-label={ariaLabel}
             sx={{
               ml: 0.25,
@@ -188,36 +202,88 @@ export default function SynonymChipEditor({ node, onUpdate }: Props) {
           </IconButton>
         )}
       </Tooltip>
-      <Popover
+      <Dialog
         open={open}
-        anchorEl={anchor}
-        onClose={() => setAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
-        slotProps={{
-          paper: {
-            elevation: 8,
-            sx: {
-              p: 2,
-              width: 480,
-              maxWidth: "90vw",
-              borderRadius: 2,
-              border: "1px solid",
-              borderColor: "divider",
-              mt: 0.5,
-            },
+        onClose={handleClose}
+        maxWidth="sm"
+        fullWidth
+        scroll="paper"
+        aria-labelledby={`synonym-editor-title-${node.node_id}`}
+        PaperProps={{
+          elevation: 12,
+          sx: {
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "divider",
+            maxHeight: "85vh",
           },
         }}
       >
-        <SynonymEditorBody
-          nodeId={node.node_id}
-          seeds={seeds}
-          excluded={excluded}
-          primaryId={primaryId}
-          chipLabel={friendlyTerm(criterion.preferred_term) || "this chip"}
-          onUpdate={onUpdate}
-        />
-      </Popover>
+        <DialogTitle
+          id={`synonym-editor-title-${node.node_id}`}
+          sx={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 1,
+            pr: 1.5,
+            py: 1.5,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <TuneRoundedIcon
+            sx={{ fontSize: 20, color: "primary.main", mt: 0.25 }}
+          />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              component="span"
+              variant="subtitle1"
+              sx={{ fontWeight: 700, lineHeight: 1.2, display: "block" }}
+            >
+              Edit &ldquo;{friendlyTerm(criterion.preferred_term) || "this chip"}&rdquo;
+            </Typography>
+            <Typography
+              component="span"
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mt: 0.25, lineHeight: 1.45 }}
+            >
+              Add other codes that mean the same thing, or block codes
+              that should not fire this rule.
+            </Typography>
+          </Box>
+          <Tooltip title="Close (ESC)">
+            <IconButton
+              onClick={handleClose}
+              size="small"
+              aria-label="Close synonym editor"
+              sx={{ color: "text.secondary" }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 2 }}>
+          <SynonymEditorBody
+            nodeId={node.node_id}
+            seeds={seeds}
+            excluded={excluded}
+            primaryId={primaryId}
+            chipLabel={friendlyTerm(criterion.preferred_term) || "this chip"}
+            onUpdate={onUpdate}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 2, py: 1.25 }}>
+          <Button
+            onClick={handleClose}
+            variant="contained"
+            color="primary"
+            sx={{ textTransform: "none", fontWeight: 700, minWidth: 96 }}
+          >
+            Done
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
@@ -242,26 +308,6 @@ function SynonymEditorBody({
 
   return (
     <Stack spacing={2}>
-      <Box>
-        <Stack direction="row" alignItems="center" spacing={0.75}>
-          <TuneRoundedIcon sx={{ fontSize: 18, color: "primary.main" }} />
-          <Typography
-            variant="subtitle1"
-            sx={{ fontWeight: 700, lineHeight: 1.2 }}
-          >
-            Edit &ldquo;{chipLabel}&rdquo;
-          </Typography>
-        </Stack>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", mt: 0.5, lineHeight: 1.45 }}
-        >
-          Add other codes that mean the same thing, or block codes that
-          should not fire this rule.
-        </Typography>
-      </Box>
-
       <Box>
         <Stack
           direction="row"
@@ -288,41 +334,65 @@ function SynonymEditorBody({
           }}
         >
           {seeds.map((seed) => (
-            <SeedRow
-              key={seed.snomed_concept_id}
-              seed={seed}
-              isPrimary={seed.snomed_concept_id === primaryId}
-              canRemove={seeds.length > 1}
-              onPickPrimary={() =>
-                onUpdate({
-                  kind: "set_primary_seed",
-                  nodeId,
-                  conceptId: seed.snomed_concept_id,
-                })
-              }
-              onToggleDescendants={() =>
-                onUpdate({
-                  kind: "toggle_include_descendants",
-                  nodeId,
-                  conceptId: seed.snomed_concept_id,
-                })
-              }
-              onSetDistance={(d) =>
-                onUpdate({
-                  kind: "set_seed_distance",
-                  nodeId,
-                  conceptId: seed.snomed_concept_id,
-                  distance: d,
-                })
-              }
-              onRemove={() =>
-                onUpdate({
-                  kind: "remove_seed",
-                  nodeId,
-                  conceptId: seed.snomed_concept_id,
-                })
-              }
-            />
+            <Box key={seed.snomed_concept_id}>
+              <SeedRow
+                seed={seed}
+                isPrimary={seed.snomed_concept_id === primaryId}
+                canRemove={seeds.length > 1}
+                onPickPrimary={() =>
+                  onUpdate({
+                    kind: "set_primary_seed",
+                    nodeId,
+                    conceptId: seed.snomed_concept_id,
+                  })
+                }
+                onToggleDescendants={() =>
+                  onUpdate({
+                    kind: "toggle_include_descendants",
+                    nodeId,
+                    conceptId: seed.snomed_concept_id,
+                  })
+                }
+                onSetDistance={(d) =>
+                  onUpdate({
+                    kind: "set_seed_distance",
+                    nodeId,
+                    conceptId: seed.snomed_concept_id,
+                    distance: d,
+                  })
+                }
+                onRemove={() =>
+                  onUpdate({
+                    kind: "remove_seed",
+                    nodeId,
+                    conceptId: seed.snomed_concept_id,
+                  })
+                }
+              />
+              <Box sx={{ pl: 4.25, pr: 0.5, pb: 0.5 }}>
+                <SeedDescendantsList
+                  seedConceptId={seed.snomed_concept_id}
+                  seedTerm={seed.preferred_term ?? ""}
+                  includeDescendants={seed.include_descendants ?? true}
+                  depth={seed.distance_child ?? 3}
+                  excludedIds={excluded}
+                  onBlock={(cid) =>
+                    onUpdate({
+                      kind: "add_excluded",
+                      nodeId,
+                      conceptId: cid,
+                    })
+                  }
+                  onUnblock={(cid) =>
+                    onUpdate({
+                      kind: "remove_excluded",
+                      nodeId,
+                      conceptId: cid,
+                    })
+                  }
+                />
+              </Box>
+            </Box>
           ))}
         </Stack>
         <Button

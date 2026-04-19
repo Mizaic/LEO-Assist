@@ -30,6 +30,26 @@ export interface SbarStageState {
   errorDetail?: SbarErrorDetail | null;
   /** Friendly stage notice surfaced via sbar_stage_completed.notice. */
   notice?: SbarNotice | null;
+  /** Latest per-part progress event for this stage. Currently only
+   *  Background emits these (one event per partitioned LLM call) so
+   *  the UI can show "Generating Background (part 2 of 5)..." while
+   *  the run is still in flight. */
+  partProgress?: SbarStagePartProgress | null;
+}
+
+/** Per-part progress event emitted while a stage that fans out to
+ *  multiple LLM calls (Background today) is mid-flight. The phase
+ *  is "map" for the per-part call. There is intentionally no
+ *  reduce phase: parts are stitched deterministically in pure
+ *  Python so the LLM cannot drop or distort content. */
+export interface SbarStagePartProgress {
+  stage: SbarStageName;
+  phase: "map";
+  partIndex: number;
+  partTotal: number;
+  recordCount: number;
+  status: "started" | "completed" | "failed";
+  errorCode: string | null;
 }
 
 /** Friendly per-stage error built by libs.sbar.error_messages on the
@@ -217,6 +237,41 @@ export function useSbarStream() {
         stages: {
           ...s.stages,
           [stage]: { ...s.stages[stage], status: "running" },
+        },
+      }));
+    });
+
+    on("sbar_stage_progress", (d) => {
+      const stage = (d.stage ?? "") as SbarStageName;
+      if (!STAGES.includes(stage)) return;
+      const partIndex = Number(d.part_index ?? 0);
+      const partTotal = Number(d.part_total ?? 0);
+      const partStatus = (d.status ?? "started") as
+        | "started"
+        | "completed"
+        | "failed";
+      const progress: SbarStagePartProgress = {
+        stage,
+        phase: "map",
+        partIndex,
+        partTotal,
+        recordCount: Number(d.record_count ?? 0),
+        status: partStatus,
+        errorCode:
+          typeof d.error_code === "string" ? d.error_code : null,
+      };
+      const label =
+        partStatus === "started"
+          ? `Generating ${stage} (part ${partIndex} of ${partTotal})...`
+          : partStatus === "failed"
+            ? `${stage} part ${partIndex} of ${partTotal} failed.`
+            : `${stage} part ${partIndex} of ${partTotal} ready.`;
+      setState((s) => ({
+        ...s,
+        status: label,
+        stages: {
+          ...s.stages,
+          [stage]: { ...s.stages[stage], partProgress: progress },
         },
       }));
     });
