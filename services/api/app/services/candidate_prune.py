@@ -325,6 +325,7 @@ def fetch_non_completed_candidates(
                 exclude_completed=True,
                 source=None,
                 search=None,
+                terms=[],
                 skip=0,
                 limit=safe_limit,
             )

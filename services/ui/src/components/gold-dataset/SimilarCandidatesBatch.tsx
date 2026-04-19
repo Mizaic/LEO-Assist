@@ -22,6 +22,14 @@ import EditNoteIcon from "@mui/icons-material/EditNote";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { parseEntities, truncate } from "./goldDatasetUtils";
 import type { SimilarCandidateItem } from "./goldDatasetTypes";
+import {
+  HighlightedText,
+  collectHighlightTerms,
+} from "@/components/mission-control/HighlightedText";
+import {
+  computeMatchRationale,
+  expandSearchTerms,
+} from "@/components/mission-control/encounterRelevance";
 
 interface Props {
   open: boolean;
@@ -31,6 +39,11 @@ interface Props {
   sourceEntityCount: number;
   reviewedIds: Set<string>;
   loadingReviewId: string | null;
+  // DI-LEO-AI-527 -- when the dialog opens from the dry-run review queue,
+  // forward the active debounced search so each similar-candidate row uses
+  // the same amber <HighlightedText> token and "why this matched" chip
+  // taxonomy as /care/encounters and the patient drawer.
+  search?: string;
   onClose: () => void;
   onToggle: (candidateId: string, checked: boolean) => void;
   onReviewCandidate: (candidateId: string) => void;
@@ -45,6 +58,7 @@ export default function SimilarCandidatesBatch({
   sourceEntityCount,
   reviewedIds,
   loadingReviewId,
+  search,
   onClose,
   onToggle,
   onReviewCandidate,
@@ -57,6 +71,7 @@ export default function SimilarCandidatesBatch({
       ).length,
     [candidates, selected, reviewedIds],
   );
+  const expandedTerms = useMemo(() => expandSearchTerms(search), [search]);
 
   const mismatchCount = useMemo(
     () =>
@@ -122,6 +137,17 @@ export default function SimilarCandidatesBatch({
                   const entities = parseEntities(item.entities_json);
                   const countMismatch =
                     !isReviewed && entities.length !== sourceEntityCount;
+                  const truncatedText = truncate(item.text, 200);
+                  const matchRationale = computeMatchRationale(
+                    item.text,
+                    expandedTerms,
+                  );
+                  const highlightTerms = collectHighlightTerms(
+                    search,
+                    matchRationale.hitTerms,
+                  );
+                  const showRationale =
+                    expandedTerms.length > 0 && matchRationale.hitTerms.length > 0;
 
                   return (
                     <TableRow
@@ -156,8 +182,38 @@ export default function SimilarCandidatesBatch({
                           variant="body2"
                           sx={isReviewed ? { color: "text.secondary" } : undefined}
                         >
-                          {truncate(item.text, 200)}
+                          {highlightTerms.length > 0 ? (
+                            <HighlightedText
+                              text={truncatedText}
+                              terms={highlightTerms}
+                              testId="similar-candidate-row-highlight"
+                            />
+                          ) : (
+                            truncatedText
+                          )}
                         </Typography>
+                        {showRationale && (
+                          <Box
+                            data-testid="similar-candidate-row-match-rationale"
+                            sx={{
+                              mt: 0.5,
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: 0.5,
+                            }}
+                          >
+                            {matchRationale.hitTerms.slice(0, 4).map((term, idx) => (
+                              <Chip
+                                key={`${item.candidate_id}-mr-${idx}-${term}`}
+                                size="small"
+                                label={term}
+                                variant="outlined"
+                                data-testid="similar-candidate-row-match-rationale-chip"
+                                sx={{ height: 20, fontSize: "0.65rem" }}
+                              />
+                            ))}
+                          </Box>
+                        )}
                         {isReviewed && (
                           <Typography
                             variant="caption"

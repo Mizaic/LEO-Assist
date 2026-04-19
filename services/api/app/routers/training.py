@@ -106,6 +106,7 @@ from libs.cypher.gold_label_queries import (
     UPSERT_GOLD_LABEL,
     UPDATE_GOLD_LABEL_ENTITIES,
 )
+from libs.search.term_expansion import expand_search_terms
 from libs.cypher.synthetic_candidate_queries import (
     GET_ALL_VALUESETS_RAW_JSON,
     GET_CONCEPTS_WITHOUT_SURFACE_FORMS_FOR_IDS,
@@ -4570,6 +4571,7 @@ def _fetch_dedupe_candidates(
     search: str | None,
     max_candidates: int,
 ) -> list[dict[str, Any]]:
+    terms = expand_search_terms(search)
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
@@ -4581,6 +4583,7 @@ def _fetch_dedupe_candidates(
                 exclude_completed=False,
                 source=source,
                 search=search,
+                terms=terms,
             )
             return [dict(r) for r in rows]
     finally:
@@ -4768,6 +4771,12 @@ def list_training_candidates(
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
     skip = (page - 1) * page_size
+    # DI-LEO-AI-526 -- expand the reviewer's free-text query into the
+    # same typo-corrected, synonym-expanded term list used by the host
+    # encounter search so the dry-run review queue surfaces matching
+    # rows for "lump" via "mass" / "swelling" / "nodule" too. Empty list
+    # means the cypher falls back to the legacy `search` substring.
+    terms = expand_search_terms(search)
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
@@ -4779,6 +4788,7 @@ def list_training_candidates(
                 exclude_completed=exclude_completed,
                 source=source,
                 search=search,
+                terms=terms,
             )
             items = [dict(r) for r in rows]
             _enrich_items_entities_with_pt_cache(session, items)
@@ -4788,6 +4798,7 @@ def list_training_candidates(
                 exclude_completed=exclude_completed,
                 source=source,
                 search=search,
+                terms=terms,
             ).single()
         total = count_row["total"] if count_row else 0
         return {"items": items, "page": page, "page_size": page_size, "total": total}
@@ -5556,6 +5567,10 @@ def list_gold_labels(
 ) -> dict[str, Any]:
     skip = (page - 1) * page_size
     stored_label = _normalise_entity_label_param(entity_label)
+    # DI-LEO-AI-526 -- mirror the candidates endpoint: expand the search
+    # so verified-gold and synthetic-gold rows that share host-search
+    # synonyms surface even when the literal query token is absent.
+    terms = expand_search_terms(search)
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
@@ -5565,6 +5580,7 @@ def list_gold_labels(
                 limit=page_size,
                 source=source,
                 search=search,
+                terms=terms,
                 entity_label=stored_label,
             )
             items = [dict(r) for r in rows]
@@ -5573,6 +5589,7 @@ def list_gold_labels(
                 COUNT_GOLD_LABELS_PAGE,
                 source=source,
                 search=search,
+                terms=terms,
                 entity_label=stored_label,
             ).single()
         total = count_row["total"] if count_row else 0

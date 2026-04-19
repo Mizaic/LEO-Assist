@@ -1,0 +1,160 @@
+# -- DI-LEO-AI-526 -- Server-side search term expansion for the dry-run review queue
+# IEC 62304 / ISO 13485 Design Input
+
+- id: "DI-LEO-AI-526"
+  type: "Functional"
+  derived_from:
+    - "UN-LEO-AI-096"
+  requirement: >
+    The /admin/training Candidates and Gold-label review-queue
+    endpoints (`GET /api/training/candidates` and
+    `GET /api/training/gold-labels`) SHALL expand the reviewer's
+    free-text `search` query using the same deterministic typo and
+    synonym vocabulary as the host encounter search on
+    /care/encounters before the cypher filter is applied, so that a
+    query for "lump" surfaces TrainingCandidate / GoldLabel rows that
+    wrote "mass", "swelling", or "nodule" in the same single page.
+
+    A new pure-Python helper `libs/search/term_expansion.py` SHALL
+    hold the single source of truth for the typo correction map
+    (TYPO_MAP) and synonym map (SYNONYM_MAP), with an
+    `expand_search_terms(query)` function that returns a deduplicated
+    list of lower-case terms. The analytics-layer
+    `encounter_query_understanding.py` SHALL be refactored to import
+    the same maps and helper from this module so the host search and
+    the dry-run review queue cannot drift apart.
+
+    `libs/cypher/training_candidate_queries.py::GET_TRAINING_CANDIDATES_PAGE`
+    and `COUNT_TRAINING_CANDIDATES_PAGE` SHALL accept an optional
+    `$terms` parameter (lower-case array). When `$terms` is non-empty,
+    the cypher SHALL OR-match the term list against `toLower(c.text)`
+    via `ANY(t IN $terms WHERE toLower(c.text) CONTAINS t)`. When
+    `$terms` is empty or NULL, the cypher SHALL fall back to the
+    legacy `$search` substring filter for backward compatibility with
+    any callers that have not opted in to expansion.
+
+    The same SHALL apply to `GET_GOLD_LABELS_PAGE` and
+    `COUNT_GOLD_LABELS_PAGE` against `g.text`.
+
+    `services/api/app/routers/training.py::list_training_candidates`,
+    `list_gold_labels`, and `_fetch_dedupe_candidates` SHALL call
+    `expand_search_terms(search)` and pass `terms=...` to both the
+    page query and the count query for the same request, so the
+    paginator is consistent with the data being shown.
+
+    `services/neo4j_mcp/tools/training.py` MCP tools that wrap the
+    same cypher SHALL also forward the expanded terms.
+
+  rationale: >
+    Today the dry-run review queue runs `toLower(c.text) CONTAINS
+    toLower($search)` server-side and decorates the returned rows
+    client-side via DI-LEO-AI-523 with the same chip + highlight
+    vocabulary as /care/encounters. That works for cosmetic parity
+    but does not let the reviewer find synonym matches on the page:
+    if a candidate sentence wrote "mass" but the reviewer typed
+    "lump", the row is filtered OUT before the chip layer sees it.
+
+    Pushing the same deterministic expansion into the cypher closes
+    the loop so the dry-run queue actually returns the same rows as
+    /care/encounters would. Keeping the typo / synonym maps in a
+    single shared module (libs/search/term_expansion.py) is what
+    keeps the three surfaces -- host search, drawer, dry-run -- on
+    the same vocabulary as the product evolves.
+
+    The change is additive: a CASE clause keeps the legacy `$search`
+    branch for any caller that has not opted in.
+
+  machine_spec:
+    acceptance_criteria:
+      - type: "functional"
+        spec: >
+          `libs/search/term_expansion.py::expand_search_terms("lump")`
+          MUST return `["lump", "mass", "swelling", "nodule"]` and
+          MUST return `[]` for `None`, `""`, or whitespace-only
+          input.
+      - type: "functional"
+        spec: >
+          `services/analytics_api/app/services/encounter_query_understanding.py`
+          MUST import `TYPO_MAP`, `SYNONYM_MAP`, and the expansion
+          helpers from `libs/search/term_expansion` rather than
+          declaring its own copy. The `is`-identity check
+          `eqi._TYPO_MAP is TYPO_MAP` MUST hold.
+      - type: "functional"
+        spec: >
+          `GET_TRAINING_CANDIDATES_PAGE` and
+          `COUNT_TRAINING_CANDIDATES_PAGE` MUST contain
+          `ANY(t IN $terms WHERE toLower(c.text) CONTAINS t)` and a
+          `CASE` branch that falls back to the `$search` substring
+          when `$terms` is empty or NULL.
+      - type: "functional"
+        spec: >
+          `GET_GOLD_LABELS_PAGE` and `COUNT_GOLD_LABELS_PAGE` MUST
+          contain `ANY(t IN $terms WHERE toLower(g.text) CONTAINS t)`
+          and the same fall-back CASE.
+      - type: "functional"
+        spec: >
+          `list_training_candidates` and `list_gold_labels` MUST
+          compute `terms = expand_search_terms(search)` and MUST
+          pass `terms=terms` to BOTH the page query and the count
+          query in the same request.
+    constraints:
+      - type: "performance"
+        spec: >
+          The expansion MUST be O(query length); no LLM call, no
+          network, no per-row work in the router. Cypher complexity
+          stays O(rows * |terms|), bounded by the existing
+          `MAX_TERMS * 3 = 36` cap on `expanded_terms` length.
+      - type: "safety"
+        spec: >
+          The expansion MUST stay deterministic (typo map + synonym
+          map only). The optional Haiku rewrite path MUST remain
+          out-of-scope here so the dry-run queue cannot accidentally
+          surface LLM-suggested rows that the reviewer did not ask
+          for.
+    dependencies:
+      - "DI-LEO-AI-099"
+      - "DI-LEO-AI-145"
+      - "DI-LEO-AI-520"
+      - "DI-LEO-AI-523"
+    downstream_impacts:
+      - "Dry-run candidate page returns synonym matches server-side"
+      - "Dry-run gold-label page returns synonym matches server-side"
+      - "Encounter query understanding shares one source of truth with the dry-run queue"
+    technical_details:
+      language: "Python"
+      framework: "FastAPI + Neo4j Python driver"
+      file_structure:
+        - "libs/search/__init__.py"
+        - "libs/search/term_expansion.py"
+        - "libs/cypher/training_candidate_queries.py"
+        - "libs/cypher/gold_label_queries.py"
+        - "services/api/app/routers/training.py"
+        - "services/analytics_api/app/services/encounter_query_understanding.py"
+        - "services/neo4j_mcp/tools/training.py"
+        - "services/api/app/services/candidate_prune.py"
+        - "services/api/app/routers/pipeline.py"
+        - "services/pipeline_worker/app/main.py"
+      estimated_loc: 220
+
+  verification:
+    method: "Test"
+    phase: "OQ"
+    acceptance: >
+      VT-LEO-AI-524 verifies (a) `expand_search_terms` correctness
+      and emptiness handling, (b) the candidates and gold-labels
+      router endpoints forward the expanded terms to BOTH the page
+      query and the count query, (c) the cypher contains the
+      `ANY(t IN $terms ...)` branch, and (d) the analytics-layer
+      typo/synonym maps are the same Python objects as the shared
+      module (single-source-of-truth check).
+
+  safety_class: "B"
+  risks:
+    - "R-LEO-AI-063"
+    - "R-LEO-AI-174"
+  tags:
+    - "api"
+    - "search"
+    - "training-data"
+    - "consistency"
+    - "neo4j"

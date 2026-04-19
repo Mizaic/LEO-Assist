@@ -21,6 +21,7 @@ from libs.cypher.training_candidate_queries import (
     GET_TRAINING_CANDIDATE_STATS,
     GET_TRAINING_CANDIDATES_PAGE,
 )
+from libs.search.term_expansion import expand_search_terms
 from services.neo4j_mcp._client import knowledge_run
 
 
@@ -36,11 +37,13 @@ def list_training_candidates(
     limit: int = 100,
     offset: int = 0,
 ) -> dict[str, Any]:
+    terms = expand_search_terms(search)
     rows = knowledge_run(
         GET_TRAINING_CANDIDATES_PAGE,
         status=status,
         source=source,
         search=search,
+        terms=terms,
         exclude_completed=exclude_completed,
         skip=offset,
         limit=limit,
@@ -50,6 +53,7 @@ def list_training_candidates(
         status=status,
         source=source,
         search=search,
+        terms=terms,
         exclude_completed=exclude_completed,
     )
     total = int(count_rows[0]["total"]) if count_rows else 0
@@ -78,10 +82,12 @@ def list_gold_labels(
     limit: int = 100,
     offset: int = 0,
 ) -> dict[str, Any]:
+    terms = expand_search_terms(search)
     rows = knowledge_run(
         GET_GOLD_LABELS_PAGE,
         source=source,
         search=search,
+        terms=terms,
         entity_label=entity_label,
         skip=offset,
         limit=limit,
@@ -90,6 +96,7 @@ def list_gold_labels(
         COUNT_GOLD_LABELS_PAGE,
         source=source,
         search=search,
+        terms=terms,
         entity_label=entity_label,
     )
     total = int(count_rows[0]["total"]) if count_rows else 0

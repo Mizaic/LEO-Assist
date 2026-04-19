@@ -16,26 +16,20 @@ from dataclasses import dataclass
 from typing import Any
 
 from libs.llm_client.factory import create_llm
+from libs.search.term_expansion import (
+    SYNONYM_MAP as _SYNONYM_MAP,
+    TYPO_MAP as _TYPO_MAP,
+    expand_search_terms as _shared_expand_search_terms,
+    normalise_tokens as _shared_normalise_tokens,
+)
 
 logger = logging.getLogger(__name__)
 
-_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
-_MIN_TERM_LEN = 2
+# Kept locally for the fulltext-query builder; the deterministic floor
+# (typo + synonym maps, token normalisation, expansion) lives in
+# `libs/search/term_expansion.py` so the training router and the UI
+# share the same vocabulary as the host search.
 _MAX_TERMS = 12
-_TYPO_MAP = {
-    "breat": "breast",
-    "wight": "weight",
-    "lums": "lumps",
-    "tumor": "tumour",
-}
-_SYNONYM_MAP = {
-    "breast": ["breast", "mammary"],
-    "lump": ["lump", "mass", "swelling", "nodule"],
-    "weight": ["weight", "weightloss", "weight_loss", "cachexia"],
-    "loss": ["loss", "losing", "reduced"],
-    "cough": ["cough", "coughing"],
-    "bleeding": ["bleeding", "blood_loss", "haemorrhage", "hemorrhage"],
-}
 
 
 @dataclass
@@ -54,24 +48,14 @@ class QueryUnderstanding:
 
 
 def _normalise_tokens(raw_query: str) -> list[str]:
-    tokens = [t.lower() for t in _TOKEN_RE.findall(raw_query)]
-    fixed = [_TYPO_MAP.get(tok, tok) for tok in tokens]
-    return [tok for tok in fixed if len(tok) >= _MIN_TERM_LEN]
+    return _shared_normalise_tokens(raw_query)
 
 
 def _expand_terms(tokens: list[str]) -> list[str]:
-    out: list[str] = []
-    for tok in tokens[:_MAX_TERMS]:
-        out.extend(_SYNONYM_MAP.get(tok, [tok]))
-    # stable unique
-    seen: set[str] = set()
-    deduped: list[str] = []
-    for term in out:
-        if term in seen:
-            continue
-        seen.add(term)
-        deduped.append(term)
-    return deduped[: _MAX_TERMS * 3]
+    # The shared helper expands directly from a query string, so we
+    # rebuild a normalised query string from the (already-normalised)
+    # tokens and re-expand. This keeps a single expansion code path.
+    return _shared_expand_search_terms(" ".join(tokens))
 
 
 def _build_fulltext_query(expanded_terms: list[str], rewritten_query: str) -> str:

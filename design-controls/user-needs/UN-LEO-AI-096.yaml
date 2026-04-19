@@ -55,11 +55,17 @@
     - "No regression in selection (checkbox), pagination, batch actions, or live-threshold drift indicator on /care/encounters"
     - "/care/encounters renders a sticky histogram + brush timeline above the result list (the same EncounterTimelineScrubber primitive as the /care/patients drawer), so reviewers can see the temporal distribution of search hits and brush a date window to filter the table; clicking a histogram bar opens the preview dialog for that encounter"
     - "The /care/patients drawer's free-text encounter search uses the same deterministic typo correction and synonym vocabulary as the /care/encounters host search (a query for 'lump' also surfaces encounters mentioning 'mass', 'swelling', or 'nodule'); when at least one expanded synonym is found in an encounter, that encounter renders a 'why this matched' chip row using the same outlined chip token and 4-term cap as the host row"
+    - "The /admin/training Candidates, Verified gold, and Synthetic gold sub-tabs render their row titles through the shared <HighlightedText> primitive and surface the same outlined 'why this matched' chip row when the reviewer's debounced query expands to terms that hit the sentence text, so the dry-run review queue speaks the same vocabulary as /care/encounters and the /care/patients drawer"
+    - "The /admin/training Candidates and Gold-label list endpoints (`GET /api/training/candidates`, `GET /api/training/gold-labels`) expand the reviewer's free-text query into the same typo-corrected, synonym-expanded term list used by the host encounter search and the cypher OR-matches across the term list (e.g. a query for 'lump' returns rows whose text contains 'mass', 'swelling', or 'nodule') so the dry-run review queue actually fetches the same rows the host page would, not just decorates the substring matches"
+    - "The 'Apply to similar candidates' batch dialog that opens after a reviewer marks a row as gold renders each row's encounter text using the same shared <HighlightedText> primitive and the same outlined 'why this matched' chip row as the host page and the dry-run review queue, with stable data-testid='similar-candidate-row-*' attributes so end-to-end specs can assert the parity"
 
   design_inputs:
     - "DI-LEO-AI-514"
     - "DI-LEO-AI-516"
     - "DI-LEO-AI-520"
+    - "DI-LEO-AI-523"
+    - "DI-LEO-AI-526"
+    - "DI-LEO-AI-527"
 
   metadata:
     identified_by: "Rob Smith - clinical reviewer feedback comparing /care/encounters, /care/patients drawer, and /admin/training Candidates tabs (April 2026)"

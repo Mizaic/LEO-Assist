@@ -1,0 +1,135 @@
+# -- VT-LEO-AI-524 -- Server-side search term expansion for the dry-run review queue
+# IEC 62304 OQ verification
+
+- id: "VT-LEO-AI-524"
+  version: "1.0"
+  status: "passed"
+
+  traceability:
+    design_inputs: ["DI-LEO-AI-526"]
+    risks:
+      - "R-LEO-AI-063"
+      - "R-LEO-AI-174"
+
+  metadata:
+    title: "Dry-run review queue server-side term expansion"
+    description: >
+      Verifies that the /admin/training Candidates and Gold-label
+      endpoints expand the reviewer's free-text query into the same
+      typo-corrected, synonym-expanded term list used by the host
+      encounter search and forward it to the cypher so synonym
+      matches surface server-side, not just in the UI chips.
+    test_level: "integration"
+    test_type: "functional"
+    safety_class: "B"
+    automation_status: "automated"
+    automation_framework: "pytest"
+    test_file_paths:
+      - "services/api/tests/test_training_search_term_expansion.py"
+
+  test_environment:
+    environment_type: "development"
+    prerequisites:
+      - "FastAPI test client"
+      - "Mocked KnowledgeGraphClient session"
+    test_data:
+      data_type: "synthetic"
+      cleanup_required: false
+
+  test_cases:
+    - case_id: "VT-524-TC-001"
+      case_name: "expand_search_terms expands typos and synonyms"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Call expand_search_terms('breat lump')"
+          expected_result: "Returns ['breast', 'mammary', 'lump', 'mass', 'swelling', 'nodule'] (order, no extras)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Typo 'breat' is corrected to 'breast'"
+        - "Synonym set for 'lump' is fully expanded"
+
+    - case_id: "VT-524-TC-002"
+      case_name: "expand_search_terms returns empty for blank input"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "Call with None, '', '   '"
+          expected_result: "All return []"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Empty / whitespace-only queries short-circuit to []"
+
+    - case_id: "VT-524-TC-003"
+      case_name: "/training/candidates forwards expanded terms to cypher"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "GET /training/candidates?search=lump with mocked KG"
+          expected_result: "Both GET_TRAINING_CANDIDATES_PAGE and COUNT_TRAINING_CANDIDATES_PAGE receive terms=['lump','mass','swelling','nodule']"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Page and count cypher calls receive identical terms list"
+        - "Original search string is still forwarded for the fallback branch"
+
+    - case_id: "VT-524-TC-004"
+      case_name: "/training/candidates with no search passes empty terms"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "GET /training/candidates with no search param"
+          expected_result: "Cypher is called with terms=[] and search=None"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Default request still works (legacy callers unaffected)"
+
+    - case_id: "VT-524-TC-005"
+      case_name: "/training/gold-labels forwards expanded terms to cypher"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "GET /training/gold-labels?search=weight%20loss with mocked KG"
+          expected_result: "Page + count cypher receive expanded terms including 'weight', 'loss', 'cachexia'"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Multi-token query expansion works for the gold-label endpoint"
+
+    - case_id: "VT-524-TC-006"
+      case_name: "Cypher contains the ANY-over-terms branch for both queries"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: "Inspect the GET_TRAINING_CANDIDATES_PAGE / GET_GOLD_LABELS_PAGE strings"
+          expected_result: "Both contain $terms and ANY(t IN $terms WHERE toLower(...) CONTAINS t)"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "$terms branch present"
+        - "Falls back to $search when $terms is empty"
+
+    - case_id: "VT-524-TC-007"
+      case_name: "Single source of truth for typo + synonym maps"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: "import the analytics module and the shared module, compare object identity"
+          expected_result: "encounter_query_understanding._TYPO_MAP is libs.search.term_expansion.TYPO_MAP"
+          verification_method: "automated"
+      acceptance_criteria:
+        - "The two surfaces share the SAME Python objects (no shadow copy)"
+
+  pass_fail_criteria:
+    pass_threshold: "100% critical, 100% all"
+    blocking_on_failure: true
+
+  evidence:
+    evidence_types: ["automated_test_run"]
+    storage_location: "/evidence-bundles/LEO-AI/verification/VT-LEO-AI-524/"
+    retention_period: "7 years"
+    immutability: true
+
+  execution_history:
+    - run_id: "VT-524-RUN-001"
+      executed_at: "2026-04-19T07:25:00Z"
+      executor: "automated"
+      result: "pass"
+      notes: "8/8 test cases pass via `pytest services/api/tests/test_training_search_term_expansion.py` in 4.33s. The expand_search_terms helper, both /training/candidates and /training/gold-labels endpoints, and the cypher single-source-of-truth check all confirmed."

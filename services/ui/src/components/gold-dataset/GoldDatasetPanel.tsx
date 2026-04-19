@@ -4370,6 +4370,7 @@ export default function GoldDatasetPanel() {
                   openingLabelId={openingCandidateLabelId}
                   markingGoldId={markingGoldCandidateId}
                   deletingId={deletingCandidateId}
+                  search={debouncedSearch}
                 />
               )
             : (
@@ -4378,6 +4379,7 @@ export default function GoldDatasetPanel() {
                   onOpen={(item) => setSelectedItem(item)}
                   onReset={(item) => requestDeleteGoldLabel(item)}
                   resettingLabelId={resettingLabelId}
+                  search={debouncedSearch}
                 />
               )
           }
@@ -4475,6 +4477,7 @@ export default function GoldDatasetPanel() {
         sourceEntityCount={sourceEntityCount}
         reviewedIds={similarReviewedIds}
         loadingReviewId={loadingReviewId}
+        search={debouncedSearch}
         onClose={() => {
           setSimilarDialogOpen(false);
           setSimilarCandidates([]);

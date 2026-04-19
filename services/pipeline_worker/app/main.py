@@ -675,6 +675,7 @@ async def batch_test_run(body: BatchTestRequest) -> StreamingResponse:
                 status=body.status_filter,
                 source=None,
                 search=None,
+                terms=[],
                 skip=0,
                 limit=limit,
             )

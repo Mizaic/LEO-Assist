@@ -71,11 +71,23 @@ ORDER BY g.updated_at DESC
 LIMIT 1
 """
 
+# DI-LEO-AI-526 -- gold-label review queue accepts the same `$terms`
+# array as the training-candidate queue so synonym-expanded host-search
+# vocabulary surfaces matching gold rows server-side. When `$terms` is
+# empty the legacy `$search` substring filter is used.
 GET_GOLD_LABELS_PAGE = """
 MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
 WHERE c.status = 'completed'
   AND ($source IS NULL OR g.source = $source)
-  AND ($search IS NULL OR toLower(g.text) CONTAINS toLower($search))
+  AND (
+    CASE
+      WHEN $terms IS NOT NULL AND size($terms) > 0
+        THEN ANY(t IN $terms WHERE toLower(g.text) CONTAINS t)
+      WHEN $search IS NOT NULL
+        THEN toLower(g.text) CONTAINS toLower($search)
+      ELSE true
+    END
+  )
   AND (
     $entity_label IS NULL
     OR toLower(g.entities_json) CONTAINS ('"label": "' + toLower($entity_label) + '"')
@@ -102,7 +114,15 @@ COUNT_GOLD_LABELS_PAGE = """
 MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
 WHERE c.status = 'completed'
   AND ($source IS NULL OR g.source = $source)
-  AND ($search IS NULL OR toLower(g.text) CONTAINS toLower($search))
+  AND (
+    CASE
+      WHEN $terms IS NOT NULL AND size($terms) > 0
+        THEN ANY(t IN $terms WHERE toLower(g.text) CONTAINS t)
+      WHEN $search IS NOT NULL
+        THEN toLower(g.text) CONTAINS toLower($search)
+      ELSE true
+    END
+  )
   AND (
     $entity_label IS NULL
     OR toLower(g.entities_json) CONTAINS ('"label": "' + toLower($entity_label) + '"')

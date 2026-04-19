@@ -846,6 +846,7 @@ async def run_gold_training(
                             status="pending",
                             source=None,
                             search=None,
+                            terms=[],
                             skip=skip,
                             limit=500,
                         )

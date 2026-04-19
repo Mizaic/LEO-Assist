@@ -107,12 +107,28 @@ RETURN
     toString(c.updated_at) AS updated_at
 """
 
+# DI-LEO-AI-526 -- the dry-run review queue accepts an optional `$terms`
+# array of pre-expanded lower-case search terms (typo-corrected and
+# synonym-expanded by the API router via libs.search.term_expansion).
+# When `$terms` is non-empty we OR-match across the list so a search for
+# "lump" also surfaces rows that wrote "mass", "swelling", or "nodule",
+# matching the host-search vocabulary on /care/encounters. When `$terms`
+# is empty we fall back to the legacy `$search` substring filter so
+# callers that have not opted in to expansion continue to work.
 GET_TRAINING_CANDIDATES_PAGE = """
 MATCH (c:TrainingCandidate)
 WHERE ($status IS NULL OR c.status = $status)
   AND ($exclude_completed = false OR c.status <> 'completed')
   AND ($source IS NULL OR c.source = $source)
-  AND ($search IS NULL OR toLower(c.text) CONTAINS toLower($search))
+  AND (
+    CASE
+      WHEN $terms IS NOT NULL AND size($terms) > 0
+        THEN ANY(t IN $terms WHERE toLower(c.text) CONTAINS t)
+      WHEN $search IS NOT NULL
+        THEN toLower(c.text) CONTAINS toLower($search)
+      ELSE true
+    END
+  )
 RETURN
     c.candidate_id AS candidate_id,
     c.text AS text,
@@ -138,7 +154,15 @@ MATCH (c:TrainingCandidate)
 WHERE ($status IS NULL OR c.status = $status)
   AND ($exclude_completed = false OR c.status <> 'completed')
   AND ($source IS NULL OR c.source = $source)
-  AND ($search IS NULL OR toLower(c.text) CONTAINS toLower($search))
+  AND (
+    CASE
+      WHEN $terms IS NOT NULL AND size($terms) > 0
+        THEN ANY(t IN $terms WHERE toLower(c.text) CONTAINS t)
+      WHEN $search IS NOT NULL
+        THEN toLower(c.text) CONTAINS toLower($search)
+      ELSE true
+    END
+  )
 RETURN count(c) AS total
 """
 
