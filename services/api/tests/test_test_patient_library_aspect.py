@@ -2559,8 +2559,19 @@ class TestTC016LoadRuleForScaffold:
         loaded = load_rule_for_scaffold(
             client, rule_id="rule:NG12:v1:CH002:SEC000:R004:53e182a2"
         )
-        ids = {t["concept_id"] for t in loaded["triggers"]}
-        assert ids == {"49727002", "267036007", "161635002"}
+        # ``triggers`` is the satisfying-path subset the LLM must
+        # mention. The trimmed mesothelioma tree's OR has three
+        # children: AT_LEAST 2 of [Cough, Dyspnea] (size 2), Cough
+        # alone (size 1), and Asbestos alone (size 1). The walker
+        # picks the smallest non-empty branch in document order ->
+        # just Cough fires the rule.
+        ids = [t["concept_id"] for t in loaded["triggers"]]
+        assert ids == ["49727002"]
+        # ``all_triggers`` keeps the full union for any UI surface
+        # that wants to show the complete trigger space alongside the
+        # briefing list.
+        all_ids = {t["concept_id"] for t in loaded["all_triggers"]}
+        assert all_ids == {"49727002", "267036007", "161635002"}
         assert loaded["demographic_constraints"] == [
             {
                 "field": "age",

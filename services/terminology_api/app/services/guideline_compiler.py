@@ -74,6 +74,24 @@ class CompilePolicy:
     enforce_action_scope: bool = False
 
 
+# DUAL-GRAPH NOTE (DI-LEO-AI-512):
+# Earlier versions of the rule generator wrote criteria / action / applies_to
+# concepts as the legacy parallel label `(:SnomedConcept {conceptId})` with
+# `term` / `semanticTag` properties. The canonical SNOMED loader writes
+# `(:Concept {id})` with `preferred_term` / `fsn` / `semantic_tag`.
+# Reads MUST tolerate either shape until the one-shot migration in
+# scripts/migrations/2026_link_or_delete_orphan_snomed_concepts.py has run
+# in every environment. Two safeguards keep that promise:
+#   1. Concept matches are unlabeled -- the relationship type
+#      (HAS_CRITERIA, HAS_ACTION, APPLIES_TO) is the only constraint, so
+#      both `:Concept` and `:SnomedConcept` bind.
+#   2. Property reads use coalesce(concept.id, concept.conceptId) for IDs
+#      and coalesce(concept.preferred_term, concept.fsn, concept.term, ...)
+#      for display text.
+# Action targets used to require `:Procedure` (set by the generator's dual
+# label MERGE). The `HAS_ACTION` relationship is itself the constraint --
+# unlabeling `proc` lets new canonical writes (no `:Procedure` sub-label)
+# bind without changing semantics.
 _FETCH_ACTIVE_RULES = """
 MATCH (g:Guideline)-[:HAS_RECOMMENDATION]->(rec:Recommendation)
     -[:HAS_RULE]->(rule:AppropriatenessRule {status: 'active'})
@@ -81,7 +99,7 @@ OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (g)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp:CriteriaGroup)
 OPTIONAL MATCH (grp)-[hc:HAS_CRITERIA]->(concept)
-OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc:Procedure)
+OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc)
 RETURN
     rule.id              AS rule_id,
     rule.name            AS name,
@@ -97,32 +115,33 @@ RETURN
     grp.id               AS group_id,
     coalesce(grp.type, 'ALL') AS group_mode,
     hc.predicate         AS predicate,
-    concept.conceptId    AS concept_id,
+    coalesce(concept.id, concept.conceptId)         AS concept_id,
     coalesce(hc.distanceChild,  0) AS distance_child,
     coalesce(hc.distanceParent, 0) AS distance_parent,
-    proc.conceptId       AS action_concept_id,
-    proc.term            AS action_name,
+    coalesce(proc.id, proc.conceptId)               AS action_concept_id,
+    coalesce(proc.preferred_term, proc.fsn, proc.term, proc.id, proc.conceptId) AS action_name,
     ha.priority          AS action_priority,
     ha.dueDays           AS action_due_days
-ORDER BY rule.id, grp.id, concept.conceptId
+ORDER BY rule.id, grp.id, coalesce(concept.id, concept.conceptId)
 """
 
-# Separate query for APPLIES_TO demographic constraints — fetched once per
-# compile run and merged into the compiled rules by rule_id.
+# Separate query for APPLIES_TO demographic constraints -- fetched once per
+# compile run and merged into the compiled rules by rule_id. Same dual-graph
+# tolerance as _FETCH_ACTIVE_RULES (see DUAL-GRAPH NOTE above).
 _FETCH_APPLIES_TO = """
-MATCH (rule:AppropriatenessRule {status: 'active'})-[at:APPLIES_TO]->(concept:SnomedConcept)
+MATCH (rule:AppropriatenessRule {status: 'active'})-[at:APPLIES_TO]->(concept)
 OPTIONAL MATCH (:Recommendation)-[:HAS_RULE]->(rule)<-[:HAS_RECOMMENDATION]-(:Guideline)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
 RETURN
     rule.id              AS rule_id,
     dom.id               AS guideline_domain_id,
-    concept.conceptId    AS concept_id,
-    concept.term         AS preferred_term,
-    concept.semanticTag  AS semantic_tag,
+    coalesce(concept.id, concept.conceptId)        AS concept_id,
+    coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId) AS preferred_term,
+    coalesce(concept.semantic_tag, concept.semanticTag) AS semantic_tag,
     at.rawTerm           AS raw_term,
     at.operator          AS operator,
     at.value             AS value,
     at.unit              AS unit
-ORDER BY rule.id, concept.conceptId
+ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
 """
 
 

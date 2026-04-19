@@ -97,7 +97,7 @@ afterEach(() => {
 });
 
 describe("TestPatientsPanel bitmap-status scope", () => {
-  it("VT-175-TC-007: probes the global scope even when a guidelineId is supplied", async () => {
+  it("VT-175-TC-015: probes the global scope even when a guidelineId is supplied", async () => {
     const { calls } = installFetchStub();
 
     render(

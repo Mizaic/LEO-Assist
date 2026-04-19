@@ -43,6 +43,7 @@ from app.services import test_patient_service
 from app.services._logic_tree import (
     extract_concept_triggers,
     extract_demographic_constraints,
+    extract_satisfying_concepts,
     parse_logic_json,
 )
 from libs.cypher.test_patient_queries import READ_RULE_FOR_SCAFFOLD
@@ -136,10 +137,21 @@ def load_rule_for_scaffold(
     row = dict(rows[0])
     tree = parse_logic_json(row.get("logic_json"))
     if tree is not None:
-        row["triggers"] = extract_concept_triggers(tree)
+        all_triggers = extract_concept_triggers(tree)
+        must_mention = extract_satisfying_concepts(tree)
+        row["all_triggers"] = all_triggers
+        # ``triggers`` is the briefing list that downstream consumers
+        # (prompt formatter, code-attacher, validator) all read. We
+        # narrow it to the smallest satisfying subset so the LLM is
+        # only asked to write up the concepts that actually need to
+        # appear for the rule to fire. Falling back to the full union
+        # keeps malformed / unrecognised trees from breaking the flow.
+        row["triggers"] = must_mention or all_triggers
         row["demographic_constraints"] = extract_demographic_constraints(tree)
     else:
-        row["triggers"] = list(row.get("triggers") or [])
+        legacy = list(row.get("triggers") or [])
+        row["triggers"] = legacy
+        row["all_triggers"] = legacy
         row["demographic_constraints"] = list(
             row.get("demographic_constraints") or []
         )

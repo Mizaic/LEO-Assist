@@ -109,6 +109,49 @@ def extract_demographic_constraints(node: Any) -> list[dict]:
     return out
 
 
+def extract_satisfying_concepts(node: Any) -> list[dict]:
+    """Return the smallest set of triggers that would FIRE the rule.
+
+    Many production rules are written as OR / AT_LEAST trees: the
+    mesothelioma 2WW rule fires on age >= 40 plus EITHER two of six
+    symptoms OR a smoker plus one symptom OR asbestos exposure plus
+    one symptom. Asking the LLM to invent every concept is wasteful
+    and (worse) breaks the scaffolder if the model picks a different
+    legal subset to write up. The validator demands the LLM mention
+    every term it is given, so the briefing list MUST be the minimum
+    that makes the rule fire and nothing more.
+
+    Walker semantics:
+
+      - ``concept``    -> [the trigger]
+      - ``demographic`` -> [] (handled outside this walker)
+      - ``NOT``        -> [] (must NOT appear in notes)
+      - ``AND``        -> union of every non-empty child satisfying-set
+      - ``OR``         -> the smallest non-empty child satisfying-set,
+                          ties broken by document order
+      - ``AT_LEAST(min, children)`` -> the ``min`` smallest non-empty
+                          child satisfying-sets, unioned
+
+    The result is de-duped by ``concept_id`` in document order, so the
+    LLM sees a stable, smallest "you must mention these" briefing.
+
+    Returns the same trigger shape as :func:`extract_concept_triggers`
+    so callers can swap the two without re-mapping fields.
+    """
+    if not isinstance(node, dict):
+        return []
+    triggers = _satisfying(node)
+    seen: set[str] = set()
+    out: list[dict] = []
+    for trig in triggers:
+        cid = trig["concept_id"]
+        if cid in seen:
+            continue
+        seen.add(cid)
+        out.append(trig)
+    return out
+
+
 def trigger_terms_preview(node: Any, *, limit: int = 3) -> list[str]:
     """Return up to ``limit`` SNOMED preferred terms for a picker preview.
 
@@ -202,3 +245,71 @@ def _hashable(value: Any) -> Any:
     if isinstance(value, (list, dict)):
         return json.dumps(value, sort_keys=True)
     return value
+
+
+# ---------------------------------------------------------------------------
+# Satisfying-path walker -- minimum trigger subset that fires the rule.
+# ---------------------------------------------------------------------------
+
+
+def _satisfying(node: dict) -> list[dict]:
+    """Return one minimal satisfying trigger list for ``node``.
+
+    Tolerant: unknown ``kind`` values yield an empty list rather than
+    raising, so a half-edited rule still scaffolds against whatever
+    branches the walker can interpret.
+    """
+    kind = str(node.get("kind") or "").lower()
+    if kind == "concept":
+        trig = _concept_to_trigger(node.get("criterion"))
+        return [trig] if trig is not None else []
+    if kind in ("demographic", "not"):
+        # Demographics are validated separately; NOT clauses must be
+        # absent from the notes, never present, so contribute nothing.
+        return []
+    children = [c for c in (node.get("children") or []) if isinstance(c, dict)]
+    if kind == "and":
+        return _satisfying_and(children)
+    if kind == "or":
+        return _satisfying_or(children)
+    if kind == "at_least":
+        return _satisfying_at_least(node, children)
+    return []
+
+
+def _satisfying_and(children: list[dict]) -> list[dict]:
+    out: list[dict] = []
+    for child in children:
+        out.extend(_satisfying(child))
+    return out
+
+
+def _satisfying_or(children: list[dict]) -> list[dict]:
+    best: list[dict] | None = None
+    for child in children:
+        result = _satisfying(child)
+        if not result:
+            continue
+        if best is None or len(result) < len(best):
+            best = result
+    return best or []
+
+
+def _satisfying_at_least(node: dict, children: list[dict]) -> list[dict]:
+    try:
+        minimum = int(node.get("min") or 1)
+    except (TypeError, ValueError):
+        minimum = 1
+    if minimum < 1:
+        minimum = 1
+    candidates = [r for r in (_satisfying(c) for c in children) if r]
+    if len(candidates) < minimum:
+        # Cannot satisfy AT_LEAST(min) -- caller treats empty as
+        # "no trigger path"; the scaffolder will then fall back or
+        # raise ScaffoldError further up the stack.
+        return []
+    candidates.sort(key=len)
+    out: list[dict] = []
+    for chosen in candidates[:minimum]:
+        out.extend(chosen)
+    return out

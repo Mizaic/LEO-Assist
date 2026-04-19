@@ -70,7 +70,9 @@ def test_build_provenance_aggregates_stage_totals():
 
 
 def test_persist_trace_writes_node_with_serialised_stages():
-    """VT-506-TC-003: persist_trace writes a node with stage + error JSON."""
+    """VT-506-TC-003: persist_trace writes the EpisodeEngineTrace node and
+    a PipelineRun :AuditEvent (DI-LEO-AI-517) so episode-engine spend is
+    visible in /admin/billing alongside coding extraction and SBAR."""
 
     client = MagicMock()
     persist_trace(
@@ -83,22 +85,36 @@ def test_persist_trace_writes_node_with_serialised_stages():
         errors=["reconciler failed"],
         dry_run=False,
     )
-    assert client.run.call_count == 1
-    kwargs = client.run.call_args.kwargs
-    assert kwargs["trace_id"] == "eet-123"
-    assert kwargs["patient_id"] == "p-1"
-    assert kwargs["episode_count"] == 2
-    assert kwargs["dry_run"] is False
-    assert kwargs["total_input_tokens"] == 300
-    assert kwargs["total_output_tokens"] == 60
-    assert kwargs["total_cached_input_tokens"] == 40
-    assert kwargs["total_cost_usd"] == round(0.001234 + 0.002, 6)
+    assert client.run.call_count == 2
 
-    stages = json.loads(kwargs["stages_json"])
+    trace_kwargs = client.run.call_args_list[0].kwargs
+    assert trace_kwargs["trace_id"] == "eet-123"
+    assert trace_kwargs["patient_id"] == "p-1"
+    assert trace_kwargs["episode_count"] == 2
+    assert trace_kwargs["dry_run"] is False
+    assert trace_kwargs["total_input_tokens"] == 300
+    assert trace_kwargs["total_output_tokens"] == 60
+    assert trace_kwargs["total_cached_input_tokens"] == 40
+    assert trace_kwargs["total_cost_usd"] == round(0.001234 + 0.002, 6)
+
+    stages = json.loads(trace_kwargs["stages_json"])
     assert {s["stage"] for s in stages} == {"segmenter", "reconciler"}
 
-    errors = json.loads(kwargs["errors_json"])
+    errors = json.loads(trace_kwargs["errors_json"])
     assert errors == ["reconciler failed"]
+
+    audit_kwargs = client.run.call_args_list[1].kwargs
+    assert audit_kwargs["id"] == "audit-eet-eet-123"
+    assert audit_kwargs["trace_id"] == "eet-123"
+    assert audit_kwargs["patient_id"] == "p-1"
+    assert audit_kwargs["status"] == "partial"
+    assert audit_kwargs["stage_count"] == 2
+    assert audit_kwargs["episode_count"] == 2
+    assert audit_kwargs["error_count"] == 2
+    assert audit_kwargs["first_error"] == "reconciler failed"
+    assert audit_kwargs["llm_input_tokens"] == 300
+    assert audit_kwargs["llm_output_tokens"] == 60
+    assert audit_kwargs["dry_run"] is False
 
 
 def test_persist_trace_swallows_exceptions(caplog):

@@ -20,7 +20,9 @@
 
 import {
   formatApiDetail,
+  formatRelativeUpdatedAt,
   mergeEditedRuleIntoCache,
+  sortRulesForStatus,
 } from "../RuleReviewSection";
 
 const PRE_EDIT_RULE = {
@@ -415,6 +417,25 @@ describe("RuleReviewSection -- status filter (Tier 1)", () => {
     expect(RULE_REVIEW_SOURCE).toMatch(/onReject\?: \(\) => void;/);
   });
 
+  it("declares Rule.updated_at / reviewed_at / reviewed_by so the FE can sort and label staleness (DI-LEO-AI-512 AC-001 / AC-002)", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(/created_at\?: string;/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/updated_at\?: string;/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/reviewed_at\?: string;/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/reviewed_by\?: string;/);
+  });
+
+  it("renders the per-row 'Updated <relative>' hint via formatRelativeUpdatedAt (DI-LEO-AI-512 AC-002)", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /data-testid="rule-updated-relative"[\s\S]*?formatRelativeUpdatedAt\(rule\.updated_at\)/,
+    );
+  });
+
+  it("sorts the rendered list with sortRulesForStatus(rules, statusFilter) so Active surfaces stalest first (DI-LEO-AI-512 AC-001)", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /sortRulesForStatus\(rules, statusFilter\)\.map\(\(rule\) => \(/,
+    );
+  });
+
   it("gives each filter chip a tooltip explaining what it shows", () => {
     // Tooltips are critical for first-time reviewers who have not
     // seen the rule lifecycle before -- "Superseded" especially is
@@ -427,5 +448,123 @@ describe("RuleReviewSection -- status filter (Tier 1)", () => {
     expect(optionsBlock).toMatch(/helper:[\s\S]*?Pending review/);
     expect(optionsBlock).toMatch(/helper:[\s\S]*?Active/);
     expect(optionsBlock).toMatch(/helper:[\s\S]*?Superseded/);
+  });
+});
+
+// ---- formatRelativeUpdatedAt + sortRulesForStatus (DI-LEO-AI-512) -----------
+//
+// These are pure helpers; we drive them with a fixed `now` so the tests
+// are deterministic across CI runs and time-zones. The hint copy MUST
+// stay short and unambiguous (no "a few", no future tense) so the
+// Active list scans at a glance.
+
+describe("RuleReviewSection -- formatRelativeUpdatedAt", () => {
+  const NOW = new Date("2026-04-19T12:00:00Z");
+
+  it("returns an empty string for missing / unparseable input", () => {
+    expect(formatRelativeUpdatedAt(undefined, NOW)).toBe("");
+    expect(formatRelativeUpdatedAt(null, NOW)).toBe("");
+    expect(formatRelativeUpdatedAt("", NOW)).toBe("");
+    expect(formatRelativeUpdatedAt("not-a-date", NOW)).toBe("");
+  });
+
+  it("renders sub-minute deltas (and future timestamps) as 'just now'", () => {
+    // Future timestamps should never produce negative-time copy --
+    // clock skew between BE and FE is real and we never want to
+    // confuse a reviewer with "Updated -2 minutes ago".
+    expect(formatRelativeUpdatedAt("2026-04-19T11:59:30Z", NOW)).toBe(
+      "Updated just now",
+    );
+    expect(formatRelativeUpdatedAt("2026-04-19T12:05:00Z", NOW)).toBe(
+      "Updated just now",
+    );
+  });
+
+  it("singularises 1 minute / 1 hour / 1 day / 1 month / 1 year", () => {
+    expect(formatRelativeUpdatedAt("2026-04-19T11:59:00Z", NOW)).toBe(
+      "Updated 1 minute ago",
+    );
+    expect(formatRelativeUpdatedAt("2026-04-19T11:00:00Z", NOW)).toBe(
+      "Updated 1 hour ago",
+    );
+    expect(formatRelativeUpdatedAt("2026-04-18T12:00:00Z", NOW)).toBe(
+      "Updated 1 day ago",
+    );
+    expect(formatRelativeUpdatedAt("2026-03-19T12:00:00Z", NOW)).toBe(
+      "Updated 1 month ago",
+    );
+    expect(formatRelativeUpdatedAt("2025-04-19T11:00:00Z", NOW)).toBe(
+      "Updated 1 year ago",
+    );
+  });
+
+  it("renders multi-unit deltas with plurals", () => {
+    expect(formatRelativeUpdatedAt("2026-04-19T11:55:00Z", NOW)).toBe(
+      "Updated 5 minutes ago",
+    );
+    expect(formatRelativeUpdatedAt("2026-04-19T09:00:00Z", NOW)).toBe(
+      "Updated 3 hours ago",
+    );
+    expect(formatRelativeUpdatedAt("2026-04-12T12:00:00Z", NOW)).toBe(
+      "Updated 7 days ago",
+    );
+  });
+});
+
+describe("RuleReviewSection -- sortRulesForStatus", () => {
+  const RULES = [
+    { rule_id: "r-young", updated_at: "2026-04-19T11:00:00Z" },
+    { rule_id: "r-stale", updated_at: "2026-01-01T00:00:00Z" },
+    { rule_id: "r-newest", updated_at: "2026-04-19T11:55:00Z" },
+  ];
+
+  it("preserves BE order when the filter is pending_review or superseded", () => {
+    expect(sortRulesForStatus(RULES, "pending_review").map((r) => r.rule_id)).toEqual([
+      "r-young",
+      "r-stale",
+      "r-newest",
+    ]);
+    expect(sortRulesForStatus(RULES, "superseded").map((r) => r.rule_id)).toEqual([
+      "r-young",
+      "r-stale",
+      "r-newest",
+    ]);
+  });
+
+  it("reorders Active list stalest-first by updated_at", () => {
+    expect(sortRulesForStatus(RULES, "active").map((r) => r.rule_id)).toEqual([
+      "r-stale",
+      "r-young",
+      "r-newest",
+    ]);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [...RULES];
+    const before = input.map((r) => r.rule_id);
+    sortRulesForStatus(input, "active");
+    expect(input.map((r) => r.rule_id)).toEqual(before);
+  });
+
+  it("breaks ties on rule_id so the order is deterministic across renders", () => {
+    const tied = [
+      { rule_id: "r-b", updated_at: "2026-01-01T00:00:00Z" },
+      { rule_id: "r-a", updated_at: "2026-01-01T00:00:00Z" },
+    ];
+    expect(sortRulesForStatus(tied, "active").map((r) => r.rule_id)).toEqual([
+      "r-a",
+      "r-b",
+    ]);
+  });
+
+  it("treats missing / unparseable updated_at as epoch zero so legacy rules surface first", () => {
+    const mixed = [
+      { rule_id: "r-modern", updated_at: "2026-04-19T00:00:00Z" },
+      { rule_id: "r-legacy" },
+    ];
+    expect(sortRulesForStatus(mixed, "active").map((r) => r.rule_id)).toEqual([
+      "r-legacy",
+      "r-modern",
+    ]);
   });
 });

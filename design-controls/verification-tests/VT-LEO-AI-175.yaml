@@ -25,8 +25,10 @@
       - "services/terminology_api/tests/test_compile_drafts.py"
       - "services/terminology_api/tests/test_guideline_evaluator_diagnose.py"
       - "services/api/tests/test_sandbox_replay.py"
+      - "services/api/tests/test_test_patient_service.py"
       - "services/ui/src/app/admin/guidance/test-patients/__tests__/RulesetNotCompiledBanner.test.tsx"
       - "services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/TestPatientsPanel.sandbox.test.tsx"
+      - "services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/TestPatientsPanel.scope.test.tsx"
 
   test_environment:
     environment_type: "development"
@@ -273,6 +275,74 @@
       acceptance_criteria:
         - "Sandbox diagnostics MUST be computed against the live sandbox scope, not global, and MUST be embedded in the report so the dialog never has to call /diagnose against a deleted scope."
 
+    - case_id: "VT-175-TC-015"
+      case_name: "TestPatientsPanel probes the global scope even when a guidelineId is supplied"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Render TestPatientsPanel with guidelineId='NG12'. Stub
+            /api/terminology/guidelines/bitmap/status to return a
+            healthy global bitmap (active_version, rule_count > 0)
+            for scope_type=global and an empty per-guideline bitmap
+            (active_version=null) for scope_type=guideline. Wait
+            for the saved-patient list to load.
+          expected_result: >
+            Every call to bitmap/status carries scope_type=global
+            and scope_id=default; no call is made with
+            scope_type=guideline. The "No bitmap ruleset is loaded"
+            banner is NOT rendered. The single production bitmap
+            is the source of truth; per-guideline scopes are
+            reserved for sandbox compiles only.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "The Test Patients panel MUST NOT report 'no ruleset loaded' for a per-guideline rule when the production global bitmap is compiled."
+
+    - case_id: "VT-175-TC-016"
+      case_name: "replay_scope propagates guideline_id as a pathway_filter on evaluation"
+      priority: "critical"
+      test_steps:
+        - step_number: 1
+          action: >
+            Stub list_patients / get_patient to return a single
+            saved patient with pathway_id=None and stub
+            evaluate_against_terminology to capture its kwargs.
+            Call replay_scope(client, patient_ids=['tp1'],
+            guideline_id='NG12', scope_type='global',
+            scope_id='default').
+          expected_result: >
+            evaluate_against_terminology is invoked with
+            pathway_filter='NG12', scope_type='global' and
+            scope_id='default', so the single global production
+            bitmap is queried but evaluation is restricted to
+            rules whose guideline_id matches the editor's
+            guideline. Patients without a saved pathway_id are
+            still scoped correctly.
+          verification_method: "automated"
+      acceptance_criteria:
+        - "guideline_id MUST flow from the replay request through replay_scope -> replay_one -> evaluate_against_terminology(pathway_filter=...) so the panel sees results filtered to the guideline being edited."
+
+    - case_id: "VT-175-TC-017"
+      case_name: "evaluate_against_terminology pathway_filter overrides payload.pathway_id"
+      priority: "high"
+      test_steps:
+        - step_number: 1
+          action: >
+            Build a PatientPayload(codes=['100'], pathway_id='NG151').
+            Call evaluate_against_terminology(payload,
+            pathway_filter='NG12') with httpx.Client patched to
+            capture the POST body. Then call
+            evaluate_against_terminology(payload) with no
+            pathway_filter.
+          expected_result: >
+            With pathway_filter='NG12' the request body's
+            pathway_id is 'NG12' (override wins). With no
+            pathway_filter the request body's pathway_id falls
+            back to payload.pathway_id ('NG151').
+          verification_method: "automated"
+      acceptance_criteria:
+        - "Explicit pathway_filter MUST take precedence over the patient's saved pathway_id; absence MUST fall through to the payload value to preserve the existing single-pathway-per-patient behaviour."
+
   pass_fail_criteria:
     pass_threshold: "100% critical, 100% all"
     blocking_on_failure: true
@@ -331,3 +401,37 @@
         sandbox bitmap had already been torn down (and against
         global/default by default), so all of them 404'd with
         not_compiled and the dialog showed an unhelpful banner.
+    - run_id: "VT-175-EXEC-2026-04-19-001"
+      executed_by: "Rob Smith"
+      executed_at: "2026-04-19T10:35:00Z"
+      ruleset_version: "n/a"
+      result: "pass"
+      summary: >
+        Added TC-015 / TC-016 / TC-017 to fix a false-positive
+        "No bitmap ruleset is loaded" banner in the rule editor.
+        TestPatientsPanel was probing scope_type='guideline'
+        scope_id=<guidelineId>, but production only ever compiles
+        the single global bitmap (per-guideline scopes are reserved
+        for sandbox / draft compiles), so the panel reported a
+        missing ruleset whenever a per-guideline rule was opened.
+        Fix: the panel now always probes scope_type='global' /
+        scope_id='default' and passes guideline_id through the
+        replay body; replay_one / replay_scope now propagate that
+        guideline_id as pathway_filter on
+        evaluate_against_terminology so the global bitmap is
+        evaluated but restricted to rules of the guideline being
+        edited. 19 pytest cases in test_test_patient_service.py
+        (includes the two new cases), 17 cases across
+        test_sandbox_replay.py + test_test_patient_router.py and
+        3 jest cases in TestPatientsPanel.* all passed.
+      commands:
+        - "python -m pytest services/api/tests/test_test_patient_service.py -v"
+        - "python -m pytest services/api/tests/test_sandbox_replay.py services/api/tests/test_test_patient_router.py -v"
+        - "npx jest --no-coverage --testPathPatterns 'TestPatientsPanel'"
+      notes: >
+        Implements the architectural intent confirmed in
+        DI-LEO-AI-181: ONE production bitmap holds rules from
+        every guideline, with optional per-guideline filtering at
+        evaluation time (pathway_filter). The panel's status
+        check, live replay and per-rule evaluation are now all
+        aligned on that model.
