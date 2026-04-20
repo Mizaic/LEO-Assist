@@ -1,5 +1,19 @@
 name: CD - Deploy
 
+# Atlas trace
+#   DO: DO-6036D724
+#   DI: DI-71087A9E
+#   Look up via: get_design_control(dc_type="design-output", dc_id="DO-6036D724")
+#
+# Hardening notes
+#   - Third-party / Microsoft-owned actions are pinned to immutable commit
+#     SHAs with the human-readable tag in a comment. Renovate (or a manual
+#     audit) is responsible for bumping the SHA + comment together.
+#   - Every value that originates from user input or a webhook payload
+#     (workflow_dispatch inputs, github.event.*) flows into the shell via
+#     the step's `env:` block, never via inline `${{ }}` expansion. This
+#     blocks GHA template injection through crafted tag / SHA values.
+
 on:
   workflow_run:
     workflows: ["CI - Build and Push Images"]
@@ -39,44 +53,56 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Resolve image tag
         id: tag
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
-          TAG="${{ github.event.inputs.image_tag }}"
+          TAG="$INPUT_IMAGE_TAG"
           if [ -z "$TAG" ]; then
-            TAG="sha-${{ github.event.workflow_run.head_sha || github.sha }}"
+            TAG="sha-${WORKFLOW_RUN_HEAD_SHA:-$GITHUB_SHA}"
           fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          if ! [[ "$TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "image_tag $TAG contains disallowed characters" >&2
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy Bicep stack
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           az deployment group create \
             --resource-group leo-ai-dev \
             --template-file infra/bicep/main.bicep \
             --parameters infra/bicep/parameters/dev.bicepparam \
-            --parameters imageTag=${{ steps.tag.outputs.tag }} \
-            --name "cd-dev-${{ github.run_number }}"
+            --parameters "imageTag=$IMAGE_TAG" \
+            --name "cd-dev-$RUN_NUMBER"
 
       - name: Update Container App image tags
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.tag }}
         run: |
           # Must match images built in ci-build.yml and apps in infra/bicep/modules/container-apps.bicep
           # Parity with scripts/start_leo-ai-core.sh (--services names: api, terminology_api, ...)
           SERVICES="core-api terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker ui"
-          TAG=${{ steps.tag.outputs.tag }}
           for SERVICE in $SERVICES; do
             az containerapp update \
-              --name $SERVICE \
+              --name "$SERVICE" \
               --resource-group leo-ai-dev \
-              --image ${{ env.ACR_LOGIN_SERVER }}/$SERVICE:$TAG \
+              --image "${ACR_LOGIN_SERVER}/${SERVICE}:${IMAGE_TAG}" \
               --output none
           done
 
@@ -146,11 +172,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Validate promotion image tag
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
         run: |
-          TAG="${{ github.event.inputs.image_tag }}"
+          TAG="$INPUT_IMAGE_TAG"
           if [ -z "$TAG" ]; then
             echo "image_tag is required for validation promotion"
             exit 1
@@ -159,23 +187,30 @@ jobs:
             echo "image_tag must be immutable (sha-*) for promotion"
             exit 1
           fi
+          if ! [[ "$TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "image_tag contains disallowed characters"
+            exit 1
+          fi
 
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to validation
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
-          TAG="${{ github.event.inputs.image_tag }}"
+          TAG="$INPUT_IMAGE_TAG"
           az deployment group create \
             --resource-group leo-ai-val \
             --template-file infra/bicep/main.bicep \
             --parameters infra/bicep/parameters/val.bicepparam \
-            --parameters imageTag=$TAG \
-            --name "cd-val-${{ github.run_number }}"
+            --parameters "imageTag=$TAG" \
+            --name "cd-val-$RUN_NUMBER"
 
       - name: Post-deploy smoke checks
         run: |
@@ -243,11 +278,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Validate promotion image tag
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
         run: |
-          TAG="${{ github.event.inputs.image_tag }}"
+          TAG="$INPUT_IMAGE_TAG"
           if [ -z "$TAG" ]; then
             echo "image_tag is required for production promotion"
             exit 1
@@ -256,23 +293,30 @@ jobs:
             echo "image_tag must be immutable (sha-*) for promotion"
             exit 1
           fi
+          if ! [[ "$TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "image_tag contains disallowed characters"
+            exit 1
+          fi
 
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to production
+        env:
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
-          TAG="${{ github.event.inputs.image_tag }}"
+          TAG="$INPUT_IMAGE_TAG"
           az deployment group create \
             --resource-group leo-ai-prod \
             --template-file infra/bicep/main.bicep \
             --parameters infra/bicep/parameters/prod.bicepparam \
-            --parameters imageTag=$TAG \
-            --name "cd-prod-${{ github.run_number }}"
+            --parameters "imageTag=$TAG" \
+            --name "cd-prod-$RUN_NUMBER"
 
       - name: Post-deploy smoke checks
         run: |
