@@ -36,7 +36,8 @@ for the code inventory) and the episode status is set to closed_benign.
 The two milestone types are mutually exclusive in clean data and the
 cohort definition above relies on that contract. The eight legacy
 closed_benign episodes that still carry a diagnosis_confirmed milestone
-are tracked in design-controls/audits/improvements-backlog.md.
+are tracked in compliance/atlas-migration-evidence/audits-source-evidence/improvements-backlog.md
+(historical reference; the canonical risk lives in Atlas).
 
 Suspected-cancer-referral variant ('2WW-route diagnoses'):
     canonical confirmed-cancer clause

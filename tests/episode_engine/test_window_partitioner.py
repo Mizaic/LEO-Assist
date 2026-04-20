@@ -15,8 +15,10 @@ the milestone extractor:
   * NO LLM call is made by the partitioner or the merger (pure-Python
     invariant from R-LEO-AI-513)
 
-Each test maps 1:1 to a case_id in
-``design-controls/verification-tests/VT-LEO-AI-523.yaml``.
+Each test maps 1:1 to an acceptance criterion on the Atlas
+verification test for the SBAR background partitioner (legacy local id
+VT-LEO-AI-523; look up the Atlas dcId via
+compliance/atlas-migration-evidence/atlas-id-mapping.csv).
 """
 
 from __future__ import annotations

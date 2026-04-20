@@ -1,0 +1,73 @@
+# Entra group -> LEO role bindings (Option A catalogue)
+# ------------------------------------------------------
+# This file is the source of truth that the seed script
+# (scripts/seed_roles_and_groups.py) loads into Neo4j as
+#
+#   (:Group {entra_object_id})-[:GRANTS_ROLE]->(:Role {name})
+#
+# The LEO Entra app registration MUST have
+#   "groupMembershipClaims": "SecurityGroup"
+# in its manifest, so that signed-in users' security-group
+# object-ids land in the OIDC `groups` claim.
+#
+# DI-D9D4BA02  : core-api SHALL resolve roles from the `groups` claim
+# DI-3610585D  : LEO MUST NOT hold any group-write Graph permission
+# DO-11B1CC4D  : implementation reference
+#
+# Provisioning model:
+# - The tenant admin creates these security groups in Entra (out of band).
+# - The Group Object IDs from Entra are pasted into entra_object_id below.
+# - Running the seed script is idempotent: the (:Group)-[:GRANTS_ROLE]->(:Role)
+#   triples are MERGEd, no group is ever created or deleted in Entra.
+#
+# Copy this file to entra-group-bindings.yaml and fill in the real
+# Entra Object IDs before running the seed script in any environment.
+
+roles:
+  - name: clinician
+    description: "Reads and reviews clinical encounters; can approve or reject AI proposals."
+    permissions:
+      - reviewer.read
+      - reviewer.approve
+      - reviewer.reject
+  - name: staff
+    description: "Operations / admin support; reads patient pathways, manages alerts, no clinical sign-off."
+    permissions:
+      - reviewer.read
+      - alerts.manage
+  - name: qa_ra_lead
+    description: "QA / RA lead; reads everything, can run audits and exports."
+    permissions:
+      - reviewer.read
+      - audit.read
+      - audit.export
+  - name: platform_admin
+    description: "Platform administrator across all orgs."
+    permissions:
+      - "*"
+
+bindings:
+  # -------- Acme Trust (example tenant) --------
+  - entra_object_id: "00000000-0000-0000-0000-000000000001"
+    name: "LEO Clinicians - Acme Trust"
+    description: "Members get the clinician role in LEO."
+    role_name: clinician
+    org_id: "ORG-ACME"
+
+  - entra_object_id: "00000000-0000-0000-0000-000000000002"
+    name: "LEO Operations Staff - Acme Trust"
+    description: "Members get the staff role in LEO."
+    role_name: staff
+    org_id: "ORG-ACME"
+
+  - entra_object_id: "00000000-0000-0000-0000-000000000003"
+    name: "LEO QA / RA Leads - Acme Trust"
+    description: "Members get the qa_ra_lead role in LEO."
+    role_name: qa_ra_lead
+    org_id: "ORG-ACME"
+
+  - entra_object_id: "00000000-0000-0000-0000-000000000099"
+    name: "LEO Platform Administrators"
+    description: "Members get platform_admin across all orgs."
+    role_name: platform_admin
+    org_id: ""

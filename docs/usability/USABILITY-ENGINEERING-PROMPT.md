@@ -4,8 +4,10 @@
 
 **References:**
 - IEC 62366-1:2015 + Amendment 1:2020 (Medical devices — Application of usability engineering)
-- `design-controls/intended-use.md` (DC-IU-001)
-- `design-controls/neo4j-nlp-terminology-schema.md`
+- `compliance/policy/intended-use.md` (DC-IU-001)
+- `compliance/architecture-superseded/neo4j-nlp-terminology-schema.md`
+  (historical; live architecture is in the Atlas SAD via
+  `get_software_architecture_document`)
 
 ---
 

@@ -79,6 +79,62 @@ Platform admins bypass all filters; GP/ICB/Alliance users see only patients
 registered to their org hierarchy. Scope failures return 404 (not 403) to
 avoid leaking patient existence.
 
+### Entra-group-driven roles (Option A)
+
+LEO does not provision Entra security groups. The tenant administrator
+creates the security groups in their Entra tenant and the LEO Neo4j graph
+holds the binding catalogue mapping each group's object ID to a canonical
+LEO role:
+
+```cypher
+(:Group {entra_object_id})-[:GRANTS_ROLE {org_id}]->(:Role {name})
+```
+
+On every successful OIDC callback, `core-api`:
+
+1. Reads the verified `groups` claim from the ID token.
+2. Resolves each group object ID against the catalogue.
+3. Synchronises the practitioner's `[:HAS_ROLE]` edges to the resolved
+   role-name set (drops stale, adds new).
+4. Persists the resolved roles on the Redis session for fast read.
+5. Audits any unknown group IDs via `auth.entra_groups.unknown_group`,
+   missing claims via `auth.entra_groups.missing`, and overage via
+   `auth.entra_groups.overage` (overage explicitly does NOT call
+   Microsoft Graph -- the LEO app registration holds zero `Group.*`,
+   `GroupMember.*`, or `Directory.*` permissions).
+
+#### Required app registration manifest setting
+
+The runtime Entra app registration MUST set:
+
+```json
+{
+  "groupMembershipClaims": "SecurityGroup"
+}
+```
+
+This emits each user's security-group object IDs in the OIDC `groups`
+claim with no Graph permission. See Atlas DI-3610585D for the security
+constraints on the app registration.
+
+#### Seeding the Neo4j catalogue
+
+The catalogue is checked in at
+`data/identity/entra-group-bindings.example.yaml`. Copy it to
+`entra-group-bindings.yaml`, fill in the real Entra group object IDs,
+and run:
+
+```bash
+python -m scripts.seed_roles_and_groups \
+    --bindings data/identity/entra-group-bindings.yaml
+```
+
+The script is idempotent and never creates or modifies anything in
+Entra -- only the Neo4j `:Group` nodes and `[:GRANTS_ROLE]` edges.
+
+Atlas chain: UN-A449F651 -> DI-D9D4BA02 / DI-3610585D ->
+DO-11B1CC4D -> R-A4473229 -> VT-67FB9C97.
+
 ### Dual-model voting
 
 Classification, label verification, and anchor domain review all run two
@@ -149,9 +205,11 @@ Settings are loaded from `secrets/.env` via `python-dotenv` at import time
 ## Regulatory
 
 This service is classified as a **Class IIa medical device** software component
-under UK MDR 2002. Changes must be traced to design controls in
-`design-controls/` and must not reduce precision/recall below the baselines
-recorded in `design-controls/DC-TM-002-traceability-matrix.csv`.
+under UK MDR 2002. Changes must be traced to design controls in the
+Atlas MCP server (`user-atlas-design-controls`, product
+`PROD-LEO-CORE-AI-20260415-6AE8A23B`) and must not reduce precision /
+recall below the baselines recorded against the relevant Atlas VTs.
+Use `get_traceability_matrix` for the live trace.
 
 ## CI/CD and ACA deployment
 

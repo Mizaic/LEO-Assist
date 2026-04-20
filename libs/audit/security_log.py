@@ -16,6 +16,10 @@ auth.login.failure      -- Token verification failed or user rejected
 auth.login.mfa_blocked  -- Login blocked due to missing MFA
 auth.logout             -- Explicit logout, session deleted
 auth.session.expired    -- Session not found in Redis (implicit expiry)
+auth.entra_groups.resolved      -- Entra `groups` claim resolved to LEO roles at login
+auth.entra_groups.missing       -- Token had no `groups` claim, fallthrough to existing edges
+auth.entra_groups.overage       -- Token presented overage indicator, fallthrough to existing edges
+auth.entra_groups.unknown_group -- A group object ID in the claim does not match any :Group node
 authz.denied            -- require_admin or require_scope raised 403/401
 authz.admin_action      -- Privileged mutation executed by an admin
 data.access             -- Patient-level data accessed
@@ -75,6 +79,60 @@ def emit_session_expired(*, ip: str) -> None:
 
 def emit_token_rejected(*, reason: str, ip: str) -> None:
     _emit("security.token_rejected", reason=reason, ip=ip)
+
+
+# ---------------------------------------------------------------------------
+# Entra-group resolution (DI-D9D4BA02 / DI-3610585D / R-A4473229)
+# ---------------------------------------------------------------------------
+
+
+def emit_entra_groups_resolved(
+    *,
+    email: str,
+    ip: str,
+    group_ids: list[str],
+    role_names: list[str],
+) -> None:
+    """One log line per successful sign-in showing the group->role mapping
+    that was applied. Used to evidence access decisions in audit review.
+    """
+    _emit(
+        "auth.entra_groups.resolved",
+        email=email,
+        ip=ip,
+        group_id_count=len(group_ids),
+        group_ids=group_ids,
+        role_names=role_names,
+    )
+
+
+def emit_groups_claim_missing(*, email: str, ip: str) -> None:
+    """The verified token contained no `groups` claim and no overage
+    indicator. The tenant administrator likely needs to set
+    ``groupMembershipClaims=SecurityGroup`` on the LEO app registration.
+    """
+    _emit("auth.entra_groups.missing", email=email, ip=ip)
+
+
+def emit_groups_claim_overage(*, email: str, ip: str) -> None:
+    """The token presented `_claim_names.groups`, indicating the user is in
+    more groups than Entra will inline. LEO refuses to call Microsoft Graph
+    (per DI-3610585D) and falls back to existing HAS_ROLE edges.
+    """
+    _emit("auth.entra_groups.overage", email=email, ip=ip)
+
+
+def emit_unknown_entra_group(*, email: str, ip: str, group_id: str) -> None:
+    """A group object ID in the user's claim has no `:Group` row in the
+    Neo4j catalogue. Either the catalogue is stale or the user is in a
+    tenant group that has not been bound to a LEO role.
+    """
+    _emit(
+        "auth.entra_groups.unknown_group",
+        email=email,
+        ip=ip,
+        group_id=group_id,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,94 @@
+---
+description: Use the Atlas MCP server as the single source of truth for design controls (UN, DI, DO, VT, VAL, Risk, SAD). Never write YAMLs.
+alwaysApply: true
+---
+
+# Atlas Design Controls -- MCP First
+
+The Atlas MCP server is the **single source of truth** for every
+design control artefact in this repo. Local YAML files under
+`design-controls/` no longer exist. Anything you read or write that
+relates to a User Need, Design Input, Design Output, Verification
+Test, Validation Test, Risk, or the Software Architecture Document
+MUST go through the `user-atlas-design-controls` MCP server.
+
+- Product ID: `PROD-LEO-CORE-AI-20260415-6AE8A23B`
+- MCP server: `user-atlas-design-controls`
+- ID format in Atlas: 8 hex chars (e.g. `UN-8225F9E1`, `DI-D14B711F`)
+
+## Hard rules
+
+1. **No local design-control YAMLs.** Never create files under any
+   path matching `**/design-controls/**`. Never recreate the
+   `user-needs/`, `design-inputs/`, `design-outputs/`,
+   `verification-tests/`, `validation-tests/`, or `risks/` folders.
+   If you find one, delete it and migrate the content to Atlas.
+2. **No local traceability matrix.** Use Atlas
+   `get_traceability_matrix` for trace queries. The Markdown / CSV
+   matrices that used to live in `design-controls/` are gone.
+3. **No legacy ID format in new content.** The legacy
+   `UN-LEO-AI-099`, `DI-LEO-AI-529` etc. style is read-only history.
+   Every new artefact gets an Atlas dcId of the form `<TYPE>-<8 hex>`
+   from the create tool.
+4. **No "I will write the YAML and migrate later".** Migrate now via
+   the matching `create_*` tool. The whole point of Phase 10 was to
+   stop drift between Atlas and disk.
+5. **Acceptance criteria, rationale, mitigations, monitoring,
+   residual risk, etc. are Atlas fields.** Use the `create_*` and
+   `update_*` tools, not files.
+
+## Where things live now
+
+| You used to look at...                              | You now call...                                           |
+|-----------------------------------------------------|-----------------------------------------------------------|
+| `design-controls/user-needs/UN-*.yaml`              | `get_design_control(dc_type="user_need", dc_id=...)`      |
+| `design-controls/design-inputs/DI-*.yaml`           | `get_design_control(dc_type="design_input", dc_id=...)`   |
+| `design-controls/design-outputs/DO-*.yaml`          | `get_design_control(dc_type="design_output", dc_id=...)`  |
+| `design-controls/verification-tests/VT-*.yaml`      | `get_design_control(dc_type="verification_test", ...)`    |
+| `design-controls/validation-tests/VAL-*.yaml`       | `get_design_control(dc_type="validation_test", ...)`      |
+| `design-controls/risks/R-*.yaml`                    | `get_design_control(dc_type="risk", dc_id=...)`           |
+| `design-controls/DC-TM-001-traceability-matrix.md`  | `get_traceability_matrix(product_id=...)`                 |
+| `design-controls/DC-ARCH-001-system-architecture.md`| `get_software_architecture_document(product_id=...)`      |
+
+Source-of-truth helpers:
+
+- Browse / find: `search_design_controls(query=..., dc_type=...)`,
+  `get_design_control_stats(product_id=...)`, `get_traceability_gaps`.
+- Audit history: `compliance/atlas-migration-evidence/atlas-id-mapping.csv`
+  maps every legacy `UN-LEO-AI-*` / `DI-LEO-AI-*` / etc. to its
+  Atlas dcId.
+
+## Compliance / governance docs (NOT design controls)
+
+These still live on disk under `compliance/`:
+
+- `compliance/policy/` -- 20 governance / regulatory docs (DPA, DPIA,
+  DTAC, NDOO, SOUP, configuration management, deployment, etc.)
+- `compliance/architecture-superseded/` -- the original sources for
+  the Atlas SAD, kept for the audit chain. Read-only history; for
+  the live architecture use `get_software_architecture_document`.
+- `compliance/design-reviews/` -- design-review minutes (`DR-*.yaml`).
+- `compliance/atlas-migration-evidence/` -- the Phase 1-10 migration
+  ledgers and the 2026-04-19 Atlas baseline snapshot.
+- `compliance/coverage-waivers.md` -- accepted residual gaps with
+  owners and clearance plans.
+
+When you need to update a policy doc under `compliance/policy/`, you
+edit the file directly. When you need to update a design control,
+you call the Atlas MCP.
+
+## See also
+
+- `atlas-vt-enforcement.mdc` -- when you write code, the DI / DO /
+  Risk / VT / VAL chain must exist in Atlas first.
+- `atlas-design-controls-validation.mdc` -- Atlas validates the
+  schema server-side; this rule lists the local checks you still owe
+  before calling a tool.
+
+## If MCP is unavailable
+
+- State that MCP failed and why (auth, tool-not-found, transport).
+- Ask the user to fix MCP connection or approval.
+- Do **not** fall back to writing YAMLs.
+- Do not write a "to migrate later" file. We just deleted 1,047 of
+  those.

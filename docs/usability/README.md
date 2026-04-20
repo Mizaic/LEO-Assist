@@ -78,7 +78,9 @@ USER-NEEDS-001              CRITICAL-TASKS-001
 
 ## 5. References
 
-- `design-controls/intended-use.md` (DC-IU-001)
-- `design-controls/neo4j-nlp-terminology-schema.md`
+- `compliance/policy/intended-use.md` (DC-IU-001)
+- `compliance/architecture-superseded/neo4j-nlp-terminology-schema.md`
+  (historical; live architecture is in the Atlas SAD via
+  `get_software_architecture_document`)
 - `services/ui/` — HITL review UI implementation
 - `services/api/` — REST API, review workflow

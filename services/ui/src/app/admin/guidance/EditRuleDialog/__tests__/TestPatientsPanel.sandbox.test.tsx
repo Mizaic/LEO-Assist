@@ -166,10 +166,18 @@ describe("TestPatientsPanel sandbox replay", () => {
     );
 
     // The report dialog opens once the sandbox replay returns.
+    // Title was rewritten to plain English ("Test report -- unsaved
+    // draft (sandbox)") so a clinical safety reviewer can sign it
+    // off; we still assert the "unsaved draft" substring so the
+    // sandbox-vs-live distinction stays visible to the reader.
     await waitFor(() =>
-      expect(screen.getByText(/replay results -- unsaved draft/i)).toBeInTheDocument(),
+      expect(screen.getByText(/test report -- unsaved draft/i)).toBeInTheDocument(),
     );
-    expect(screen.getByText(/draft-v1/i)).toBeInTheDocument();
+    // The sandbox version is rendered twice on purpose: once in the
+    // "What we tested" facts block and once in the audit footer
+    // provenance line, so a 13485 reviewer sees it whether they
+    // scan top-down or sign off from the bottom.
+    expect(screen.getAllByText(/draft-v1/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows the sandbox 'not compiled' banner when zero rules compiled", async () => {

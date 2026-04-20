@@ -723,8 +723,8 @@ RETURN count(DISTINCT c) AS codes_linked
 # ---------------------------------------------------------------------
 #
 # These queries are used by `scripts/seed_sbar_test_patients.py` to
-# load the YAML fixtures in design-controls/training-data/sbar-golden-
-# set/ as :TestPatient {aspect: 'summarisation'} rows. Idempotent --
+# load the YAML fixtures in data/training/sbar-golden-set/ as
+# :TestPatient {aspect: 'summarisation'} rows. Idempotent --
 # re-running the script updates the existing rows in place.
 #
 # Each fixture becomes:

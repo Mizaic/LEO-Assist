@@ -15,8 +15,10 @@ extractor:
   * one StageTrace per Haiku batch (the chain wires this through to the
     EpisodeEngineTrace LLMUsage stage)
 
-Each test case below maps 1:1 to a case_id in
-``design-controls/verification-tests/VT-LEO-AI-522.yaml``.
+Each test case below maps 1:1 to an acceptance criterion on the Atlas
+verification test for "audit relevance filter" (legacy local id
+VT-LEO-AI-522; look up the Atlas dcId via
+compliance/atlas-migration-evidence/atlas-id-mapping.csv).
 """
 
 from __future__ import annotations

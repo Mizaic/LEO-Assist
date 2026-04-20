@@ -1,0 +1,117 @@
+kind,atlas_di_uuid,atlas_di_dcid,local_id,atlas_do_dcid,decision,note,ts
+do,17aa6900-7ae0-4b80-b5bc-e159462b4c08,DI-17AA6900,DI-LEO-AI-047,DO-E3A8CDAA,created,Consensus Arbitrator Third-Verdict Audit Alert (implementation),2026-04-20T07:04:27Z
+link,17aa6900-7ae0-4b80-b5bc-e159462b4c08,DI-17AA6900,DI-LEO-AI-047,DO-E3A8CDAA,created,DO DO-E3A8CDAA -[IMPLEMENTS]-> DI DI-17AA6900,2026-04-20T07:04:27Z
+do,7736f734-2076-4d75-b12b-3c47b45af18f,DI-7736F734,DI-LEO-AI-128,DO-1536C1B7,created,Care Overview (Dashboard) inclusive redesign (implementation),2026-04-20T07:04:43Z
+link,7736f734-2076-4d75-b12b-3c47b45af18f,DI-7736F734,DI-LEO-AI-128,DO-1536C1B7,created,DO DO-1536C1B7 -[IMPLEMENTS]-> DI DI-7736F734,2026-04-20T07:04:43Z
+do,ec96f102-27f4-4691-bec9-7f358817363f,DI-EC96F102,DI-LEO-AI-044,DO-55B68F36,created,Lab Value Diagnostic Inference Prevention (implementation),2026-04-20T07:05:13Z
+link,ec96f102-27f4-4691-bec9-7f358817363f,DI-EC96F102,DI-LEO-AI-044,DO-55B68F36,created,DO DO-55B68F36 -[IMPLEMENTS]-> DI DI-EC96F102,2026-04-20T07:05:14Z
+do,f93acedb-3eb5-4555-b951-c201326e889e,DI-F93ACEDB,DI-LEO-AI-071,DO-FA650296,created,Avoidable Delay Assessment (implementation),2026-04-20T07:05:43Z
+link,f93acedb-3eb5-4555-b951-c201326e889e,DI-F93ACEDB,DI-LEO-AI-071,DO-FA650296,created,DO DO-FA650296 -[IMPLEMENTS]-> DI DI-F93ACEDB,2026-04-20T07:05:43Z
+do,adbebcbb-765e-4b75-98ba-c0fce3bb406c,DI-ADBEBCBB,DI-LEO-AI-009,DO-6A070AC9,created,Anchor/Milestone Detection (implementation),2026-04-20T07:06:12Z
+link,adbebcbb-765e-4b75-98ba-c0fce3bb406c,DI-ADBEBCBB,DI-LEO-AI-009,DO-6A070AC9,created,DO DO-6A070AC9 -[IMPLEMENTS]-> DI DI-ADBEBCBB,2026-04-20T07:06:12Z
+di_title_update,adbebcbb-765e-4b75-98ba-c0fce3bb406c,DI-ADBEBCBB,DI-LEO-AI-009,,created,title -> 'Anchor/Milestone Detection',2026-04-20T07:06:12Z
+do,d149aedb-0a08-44a2-bbb1-86f23a5bcad2,DI-D149AEDB,DI-LEO-AI-011,DO-3082DEED,created,Episode Consolidation (implementation),2026-04-20T07:06:27Z
+link,d149aedb-0a08-44a2-bbb1-86f23a5bcad2,DI-D149AEDB,DI-LEO-AI-011,DO-3082DEED,created,DO DO-3082DEED -[IMPLEMENTS]-> DI DI-D149AEDB,2026-04-20T07:06:27Z
+di_title_update,d149aedb-0a08-44a2-bbb1-86f23a5bcad2,DI-D149AEDB,DI-LEO-AI-011,,created,title -> 'Episode Consolidation',2026-04-20T07:06:27Z
+do,a0d8090d-2509-4441-b294-60b58f25b306,DI-A0D8090D,DI-LEO-AI-124,DO-B7FCDAFB,created,Milestone temporal integrity: referral-to-diagnosis gap + PRISM primacy (implementation),2026-04-20T07:06:42Z
+link,a0d8090d-2509-4441-b294-60b58f25b306,DI-A0D8090D,DI-LEO-AI-124,DO-B7FCDAFB,created,DO DO-B7FCDAFB -[IMPLEMENTS]-> DI DI-A0D8090D,2026-04-20T07:06:42Z
+di_title_update,a0d8090d-2509-4441-b294-60b58f25b306,DI-A0D8090D,DI-LEO-AI-124,,created,title -> 'Milestone temporal integrity: referral-to-diagnosis gap + PRISM primacy',2026-04-20T07:06:42Z
+do,0338a282-0c42-4fc3-bd1e-07c92a3f86b6,DI-0338A282,DI-LEO-AI-149,DO-C57BB8ED,created,Histology vocabulary expansion for confirmed-cancer and benign-closure detection (implementation),2026-04-20T07:07:11Z
+link,0338a282-0c42-4fc3-bd1e-07c92a3f86b6,DI-0338A282,DI-LEO-AI-149,DO-C57BB8ED,created,DO DO-C57BB8ED -[IMPLEMENTS]-> DI DI-0338A282,2026-04-20T07:07:11Z
+di_title_update,0338a282-0c42-4fc3-bd1e-07c92a3f86b6,DI-0338A282,DI-LEO-AI-149,,created,title -> 'Histology vocabulary expansion for confirmed-cancer and benign-closure detection',2026-04-20T07:07:12Z
+do,4710ef03-46b3-47f2-a33d-3ccca27584ec,DI-4710EF03,DI-LEO-AI-155,DO-A24A764D,created,Text-based cancer-site classification from gold-mined surface forms (implementation),2026-04-20T07:07:41Z
+link,4710ef03-46b3-47f2-a33d-3ccca27584ec,DI-4710EF03,DI-LEO-AI-155,DO-A24A764D,created,DO DO-A24A764D -[IMPLEMENTS]-> DI DI-4710EF03,2026-04-20T07:07:41Z
+di_title_update,4710ef03-46b3-47f2-a33d-3ccca27584ec,DI-4710EF03,DI-LEO-AI-155,,created,title -> 'Text-based cancer-site classification from gold-mined surface forms',2026-04-20T07:07:41Z
+do,c022e32c-4522-4af5-9b29-e7f8ad6493d9,DI-C022E32C,DI-LEO-AI-029,DO-35EF404B,created,Auto-Scaling Worker Architecture (implementation),2026-04-20T07:08:10Z
+link,c022e32c-4522-4af5-9b29-e7f8ad6493d9,DI-C022E32C,DI-LEO-AI-029,DO-35EF404B,created,DO DO-35EF404B -[IMPLEMENTS]-> DI DI-C022E32C,2026-04-20T07:08:11Z
+di_title_update,c022e32c-4522-4af5-9b29-e7f8ad6493d9,DI-C022E32C,DI-LEO-AI-029,,created,title -> 'Auto-Scaling Worker Architecture',2026-04-20T07:08:11Z
+do,2049fd08-8564-4269-9fa5-82e6e1cfe4b6,DI-2049FD08,DI-LEO-AI-034,DO-BC6C7DD5,created,Value Set and Concept Map Management (implementation),2026-04-20T07:08:40Z
+link,2049fd08-8564-4269-9fa5-82e6e1cfe4b6,DI-2049FD08,DI-LEO-AI-034,DO-BC6C7DD5,created,DO DO-BC6C7DD5 -[IMPLEMENTS]-> DI DI-2049FD08,2026-04-20T07:08:41Z
+di_title_update,2049fd08-8564-4269-9fa5-82e6e1cfe4b6,DI-2049FD08,DI-LEO-AI-034,,created,title -> 'Value Set and Concept Map Management',2026-04-20T07:08:41Z
+do,57daab93-2bdf-4eca-9877-31f3393e6251,DI-57DAAB93,DI-LEO-AI-039,DO-21BFEF36,created,CodingDecision Audit Trail (implementation),2026-04-20T07:08:56Z
+link,57daab93-2bdf-4eca-9877-31f3393e6251,DI-57DAAB93,DI-LEO-AI-039,DO-21BFEF36,created,DO DO-21BFEF36 -[IMPLEMENTS]-> DI DI-57DAAB93,2026-04-20T07:08:56Z
+di_title_update,57daab93-2bdf-4eca-9877-31f3393e6251,DI-57DAAB93,DI-LEO-AI-039,,created,title -> 'CodingDecision Audit Trail',2026-04-20T07:08:56Z
+do,2774e3e4-8a4a-4b6b-b384-55c5b87bde90,DI-2774E3E4,DI-LEO-AI-043,DO-70668FE7,created,"UI Safety, Accessibility, and Usability Remediation (implementation)",2026-04-20T07:09:27Z
+link,2774e3e4-8a4a-4b6b-b384-55c5b87bde90,DI-2774E3E4,DI-LEO-AI-043,DO-70668FE7,created,DO DO-70668FE7 -[IMPLEMENTS]-> DI DI-2774E3E4,2026-04-20T07:09:27Z
+di_title_update,2774e3e4-8a4a-4b6b-b384-55c5b87bde90,DI-2774E3E4,DI-LEO-AI-043,,created,"title -> 'UI Safety, Accessibility, and Usability Remediation'",2026-04-20T07:09:28Z
+do,445d41ec-62fa-42cb-a5f0-054af95ec451,DI-445D41EC,DI-LEO-AI-045,DO-71B50335,created,LLM Prompt Safety Utilities (implementation),2026-04-20T07:09:44Z
+link,445d41ec-62fa-42cb-a5f0-054af95ec451,DI-445D41EC,DI-LEO-AI-045,DO-71B50335,created,DO DO-71B50335 -[IMPLEMENTS]-> DI DI-445D41EC,2026-04-20T07:09:45Z
+di_title_update,445d41ec-62fa-42cb-a5f0-054af95ec451,DI-445D41EC,DI-LEO-AI-045,,created,title -> 'LLM Prompt Safety Utilities',2026-04-20T07:09:45Z
+do,140f27d6-8310-4720-a86c-739b4dbf8369,DI-140F27D6,DI-LEO-AI-046,DO-6CC5C08A,created,Admin-Only Clinical Rule Mutation with ReDoS-Safe Regex Validation (implementation),2026-04-20T07:10:02Z
+link,140f27d6-8310-4720-a86c-739b4dbf8369,DI-140F27D6,DI-LEO-AI-046,DO-6CC5C08A,created,DO DO-6CC5C08A -[IMPLEMENTS]-> DI DI-140F27D6,2026-04-20T07:10:02Z
+di_title_update,140f27d6-8310-4720-a86c-739b4dbf8369,DI-140F27D6,DI-LEO-AI-046,,created,title -> 'Admin-Only Clinical Rule Mutation with ReDoS-Safe Regex Validation',2026-04-20T07:10:02Z
+do,7f08913a-bffd-4f5e-9e2d-3742ed84ccef,DI-7F08913A,DI-LEO-AI-055,DO-69F44D69,created,GDPR-Isolated Learning Loop and Operations UX (implementation),2026-04-20T07:10:20Z
+link,7f08913a-bffd-4f5e-9e2d-3742ed84ccef,DI-7F08913A,DI-LEO-AI-055,DO-69F44D69,created,DO DO-69F44D69 -[IMPLEMENTS]-> DI DI-7F08913A,2026-04-20T07:10:20Z
+di_title_update,7f08913a-bffd-4f5e-9e2d-3742ed84ccef,DI-7F08913A,DI-LEO-AI-055,,created,title -> 'GDPR-Isolated Learning Loop and Operations UX',2026-04-20T07:10:20Z
+do,497f8a50-9de1-4cf7-9a70-e9c3ddd251e8,DI-497F8A50,DI-LEO-AI-064,DO-A76427CD,created,LLM-Based AppropriatenessRule Authoring with HITL Gate (implementation),2026-04-20T07:10:53Z
+link,497f8a50-9de1-4cf7-9a70-e9c3ddd251e8,DI-497F8A50,DI-LEO-AI-064,DO-A76427CD,created,DO DO-A76427CD -[IMPLEMENTS]-> DI DI-497F8A50,2026-04-20T07:10:53Z
+di_title_update,497f8a50-9de1-4cf7-9a70-e9c3ddd251e8,DI-497F8A50,DI-LEO-AI-064,,created,title -> 'LLM-Based AppropriatenessRule Authoring with HITL Gate',2026-04-20T07:10:53Z
+do,bcccbcaf-12ee-45ab-a87e-c2526deb7c1d,DI-BCCCBCAF,DI-LEO-AI-065,DO-18880C7D,created,"Bitmap Store, Compiler, and Evaluator in Terminology API (implementation)",2026-04-20T07:11:26Z
+link,bcccbcaf-12ee-45ab-a87e-c2526deb7c1d,DI-BCCCBCAF,DI-LEO-AI-065,DO-18880C7D,created,DO DO-18880C7D -[IMPLEMENTS]-> DI DI-BCCCBCAF,2026-04-20T07:11:26Z
+di_title_update,bcccbcaf-12ee-45ab-a87e-c2526deb7c1d,DI-BCCCBCAF,DI-LEO-AI-065,,created,"title -> 'Bitmap Store, Compiler, and Evaluator in Terminology API'",2026-04-20T07:11:26Z
+do,8e82275b-5d8c-439a-ac6c-aa5793bf29fc,DI-8E82275B,DI-LEO-AI-070,DO-2DB8B203,created,NCDA Report Template Generation (implementation),2026-04-20T07:11:43Z
+link,8e82275b-5d8c-439a-ac6c-aa5793bf29fc,DI-8E82275B,DI-LEO-AI-070,DO-2DB8B203,created,DO DO-2DB8B203 -[IMPLEMENTS]-> DI DI-8E82275B,2026-04-20T07:11:43Z
+di_title_update,8e82275b-5d8c-439a-ac6c-aa5793bf29fc,DI-8E82275B,DI-LEO-AI-070,,created,title -> 'NCDA Report Template Generation',2026-04-20T07:11:43Z
+do,769b453a-4e48-4977-915a-75cc284fc7d7,DI-769B453A,DI-LEO-AI-072,DO-1313E92D,created,Loop 1: Automated Audit Execution (implementation),2026-04-20T07:11:59Z
+link,769b453a-4e48-4977-915a-75cc284fc7d7,DI-769B453A,DI-LEO-AI-072,DO-1313E92D,created,DO DO-1313E92D -[IMPLEMENTS]-> DI DI-769B453A,2026-04-20T07:12:00Z
+di_title_update,769b453a-4e48-4977-915a-75cc284fc7d7,DI-769B453A,DI-LEO-AI-072,,created,title -> 'Loop 1: Automated Audit Execution',2026-04-20T07:12:00Z
+do,5d229d2c-49a8-42ef-85cf-16cfe49b803b,DI-5D229D2C,DI-LEO-AI-075,DO-D345AD27,created,Loop 2: Surface Form Task Creation (Streams A/B/C) (implementation),2026-04-20T07:12:32Z
+link,5d229d2c-49a8-42ef-85cf-16cfe49b803b,DI-5D229D2C,DI-LEO-AI-075,DO-D345AD27,created,DO DO-D345AD27 -[IMPLEMENTS]-> DI DI-5D229D2C,2026-04-20T07:12:32Z
+di_title_update,5d229d2c-49a8-42ef-85cf-16cfe49b803b,DI-5D229D2C,DI-LEO-AI-075,,created,title -> 'Loop 2: Surface Form Task Creation (Streams A/B/C)',2026-04-20T07:12:32Z
+do,f0c1170a-155d-4003-b4c5-5911946726d4,DI-F0C1170A,DI-LEO-AI-080,DO-FD83BB4A,created,Appointment and Admin Header Filtering in NLP Pipeline (implementation),2026-04-20T07:13:05Z
+link,f0c1170a-155d-4003-b4c5-5911946726d4,DI-F0C1170A,DI-LEO-AI-080,DO-FD83BB4A,created,DO DO-FD83BB4A -[IMPLEMENTS]-> DI DI-F0C1170A,2026-04-20T07:13:05Z
+di_title_update,f0c1170a-155d-4003-b4c5-5911946726d4,DI-F0C1170A,DI-LEO-AI-080,,created,title -> 'Appointment and Admin Header Filtering in NLP Pipeline',2026-04-20T07:13:05Z
+do,5b06872d-4213-41b3-b9ba-ebd3edea01cd,DI-5B06872D,DI-LEO-AI-082,DO-B4E8836C,created,Audit-Driven Automated Encounter Remediation (implementation),2026-04-20T07:13:22Z
+link,5b06872d-4213-41b3-b9ba-ebd3edea01cd,DI-5B06872D,DI-LEO-AI-082,DO-B4E8836C,created,DO DO-B4E8836C -[IMPLEMENTS]-> DI DI-5B06872D,2026-04-20T07:13:22Z
+di_title_update,5b06872d-4213-41b3-b9ba-ebd3edea01cd,DI-5B06872D,DI-LEO-AI-082,,created,title -> 'Audit-Driven Automated Encounter Remediation',2026-04-20T07:13:22Z
+do,2c12a9d7-629a-402c-af85-3f7eb3e9bc59,DI-2C12A9D7,DI-LEO-AI-090,DO-671C15BF,created,Stage-at-diagnosis enrichment engine (implementation),2026-04-20T07:13:39Z
+link,2c12a9d7-629a-402c-af85-3f7eb3e9bc59,DI-2C12A9D7,DI-LEO-AI-090,DO-671C15BF,created,DO DO-671C15BF -[IMPLEMENTS]-> DI DI-2C12A9D7,2026-04-20T07:13:39Z
+di_title_update,2c12a9d7-629a-402c-af85-3f7eb3e9bc59,DI-2C12A9D7,DI-LEO-AI-090,,created,title -> 'Stage-at-diagnosis enrichment engine',2026-04-20T07:13:39Z
+do,e70338a5-57e6-48b6-b00f-d457689fb088,DI-E70338A5,DI-LEO-AI-095,DO-41EF3F1D,created,The system SHALL provide an admin-triggered bulk reset-and-reprocess capability for all... (implementation),2026-04-20T07:14:12Z
+link,e70338a5-57e6-48b6-b00f-d457689fb088,DI-E70338A5,DI-LEO-AI-095,DO-41EF3F1D,created,DO DO-41EF3F1D -[IMPLEMENTS]-> DI DI-E70338A5,2026-04-20T07:14:13Z
+do,eb8642f4-34ed-4f73-99ce-66b49fb953bc,DI-EB8642F4,DI-LEO-AI-096,DO-B648A936,created,The coding pipeline SHALL support a production NER-first extraction route by calling th... (implementation),2026-04-20T07:14:29Z
+link,eb8642f4-34ed-4f73-99ce-66b49fb953bc,DI-EB8642F4,DI-LEO-AI-096,DO-B648A936,created,DO DO-B648A936 -[IMPLEMENTS]-> DI DI-EB8642F4,2026-04-20T07:14:29Z
+do,423b120c-55a0-47b4-b848-e4855a041a8a,DI-423B120C,DI-LEO-AI-098,DO-5ACA4760,created,The coding pipeline SHALL run a lightweight coding quality LLM check after terminology ... (implementation),2026-04-20T07:15:02Z
+link,423b120c-55a0-47b4-b848-e4855a041a8a,DI-423B120C,DI-LEO-AI-098,DO-5ACA4760,created,DO DO-5ACA4760 -[IMPLEMENTS]-> DI DI-423B120C,2026-04-20T07:15:02Z
+do,d0fc22fe-da85-45f3-9def-ac812dc1c7a6,DI-D0FC22FE,DI-LEO-AI-099,DO-F78C84A6,created,Encounter-centric Mission Control and Batch Recode (implementation),2026-04-20T07:15:18Z
+link,d0fc22fe-da85-45f3-9def-ac812dc1c7a6,DI-D0FC22FE,DI-LEO-AI-099,DO-F78C84A6,created,DO DO-F78C84A6 -[IMPLEMENTS]-> DI DI-D0FC22FE,2026-04-20T07:15:18Z
+di_title_update,d0fc22fe-da85-45f3-9def-ac812dc1c7a6,DI-D0FC22FE,DI-LEO-AI-099,,created,title -> 'Encounter-centric Mission Control and Batch Recode',2026-04-20T07:15:18Z
+do,b5c5f8d3-e87a-41ba-a2f6-8987b6a6c822,DI-B5C5F8D3,DI-LEO-AI-101,DO-D9F0F2D0,created,Double-Negation Guard for Pre-Negated SNOMED Situation Concepts (implementation),2026-04-20T07:15:50Z
+link,b5c5f8d3-e87a-41ba-a2f6-8987b6a6c822,DI-B5C5F8D3,DI-LEO-AI-101,DO-D9F0F2D0,created,DO DO-D9F0F2D0 -[IMPLEMENTS]-> DI DI-B5C5F8D3,2026-04-20T07:15:51Z
+di_title_update,b5c5f8d3-e87a-41ba-a2f6-8987b6a6c822,DI-B5C5F8D3,DI-LEO-AI-101,,created,title -> 'Double-Negation Guard for Pre-Negated SNOMED Situation Concepts',2026-04-20T07:15:51Z
+do,926a4b95-4657-45c4-b6bf-69be00efb1bb,DI-926A4B95,DI-LEO-AI-120,DO-A6B89CC7,created,Global inclusive accessibility baseline (implementation),2026-04-20T07:16:07Z
+link,926a4b95-4657-45c4-b6bf-69be00efb1bb,DI-926A4B95,DI-LEO-AI-120,DO-A6B89CC7,created,DO DO-A6B89CC7 -[IMPLEMENTS]-> DI DI-926A4B95,2026-04-20T07:16:08Z
+di_title_update,926a4b95-4657-45c4-b6bf-69be00efb1bb,DI-926A4B95,DI-LEO-AI-120,,created,title -> 'Global inclusive accessibility baseline',2026-04-20T07:16:08Z
+do,587eb97e-12f0-4472-9bdb-9d729e773ab8,DI-587EB97E,DI-LEO-AI-122,DO-2BA37B59,created,Operations workspace inclusive redesign (implementation),2026-04-20T07:16:40Z
+link,587eb97e-12f0-4472-9bdb-9d729e773ab8,DI-587EB97E,DI-LEO-AI-122,DO-2BA37B59,created,DO DO-2BA37B59 -[IMPLEMENTS]-> DI DI-587EB97E,2026-04-20T07:16:40Z
+di_title_update,587eb97e-12f0-4472-9bdb-9d729e773ab8,DI-587EB97E,DI-LEO-AI-122,,created,title -> 'Operations workspace inclusive redesign',2026-04-20T07:16:40Z
+do,c1d7533f-f935-4d41-aa56-faf94b7c8552,DI-C1D7533F,DI-LEO-AI-127,DO-E701D0FA,created,"SafetyNetAlert persistence, Patient edge, and canonical alert_id (implementation)",2026-04-20T07:17:13Z
+link,c1d7533f-f935-4d41-aa56-faf94b7c8552,DI-C1D7533F,DI-LEO-AI-127,DO-E701D0FA,created,DO DO-E701D0FA -[IMPLEMENTS]-> DI DI-C1D7533F,2026-04-20T07:17:13Z
+di_title_update,c1d7533f-f935-4d41-aa56-faf94b7c8552,DI-C1D7533F,DI-LEO-AI-127,,created,"title -> 'SafetyNetAlert persistence, Patient edge, and canonical alert_id'",2026-04-20T07:17:13Z
+do,9205cf41-de96-40fa-ab38-c23f201ceaf2,DI-9205CF41,DI-LEO-AI-129,DO-A7C8A6BD,created,"Practitioner role model (selected_role, allowed_roles, RoleSwitch audit) (implementation)",2026-04-20T07:17:46Z
+link,9205cf41-de96-40fa-ab38-c23f201ceaf2,DI-9205CF41,DI-LEO-AI-129,DO-A7C8A6BD,created,DO DO-A7C8A6BD -[IMPLEMENTS]-> DI DI-9205CF41,2026-04-20T07:17:46Z
+di_title_update,9205cf41-de96-40fa-ab38-c23f201ceaf2,DI-9205CF41,DI-LEO-AI-129,,created,"title -> 'Practitioner role model (selected_role, allowed_roles, RoleSwitch audit)'",2026-04-20T07:17:46Z
+do,af53cf08-aba0-4715-9037-6e0afacf6a8b,DI-AF53CF08,DI-LEO-AI-135,DO-09AC56A0,created,Merge /admin/clinical into /admin/knowledge (implementation),2026-04-20T07:18:18Z
+link,af53cf08-aba0-4715-9037-6e0afacf6a8b,DI-AF53CF08,DI-LEO-AI-135,DO-09AC56A0,created,DO DO-09AC56A0 -[IMPLEMENTS]-> DI DI-AF53CF08,2026-04-20T07:18:18Z
+di_title_update,af53cf08-aba0-4715-9037-6e0afacf6a8b,DI-AF53CF08,DI-LEO-AI-135,,created,title -> 'Merge /admin/clinical into /admin/knowledge',2026-04-20T07:18:19Z
+do,e10bde6e-08e8-410e-b2b4-8f9460f15e36,DI-E10BDE6E,DI-LEO-AI-139,DO-13C4B6B1,created,Role-first intro copy + layout across every major area (implementation),2026-04-20T07:18:51Z
+link,e10bde6e-08e8-410e-b2b4-8f9460f15e36,DI-E10BDE6E,DI-LEO-AI-139,DO-13C4B6B1,created,DO DO-13C4B6B1 -[IMPLEMENTS]-> DI DI-E10BDE6E,2026-04-20T07:18:51Z
+di_title_update,e10bde6e-08e8-410e-b2b4-8f9460f15e36,DI-E10BDE6E,DI-LEO-AI-139,,created,title -> 'Role-first intro copy + layout across every major area',2026-04-20T07:18:51Z
+do,a0daf527-9ea6-4464-93d6-460ee363c0b3,DI-A0DAF527,DI-LEO-AI-142,DO-C3619627,created,Wave E Phase 1 Knowledge primitives in @leo/design-system (implementation),2026-04-20T07:19:24Z
+link,a0daf527-9ea6-4464-93d6-460ee363c0b3,DI-A0DAF527,DI-LEO-AI-142,DO-C3619627,created,DO DO-C3619627 -[IMPLEMENTS]-> DI DI-A0DAF527,2026-04-20T07:19:24Z
+di_title_update,a0daf527-9ea6-4464-93d6-460ee363c0b3,DI-A0DAF527,DI-LEO-AI-142,,created,title -> 'Wave E Phase 1 Knowledge primitives in @leo/design-system',2026-04-20T07:19:24Z
+do,90c08758-67ae-4ec8-b5c8-24264657771d,DI-90C08758,DI-LEO-AI-145,DO-E66A98C2,created,First-seen milestone for 2WW fast-track clinic attendances (implementation),2026-04-20T07:19:41Z
+link,90c08758-67ae-4ec8-b5c8-24264657771d,DI-90C08758,DI-LEO-AI-145,DO-E66A98C2,created,DO DO-E66A98C2 -[IMPLEMENTS]-> DI DI-90C08758,2026-04-20T07:19:41Z
+di_title_update,90c08758-67ae-4ec8-b5c8-24264657771d,DI-90C08758,DI-LEO-AI-145,,created,title -> 'First-seen milestone for 2WW fast-track clinic attendances',2026-04-20T07:19:41Z
+do,3ed218ca-d971-474d-b65a-d0ee9e200aa7,DI-3ED218CA,DI-LEO-AI-147,DO-8AE3A41B,created,Wave E Phase 3: CRUD Knowledge tabs on @leo/design-system (implementation),2026-04-20T07:19:57Z
+link,3ed218ca-d971-474d-b65a-d0ee9e200aa7,DI-3ED218CA,DI-LEO-AI-147,DO-8AE3A41B,created,DO DO-8AE3A41B -[IMPLEMENTS]-> DI DI-3ED218CA,2026-04-20T07:19:57Z
+di_title_update,3ed218ca-d971-474d-b65a-d0ee9e200aa7,DI-3ED218CA,DI-LEO-AI-147,,created,title -> 'Wave E Phase 3: CRUD Knowledge tabs on @leo/design-system',2026-04-20T07:19:58Z
+do,7f6d3bfc-b4e8-4244-a72a-5da02b0d2030,DI-7F6D3BFC,DI-LEO-AI-148,DO-8166F6B1,created,Wave E Phase 4: AI Instructions list on @leo/design-system (implementation),2026-04-20T07:20:30Z
+link,7f6d3bfc-b4e8-4244-a72a-5da02b0d2030,DI-7F6D3BFC,DI-LEO-AI-148,DO-8166F6B1,created,DO DO-8166F6B1 -[IMPLEMENTS]-> DI DI-7F6D3BFC,2026-04-20T07:20:30Z
+di_title_update,7f6d3bfc-b4e8-4244-a72a-5da02b0d2030,DI-7F6D3BFC,DI-LEO-AI-148,,created,title -> 'Wave E Phase 4: AI Instructions list on @leo/design-system',2026-04-20T07:20:30Z
+do,5672762d-e582-4744-99eb-c826f65a6024,DI-5672762D,DI-LEO-AI-150,DO-BC098903,created,Diagnosis-aware open-episode completion (rescue auto-stale) (implementation),2026-04-20T07:21:02Z
+link,5672762d-e582-4744-99eb-c826f65a6024,DI-5672762D,DI-LEO-AI-150,DO-BC098903,created,DO DO-BC098903 -[IMPLEMENTS]-> DI DI-5672762D,2026-04-20T07:21:02Z
+di_title_update,5672762d-e582-4744-99eb-c826f65a6024,DI-5672762D,DI-LEO-AI-150,,created,title -> 'Diagnosis-aware open-episode completion (rescue auto-stale)',2026-04-20T07:21:02Z
+do,fefcd950-cde2-41e9-bdc6-c6b5d92fe5db,DI-FEFCD950,DI-LEO-AI-154,DO-BE8CE98C,created,Manual review-time editing of AI-generated guidance rules (implementation),2026-04-20T07:21:34Z
+link,fefcd950-cde2-41e9-bdc6-c6b5d92fe5db,DI-FEFCD950,DI-LEO-AI-154,DO-BE8CE98C,created,DO DO-BE8CE98C -[IMPLEMENTS]-> DI DI-FEFCD950,2026-04-20T07:21:35Z
+di_title_update,fefcd950-cde2-41e9-bdc6-c6b5d92fe5db,DI-FEFCD950,DI-LEO-AI-154,,created,title -> 'Manual review-time editing of AI-generated guidance rules',2026-04-20T07:21:35Z

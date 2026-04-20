@@ -1,0 +1,5 @@
+{
+  "_doc": "Manual decision overrides for Phase 3 DO + VT migration. Same shape as phase2_decisions.json: { '<local_id>': { 'decision': 'remap'|'create'|'review'|'skip', 'atlas_dc_id': '<DC>', 'note': '...' } }",
+  "VT-LEO-AI-022": {"decision": "remap", "atlas_dc_id": "VT-FD5FDF14", "note": "Same Disorder verifier test - identical local file path tests/test_disorder_verifier.py"},
+  "VT-LEO-AI-116": {"decision": "remap", "atlas_dc_id": "VT-56B7FCBB", "note": "Same plain-language UI primitives test - matching title content"}
+}

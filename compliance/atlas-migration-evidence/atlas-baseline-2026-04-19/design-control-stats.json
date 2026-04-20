@@ -1,0 +1,54 @@
+{
+  "snapshot_at": "2026-04-19",
+  "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
+  "userNeeds": {
+    "total": 89,
+    "approved": 0,
+    "inReview": 0,
+    "draft": 89,
+    "linkedToDI": 84,
+    "linkedToVAL": 58
+  },
+  "designInputs": {
+    "total": 262,
+    "approved": 0,
+    "inReview": 0,
+    "draft": 262,
+    "linkedToUN": 262,
+    "linkedToDO": 258,
+    "linkedToVT": 261,
+    "linkedToVAL": 0
+  },
+  "designOutputs": {
+    "total": 156,
+    "approved": 0,
+    "inReview": 0,
+    "draft": 156,
+    "linkedToDI": 156,
+    "linkedToVT": 45
+  },
+  "verificationTests": {
+    "total": 179,
+    "passed": 3,
+    "failed": 0,
+    "notExecuted": 176,
+    "linkedToDI": 179,
+    "linkedToDO": 44
+  },
+  "validationTests": {
+    "total": 21,
+    "passed": 0,
+    "failed": 0,
+    "notExecuted": 21,
+    "linkedToUN": 21,
+    "linkedToDI": 0
+  },
+  "risks": {
+    "total": 159,
+    "acceptable": 88,
+    "alarp": 70,
+    "unacceptable": 1,
+    "linkedToUN": 159,
+    "linkedToDI": 159
+  }
+}

@@ -1,0 +1,39 @@
+kind,local_id,atlas_dcid,atlas_uuid,decision,note,ts
+user_need,UN-LEO-AI-099,UN-8225F9E1,8225f9e1-50ce-4818-a8de-25efe8663831,created,Cancer pathway dashboard headline counts always agree with the Episode Engine's view of which pathways are open and whic,2026-04-20T07:39:12Z
+user_need,UN-LEO-AI-100,UN-B5BE2BD1,b5be2bd1-8481-4b04-9f6a-f4ae08fe743b,created,Dashboard hero cards summarise every cancer pathway exactly once across four lifecycle buckets,2026-04-20T07:39:12Z
+user_need,UN-LEO-AI-101,UN-A2F0AE7F,a2f0ae7f-eebf-4ec3-a632-9f3911018c98,created,Every cancer pathway records its tumour site using the canonical NCDA cancer-type vocabulary,2026-04-20T07:39:13Z
+design_input,DI-LEO-AI-529,DI-D14B711F,d14b711f-8b75-445a-9403-1e313eb67585,created,Canonical EpisodeOfCare status vocabulary,2026-04-20T07:39:13Z
+link,DI-LEO-AI-529,DI-D14B711F,,created,UN UN-8225F9E1 -[HAS_DESIGN_INPUT]-> DI DI-D14B711F,2026-04-20T07:39:13Z
+design_input,DI-LEO-AI-530,DI-5CAC6D73,5cac6d73-4b07-460e-bb2b-1ee7d0b6e8f8,created,Canonical NCDA cancer-type vocabulary,2026-04-20T07:39:13Z
+link,DI-LEO-AI-530,DI-5CAC6D73,,created,UN UN-A2F0AE7F -[HAS_DESIGN_INPUT]-> DI DI-5CAC6D73,2026-04-20T07:39:14Z
+design_input,DI-LEO-AI-531,DI-105A4EC7,105a4ec7-a68e-49ae-95c9-3f61acec63ca,created,MECE lifecycle classifier for hero cards,2026-04-20T07:39:14Z
+link,DI-LEO-AI-531,DI-105A4EC7,,created,UN UN-B5BE2BD1 -[HAS_DESIGN_INPUT]-> DI DI-105A4EC7,2026-04-20T07:39:14Z
+design_output,DO-LEO-AI-529,DO-AC244024,ac244024-c435-4da4-aaa5-49252c6e674e,created,Canonical EpisodeOfCare status vocabulary + writer / dashboard / UI refactor + idempotent migration + contract test,2026-04-20T07:39:14Z
+link,DO-LEO-AI-529,DO-AC244024,,created,DO DO-AC244024 -[IMPLEMENTS]-> DI DI-D14B711F,2026-04-20T07:39:15Z
+verification_test,VT-LEO-AI-527,VT-C45C6AC7,c45c6ac7-08d0-4661-b7f6-493b32fe6b29,created,Canonical EpisodeOfCare status vocabulary contract,2026-04-20T07:39:15Z
+link,VT-LEO-AI-527,VT-C45C6AC7,,created,VT VT-C45C6AC7 -[VERIFIES]-> DI-D14B711F,2026-04-20T07:39:15Z
+link,VT-LEO-AI-527,VT-C45C6AC7,,created,VT VT-C45C6AC7 -[TESTS]-> DO-AC244024,2026-04-20T07:39:15Z
+risk,R-LEO-AI-515,R-DD9B8F9B,dd9b8f9b-b743-43e9-898b-83cfe387a0d1,created,Episode-status vocabulary drift between the engine writer and the audit dashboard makes closed pathways appear open (or ,2026-04-20T07:39:30Z
+link,R-LEO-AI-515,R-DD9B8F9B,,created,DI DI-D14B711F -[MITIGATES]-> R R-DD9B8F9B,2026-04-20T07:39:30Z
+run,VT-LEO-AI-527,,c45c6ac7-08d0-4661-b7f6-493b32fe6b29,recorded,13 pass / 0 fail,2026-04-20T07:39:52Z
+design_output,,DO-8B14E71D,8b14e71d-ae22-436a-9271-957ae2ea5f74,created,MECE lifecycle classifier module + audit summary endpoint + dashboard hero cards,2026-04-20T07:36:39Z
+link,,DO-8B14E71D,,created,DO DO-8B14E71D -[IMPLEMENTS]-> DI DI-105A4EC7,2026-04-20T07:42:00Z
+design_output,,DO-4345E055,4345e055-5074-4f0a-b4b8-6f82768d49e1,created,Canonical NCDA cancer-type vocabulary modules + LLM enum + normalisers + UI mirror + migration,2026-04-20T07:36:57Z
+link,,DO-4345E055,,created,DO DO-4345E055 -[IMPLEMENTS]-> DI DI-5CAC6D73,2026-04-20T07:42:01Z
+verification_test,,VT-24D944B2,24d944b2-8810-45e9-9333-03a22642786e,created,Verify MECE lifecycle classifier and dashboard hero cards,2026-04-20T07:37:17Z
+link,,VT-24D944B2,,created,VT VT-24D944B2 -[VERIFIES]-> DI DI-105A4EC7,2026-04-20T07:42:02Z
+link,,VT-24D944B2,,created,VT VT-24D944B2 -[TESTS]-> DO DO-8B14E71D,2026-04-20T07:38:10Z
+verification_test,,VT-2202B852,2202b852-0366-479e-b7b6-2ab369eebbe9,created,Verify canonical NCDA cancer-type vocabulary parity across LLM writer analytics API UI mirror and migration,2026-04-20T07:37:37Z
+link,,VT-2202B852,,created,VT VT-2202B852 -[VERIFIES]-> DI DI-5CAC6D73,2026-04-20T07:42:03Z
+link,,VT-2202B852,,created,VT VT-2202B852 -[TESTS]-> DO DO-4345E055,2026-04-20T07:38:13Z
+risk,,R-24C3AAED,24c3aaed-2588-4e25-a657-ab48c36668f5,created,Care Overview hero cards mis-classify cancer pathway lifecycle and mislead clinical reviewers,2026-04-20T07:38:16Z
+link,,R-24C3AAED,,created,DI DI-105A4EC7 -[MITIGATES]-> R R-24C3AAED,2026-04-20T07:42:04Z
+risk,,R-D0FC4793,d0fc4793-56a6-4f56-9c20-dcdd426f2f84,created,Free-text cancer-type values fragment dashboard charts and break NCDA benchmark comparisons,2026-04-20T07:38:52Z
+link,,R-D0FC4793,,created,DI DI-5CAC6D73 -[MITIGATES]-> R R-D0FC4793,2026-04-20T07:42:05Z
+retire,UN-LEO-AI-100,UN-E764FC48,e764fc48-b06a-49b7-be68-9409300a0ead,obsoleted,Duplicate of UN-B5BE2BD1 (re-created in error during this session before phase10 ledger was consulted),2026-04-20T07:42:06Z
+retire,UN-LEO-AI-101,UN-EFD7AEAF,efd7aeaf-ee29-4434-906a-9235d3e66932,obsoleted,Duplicate of UN-A2F0AE7F (re-created in error during this session before phase10 ledger was consulted),2026-04-20T07:42:07Z
+retire,DI-LEO-AI-531,DI-386607A5,386607a5-42d4-4f72-97c4-73bd7d240dc8,obsoleted,Duplicate of DI-105A4EC7 (re-created in error during this session before phase10 ledger was consulted); downstream DOs/VTs/Risks re-pointed at canonical DI,2026-04-20T07:42:08Z
+retire,DI-LEO-AI-530,DI-0A239B7D,0a239b7d-a050-448c-9e65-afccc29095dc,obsoleted,Duplicate of DI-5CAC6D73 (re-created in error during this session before phase10 ledger was consulted); downstream DOs/VTs/Risks re-pointed at canonical DI,2026-04-20T07:42:09Z
+data_migration,2026_normalise_cancer_types.py,,,committed,Rewrote 141 EpisodeOfCare nodes across 32 distinct (cancer_type suspected_site) raw pairs; idempotency confirmed on second pass; final live-graph distribution = 16 canonical NCDA values summing to 141,2026-04-20T07:53:46Z
+verification_run,VT-24D944B2 run VERUN-24d944b2-8810-45e9-9333-03a22642786e-20260420075652,VT-24D944B2,24d944b2-8810-45e9-9333-03a22642786e,passed,25/25 Python (lifecycle + audit summary) + 14 UI MECE hero cards; live-graph evidence active=28 cancer_excluded=31 confirmed_cancer=45 in_review=37 sum=141,2026-04-20T07:56:52Z
+verification_run,VT-2202B852 run VERUN-2202b852-0366-479e-b7b6-2ab369eebbe9-20260420075735,VT-2202B852,2202b852-0366-479e-b7b6-2ab369eebbe9,passed,78/78 Python (oncology + cancer-type vocabulary contracts) + 29 UI cancer-type-options; migration committed and idempotent; final live-graph distribution = 16 canonical NCDA values,2026-04-20T07:57:35Z

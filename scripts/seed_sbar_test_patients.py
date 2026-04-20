@@ -1,6 +1,6 @@
 """Seed the SBAR golden-set fixtures as :TestPatient rows.
 
-Reads every YAML file in design-controls/training-data/sbar-golden-set/
+Reads every YAML file in data/training/sbar-golden-set/
 that the manifest registers as a fixture and upserts a corresponding
 :TestPatient {aspect: 'summarisation', is_test: true} subgraph into the
 **knowledge graph**. Idempotent: re-running the script refreshes the
@@ -46,7 +46,7 @@ import yaml
 from dotenv import load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SBAR_DIR = REPO_ROOT / "design-controls" / "training-data" / "sbar-golden-set"
+SBAR_DIR = REPO_ROOT / "data" / "training" / "sbar-golden-set"
 MANIFEST_PATH = SBAR_DIR / "manifest.yaml"
 
 # Load secrets BEFORE importing the Neo4j client. The client wrapper
@@ -197,7 +197,7 @@ def _build_root_props(
         "description": scenario or title,
         "title": title,
         "fixture_id": fixture_id,
-        "fixture_path": f"design-controls/training-data/sbar-golden-set/{file_name}",
+        "fixture_path": f"data/training/sbar-golden-set/{file_name}",
         "age": AGE_BAND_MIDPOINTS.get(age_band) if age_band else None,
         "age_band": age_band,
         "sex": summary.get("sex"),

@@ -304,6 +304,40 @@ def _assert_triggers_in_text(
 # ---------------------------------------------------------------------------
 
 
+def _friendly_rule_label(rule: dict[str, Any]) -> str:
+    """Pick the most human-readable label we have for ``rule``.
+
+    Reviewers should NEVER see the raw rule_id (for example
+    ``rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3`` -- see
+    .cursor/rules/health-literacy.mdc). We fall through three options
+    in order of friendliness, and only land on the rule_id when
+    nothing better exists in the rule payload.
+
+    1. ``rule_name`` -- a curated short title if the editor set one.
+    2. ``recommendation_text`` -- the verbatim NICE recommendation,
+       trimmed to ~120 chars and stripped of trailing colons so the
+       label reads as a noun phrase, not a half-finished sentence.
+    3. ``rule_id`` -- last resort.
+
+    The friendly label is wrapped in straight quotes so callers can
+    drop it into "for X" sentences without ambiguity about where the
+    label ends.
+    """
+
+    name = (rule.get("rule_name") or "").strip()
+    if name:
+        return f'"{name}"'
+
+    rec = (rule.get("recommendation_text") or "").strip()
+    if rec:
+        snippet = rec.split("\n", 1)[0].strip().rstrip(":").rstrip(".")
+        if len(snippet) > 120:
+            snippet = snippet[:117].rstrip() + "..."
+        return f'"{snippet}"'
+
+    return rule["rule_id"]
+
+
 def _expected_sbar_from_rule(rule: dict[str, Any], reviewer_focus: str) -> dict:
     """Build the ground-truth SBAR straight from the rule, not the LLM.
 
@@ -397,8 +431,9 @@ async def scaffold_patient_from_rule(
     )
 
     display_hint = demographics["display_hint"]
-    name = display_hint or f"AI scaffold for {rule['rule_id']}"
-    description = f"AI-scaffolded test patient for rule {rule['rule_id']}" + (
+    rule_friendly = _friendly_rule_label(rule)
+    name = display_hint or f"AI scaffold for {rule_friendly}"
+    description = f"AI-scaffolded test patient for {rule_friendly}" + (
         f" ({rule.get('guideline_title')})" if rule.get("guideline_title") else ""
     )
 

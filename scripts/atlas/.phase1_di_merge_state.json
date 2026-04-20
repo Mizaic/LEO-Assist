@@ -1,0 +1,878 @@
+{
+  "rows": {
+    "DI-LEO-AI-001": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-143F69EB",
+      "error": "",
+      "local_id": "DI-LEO-AI-001",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-002": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-1501326A",
+      "error": "",
+      "local_id": "DI-LEO-AI-002",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-003": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-31126C6C",
+      "error": "",
+      "local_id": "DI-LEO-AI-003",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-004": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-DA7584D8",
+      "error": "",
+      "local_id": "DI-LEO-AI-004",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-005": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-9843D732",
+      "error": "",
+      "local_id": "DI-LEO-AI-005",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-006": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-88C8BBCD",
+      "error": "",
+      "local_id": "DI-LEO-AI-006",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-007": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-21E93377",
+      "error": "",
+      "local_id": "DI-LEO-AI-007",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-008": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-2AFF691F",
+      "error": "",
+      "local_id": "DI-LEO-AI-008",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-010": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-37DDAADE",
+      "error": "",
+      "local_id": "DI-LEO-AI-010",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-012": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-1206D9E8",
+      "error": "",
+      "local_id": "DI-LEO-AI-012",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-013": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-F3FD2B63",
+      "error": "",
+      "local_id": "DI-LEO-AI-013",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-014": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-66F1B177",
+      "error": "",
+      "local_id": "DI-LEO-AI-014",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-015": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-8804DA01",
+      "error": "",
+      "local_id": "DI-LEO-AI-015",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-016": {
+      "actions": "AC: +9 (atlas 4 -> 13)",
+      "atlas_id": "DI-1B8AC856",
+      "error": "",
+      "local_id": "DI-LEO-AI-016",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-017": {
+      "actions": "AC: +4 (atlas 5 -> 9)",
+      "atlas_id": "DI-A90B19EB",
+      "error": "",
+      "local_id": "DI-LEO-AI-017",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-020": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-87CCCB18",
+      "error": "",
+      "local_id": "DI-LEO-AI-020",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-021": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-4DBE1A18",
+      "error": "",
+      "local_id": "DI-LEO-AI-021",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-022": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-B46AD5CE",
+      "error": "",
+      "local_id": "DI-LEO-AI-022",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-023": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-84F44836",
+      "error": "",
+      "local_id": "DI-LEO-AI-023",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-024": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-6079EC71",
+      "error": "",
+      "local_id": "DI-LEO-AI-024",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-025": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-49403C92",
+      "error": "",
+      "local_id": "DI-LEO-AI-025",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-026": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-FE3FFE50",
+      "error": "",
+      "local_id": "DI-LEO-AI-026",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-027": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-94359E76",
+      "error": "",
+      "local_id": "DI-LEO-AI-027",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=A local=A -- no change"
+    },
+    "DI-LEO-AI-028": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-35494904",
+      "error": "",
+      "local_id": "DI-LEO-AI-028",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=A local=A -- no change"
+    },
+    "DI-LEO-AI-029": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-620FE631",
+      "error": "",
+      "local_id": "DI-LEO-AI-029",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=A -- no change"
+    },
+    "DI-LEO-AI-030": {
+      "actions": "AC: +3 (atlas 5 -> 8)",
+      "atlas_id": "DI-155BB31E",
+      "error": "",
+      "local_id": "DI-LEO-AI-030",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-031": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-710D5213",
+      "error": "",
+      "local_id": "DI-LEO-AI-031",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=A -- no change"
+    },
+    "DI-LEO-AI-032": {
+      "actions": "AC: +3 (atlas 5 -> 8)",
+      "atlas_id": "DI-1795254D",
+      "error": "",
+      "local_id": "DI-LEO-AI-032",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-034": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-4746A178",
+      "error": "",
+      "local_id": "DI-LEO-AI-034",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-038": {
+      "actions": "AC: +11 (atlas 4 -> 15)",
+      "atlas_id": "DI-C7A810AA",
+      "error": "",
+      "local_id": "DI-LEO-AI-038",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-039": {
+      "actions": "AC: +6 (atlas 3 -> 9)",
+      "atlas_id": "DI-740BE510",
+      "error": "",
+      "local_id": "DI-LEO-AI-039",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-040": {
+      "actions": "AC: +9 (atlas 4 -> 13)",
+      "atlas_id": "DI-922114AE",
+      "error": "",
+      "local_id": "DI-LEO-AI-040",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-042": {
+      "actions": "AC: +20 (atlas 4 -> 24)",
+      "atlas_id": "DI-375C7EB1",
+      "error": "",
+      "local_id": "DI-LEO-AI-042",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-043": {
+      "actions": "AC: +22 (atlas 4 -> 26)",
+      "atlas_id": "DI-425CA252",
+      "error": "",
+      "local_id": "DI-LEO-AI-043",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-045": {
+      "actions": "AC: +9 (atlas 4 -> 13)",
+      "atlas_id": "DI-F66A7239",
+      "error": "",
+      "local_id": "DI-LEO-AI-045",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-046": {
+      "actions": "AC: +12 (atlas 4 -> 16)",
+      "atlas_id": "DI-3EA60D5A",
+      "error": "",
+      "local_id": "DI-LEO-AI-046",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-048": {
+      "actions": "AC: +11 (atlas 4 -> 15)",
+      "atlas_id": "DI-30D9CC61",
+      "error": "",
+      "local_id": "DI-LEO-AI-048",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-049": {
+      "actions": "AC: +11 (atlas 4 -> 15)",
+      "atlas_id": "DI-5EECDA58",
+      "error": "",
+      "local_id": "DI-LEO-AI-049",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-050": {
+      "actions": "AC: +6 (atlas 5 -> 11)",
+      "atlas_id": "DI-3FDBB57B",
+      "error": "",
+      "local_id": "DI-LEO-AI-050",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-051": {
+      "actions": "no-op",
+      "atlas_id": "DI-990C0AFA",
+      "error": "",
+      "local_id": "DI-LEO-AI-051",
+      "result": "noop",
+      "skipped": "AC: no additions (atlas 4 >= union 4) | rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-052": {
+      "actions": "no-op",
+      "atlas_id": "DI-E6A32FF5",
+      "error": "",
+      "local_id": "DI-LEO-AI-052",
+      "result": "noop",
+      "skipped": "AC: no additions (atlas 4 >= union 4) | rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-053": {
+      "actions": "AC: +10 (atlas 4 -> 14)",
+      "atlas_id": "DI-C899D282",
+      "error": "",
+      "local_id": "DI-LEO-AI-053",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-054": {
+      "actions": "AC: +10 (atlas 4 -> 14)",
+      "atlas_id": "DI-54D00E21",
+      "error": "",
+      "local_id": "DI-LEO-AI-054",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-055": {
+      "actions": "AC: +5 (atlas 3 -> 8)",
+      "atlas_id": "DI-AF5A1668",
+      "error": "",
+      "local_id": "DI-LEO-AI-055",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-061": {
+      "actions": "AC: +8 (atlas 3 -> 11)",
+      "atlas_id": "DI-8CE01B3E",
+      "error": "",
+      "local_id": "DI-LEO-AI-061",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-063": {
+      "actions": "no-op",
+      "atlas_id": "DI-693FFEEA",
+      "error": "",
+      "local_id": "DI-LEO-AI-063",
+      "result": "noop",
+      "skipped": "AC: no additions (atlas 5 >= union 5) | rationale: atlas already populated | description: atlas already populated | safety_class: atlas=A local=B -- no change"
+    },
+    "DI-LEO-AI-064": {
+      "actions": "AC: +11 (atlas 4 -> 15)",
+      "atlas_id": "DI-69C29EEF",
+      "error": "",
+      "local_id": "DI-LEO-AI-064",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-065": {
+      "actions": "AC: +8 (atlas 4 -> 12)",
+      "atlas_id": "DI-5E25E872",
+      "error": "",
+      "local_id": "DI-LEO-AI-065",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-066": {
+      "actions": "AC: +17 (atlas 4 -> 21)",
+      "atlas_id": "DI-0C8FBAF7",
+      "error": "",
+      "local_id": "DI-LEO-AI-066",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-067": {
+      "actions": "AC: +12 (atlas 4 -> 16)",
+      "atlas_id": "DI-9FD54AD6",
+      "error": "",
+      "local_id": "DI-LEO-AI-067",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-068": {
+      "actions": "AC: +14 (atlas 4 -> 18)",
+      "atlas_id": "DI-19B08FFC",
+      "error": "",
+      "local_id": "DI-LEO-AI-068",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=A local=A -- no change"
+    },
+    "DI-LEO-AI-069": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-2C56591B",
+      "error": "",
+      "local_id": "DI-LEO-AI-069",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=A -- no change"
+    },
+    "DI-LEO-AI-070": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-916BD8C8",
+      "error": "",
+      "local_id": "DI-LEO-AI-070",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=A -- no change"
+    },
+    "DI-LEO-AI-072": {
+      "actions": "AC: +8 (atlas 4 -> 12)",
+      "atlas_id": "DI-3613871E",
+      "error": "",
+      "local_id": "DI-LEO-AI-072",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-073": {
+      "actions": "AC: +7 (atlas 4 -> 11)",
+      "atlas_id": "DI-1126FFD1",
+      "error": "",
+      "local_id": "DI-LEO-AI-073",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-074": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-5E1BA369",
+      "error": "",
+      "local_id": "DI-LEO-AI-074",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-075": {
+      "actions": "AC: +7 (atlas 4 -> 11)",
+      "atlas_id": "DI-A0579B64",
+      "error": "",
+      "local_id": "DI-LEO-AI-075",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-077": {
+      "actions": "AC: +5 (atlas 4 -> 9)",
+      "atlas_id": "DI-E7AFFDA5",
+      "error": "",
+      "local_id": "DI-LEO-AI-077",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-078": {
+      "actions": "AC: +5 (atlas 4 -> 9)",
+      "atlas_id": "DI-BB64E479",
+      "error": "",
+      "local_id": "DI-LEO-AI-078",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-079": {
+      "actions": "AC: +7 (atlas 4 -> 11)",
+      "atlas_id": "DI-AE477327",
+      "error": "",
+      "local_id": "DI-LEO-AI-079",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-080": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-12015DBC",
+      "error": "",
+      "local_id": "DI-LEO-AI-080",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-081": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-6A0B55A4",
+      "error": "",
+      "local_id": "DI-LEO-AI-081",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-082": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-09E26C1D",
+      "error": "",
+      "local_id": "DI-LEO-AI-082",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-083": {
+      "actions": "AC: +7 (atlas 4 -> 11)",
+      "atlas_id": "DI-30D95132",
+      "error": "",
+      "local_id": "DI-LEO-AI-083",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-084": {
+      "actions": "AC: +12 (atlas 4 -> 16)",
+      "atlas_id": "DI-4885D9FF",
+      "error": "",
+      "local_id": "DI-LEO-AI-084",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-085": {
+      "actions": "no-op",
+      "atlas_id": "DI-ED3A89F5",
+      "error": "",
+      "local_id": "DI-LEO-AI-085",
+      "result": "noop",
+      "skipped": "AC: no additions (atlas 4 >= union 4) | rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-089": {
+      "actions": "AC: +5 (atlas 3 -> 8)",
+      "atlas_id": "DI-FC80B65A",
+      "error": "",
+      "local_id": "DI-LEO-AI-089",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-090": {
+      "actions": "AC: +5 (atlas 4 -> 9)",
+      "atlas_id": "DI-23822663",
+      "error": "",
+      "local_id": "DI-LEO-AI-090",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-091": {
+      "actions": "no-op",
+      "atlas_id": "DI-CF03E4EA",
+      "error": "",
+      "local_id": "DI-LEO-AI-091",
+      "result": "noop",
+      "skipped": "AC: no additions (atlas 4 >= union 4) | rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-092": {
+      "actions": "no-op",
+      "atlas_id": "DI-6EA84931",
+      "error": "",
+      "local_id": "DI-LEO-AI-092",
+      "result": "noop",
+      "skipped": "AC: no additions (atlas 4 >= union 4) | rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-093": {
+      "actions": "AC: +5 (atlas 4 -> 9)",
+      "atlas_id": "DI-B2512CB3",
+      "error": "",
+      "local_id": "DI-LEO-AI-093",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-095": {
+      "actions": "AC: +5 (atlas 4 -> 9)",
+      "atlas_id": "DI-B8674FBF",
+      "error": "",
+      "local_id": "DI-LEO-AI-095",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-096": {
+      "actions": "AC: +4 (atlas 3 -> 7)",
+      "atlas_id": "DI-702F4583",
+      "error": "",
+      "local_id": "DI-LEO-AI-096",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-097": {
+      "actions": "AC: +14 (atlas 4 -> 18)",
+      "atlas_id": "DI-5A802C83",
+      "error": "",
+      "local_id": "DI-LEO-AI-097",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-098": {
+      "actions": "AC: +8 (atlas 4 -> 12)",
+      "atlas_id": "DI-F2C18D2E",
+      "error": "",
+      "local_id": "DI-LEO-AI-098",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-099": {
+      "actions": "AC: +8 (atlas 4 -> 12)",
+      "atlas_id": "DI-DD67ACFF",
+      "error": "",
+      "local_id": "DI-LEO-AI-099",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-101": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-04105500",
+      "error": "",
+      "local_id": "DI-LEO-AI-101",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-103": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-48AD06E5",
+      "error": "",
+      "local_id": "DI-LEO-AI-103",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-104": {
+      "actions": "AC: +7 (atlas 4 -> 11)",
+      "atlas_id": "DI-4247C7E5",
+      "error": "",
+      "local_id": "DI-LEO-AI-104",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-105": {
+      "actions": "AC: +7 (atlas 4 -> 11)",
+      "atlas_id": "DI-BE09736F",
+      "error": "",
+      "local_id": "DI-LEO-AI-105",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=A -- no change"
+    },
+    "DI-LEO-AI-106": {
+      "actions": "AC: +9 (atlas 4 -> 13)",
+      "atlas_id": "DI-37B3DC71",
+      "error": "",
+      "local_id": "DI-LEO-AI-106",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-107": {
+      "actions": "AC: +9 (atlas 4 -> 13)",
+      "atlas_id": "DI-6EFD68D0",
+      "error": "",
+      "local_id": "DI-LEO-AI-107",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-108": {
+      "actions": "AC: +7 (atlas 4 -> 11)",
+      "atlas_id": "DI-2D9F5064",
+      "error": "",
+      "local_id": "DI-LEO-AI-108",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-109": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-58988BF2",
+      "error": "",
+      "local_id": "DI-LEO-AI-109",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-110": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-9DCBC4BA",
+      "error": "",
+      "local_id": "DI-LEO-AI-110",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-112": {
+      "actions": "AC: +5 (atlas 5 -> 10)",
+      "atlas_id": "DI-A0C90595",
+      "error": "",
+      "local_id": "DI-LEO-AI-112",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-113": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-F298AE65",
+      "error": "",
+      "local_id": "DI-LEO-AI-113",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-114": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-80DD8A47",
+      "error": "",
+      "local_id": "DI-LEO-AI-114",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-115": {
+      "actions": "AC: +6 (atlas 5 -> 11)",
+      "atlas_id": "DI-F0B8A7B0",
+      "error": "",
+      "local_id": "DI-LEO-AI-115",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-116": {
+      "actions": "AC: +5 (atlas 5 -> 10)",
+      "atlas_id": "DI-9D967259",
+      "error": "",
+      "local_id": "DI-LEO-AI-116",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-117": {
+      "actions": "AC: +5 (atlas 6 -> 11)",
+      "atlas_id": "DI-7A7BFA0C",
+      "error": "",
+      "local_id": "DI-LEO-AI-117",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=A -- no change"
+    },
+    "DI-LEO-AI-120": {
+      "actions": "AC: +7 (atlas 3 -> 10)",
+      "atlas_id": "DI-B0832A64",
+      "error": "",
+      "local_id": "DI-LEO-AI-120",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=A local=B -- no change"
+    },
+    "DI-LEO-AI-122": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-B95A73E9",
+      "error": "",
+      "local_id": "DI-LEO-AI-122",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-125": {
+      "actions": "AC: +3 (atlas 4 -> 7)",
+      "atlas_id": "DI-EE4E6477",
+      "error": "",
+      "local_id": "DI-LEO-AI-125",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-127": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-CE0A08E5",
+      "error": "",
+      "local_id": "DI-LEO-AI-127",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-129": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-D49BCE55",
+      "error": "",
+      "local_id": "DI-LEO-AI-129",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-134": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-BA2C8F3E",
+      "error": "",
+      "local_id": "DI-LEO-AI-134",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-135": {
+      "actions": "AC: +5 (atlas 4 -> 9)",
+      "atlas_id": "DI-5E7E8CEF",
+      "error": "",
+      "local_id": "DI-LEO-AI-135",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=A local=A -- no change"
+    },
+    "DI-LEO-AI-137": {
+      "actions": "AC: +7 (atlas 4 -> 11)",
+      "atlas_id": "DI-FF9C74E2",
+      "error": "",
+      "local_id": "DI-LEO-AI-137",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-139": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-900CB621",
+      "error": "",
+      "local_id": "DI-LEO-AI-139",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=A -- no change"
+    },
+    "DI-LEO-AI-142": {
+      "actions": "AC: +7 (atlas 3 -> 10)",
+      "atlas_id": "DI-C5A523A7",
+      "error": "",
+      "local_id": "DI-LEO-AI-142",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=A -- no change"
+    },
+    "DI-LEO-AI-144": {
+      "actions": "AC: +6 (atlas 3 -> 9)",
+      "atlas_id": "DI-E7609DD8",
+      "error": "",
+      "local_id": "DI-LEO-AI-144",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-145": {
+      "actions": "AC: +5 (atlas 4 -> 9)",
+      "atlas_id": "DI-080A2454",
+      "error": "",
+      "local_id": "DI-LEO-AI-145",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-146": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-3035F221",
+      "error": "",
+      "local_id": "DI-LEO-AI-146",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-147": {
+      "actions": "AC: +6 (atlas 3 -> 9)",
+      "atlas_id": "DI-340279C1",
+      "error": "",
+      "local_id": "DI-LEO-AI-147",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    },
+    "DI-LEO-AI-148": {
+      "actions": "AC: +8 (atlas 4 -> 12)",
+      "atlas_id": "DI-553F50A2",
+      "error": "",
+      "local_id": "DI-LEO-AI-148",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-150": {
+      "actions": "AC: +6 (atlas 4 -> 10)",
+      "atlas_id": "DI-6C5D77CA",
+      "error": "",
+      "local_id": "DI-LEO-AI-150",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-153": {
+      "actions": "AC: +11 (atlas 4 -> 15)",
+      "atlas_id": "DI-CD931485",
+      "error": "",
+      "local_id": "DI-LEO-AI-153",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=B local=B -- no change"
+    },
+    "DI-LEO-AI-154": {
+      "actions": "AC: +4 (atlas 4 -> 8)",
+      "atlas_id": "DI-A3107424",
+      "error": "",
+      "local_id": "DI-LEO-AI-154",
+      "result": "updated",
+      "skipped": "rationale: atlas already populated | description: atlas already populated | safety_class: atlas=C local=B -- no change"
+    }
+  },
+  "started_at": "2026-04-19T11:33:28Z",
+  "updated_at": "2026-04-19T11:57:55Z"
+}

@@ -3,19 +3,34 @@
  *
  * Single source of truth: database values MUST NOT appear directly
  * in any rendered UI label. All display text comes from this file.
+ *
+ * Status keys are pinned to the canonical vocabulary in
+ * libs/episodes/status.py (mirrored at lib/episodeStatus.ts) -- never
+ * hand-write a status string here, always import the constant.
  */
+
+import {
+  STATUS_COMPLETED,
+  STATUS_CLOSED_BENIGN,
+  STATUS_STALE_NO_DIAGNOSIS,
+  STATUS_STALE_POST_SPECIALIST,
+  STATUS_CLOSED_RELATED,
+  STATUS_IN_PROGRESS,
+  STATUS_MERGED,
+  STATUS_CLOSED_PHANTOM,
+} from "@/lib/episodeStatus";
 
 // -- Episode status labels --
 
 export const EPISODE_STATUS_LABELS: Record<string, string> = {
-  completed: "Confirmed cancer",
-  closed_benign: "No cancer found",
-  stale_no_diagnosis: "No diagnosis after wait",
-  stale_post_specialist: "Specialist seen, no diagnosis",
-  closed_related: "Duplicate pathway closed",
-  in_progress: "Still being investigated",
-  merged: "Merged pathway",
-  closed_phantom: "Removed (no evidence)",
+  [STATUS_COMPLETED]: "Confirmed cancer",
+  [STATUS_CLOSED_BENIGN]: "No cancer found",
+  [STATUS_STALE_NO_DIAGNOSIS]: "No diagnosis after wait",
+  [STATUS_STALE_POST_SPECIALIST]: "Specialist seen, no diagnosis",
+  [STATUS_CLOSED_RELATED]: "Duplicate pathway closed",
+  [STATUS_IN_PROGRESS]: "Still being investigated",
+  [STATUS_MERGED]: "Merged pathway",
+  [STATUS_CLOSED_PHANTOM]: "Removed (no evidence)",
 };
 
 export function getStatusLabel(status: string): string {
@@ -49,10 +64,10 @@ export function getCancerTypeLabel(cancerType: string): string {
 // -- Closure reason labels (subset of status used as filter options) --
 
 export const CLOSURE_REASON_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: "closed_benign", label: "No cancer found" },
-  { value: "stale_no_diagnosis", label: "No diagnosis after wait" },
-  { value: "stale_post_specialist", label: "Specialist seen, no diagnosis" },
-  { value: "closed_related", label: "Duplicate pathway closed" },
+  { value: STATUS_CLOSED_BENIGN, label: "No cancer found" },
+  { value: STATUS_STALE_NO_DIAGNOSIS, label: "No diagnosis after wait" },
+  { value: STATUS_STALE_POST_SPECIALIST, label: "Specialist seen, no diagnosis" },
+  { value: STATUS_CLOSED_RELATED, label: "Duplicate pathway closed" },
 ];
 
 // -- Cancer type filter options --
@@ -80,14 +95,14 @@ export type StatusColour = "success" | "warning" | "error" | "default";
 
 export function getStatusColour(status: string): StatusColour {
   switch (status) {
-    case "completed":
+    case STATUS_COMPLETED:
       return "success";
-    case "in_progress":
+    case STATUS_IN_PROGRESS:
       return "warning";
-    case "closed_benign":
-    case "stale_no_diagnosis":
-    case "stale_post_specialist":
-    case "closed_related":
+    case STATUS_CLOSED_BENIGN:
+    case STATUS_STALE_NO_DIAGNOSIS:
+    case STATUS_STALE_POST_SPECIALIST:
+    case STATUS_CLOSED_RELATED:
       return "default";
     default:
       return "default";

@@ -3,6 +3,11 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import {
+  cancerTypeOrderIndex,
+  getCancerTypeLabel,
+  normaliseCancerType,
+} from "@/lib/cancerTypes";
 
 interface DataItem {
   cancer_type: string;
@@ -17,17 +22,10 @@ const COLOURS = [
   "#B45309", "#92400E", "#78350F",  // amber family
 ];
 
-const ABBREVIATIONS: Record<string, string> = {
-  "Lower Gastrointestinal": "Lower GI",
-  "Haematology Malignancy": "Haematology",
-  "Haematology Malignancies": "Haematology",
-  "Gynaecological": "Gynaecology",
-};
-
 function formatLabel(raw: string | null): string {
-  if (!raw) return "Unknown";
-  const title = raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  return ABBREVIATIONS[title] ?? (title.length > 16 ? title.slice(0, 15) + "…" : title);
+  const canonical = normaliseCancerType(raw);
+  const label = getCancerTypeLabel(canonical);
+  return label.length > 16 ? label.slice(0, 15) + "..." : label;
 }
 
 function AxisTick({ x, y, payload }: any) {
@@ -57,13 +55,29 @@ export default function DiagnosedByTypeChart({ data }: { data: DataItem[] }) {
     );
   }
 
+  // Collapse historic raw values onto canonical NCDA buckets and order
+  // bars to match the NCDA data-entry form (Bladder, Brain, Breast,
+  // ...) rather than count-DESC chaos.
+  const grouped = new Map<string, number>();
+  for (const row of data) {
+    const canonical = normaliseCancerType(row.cancer_type);
+    grouped.set(canonical, (grouped.get(canonical) ?? 0) + row.count);
+  }
+  const ordered = Array.from(grouped.entries())
+    .filter(([, count]) => count > 0)
+    .map(([cancer_type, count]) => ({ cancer_type, count }))
+    .sort(
+      (a, b) =>
+        cancerTypeOrderIndex(a.cancer_type) -
+        cancerTypeOrderIndex(b.cancer_type),
+    );
   const MAX_BARS = 15;
-  const hidden = data.slice(MAX_BARS);
-  const chartData = data
+  const hidden = ordered.slice(MAX_BARS);
+  const chartData = ordered
     .slice(0, MAX_BARS)
     .map((d) => ({ ...d, label: formatLabel(d.cancer_type) }));
 
-  const grandTotal = data.reduce((s, d) => s + d.count, 0);
+  const grandTotal = ordered.reduce((s, d) => s + d.count, 0);
   const hiddenTotal = hidden.reduce((s, d) => s + d.count, 0);
   const summary = chartData
     .slice(0, 3)

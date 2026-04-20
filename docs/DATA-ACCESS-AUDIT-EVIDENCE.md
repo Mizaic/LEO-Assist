@@ -42,8 +42,8 @@ The **controller** decides why and how patient data is used. The
 
 | Role       | Organisation                     | Evidence                          |
 | ---------- | -------------------------------- | --------------------------------- |
-| Controller | NHS Primary Care Organisation    | `design-controls/user-needs/UN-LEO-AI-015.yaml` (stakeholder: Data Protection Officer, NHS Primary Care Organisation) |
-| Processor  | Platform operator (LEO AI)       | `design-controls/DC-TM-SEC-001-threat-model.yaml` (system_context.deployment, services, external_services) |
+| Controller | NHS Primary Care Organisation    | Atlas UN (legacy id UN-LEO-AI-015) -- look up via `get_design_control(dc_type="user_need", ...)` on `user-atlas-design-controls` |
+| Processor  | Platform operator (LEO AI)       | `compliance/architecture-superseded/DC-TM-SEC-001-threat-model.yaml` (system_context.deployment, services, external_services) |
 
 **Gap:** The threat model says "Processor agreements for third-party
 data processing -- insufficient evidence" under UK GDPR Article 28.
@@ -54,10 +54,10 @@ yet. We should add one as a controlled QMS document.
 
 | What              | Detail                                                   | Evidence                                      |
 | ----------------- | -------------------------------------------------------- | --------------------------------------------- |
-| Source system      | SystmOne / EMIS GP clinical record exports (FHIR R4)    | `design-controls/intended-use.md` Section 5   |
-| Data format        | FHIR R4 Encounter, DocumentReference, Patient resources  | `design-controls/intended-use.md` Section 5   |
-| Date range         | Past records only; set for each audit programme          | `design-controls/intended-use.md` Section 2.3 |
-| Launch programme   | National Cancer Diagnosis Audit (NCDA)                   | `design-controls/intended-use.md` Section 1   |
+| Source system      | SystmOne / EMIS GP clinical record exports (FHIR R4)    | `compliance/policy/intended-use.md` Section 5   |
+| Data format        | FHIR R4 Encounter, DocumentReference, Patient resources  | `compliance/policy/intended-use.md` Section 5   |
+| Date range         | Past records only; set for each audit programme          | `compliance/policy/intended-use.md` Section 2.3 |
+| Launch programme   | National Cancer Diagnosis Audit (NCDA)                   | `compliance/policy/intended-use.md` Section 1   |
 
 ### 1.3  Which patients are included
 
@@ -87,7 +87,7 @@ nodes in the Knowledge Graph:
 
 Other evidence for patient selection:
 
-- `design-controls/intended-use.md` Section 4 -- who the system is for
+- `compliance/policy/intended-use.md` Section 4 -- who the system is for
 - `services/analytics_api/app/data/nhs_screening_cohorts.json` -- NHS screening group presets
 
 ### 1.4  Agreements
@@ -95,8 +95,8 @@ Other evidence for patient selection:
 | Agreement type                 | Status        | Evidence                                                       |
 | ------------------------------ | ------------- | -------------------------------------------------------------- |
 | Data Processing Agreement      | **GAP**       | Mentioned in threat model (UK GDPR Article 28) but not yet written |
-| Data Protection Impact Assessment (DPIA) | Draft | `design-controls/user-needs/UN-LEO-AI-021.yaml` (use case step 7: "Officer signs off the DPIA") |
-| NHS DSPT compliance            | Planned       | `design-controls/user-needs/UN-LEO-AI-021.yaml`               |
+| Data Protection Impact Assessment (DPIA) | Draft | `compliance/policy/DPIA-LEO-AI-001.md` (and Atlas UN, legacy id UN-LEO-AI-021, via `get_design_control(dc_type="user_need", ...)`) |
+| NHS DSPT compliance            | Planned       | Atlas UN (legacy id UN-LEO-AI-021) -- look up via `get_design_control(dc_type="user_need", ...)` |
 
 ### 1.5  Legal basis for processing
 
@@ -277,7 +277,7 @@ code and data that produced it.
 | Two separate databases: Patient graph and Knowledge graph | `UN-LEO-AI-015.yaml`, `VT-LEO-AI-014.yaml` |
 | Queries across the two databases are blocked | `VT-LEO-AI-014.yaml` TC-003                   |
 | Users sign in through Azure AD / Entra ID | `UN-LEO-AI-021.yaml`                             |
-| Role-based access (builder, reviewer, releaser, operator) | `design-controls/intended-use.md` Section 3 |
+| Role-based access (builder, reviewer, releaser, operator) | `compliance/policy/intended-use.md` Section 3 |
 | Services use Managed Identity (no passwords in config) | `DC-TM-SEC-001` trust zones              |
 | Internal services are not reachable from the internet | `DC-TM-SEC-001` T-ACA-001                |
 | Data is encrypted when stored (AES-256) and when sent (TLS 1.2+) | `UN-LEO-AI-021.yaml`            |
@@ -418,7 +418,7 @@ not compare labellers with each other. We should add this.
 | Gold-standard labelled dataset   | `VT-LEO-AI-002.yaml`, `VT-LEO-AI-003.yaml`             |
 | Accuracy per entity type (precision and recall) | `VT-LEO-AI-002.yaml` |
 | Failing tests block releases    | `.cursor/rules/code-quality.mdc` ("Regression tests block deploys if accuracy drops below baseline") |
-| Corrections feed back into the model | `design-controls/intended-use.md` Section 6.2     |
+| Corrections feed back into the model | `compliance/policy/intended-use.md` Section 6.2     |
 | Every label records its source   | `TrainingLabel.source`: `hitl_approval`, `coding_correction`, `anchor_mining`, or `seed` |
 | Quality score on every label     | `quality_score` (0.0 to 1.0) on every `TrainingLabel` node |
 | Every review action is logged    | `VAL-LEO-AI-002.yaml`: "100% of review actions have a recorded audit entry" |
@@ -491,7 +491,7 @@ The table below lists what is missing and what we should do about it.
 
 | ID    | Area                | What is missing                                        | What to do                                                  | Priority |
 | ----- | ------------------- | ------------------------------------------------------ | ----------------------------------------------------------- | -------- |
-| GAP-A | Source record       | No formal Data Processing Agreement (DPA)              | Create and store a DPA template under `design-controls/`    | High     |
+| GAP-A | Source record       | No formal Data Processing Agreement (DPA)              | Create and store a DPA template under `compliance/policy/`  | High     |
 | GAP-B | Source record       | No standalone legal basis document                     | Write down the exact UK GDPR Article 6 and Article 9 conditions we rely on | High |
 | GAP-C | De-identification   | No written plan for manual review of cleaned records   | Set out sample size, frequency, and reviewer qualifications  | Medium   |
 | GAP-D | De-identification   | No release sign-off checklist for de-identification    | Add a checklist with regression test results as a release gate | Medium |
@@ -508,13 +508,13 @@ A quick list of every file mentioned in this document.
 
 | File path                                              | Sections it relates to |
 | ------------------------------------------------------ | ---------------------- |
-| `design-controls/intended-use.md`                      | Source, Lineage        |
-| `design-controls/user-needs/UN-LEO-AI-015.yaml`       | Source, Lineage        |
-| `design-controls/user-needs/UN-LEO-AI-021.yaml`       | Source, Lineage        |
-| `design-controls/DC-TM-SEC-001-threat-model.yaml`     | Source, De-id          |
-| `design-controls/risks/R-LEO-AI-009.yaml`             | De-id                  |
-| `design-controls/verification-tests/VT-LEO-AI-014.yaml` | Lineage, De-id       |
-| `design-controls/validation-tests/VAL-LEO-AI-002.yaml` | Labelling, HITL       |
+| `compliance/policy/intended-use.md`                    | Source, Lineage        |
+| Atlas UN (legacy id UN-LEO-AI-015) via `get_design_control(dc_type="user_need", ...)` | Source, Lineage |
+| Atlas UN (legacy id UN-LEO-AI-021) via `get_design_control(dc_type="user_need", ...)` | Source, Lineage |
+| `compliance/architecture-superseded/DC-TM-SEC-001-threat-model.yaml` | Source, De-id |
+| Atlas Risk (legacy id R-LEO-AI-009) via `get_design_control(dc_type="risk", ...)` | De-id |
+| Atlas VT (legacy id VT-LEO-AI-014) via `get_design_control(dc_type="verification_test", ...)` | Lineage, De-id |
+| Atlas VAL (legacy id VAL-LEO-AI-002) via `get_design_control(dc_type="validation_test", ...)` | Labelling, HITL |
 | `libs/utils/deidentify.py`                             | De-id                  |
 | `libs/deid/deid.py`                                    | De-id                  |
 | `libs/ner/deid_validator.py`                           | De-id                  |

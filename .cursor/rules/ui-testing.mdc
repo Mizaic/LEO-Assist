@@ -190,10 +190,11 @@ the navigation, or the top-level layout.
 
 A Class B UI change is NOT done until ALL of the following are true:
 
-1. The DI lists `verification.test_protocol: "VT-LEO-AI-<N>"` and
-   that VT YAML exists and is consistent with the test file.
-2. The VT YAML's `metadata.test_file_paths` lists the actual jest
-   spec(s).
+1. The Atlas DI has a `VERIFIES` link from a VT (look it up via
+   `get_design_control(dc_type="design_input", dc_id="DI-XXXXXXXX")`
+   on the `user-atlas-design-controls` MCP server).
+2. The VT's `acceptance_criteria` cover the change one-for-one and
+   the matching jest spec exists locally.
 3. `npx jest --testPathPatterns "<spec-name>" --no-coverage` is
    green locally.
 4. The full Wave E regression sweep is green:
@@ -201,13 +202,13 @@ A Class B UI change is NOT done until ALL of the following are true:
    cd services/ui && npx jest --no-coverage \
      --testPathPatterns "knowledge-tab|chrome|theme-port|wave-d|design-system-primitives|training-data"
    ```
-5. The VT YAML's `execution_history` records the run with
-   `result: "pass"` and `status` is set to `"passed"`.
+5. The Atlas VT has a recorded run with `result="pass"` via
+   `record_verification_run(vt_id=<UUID>, ...)`.
 6. For any new visible surface, the corresponding Playwright spec is
    updated AND `a11y-baseline.spec.ts` still passes.
-7. The traceability matrices (`DC-TM-001-traceability-matrix.md`,
-   `DC-TM-002-traceability-matrix.csv`) and `design-controls/README.md`
-   are updated with the new DI / DO / Risk / VT rows.
+7. Atlas traceability is intact: `get_traceability_gaps(product_id=
+   "PROD-LEO-CORE-AI-20260415-6AE8A23B")` does not list this DI / DO
+   in `orphan_design_inputs` or `orphan_design_outputs`.
 
 ---
 

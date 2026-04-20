@@ -1,0 +1,399 @@
+{
+  "actions": {
+    "DI-LEO-AI-005": {
+      "new_dc_id": "DI-3B3F7D4B",
+      "new_uuid": "3b3f7d4b-e626-43ff-9eda-3476d54f176a"
+    },
+    "DI-LEO-AI-029": {
+      "new_dc_id": "DI-C022E32C",
+      "new_uuid": "c022e32c-4522-4af5-9b29-e7f8ad6493d9"
+    },
+    "DI-LEO-AI-034": {
+      "new_dc_id": "DI-2049FD08",
+      "new_uuid": "2049fd08-8564-4269-9fa5-82e6e1cfe4b6"
+    },
+    "DI-LEO-AI-039": {
+      "new_dc_id": "DI-57DAAB93",
+      "new_uuid": "57daab93-2bdf-4eca-9877-31f3393e6251"
+    },
+    "DI-LEO-AI-043": {
+      "new_dc_id": "DI-2774E3E4",
+      "new_uuid": "2774e3e4-8a4a-4b6b-b384-55c5b87bde90"
+    },
+    "DI-LEO-AI-045": {
+      "new_dc_id": "DI-445D41EC",
+      "new_uuid": "445d41ec-62fa-42cb-a5f0-054af95ec451"
+    },
+    "DI-LEO-AI-046": {
+      "new_dc_id": "DI-140F27D6",
+      "new_uuid": "140f27d6-8310-4720-a86c-739b4dbf8369"
+    },
+    "DI-LEO-AI-055": {
+      "new_dc_id": "DI-7F08913A",
+      "new_uuid": "7f08913a-bffd-4f5e-9e2d-3742ed84ccef"
+    },
+    "DI-LEO-AI-064": {
+      "new_dc_id": "DI-497F8A50",
+      "new_uuid": "497f8a50-9de1-4cf7-9a70-e9c3ddd251e8"
+    },
+    "DI-LEO-AI-065": {
+      "new_dc_id": "DI-BCCCBCAF",
+      "new_uuid": "bcccbcaf-12ee-45ab-a87e-c2526deb7c1d"
+    },
+    "DI-LEO-AI-070": {
+      "new_dc_id": "DI-8E82275B",
+      "new_uuid": "8e82275b-5d8c-439a-ac6c-aa5793bf29fc"
+    },
+    "DI-LEO-AI-072": {
+      "new_dc_id": "DI-769B453A",
+      "new_uuid": "769b453a-4e48-4977-915a-75cc284fc7d7"
+    },
+    "DI-LEO-AI-075": {
+      "new_dc_id": "DI-5D229D2C",
+      "new_uuid": "5d229d2c-49a8-42ef-85cf-16cfe49b803b"
+    },
+    "DI-LEO-AI-080": {
+      "new_dc_id": "DI-F0C1170A",
+      "new_uuid": "f0c1170a-155d-4003-b4c5-5911946726d4"
+    },
+    "DI-LEO-AI-082": {
+      "new_dc_id": "DI-5B06872D",
+      "new_uuid": "5b06872d-4213-41b3-b9ba-ebd3edea01cd"
+    },
+    "DI-LEO-AI-090": {
+      "new_dc_id": "DI-2C12A9D7",
+      "new_uuid": "2c12a9d7-629a-402c-af85-3f7eb3e9bc59"
+    },
+    "DI-LEO-AI-095": {
+      "new_dc_id": "DI-E70338A5",
+      "new_uuid": "e70338a5-57e6-48b6-b00f-d457689fb088"
+    },
+    "DI-LEO-AI-096": {
+      "new_dc_id": "DI-EB8642F4",
+      "new_uuid": "eb8642f4-34ed-4f73-99ce-66b49fb953bc"
+    },
+    "DI-LEO-AI-098": {
+      "new_dc_id": "DI-423B120C",
+      "new_uuid": "423b120c-55a0-47b4-b848-e4855a041a8a"
+    },
+    "DI-LEO-AI-099": {
+      "new_dc_id": "DI-D0FC22FE",
+      "new_uuid": "d0fc22fe-da85-45f3-9def-ac812dc1c7a6"
+    },
+    "DI-LEO-AI-101": {
+      "new_dc_id": "DI-B5C5F8D3",
+      "new_uuid": "b5c5f8d3-e87a-41ba-a2f6-8987b6a6c822"
+    },
+    "DI-LEO-AI-120": {
+      "new_dc_id": "DI-926A4B95",
+      "new_uuid": "926a4b95-4657-45c4-b6bf-69be00efb1bb"
+    },
+    "DI-LEO-AI-122": {
+      "new_dc_id": "DI-587EB97E",
+      "new_uuid": "587eb97e-12f0-4472-9bdb-9d729e773ab8"
+    },
+    "DI-LEO-AI-127": {
+      "new_dc_id": "DI-C1D7533F",
+      "new_uuid": "c1d7533f-f935-4d41-aa56-faf94b7c8552"
+    },
+    "DI-LEO-AI-129": {
+      "new_dc_id": "DI-9205CF41",
+      "new_uuid": "9205cf41-de96-40fa-ab38-c23f201ceaf2"
+    },
+    "DI-LEO-AI-135": {
+      "new_dc_id": "DI-AF53CF08",
+      "new_uuid": "af53cf08-aba0-4715-9037-6e0afacf6a8b"
+    },
+    "DI-LEO-AI-139": {
+      "new_dc_id": "DI-E10BDE6E",
+      "new_uuid": "e10bde6e-08e8-410e-b2b4-8f9460f15e36"
+    },
+    "DI-LEO-AI-142": {
+      "new_dc_id": "DI-A0DAF527",
+      "new_uuid": "a0daf527-9ea6-4464-93d6-460ee363c0b3"
+    },
+    "DI-LEO-AI-145": {
+      "new_dc_id": "DI-90C08758",
+      "new_uuid": "90c08758-67ae-4ec8-b5c8-24264657771d"
+    },
+    "DI-LEO-AI-147": {
+      "new_dc_id": "DI-3ED218CA",
+      "new_uuid": "3ed218ca-d971-474d-b65a-d0ee9e200aa7"
+    },
+    "DI-LEO-AI-148": {
+      "new_dc_id": "DI-7F6D3BFC",
+      "new_uuid": "7f6d3bfc-b4e8-4244-a72a-5da02b0d2030"
+    },
+    "DI-LEO-AI-150": {
+      "new_dc_id": "DI-5672762D",
+      "new_uuid": "5672762d-e582-4744-99eb-c826f65a6024"
+    },
+    "DI-LEO-AI-154": {
+      "new_dc_id": "DI-FEFCD950",
+      "new_uuid": "fefcd950-cde2-41e9-bdc6-c6b5d92fe5db"
+    }
+  },
+  "rollbacks": {
+    "DI-04105500": {
+      "atlas_dc_id": "DI-04105500",
+      "error": "",
+      "kept": 4,
+      "removed": 4,
+      "result": "rolled-back -4 ACs (4 kept)"
+    },
+    "DI-080A2454": {
+      "atlas_dc_id": "DI-080A2454",
+      "error": "",
+      "kept": 4,
+      "removed": 5,
+      "result": "rolled-back -5 ACs (4 kept)"
+    },
+    "DI-09E26C1D": {
+      "atlas_dc_id": "DI-09E26C1D",
+      "error": "",
+      "kept": 4,
+      "removed": 6,
+      "result": "rolled-back -6 ACs (4 kept)"
+    },
+    "DI-12015DBC": {
+      "atlas_dc_id": "DI-12015DBC",
+      "error": "",
+      "kept": 4,
+      "removed": 3,
+      "result": "rolled-back -3 ACs (4 kept)"
+    },
+    "DI-23822663": {
+      "atlas_dc_id": "DI-23822663",
+      "error": "",
+      "kept": 4,
+      "removed": 5,
+      "result": "rolled-back -5 ACs (4 kept)"
+    },
+    "DI-340279C1": {
+      "atlas_dc_id": "DI-340279C1",
+      "error": "",
+      "kept": 3,
+      "removed": 6,
+      "result": "rolled-back -6 ACs (3 kept)"
+    },
+    "DI-3613871E": {
+      "atlas_dc_id": "DI-3613871E",
+      "error": "",
+      "kept": 4,
+      "removed": 8,
+      "result": "rolled-back -8 ACs (4 kept)"
+    },
+    "DI-3EA60D5A": {
+      "atlas_dc_id": "DI-3EA60D5A",
+      "error": "",
+      "kept": 4,
+      "removed": 12,
+      "result": "rolled-back -12 ACs (4 kept)"
+    },
+    "DI-425CA252": {
+      "atlas_dc_id": "DI-425CA252",
+      "error": "",
+      "kept": 4,
+      "removed": 22,
+      "result": "rolled-back -22 ACs (4 kept)"
+    },
+    "DI-4746A178": {
+      "atlas_dc_id": "DI-4746A178",
+      "error": "",
+      "kept": 4,
+      "removed": 4,
+      "result": "rolled-back -4 ACs (4 kept)"
+    },
+    "DI-49403C92": {
+      "atlas_dc_id": "DI-49403C92",
+      "error": "",
+      "kept": 4,
+      "removed": 4,
+      "result": "rolled-back -4 ACs (4 kept)"
+    },
+    "DI-553F50A2": {
+      "atlas_dc_id": "DI-553F50A2",
+      "error": "",
+      "kept": 4,
+      "removed": 8,
+      "result": "rolled-back -8 ACs (4 kept)"
+    },
+    "DI-5E25E872": {
+      "atlas_dc_id": "DI-5E25E872",
+      "error": "",
+      "kept": 4,
+      "removed": 8,
+      "result": "rolled-back -8 ACs (4 kept)"
+    },
+    "DI-5E7E8CEF": {
+      "atlas_dc_id": "DI-5E7E8CEF",
+      "error": "",
+      "kept": 4,
+      "removed": 5,
+      "result": "rolled-back -5 ACs (4 kept)"
+    },
+    "DI-620FE631": {
+      "atlas_dc_id": "DI-620FE631",
+      "error": "",
+      "kept": 4,
+      "removed": 3,
+      "result": "rolled-back -3 ACs (4 kept)"
+    },
+    "DI-69C29EEF": {
+      "atlas_dc_id": "DI-69C29EEF",
+      "error": "",
+      "kept": 4,
+      "removed": 11,
+      "result": "rolled-back -11 ACs (4 kept)"
+    },
+    "DI-6C5D77CA": {
+      "atlas_dc_id": "DI-6C5D77CA",
+      "error": "",
+      "kept": 4,
+      "removed": 6,
+      "result": "rolled-back -6 ACs (4 kept)"
+    },
+    "DI-702F4583": {
+      "atlas_dc_id": "DI-702F4583",
+      "error": "",
+      "kept": 3,
+      "removed": 4,
+      "result": "rolled-back -4 ACs (3 kept)"
+    },
+    "DI-740BE510": {
+      "atlas_dc_id": "DI-740BE510",
+      "error": "",
+      "kept": 3,
+      "removed": 6,
+      "result": "rolled-back -6 ACs (3 kept)"
+    },
+    "DI-8CE01B3E": {
+      "atlas_dc_id": "DI-8CE01B3E",
+      "error": "",
+      "kept": 3,
+      "removed": 8,
+      "result": "rolled-back -8 ACs (3 kept)"
+    },
+    "DI-900CB621": {
+      "atlas_dc_id": "DI-900CB621",
+      "error": "",
+      "kept": 4,
+      "removed": 4,
+      "result": "rolled-back -4 ACs (4 kept)"
+    },
+    "DI-916BD8C8": {
+      "atlas_dc_id": "DI-916BD8C8",
+      "error": "",
+      "kept": 4,
+      "removed": 3,
+      "result": "rolled-back -3 ACs (4 kept)"
+    },
+    "DI-9843D732": {
+      "atlas_dc_id": "DI-9843D732",
+      "error": "",
+      "kept": 4,
+      "removed": 3,
+      "result": "rolled-back -3 ACs (4 kept)"
+    },
+    "DI-A0579B64": {
+      "atlas_dc_id": "DI-A0579B64",
+      "error": "",
+      "kept": 4,
+      "removed": 7,
+      "result": "rolled-back -7 ACs (4 kept)"
+    },
+    "DI-A3107424": {
+      "atlas_dc_id": "DI-A3107424",
+      "error": "",
+      "kept": 4,
+      "removed": 4,
+      "result": "rolled-back -4 ACs (4 kept)"
+    },
+    "DI-AF5A1668": {
+      "atlas_dc_id": "DI-AF5A1668",
+      "error": "",
+      "kept": 3,
+      "removed": 5,
+      "result": "rolled-back -5 ACs (3 kept)"
+    },
+    "DI-B0832A64": {
+      "atlas_dc_id": "DI-B0832A64",
+      "error": "",
+      "kept": 3,
+      "removed": 7,
+      "result": "rolled-back -7 ACs (3 kept)"
+    },
+    "DI-B8674FBF": {
+      "atlas_dc_id": "DI-B8674FBF",
+      "error": "",
+      "kept": 4,
+      "removed": 5,
+      "result": "rolled-back -5 ACs (4 kept)"
+    },
+    "DI-B95A73E9": {
+      "atlas_dc_id": "DI-B95A73E9",
+      "error": "",
+      "kept": 4,
+      "removed": 3,
+      "result": "rolled-back -3 ACs (4 kept)"
+    },
+    "DI-C5A523A7": {
+      "atlas_dc_id": "DI-C5A523A7",
+      "error": "",
+      "kept": 3,
+      "removed": 7,
+      "result": "rolled-back -7 ACs (3 kept)"
+    },
+    "DI-CE0A08E5": {
+      "atlas_dc_id": "DI-CE0A08E5",
+      "error": "",
+      "kept": 4,
+      "removed": 4,
+      "result": "rolled-back -4 ACs (4 kept)"
+    },
+    "DI-D49BCE55": {
+      "atlas_dc_id": "DI-D49BCE55",
+      "error": "",
+      "kept": 4,
+      "removed": 6,
+      "result": "rolled-back -6 ACs (4 kept)"
+    },
+    "DI-DA7584D8": {
+      "atlas_dc_id": "DI-DA7584D8",
+      "error": "",
+      "kept": 4,
+      "removed": 3,
+      "result": "rolled-back -3 ACs (4 kept)"
+    },
+    "DI-DD67ACFF": {
+      "atlas_dc_id": "DI-DD67ACFF",
+      "error": "",
+      "kept": 4,
+      "removed": 8,
+      "result": "rolled-back -8 ACs (4 kept)"
+    },
+    "DI-ED3A89F5": {
+      "atlas_dc_id": "DI-ED3A89F5",
+      "error": "",
+      "kept": 4,
+      "removed": 0,
+      "result": "noop (nothing to roll back)"
+    },
+    "DI-F2C18D2E": {
+      "atlas_dc_id": "DI-F2C18D2E",
+      "error": "",
+      "kept": 4,
+      "removed": 8,
+      "result": "rolled-back -8 ACs (4 kept)"
+    },
+    "DI-F66A7239": {
+      "atlas_dc_id": "DI-F66A7239",
+      "error": "",
+      "kept": 4,
+      "removed": 9,
+      "result": "rolled-back -9 ACs (4 kept)"
+    }
+  },
+  "started_at": "2026-04-19T13:14:38Z",
+  "updated_at": "2026-04-19T13:23:15Z"
+}

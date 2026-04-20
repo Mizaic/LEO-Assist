@@ -1,0 +1,224 @@
+kind,bucket,atlas_id,atlas_uuid,decision,note,ts
+error,libs/azure,,,failed,"create_user_need: Error executing tool create_user_need: QMS Graph API returned 422: {'detail': 'stakeholderType must be one of: Administrator, AI Coding Agent, All Users, Clinical Safety Officer, Clinician, Developer, Engineering Lead, External Auditor, IT Admin, Knowledge Base Author, LMS Administ",2026-04-20T06:54:28Z
+risk,risk:missing_org_scope,R-259EBFD9,259ebfd9-9cd8-4302-adba-66a4ce663a1f,created,Cypher helper library returns cross-tenant data when caller omits org_id,2026-04-20T06:54:28Z
+risk,risk:raw_phi_logging,R-4E31D45A,4e31d45a-c185-426b-ad1f-d14622e1632d,created,Patient identifier appears in INFO and WARNING log lines,2026-04-20T06:54:28Z
+un,un:platform_infra,UN-8F0D92F8,8f0d92f8-ab6c-441e-9e98-f8e4eb6a42f0,created,Platform reliability and infrastructure components,2026-04-20T06:55:05Z
+di,libs/azure,DI-81E8F4B8,81e8f4b8-22d3-449e-b963-f93546235ff5,created,Azure managed-identity credential resolver,2026-04-20T06:55:06Z
+link,libs/azure,DI-81E8F4B8,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-81E8F4B8,2026-04-20T06:55:06Z
+do,libs/azure,DO-25BFD246,25bfd246-71d0-4d26-9db7-036c986366a4,created,1 files,2026-04-20T06:55:06Z
+link,libs/azure,DO-25BFD246,,created,DO DO-25BFD246 -[IMPLEMENTS]-> DI DI-81E8F4B8,2026-04-20T06:55:07Z
+vt,libs/azure,VT-9ABFEEDE,9abfeede-f0a7-4780-9b5a-b0a17de9429b,created,shell VT for libs/azure,2026-04-20T06:55:07Z
+link,libs/azure,VT-9ABFEEDE,,created,VT VT-9ABFEEDE -[VERIFIES]-> DI DI-81E8F4B8,2026-04-20T06:55:07Z
+link,libs/azure,VT-9ABFEEDE,,created,VT VT-9ABFEEDE -[TESTS]-> DO DO-25BFD246,2026-04-20T06:55:07Z
+di,libs/agent_config,DI-6A1CD328,6a1cd328-fccd-4c55-9115-1a324d10d9b3,created,FHIR-based agent configuration registry,2026-04-20T06:56:37Z
+link,libs/agent_config,DI-6A1CD328,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-6A1CD328,2026-04-20T06:56:37Z
+do,libs/agent_config,DO-61EE87E0,61ee87e0-4668-4c99-9444-5f8d681f0680,created,3 files,2026-04-20T06:56:38Z
+link,libs/agent_config,DO-61EE87E0,,created,DO DO-61EE87E0 -[IMPLEMENTS]-> DI DI-6A1CD328,2026-04-20T06:56:38Z
+vt,libs/agent_config,VT-6F821045,6f821045-bd4a-4a76-9713-d2fe8df4ca00,created,shell VT for libs/agent_config,2026-04-20T06:56:38Z
+link,libs/agent_config,VT-6F821045,,created,VT VT-6F821045 -[VERIFIES]-> DI DI-6A1CD328,2026-04-20T06:56:38Z
+link,libs/agent_config,VT-6F821045,,created,VT VT-6F821045 -[TESTS]-> DO DO-61EE87E0,2026-04-20T06:56:39Z
+di,libs/audit,DI-65975321,65975321-ef5a-4ad0-89bd-947ced64643b,created,"Audit-quality, escalation, and security event logging",2026-04-20T06:56:39Z
+link,libs/audit,DI-65975321,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-65975321,2026-04-20T06:56:39Z
+do,libs/audit,DO-F1953D1C,f1953d1c-3125-41f6-b09f-cb72fd2b41c2,created,3 files,2026-04-20T06:56:40Z
+link,libs/audit,DO-F1953D1C,,created,DO DO-F1953D1C -[IMPLEMENTS]-> DI DI-65975321,2026-04-20T06:56:40Z
+vt,libs/audit,VT-9AAC75B5,9aac75b5-ea23-4378-bbf4-09d3529d4ead,created,shell VT for libs/audit,2026-04-20T06:56:40Z
+link,libs/audit,VT-9AAC75B5,,created,VT VT-9AAC75B5 -[VERIFIES]-> DI DI-65975321,2026-04-20T06:56:40Z
+link,libs/audit,VT-9AAC75B5,,created,VT VT-9AAC75B5 -[TESTS]-> DO DO-F1953D1C,2026-04-20T06:56:41Z
+di,libs/auth,DI-5F978E36,5f978e36-9468-4e16-a13d-9e1f3e8d484e,created,Service-to-service authentication helper,2026-04-20T06:56:41Z
+link,libs/auth,DI-5F978E36,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-5F978E36,2026-04-20T06:56:41Z
+do,libs/auth,DO-175B815C,175b815c-cd26-4aa2-acc2-5f9a928f6129,created,1 files,2026-04-20T06:56:41Z
+link,libs/auth,DO-175B815C,,created,DO DO-175B815C -[IMPLEMENTS]-> DI DI-5F978E36,2026-04-20T06:56:42Z
+vt,libs/auth,VT-1EEED757,1eeed757-dd29-4d03-a2af-ac1a176559b8,created,shell VT for libs/auth,2026-04-20T06:56:42Z
+link,libs/auth,VT-1EEED757,,created,VT VT-1EEED757 -[VERIFIES]-> DI DI-5F978E36,2026-04-20T06:56:42Z
+link,libs/auth,VT-1EEED757,,created,VT VT-1EEED757 -[TESTS]-> DO DO-175B815C,2026-04-20T06:56:42Z
+di,libs/classifiers,DI-FBCCD265,fbccd265-936e-48ec-94bf-56c781ed05e2,created,Encounter classifier (NER + spaCy textcat),2026-04-20T06:56:43Z
+link,libs/classifiers,DI-FBCCD265,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-FBCCD265,2026-04-20T06:56:43Z
+do,libs/classifiers,DO-0FB8F15D,0fb8f15d-965c-40ec-aee7-fbf0e439d2de,created,2 files,2026-04-20T06:56:43Z
+link,libs/classifiers,DO-0FB8F15D,,created,DO DO-0FB8F15D -[IMPLEMENTS]-> DI DI-FBCCD265,2026-04-20T06:56:43Z
+vt,libs/classifiers,VT-BF47202D,bf47202d-705d-4481-bd0f-1cb9318da1d0,created,shell VT for libs/classifiers,2026-04-20T06:56:43Z
+link,libs/classifiers,VT-BF47202D,,created,VT VT-BF47202D -[VERIFIES]-> DI DI-FBCCD265,2026-04-20T06:56:44Z
+link,libs/classifiers,VT-BF47202D,,created,VT VT-BF47202D -[TESTS]-> DO DO-0FB8F15D,2026-04-20T06:56:44Z
+un,un:data_quality,UN-3695093F,3695093f-b90d-419c-bc74-c367d047bbb7,created,Read-only Cypher access for data quality and analytics,2026-04-20T06:56:44Z
+di,libs/cypher,DI-BAC284B4,bac284b4-82ad-42ec-98fb-c4d4854db1e1,created,"Cypher query helper library (read-side, multi-tenant)",2026-04-20T06:56:45Z
+link,libs/cypher,DI-BAC284B4,,created,UN UN-3695093F -[HAS_DESIGN_INPUT]-> DI DI-BAC284B4,2026-04-20T06:56:45Z
+do,libs/cypher,DO-BE96444E,be96444e-d278-46d8-a0be-6efd07229be6,created,16 files,2026-04-20T06:56:45Z
+link,libs/cypher,DO-BE96444E,,created,DO DO-BE96444E -[IMPLEMENTS]-> DI DI-BAC284B4,2026-04-20T06:56:45Z
+vt,libs/cypher,VT-D9FD504C,d9fd504c-0405-49d8-8ad3-19282b950baf,created,shell VT for libs/cypher,2026-04-20T06:56:45Z
+link,libs/cypher,VT-D9FD504C,,created,VT VT-D9FD504C -[VERIFIES]-> DI DI-BAC284B4,2026-04-20T06:56:46Z
+link,libs/cypher,VT-D9FD504C,,created,VT VT-D9FD504C -[TESTS]-> DO DO-BE96444E,2026-04-20T06:56:46Z
+di,libs/deid,DI-8A943628,8a943628-f94f-4b67-b56c-ccc84a242ff7,created,De-identification of clinical text before LLM submission,2026-04-20T06:56:46Z
+link,libs/deid,DI-8A943628,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-8A943628,2026-04-20T06:56:46Z
+do,libs/deid,DO-9BF76337,9bf76337-a2ea-4a9a-9635-4418c78550cb,created,1 files,2026-04-20T06:56:46Z
+link,libs/deid,DO-9BF76337,,created,DO DO-9BF76337 -[IMPLEMENTS]-> DI DI-8A943628,2026-04-20T06:56:47Z
+vt,libs/deid,VT-CCEA1554,ccea1554-89f5-4c0b-9d17-86987221cfec,created,shell VT for libs/deid,2026-04-20T06:56:47Z
+link,libs/deid,VT-CCEA1554,,created,VT VT-CCEA1554 -[VERIFIES]-> DI DI-8A943628,2026-04-20T06:56:47Z
+link,libs/deid,VT-CCEA1554,,created,VT VT-CCEA1554 -[TESTS]-> DO DO-9BF76337,2026-04-20T06:56:47Z
+di,libs/llm_client,DI-AE7680C0,ae7680c0-adaf-4481-85f8-c137abed2381,created,LLM provider cache and Bedrock retry plumbing,2026-04-20T06:56:47Z
+link,libs/llm_client,DI-AE7680C0,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-AE7680C0,2026-04-20T06:56:48Z
+do,libs/llm_client,DO-7123C55A,7123c55a-2ab8-459b-9497-b5bb6e81987a,created,2 files,2026-04-20T06:56:48Z
+link,libs/llm_client,DO-7123C55A,,created,DO DO-7123C55A -[IMPLEMENTS]-> DI DI-AE7680C0,2026-04-20T06:56:48Z
+vt,libs/llm_client,VT-D1A6FDE7,d1a6fde7-0ccc-45e8-ad99-e989480d9e78,created,shell VT for libs/llm_client,2026-04-20T06:56:48Z
+link,libs/llm_client,VT-D1A6FDE7,,created,VT VT-D1A6FDE7 -[VERIFIES]-> DI DI-AE7680C0,2026-04-20T06:56:48Z
+link,libs/llm_client,VT-D1A6FDE7,,created,VT VT-D1A6FDE7 -[TESTS]-> DO DO-7123C55A,2026-04-20T06:56:49Z
+di,libs/llm_usage,DI-21996926,21996926-a875-4392-9535-85b5c7430e8d,created,LLM usage cost configuration module,2026-04-20T06:56:49Z
+link,libs/llm_usage,DI-21996926,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-21996926,2026-04-20T06:56:49Z
+do,libs/llm_usage,DO-6BAE3DA7,6bae3da7-a88a-4c10-9bde-63ca94106f91,created,1 files,2026-04-20T06:56:49Z
+link,libs/llm_usage,DO-6BAE3DA7,,created,DO DO-6BAE3DA7 -[IMPLEMENTS]-> DI DI-21996926,2026-04-20T06:56:49Z
+vt,libs/llm_usage,VT-1554C885,1554c885-afcd-4729-b0d5-ad8dd8a27bea,created,shell VT for libs/llm_usage,2026-04-20T06:56:50Z
+link,libs/llm_usage,VT-1554C885,,created,VT VT-1554C885 -[VERIFIES]-> DI DI-21996926,2026-04-20T06:56:50Z
+link,libs/llm_usage,VT-1554C885,,created,VT VT-1554C885 -[TESTS]-> DO DO-6BAE3DA7,2026-04-20T06:56:50Z
+di,libs/message_bus,DI-37D1B7D7,37d1b7d7-1c8a-4361-ae28-838bf471f1e5,created,In-memory message bus adapter for development and tests,2026-04-20T06:56:50Z
+link,libs/message_bus,DI-37D1B7D7,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-37D1B7D7,2026-04-20T06:56:50Z
+do,libs/message_bus,DO-CAA9690F,caa9690f-5010-4b09-8a22-d27129c91d3d,created,1 files,2026-04-20T06:56:51Z
+link,libs/message_bus,DO-CAA9690F,,created,DO DO-CAA9690F -[IMPLEMENTS]-> DI DI-37D1B7D7,2026-04-20T06:56:51Z
+vt,libs/message_bus,VT-5CBA9D19,5cba9d19-536f-4f32-bdf7-64e88e597f97,created,shell VT for libs/message_bus,2026-04-20T06:56:51Z
+link,libs/message_bus,VT-5CBA9D19,,created,VT VT-5CBA9D19 -[VERIFIES]-> DI DI-37D1B7D7,2026-04-20T06:56:51Z
+link,libs/message_bus,VT-5CBA9D19,,created,VT VT-5CBA9D19 -[TESTS]-> DO DO-CAA9690F,2026-04-20T06:56:51Z
+di,libs/model_registry,DI-86A1E16F,86a1e16f-ef7b-4075-979b-0c24695e5c24,created,Model registry (Neo4j-backed) with manifest and training adapter,2026-04-20T06:56:52Z
+link,libs/model_registry,DI-86A1E16F,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-86A1E16F,2026-04-20T06:56:52Z
+do,libs/model_registry,DO-0F42967F,0f42967f-324c-4da7-a999-ba64ca35a386,created,4 files,2026-04-20T06:56:52Z
+link,libs/model_registry,DO-0F42967F,,created,DO DO-0F42967F -[IMPLEMENTS]-> DI DI-86A1E16F,2026-04-20T06:56:52Z
+vt,libs/model_registry,VT-8DC57205,8dc57205-8fc9-42a7-bf7b-bbbaee9f8b45,created,shell VT for libs/model_registry,2026-04-20T06:56:52Z
+link,libs/model_registry,VT-8DC57205,,created,VT VT-8DC57205 -[VERIFIES]-> DI DI-86A1E16F,2026-04-20T06:56:53Z
+link,libs/model_registry,VT-8DC57205,,created,VT VT-8DC57205 -[TESTS]-> DO DO-0F42967F,2026-04-20T06:56:53Z
+di,libs/model_store,DI-2D49649C,2d49649c-4308-4507-bd4c-9baa5e359ecd,created,Model artefact blob store,2026-04-20T06:56:53Z
+link,libs/model_store,DI-2D49649C,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-2D49649C,2026-04-20T06:56:53Z
+do,libs/model_store,DO-559095B5,559095b5-d583-462a-861d-bac2387b724c,created,1 files,2026-04-20T06:56:53Z
+link,libs/model_store,DO-559095B5,,created,DO DO-559095B5 -[IMPLEMENTS]-> DI DI-2D49649C,2026-04-20T06:56:54Z
+vt,libs/model_store,VT-C3C88DE3,c3c88de3-5e89-4a8c-ac3f-330e5fd548ce,created,shell VT for libs/model_store,2026-04-20T06:56:54Z
+link,libs/model_store,VT-C3C88DE3,,created,VT VT-C3C88DE3 -[VERIFIES]-> DI DI-2D49649C,2026-04-20T06:56:54Z
+link,libs/model_store,VT-C3C88DE3,,created,VT VT-C3C88DE3 -[TESTS]-> DO DO-559095B5,2026-04-20T06:56:54Z
+di,libs/ner,DI-2F963FC6,2f963fc6-c933-4557-b5c8-a62b1d666875,created,"NER post-processing, lab-triple recovery, and seed ingestion",2026-04-20T06:56:54Z
+link,libs/ner,DI-2F963FC6,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-2F963FC6,2026-04-20T06:56:55Z
+do,libs/ner,DO-8EF2EC20,8ef2ec20-7bdf-411e-8f93-4f25f59cda81,created,7 files,2026-04-20T06:56:55Z
+link,libs/ner,DO-8EF2EC20,,created,DO DO-8EF2EC20 -[IMPLEMENTS]-> DI DI-2F963FC6,2026-04-20T06:56:55Z
+vt,libs/ner,VT-AC7B3C7F,ac7b3c7f-c550-456b-a068-2e78f1140c96,created,shell VT for libs/ner,2026-04-20T06:56:55Z
+link,libs/ner,VT-AC7B3C7F,,created,VT VT-AC7B3C7F -[VERIFIES]-> DI DI-2F963FC6,2026-04-20T06:56:55Z
+link,libs/ner,VT-AC7B3C7F,,created,VT VT-AC7B3C7F -[TESTS]-> DO DO-8EF2EC20,2026-04-20T06:56:56Z
+di,libs/nlp,DI-CF5162BF,cf5162bf-6eae-4959-98e0-b8a8c8f678a9,created,Assertion inference helper,2026-04-20T06:56:56Z
+link,libs/nlp,DI-CF5162BF,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-CF5162BF,2026-04-20T06:56:56Z
+do,libs/nlp,DO-CD6408D3,cd6408d3-fa5d-4bbc-8c02-40dce9308c15,created,1 files,2026-04-20T06:56:56Z
+link,libs/nlp,DO-CD6408D3,,created,DO DO-CD6408D3 -[IMPLEMENTS]-> DI DI-CF5162BF,2026-04-20T06:56:56Z
+vt,libs/nlp,VT-BEDEBEEA,bedebeea-8155-4a39-b975-a83059f6d4e4,created,shell VT for libs/nlp,2026-04-20T06:56:57Z
+link,libs/nlp,VT-BEDEBEEA,,created,VT VT-BEDEBEEA -[VERIFIES]-> DI DI-CF5162BF,2026-04-20T06:56:57Z
+link,libs/nlp,VT-BEDEBEEA,,created,VT VT-BEDEBEEA -[TESTS]-> DO DO-CD6408D3,2026-04-20T06:56:57Z
+di,libs/ods,DI-C978B245,c978b245-e013-4872-b4f1-3d908343a7dc,created,ODS (Organisation Data Service) lookup client,2026-04-20T06:56:57Z
+link,libs/ods,DI-C978B245,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-C978B245,2026-04-20T06:56:57Z
+do,libs/ods,DO-273A4EC4,273a4ec4-cbe2-4476-8f5e-4f3ed0dfbff4,created,1 files,2026-04-20T06:56:58Z
+link,libs/ods,DO-273A4EC4,,created,DO DO-273A4EC4 -[IMPLEMENTS]-> DI DI-C978B245,2026-04-20T06:56:58Z
+vt,libs/ods,VT-16591AA0,16591aa0-25a6-4d77-908f-2265baef5488,created,shell VT for libs/ods,2026-04-20T06:56:58Z
+link,libs/ods,VT-16591AA0,,created,VT VT-16591AA0 -[VERIFIES]-> DI DI-C978B245,2026-04-20T06:56:58Z
+link,libs/ods,VT-16591AA0,,created,VT VT-16591AA0 -[TESTS]-> DO DO-273A4EC4,2026-04-20T06:56:58Z
+di,libs/pipeline,DI-FE1BC901,fe1bc901-6828-4b5d-a258-64a264f753d4,created,Pipeline label filter and extraction-response parser,2026-04-20T06:56:59Z
+link,libs/pipeline,DI-FE1BC901,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-FE1BC901,2026-04-20T06:56:59Z
+do,libs/pipeline,DO-16CE412B,16ce412b-9af0-4ab0-8b4c-3d51c371f8c1,created,2 files,2026-04-20T06:56:59Z
+link,libs/pipeline,DO-16CE412B,,created,DO DO-16CE412B -[IMPLEMENTS]-> DI DI-FE1BC901,2026-04-20T06:56:59Z
+vt,libs/pipeline,VT-4096D5A2,4096d5a2-1cf0-4935-b5d0-e19d2501ba55,created,shell VT for libs/pipeline,2026-04-20T06:57:00Z
+link,libs/pipeline,VT-4096D5A2,,created,VT VT-4096D5A2 -[VERIFIES]-> DI DI-FE1BC901,2026-04-20T06:57:00Z
+link,libs/pipeline,VT-4096D5A2,,created,VT VT-4096D5A2 -[TESTS]-> DO DO-16CE412B,2026-04-20T06:57:00Z
+di,libs/prompts,DI-85AB13D7,85ab13d7-30c1-46b2-a107-08837f79cdb1,created,"LLM prompt asset registry (templates, examples, output schemas)",2026-04-20T06:57:00Z
+link,libs/prompts,DI-85AB13D7,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-85AB13D7,2026-04-20T06:57:00Z
+do,libs/prompts,DO-BEFC4C67,befc4c67-9b91-40db-b0d9-3d823848aa67,created,30 files,2026-04-20T06:57:01Z
+link,libs/prompts,DO-BEFC4C67,,created,DO DO-BEFC4C67 -[IMPLEMENTS]-> DI DI-85AB13D7,2026-04-20T06:57:01Z
+vt,libs/prompts,VT-48D33113,48d33113-dc2a-43e4-9fa6-c46b5c49f895,created,shell VT for libs/prompts,2026-04-20T06:57:01Z
+link,libs/prompts,VT-48D33113,,created,VT VT-48D33113 -[VERIFIES]-> DI DI-85AB13D7,2026-04-20T06:57:01Z
+link,libs/prompts,VT-48D33113,,created,VT VT-48D33113 -[TESTS]-> DO DO-BEFC4C67,2026-04-20T06:57:01Z
+di,libs/redis_client,DI-B884A243,b884a243-d625-4226-a3fc-0131ea5e4280,created,Redis-backed checkpoint and rebuild status,2026-04-20T06:57:02Z
+link,libs/redis_client,DI-B884A243,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-B884A243,2026-04-20T06:57:02Z
+do,libs/redis_client,DO-412DE1A5,412de1a5-f113-4559-978e-06152cc1ca44,created,2 files,2026-04-20T06:57:02Z
+link,libs/redis_client,DO-412DE1A5,,created,DO DO-412DE1A5 -[IMPLEMENTS]-> DI DI-B884A243,2026-04-20T06:57:02Z
+vt,libs/redis_client,VT-50903880,50903880-1dc1-4867-870b-7980af6fe1af,created,shell VT for libs/redis_client,2026-04-20T06:57:02Z
+link,libs/redis_client,VT-50903880,,created,VT VT-50903880 -[VERIFIES]-> DI DI-B884A243,2026-04-20T06:57:03Z
+link,libs/redis_client,VT-50903880,,created,VT VT-50903880 -[TESTS]-> DO DO-412DE1A5,2026-04-20T06:57:03Z
+di,libs/telemetry,DI-A93499CE,a93499ce-c08f-46bc-96c2-3c3bfabcdaf6,created,OpenTelemetry tracing setup,2026-04-20T06:57:03Z
+link,libs/telemetry,DI-A93499CE,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-A93499CE,2026-04-20T06:57:03Z
+do,libs/telemetry,DO-5D032346,5d032346-4914-4358-aaf6-7832bc234be2,created,1 files,2026-04-20T06:57:04Z
+link,libs/telemetry,DO-5D032346,,created,DO DO-5D032346 -[IMPLEMENTS]-> DI DI-A93499CE,2026-04-20T06:57:04Z
+vt,libs/telemetry,VT-BCBA2DEC,bcba2dec-636a-4c16-b32f-d47d848ff753,created,shell VT for libs/telemetry,2026-04-20T06:57:04Z
+link,libs/telemetry,VT-BCBA2DEC,,created,VT VT-BCBA2DEC -[VERIFIES]-> DI DI-A93499CE,2026-04-20T06:57:04Z
+link,libs/telemetry,VT-BCBA2DEC,,created,VT VT-BCBA2DEC -[TESTS]-> DO DO-5D032346,2026-04-20T06:57:04Z
+di,libs/terminology,DI-82036B4D,82036b4d-50d2-491e-bf48-1f0ca497697b,created,"Terminology preferred-term, surface normalisation, semantic tags",2026-04-20T06:57:05Z
+link,libs/terminology,DI-82036B4D,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-82036B4D,2026-04-20T06:57:05Z
+do,libs/terminology,DO-8C497D0C,8c497d0c-e984-48ef-9cb2-07e509409817,created,3 files,2026-04-20T06:57:05Z
+link,libs/terminology,DO-8C497D0C,,created,DO DO-8C497D0C -[IMPLEMENTS]-> DI DI-82036B4D,2026-04-20T06:57:05Z
+vt,libs/terminology,VT-52628A07,52628a07-ecff-491a-a58e-40a5907290b8,created,shell VT for libs/terminology,2026-04-20T06:57:05Z
+link,libs/terminology,VT-52628A07,,created,VT VT-52628A07 -[VERIFIES]-> DI DI-82036B4D,2026-04-20T06:57:06Z
+link,libs/terminology,VT-52628A07,,created,VT VT-52628A07 -[TESTS]-> DO DO-8C497D0C,2026-04-20T06:57:06Z
+di,libs/utils,DI-3717DFB0,3717dfb0-bbce-4bcf-8fb3-cfb0d4ec7a4a,created,Shared utilities: device resolver and structured logging setup,2026-04-20T06:57:06Z
+link,libs/utils,DI-3717DFB0,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-3717DFB0,2026-04-20T06:57:06Z
+do,libs/utils,DO-89AF1CCE,89af1cce-4282-498c-b35a-d2c757fbdda0,created,2 files,2026-04-20T06:57:06Z
+link,libs/utils,DO-89AF1CCE,,created,DO DO-89AF1CCE -[IMPLEMENTS]-> DI DI-3717DFB0,2026-04-20T06:57:07Z
+vt,libs/utils,VT-F541AC97,f541ac97-f120-41a6-8293-1674a138a1be,created,shell VT for libs/utils,2026-04-20T06:57:07Z
+link,libs/utils,VT-F541AC97,,created,VT VT-F541AC97 -[VERIFIES]-> DI DI-3717DFB0,2026-04-20T06:57:07Z
+link,libs/utils,VT-F541AC97,,created,VT VT-F541AC97 -[TESTS]-> DO DO-89AF1CCE,2026-04-20T06:57:07Z
+di,services/analysis_worker,DI-5B694FBE,5b694fbe-1c21-4bfe-858a-bced75c7d1dd,created,Episode-engine state and writer rollups for the analysis worker,2026-04-20T06:57:07Z
+link,services/analysis_worker,DI-5B694FBE,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-5B694FBE,2026-04-20T06:57:08Z
+do,services/analysis_worker,DO-F2E2A70B,f2e2a70b-60bd-4cf8-a836-08a07108032d,created,3 files,2026-04-20T06:57:08Z
+link,services/analysis_worker,DO-F2E2A70B,,created,DO DO-F2E2A70B -[IMPLEMENTS]-> DI DI-5B694FBE,2026-04-20T06:57:08Z
+vt,services/analysis_worker,VT-C9406752,c9406752-a05c-439b-825e-ab89374f6922,created,shell VT for services/analysis_worker,2026-04-20T06:57:08Z
+link,services/analysis_worker,VT-C9406752,,created,VT VT-C9406752 -[VERIFIES]-> DI DI-5B694FBE,2026-04-20T06:57:08Z
+link,services/analysis_worker,VT-C9406752,,created,VT VT-C9406752 -[TESTS]-> DO DO-F2E2A70B,2026-04-20T06:57:08Z
+di,services/analytics_api,DI-6E1B71A4,6e1b71a4-42b4-4e68-9132-4c64bd206b79,created,Algorithm runner and audit-helper routers in analytics API,2026-04-20T06:57:09Z
+link,services/analytics_api,DI-6E1B71A4,,created,UN UN-3695093F -[HAS_DESIGN_INPUT]-> DI DI-6E1B71A4,2026-04-20T06:57:09Z
+do,services/analytics_api,DO-D5B9FE5F,d5b9fe5f-cda4-48f0-9611-70ae954887c5,created,6 files,2026-04-20T06:57:09Z
+link,services/analytics_api,DO-D5B9FE5F,,created,DO DO-D5B9FE5F -[IMPLEMENTS]-> DI DI-6E1B71A4,2026-04-20T06:57:09Z
+vt,services/analytics_api,VT-D2255676,d2255676-fd1c-4c66-945d-08469b5df76d,created,shell VT for services/analytics_api,2026-04-20T06:57:09Z
+link,services/analytics_api,VT-D2255676,,created,VT VT-D2255676 -[VERIFIES]-> DI DI-6E1B71A4,2026-04-20T06:57:10Z
+link,services/analytics_api,VT-D2255676,,created,VT VT-D2255676 -[TESTS]-> DO DO-D5B9FE5F,2026-04-20T06:57:10Z
+di,services/api/contracts,DI-058524DB,058524db-5b57-4e2d-bab7-0547a4b9030d,created,API request/response contract models,2026-04-20T06:57:10Z
+link,services/api/contracts,DI-058524DB,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-058524DB,2026-04-20T06:57:10Z
+do,services/api/contracts,DO-DE09C150,de09c150-100c-44eb-9fe2-07df054952ad,created,1 files,2026-04-20T06:57:10Z
+link,services/api/contracts,DO-DE09C150,,created,DO DO-DE09C150 -[IMPLEMENTS]-> DI DI-058524DB,2026-04-20T06:57:11Z
+vt,services/api/contracts,VT-3670CB92,3670cb92-866d-4e11-8689-ba84d8b1aebb,created,shell VT for services/api/contracts,2026-04-20T06:57:11Z
+link,services/api/contracts,VT-3670CB92,,created,VT VT-3670CB92 -[VERIFIES]-> DI DI-058524DB,2026-04-20T06:57:11Z
+link,services/api/contracts,VT-3670CB92,,created,VT VT-3670CB92 -[TESTS]-> DO DO-DE09C150,2026-04-20T06:57:11Z
+un,un:fhir_exposure,UN-7A571494,7a571494-4dbb-4fef-9f84-37a91a9d2510,created,FHIR resource exposure for downstream interoperability,2026-04-20T06:57:12Z
+di,services/fhir_api,DI-FC9A8824,fc9a8824-bb5a-4105-947c-f68a6759ccfa,created,"FHIR API: ActivityDefinition, Library, PlanDefinition, Schema, Benchmark",2026-04-20T06:57:12Z
+link,services/fhir_api,DI-FC9A8824,,created,UN UN-7A571494 -[HAS_DESIGN_INPUT]-> DI DI-FC9A8824,2026-04-20T06:57:12Z
+do,services/fhir_api,DO-B3397C94,b3397c94-5b22-4bee-bb26-981061899a9f,created,9 files,2026-04-20T06:57:12Z
+link,services/fhir_api,DO-B3397C94,,created,DO DO-B3397C94 -[IMPLEMENTS]-> DI DI-FC9A8824,2026-04-20T06:57:13Z
+vt,services/fhir_api,VT-0C7C078A,0c7c078a-3400-47c8-9966-b65c1e3752bb,created,shell VT for services/fhir_api,2026-04-20T06:57:13Z
+link,services/fhir_api,VT-0C7C078A,,created,VT VT-0C7C078A -[VERIFIES]-> DI DI-FC9A8824,2026-04-20T06:57:13Z
+link,services/fhir_api,VT-0C7C078A,,created,VT VT-0C7C078A -[TESTS]-> DO DO-B3397C94,2026-04-20T06:57:13Z
+un,un:mcp_workflows,UN-BFB531AD,bfb531ad-898a-4cef-96b8-540347685010,created,MCP server workflows for analyst and reviewer use,2026-04-20T06:57:13Z
+di,services/neo4j_mcp,DI-5700882E,5700882e-e4f0-43b2-82f2-648b9cdc6819,created,Neo4j MCP server for analyst and reviewer workflows,2026-04-20T06:57:14Z
+link,services/neo4j_mcp,DI-5700882E,,created,UN UN-BFB531AD -[HAS_DESIGN_INPUT]-> DI DI-5700882E,2026-04-20T06:57:14Z
+do,services/neo4j_mcp,DO-5F438C17,5f438c17-2c69-4990-9474-7d2d45bf20b2,created,15 files,2026-04-20T06:57:14Z
+link,services/neo4j_mcp,DO-5F438C17,,created,DO DO-5F438C17 -[IMPLEMENTS]-> DI DI-5700882E,2026-04-20T06:57:14Z
+vt,services/neo4j_mcp,VT-8352CBF9,8352cbf9-5f6a-4fde-b1bf-3f0c57c0bfb6,created,shell VT for services/neo4j_mcp,2026-04-20T06:57:14Z
+link,services/neo4j_mcp,VT-8352CBF9,,created,VT VT-8352CBF9 -[VERIFIES]-> DI DI-5700882E,2026-04-20T06:57:15Z
+link,services/neo4j_mcp,VT-8352CBF9,,created,VT VT-8352CBF9 -[TESTS]-> DO DO-5F438C17,2026-04-20T06:57:15Z
+di,services/ods_sync,DI-20104031,20104031-04d8-4876-b9c8-e2caa16dc987,created,ODS sync worker entry point,2026-04-20T06:57:15Z
+link,services/ods_sync,DI-20104031,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-20104031,2026-04-20T06:57:15Z
+do,services/ods_sync,DO-05064452,05064452-9cce-4180-be3f-4a1d72c5b7e7,created,1 files,2026-04-20T06:57:15Z
+link,services/ods_sync,DO-05064452,,created,DO DO-05064452 -[IMPLEMENTS]-> DI DI-20104031,2026-04-20T06:57:16Z
+vt,services/ods_sync,VT-87679B15,87679b15-b081-4c80-8aa6-23c8185e7034,created,shell VT for services/ods_sync,2026-04-20T06:57:16Z
+link,services/ods_sync,VT-87679B15,,created,VT VT-87679B15 -[VERIFIES]-> DI DI-20104031,2026-04-20T06:57:16Z
+link,services/ods_sync,VT-87679B15,,created,VT VT-87679B15 -[TESTS]-> DO DO-05064452,2026-04-20T06:57:16Z
+un,un:terminology_loaders,UN-341955D8,341955d8-db0e-48f3-b504-12e3051b87a1,created,"Terminology loaders for SNOMED, dm+d, OPCS-4, ICD-10",2026-04-20T06:57:17Z
+di,services/terminology,DI-B4D56E92,b4d56e92-4e54-4a3e-8734-93f907cfb8f0,created,"Terminology loaders for SNOMED CT UK, dm+d, OPCS-4, ICD-10",2026-04-20T06:57:17Z
+link,services/terminology,DI-B4D56E92,,created,UN UN-341955D8 -[HAS_DESIGN_INPUT]-> DI DI-B4D56E92,2026-04-20T06:57:17Z
+do,services/terminology,DO-B63973E7,b63973e7-5030-4ef3-bf55-a7f67eeb6e49,created,8 files,2026-04-20T06:57:17Z
+link,services/terminology,DO-B63973E7,,created,DO DO-B63973E7 -[IMPLEMENTS]-> DI DI-B4D56E92,2026-04-20T06:57:17Z
+vt,services/terminology,VT-4649835F,4649835f-d777-4185-90a4-487727a358e7,created,shell VT for services/terminology,2026-04-20T06:57:18Z
+link,services/terminology,VT-4649835F,,created,VT VT-4649835F -[VERIFIES]-> DI DI-B4D56E92,2026-04-20T06:57:18Z
+link,services/terminology,VT-4649835F,,created,VT VT-4649835F -[TESTS]-> DO DO-B63973E7,2026-04-20T06:57:18Z
+di,services/terminology_api,DI-17B5738E,17b5738e-74be-4f98-9c99-8f02d1fe6bbe,created,"Terminology API: text embedder, ValueSet and ConceptMap queries",2026-04-20T06:57:18Z
+link,services/terminology_api,DI-17B5738E,,created,UN UN-3695093F -[HAS_DESIGN_INPUT]-> DI DI-17B5738E,2026-04-20T06:57:18Z
+do,services/terminology_api,DO-1373B71F,1373b71f-d8de-4620-8630-8519ab851ff7,created,3 files,2026-04-20T06:57:19Z
+link,services/terminology_api,DO-1373B71F,,created,DO DO-1373B71F -[IMPLEMENTS]-> DI DI-17B5738E,2026-04-20T06:57:19Z
+vt,services/terminology_api,VT-DD614E27,dd614e27-2d8d-42f0-aea1-606531c0fb6c,created,shell VT for services/terminology_api,2026-04-20T06:57:19Z
+link,services/terminology_api,VT-DD614E27,,created,VT VT-DD614E27 -[VERIFIES]-> DI DI-17B5738E,2026-04-20T06:57:19Z
+link,services/terminology_api,VT-DD614E27,,created,VT VT-DD614E27 -[TESTS]-> DO DO-1373B71F,2026-04-20T06:57:19Z
+di,services/training_worker,DI-3103A562,3103a562-4755-40bd-9528-e2090ec6fb6d,created,Training worker entry point and spaCy training CLI,2026-04-20T06:57:20Z
+link,services/training_worker,DI-3103A562,,created,UN UN-8F0D92F8 -[HAS_DESIGN_INPUT]-> DI DI-3103A562,2026-04-20T06:57:20Z
+do,services/training_worker,DO-4F80FAD8,4f80fad8-55d0-42e7-a0f9-21ffc57132db,created,3 files,2026-04-20T06:57:20Z
+link,services/training_worker,DO-4F80FAD8,,created,DO DO-4F80FAD8 -[IMPLEMENTS]-> DI DI-3103A562,2026-04-20T06:57:20Z
+vt,services/training_worker,VT-08423226,08423226-c669-467d-a9f6-be3d8adf26aa,created,shell VT for services/training_worker,2026-04-20T06:57:20Z
+link,services/training_worker,VT-08423226,,created,VT VT-08423226 -[VERIFIES]-> DI DI-3103A562,2026-04-20T06:57:21Z
+link,services/training_worker,VT-08423226,,created,VT VT-08423226 -[TESTS]-> DO DO-4F80FAD8,2026-04-20T06:57:21Z
+link,risk:missing_org_scope,R-259EBFD9,,created,DI DI-FBCCD265 -[MITIGATES]-> R R-259EBFD9,2026-04-20T06:57:21Z
+link,risk:missing_org_scope,R-259EBFD9,,created,DI DI-BAC284B4 -[MITIGATES]-> R R-259EBFD9,2026-04-20T06:57:21Z
+link,risk:missing_org_scope,R-259EBFD9,,created,DI DI-6E1B71A4 -[MITIGATES]-> R R-259EBFD9,2026-04-20T06:57:21Z
+link,risk:missing_org_scope,R-259EBFD9,,created,DI DI-5700882E -[MITIGATES]-> R R-259EBFD9,2026-04-20T06:57:22Z
+link,risk:raw_phi_logging,R-4E31D45A,,created,DI DI-65975321 -[MITIGATES]-> R R-4E31D45A,2026-04-20T06:57:22Z

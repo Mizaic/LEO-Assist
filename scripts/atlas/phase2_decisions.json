@@ -1,0 +1,106 @@
+{
+  "_comment": "Manual decisions for Phase 2 'create' candidates after human review. Format: local_id -> { decision: 'remap'|'create', atlas_dc_id?: string, note?: string }",
+  "UN-LEO-AI-003": {
+    "decision": "remap",
+    "atlas_dc_id": "UN-459367FA",
+    "note": "Clinicians need abnormal investigation results and clinical red flags automatically surfaced; ACs cover reference ranges, severity, alerting, audit"
+  },
+  "UN-LEO-AI-005": {
+    "decision": "remap",
+    "atlas_dc_id": "UN-FC99D533",
+    "note": "Milestone identification is covered by 'related encounters automatically grouped into structured clinical episodes' (ACs explicitly link encounters to pathway milestones)"
+  },
+  "UN-LEO-AI-006": {
+    "decision": "remap",
+    "atlas_dc_id": "UN-FC99D533",
+    "note": "Local UN-005 and UN-006 collapse into the single Atlas UN about episode construction"
+  },
+  "UN-LEO-AI-008": {
+    "decision": "remap",
+    "atlas_dc_id": "UN-5C67AAD9",
+    "note": "Pathway intervals automatically calculated against programme waiting time targets - exact match"
+  },
+  "UN-LEO-AI-009": {
+    "decision": "remap",
+    "atlas_dc_id": "UN-575E8DCB",
+    "note": "Plain-language AI interpretation of coded audit findings - exact match"
+  },
+  "UN-LEO-AI-024": {
+    "decision": "create",
+    "stakeholder_types": ["Clinician", "Quality Manager"],
+    "priority": "MUST",
+    "note": "NCDA proforma out-of-the-box report template - no Atlas equivalent"
+  },
+  "UN-LEO-AI-026": {
+    "decision": "create",
+    "stakeholder_types": ["Clinician", "Organisation Administrator"],
+    "priority": "SHOULD",
+    "note": "GP practice subscription for ongoing audit / referral PPV between NCDA cycles - no Atlas equivalent"
+  },
+  "UN-LEO-AI-056": {
+    "decision": "create",
+    "stakeholder_types": ["Administrator", "Developer"],
+    "priority": "MUST",
+    "note": "Admin Data Quality Toolkit (ad-hoc inspection/remediation, distinct from per-episode automated DQ engine UN-7294050B)"
+  },
+  "DI-LEO-AI-009": {
+    "decision": "create",
+    "note": "Identify clinical milestones from coded encounters using programme-defined milestone definitions - distinct from temporal claiming/quality DIs"
+  },
+  "DI-LEO-AI-011": {
+    "decision": "create",
+    "note": "Consolidate overlapping/duplicate episodes for the same patient - no Atlas equivalent"
+  },
+  "DI-LEO-AI-124": {
+    "decision": "create",
+    "note": "MIN_REFERRAL_TO_DIAG_DAYS gap enforcement - specific rule, no Atlas equivalent"
+  },
+  "DI-LEO-AI-149": {
+    "decision": "create",
+    "note": "Histology-letter vocabulary anchor detection (text-only confirmed/benign evidence) - no Atlas equivalent"
+  },
+  "DI-LEO-AI-155": {
+    "decision": "create",
+    "note": "Cancer-site classification from encounter free text via per-site dictionary fallback when no coded SNOMED edges - no Atlas equivalent"
+  },
+  "_low_confidence_di_section": "Decisions for the 39 low-confidence DIs from atlas-id-mapping.csv (match_type=low-confidence). Most original mappings are topic-wrong; defaulting to CREATE except where a better Atlas DC is identified.",
+  "DI-LEO-AI-004": {"decision": "remap", "atlas_dc_id": "DI-F8634363", "note": "Hybrid SNOMED entity resolution -> Terminology search API with hybrid SNOMED CT search"},
+  "DI-LEO-AI-005": {"decision": "create", "note": "ConText assertion classification (patient/family/resolved/plan/negated/uncertain) - no Atlas equivalent"},
+  "DI-LEO-AI-021": {"decision": "remap", "atlas_dc_id": "DI-4DBE1A18", "note": "Service-to-service auth tokens -> OAuth2/OIDC-aligned authentication (confirm existing mapping)"},
+  "DI-LEO-AI-025": {"decision": "remap", "atlas_dc_id": "DI-4C73DC01", "note": "Cancer-symptom safety net with risk prioritisation -> Safety netting follow-up time window"},
+  "DI-LEO-AI-029": {"decision": "create", "note": "Pipeline workers as scalable container instances with queue-depth autoscale - no Atlas equivalent"},
+  "DI-LEO-AI-034": {"decision": "create", "note": "SNOMED CT value sets / concept maps CRUD - no Atlas equivalent"},
+  "DI-LEO-AI-038": {"decision": "remap", "atlas_dc_id": "DI-C7A810AA", "note": "Three-tier confidence classification -> Low-confidence entity flagging (confirm)"},
+  "DI-LEO-AI-039": {"decision": "create", "note": "CodingDecision audit node persistence for autonomous-mode coding - no Atlas equivalent"},
+  "DI-LEO-AI-043": {"decision": "create", "note": "IEC 62366-1 / WCAG 2.2 / ISO 9241 audit remediation across 5 priority phases - no Atlas equivalent"},
+  "DI-LEO-AI-045": {"decision": "create", "note": "Centralised prompt safety utilities (INJECTION_GUARD, sanitise_for_prompt, etc.) - broader than de-id"},
+  "DI-LEO-AI-046": {"decision": "create", "note": "Platform-admin RBAC + input validation for clinical rule mutation - no Atlas equivalent"},
+  "DI-LEO-AI-055": {"decision": "create", "note": "Training data DI-ID validation and PII exclusion enforcement - no Atlas equivalent"},
+  "DI-LEO-AI-061": {"decision": "remap", "atlas_dc_id": "DI-B0A1E549", "note": "No-code Pathway Builder PlanDefinition editor -> FHIR PlanDefinition pathway orchestration"},
+  "DI-LEO-AI-064": {"decision": "create", "note": "Rule generation service with dual-model consensus producing AppropriatenessRule nodes - no Atlas equivalent"},
+  "DI-LEO-AI-065": {"decision": "create", "note": "Bitmap-based guideline evaluation (pyroaring/Redis BitmapStore + GuidelineCompiler) - distinct from latency target"},
+  "DI-LEO-AI-070": {"decision": "create", "note": "Configurable NCDA report templates - links to UN-LEO-AI-024"},
+  "DI-LEO-AI-072": {"decision": "create", "note": "Weekly NER coding-quality audit with Claude Sonnet, AuditRun + DriftMetric persistence - no Atlas equivalent"},
+  "DI-LEO-AI-075": {"decision": "create", "note": "SurfaceFormTask creation across 3 streams with two-reviewer gate - no Atlas equivalent"},
+  "DI-LEO-AI-080": {"decision": "create", "note": "Administrative appointment-header sentence discard before NER - no Atlas equivalent"},
+  "DI-LEO-AI-082": {"decision": "create", "note": "Automated audit-finding remediation script with Claude arbitration - no Atlas equivalent"},
+  "DI-LEO-AI-085": {"decision": "remap", "atlas_dc_id": "DI-6051F076", "note": "No-evidence-of-cancer benign episode closure -> Specialist outcome letter inference for benign closure (closer match)"},
+  "DI-LEO-AI-090": {"decision": "create", "note": "Cancer stage at diagnosis derivation with deterministic priority cascade - no Atlas equivalent"},
+  "DI-LEO-AI-095": {"decision": "create", "note": "Admin-triggered bulk reset-and-reprocess for all org patients with risk controls - no Atlas equivalent"},
+  "DI-LEO-AI-096": {"decision": "create", "note": "Production NER-first extraction route with deterministic pre-filters - no Atlas equivalent"},
+  "DI-LEO-AI-098": {"decision": "create", "note": "Lightweight coding-quality LLM check post-terminology with drop/escalate actions - no Atlas equivalent"},
+  "DI-LEO-AI-099": {"decision": "create", "note": "Mission Control encounter workflow at /care/encounters with hybrid search and relevance floors - no Atlas equivalent"},
+  "DI-LEO-AI-101": {"decision": "create", "note": "Double-negation correction for ConText assertions on negative-PT situation concepts - no Atlas equivalent"},
+  "DI-LEO-AI-120": {"decision": "create", "note": "WCAG 2.1 AA conformance with eslint-plugin-jsx-a11y + axe + AppShell skip-link - no Atlas equivalent"},
+  "DI-LEO-AI-122": {"decision": "create", "note": "/admin/operations PageIntro role-aware first-load explanation - no Atlas equivalent"},
+  "DI-LEO-AI-127": {"decision": "create", "note": "SafetyNetAlert node persistence with HAS_SAFETY_NET_ALERT and FOR_EPISODE edges - no Atlas equivalent"},
+  "DI-LEO-AI-129": {"decision": "create", "note": "Practitioner UI role exposure + role-switch append-only audit - no Atlas equivalent"},
+  "DI-LEO-AI-135": {"decision": "create", "note": "Single Knowledge admin hub IA at /admin/knowledge with curation + clinical-setup tabs - no Atlas equivalent"},
+  "DI-LEO-AI-139": {"decision": "create", "note": "Role-aware AreaIntro IntroCard rollout from centralised AREA_INTRO_COPY map - no Atlas equivalent"},
+  "DI-LEO-AI-142": {"decision": "create", "note": "@leo/design-system shared visual primitives (MetricTile, ProgressStrip, etc.) - no Atlas equivalent"},
+  "DI-LEO-AI-145": {"decision": "create", "note": "Fast-track / 2WW first_seen milestone bucket and IS_PART_OF{milestone_type:first_seen} edge - no Atlas equivalent"},
+  "DI-LEO-AI-147": {"decision": "create", "note": "Knowledge tabs (Context Rules, Surface Forms, Domains, Terminology) rebuild on @leo/design-system chrome - no Atlas equivalent"},
+  "DI-LEO-AI-148": {"decision": "create", "note": "AI Instructions list page rebuild on @leo/design-system chrome primitives - no Atlas equivalent"},
+  "DI-LEO-AI-150": {"decision": "create", "note": "Open-episode rescue from auto-close when cancer diagnosis anchor exists - no Atlas equivalent"},
+  "DI-LEO-AI-154": {"decision": "create", "note": "Reviewer edit of pending AppropriatenessRule logic tree from centred dialog - no Atlas equivalent"}
+}

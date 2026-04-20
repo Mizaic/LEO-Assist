@@ -707,9 +707,31 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     );
     // The dialog is mounted unconditionally so its open state is the
     // single source of truth -- the page never renders two dialogs.
+    // It also receives the rules lookup so patient descriptions show
+    // friendly rule names (e.g. "1.1.5 Offer an urgent chest X-ray
+    // ...") instead of the raw rule_id.
     expect(page).toMatch(
-      /<ReplayResultsDialog\s*\n\s*open=\{replayOpen\}\s*\n\s*onClose=\{\(\) => setReplayOpen\(false\)\}\s*\n\s*report=\{replayReport\}\s*\n\s*patients=\{replayPatients\}\s*\n\s*mode="live"\s*\n\s*\/>/,
+      /<ReplayResultsDialog\s*\n\s*open=\{replayOpen\}\s*\n\s*onClose=\{\(\) => setReplayOpen\(false\)\}\s*\n\s*report=\{replayReport\}\s*\n\s*patients=\{replayPatients\}\s*\n\s*rules=\{rulesLookup\}\s*\n\s*mode="live"\s*\n\s*\/>/,
     );
+  });
+
+  test("TC-034: page lazy-loads the rule lookup so dialog has friendly names", () => {
+    const page = read(
+      "services/ui/src/app/admin/knowledge/test-patients/page.tsx",
+    );
+    // We import listGuidanceRules, store the lookup in state, and
+    // build each entry with display_label as the canonical "name"
+    // -- that's the same string the rule picker shows the user.
+    expect(page).toMatch(/listGuidanceRules,\s*\n/);
+    expect(page).toMatch(/setRulesLookup\(/);
+    expect(page).toMatch(/listGuidanceRules\(\{ limit: 500 \}\)/);
+    expect(page).toMatch(
+      /name:\s*r\.display_label\s*\|\|\s*r\.name\s*\|\|\s*undefined/,
+    );
+    expect(page).toMatch(/recommendation_text:\s*r\.recommendation_text/);
+    // The replay codepath kicks the lookup off in parallel with the
+    // network call so the dialog opens with friendly labels in hand.
+    expect(page).toMatch(/ensureRulesLookup\(\)/);
   });
 
   test("TC-006: legacy /admin/guidance/test-patients folder is removed end-to-end", () => {

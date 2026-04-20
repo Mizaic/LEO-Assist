@@ -8,6 +8,7 @@ are also referenced by the summary endpoint.
 from __future__ import annotations
 
 from libs.neo4j_client.client import PatientGraphClient
+from libs.oncology.cancer_types import normalise_cancer_type
 
 # ---------------------------------------------------------------------------
 # Cypher fragments used by intervals + summary
@@ -131,7 +132,7 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
         "patients": [
             {
                 "episode_id": r["episode_id"],
-                "cancer_type": r.get("cancer_type"),
+                "cancer_type": normalise_cancer_type(r.get("cancer_type")),
                 "pci_days": r.get("pci_days"),
                 "di_days": r.get("di_days"),
             }

@@ -10,8 +10,10 @@ Output: SegmenterResult (see schemas.py).
 from __future__ import annotations
 
 from libs.llm_client.prompt_safety import INJECTION_GUARD
+from libs.oncology.cancer_types import CANONICAL_CANCER_TYPES
 from libs.prompts.episode_engine._shared import (
     BREAST_REFERENCE_CASE,
+    CANCER_TYPE_PICKER,
     RULES_OF_THE_ROAD,
 )
 
@@ -40,6 +42,8 @@ SYSTEM = INJECTION_GUARD + (
     "  - When in doubt, prefer MORE windows over fewer; reconciler will\n"
     "    merge.\n\n"
     + RULES_OF_THE_ROAD
+    + "\n\n"
+    + CANCER_TYPE_PICKER
     + "\n\n"
     + BREAST_REFERENCE_CASE
     + "\n\nRespond by calling the submit_windows tool with the JSON below.\n"
@@ -81,9 +85,15 @@ SCHEMA: dict = {
                     },
                     "suspected_site": {
                         "type": "string",
+                        "enum": list(CANONICAL_CANCER_TYPES),
                         "description": (
-                            "Free-text body site (e.g. 'breast', 'colorectal', "
-                            "'lung', 'unknown')."
+                            "MUST be one of the NCDA cancer types. Use "
+                            "'Unknown Primary' when the site cannot be "
+                            "determined from the encounter text. Use 'No "
+                            "Information' if no clinical evidence at all. "
+                            "Use 'Other' for cancers outside the standard "
+                            "NCDA list (e.g. salivary gland, anal canal "
+                            "without colorectal context)."
                         ),
                     },
                     "window_start": {

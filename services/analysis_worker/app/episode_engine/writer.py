@@ -27,7 +27,9 @@ import json
 import logging
 from datetime import datetime, timezone
 
+from libs.episodes.status import EpisodeStatus
 from libs.neo4j_client.client import PatientGraphClient
+from libs.oncology.cancer_types import normalise_cancer_type
 from services.analysis_worker.app.episode_engine.schemas import (
     Episode,
     Provenance,
@@ -166,14 +168,26 @@ def deterministic_episode_id(
 
 
 def _episode_status(ep: ReconciledEpisode) -> str:
+    """Map a reconciled episode to a canonical EpisodeOfCare.status value.
+
+    Returns one of ``EpisodeStatus.{CLOSED_BENIGN, COMPLETED, REVIEW,
+    ACTIVE}`` (the four engine-output statuses). The ranking is
+    deliberate -- a benign closure beats every other signal because the
+    reconciler has already decided the pathway never developed into
+    cancer; a treatment_completed milestone outranks needs_human_review;
+    review outranks active.
+
+    See ``libs/episodes/status.py`` for the full vocabulary and the
+    consumer-side OPEN/CLOSED groupings the dashboard uses.
+    """
     if ep.episode_type == "benign":
-        return "benign_closed"
+        return EpisodeStatus.CLOSED_BENIGN.value
     types = {m.type for m in ep.milestones}
     if "treatment_completed" in types:
-        return "completed"
+        return EpisodeStatus.COMPLETED.value
     if ep.needs_human_review:
-        return "review"
-    return "active"
+        return EpisodeStatus.REVIEW.value
+    return EpisodeStatus.ACTIVE.value
 
 
 def _condition_type(ep: ReconciledEpisode) -> str:
@@ -287,7 +301,7 @@ def _write_one_episode(
         patient_id=patient_id,
         episode_id=final.episode_id,
         condition_type=_condition_type(ep),
-        suspected_site=ep.suspected_site,
+        suspected_site=normalise_cancer_type(ep.suspected_site),
         episode_type=ep.episode_type,
         window_start=ep.window_start.isoformat(),
         window_end=ep.window_end.isoformat() if ep.window_end else None,

@@ -1,6 +1,6 @@
 """Seed manual gold training records into the Knowledge Graph.
 
-Reads design-controls/training-data/manual-gold-seed-2026-04-17.yaml
+Reads data/training/manual-gold-seed-2026-04-17.yaml
 (or any compatible manifest) and writes one TrainingCandidate +
 GoldLabel pair per record into the Knowledge Graph.
 
@@ -15,11 +15,11 @@ write. Any record with residual PHI aborts the run.
 Usage:
   # Dry-run is the default; nothing is written.
   python scripts/seed_manual_gold_records.py \
-      design-controls/training-data/manual-gold-seed-2026-04-17.yaml
+      data/training/manual-gold-seed-2026-04-17.yaml
 
   # Actually write to the Knowledge Graph.
   python scripts/seed_manual_gold_records.py \
-      design-controls/training-data/manual-gold-seed-2026-04-17.yaml \
+      data/training/manual-gold-seed-2026-04-17.yaml \
       --commit
 
 Exit codes:

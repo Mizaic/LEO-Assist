@@ -50,7 +50,7 @@ from libs.sbar.source_resolver import (  # noqa: E402
 
 
 DEFAULT_FIXTURES_DIR = (
-    _REPO_ROOT / "design-controls" / "training-data" / "sbar-golden-set"
+    _REPO_ROOT / "data" / "training" / "sbar-golden-set"
 )
 DEFAULT_REPORTS_ROOT = _REPO_ROOT / "data" / "sbar-golden-set-reports"
 
@@ -605,7 +605,7 @@ def main(argv: list[str] | None = None) -> int:
         default=str(DEFAULT_FIXTURES_DIR),
         help=(
             "Directory containing fixture-*.yaml "
-            "(default: design-controls/training-data/sbar-golden-set)"
+            "(default: data/training/sbar-golden-set)"
         ),
     )
     parser.add_argument(

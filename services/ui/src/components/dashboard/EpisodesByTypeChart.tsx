@@ -3,6 +3,12 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import { CLOSED_STATUSES } from "@/lib/episodeStatus";
+import {
+  cancerTypeOrderIndex,
+  getCancerTypeLabel,
+  normaliseCancerType,
+} from "@/lib/cancerTypes";
 
 interface DataItem {
   condition_type: string;
@@ -10,29 +16,19 @@ interface DataItem {
   count: number;
 }
 
-// Must match TERMINAL_STATUSES in dashboard/page.tsx exactly
-const TERMINAL = new Set([
-  "closed", "completed", "merged", "excluded",
-  "closed_benign", "closed_related", "closed_phantom",
-  "stale_no_diagnosis", "stale_post_specialist",
-]);
+// Source of truth: libs/episodes/status.py mirrored at lib/episodeStatus.ts.
+const TERMINAL = CLOSED_STATUSES;
 
 // #0D7C6F passes WCAG 3:1 against white and light-grey backgrounds
 const COLOUR_OPEN = "#0D7C6F";
 const COLOUR_CLOSED = "#1E3A8A";
 
-// Well-known long cancer type names get a shorter display label
-const ABBREVIATIONS: Record<string, string> = {
-  "Lower Gastrointestinal": "Lower GI",
-  "Haematology Malignancy": "Haematology",
-  "Haematology Malignancies": "Haematology",
-  "Gynaecological": "Gynaecology",
-};
-
+// All cancer-type values are coerced to the canonical NCDA list, so
+// the chart never renders raw strings like "gastric/oesophageal".
 function formatLabel(raw: string | null): string {
-  if (!raw) return "Unknown";
-  const title = raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-  return ABBREVIATIONS[title] ?? (title.length > 16 ? title.slice(0, 15) + "…" : title);
+  const canonical = normaliseCancerType(raw);
+  const label = getCancerTypeLabel(canonical);
+  return label.length > 16 ? label.slice(0, 15) + "..." : label;
 }
 
 /** Custom XAxis tick rendered at -45° so labels never overlap or overflow. */
@@ -65,7 +61,7 @@ export default function EpisodesByTypeChart({ data }: { data: DataItem[] }) {
 
   const grouped = new Map<string, { condition_type: string; open: number; closed: number; total: number }>();
   for (const row of data) {
-    const key = row.condition_type || "Unknown";
+    const key = normaliseCancerType(row.condition_type);
     const entry = grouped.get(key) ?? { condition_type: key, open: 0, closed: 0, total: 0 };
     if (TERMINAL.has(row.status)) {
       entry.closed += row.count;
@@ -76,7 +72,17 @@ export default function EpisodesByTypeChart({ data }: { data: DataItem[] }) {
     grouped.set(key, entry);
   }
 
-  const sorted = Array.from(grouped.values()).sort((a, b) => b.total - a.total);
+  // Order bars by the canonical NCDA display order so the chart axis
+  // matches the data-entry form clinicians see (Bladder, Brain, Breast,
+  // ...). Empty buckets are dropped before sorting so the chart stays
+  // dense.
+  const sorted = Array.from(grouped.values())
+    .filter((d) => d.total > 0)
+    .sort(
+      (a, b) =>
+        cancerTypeOrderIndex(a.condition_type) -
+        cancerTypeOrderIndex(b.condition_type),
+    );
   const MAX_BARS = 15;
   const hidden = sorted.slice(MAX_BARS);
   const chartData = sorted

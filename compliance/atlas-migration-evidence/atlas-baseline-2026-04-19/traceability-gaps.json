@@ -1,0 +1,28 @@
+{
+  "snapshot_at": "2026-04-19",
+  "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
+  "release_id": null,
+  "orphan_design_outputs": [],
+  "orphan_design_inputs": [
+    {
+      "id": "17aa6900-7ae0-4b80-b5bc-e159462b4c08",
+      "dcId": "17aa6900-7ae0-4b80-b5bc-e159462b4c08",
+      "title": "Consensus arbitrator third-verdict warning for anomaly detection"
+    },
+    {
+      "id": "7736f734-2076-4d75-b12b-3c47b45af18f",
+      "dcId": "7736f734-2076-4d75-b12b-3c47b45af18f",
+      "title": "Care Overview PageIntro and accessible summary card typography"
+    },
+    {
+      "id": "ec96f102-27f4-4691-bec9-7f358817363f",
+      "dcId": "ec96f102-27f4-4691-bec9-7f358817363f",
+      "title": "Lab-value guard prevents diagnostic inference from observable measurements"
+    },
+    {
+      "id": "f93acedb-3eb5-4555-b951-c201326e889e",
+      "dcId": "f93acedb-3eb5-4555-b951-c201326e889e",
+      "title": "Avoidable delay assessment with cause classification and impact calculation"
+    }
+  ]
+}

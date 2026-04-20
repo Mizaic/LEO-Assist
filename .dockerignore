@@ -33,7 +33,7 @@ ENV
 # Repo areas not copied into service images
 tests/
 e2e/
-design-controls/
+compliance/
 infra/
 # Heavy one-off investigations (~242MB). Keep scripts/*.py for images that COPY scripts/ (fhir-api).
 scripts/investigations/

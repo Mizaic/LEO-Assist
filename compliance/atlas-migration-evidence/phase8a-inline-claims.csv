@@ -1,0 +1,14 @@
+service,path,loc,local_id,artefact_type,atlas_id,atlas_title,match_type,similarity
+libs/auth,libs/auth/role_state.py,126,DI-LEO-AI-129,DI,DI-9205CF41,Structured approval capture with immutable audit and deploy interlock,created-in-atlas,0.200
+libs/auth,libs/auth/role_state.py,126,R-LEO-AI-089,?,,,,
+libs/cypher,libs/cypher/role_queries.py,68,DI-LEO-AI-129,DI,DI-9205CF41,Structured approval capture with immutable audit and deploy interlock,created-in-atlas,0.200
+libs/ner,libs/ner/lab_triple_recovery.py,465,DI-LEO-AI-156,?,,,,
+libs/training,libs/training/lab_span_detector.py,506,DI-LEO-AI-054,DI,DI-54D00E21,Audit agent resource bounds: configurable iteration limit and token/cost budget enforcement,exact,0.622
+services/analysis_worker,services/analysis_worker/app/episode_engine/agents/audit_guards.py,105,DI-LEO-AI-524,?,,,,
+services/analysis_worker,services/analysis_worker/app/episode_engine/agents/audit_guards.py,105,R-LEO-AI-512,?,,,,
+services/ods_sync,services/ods_sync/app/circuit_breaker.py,63,R-LEO-AI-038,?,,,,
+services/ods_sync,services/ods_sync/app/sync_service.py,375,R-LEO-AI-038,?,,,,
+services/ods_sync,services/ods_sync/app/sync_service.py,375,R-LEO-AI-039,?,,,,
+services/ods_sync,services/ods_sync/app/sync_service.py,375,R-LEO-AI-040,?,,,,
+services/ods_sync,services/ods_sync/app/sync_service.py,375,R-LEO-AI-045,?,,,,
+services/ods_sync,services/ods_sync/app/sync_service.py,375,VT-LEO-AI-048,VT,VT-5F133F1C,,created-in-atlas,0.000

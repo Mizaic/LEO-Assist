@@ -16,13 +16,20 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { getStatusLabel } from "@/lib/pathwayLabels";
 import type { MissionEpisode } from "@/lib/missionControlApi";
 import { patchEpisodeReview, patchEpisodeStatus } from "@/lib/missionControlApi";
+import {
+  STATUS_COMPLETED,
+  STATUS_CLOSED_BENIGN,
+  STATUS_STALE_NO_DIAGNOSIS,
+  STATUS_STALE_POST_SPECIALIST,
+  STATUS_IN_PROGRESS,
+} from "@/lib/episodeStatus";
 
 const OVERRIDEABLE_STATUSES = [
-  "completed",
-  "closed_benign",
-  "stale_no_diagnosis",
-  "stale_post_specialist",
-  "in_progress",
+  STATUS_COMPLETED,
+  STATUS_CLOSED_BENIGN,
+  STATUS_STALE_NO_DIAGNOSIS,
+  STATUS_STALE_POST_SPECIALIST,
+  STATUS_IN_PROGRESS,
 ];
 
 interface Props {

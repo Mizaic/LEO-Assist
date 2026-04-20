@@ -121,23 +121,23 @@ describe("VT-123-TC-002 PageIntro copy passes Flesch-Kincaid grade <=9", () => {
 });
 
 describe("VT-123-TC-003 Summary StatCard labels are sentence case", () => {
-  it("exports the four sentence-case labels", () => {
+  it("exports the four MECE lifecycle labels (DI-105A4EC7)", () => {
     expect(CARE_OVERVIEW_SUMMARY_LABELS).toEqual({
-      referrals: "Cancer referrals",
-      active: "Active cases",
-      confirmed: "Confirmed cancers",
-      alerts: "Safety alerts",
+      active: "Active",
+      inReview: "In Review",
+      cancerExcluded: "Cancer Excluded",
+      confirmedCancer: "Confirmed Cancer",
     });
   });
 
   it("renders labels without shouty uppercase tracking", async () => {
     renderDashboard();
     await waitFor(() => {
-      expect(screen.getByText("Cancer referrals")).toBeInTheDocument();
+      expect(screen.getByText("Active")).toBeInTheDocument();
     });
-    expect(screen.getByText("Active cases")).toBeInTheDocument();
-    expect(screen.getByText("Confirmed cancers")).toBeInTheDocument();
-    expect(screen.getByText("Safety alerts")).toBeInTheDocument();
+    expect(screen.getByText("In Review")).toBeInTheDocument();
+    expect(screen.getByText("Cancer Excluded")).toBeInTheDocument();
+    expect(screen.getByText("Confirmed Cancer")).toBeInTheDocument();
   });
 
   it("page source does not apply textTransform: 'uppercase' to the StatCard label", () => {

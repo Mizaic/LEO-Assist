@@ -32,6 +32,11 @@ from libs.audit.security_log import (
     emit_logout,
     emit_token_rejected,
 )
+from libs.auth.entra_group_sync import (
+    GroupSyncResult,
+    read_current_role_names,
+    resolve_and_sync_entra_groups,
+)
 from libs.auth.practitioner_org_context import fetch_practitioner_org_context
 from libs.auth.density_state import (
     DensityNotAllowedError,
@@ -402,21 +407,56 @@ def callback(
                 status_code=302,
             )
 
+    normalised_email = email.lower().strip()
+
+    # DI-D9D4BA02: resolve LEO roles from the Entra `groups` claim and
+    # synchronise the practitioner's [:HAS_ROLE] edges. Falls through to
+    # existing edges when the claim is missing or in overage; never calls
+    # Microsoft Graph (DI-3610585D).
+    sync_result: GroupSyncResult
+    try:
+        sync_result = resolve_and_sync_entra_groups(
+            email=normalised_email,
+            id_claims=id_claims,
+            ip=client_ip,
+        )
+    except Exception as exc:
+        logger.warning(
+            "entra_group_sync.failed email=%s err=%s -- falling through to existing roles",
+            normalised_email,
+            exc,
+        )
+        sync_result = GroupSyncResult.empty_fallthrough()
+
+    if sync_result.fallthrough:
+        try:
+            resolved_roles = read_current_role_names(normalised_email)
+        except Exception as exc:
+            logger.warning(
+                "entra_group_sync.read_fallback_failed email=%s err=%s",
+                normalised_email,
+                exc,
+            )
+            resolved_roles = []
+    else:
+        resolved_roles = sync_result.role_names
+
     session_id = create_session_id()
     save_session(
         session_id,
         {
             "access_token": access_token,
-            "email": email.lower().strip(),
+            "email": normalised_email,
             "name": name or email,
             "is_platform_admin": is_admin,
             "organizations": organizations,
             "idle_timeout_minutes": idle_mins,
+            "roles": resolved_roles,
         },
         ttl_seconds=session_ttl_secs,
     )
     emit_login_success(
-        email=email.lower().strip(),
+        email=normalised_email,
         ip=client_ip,
         session_id_prefix=session_id,
     )
@@ -465,6 +505,7 @@ def _unauth_session_payload() -> dict:
         "organizations": [],
         "selected_role": None,
         "allowed_roles": [],
+        "entra_roles": [],
         "density_preference": None,
     }
 
@@ -493,6 +534,7 @@ def get_session(request: Request):
         "idleTimeoutMinutes": data.get("idle_timeout_minutes", 30),
         "selected_role": role_state.selected_role if role_state else None,
         "allowed_roles": list(role_state.allowed_roles) if role_state else [],
+        "entra_roles": list(data.get("roles") or []),
         "density_preference": density_pref,
     }
 

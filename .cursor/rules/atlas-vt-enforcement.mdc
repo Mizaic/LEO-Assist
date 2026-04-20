@@ -1,0 +1,324 @@
+---
+description: Enforce the full Atlas-side artefact lifecycle (UN, DI, DO, Risk, VT, VAL) for every Class B/C code change; block on missing or unverified artefacts.
+alwaysApply: true
+---
+
+# Atlas Design Controls -- Artefact Enforcement
+
+Every Class B or Class C code change must be fully traceable in the
+Atlas MCP server through the artefact chain:
+
+```
+UN (user need) -> DI (requirement) -> DO (implementation spec)
+                                  -> Risk (if safety-relevant)
+                                  -> VT (verification)
+                                  -> VAL (if Class C or clinical outcome)
+```
+
+All steps below are **blocking** -- do not write code until the gap
+is resolved. Every step uses the Atlas MCP server
+`user-atlas-design-controls`. Never write YAML files. See
+`atlas-design-controls-first.mdc`.
+
+Product ID: `PROD-LEO-CORE-AI-20260415-6AE8A23B`.
+
+---
+
+## Workflow before writing any code
+
+### Step 0 -- Classify the change (proportionality gate)
+
+| Class       | Description                                      | Examples                                                  | Obligations                                              |
+|-------------|--------------------------------------------------|-----------------------------------------------------------|----------------------------------------------------------|
+| Cosmetic    | No logic, no safety impact                       | CSS tweaks, copy changes, variable renames                | Look up nearest DI in Atlas to confirm no overlap; no new artefacts |
+| Class A     | Non-safety-critical (IEC 62304 Class A)          | Internal tooling, dev-only utilities, test helpers        | Look up DIs and risks in Atlas; create only if a genuinely new capability |
+| Class B     | Safety-relevant (IEC 62304 Class B)              | Any clinical pipeline, API route, UI feature for clinical staff | **Full Atlas chain required**: UN, DI, DO, Risk, VT |
+| Class C     | Life-critical / irreversible harm                | Autonomous coding, safety gates, model thresholds         | **Full chain + VAL** required; escalate before proceeding |
+
+If unsure, treat as Class B.
+
+### Step 1 -- Find or create the User Need
+
+```
+search_design_controls(query="<feature in plain English>", dc_type="user_need")
+```
+
+- If a relevant UN exists -> note its dcId (e.g. `UN-A2F0AE7F`) and
+  proceed.
+- If none exists -> **stop** and call:
+
+```
+create_user_need(
+  product_id="PROD-LEO-CORE-AI-20260415-6AE8A23B",
+  title="<short title>",
+  description="As a <stakeholder>, I need ...",
+  rationale="<why this need exists>",
+  stakeholder_types=["Clinician" | "Quality Engineer" | "Developer"
+                     | "IT Admin" | "Quality Manager" | "External Auditor"
+                     | "Knowledge Base Author"],
+  acceptance_criteria=["<plain-English criterion>", ...],
+  priority="MUST" | "SHOULD" | "COULD" | "WONT",
+  safety_class="A" | "B" | "C",
+)
+```
+
+Stakeholder enum values are strict; ask for help if your stakeholder
+does not fit.
+
+### Step 2 -- Find or create the Design Input
+
+```
+search_design_controls(query="<implementation surface>", dc_type="design_input")
+```
+
+If none exists for the functionality:
+
+```
+create_design_input(
+  product_id=...,
+  title="<short title>",
+  description="The platform SHALL ... <SHALL statement>",
+  rationale="<why>",
+  input_type="functional" | "safety" | "performance" | "interface" | "usability",
+  acceptance_criteria=["<measurable criterion>", ...],
+  safety_class="A" | "B" | "C",
+  verification_method="test",
+)
+```
+
+Then link to the parent UN:
+
+```
+link_design_controls(
+  source_ids=["UN-XXXXXXXX"],
+  target_ids=["DI-YYYYYYYY"],
+  relationship="HAS_DESIGN_INPUT",
+)
+```
+
+### Step 3 -- Find or create the Design Output
+
+```
+get_design_control(dc_type="design_input", dc_id="DI-YYYYYYYY")
+# inspect the linked nodes; confirm a DO with IMPLEMENTS exists
+```
+
+If none exists:
+
+```
+create_design_output(
+  product_id=...,
+  title="<short title> (implementation)",
+  description="<what this module does, key files, key functions>",
+  acceptance_criteria=["<measurable criterion>", ...],
+  output_type="software" | "documentation" | "test" | "configuration",
+  source_reference="path/to/file1.py; path/to/file2.ts",
+  software_item="<short logical name>",
+  safety_class="A" | "B" | "C",
+)
+link_design_controls(
+  source_ids=["DO-ZZZZZZZZ"],
+  target_ids=["DI-YYYYYYYY"],
+  relationship="IMPLEMENTS",
+)
+```
+
+### Step 4 -- Identify or create a Risk (if safety-relevant)
+
+If the change introduces or modifies a safety-relevant behaviour:
+
+```
+search_design_controls(query="<hazard description>", dc_type="risk")
+```
+
+If no covering risk exists:
+
+```
+create_risk(
+  product_id=...,
+  title="<one-sentence>",
+  hazard_description="<what could go wrong>",
+  hazardous_situation="<sequence of events from hazard to harm>",
+  harm_description="<what harm to patient / user / org>",
+  harm_severity="negligible" | "minor" | "serious" | "critical" | "catastrophic",
+  hazard_category="clinical_safety" | "data_protection" | "usability"
+                  | "security_breach" | "availability" | "data_integrity"
+                  | "software_defect" | "misuse" | "performance_degradation"
+                  | "integration_failure" | "infrastructure_failure" | "use_error",
+  initial_severity=1..5, initial_probability=1..5, initial_detectability=1..5,
+  initial_risk_score=<S*P*D>,
+  mitigation_plan_description="<what the controls do, with implemented_by/verified_by>",
+  mitigation_control_type="design_feature" | "protective_measure"
+                           | "procedural_control" | "information_for_safety",
+  mitigation_effectiveness="effective" | "partially_effective" | "pending",
+  monitoring_plan="<how this risk is monitored post-deployment>",
+  monitoring_metrics=["<metric>", ...],
+  review_frequency="Quarterly" | "Per release" | "Annually",
+  residual_severity=1..5, residual_probability=1..5, residual_detectability=1..5,
+  residual_risk_score=<S*P*D>,
+  residual_acceptability="acceptable" | "conditionally_acceptable" | "unacceptable",
+  residual_justification="<why the residual is acceptable>",
+  identified_by="<source>", identified_date="YYYY-MM-DD",
+  status="Identified" | "Analyzed" | "Control Implemented"
+         | "Residual Accepted" | "Closed" | "Inactive" | "Obsolete",
+  safety_class="A" | "B" | "C",
+)
+link_design_controls(
+  source_ids=["DI-YYYYYYYY"],
+  target_ids=["R-WWWWWWWW"],
+  relationship="MITIGATES",
+)
+```
+
+If an existing risk's mitigation is affected -> use `update_risk` to
+refresh `mitigation_plan_description`, `residual_*`, `monitoring`,
+and (if needed) `mitigation_effectiveness`.
+
+DIs with `safety_class` B or C MUST have at least one MITIGATES
+relationship from a DI to a Risk. Class A DIs may have none.
+
+### Step 5 -- Find or create the Verification Test
+
+```
+get_design_control(dc_type="design_input", dc_id="DI-YYYYYYYY")
+# confirm a VT with VERIFIES exists
+```
+
+If none exists:
+
+```
+create_verification_test(
+  product_id=...,
+  title="<short title> -- acceptance verification",
+  description="<what is verified and why it matters>",
+  test_type="unit" | "integration" | "system" | "inspection",
+  verification_method="test" | "inspection" | "analysis" | "demonstration",
+  acceptance_criteria=["<measurable>", ...],   # 1-for-1 with the DI's ACs
+  protocol_steps=[
+    "Step 1: ...",
+    "Step 2: ...",
+    "Capture pass/fail evidence and record via record_verification_run.",
+  ],
+  safety_class="A" | "B" | "C",
+)
+link_design_controls(
+  source_ids=["VT-VVVVVVVV"], target_ids=["DI-YYYYYYYY"],
+  relationship="VERIFIES",
+)
+link_design_controls(
+  source_ids=["VT-VVVVVVVV"], target_ids=["DO-ZZZZZZZZ"],
+  relationship="TESTS",
+)
+```
+
+### Step 6 -- Run the test and record the run
+
+After implementing or modifying tests:
+
+```bash
+pytest <test_file_path> -v
+# or
+cd services/ui && npx jest --testPathPatterns "<pattern>" --no-coverage
+```
+
+Record the run in Atlas (this is what makes a VT "passed"):
+
+```
+record_verification_run(
+  vt_id="<VT UUID>",          # from get_design_control(...).id
+  result="pass" | "fail",
+  executed_by="<who or ci>",
+  notes="<pass count, fail count, any context>",
+  environment="ci" | "local" | "staging",
+)
+```
+
+Use the **VT UUID** from `get_design_control(...).id`, NOT the
+`dcId`. Several Atlas tools require the UUID, not the dcId.
+
+### Step 7 -- Create the Validation Test (Class C and clinical-outcome features)
+
+For features that are Class C, or that change a clinical outcome
+visible to users (coding decisions, safety thresholds, tier
+classifications):
+
+```
+search_design_controls(query="<clinical outcome>", dc_type="validation_test")
+```
+
+If none covers it:
+
+```
+create_validation_test(...)
+link_design_controls(
+  source_ids=["VAL-UUUUUUUU"], target_ids=["DI-YYYYYYYY"],
+  relationship="VALIDATES",
+)
+record_validation_run(...)
+```
+
+---
+
+## Audit sweep -- scoped to the current change only
+
+Run this against the files and feature area changed in this session
+(not the whole tree -- a full-tree audit is a scheduled QA activity):
+
+1. **DIs without DOs**: call `get_traceability_gaps(product_id=...)`
+   and see whether any of the changed DIs appear in
+   `orphan_design_inputs`. If yes -> create the DO via Step 3.
+2. **DIs without VTs**: same call; check
+   `orphan_design_outputs` (Atlas reports DOs without VTs).
+   If yes -> create the VT via Step 5.
+3. **VTs without runs**: call `get_design_control(dc_type=
+   "verification_test", dc_id=...)` and inspect the latest run via
+   `get_automated_test_results`. If empty or last result was
+   `fail` -> implement / re-run the test and call
+   `record_verification_run`.
+4. **Risks with `pending` mitigation effectiveness**: flag in the PR
+   description; do not block the change but capture the follow-up
+   on `compliance/coverage-waivers.md`.
+
+Resolve gaps 1-3 **before** proceeding with the requested change.
+
+---
+
+## Local checks you still owe before calling a tool
+
+Atlas validates schema, enums, and required fields server-side, but
+these checks save round-trips:
+
+- Severity vocabulary: `negligible`, `minor`, `serious`, `critical`,
+  `catastrophic`. Numeric mapping: 1, 2, 3, 4, 5. The text severity
+  on `harm_severity` and the numeric `initial_severity` /
+  `residual_severity` MUST agree.
+- `initial_risk_score` SHOULD equal `initial_severity *
+  initial_probability * initial_detectability`. Same for residual.
+- `residual_risk_score` SHOULD be `<= initial_risk_score`.
+- `acceptance_criteria` and `protocol_steps` are arrays of strings.
+  Do NOT pass dicts.
+- Risk `status` enum: `Identified`, `Analyzed`,
+  `Control Implemented`, `Residual Accepted`, `Closed`, `Inactive`,
+  `Obsolete`. Legacy `Mitigated` is **not** valid -- map to
+  `Control Implemented`.
+- Stakeholder enum (UN): `Clinician`, `Quality Engineer`,
+  `Developer`, `IT Admin`, `Quality Manager`, `External Auditor`,
+  `Knowledge Base Author`. Map free-text to the closest match
+  ("Operations" -> `IT Admin`, "Analyst" -> `Quality Engineer`).
+- For `record_verification_run`, the `vt_id` argument is the VT
+  **UUID** (`get_design_control(...).id`), not the dcId.
+- For `update_design_input` and `update_risk`, the first argument is
+  the **UUID**, not the dcId.
+
+## Hard rules
+
+- Never mark a VT "passed" without calling `record_verification_run`
+  with `result="pass"`.
+- Never leave a DI without an `IMPLEMENTS` link to at least one DO.
+- Never create a DI without also creating or linking the parent UN
+  (`HAS_DESIGN_INPUT`).
+- Never create a Class B or Class C DI without a `MITIGATES` link
+  from at least one Risk.
+- Never use legacy `*-LEO-AI-NNN` IDs for new artefacts.
+- Never store design controls in YAML files. The Atlas server is
+  the only authoritative store.

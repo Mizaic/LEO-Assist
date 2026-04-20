@@ -96,6 +96,39 @@ Rules of the road -- learnt from real GP records:
 """
 
 
+CANCER_TYPE_PICKER = """\
+Choosing suspected_site -- the canonical NCDA tumour categories:
+
+The suspected_site field MUST be one of the canonical NCDA cancer
+types. The schema enforces this with an enum, but be deliberate about
+the choice:
+
+- Pick the SPECIFIC body site whenever the encounter text supports it
+  (e.g. 'Breast', 'Colorectal', 'Prostate', 'Lung', 'Melanoma',
+  'Lymphoma'). Always prefer the most specific site over a pathway
+  name (e.g. emit 'Oesophageal' rather than relying on 'Other' for
+  upper-GI cases when the oesophagus is named).
+
+- Use 'Unknown Primary' when the timeline genuinely contains a
+  metastatic / cancer-of-unknown-primary referral and no primary site
+  is named.
+
+- Use 'Other' for cancers that exist outside the standard NCDA list
+  (e.g. salivary gland, anal canal where the lower-GI / colorectal
+  pathway label is wrong, cardiac tumours).
+
+- Use 'No Information' only when the timeline contains no clinical
+  evidence of any cancer site for this window (admin echoes only).
+
+- For dermatology / suspected skin cancers without a specific tumour
+  type, prefer 'Melanoma' (the dominant NCDA skin entry); only fall
+  back to 'Other' for explicit non-melanoma skin cancers.
+
+- For ambiguous head-and-neck referrals, prefer 'Oropharyngeal'
+  unless 'Thyroid' or 'Laryngeal' is named explicitly.
+"""
+
+
 BREAST_REFERENCE_CASE = """\
 Reference case (synthetic patient SYN-EE-001, breast cancer):
 

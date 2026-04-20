@@ -11,6 +11,14 @@ import ReviewActionsPanel from "./ReviewActionsPanel";
 import StatusBadge from "./StatusBadge";
 import { getStatusLabel, getCancerTypeLabel, getDiagnosticIntervalColour } from "@/lib/pathwayLabels";
 import type { MissionEpisode, MissionPatient } from "@/lib/missionControlApi";
+import {
+  STATUS_COMPLETED,
+  STATUS_CLOSED_BENIGN,
+  STATUS_STALE_NO_DIAGNOSIS,
+  STATUS_STALE_POST_SPECIALIST,
+  STATUS_CLOSED_RELATED,
+  STATUS_IN_PROGRESS,
+} from "@/lib/episodeStatus";
 
 interface Props {
   patient: MissionPatient;
@@ -55,22 +63,22 @@ function referredForText(episode: MissionEpisode): string {
 
 function outcomeText(episode: MissionEpisode): string {
   switch (episode.status) {
-    case "completed": {
+    case STATUS_COMPLETED: {
       const type = episode.cancer_type
         ? ` in ${getCancerTypeLabel(episode.cancer_type).toLowerCase()}`
         : "";
       const stage = episode.cancer_stage ? ` (stage ${episode.cancer_stage})` : "";
       return `Cancer confirmed${type}${stage}.`;
     }
-    case "closed_benign":
+    case STATUS_CLOSED_BENIGN:
       return "No cancer found.";
-    case "stale_no_diagnosis":
+    case STATUS_STALE_NO_DIAGNOSIS:
       return "No diagnosis recorded yet.";
-    case "stale_post_specialist":
+    case STATUS_STALE_POST_SPECIALIST:
       return "Specialist seen, but no diagnosis recorded.";
-    case "closed_related":
+    case STATUS_CLOSED_RELATED:
       return "This was closed as a duplicate pathway.";
-    case "in_progress":
+    case STATUS_IN_PROGRESS:
       return "Still being investigated.";
     default:
       return `${getStatusLabel(episode.status)}.`;

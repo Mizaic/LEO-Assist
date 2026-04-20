@@ -1,0 +1,209 @@
+{
+  "persona": "Dedup Auditor",
+  "workshop_date": "2026-04-16",
+  "consolidation_reviews": [
+    {
+      "fmea_id": "FMEA-008",
+      "proposed_target": "R-LEO-AI-065",
+      "decision": "split_out",
+      "alternative_target": null,
+      "rationale": "R-065 hazard is human auditor approving incorrect AI-extracted episode data in Mission Control (human-factors/attention layer). FMEA-008 hazard is the automated episode quality-check RULE failing to catch incorrect coding (software-logic layer). Different failure modes, different mitigations (evidence tabs and confidence scoring vs rule-set completeness). Create a new R-LEO-AI-* covering 'automated episode quality-check rule coverage gap'.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-016",
+      "proposed_target": "R-LEO-AI-048",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "Identical hazard pattern: repeated false-positive alerts cause reviewers/operators to dismiss reflexively, letting a genuine alert pass. R-048's mitigations (dedup guard, time-based auto-escalation, auditor precision gate) also apply to SafetyNetAlert flood. Workshop note: FMEA-016 carries S=4 (delayed cancer/safeguarding action) versus R-048 S=3 - uplift R-048 initial severity to 4 on merge or document why safety-net domain stays at 3.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-036",
+      "proposed_target": "R-LEO-AI-037",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "FMEA-036 (auto-fix applies wrong SNOMED correction) is exactly the failure pathway R-037 addresses: READONLY_FIELDS blocks SNOMED auto-fix regardless of agent verdict, and pass-2 tool-informed proposals are always needs_review. R-037 mitigations structurally prevent FMEA-036's failure mode.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-046",
+      "proposed_target": "R-LEO-AI-050",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "Both concern an incorrect reusable SurfaceForm/MAPS_TO being activated without adequate review, leading to systematic miscoding of future encounters. R-050's two-reviewer gate covers single-reviewer approval; workshop must extend the same gate (or an equivalent admin approval step) to the bulk-import path called out by FMEA-046 so the merge is complete.",
+      "confidence": "medium"
+    },
+    {
+      "fmea_id": "FMEA-050",
+      "proposed_target": "R-LEO-AI-056",
+      "decision": "split_out",
+      "alternative_target": "R-LEO-AI-050",
+      "rationale": "R-056 hazard is an AUTOMATED dual-LLM remediation applying a wrong SNOMED change; mitigations are dual-LLM agreement, re-audit, dispute log. FMEA-050 is a HUMAN reviewer approving a wrong replacement code because of terminology-expertise gaps. Different actor and different control (reviewer competency/tool-validation). Better aligned with R-050 (single-reviewer systematic miscoding) or create a new risk on 'coding-correction reviewer expertise gap'.",
+      "confidence": "medium"
+    },
+    {
+      "fmea_id": "FMEA-061",
+      "proposed_target": "R-LEO-AI-046",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "Same hazard family: NICE update/ingest signal fails silently, knowledge base goes stale with no operator alert. R-046 mitigations (WARNING logs at every parse failure, integration test suite, diagnostic probe) can be extended to cover update-notification registry. Add a 'NICE update alert monitoring' control to R-046 rather than creating a separate risk.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-064",
+      "proposed_target": "R-LEO-AI-046",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "Direct overlap - 'NICE API ingest fails silently' is exactly R-046's hazard framing. The exception-not-propagated cause is covered by R-046's existing WARNING-logging mitigation and the test-suite early-detection control. No new risk needed.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-065",
+      "proposed_target": "R-LEO-AI-042",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "Both cover LLM generating incorrect/incomplete AppropriatenessRule criteria from guideline text. R-042's controls (pending_review status, HITL plain-English UI, live SNOMED candidate lookup, additive bitmap) directly mitigate FMEA-065's LLM-misinterpretation cause. Workshop note: FMEA-065 S=4 vs R-042 S=3 - align on S=4 given 2WW cancer pathway context.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-068",
+      "proposed_target": "R-LEO-AI-025",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "R-025 hazard 'incorrect pipeline or programme configuration causes erroneous processing' is a superset of FMEA-068 (config activates without test-mode validation). R-025 mitigations already include config validation, dry-run testing, QA approval and audit trail - exactly what FMEA-068 requires.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-073",
+      "proposed_target": "R-LEO-AI-021",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "Same causal chain: date attribution error in episode build -> wrong milestone date -> wrong pathway interval. R-021 mitigations (human review of milestones, gold-standard validation >=0.90, temporal anomaly detection) cover FMEA-073. Workshop note: FMEA-073 S=4 (patient-level delayed follow-up) vs R-021 S=3 (population-level metric misdirection) - uplift initial severity or frame residual harm at both levels.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-075",
+      "proposed_target": "R-LEO-AI-025",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "New-programme misconfiguration is a direct subset of R-025 (incorrect programme configuration). Cause (config not validated against test encounters) and mitigation (dry-run + QA approval) overlap completely.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-079",
+      "proposed_target": "R-LEO-AI-047",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "R-047 hazard description explicitly covers 'systematic drop in NER coding accuracy goes undetected for multiple weeks' and includes drift-detection and DriftMetric comparison as mitigations. FMEA-079 is the same failure mode. Workshop note: FMEA-079 D=4 (drift job not scheduled) vs R-047 D=3 - consider uplifting R-047 detectability to 4 until the scheduling guarantee is verified, or add a 'drift job scheduled-run monitor' control.",
+      "confidence": "high"
+    },
+    {
+      "fmea_id": "FMEA-093",
+      "proposed_target": "R-LEO-AI-016",
+      "decision": "confirm_merge",
+      "alternative_target": null,
+      "rationale": "Both are financial/cost-calculation defects with no clinical safety impact. R-016 currently scoped to LLM token pricing; broaden hazard description to 'LLM token usage, pricing, or downstream tenant billing miscalculated' and add a tenant-discount unit-test control. No patient-safety implication means merging is preferable to creating a separate low-severity risk.",
+      "confidence": "medium"
+    }
+  ],
+  "missed_duplicates": [
+    {
+      "pair": ["MR-069", "MR-071"],
+      "atlas_r_ids": ["R-LEO-AI-069", "R-LEO-AI-071"],
+      "rationale": "Both risks describe ConText double-negation inverting assertion on SNOMED concepts whose preferred term already encodes polarity. R-069 is the 'No-prefix situation' variant (e.g. 'No suicidal thoughts' 134420004); R-071 is the 'absent/not-detected suffix finding' variant (e.g. 'Perineural invasion absent' 370051000). Identical hazard class, identical harm (inverted clinical meaning), identical mitigation pattern (deterministic regex guard + HITL). Two DIs (DI-101 prefix, DI-104 suffix) are two branches of the same control.",
+      "recommended_action": "merge_yyy_into_xxx",
+      "confidence": "high"
+    },
+    {
+      "pair": ["MR-059", "MR-061"],
+      "atlas_r_ids": ["R-LEO-AI-059", "R-LEO-AI-061"],
+      "rationale": "R-059 is 'spurious benign closure of active cancer episode due to unrelated 395100000 coding'; R-061 is 'cancer pathway incorrectly closed as completed after specialist letter when treatment is uncoded'. Both are the same hazard - active cancer episode wrongly set to completed/benign, causing loss of pathway tracking and delayed follow-up. Different trigger codes but identical failure mode and harm.",
+      "recommended_action": "merge_yyy_into_xxx",
+      "confidence": "high"
+    },
+    {
+      "pair": ["MR-085", "MR-092"],
+      "atlas_r_ids": ["R-LEO-AI-085", "R-LEO-AI-092"],
+      "rationale": "R-085 'different LEO dashboards report different NCDA interval KPIs' and R-092 'different analytics endpoints using different confirmed-cancer filters give contradictory figures' are the same hazard: inconsistent metric/filter definitions across endpoints producing contradictory clinical analytics. Single root cause (definition drift across endpoints).",
+      "recommended_action": "merge_yyy_into_xxx",
+      "confidence": "high"
+    },
+    {
+      "pair": ["MR-082", "MR-088"],
+      "atlas_r_ids": ["R-LEO-AI-082", "R-LEO-AI-088"],
+      "rationale": "R-082 'junior/older clinician misreads Operations workspace' and R-088 'junior staff or older clinician misreads Care Overview page' are the same hazard pattern (low-contrast summary cards, small uppercase badges) applied to two different screens. Single underlying design issue - WCAG contrast and badge sizing on summary dashboards.",
+      "recommended_action": "merge_yyy_into_xxx",
+      "confidence": "high"
+    },
+    {
+      "pair": ["MR-068", "MR-067"],
+      "atlas_r_ids": ["R-LEO-AI-068", "R-LEO-AI-067"],
+      "rationale": "R-067 covers extraction_check dropping/adding entities; R-068 covers coding_check removing valid entities or escalating excessively. Same hazard pattern (quality-check layer makes the wrong keep/drop decision), differing only in pipeline stage. Could be merged into one 'pipeline quality-check incorrect keep/drop decisions' risk with two sub-controls.",
+      "recommended_action": "merge_yyy_into_xxx",
+      "confidence": "medium"
+    },
+    {
+      "pair": ["MR-033", "MR-054"],
+      "atlas_r_ids": ["R-LEO-AI-033", "R-LEO-AI-054"],
+      "rationale": "R-033 'pipeline codes treatment recommendations or safety-netting advice as present clinical findings' and R-054 'administrative appointment header lines coded as clinical SNOMED findings' are the same hazard: non-clinical-finding text miscoded as active clinical finding. Both resolved by the scope_guard/lab_value_guard/disorder_gate stack. Two instances of the same pattern.",
+      "recommended_action": "merge_yyy_into_xxx",
+      "confidence": "medium"
+    },
+    {
+      "pair": ["MR-017", "MR-047"],
+      "atlas_r_ids": ["R-LEO-AI-017", "R-LEO-AI-047"],
+      "rationale": "R-017 'SOUP update introduces NER regression' and R-047 'systematic drop in NER coding accuracy undetected for weeks' describe the same failure class viewed from two angles (cause vs detection). R-047's hazard text already explicitly names 'after a model update' as a trigger. Keeping both risks double-counts the regression hazard. Merge, with R-017's SOUP-specific controls (version pinning, pre-release gold-standard test) added to R-047 as pre-deployment mitigations.",
+      "recommended_action": "workshop_decision",
+      "confidence": "medium"
+    },
+    {
+      "pair": ["MR-080", "MR-090"],
+      "atlas_r_ids": ["R-LEO-AI-080", "R-LEO-AI-090"],
+      "rationale": "R-080 (screen reader / keyboard-only / colour-blind users cannot track state) and R-090 (animated transitions cause dizziness for vestibular users) are both WCAG accessibility-barrier risks. Part of the broader accessibility cluster with R-078 and R-079. Consider consolidating the visual/keyboard/motion accessibility risks under a single 'accessibility barriers prevent safe use' risk, with per-WCAG-SC mitigations listed as sub-controls.",
+      "recommended_action": "workshop_decision",
+      "confidence": "medium"
+    },
+    {
+      "pair": ["MR-081", "MR-083"],
+      "atlas_r_ids": ["R-LEO-AI-081", "R-LEO-AI-083"],
+      "rationale": "R-081 'patient/carer/junior staff acts on screen they do not fully understand because no inline what-is-this affordance' and R-083 'junior trainee misinterprets coding-review case because clinical terms are not explained' are the same hazard: missing inline explanation/health-literacy control causing misinterpretation. R-094 (unclear Knowledge intro copy) is also in this cluster.",
+      "recommended_action": "merge_yyy_into_xxx",
+      "confidence": "medium"
+    },
+    {
+      "pair": ["MR-083", "MR-094"],
+      "atlas_r_ids": ["R-LEO-AI-083", "R-LEO-AI-094"],
+      "rationale": "R-083 (jargon in coding-review modal causes trainee misinterpretation) and R-094 (role-aware Knowledge intro copy unclear for junior coder) are both 'unexplained clinical/technical terminology in UI leads to wrong action'. Same health-literacy root cause.",
+      "recommended_action": "merge_yyy_into_xxx",
+      "confidence": "medium"
+    },
+    {
+      "pair": ["MR-004", "MR-055"],
+      "atlas_r_ids": ["R-LEO-AI-004", "R-LEO-AI-055"],
+      "rationale": "R-055 'ambiguous GP abbreviation resolved to wrong SNOMED' is a specific high-severity subset of R-004 'terminology resolver selects wrong SNOMED from multiple candidates'. Keep both because R-055 carries serious severity with specific abbreviation-blocklist controls that R-004's generic HITL cannot cover, but add explicit cross-reference in both YAMLs and collapse the mitigation matrix entry.",
+      "recommended_action": "keep_both_but_link",
+      "confidence": "medium"
+    },
+    {
+      "pair": ["MR-037", "MR-053"],
+      "atlas_r_ids": ["R-LEO-AI-037", "R-LEO-AI-053"],
+      "rationale": "Outside the 13 consolidations, MR-065 currently lists 'Consolidates FMEA: FMEA-008 FMEA-037', but FMEA-037 is 'Golden evaluation set contaminated with training data - data leakage in holdout split', which is the exact hazard already covered by R-053 ('Holdout encounters leak into training data'), not by R-065 (auditor approves incorrect cancer episode). Re-route FMEA-037's link from R-065 to R-053.",
+      "recommended_action": "workshop_decision",
+      "confidence": "high"
+    }
+  ],
+  "summary": {
+    "consolidations_confirmed": 10,
+    "consolidations_rejected": 2,
+    "new_duplicates_found": 12,
+    "final_unique_risk_count_recommendation": 150,
+    "notes": [
+      "10 of 13 proposed consolidations confirmed as valid same-hazard merges; 2 (FMEA-008, FMEA-050) are split_out because the target R-IDs address a different control layer (human reviewer vs automated rule/dual-LLM).",
+      "Merging R-071 into R-069, R-061 into R-059, R-092 into R-085, R-088 into R-082, R-068 into R-067, R-054 into R-033, and the health-literacy cluster (R-083 and R-094 into R-081) removes 7 clear duplicates.",
+      "Workshop_decision items (R-017/R-047 NER regression overlap, R-080/R-090 accessibility cluster, FMEA-037/R-053 re-routing) could remove a further 2-3 risks depending on quality-lead judgement.",
+      "Final-count range 150 (conservative: 158 - 10 high-confidence merges + 2 split_out new risks) to 148 (includes workshop-decision merges).",
+      "MR-065 currently misclassifies FMEA-037 (holdout leakage) as consolidated with FMEA-008 (quality check miss); this should be re-routed to R-053 regardless of the 13-item review outcome."
+    ]
+  }
+}

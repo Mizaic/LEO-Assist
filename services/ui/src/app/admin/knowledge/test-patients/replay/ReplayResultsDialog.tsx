@@ -1,17 +1,41 @@
 "use client";
 
 /**
- * ReplayResultsDialog -- show the most recent regression report or a
- * fresh on-demand replay run.  Splits results into pass / regression /
- * drift so reviewers can spot silent rule changes at a glance.
+ * ReplayResultsDialog -- ISO 13485 / IEC 62304 style test report
+ * presentation for a guideline-rule replay run.
  *
- * Each result row is expandable.  When the row contains a regression
- * we call ``/api/guidance/test-patients/diagnose`` -- which is backed
- * by the SAME roaring-bitmap evaluator that production uses to fire
- * rules -- so the per-leaf diagnostic is guaranteed to agree with the
- * live firing decision.  The annotated tree is rendered hierarchically
- * (preserving AND / OR / NOT / AT_LEAST grouping) so the reviewer can
- * see exactly which branch of the rule did or did not fire.
+ * The visible copy is written for a UK reading age of 11 (see
+ * .cursor/rules/health-literacy.mdc) so a clinical safety officer or
+ * QA reviewer who is not a rules engineer can sign the report off.
+ * Internal terms ("bitmap", "regression", "drift", "ruleset") are
+ * deliberately translated at the boundary -- they remain in the
+ * underlying API contracts (ReplayReport, DiagnoseResponse) but the
+ * UI shows: passed / failed / changed since saved / set of rules /
+ * matches.
+ *
+ * Report layout, top to bottom:
+ *
+ *   1. Header        -- title, live-vs-sandbox chip, one-line summary
+ *   2. Verdict       -- big green PASSED or red FAILED banner
+ *   3. What we tested -- facts row (rules version, source, patient
+ *                       count, check count, scope) -- this is the
+ *                       "configuration under test" section a 13485
+ *                       auditor expects on every test report
+ *   4. Results       -- one accordion row per patient with the
+ *                       per-rule "expected / found" detail and the
+ *                       annotated tree from the same evaluator that
+ *                       production uses
+ *   5. Audit footer  -- provenance line: which engine produced this
+ *                       report, which rules version, when
+ *
+ * Each result row is expandable. When the row contains a failed
+ * check we call ``/api/guidance/test-patients/diagnose`` -- which is
+ * backed by the SAME roaring-bitmap evaluator that production uses
+ * to fire rules -- so the per-part diagnostic is guaranteed to agree
+ * with the live decision. The annotated tree is rendered
+ * hierarchically (preserving AND / OR / NOT / AT_LEAST grouping) so
+ * the reviewer can see exactly which part of the rule did or did
+ * not match.
  *
  * Lives under the central Knowledge > Test Patients library so the
  * rule editor and central library can share one dialog. Uses the
@@ -95,14 +119,15 @@ export default function ReplayResultsDialog({
   }, [patients]);
 
   const isSandbox = mode === "sandbox";
+  const rulesetMissing = report ? reportRulesetMissing(report) : false;
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Stack direction="row" spacing={1} alignItems="center">
           <Box sx={{ flex: 1 }}>
             {isSandbox
-              ? "Replay results -- unsaved draft (sandbox)"
-              : "Replay results -- live ruleset"}
+              ? "Test report -- unsaved draft (sandbox)"
+              : "Test report -- live rules"}
           </Box>
           <Chip
             size="small"
@@ -117,51 +142,55 @@ export default function ReplayResultsDialog({
           sx={{ display: "block", mt: 0.25 }}
         >
           {isSandbox
-            ? "These results came from a throwaway compile of the rule you are currently editing. Production was NOT touched."
-            : "These results came from the rule that is currently deployed in production (the bitmap in Redis)."}
+            ? "We checked your saved patients against the rule you are editing. The live rules were NOT touched."
+            : "We checked your saved patients against the set of rules that is live in production right now."}
         </Typography>
       </DialogTitle>
       <DialogContent dividers>
         {!report ? (
           <Typography variant="body2" color="text.secondary">
-            Run a replay to see results here.
+            Run a test to see results here.
           </Typography>
         ) : (
           <Stack spacing={2}>
-            <ReportHeaderChips
+            <VerdictBanner
               report={report}
-              rulesetMissing={reportRulesetMissing(report)}
+              rulesetMissing={rulesetMissing}
             />
 
-            {reportRulesetMissing(report) && (
+            {rulesetMissing && (
               <RulesetNotCompiledBanner
                 scopeType={report.scope_type}
                 scopeId={report.scope_id}
                 detail={
-                  "Every patient hit the same 'no active ruleset' error " +
-                  "from the evaluator. EVERY rule returns 'does not fire', " +
-                  "so any patient whose saved expectation was 'must NOT " +
-                  "match' (boundary cases, negative pairs) shows '1 pass' " +
-                  "by coincidence -- those passes are NOT verifying " +
-                  "anything. Patients whose saved expectation was 'must " +
-                  "match' show '1 regress'. Compile the bitmap and re-run " +
-                  "the replay before trusting any verdict in this report."
+                  "We could not load the live rules for this scope. " +
+                  "That means every rule looks like it 'did not match' " +
+                  "to the engine. Patients you saved as 'should match' " +
+                  "will show as failed, and patients you saved as " +
+                  "'should NOT match' will show as passed by accident. " +
+                  "Please rebuild the rules and run this test again " +
+                  "before you trust the result."
                 }
               />
             )}
 
-            {report.regressions_count > 0 && (
-              <Alert severity="error">
-                {report.regressions_count} test patient assertion
-                {report.regressions_count === 1 ? "" : "s"} no longer match.
-                Open a row below to see the patient and which part of the
-                rule stopped matching.
-              </Alert>
-            )}
+            <WhatWasTested
+              report={report}
+              isSandbox={isSandbox}
+              rulesetMissing={rulesetMissing}
+            />
 
             <Box>
-              <Typography variant="subtitle2">By patient</Typography>
-              <Stack spacing={1} sx={{ mt: 1 }}>
+              <Typography variant="subtitle2">Results, by patient</Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mb: 1 }}
+              >
+                One row per patient. Click a row to see the patient and
+                which parts of the rule did or did not match.
+              </Typography>
+              <Stack spacing={1}>
                 {report.results.map((row) => (
                   <PatientResultRow
                     key={row.patient_id}
@@ -171,11 +200,13 @@ export default function ReplayResultsDialog({
                     scopeType={scopeType}
                     scopeId={scopeId}
                     rulesetVersion={report.ruleset_version}
-                    rulesetMissing={reportRulesetMissing(report)}
+                    rulesetMissing={rulesetMissing}
                   />
                 ))}
               </Stack>
             </Box>
+
+            <AuditFooter report={report} isSandbox={isSandbox} />
           </Stack>
         )}
       </DialogContent>
@@ -193,57 +224,243 @@ function reportRulesetMissing(report: ReplayReport): boolean {
   );
 }
 
-function ReportHeaderChips({
+/**
+ * Top-of-report verdict banner. ISO 13485 verification reports lead
+ * with a single PASS / FAIL outcome so the auditor never has to
+ * guess. We mirror that here: green PASSED, red FAILED, or amber
+ * INCONCLUSIVE when no rules were loaded.
+ */
+function VerdictBanner({
   report,
   rulesetMissing,
 }: {
   report: ReplayReport;
   rulesetMissing: boolean;
 }) {
+  if (rulesetMissing) {
+    return (
+      <Alert severity="warning" icon={false} sx={{ alignItems: "center" }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+          Inconclusive -- the rules are not loaded
+        </Typography>
+        <Typography variant="body2">
+          We could not run the test because the rule engine has no
+          rules loaded right now. Please rebuild the rules and try again.
+        </Typography>
+      </Alert>
+    );
+  }
+
+  const passed = report.regressions_count === 0;
+  const checks = report.passes_count + report.regressions_count;
+  const checksWord = checks === 1 ? "check" : "checks";
+  const failsWord = report.regressions_count === 1 ? "check" : "checks";
+
+  if (passed) {
+    return (
+      <Alert
+        severity="success"
+        icon={<CheckCircleOutlineIcon />}
+        sx={{ alignItems: "center" }}
+      >
+        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+          Passed
+        </Typography>
+        <Typography variant="body2">
+          {checks === 0
+            ? "No saved checks to run yet. Add an expected outcome to a patient to start testing."
+            : `All ${checks} saved ${checksWord} matched the rules. Nothing has broken since these patients were saved.`}
+        </Typography>
+      </Alert>
+    );
+  }
+
   return (
-    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-      <Chip
-        color={
-          rulesetMissing
-            ? "default"
-            : report.regressions_count === 0
-              ? "success"
-              : "error"
-        }
-        variant={rulesetMissing ? "outlined" : "filled"}
-        label={`${report.regressions_count} regression${
-          report.regressions_count === 1 ? "" : "s"
-        }`}
-      />
-      <Chip
-        color={rulesetMissing ? "default" : "success"}
-        variant="outlined"
-        label={`${report.passes_count} pass${
-          report.passes_count === 1 ? "" : "es"
-        }`}
-      />
-      <Chip
-        color={
-          rulesetMissing
-            ? "default"
-            : report.drift_count === 0
-              ? "default"
-              : "warning"
-        }
-        variant="outlined"
-        label={`${report.drift_count} drift`}
-      />
-      {rulesetMissing && (
-        <Chip
-          color="warning"
-          label="Verdicts unreliable -- no ruleset compiled"
-          aria-label="Verdicts unreliable because no ruleset is compiled"
-        />
+    <Alert
+      severity="error"
+      icon={<CancelOutlinedIcon />}
+      sx={{ alignItems: "center" }}
+    >
+      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+        Failed -- {report.regressions_count} saved {failsWord} no longer
+        match the rules
+      </Typography>
+      <Typography variant="body2">
+        Open the failed rows below to see which patient is affected
+        and which part of the rule changed.
+      </Typography>
+    </Alert>
+  );
+}
+
+/**
+ * "What we tested" -- the configuration-under-test block. Shows the
+ * rules version, where the rules came from, how many patients were
+ * checked, how many checks were made, and the scope. This is the
+ * minimum metadata an ISO 13485 / IEC 62304 verification report
+ * needs to be reproducible.
+ */
+function WhatWasTested({
+  report,
+  isSandbox,
+  rulesetMissing,
+}: {
+  report: ReplayReport;
+  isSandbox: boolean;
+  rulesetMissing: boolean;
+}) {
+  const totalChecks = report.passes_count + report.regressions_count;
+  const facts: Array<{ label: string; value: string; hint?: string }> = [
+    {
+      label: "Source of rules",
+      value: isSandbox
+        ? "Throwaway draft (sandbox)"
+        : "Live in production",
+      hint: isSandbox
+        ? "A copy of the rule you are editing. Your live rules were not changed."
+        : "The same rules that decide real patient referrals right now.",
+    },
+    {
+      label: "Rules version",
+      value: report.ruleset_version || "(none loaded)",
+      hint: "A version stamp set when the rules were last built.",
+    },
+    {
+      label: "Patients tested",
+      value: String(report.patient_count),
+    },
+    {
+      label: "Checks made",
+      value: String(totalChecks),
+      hint:
+        "Each saved patient can ask one or more questions of the rules " +
+        "(for example, 'should match the mesothelioma rule'). " +
+        "We counted every question.",
+    },
+    {
+      label: "Scope",
+      value: `${report.scope_type} / ${report.scope_id}`,
+      hint: "Which set of rules we ran the test against.",
+    },
+  ];
+
+  return (
+    <Box
+      sx={{
+        p: 1.5,
+        borderRadius: 1,
+        border: "1px solid",
+        borderColor: "grey.300",
+        bgcolor: "grey.50",
+      }}
+    >
+      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        What we tested
+      </Typography>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+          columnGap: 2,
+          rowGap: 0.75,
+        }}
+      >
+        {facts.map((fact) => (
+          <Box key={fact.label}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", textTransform: "uppercase", fontSize: "0.65rem" }}
+            >
+              {fact.label}
+            </Typography>
+            <Tooltip title={fact.hint || ""} arrow disableHoverListener={!fact.hint}>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {fact.value}
+              </Typography>
+            </Tooltip>
+          </Box>
+        ))}
+      </Box>
+      {!rulesetMissing && (
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          flexWrap="wrap"
+          sx={{ mt: 1.25 }}
+        >
+          <Chip
+            size="small"
+            color={report.regressions_count === 0 ? "success" : "error"}
+            variant="filled"
+            label={`${report.regressions_count} failed`}
+          />
+          <Chip
+            size="small"
+            color="success"
+            variant="outlined"
+            label={`${report.passes_count} passed`}
+          />
+          <Tooltip
+            title={
+              "A patient saved against an older version of a rule that has since " +
+              "been edited. The test still passes because we match by the rule's " +
+              "stable name, but the version stamp changed."
+            }
+            arrow
+          >
+            <Chip
+              size="small"
+              color={report.drift_count > 0 ? "warning" : "default"}
+              variant="outlined"
+              label={`${report.drift_count} changed since saved`}
+            />
+          </Tooltip>
+        </Stack>
       )}
-      {report.ruleset_version && (
-        <Chip label={`Ruleset ${report.ruleset_version}`} variant="outlined" />
-      )}
-    </Stack>
+    </Box>
+  );
+}
+
+/**
+ * Audit-trail footer. ISO 13485 reports end with provenance: who or
+ * what produced the result, what version of the system was tested,
+ * and when. The web dialog cannot record a wet signature but it can
+ * surface the same machine-checkable facts.
+ */
+function AuditFooter({
+  report,
+  isSandbox,
+}: {
+  report: ReplayReport;
+  isSandbox: boolean;
+}) {
+  return (
+    <Box sx={{ pt: 1, borderTop: "1px solid", borderColor: "grey.200" }}>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block" }}
+      >
+        This test was run by the same rule engine that decides real
+        referrals.
+        {isSandbox
+          ? " It used a one-off copy of the rule you are editing, so your live rules were not changed."
+          : " It used the live rules currently deployed to production."}
+      </Typography>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block" }}
+      >
+        Rules version:{" "}
+        <Box component="span" sx={{ fontFamily: "monospace" }}>
+          {report.ruleset_version || "(none)"}
+        </Box>
+        {" -- Generated just now"}
+      </Typography>
+    </Box>
   );
 }
 
@@ -308,7 +525,7 @@ function PatientResultRow({
             size="small"
             color={rulesetMissing ? "default" : "success"}
             variant="outlined"
-            label={`${row.passes.length} pass`}
+            label={`${row.passes.length} passed`}
           />
           <Chip
             size="small"
@@ -316,26 +533,36 @@ function PatientResultRow({
               rulesetMissing ? "default" : isRegression ? "error" : "default"
             }
             variant={rulesetMissing ? "outlined" : "filled"}
-            label={`${row.regressions.length} regress`}
+            label={`${row.regressions.length} failed`}
           />
           {row.unexpected_matches.length > 0 && (
-            <Chip
-              size="small"
-              color="warning"
-              label={`${row.unexpected_matches.length} new match`}
-            />
+            <Tooltip
+              title={
+                "A rule matched this patient that was not in the saved " +
+                "list of expected matches. This may be fine -- or it " +
+                "may mean a rule has started matching patients it " +
+                "should not. Open the row to check."
+              }
+              arrow
+            >
+              <Chip
+                size="small"
+                color="warning"
+                label={`${row.unexpected_matches.length} new match`}
+              />
+            </Tooltip>
           )}
           {rulesetMissing && row.passes.length > 0 && (
             <Chip
               size="small"
               color="warning"
               variant="outlined"
-              label="pass is coincidental"
+              label="pass is by accident"
               aria-label={
-                "This patient's saved expectation was 'must NOT match'. " +
-                "With no ruleset compiled the evaluator returns false " +
-                "for everything, so the pass is coincidental, not a " +
-                "verification."
+                "This patient was saved as 'rule should NOT match'. " +
+                "With no rules loaded the engine answers 'no' to " +
+                "everything, so the pass is by accident, not a real " +
+                "check."
               }
             />
           )}
@@ -347,11 +574,23 @@ function PatientResultRow({
             {row.error}
           </Alert>
         )}
-        <PatientSummary patient={patient} fallbackId={row.patient_id} />
+        <PatientSummary
+          patient={patient}
+          fallbackId={row.patient_id}
+          rules={rules}
+        />
         {row.regressions.length > 0 && (
           <Box sx={{ mt: 1.5 }}>
             <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-              What stopped matching
+              What did not match
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 0.75 }}
+            >
+              For each rule below: what we expected, what the engine
+              found, and which part of the rule made the difference.
             </Typography>
             <Stack spacing={1}>
               {row.regressions.map((reg) => (
@@ -380,9 +619,11 @@ function PatientResultRow({
 function PatientSummary({
   patient,
   fallbackId,
+  rules,
 }: {
   patient?: ReplayPatientSummary;
   fallbackId: string;
+  rules?: Record<string, RuleContext>;
 }) {
   if (!patient) {
     return (
@@ -399,12 +640,15 @@ function PatientSummary({
     .filter(Boolean)
     .join(", ");
   const codes = patient.codes ?? [];
+  const description = patient.description
+    ? friendlyDescription(patient.description, rules)
+    : "";
   return (
     <Box>
       <Typography variant="subtitle2">The patient</Typography>
-      {patient.description && (
+      {description && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75 }}>
-          {patient.description}
+          {description}
         </Typography>
       )}
       {ageSex && (
@@ -540,9 +784,12 @@ function RegressionDetail({
           size="small"
           color="error"
           variant="outlined"
-          label={`expected ${expected ? "fires" : "does not fire"}, now ${
-            fires ? "fires" : "does not fire"
-          }`}
+          label={`Expected: ${
+            expected ? "should match" : "should NOT match"
+          } -- Found: ${fires ? "matches" : "does not match"}`}
+          aria-label={`Expected ${
+            expected ? "should match" : "should NOT match"
+          }, found ${fires ? "matches" : "does not match"}`}
         />
       </Stack>
       {rule?.recommendation_text && (
@@ -587,7 +834,7 @@ function DiagnosticBody({
       >
         <CircularProgress size={14} />
         <Typography variant="caption" color="text.secondary">
-          Re-running the rule against this patient...
+          Checking this patient against the rule...
         </Typography>
       </Stack>
     );
@@ -625,7 +872,8 @@ function DiagnosticBody({
     <Box sx={{ mt: 0.75 }}>
       <Divider sx={{ my: 0.5 }} />
       <Typography variant="caption" color="text.secondary">
-        Each part of the rule (evaluated by the bitmap engine):
+        Here is each part of the rule. A green tick means this part
+        matched the patient. A red cross means it did not.
       </Typography>
       <Box component="ul" sx={{ m: 0, pl: 0, listStyle: "none" }}>
         <DiagnoseNodeRow node={tree} depth={0} />
@@ -678,7 +926,8 @@ function DiagnoseNodeRow({ node, depth }: DiagnoseNodeRowProps) {
           )}
           {node.missing_bitmap && (
             <Typography variant="caption" color="warning.main">
-              Bitmap missing in Redis -- recompile required.
+              The engine is missing data for this part of the rule.
+              Please rebuild the rules.
             </Typography>
           )}
         </Box>
@@ -738,7 +987,7 @@ function describeMeta(node: DiagnoseNode): string | null {
     typeof node.match_count === "number" &&
     node.match_count > 1
   ) {
-    return `Patient has ${node.match_count} codes in this concept's SNOMED hierarchy.`;
+    return `Patient has ${node.match_count} codes that match this concept.`;
   }
   return null;
 }
@@ -746,6 +995,85 @@ function describeMeta(node: DiagnoseNode): string | null {
 function shortenRuleId(ruleId: string): string {
   const tail = ruleId.split(":").pop() ?? ruleId;
   return `Rule ${tail}`;
+}
+
+/**
+ * Strip raw rule IDs out of a saved patient description and replace
+ * each one with the friendliest label we have for that rule.
+ *
+ * The scaffolder used to embed the full rule_id (for example
+ * ``rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59``)
+ * into the description. We now write a friendly label at scaffold
+ * time, but every patient saved before that change still carries
+ * the raw id. This helper rescues those rows at render time so the
+ * reviewer never has to read a rule_id (per
+ * .cursor/rules/health-literacy.mdc).
+ *
+ * Lookup order for the replacement, mirroring the backend's
+ * ``_friendly_rule_label``:
+ *
+ *   1. ``rules[rule_id].name``               -- exact id match
+ *   2. ``rules[stem].name``                  -- stem match (handles
+ *                                                rule edits where
+ *                                                ``:edit:NNNN``
+ *                                                suffixes accumulate)
+ *   3. ``rules[*].recommendation_text``      -- trimmed to ~120 chars
+ *   4. fall back to "the rule" so we never leak the raw id
+ *
+ * Exported so the unit test can pin the substitution behaviour
+ * without having to drive the full Accordion expansion through
+ * JSDOM (Accordion is wrapped in a Collapse transition that does
+ * not always settle in the testing environment).
+ */
+export function friendlyDescription(
+  description: string,
+  rules?: Record<string, RuleContext>,
+): string {
+  // Match an optional preceding "rule " word so "for rule rule:..."
+  // collapses to 'for "<friendly>"' instead of the awkward
+  // 'for rule "<friendly>"'.
+  const RULE_ID_PATTERN = /\b(?:rule\s+)?(rule:[A-Za-z0-9_:.-]+)/g;
+  return description.replace(RULE_ID_PATTERN, (_match, rawId: string) => {
+    return friendlyRuleLabel(rawId, rules);
+  });
+}
+
+function friendlyRuleLabel(
+  ruleId: string,
+  rules?: Record<string, RuleContext>,
+): string {
+  const lookup = rules ?? {};
+  const exact = lookup[ruleId];
+  if (exact?.name) return `"${exact.name}"`;
+  if (exact?.recommendation_text) return shortenRecommendation(exact.recommendation_text);
+
+  // Stem match -- ``rule:NG12:...:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59``
+  // collapses to ``rule:NG12:...:R004:6d4e9c13`` so we still find a
+  // name when the saved description pinned a pre-edit id.
+  const stemIdx = ruleId.indexOf(":edit:");
+  const stem = stemIdx >= 0 ? ruleId.slice(0, stemIdx) : ruleId;
+  if (stem !== ruleId) {
+    const stemHit = lookup[stem];
+    if (stemHit?.name) return `"${stemHit.name}"`;
+    if (stemHit?.recommendation_text) {
+      return shortenRecommendation(stemHit.recommendation_text);
+    }
+    for (const [key, value] of Object.entries(lookup)) {
+      if (!key.startsWith(`${stem}:edit:`) && key !== stem) continue;
+      if (value?.name) return `"${value.name}"`;
+      if (value?.recommendation_text) {
+        return shortenRecommendation(value.recommendation_text);
+      }
+    }
+  }
+
+  return "the rule";
+}
+
+function shortenRecommendation(text: string): string {
+  const firstLine = text.split("\n")[0].trim().replace(/[:.]+$/, "");
+  if (firstLine.length <= 120) return `"${firstLine}"`;
+  return `"${firstLine.slice(0, 117).trimEnd()}..."`;
 }
 
 type IntentColor = "success" | "default" | "warning";
@@ -762,34 +1090,34 @@ function computePatientIntent(row: ReplayPatientResult): PatientIntent {
   const negatives = all.filter((a) => !a.expected).length;
   if (positives > 0 && negatives === 0) {
     return {
-      label: "positive test",
+      label: "should match",
       color: "success",
-      tooltip: "Saved as 'rule MUST match this patient'.",
+      tooltip: "This patient was saved as 'the rule SHOULD match'.",
     };
   }
   if (negatives > 0 && positives === 0) {
     return {
-      label: "negative test",
+      label: "should NOT match",
       color: "default",
       tooltip:
-        "Saved as 'rule must NOT match this patient'. " +
-        "A 'pass' here means the rule correctly did not over-fire.",
+        "This patient was saved as 'the rule should NOT match'. " +
+        "A pass here means the rule correctly did not match.",
     };
   }
   if (positives > 0 && negatives > 0) {
     return {
-      label: "mixed test",
+      label: "mixed",
       color: "warning",
       tooltip:
-        `Saved with ${positives} 'must match' and ${negatives} ` +
-        "'must NOT match' assertions. Open the row to see which.",
+        `Saved with ${positives} 'should match' and ${negatives} ` +
+        "'should NOT match' checks. Open the row to see which.",
     };
   }
   return {
-    label: "no assertions",
+    label: "no checks saved",
     color: "warning",
     tooltip:
-      "This patient has no saved expectations. Replay cannot verify " +
-      "anything until at least one rule expectation is added.",
+      "This patient has no saved expectations. We cannot test " +
+      "anything until you add at least one expected outcome.",
   };
 }

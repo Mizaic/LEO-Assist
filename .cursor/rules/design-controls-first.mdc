@@ -1,50 +1,30 @@
 ---
-description: Require reading design-controls before taking any action in this repo
+description: Redirect -- the design-controls-first rule has been replaced by atlas-design-controls-first.
 alwaysApply: true
 ---
 
-# Design Controls — Read Before Acting
+# Design Controls -- Read Before Acting (REDIRECT)
 
-Before making **any** code change, creating files, or implementing features, you MUST read the relevant design-controls artefacts to understand requirements, risks, and traceability obligations.
+This rule has been replaced. The local `design-controls/` directory
+no longer exists; the Atlas MCP server is the single source of truth
+for User Needs, Design Inputs, Design Outputs, Verification Tests,
+Validation Tests, Risks, and the Software Architecture Document.
 
-## Step 0 — Classify the Change (Proportionality Gate)
+Use:
 
-Before reading anything else, classify the change to determine which obligations apply.
+- `atlas-design-controls-first.mdc` -- read this before acting.
+- `atlas-vt-enforcement.mdc` -- the full UN / DI / DO / Risk / VT /
+  VAL workflow against Atlas.
+- `atlas-design-controls-validation.mdc` -- pre-flight and post-call
+  sanity checks for Atlas tool calls.
 
-| Class | Description | Examples | Obligations |
-|---|---|---|---|
-| **Cosmetic** | No logic, no safety impact | CSS tweaks, copy changes, rename a variable | Read related DIs to confirm no overlap; no new artefacts required |
-| **Class A** | Non-safety-critical software item (IEC 62304 Class A) | Internal tooling, dev-only utilities, test helpers | Read DIs + risks; create DI/DO only if genuinely new capability |
-| **Class B** | Safety-relevant (IEC 62304 Class B) | Any clinical pipeline, API route, UI feature visible to clinical staff | **Full workflow** — DI, DO, Risk, VT, traceability matrix update all required |
-| **Class C** | Life-critical / irreversible harm potential | Autonomous coding decisions, safety gates, model thresholds | **Full workflow** + additional VAL required; escalate before proceeding |
+The Atlas MCP server is `user-atlas-design-controls`. The product is
+`PROD-LEO-CORE-AI-20260415-6AE8A23B`.
 
-If you are unsure of the class, treat it as Class B.
+For governance / regulatory / process docs that are NOT design
+controls (DPA, DPIA, DTAC, retention schedule, key management,
+threat models, etc.) see `compliance/policy/` and
+`compliance/architecture-superseded/`.
 
----
-
-## Mandatory Reading Order (Class B and above)
-
-1. **`design-controls/README.md`** -- overall structure and process overview
-2. **`design-controls/intended-use.md`** -- intended use and safety classification
-3. **`design-controls/user-needs/`** -- user needs (UN-LEO-AI-*.yaml) for the feature area
-4. **`design-controls/design-inputs/`** -- requirements (DI-LEO-AI-*.yaml) that relate to the area being changed
-5. **`design-controls/design-outputs/`** -- corresponding outputs (DO-LEO-AI-*.yaml)
-6. **`design-controls/risks/`** -- any risks (R-LEO-AI-*.yaml) linked to the feature area
-7. **`design-controls/DC-TM-001-traceability-matrix.md`** -- confirm traceability coverage before and after
-
----
-
-## Rules
-
-- **Never** add, remove, or significantly modify functionality without first identifying the DI/DO/Risk items it touches.
-- If a change introduces new functionality with no matching DI → **stop**: create a new DI before proceeding (see `vt-enforcement.mdc` for the full creation workflow).
-- If a change introduces a new DI → a corresponding DO and (where applicable) a new Risk item **must also be created or updated** in the same changeset.
-- If a change affects a risk-mitigating control → read the linked risk YAML and confirm the mitigation is preserved.
-- Verification tests (`verification-tests/VT-LEO-AI-*.yaml`) and validation tests (`validation-tests/VAL-LEO-AI-*.yaml`) must remain consistent with any updated design outputs.
-- **Whenever a new DI, DO, VT, VAL, or Risk is created** → update the corresponding row in `design-controls/DC-TM-001-traceability-matrix.md`.
-- When in doubt, read `design-controls/DC-SRS-001-software-requirements.md` for the full software requirements specification.
-- Every DI MUST have `derived_from` containing at least one `UN-LEO-AI-*` ID. Risk IDs (`R-*`) and Design Input IDs (`DI-*`) are NOT valid in `derived_from`.
-- When creating a DI with `derived_from: ["UN-LEO-AI-XXX"]`, also update the referenced UN file to add this DI to its `design_inputs` list (bidirectional traceability).
-- If no existing UN covers the feature being built, create a new `UN-LEO-AI-<next>.yaml` BEFORE creating the DI.
-- DIs with `safety_class` B or C MUST have at least one risk ID in their `risks` field.
-- Update BOTH `DC-TM-001-traceability-matrix.md` AND `DC-TM-002-traceability-matrix.csv` when creating or updating any artefact.
+For the audit chain proving the local-to-Atlas migration was clean,
+see `compliance/atlas-migration-evidence/`.

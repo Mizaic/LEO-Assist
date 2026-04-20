@@ -25,6 +25,10 @@ from pydantic import BaseModel
 
 from libs.analytics import confirmed_cancer_where
 from libs.auth.org_scope import ORG_PATIENT_FILTER, CallerScope, get_caller_scope
+from libs.episodes.status import (
+    ALWAYS_EXCLUDE_STATUSES,
+    CLOSURE_REASON_STATUSES,
+)
 from libs.neo4j_client.client import PatientGraphClient
 from libs.redis_client.rebuild_status import get_rebuild_status
 from services.analytics_api.app.routers._audit_helpers import (
@@ -40,13 +44,10 @@ router = APIRouter()
 # Status groupings
 # ---------------------------------------------------------------------------
 
-_CLOSURE_STATUSES = [
-    "closed_benign",
-    "stale_no_diagnosis",
-    "stale_post_specialist",
-    "closed_related",
-]
-_ALWAYS_EXCLUDE = ["merged", "closed_phantom"]
+# Re-exported for backwards compatibility -- tests import these directly.
+# Source of truth lives in libs/episodes/status.py (DI-LEO-AI-529).
+_CLOSURE_STATUSES = list(CLOSURE_REASON_STATUSES)
+_ALWAYS_EXCLUDE = list(ALWAYS_EXCLUDE_STATUSES)
 
 _MAX_MISSION_PATIENT_ID_LEN = 64
 _MISSION_PATIENT_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")

@@ -24,9 +24,11 @@ logger = logging.getLogger(__name__)
 # on an EpisodeOfCare.cancer_type but has no marker here the code must
 # gracefully fall back to unfiltered matching (see filter_rows_by_specialty).
 SPECIALTY_MARKERS: dict[str, re.Pattern[str]] = {
-    # DI-LEO-AI-138: broaden breast marker. Derived from an audit of 60
-    # breast-episode encounter texts (see
-    # design-controls/audits/snapshots/2026-04-pre-fragmentation-fix.md).
+    # DI-LEO-AI-138 (legacy local id; canonical in Atlas via
+    # compliance/atlas-migration-evidence/atlas-id-mapping.csv).
+    # Broadens the breast marker. Derived from an audit of 60 breast-
+    # episode encounter texts (see compliance/atlas-migration-evidence/
+    # audits-source-evidence/snapshots/2026-04-pre-fragmentation-fix.md).
     # The extra anchors cover: endocrine therapy names (letrozole,
     # anastrozole, tamoxifen, exemestane) which index-date many breast
     # pathways; "infiltrating duct" phrasing that stops short of

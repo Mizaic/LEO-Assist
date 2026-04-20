@@ -39,13 +39,16 @@ export const CARE_OVERVIEW_INTRO = {
   what: "Scroll down for charts, waiting times, and safety alerts. Open an alert to help the patient.",
 } as const;
 
-// Sentence-case summary card labels. Kept short so they read as labels,
-// not shouty tracked text.
+// MECE lifecycle hero-card labels (DI-105A4EC7). The four cards are
+// mutually exclusive and collectively exhaustive: every EpisodeOfCare
+// in the cohort lands in exactly one bucket, so the four numbers sum
+// to the total cohort size. Kept short so they read as labels, not
+// shouty tracked text.
 export const CARE_OVERVIEW_SUMMARY_LABELS = {
-  referrals: "Cancer referrals",
-  active: "Active cases",
-  confirmed: "Confirmed cancers",
-  alerts: "Safety alerts",
+  active: "Active",
+  inReview: "In Review",
+  cancerExcluded: "Cancer Excluded",
+  confirmedCancer: "Confirmed Cancer",
 } as const;
 
 // Plain-language chart descriptions. All must read at Flesch-Kincaid
@@ -92,6 +95,11 @@ export default function DashboardPage() {
     confirmed_cancers: number;
     confirmed_cancers_via_2ww?: number;
     confirmed_cancers_via_2ww_pct?: number | null;
+    total_cohort_episodes?: number;
+    active_lifecycle_episodes?: number;
+    in_review_episodes?: number;
+    cancer_excluded_episodes?: number;
+    confirmed_cancer_episodes?: number;
   } | null>(null);
   const [kpis, setKpis] = useState<any>(null);
   const [alerts, setAlerts] = useState<Array<any>>([]);
@@ -126,6 +134,11 @@ export default function DashboardPage() {
           confirmed_cancers: summaryResult.value.confirmed_cancers,
           confirmed_cancers_via_2ww: summaryResult.value.confirmed_cancers_via_2ww,
           confirmed_cancers_via_2ww_pct: summaryResult.value.confirmed_cancers_via_2ww_pct,
+          total_cohort_episodes: summaryResult.value.total_cohort_episodes,
+          active_lifecycle_episodes: summaryResult.value.active_lifecycle_episodes,
+          in_review_episodes: summaryResult.value.in_review_episodes,
+          cancer_excluded_episodes: summaryResult.value.cancer_excluded_episodes,
+          confirmed_cancer_episodes: summaryResult.value.confirmed_cancer_episodes,
         });
       } else {
         errors.summary = "Unable to load summary metrics.";
@@ -162,10 +175,11 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const totalEpisodes = summary?.total_episodes ?? 0;
-  const activeEpisodes = summary?.active_episodes ?? 0;
-  const totalDiagnosed = summary?.confirmed_cancers ?? 0;
-  const criticalAlerts = alerts.filter((a) => a.severity === "critical" || a.severity === "high").length;
+  const totalCohortEpisodes = summary?.total_cohort_episodes ?? summary?.total_episodes ?? 0;
+  const activeLifecycle = summary?.active_lifecycle_episodes ?? 0;
+  const inReview = summary?.in_review_episodes ?? 0;
+  const cancerExcluded = summary?.cancer_excluded_episodes ?? 0;
+  const confirmedCancer = summary?.confirmed_cancer_episodes ?? summary?.confirmed_cancers ?? 0;
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, overflowX: "hidden" }}>
@@ -288,42 +302,58 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {/* ── Summary cards ───────────────────────────────────────────── */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }} component="section" aria-label="Summary figures">
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatCard
-            label={CARE_OVERVIEW_SUMMARY_LABELS.referrals}
-            description="Total cancer referral pathways we have on record."
-            value={loading ? undefined : totalEpisodes}
-            color="#1D4ED8"
-          />
-        </Grid>
+      {/* -- MECE lifecycle hero cards (DI-105A4EC7) ----------------- */}
+      {/* Every cancer pathway in the cohort lands in exactly one of    */}
+      {/* the four buckets, so the four numbers sum to the total cohort */}
+      {/* (currently 141 pathways). Hero row replaces the older         */}
+      {/* "Referrals / Active / Confirmed / Safety alerts" mix.         */}
+      <Grid
+        container
+        spacing={2.5}
+        sx={{ mb: 1.5 }}
+        component="section"
+        aria-label={`Lifecycle summary -- ${totalCohortEpisodes} cancer pathways in total`}
+      >
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
             label={CARE_OVERVIEW_SUMMARY_LABELS.active}
-            description="Referrals still open and being tracked."
-            value={loading ? undefined : activeEpisodes}
+            description="Pathways still in progress, no decision yet."
+            value={loading ? undefined : activeLifecycle}
             color="#0D7C6F"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label={CARE_OVERVIEW_SUMMARY_LABELS.confirmed}
-            description="Referrals where cancer has been confirmed."
-            value={loading ? undefined : totalDiagnosed}
-            color="#15803D"
+            label={CARE_OVERVIEW_SUMMARY_LABELS.inReview}
+            description="Cases the engine flagged for clinician review."
+            value={loading ? undefined : inReview}
+            color="#92400E"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            label={CARE_OVERVIEW_SUMMARY_LABELS.alerts}
-            description="Patients who may need a follow up check."
-            value={loading ? undefined : alerts.length}
-            color="#92400E"
-            badge={criticalAlerts > 0 ? `${criticalAlerts} urgent` : undefined}
+            label={CARE_OVERVIEW_SUMMARY_LABELS.cancerExcluded}
+            description="Pathways closed because cancer was ruled out."
+            value={loading ? undefined : cancerExcluded}
+            color="#475569"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatCard
+            label={CARE_OVERVIEW_SUMMARY_LABELS.confirmedCancer}
+            description="Pathways where cancer has been confirmed."
+            value={loading ? undefined : confirmedCancer}
+            color="#15803D"
           />
         </Grid>
       </Grid>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: 3, fontSize: "0.8rem" }}
+      >
+        {`${totalCohortEpisodes} cancer referral pathways across the cohort.`}
+      </Typography>
 
       {/* ── Charts row 1 ────────────────────────────────────────────── */}
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>

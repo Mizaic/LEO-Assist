@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from libs.analytics import confirmed_cancer_where
 from libs.auth.org_scope import CallerScope, ORG_PATIENT_FILTER, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
+from libs.oncology.cancer_types import normalise_cancer_type
 
 router = APIRouter()
 
@@ -308,6 +309,55 @@ def edit_milestone(
         client.close()
 
 
+def _normalise_row_field(rows: list, key: str) -> list:
+    """Coerce a single per-row ``cancer_type`` / ``condition_type`` value to
+    canonical NCDA, leaving the rest of the row untouched. Used for
+    per-episode endpoints (timeline, alerts, worklist) where each row
+    represents one episode rather than an aggregated bucket.
+    """
+    if not rows:
+        return rows
+    out = []
+    for row in rows:
+        if key in row:
+            row = {**row, key: normalise_cancer_type(row.get(key))}
+        out.append(row)
+    return out
+
+
+def _normalise_rows(rows: list, key: str) -> list:
+    """Coerce ``key`` (cancer_type / condition_type) to canonical NCDA values
+    and re-aggregate counts/percentages against the canonical taxonomy.
+
+    Several historic raw values may collapse onto the same canonical
+    bucket (e.g. ``oesophagus``, ``gastric/oesophageal`` and
+    ``stomach/oesophagus (junctional)`` all become ``Oesophageal``);
+    summing the counts here preserves that semantic.
+    """
+    if not rows:
+        return []
+    aggregated: dict[tuple, dict] = {}
+    for row in rows:
+        canonical = normalise_cancer_type(row.get(key))
+        # Group key includes any other categorical column the caller
+        # split on (typically ``status``) so we do not collapse rows
+        # that differ only on cancer_type.
+        extras = tuple(
+            sorted(
+                (k, v) for k, v in row.items() if k not in {key, "count", "n", "pct"}
+            )
+        )
+        bucket_key = (canonical, extras)
+        bucket = aggregated.setdefault(
+            bucket_key,
+            {**{k: v for k, v in row.items() if k not in {"count", "n", "pct"}}, key: canonical, "count": 0},
+        )
+        bucket["count"] += int(row.get("count") or row.get("n") or 0)
+    out = list(aggregated.values())
+    out.sort(key=lambda r: (-r["count"], r[key]))
+    return out
+
+
 def _date_where(
     date_from: Optional[str], date_to: Optional[str], alias: str = "ep"
 ) -> tuple[str, dict]:
@@ -357,7 +407,7 @@ def episode_summary(
     try:
         effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
         if effective_org:
-            return client.run(
+            rows = client.run(
                 "MATCH (_scope:Organization {id: $org}) "
                 "MATCH (p:Patient) "
                 "OPTIONAL MATCH (p)-[:REGISTERED_AT]->(orgNode:Organization) "
@@ -375,7 +425,8 @@ def episode_summary(
                 org=effective_org,
                 **date_params,
             )
-        return client.run(
+            return _normalise_rows(rows, "condition_type")
+        rows = client.run(
             "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
             f"WHERE ep.referral_date IS NOT NULL {scope_frag}{date_frag}{exclude_frag} "
             "  AND EXISTS { "
@@ -387,6 +438,7 @@ def episode_summary(
             **date_params,
             **scope_params,
         )
+        return _normalise_rows(rows, "condition_type")
     finally:
         client.close()
 
@@ -414,7 +466,7 @@ def episode_diagnosed(
     try:
         effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
         if effective_org:
-            return client.run(
+            rows = client.run(
                 "MATCH (_scope:Organization {id: $org}) "
                 "MATCH (p:Patient) "
                 "OPTIONAL MATCH (p)-[:REGISTERED_AT]->(orgNode:Organization) "
@@ -429,7 +481,8 @@ def episode_diagnosed(
                 org=effective_org,
                 **date_params,
             )
-        return client.run(
+            return _normalise_rows(rows, "cancer_type")
+        rows = client.run(
             "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
             f"WHERE {cohort} "
             f"{scope_frag}{date_frag} "
@@ -438,6 +491,7 @@ def episode_diagnosed(
             **date_params,
             **scope_params,
         )
+        return _normalise_rows(rows, "cancer_type")
     finally:
         client.close()
 
@@ -463,7 +517,7 @@ def episode_timeline(
     try:
         if patient_id:
             require_patient_in_scope(client, scope, patient_id)
-            return client.run(
+            rows = client.run(
                 "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
                 f"WHERE toString(p.id) = $pid {merged_filter}"
                 "OPTIONAL MATCH (e:Encounter)-[r:IS_PART_OF]->(ep) "
@@ -490,9 +544,10 @@ def episode_timeline(
                 "ORDER BY ep.referral_date",
                 pid=patient_id,
             )
+            return _normalise_row_field(rows, "condition_type")
         effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
         if effective_org:
-            return client.run(
+            rows = client.run(
                 "MATCH (_scope:Organization {id: $org}) "
                 "MATCH (p:Patient) "
                 "OPTIONAL MATCH (p)-[:REGISTERED_AT]->(orgNode:Organization) "
@@ -521,7 +576,8 @@ def episode_timeline(
                 "ORDER BY ep.referral_date DESC LIMIT 200",
                 org=effective_org,
             )
-        return client.run(
+            return _normalise_row_field(rows, "condition_type")
+        rows = client.run(
             "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
             f"WHERE true {merged_filter}{scope_frag}"
             "OPTIONAL MATCH (e:Encounter)-[r:IS_PART_OF]->(ep) "
@@ -544,6 +600,7 @@ def episode_timeline(
             "ORDER BY ep.referral_date DESC LIMIT 200",
             **scope_params,
         )
+        return _normalise_row_field(rows, "condition_type")
     finally:
         client.close()
 
@@ -576,7 +633,7 @@ def safety_net_alerts(
                 f"WHERE true {scope_frag}"
             )
             params = {**scope_params}
-        return client.run(
+        rows = client.run(
             f"{org_prefix}"
             "OPTIONAL MATCH (a)-[:FOR_EPISODE]->(ep:EpisodeOfCare) "
             "OPTIONAL MATCH (a)-[:TRIGGERED_AT]->(enc:Encounter) "
@@ -593,6 +650,7 @@ def safety_net_alerts(
             "ORDER BY a.created_at DESC LIMIT 200",
             **params,
         )
+        return _normalise_row_field(rows, "condition_type")
     finally:
         client.close()
 
@@ -628,7 +686,7 @@ def safety_net_worklist(
             )
             params = {**scope_params}
 
-        return client.run(
+        rows = client.run(
             f"{org_prefix}"
             "WHERE coalesce(ep.status, '') <> 'merged' "
             "  AND coalesce(ep.status, '') <> 'closed' "
@@ -682,6 +740,7 @@ def safety_net_worklist(
             "ORDER BY ep.referral_date ASC",
             **params,
         )
+        return _normalise_row_field(rows, "condition_type")
     finally:
         client.close()
 

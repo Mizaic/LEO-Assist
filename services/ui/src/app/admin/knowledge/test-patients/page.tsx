@@ -80,6 +80,7 @@ import {
   getAspectCounts,
   getBitmapStatus,
   getTriageOutcomeCounts,
+  listGuidanceRules,
   listTestPatients,
   replay,
 } from "./api";
@@ -198,6 +199,13 @@ export default function TestPatientLibraryKnowledgeTab() {
   const [runningRowId, setRunningRowId] = useState<string | null>(null);
   const [replayError, setReplayError] = useState<string | null>(null);
   const [notCompiled, setNotCompiled] = useState(false);
+  // Rule lookup keyed by rule_id, used to translate raw rule_ids in
+  // the replay dialog into the same friendly label the rule picker
+  // uses (e.g. "1.1.5 Offer an urgent chest X-ray ..."). Lazy: we
+  // only fetch on the first replay so the page mount stays cheap.
+  const [rulesLookup, setRulesLookup] = useState<
+    Record<string, { name?: string; recommendation_text?: string }>
+  >({});
 
   const fetchAll = useCallback(() => {
     setLoading(true);
@@ -290,6 +298,34 @@ export default function TestPatientLibraryKnowledgeTab() {
     };
   }, [refreshKey]);
 
+  // Lazy rule lookup. Fetches every rule in the active scope once
+  // (~hundreds of rows, capped at 500 to match the rule picker) and
+  // memoises the result. Each entry stores BOTH the curated short
+  // ``name`` and the picker's ``display_label`` so the replay dialog
+  // can render the same friendly label the user picked from
+  // (e.g. "1.1.5 Offer an urgent chest X-ray ...") even when the
+  // patient was scaffolded against a now-edited rule_id.
+  const ensureRulesLookup = useCallback(async () => {
+    if (Object.keys(rulesLookup).length > 0) return rulesLookup;
+    try {
+      const rules = await listGuidanceRules({ limit: 500 });
+      const next: Record<
+        string,
+        { name?: string; recommendation_text?: string }
+      > = {};
+      for (const r of rules) {
+        next[r.rule_id] = {
+          name: r.display_label || r.name || undefined,
+          recommendation_text: r.recommendation_text || undefined,
+        };
+      }
+      setRulesLookup(next);
+      return next;
+    } catch {
+      return rulesLookup;
+    }
+  }, [rulesLookup]);
+
   const runReplayFor = useCallback(
     async (patientsToTest: TestPatientRow[], runningId: string | null) => {
       // Drop NLP / Episodes rows -- the bitmap evaluator only knows
@@ -307,12 +343,16 @@ export default function TestPatientLibraryKnowledgeTab() {
       setRunningRowId(runningId);
       setReplayError(null);
       try {
+        // Kick off the rule-name fetch in parallel with the replay
+        // so the dialog opens with friendly labels already in hand.
+        const rulesPromise = ensureRulesLookup();
         const result = await replay({
           patient_ids: eligible.map((p) => p.id),
           scope_type: "global",
           scope_id: "default",
           persist_report: false,
         });
+        await rulesPromise;
         setReplayReport(result);
         setReplayPatients(eligible);
         const looksUncompiled = (result.results || []).some((row) =>
@@ -339,7 +379,7 @@ export default function TestPatientLibraryKnowledgeTab() {
         setRunningRowId(null);
       }
     },
-    [],
+    [ensureRulesLookup],
   );
 
   // Master-checkbox state derived from the visible rows + selection
@@ -930,6 +970,7 @@ export default function TestPatientLibraryKnowledgeTab() {
         onClose={() => setReplayOpen(false)}
         report={replayReport}
         patients={replayPatients}
+        rules={rulesLookup}
         mode="live"
       />
     </Box>

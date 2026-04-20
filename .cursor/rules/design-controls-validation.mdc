@@ -1,64 +1,19 @@
 ---
-description: Validate design controls artefact consistency whenever design-controls files are created or modified
-globs: design-controls/**/*.yaml, design-controls/**/*.csv, design-controls/**/*.md
+description: Redirect -- design-controls-validation has been replaced by atlas-design-controls-validation.
 alwaysApply: false
 ---
 
-# Design Controls Consistency Checks
+# Design Controls Consistency Checks (REDIRECT)
 
-When ANY file under `design-controls/` is created or modified, run these validation checks before proceeding.
+This rule has been replaced. The local `design-controls/` directory
+no longer exists; Atlas validates schema, enums, and required fields
+server-side.
 
-## ID Uniqueness
+The local pre-flight + post-call checks now live in:
 
-- Scan ALL risk files (including multi-document files like R-LEO-AI-038.yaml that may contain multiple risks) for duplicate IDs.
-- If a duplicate is found -> **STOP** and resolve before proceeding.
-- One risk per file for all new risks. Never create multi-document risk files.
+- `atlas-design-controls-validation.mdc`
 
-## derived_from Validation
+The wider workflow lives in:
 
-- Every DI `derived_from` entry MUST match the pattern `UN-LEO-AI-\d{3}`.
-- Risk IDs (`R-LEO-AI-*`) and other DI IDs (`DI-LEO-AI-*`) are NOT valid in `derived_from`.
-- Every referenced UN ID must exist as a file in `design-controls/user-needs/`.
-- If a DI mitigates a risk, put the risk ID in the `risks` field, NOT in `derived_from`.
-
-## Bidirectional Traceability
-
-- For each DI with `derived_from: ["UN-LEO-AI-XXX"]`, confirm that `UN-LEO-AI-XXX.yaml` lists this DI in its `design_inputs` array. If not, add it.
-- For each UN with `design_inputs: ["DI-LEO-AI-XXX"]`, confirm that `DI-LEO-AI-XXX.yaml` has this UN in its `derived_from` array.
-
-## Risk Completeness (ISO 14971)
-
-Every `R-LEO-AI-*.yaml` file MUST contain ALL of these fields:
-
-| Field | Requirement |
-|-------|-------------|
-| `id` | `R-LEO-AI-\d{3}` format |
-| `title` | Non-empty |
-| `hazard.description` | Non-empty |
-| `hazard.category` | One of: software_defect, misuse, data_corruption, security_breach, performance_degradation, integration_failure, infrastructure_failure, use_error, clinical_safety, data_integrity |
-| `hazardous_situation` | Non-empty, >= 20 characters |
-| `harm.description` | Non-empty |
-| `harm.severity` | One of: negligible, minor, serious, critical, catastrophic |
-| `initial_risk_estimate` | All 5 fields: severity (1-5), probability (1-5), detectability (1-5), rpn (S*P*D), risk_level |
-| `mitigation_measures` | At least 1 entry with `implemented_by` and `verified_by` populated |
-| `residual_risk_estimate` | All 7 fields: severity, probability, detectability, rpn, risk_level, acceptability, justification |
-| `monitoring` | monitoring_plan, metrics, review_frequency |
-| `metadata` | identified_by, identified_date, status |
-
-## Severity Consistency
-
-- `harm.severity` text MUST match `initial_risk_estimate.severity` numeric:
-  negligible=1, minor=2, serious=3, critical=4, catastrophic=5
-- `initial_risk_estimate.rpn` MUST equal severity * probability * detectability
-- `residual_risk_estimate.rpn` MUST be <= `initial_risk_estimate.rpn`
-
-## Safety Class Gating
-
-- DIs with `safety_class: "B"` or `"C"` and `risks: []` -> **WARNING**: justify why no risks apply or add risk IDs.
-- DIs with `safety_class: "C"` -> a VAL test MUST exist (see vt-enforcement.mdc Step 6).
-
-## Traceability Matrix
-
-- When any DI, DO, VT, VAL, UN, or Risk is created or modified, update BOTH:
-  - `design-controls/DC-TM-001-traceability-matrix.md`
-  - `design-controls/DC-TM-002-traceability-matrix.csv`
+- `atlas-design-controls-first.mdc`
+- `atlas-vt-enforcement.mdc`

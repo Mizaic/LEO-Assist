@@ -28,6 +28,8 @@ from libs.analytics import (
     suspected_cancer_referral_where,
 )
 from libs.auth.org_scope import CallerScope, get_caller_scope
+from libs.episodes.lifecycle import HERO_BUCKETS, build_hero_bucket_case
+from libs.episodes.status import CLOSED_STATUSES
 from libs.neo4j_client.client import PatientGraphClient
 
 from ._audit_comorbidities import (  # noqa: F401 -- re-exported for main.py
@@ -147,17 +149,29 @@ def audit_summary(
             **params,
         )
 
-        _CLOSED = {
-            "closed",
-            "completed",
-            "merged",
-            "excluded",
-            "closed_benign",
-            "closed_related",
-            "closed_phantom",
-            "stale_no_diagnosis",
-            "stale_post_specialist",
-        }
+        # MECE hero-card bucket counts -- run against the FULL cohort
+        # (every EpisodeOfCare not in the always-excluded admin set), so
+        # the four cards sum to total_episodes by construction. Bucket
+        # logic mirrors libs/episodes/lifecycle.classify_hero_bucket.
+        # See DI-105A4EC7.
+        bucket_case = build_hero_bucket_case("ep")
+        bucket_rows = client.run(
+            f"{base}"
+            f"WITH ep, {bucket_case} AS bucket "
+            "RETURN bucket, count(DISTINCT ep) AS n",
+            **params,
+        )
+        bucket_counts: dict[str, int] = {b: 0 for b in HERO_BUCKETS}
+        for row in bucket_rows or []:
+            name = row.get("bucket")
+            if name in bucket_counts:
+                bucket_counts[name] = int(row.get("n") or 0)
+
+        # Canonical "no longer active" set, owned by libs/episodes/status.py
+        # (DI-LEO-AI-529). Do NOT redefine inline -- the contract test
+        # tests/contracts/test_episode_status_vocabulary.py asserts the
+        # writer (producer) and dashboard (consumer) share this vocabulary.
+        _CLOSED = CLOSED_STATUSES
 
         def _safe_days(a: Any, b: Any) -> Optional[float]:
             try:
@@ -209,9 +223,21 @@ def audit_summary(
             mid = n // 2
             return float(vals[mid]) if n % 2 else (vals[mid - 1] + vals[mid]) / 2.0
 
+        mece_total = sum(bucket_counts.values())
         return {
             "total_episodes": total,
             "active_episodes": active,
+            # MECE lifecycle decomposition of the full cohort. The four
+            # new fields sum to total_cohort_episodes by construction
+            # and drive the four dashboard hero cards. The pre-existing
+            # active_episodes / confirmed_cancers fields are preserved
+            # for backward compatibility (other endpoints still consume
+            # them) but the dashboard now reads the new keys.
+            "total_cohort_episodes": mece_total,
+            "active_lifecycle_episodes": bucket_counts["active"],
+            "in_review_episodes": bucket_counts["in_review"],
+            "cancer_excluded_episodes": bucket_counts["cancer_excluded"],
+            "confirmed_cancer_episodes": bucket_counts["confirmed_cancer"],
             "confirmed_cancers": confirmed,
             "confirmed_cancers_via_2ww": confirmed_via_2ww,
             "confirmed_cancers_via_2ww_pct": confirmed_via_2ww_pct,

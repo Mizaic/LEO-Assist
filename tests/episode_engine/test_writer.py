@@ -111,7 +111,11 @@ def test_episode_status_priority_order():
     review = _episode(needs_human_review=True)
     active = _episode()
 
-    assert _episode_status(benign) == "benign_closed"
+    # DI-LEO-AI-529: writer must emit canonical EpisodeStatus values.
+    # The earlier "benign_closed" spelling produced silent dashboard
+    # drift (closed benign episodes appeared as 'active') and is now
+    # forbidden by the contract test.
+    assert _episode_status(benign) == "closed_benign"
     assert _episode_status(completed) == "completed"
     assert _episode_status(review) == "review"
     assert _episode_status(active) == "active"

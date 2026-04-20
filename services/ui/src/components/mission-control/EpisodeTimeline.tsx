@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
 import type { MissionEpisode } from "@/lib/missionControlApi";
+import { CLOSURE_REASON_STATUSES } from "@/lib/episodeStatus";
 
 // -- Milestone configuration --
 
@@ -25,12 +26,7 @@ const MILESTONE_LABELS: Record<string, string> = {
   benign_closure: "Closed",
 };
 
-const CLOSURE_STATUSES = new Set([
-  "closed_benign",
-  "stale_no_diagnosis",
-  "stale_post_specialist",
-  "closed_related",
-]);
+const CLOSURE_STATUSES: ReadonlySet<string> = new Set(CLOSURE_REASON_STATUSES);
 
 // -- Interval colour thresholds --
 

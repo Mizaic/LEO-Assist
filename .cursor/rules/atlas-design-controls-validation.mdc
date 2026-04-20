@@ -1,0 +1,137 @@
+---
+description: Local pre-flight checks before calling Atlas MCP design-control tools, and the post-call sanity checks that close the loop.
+alwaysApply: false
+---
+
+# Atlas Design Controls -- Local Pre-flight + Post-call Sanity
+
+Atlas validates schema, enums, and required fields server-side, so
+most checks happen there. This rule lists what you should still
+verify locally **before** calling a `create_*` / `update_*` tool,
+and what you should verify **after** to close the trace loop.
+
+The local YAML directories under `design-controls/` no longer exist;
+this rule replaces the old `design-controls-validation.mdc`.
+
+## Pre-flight checks (run before calling create_* / update_*)
+
+### 1. ID format
+
+- Every Atlas dcId you reference must match the new 8-hex format
+  (`UN-XXXXXXXX`, `DI-XXXXXXXX`, `DO-XXXXXXXX`, `VT-XXXXXXXX`,
+  `VAL-XXXXXXXX`, `R-XXXXXXXX`).
+- Legacy `UN-LEO-AI-NNN` etc. are read-only history and only valid
+  when looking up the legacy-to-Atlas mapping in
+  `compliance/atlas-migration-evidence/atlas-id-mapping.csv`.
+
+### 2. Bidirectional traceability intent
+
+When you create a DI, also plan the UN link:
+
+```
+link_design_controls(
+  source_ids=["UN-..."], target_ids=["DI-..."],
+  relationship="HAS_DESIGN_INPUT",
+)
+```
+
+When you create a DO, plan the DI link (`IMPLEMENTS`).
+When you create a VT, plan two links: `VERIFIES` to the DI and
+`TESTS` to the DO.
+When you create a Risk, plan a `MITIGATES` link from each DI it
+mitigates.
+
+If you do not plan to wire the parent links you must NOT call the
+create tool.
+
+### 3. Risk completeness (ISO 14971)
+
+Every `create_risk` / `update_risk` call MUST set:
+
+| Field                                              | Requirement |
+|----------------------------------------------------|-------------|
+| `title`                                            | non-empty |
+| `hazard_description`                               | non-empty |
+| `hazard_category`                                  | one of: `clinical_safety`, `data_protection`, `usability`, `security_breach`, `availability`, `data_integrity`, `software_defect`, `misuse`, `performance_degradation`, `integration_failure`, `infrastructure_failure`, `use_error` |
+| `hazardous_situation`                              | non-empty, >= 20 chars |
+| `harm_description`                                 | non-empty |
+| `harm_severity`                                    | one of: `negligible`, `minor`, `serious`, `critical`, `catastrophic` |
+| `initial_severity`, `initial_probability`, `initial_detectability` | each 1..5 |
+| `initial_risk_score`                               | severity * probability * detectability |
+| `mitigation_plan_description`                      | non-empty; mention `implemented_by` DI dcIds and `verified_by` VT dcIds |
+| `mitigation_control_type`                          | one of: `design_feature`, `protective_measure`, `procedural_control`, `information_for_safety` |
+| `mitigation_effectiveness`                         | one of: `effective`, `partially_effective`, `pending` |
+| `residual_severity`, `residual_probability`, `residual_detectability` | each 1..5 |
+| `residual_risk_score`                              | severity * probability * detectability; SHOULD be <= initial |
+| `residual_acceptability`                           | one of: `acceptable`, `conditionally_acceptable`, `unacceptable` |
+| `residual_justification`                           | non-empty |
+| `monitoring_plan`, `monitoring_metrics`, `review_frequency` | non-empty |
+| `identified_by`, `identified_date`, `status`       | populated; status from the enum below |
+
+### 4. Risk status enum
+
+Use one of: `Identified`, `Analyzed`, `Control Implemented`,
+`Residual Accepted`, `Closed`, `Inactive`, `Obsolete`.
+
+The legacy local value `Mitigated` is **not** valid in Atlas. Map to
+`Control Implemented`.
+
+### 5. Severity consistency
+
+- `harm_severity` text MUST match `initial_severity` numeric:
+  negligible=1, minor=2, serious=3, critical=4, catastrophic=5.
+- The same severity number SHOULD be used in `residual_severity`
+  unless the control demonstrably reduces severity.
+
+### 6. Stakeholder enum (User Need)
+
+`stakeholder_types` MUST be a list drawn from: `Clinician`,
+`Quality Engineer`, `Developer`, `IT Admin`, `Quality Manager`,
+`External Auditor`, `Knowledge Base Author`. Map free-text to the
+closest match before calling.
+
+### 7. Acceptance criteria + protocol steps shape
+
+For every `create_*` / `update_*` call, `acceptance_criteria` and
+`protocol_steps` are **arrays of plain strings**. Never pass dicts
+or nested objects.
+
+### 8. UUID vs dcId
+
+Some tools want the internal UUID (`id`), not the dcId. Always look
+the UUID up via `get_design_control(...).id` before calling:
+
+- `update_design_input(dc_id=<UUID>)`
+- `update_design_output(dc_id=<UUID>)`
+- `update_verification_test(dc_id=<UUID>)`
+- `update_validation_test(dc_id=<UUID>)`
+- `update_risk(risk_id=<UUID>)`
+- `record_verification_run(vt_id=<UUID>)`
+- `record_validation_run(val_id=<UUID>)`
+
+## Post-call sanity (run after every create / link)
+
+1. `get_traceability_gaps(product_id="PROD-LEO-CORE-AI-20260415-6AE8A23B")`
+   -- confirm the new artefact does not appear in
+   `orphan_design_inputs` or `orphan_design_outputs`. If it does,
+   the parent / child link did not stick; re-call
+   `link_design_controls`.
+2. For VTs: confirm the latest run is recorded. If the VT was
+   created but `record_verification_run` was not called, the VT
+   shows as `not_executed` in `get_design_control_stats`.
+3. For Risks: confirm the `MITIGATES` link to each mitigating DI
+   is present by inspecting the DI's neighbours in
+   `get_design_control(...).links`.
+
+## What you no longer need to do
+
+- ID uniqueness checks: Atlas guarantees unique dcIds.
+- Multi-document YAML deduplication: there are no YAML files.
+- `derived_from` regex validation: replaced by typed
+  `link_design_controls` relationships.
+- Bidirectional UN <-> DI mirroring: a single `HAS_DESIGN_INPUT`
+  link is the trace; both ends see it via `get_design_control`.
+- Updating a local traceability matrix: use
+  `get_traceability_matrix(product_id=...)`.
+- Updating `design-controls/README.md` artefact tables: the file is
+  gone.

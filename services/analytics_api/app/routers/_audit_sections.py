@@ -15,6 +15,7 @@ from typing import Optional
 
 from libs.analytics import confirmed_cancer_where
 from libs.neo4j_client.client import PatientGraphClient
+from libs.oncology.cancer_types import normalise_cancer_type
 
 _SAFE_BIRTH_DATE = (
     "CASE "
@@ -42,35 +43,32 @@ _SAFE_FIRST_PRESENTATION_DATE = (
 
 
 def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
-    _NCDA_EXCLUDED = (
-        "'unknown'",
-        "'non_site_specific'",
-        "'skin'",
-        "'upper_gi'",
-        "'head_and_neck'",
-        "'urological'",
-        "'gynaecological'",
-        "'haematological'",
-        "'childrens_tumour'",
-    )
-    exclusion = ", ".join(_NCDA_EXCLUDED)
+    # Post-migration every ep.cancer_type is one of the canonical NCDA
+    # values (libs.oncology.cancer_types). Normalise on read as a
+    # safety net for any value the migration missed; collapse synonyms
+    # into a single bucket. The Unknown Primary / No Information / Other
+    # sentinels are intentionally surfaced (they were silently hidden
+    # under the legacy exclusion list).
     rows = client.run(
         f"{base}"
         f"AND {confirmed_cancer_where('ep')} "
         "AND ep.cancer_type IS NOT NULL "
-        f"AND NOT ep.cancer_type IN [{exclusion}] "
-        "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS n "
-        "ORDER BY n DESC",
+        "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS n",
         **params,
     )
-    total = sum(r["n"] for r in rows) or 1
+    by_canonical: dict[str, int] = {}
+    for r in rows:
+        canonical = normalise_cancer_type(r.get("cancer_type"))
+        by_canonical[canonical] = by_canonical.get(canonical, 0) + int(r["n"] or 0)
+    total = sum(by_canonical.values()) or 1
+    ordered = sorted(by_canonical.items(), key=lambda kv: (-kv[1], kv[0]))
     return [
         {
-            "cancer_type": r["cancer_type"],
-            "n": r["n"],
-            "pct": round(r["n"] * 100.0 / total, 1),
+            "cancer_type": canonical,
+            "n": n,
+            "pct": round(n * 100.0 / total, 1),
         }
-        for r in rows
+        for canonical, n in ordered
     ]
 
 
@@ -173,7 +171,7 @@ def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict
         ],
         "by_cancer_type": [
             {
-                "cancer_type": r["cancer_type"],
+                "cancer_type": normalise_cancer_type(r["cancer_type"]),
                 "stage_group": r["stage_group"],
                 "n": r["n"],
                 "pct": r["pct"],
