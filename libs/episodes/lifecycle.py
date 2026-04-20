@@ -1,5 +1,10 @@
 """Canonical MECE lifecycle classifier for hero-card metrics (DI-105A4EC7).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Every ``EpisodeOfCare`` falls into exactly one of four lifecycle buckets:
 
   - ``cancer_excluded``    status = closed_benign (cancer ruled out)

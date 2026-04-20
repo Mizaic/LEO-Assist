@@ -17,6 +17,11 @@
  * Therefore all test-run paths (which belong on the pipeline worker, not
  * the core API) must be declared explicitly here, BEFORE the generic
  * /api/pipeline/ rule, so the first-match wins logic routes them correctly.
+ *
+ * Atlas trace:
+ *   DO: DO-19BBE973
+ *   DI: DI-B746E19E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { NextRequest, NextResponse } from "next/server";
 

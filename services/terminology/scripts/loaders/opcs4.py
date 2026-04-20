@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-4D608335
+  DI: DI-760F5FB7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4D608335")
+
 Phase 7: Load NHS OPCS-4 data files into Neo4j.
 
 Source: TRUD pack 10, item 119 ("OPCS-4 data files").

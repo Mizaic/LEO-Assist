@@ -1,5 +1,10 @@
 """Detect lab-result text and plan the procedure / observable / finding triple.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Applies to gold-label training text that follows the standard UK primary-care
 lab-result grammar, e.g.
 

@@ -1,5 +1,10 @@
 """Density preference helpers (Wave E Phase 1 / DI-LEO-AI-169).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Reads and writes the per-practitioner UI density preference. Modeled after
 ``libs/auth/role_state.py`` so callers get the same fail-soft behaviour: any
 graph error returns ``None`` and the UI falls back to the comfortable

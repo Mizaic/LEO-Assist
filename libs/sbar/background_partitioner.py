@@ -1,5 +1,10 @@
 """Partition the SBAR Background sources into N <= 8 LLM-sized parts.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 The previous strategy was to shrink-or-drop sources until the prompt
 fit. That is unsafe -- dropping a record can drop the medication,
 comorbidity, or event that the recommendation hinges on, and the

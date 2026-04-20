@@ -1,5 +1,10 @@
 """JSON schemas for the three SBAR prompts.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 These are stored as PromptConfig.outputSchema in Neo4j (seeded from
 ``scripts/seed_prompt_configs.py``) so they can be edited at runtime.
 """

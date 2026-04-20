@@ -2,7 +2,7 @@
 
 Atlas trace:
   DO: DO-245F62CB
-  DI: DI-091CBBAB, DI-176EA4FF, DO-F78C84A6
+  DI: DI-091CBBAB, DI-176EA4FF
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-245F62CB")
 
 The legacy in-process CodingPipeline has been removed.  Callers should

@@ -1,5 +1,10 @@
 """Cypher queries for ModelConfig nodes in the Knowledge Graph.
 
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+
 ModelConfig is the single source of truth for cost estimation and spend
 reporting. Env vars are only used as a bootstrap when no nodes exist yet
 (fresh instance or DR restore).

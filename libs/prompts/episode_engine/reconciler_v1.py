@@ -1,5 +1,10 @@
 """Stage 5 prompt: reconcile candidate windows into final episodes.
 
+Atlas trace:
+  DO: DO-710D9EEB
+  DI: DI-CBCA6E2D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-710D9EEB")
+
 Inputs (USER_TEMPLATE):
     patient_id        : str
     candidate_payload : JSON-encoded list of {window_id, episode_type,

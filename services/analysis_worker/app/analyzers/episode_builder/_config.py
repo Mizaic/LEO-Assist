@@ -3,7 +3,7 @@
 Atlas trace:
   DO: DO-694875ED
   Also implements: DO-6C398363
-  DI: DI-080A2454, DO-B7FCDAFB
+  DI: DI-080A2454
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-694875ED")
 """
 

@@ -3,7 +3,7 @@
 Atlas trace:
   DO: DO-6DFD03E0
   Also implements: DO-A23404E0
-  DI: DI-23822663, DI-527848A8, DO-671C15BF
+  DI: DI-23822663, DI-527848A8
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-6DFD03E0")
 
 Scopes staging evidence to a post-diagnosis 90-day window and filters

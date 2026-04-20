@@ -12,8 +12,12 @@
  *   - NHS England NDRS Stage at Diagnosis data hub (2018)
  *   - Barclay et al. (2021) Br J Cancer 124:1320-1329 (2015 England data)
  *   - NCDA 2018 national tables (Table 1, NCIN)
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
-
 /** Cancer types excluded from all visualisations (no meaningful stage data). */
 export const EXCLUDED_CANCER_TYPES = new Set(["unknown", "non_site_specific"]);
 

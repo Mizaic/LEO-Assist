@@ -1,5 +1,10 @@
 """SNOMED cancer-type site resolution.
 
+Atlas trace:
+  DO: DO-0DFA6961
+  DI: DI-E3689657
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0DFA6961")
+
 Maps SNOMED concept names and IDs to canonical NCDA cancer-site keys.
 """
 

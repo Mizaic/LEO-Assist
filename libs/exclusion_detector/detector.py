@@ -1,5 +1,10 @@
 """Cancer exclusion detector — post-referral encounter classification.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Fetches encounters in the 0–100 day window after a cancer referral,
 applies rule-based pre-filtering, then uses 2-model LLM consensus to
 classify each encounter as cancer_excluded / cancer_confirmed /

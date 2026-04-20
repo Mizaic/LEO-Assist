@@ -1,5 +1,10 @@
 """ODS nightly sync service.
 
+Atlas trace:
+  DO: DO-31410049
+  DI: DI-F46494AE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-31410049")
+
 Core orchestration logic for the LEO ODS Nightly Sync Job.
 Designed to run as an Azure Container Apps Job (cron: 0 2 * * *).
 

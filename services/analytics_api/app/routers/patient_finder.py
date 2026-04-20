@@ -1,5 +1,10 @@
 """Patient Finder endpoints (DI-LEO-AI-230).
 
+Atlas trace:
+  DO: DO-31410049
+  DI: DI-F46494AE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-31410049")
+
 Backs the PatientFinder primitive used by the SBAR playground (and any
 future surface that wants to pick a patient + their encounters /
 documents) without forcing a reviewer to remember Neo4j ids.

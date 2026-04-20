@@ -1,0 +1,262 @@
+{
+  "to_link": [
+    {
+      "di": "DI-9BF6087F",
+      "risk": "R-2183B9DC",
+      "reason": "Integration-fetch for missing data directly mitigates pipeline-emits-clinical-output-despite-missing-completeness risk"
+    },
+    {
+      "di": "DI-90C08758",
+      "risk": "R-732325CF",
+      "reason": "First-seen milestone for 2WW pathway addresses episode builder matching gaps"
+    },
+    {
+      "di": "DI-4710EF03",
+      "risk": "R-732325CF",
+      "reason": "Cancer-site classification feeds episode builder matching"
+    },
+    {
+      "di": "DI-5672762D",
+      "risk": "R-732325CF",
+      "reason": "Diagnosis-aware open-episode completion is exact mitigation for episode builder rigid matching"
+    },
+    {
+      "di": "DI-A0D8090D",
+      "risk": "R-732325CF",
+      "reason": "Milestone temporal integrity corrects episode builder edge cases"
+    },
+    {
+      "di": "DI-0338A282",
+      "risk": "R-732325CF",
+      "reason": "Histology vocabulary expansion supports correct episode confirmation"
+    },
+    {
+      "di": "DI-ADBEBCBB",
+      "risk": "R-8A226E26",
+      "reason": "Anchor/Milestone Detection guards against spurious benign closure"
+    },
+    {
+      "di": "DI-D149AEDB",
+      "risk": "R-732325CF",
+      "reason": "Episode Consolidation directly addresses episode builder fragmentation"
+    },
+    {
+      "di": "DI-D0FC22FE",
+      "risk": "R-732325CF",
+      "reason": "Encounter-centric Mission Control batch recode addresses episode matching gaps"
+    },
+    {
+      "di": "DI-F93ACEDB",
+      "risk": "R-732325CF",
+      "reason": "Avoidable delay assessment depends on accurate episode timing"
+    },
+    {
+      "di": "DI-3DFEE507",
+      "risk": "R-61F5F634",
+      "reason": "GoldLabel single-source-of-truth mitigates corrupt training data risk"
+    },
+    {
+      "di": "DI-86A1E16F",
+      "risk": "R-61F5F634",
+      "reason": "Model registry with manifest provenance mitigates corrupt training data risk"
+    },
+    {
+      "di": "DI-2F963FC6",
+      "risk": "R-61F5F634",
+      "reason": "NER post-processing protects against bad training data downstream effects"
+    },
+    {
+      "di": "DI-3103A562",
+      "risk": "R-61F5F634",
+      "reason": "Training worker entry-point and CLI is the gate for training-data flow"
+    },
+    {
+      "di": "DI-CF5162BF",
+      "risk": "R-61F5F634",
+      "reason": "Assertion inference helper protects assertion correctness used in training data"
+    },
+    {
+      "di": "DI-FE1BC901",
+      "risk": "R-61F5F634",
+      "reason": "Pipeline label filter and extraction-response parser guards training data pipeline"
+    },
+    {
+      "di": "DI-7EFE2326",
+      "risk": "R-2183B9DC",
+      "reason": "ServiceDataRequirement registry defines the completeness checks for the missing-completeness risk"
+    },
+    {
+      "di": "DI-55C1C21F",
+      "risk": "R-4428C98A",
+      "reason": "Server-side search expansion supports reviewer SurfaceForm mapping correctness"
+    },
+    {
+      "di": "DI-B4D56E92",
+      "risk": "R-CF456A47",
+      "reason": "Terminology loaders are the data foundation for terminology resolver concept selection"
+    },
+    {
+      "di": "DI-17B5738E",
+      "risk": "R-CF456A47",
+      "reason": "Terminology API directly supports concept resolution accuracy"
+    },
+    {
+      "di": "DI-82036B4D",
+      "risk": "R-4428C98A",
+      "reason": "Terminology preferred-term normalisation prevents reviewer-approved bad mapping propagation"
+    },
+    {
+      "di": "DI-E10BDE6E",
+      "risk": "R-89324919",
+      "reason": "Role-first intro copy is the explicit mitigation for role-aware Knowledge intro risk"
+    },
+    {
+      "di": "DI-3ED218CA",
+      "risk": "R-89324919",
+      "reason": "CRUD Knowledge tabs feed the role-aware Knowledge intro"
+    },
+    {
+      "di": "DI-AA9F5EDA",
+      "risk": "R-32CB414F",
+      "reason": "Clinical Guidelines orchestrator chrome migration must preserve admin reference page links"
+    },
+    {
+      "di": "DI-21946271",
+      "risk": "R-32CB414F",
+      "reason": "Training Data tab chrome migration must preserve admin reference page links"
+    },
+    {
+      "di": "DI-6424B6FC",
+      "risk": "R-32CB414F",
+      "reason": "Knowledge tabs visual parity work must preserve admin reference page links"
+    },
+    {
+      "di": "DI-A0DAF527",
+      "risk": "R-32CB414F",
+      "reason": "Wave E Phase 1 Knowledge primitives migration touches admin reference pages"
+    },
+    {
+      "di": "DI-3717DFB0",
+      "risk": "R-61F5F634",
+      "reason": "Shared utilities (device resolver, structured logging) underpin training-data audit trail"
+    },
+    {
+      "di": "DI-A93499CE",
+      "risk": "R-2183B9DC",
+      "reason": "OpenTelemetry tracing is the observability mitigation for completeness-check breach detection"
+    },
+    {
+      "di": "DI-058524DB",
+      "risk": "R-61F5F634",
+      "reason": "API request/response contract models constrain training-data shape end-to-end"
+    },
+    {
+      "di": "DI-85AB13D7",
+      "risk": "R-61F5F634",
+      "reason": "LLM prompt asset registry governs prompt content used to generate training data"
+    },
+    {
+      "di": "DI-B954388C",
+      "risk": "R-61F5F634",
+      "reason": "PromptConfig with caching governs LLM behaviour producing training-grade output"
+    },
+    {
+      "di": "DI-8A943628",
+      "risk": "R-61F5F634",
+      "reason": "De-identification of clinical text protects training-data flow from PHI leakage"
+    },
+    {
+      "di": "DI-AE7680C0",
+      "risk": "R-61F5F634",
+      "reason": "LLM provider cache and Bedrock retry plumbing governs reliable LLM response acquisition"
+    },
+    {
+      "di": "DI-2D49649C",
+      "risk": "R-61F5F634",
+      "reason": "Model artefact blob store is the persistence layer for training output"
+    },
+    {
+      "di": "DI-B0A1E549",
+      "risk": "R-732325CF",
+      "reason": "FHIR pathway orchestration uses PlanDefinition to define the clinical pathway episode flow"
+    },
+    {
+      "di": "DI-FC9A8824",
+      "risk": "R-732325CF",
+      "reason": "FHIR API exposes the pathway definitions feeding episode builder behaviour"
+    },
+    {
+      "di": "DI-6A1CD328",
+      "risk": "R-732325CF",
+      "reason": "FHIR-based agent configuration registry parameterises the pathway/episode logic"
+    },
+    {
+      "di": "DI-5B694FBE",
+      "risk": "R-732325CF",
+      "reason": "Episode-engine state and writer rollups directly implement episode behaviour"
+    },
+    {
+      "di": "DI-8E82275B",
+      "risk": "R-732325CF",
+      "reason": "NCDA Report Template Generation depends on accurate episode and pathway data"
+    },
+    {
+      "di": "DI-5F978E36",
+      "risk": "R-09A3F013",
+      "reason": "Service-to-service auth helper is the perimeter against unauthorised tenant access (analogous mitigation)"
+    },
+    {
+      "di": "DI-81E8F4B8",
+      "risk": "R-09A3F013",
+      "reason": "Azure managed-identity credential resolver enforces tenant isolation perimeter"
+    },
+    {
+      "di": "DI-C978B245",
+      "risk": "R-09A3F013",
+      "reason": "ODS lookup client is the canonical org/tenant identity source"
+    }
+  ],
+  "to_skip_class_a": [
+    {
+      "di": "DI-21C63B6A",
+      "reason": "Design-system workspace package - internal UI infrastructure, Class A; no risk required"
+    },
+    {
+      "di": "DI-61CB27B2",
+      "reason": "Typography selection (DM Sans) - cosmetic, Class A; no risk required"
+    },
+    {
+      "di": "DI-39C53CDA",
+      "reason": "MUI theme factory - cosmetic / Class A; no risk required"
+    },
+    {
+      "di": "DI-F0846E55",
+      "reason": "Shell rollout cleanup (flag removal, lint) - dev hygiene / Class A; no risk required"
+    },
+    {
+      "di": "DI-EB8642F4",
+      "reason": "DI-LEO-AI-096 - title is just a legacy ID; needs human triage before risk linkage"
+    },
+    {
+      "di": "DI-BCDC245C",
+      "reason": "Similar-candidates dialog highlighter - UI affordance / Class A; no risk required"
+    },
+    {
+      "di": "DI-37D1B7D7",
+      "reason": "In-memory message bus for development and tests - dev-only / Class A"
+    },
+    {
+      "di": "DI-20104031",
+      "reason": "ODS sync worker entry point - infrastructure plumbing / Class A"
+    },
+    {
+      "di": "DI-21996926",
+      "reason": "LLM usage cost configuration - billing/ops, not safety / Class A"
+    },
+    {
+      "di": "DI-B884A243",
+      "reason": "Redis-backed checkpoint and rebuild status - infrastructure plumbing / Class A"
+    }
+  ],
+  "not_covered": []
+}

@@ -1,5 +1,10 @@
 """Seed default LoopConfig nodes for the three learning loops.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Creates one LoopConfig node per loop with enabled=true if the node does not
 already exist. Called during API startup (non-fatal on failure).
 

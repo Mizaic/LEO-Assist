@@ -11,8 +11,12 @@
  * For Phase 3 we just compute the duplicates so the editor can show a
  * banner; the named-set extraction UI lands when the API gains a
  * named-set table in DI-LEO-AI-156.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
-
 import type { EditableLogicNode } from "./types";
 
 export interface DuplicateSet {

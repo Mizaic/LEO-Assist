@@ -1,4 +1,10 @@
-"""Cypher queries for GDPR-isolated GoldLabel nodes."""
+"""Cypher queries for GDPR-isolated GoldLabel nodes.
+
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+"""
 
 CREATE_GOLD_LABEL_INDEXES = [
     "CREATE CONSTRAINT gold_label_id IF NOT EXISTS FOR (g:GoldLabel) REQUIRE g.label_id IS UNIQUE",

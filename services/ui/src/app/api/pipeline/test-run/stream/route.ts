@@ -7,6 +7,11 @@
  * Uses a Route Handler rather than the middleware rewrite so the SSE stream
  * is piped directly — the middleware's internal socket timeout would kill
  * runs longer than ~30 s (e.g. when verification or terminology are slow).
+ *
+ * Atlas trace:
+ *   DO: DO-19BBE973
+ *   DI: DI-B746E19E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { type NextRequest, NextResponse } from "next/server";
 

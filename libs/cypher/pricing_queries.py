@@ -1,5 +1,10 @@
 """Cypher queries for platform pricing, margin config, and per-tenant discounts.
 
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+
 Data model
 ----------
 PricingConfig (singleton, id='default')

@@ -10,8 +10,12 @@
  * type MUST import the constants and helpers from this file. Never
  * inline a string literal like "Breast" or "Colorectal" in a chart
  * config or a switch statement.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
-
 export const CANCER_TYPE_BLADDER = "Bladder";
 export const CANCER_TYPE_BRAIN = "Brain";
 export const CANCER_TYPE_BREAST = "Breast";

@@ -5,7 +5,7 @@
  * Atlas trace:
  *   DO: DO-11A2361E
  *   Also implements: DO-A23404E0
- *   DI: DI-23822663, DI-F46D7A68, DO-671C15BF
+ *   DI: DI-23822663, DI-F46D7A68
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-11A2361E")
  */
 import type { TimelineEvent } from "@/lib/types";

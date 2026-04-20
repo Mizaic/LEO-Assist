@@ -1,0 +1,5 @@
+operation,subject,result,note
+update_design_output,DO-313A49AE,ok,source_reference set (8 paths)
+refresh_cache,DO+DIs,ok,refreshed DO-313A49AE and 3 parent DIs
+insert_audit_rows,8 files,ok,added 8 rows
+clear_allow_list,phase13c-allow-list.csv,ok,all 8 rows resolved by phase14c

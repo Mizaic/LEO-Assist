@@ -1,5 +1,10 @@
 """De-identification utilities for few-shot example serialization.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Replaces PII (names, dates, values, units, findings, locations) with
 safe placeholder tokens so that few-shot examples do not poison prompts.
 """

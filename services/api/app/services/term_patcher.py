@@ -1,4 +1,10 @@
-"""Surface-form patching with Neo4j terminology lookup."""
+"""Surface-form patching with Neo4j terminology lookup.
+
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+"""
 
 from __future__ import annotations
 

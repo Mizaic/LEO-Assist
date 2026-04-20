@@ -1,5 +1,10 @@
 """LangGraph chain orchestrating the Haiku episode engine.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Stages:
     1. timeline_loader  (deterministic, Neo4j read)
     2. segmenter        (Haiku, tool-call -> SegmenterResult)

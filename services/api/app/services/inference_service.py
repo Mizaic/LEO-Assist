@@ -1,5 +1,10 @@
 """MedSpaCy runtime inference service.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Loads a trained spaCy NER model (if available) and runs inference on
 encounter text to produce entity predictions with SNOMED concept links.
 Falls back gracefully when no trained model exists yet.

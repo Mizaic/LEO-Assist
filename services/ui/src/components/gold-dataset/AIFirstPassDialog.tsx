@@ -18,8 +18,12 @@
  *   - Completed gold candidates are excluded server-side (DI-208) AND
  *     re-checked TOCTOU before any write/delete; this dialog only
  *     surfaces the per-candidate verdict, never decides it.
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
  */
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,

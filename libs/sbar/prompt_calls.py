@@ -1,5 +1,10 @@
 """LLM call wrappers for the three SBAR prompts.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Centralised so the orchestrator stays focused on flow control and so the
 prompt-rendering rules (CONTEXT serialisation, sanitisation, fallback
 handling) live in one place.

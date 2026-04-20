@@ -1,5 +1,10 @@
 """Pydantic schemas for the Haiku episode engine.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 These models define the contract between every chain stage. They double as
 the JSON Schema fed to Bedrock ``tool_config`` so the model is forced to
 return structurally-valid output.

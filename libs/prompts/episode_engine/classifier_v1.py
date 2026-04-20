@@ -1,5 +1,10 @@
 """Stage 3 prompt: classify a single candidate episode window.
 
+Atlas trace:
+  DO: DO-710D9EEB
+  DI: DI-CBCA6E2D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-710D9EEB")
+
 Inputs (USER_TEMPLATE):
     patient_id      : str
     window_id       : str

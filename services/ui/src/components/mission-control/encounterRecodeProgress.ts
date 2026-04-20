@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-5312F884
+ *   DI: DI-AA1F5F5B
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5312F884")
+ */
 // Live SSE wiring for the per-encounter "Reset and recode" flow.
 // Extracted from EncounterTextTab so the main component stays under
 // the 500-LOC ceiling. See DI-LEO-AI-179 / DO-LEO-AI-178.

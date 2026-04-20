@@ -1,4 +1,10 @@
 """Stage 1: pull a patient's encounters and serialise into a compact,
+
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 prompt-ready timeline with same-day grouping.
 
 Two views are produced:

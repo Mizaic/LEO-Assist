@@ -3,6 +3,11 @@
  *
  * Returns the persisted Assessment node so the playground can render the
  * full SBAR Markdown when a run completes (or partially completes).
+ *
+ * Atlas trace:
+ *   DO: DO-19BBE973
+ *   DI: DI-B746E19E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { type NextRequest, NextResponse } from "next/server";
 

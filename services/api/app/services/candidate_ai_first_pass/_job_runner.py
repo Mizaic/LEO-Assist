@@ -1,5 +1,10 @@
 """In-process background job runner for the AI first-pass.
 
+Atlas trace:
+  DO: DO-D7005C41
+  DI: DI-0FFA05BB
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D7005C41")
+
 DI-LEO-AI-209 / DO-LEO-AI-206.
 
 Why in-process and not Redis/Service-Bus

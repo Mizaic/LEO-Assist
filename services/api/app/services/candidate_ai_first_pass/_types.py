@@ -1,5 +1,10 @@
 """Data types for the AI first-pass workflow.
 
+Atlas trace:
+  DO: DO-D7005C41
+  DI: DI-0FFA05BB
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D7005C41")
+
 DI-LEO-AI-208 / DO-LEO-AI-205.
 """
 

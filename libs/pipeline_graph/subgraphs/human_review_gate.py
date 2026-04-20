@@ -1,5 +1,10 @@
 """Human review gate subgraph.
 
+Atlas trace:
+  DO: DO-69F520C9
+  DI: DI-F22160C3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-69F520C9")
+
 This lightweight gate is pathway-runtime compatible: it does not approve or reject
 clinical content itself, but marks the run as awaiting human review when needed.
 """

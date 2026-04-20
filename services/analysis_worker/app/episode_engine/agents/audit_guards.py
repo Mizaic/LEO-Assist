@@ -1,5 +1,10 @@
 """Always-keep guards for the Episode Engine Audit Relevance Filter.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Pure function. No LLM. No I/O.
 
 The Audit Relevance Filter (DI-LEO-AI-524) reduces the milestone-extractor

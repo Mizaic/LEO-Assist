@@ -10,8 +10,12 @@
  *   - everyday words instead of clinical jargon
  *   - active voice
  *   - explain before you name
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
-
 import type { LogicNodeKind } from "./types";
 
 /** Group-kind dropdown labels. */

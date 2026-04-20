@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-19BBE973
+ *   DI: DI-B746E19E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
+ */
 import { api } from './client';
 import type { Measure, Bundle } from '@/lib/types/fhir';
 import type { CohortFilters } from '@/lib/types/layout';

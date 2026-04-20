@@ -1,5 +1,10 @@
 """Onboarding router.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 POST /onboard — provision a new organisation and its primary user in a single
 atomic-ish saga.  Callable by platform admins (any org type) or org admins
 (one level below their own org type only).

@@ -1,5 +1,10 @@
 """Writeback layer: persist pre_done overrides + delete with TOCTOU.
 
+Atlas trace:
+  DO: DO-D7005C41
+  DI: DI-0FFA05BB
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D7005C41")
+
 DI-LEO-AI-208 / DO-LEO-AI-205 / R-LEO-AI-197.
 
 Two writers, both defended by the GET_TRAINING_CANDIDATE_BY_ID

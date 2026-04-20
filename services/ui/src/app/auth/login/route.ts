@@ -7,6 +7,11 @@
  *
  * Cookies are relayed via response.cookies.set() (not raw header append)
  * to ensure Next.js includes them on redirect responses.
+ *
+ * Atlas trace:
+ *   DO: DO-21936FDD
+ *   DI: DI-09DF0A10
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-21936FDD")
  */
 import { NextRequest, NextResponse } from "next/server";
 

@@ -1,5 +1,10 @@
 """Full target-schema mapper for NER training records.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Converts raw extraction dicts (as produced by mine_all_domains.py) into the
 canonical training schema:
 

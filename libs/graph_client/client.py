@@ -1,5 +1,10 @@
 """Async wrapper around the Microsoft Graph endpoints used by /admin/entra/*.
 
+Atlas trace:
+  DO: DO-313A49AE
+  DI: DI-31F4C232, DI-5A18A227, DI-6CF7FCE0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-313A49AE")
+
 The wrapper is deliberately thin and explicit: every endpoint we call
 is named here. There is no SDK; explicit URLs and request shapes are
 easier to audit, mock, and pin in verification tests. See DI-31F4C232

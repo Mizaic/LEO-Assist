@@ -1,5 +1,10 @@
 """Canonical extraction DTO and ExtractorProvider protocol.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 CONTRACT_VERSION must be bumped whenever ExtractionItem fields change, so that
 persisted outputs can always be traced back to the schema under which they were
 produced.  The version is stamped on every :DOCUMENTS relationship and on every

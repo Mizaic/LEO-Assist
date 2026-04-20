@@ -15,8 +15,12 @@
  * The deterministic suggestion table covers the most common topics
  * seen in NICE NG12. The Phase 4 LLM-backed expander will replace this
  * lookup with a guideline-aware call once DI-LEO-AI-155 ships.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
-
 import { friendlyTerm } from "./copy";
 
 export interface VaguePhraseMatch {

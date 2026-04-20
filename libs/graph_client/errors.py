@@ -1,5 +1,10 @@
 """Typed exceptions for the Microsoft Graph client.
 
+Atlas trace:
+  DO: DO-313A49AE
+  DI: DI-31F4C232, DI-5A18A227, DI-6CF7FCE0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-313A49AE")
+
 The router (`services/api/app/routers/admin_entra.py`) maps each
 exception type to a stable HTTP response shape so the UI can degrade
 cleanly without parsing Graph error bodies.

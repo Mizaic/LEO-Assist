@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-124AC2C4
+ *   DI: DI-613A48DA
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-124AC2C4")
+ */
 // Semantic colour tokens. WCAG 2.1 AA safe when used against the intended
 // surface. See DI-LEO-AI-130 and the existing theme mapping rules.
 export const color = {
