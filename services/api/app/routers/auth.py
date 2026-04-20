@@ -452,6 +452,7 @@ def callback(
             "organizations": organizations,
             "idle_timeout_minutes": idle_mins,
             "roles": resolved_roles,
+            "entra_tenant_id": tid,
         },
         ttl_seconds=session_ttl_secs,
     )

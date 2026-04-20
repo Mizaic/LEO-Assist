@@ -62,6 +62,9 @@ export interface Group {
   org_name?: string;
   member_count: number;
   created_at?: string;
+  source?: 'local' | 'entra';
+  entra_object_id?: string;
+  entra_tenant_id?: string;
 }
 
 export interface Role {
@@ -356,6 +359,7 @@ export interface OnboardRequest {
     ods_code: string;
     parent_org_id?: string;
     region?: string;
+    entra_tenant_id?: string;
     subscription?: {
       tier: string;
       credits?: number;
@@ -381,4 +385,162 @@ export interface OnboardResponse {
 
 export async function onboardOrg(body: OnboardRequest): Promise<OnboardResponse> {
   return apiFetch<OnboardResponse>('/api/onboard', { method: 'POST', body });
+}
+
+// ------------------------------------------------------------------
+// Microsoft Entra (admin portal Graph extension)
+// See DI-31F4C232, DI-5A18A227, DI-6CF7FCE0.
+// ------------------------------------------------------------------
+
+const ENTRA_BASE = '/api/admin/entra';
+
+export interface EntraCapability {
+  tenant_id?: string;
+  can_list_domains: boolean;
+  can_search_users: boolean;
+  can_list_groups: boolean;
+  can_write_groups: boolean;
+  can_manage_membership: boolean;
+  scopes_granted: string[];
+  scopes_required: string[];
+  admin_consent_url: string;
+  from_cache?: boolean;
+  probed_at?: number;
+}
+
+export interface EntraDomain {
+  id: string;
+  isDefault?: boolean;
+  isVerified?: boolean;
+  authenticationType?: string;
+  supportedServices?: string[];
+}
+
+export interface EntraUser {
+  id: string;
+  displayName: string;
+  mail?: string;
+  userPrincipalName?: string;
+}
+
+export interface EntraGroup {
+  id: string;
+  displayName: string;
+  description?: string;
+  securityEnabled?: boolean;
+  mailEnabled?: boolean;
+}
+
+export interface EntraShadowGroup {
+  entra_object_id: string;
+  id: string;
+  name: string;
+  description?: string;
+  entra_tenant_id?: string;
+  source: 'local' | 'entra';
+}
+
+export interface EntraBindResult {
+  entra_object_id: string;
+  role_name: string;
+  org_id?: string;
+}
+
+export class EntraConsentRequiredError extends Error {
+  consentUrl: string;
+  graphErrorCode: string;
+  constructor(message: string, consentUrl: string, graphErrorCode = '') {
+    super(message);
+    this.name = 'EntraConsentRequiredError';
+    this.consentUrl = consentUrl;
+    this.graphErrorCode = graphErrorCode;
+  }
+}
+
+export async function getEntraCapability(): Promise<EntraCapability> {
+  return api.get<EntraCapability>(`${ENTRA_BASE}/capability`);
+}
+
+export async function listEntraDomains(): Promise<{
+  tenant_id: string;
+  domains: EntraDomain[];
+}> {
+  return api.get(`${ENTRA_BASE}/domains`);
+}
+
+export async function searchEntraUsers(
+  q: string,
+  top = 25
+): Promise<{ tenant_id: string; users: EntraUser[] }> {
+  const url = `${ENTRA_BASE}/users?q=${encodeURIComponent(q)}&top=${top}`;
+  return api.get(url);
+}
+
+export async function listEntraGroups(
+  prefix = '',
+  top = 50
+): Promise<{ tenant_id: string; groups: EntraGroup[] }> {
+  const params = new URLSearchParams();
+  if (prefix) params.set('prefix', prefix);
+  params.set('top', String(top));
+  return api.get(`${ENTRA_BASE}/groups?${params.toString()}`);
+}
+
+export async function createEntraGroup(body: {
+  display_name: string;
+  description?: string;
+  mail_nickname?: string;
+  org_id?: string;
+  bind_role_name?: string;
+}): Promise<{
+  graph: EntraGroup;
+  shadow: EntraShadowGroup;
+  bind: EntraBindResult | null;
+}> {
+  return api.post(`${ENTRA_BASE}/groups`, body);
+}
+
+export async function bindEntraGroup(
+  groupObjectId: string,
+  body: {
+    display_name: string;
+    name: string;
+    role_name: string;
+    description?: string;
+    org_id?: string;
+    confirm_display_name: string;
+  }
+): Promise<{ shadow: EntraShadowGroup; bind: EntraBindResult }> {
+  return api.post(
+    `${ENTRA_BASE}/groups/${encodeURIComponent(groupObjectId)}/bind`,
+    body
+  );
+}
+
+export async function addEntraGroupMember(
+  groupObjectId: string,
+  userObjectId: string
+): Promise<{
+  group_object_id: string;
+  user_object_id: string;
+  action: 'added';
+}> {
+  return api.post(
+    `${ENTRA_BASE}/groups/${encodeURIComponent(groupObjectId)}/members`,
+    { user_object_id: userObjectId }
+  );
+}
+
+export async function removeEntraGroupMember(
+  groupObjectId: string,
+  userObjectId: string
+): Promise<{
+  group_object_id: string;
+  user_object_id: string;
+  action: 'removed';
+}> {
+  return apiFetch(
+    `${ENTRA_BASE}/groups/${encodeURIComponent(groupObjectId)}/members/${encodeURIComponent(userObjectId)}`,
+    { method: 'DELETE' }
+  );
 }

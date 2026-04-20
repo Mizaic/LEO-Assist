@@ -1,0 +1,254 @@
+kind,atlas_dcid,decision,source_path_count,note,ts
+update,DO-0289F3A5,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-111,2026-04-20T09:59:03Z
+update,DO-05064452,updated,1,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:03Z
+review,DO-099877AE,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:03Z
+review,DO-09AC56A0,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:03Z
+update,DO-0A64F95A,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-085,2026-04-20T09:59:03Z
+update,DO-0A8B7188,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-148,2026-04-20T09:59:03Z
+update,DO-0AE8E53C,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-127,2026-04-20T09:59:03Z
+update,DO-0C7A443A,updated,8,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-133,2026-04-20T09:59:04Z
+update,DO-0DD91ACD,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-076,2026-04-20T09:59:04Z
+update,DO-0DFA6961,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-151,2026-04-20T09:59:04Z
+update,DO-0F42967F,updated,4,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:04Z
+update,DO-0F8F8E02,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-032,2026-04-20T09:59:04Z
+update,DO-0FB8F15D,updated,2,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:04Z
+update,DO-10218528,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-130,2026-04-20T09:59:05Z
+update,DO-11232EFB,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-149,2026-04-20T09:59:05Z
+update,DO-11A2361E,updated,8,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-086,2026-04-20T09:59:05Z
+review,DO-1313E92D,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:05Z
+update,DO-1373B71F,updated,3,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:05Z
+review,DO-13C4B6B1,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:05Z
+update,DO-14B332AB,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-081,2026-04-20T09:59:05Z
+update,DO-14D58359,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-003,2026-04-20T09:59:05Z
+review,DO-1536C1B7,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:05Z
+update,DO-16CE412B,updated,2,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:05Z
+update,DO-16FFE9D3,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-099,2026-04-20T09:59:05Z
+update,DO-170F0DEE,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-002,2026-04-20T09:59:06Z
+update,DO-175B815C,updated,1,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:06Z
+review,DO-18880C7D,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:06Z
+update,DO-19EB27A0,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-114,2026-04-20T09:59:06Z
+update,DO-1B7E7255,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-120,2026-04-20T09:59:06Z
+review,DO-1D03A444,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:06Z
+update,DO-1D5031E0,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-094,2026-04-20T09:59:06Z
+update,DO-1E9BCC70,updated,6,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-142,2026-04-20T09:59:06Z
+update,DO-1EB4FB1D,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-100,2026-04-20T09:59:06Z
+update,DO-1F552BE1,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-008,2026-04-20T09:59:07Z
+update,DO-210CF040,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-075,2026-04-20T09:59:07Z
+review,DO-21BFEF36,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:07Z
+update,DO-2340F614,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-082,2026-04-20T09:59:07Z
+update,DO-236545C8,updated,8,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-106,2026-04-20T09:59:07Z
+update,DO-245F62CB,updated,6,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-011,2026-04-20T09:59:07Z
+update,DO-24AA8840,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-063,2026-04-20T09:59:07Z
+update,DO-25BFD246,updated,1,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:07Z
+update,DO-2695BE52,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-098,2026-04-20T09:59:07Z
+update,DO-273A4EC4,updated,1,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:08Z
+update,DO-27B414B3,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-078,2026-04-20T09:59:08Z
+review,DO-2BA37B59,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:08Z
+update,DO-2D2CE052,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-074,2026-04-20T09:59:08Z
+update,DO-2D66F23B,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-027,2026-04-20T09:59:08Z
+review,DO-2DB8B203,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:08Z
+review,DO-3082DEED,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:08Z
+update,DO-308DD1A6,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-126,2026-04-20T09:59:08Z
+update,DO-33C5C951,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-013,2026-04-20T09:59:08Z
+update,DO-34E24FA1,updated,6,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-015,2026-04-20T09:59:08Z
+review,DO-35EF404B,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:08Z
+update,DO-36C09C0E,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-102,2026-04-20T09:59:09Z
+update,DO-38C2D850,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-107,2026-04-20T09:59:09Z
+update,DO-3AD4D385,updated,13,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-108,2026-04-20T09:59:09Z
+update,DO-3BA98649,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-122,2026-04-20T09:59:09Z
+update,DO-3FC2C9D7,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-009,2026-04-20T09:59:09Z
+review,DO-400CABCC,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:09Z
+update,DO-412DE1A5,updated,2,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:09Z
+update,DO-41EF3F1D,updated,3,phases=9a (DO created from local DI); legacy=DI-LEO-AI-095,2026-04-20T09:59:09Z
+update,DO-448BFA1A,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-014,2026-04-20T09:59:10Z
+update,DO-4709640B,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-084,2026-04-20T09:59:10Z
+update,DO-4A8227DD,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-129,2026-04-20T09:59:10Z
+update,DO-4AB6D361,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-023,2026-04-20T09:59:10Z
+update,DO-4D563ADF,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-079,2026-04-20T09:59:10Z
+update,DO-4F80FAD8,updated,3,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:10Z
+update,DO-54397CCD,updated,11,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-105,2026-04-20T09:59:10Z
+update,DO-559095B5,updated,1,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:10Z
+review,DO-55B68F36,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:10Z
+review,DO-5ACA4760,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:10Z
+update,DO-5B320DDC,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-064,2026-04-20T09:59:11Z
+update,DO-5D032346,updated,1,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:11Z
+update,DO-5D525D34,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-116,2026-04-20T09:59:11Z
+update,DO-5D885390,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-061,2026-04-20T09:59:11Z
+update,DO-5DB895BF,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-138,2026-04-20T09:59:11Z
+update,DO-5F438C17,updated,15,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:11Z
+update,DO-61EE87E0,updated,3,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:11Z
+update,DO-622F6579,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-072,2026-04-20T09:59:12Z
+update,DO-64BDC193,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-004,2026-04-20T09:59:12Z
+update,DO-65BA6EA0,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-135,2026-04-20T09:59:12Z
+update,DO-65E7BCF8,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-119,2026-04-20T09:59:12Z
+update,DO-671C15BF,updated,7,phases=9a (DO created from local DI); legacy=DI-LEO-AI-090,2026-04-20T09:59:12Z
+update,DO-68FDA1E0,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-024,2026-04-20T09:59:12Z
+update,DO-694875ED,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-121,2026-04-20T09:59:12Z
+review,DO-69F44D69,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:12Z
+review,DO-6A070AC9,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:12Z
+review,DO-6BAE3DA7,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:12Z
+update,DO-6C398363,updated,6,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-141,2026-04-20T09:59:13Z
+update,DO-6C694CF9,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-005,2026-04-20T09:59:13Z
+review,DO-6CC5C08A,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:13Z
+update,DO-6CD07544,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-073,2026-04-20T09:59:13Z
+update,DO-6DCC699A,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-128,2026-04-20T09:59:13Z
+update,DO-6DFD03E0,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-123,2026-04-20T09:59:13Z
+update,DO-6F3EE289,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-022,2026-04-20T09:59:13Z
+review,DO-70668FE7,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:13Z
+update,DO-70D4B1B8,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-134,2026-04-20T09:59:13Z
+update,DO-7123C55A,updated,2,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:13Z
+review,DO-71B50335,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:13Z
+update,DO-720CD183,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-071,2026-04-20T09:59:14Z
+update,DO-77A48DBC,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-016,2026-04-20T09:59:14Z
+update,DO-7B357FD6,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-060,2026-04-20T09:59:14Z
+update,DO-7E1BAACC,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-001,2026-04-20T09:59:14Z
+review,DO-7EEBABB8,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:14Z
+review,DO-8166F6B1,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:14Z
+update,DO-83EBEE2C,updated,6,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-062,2026-04-20T09:59:14Z
+update,DO-8620A68B,updated,16,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-095,2026-04-20T09:59:14Z
+update,DO-86800C9B,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-087,2026-04-20T09:59:14Z
+update,DO-868C7881,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-125,2026-04-20T09:59:15Z
+update,DO-88BE3CD9,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-109,2026-04-20T09:59:15Z
+update,DO-8972ED05,updated,6,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-137,2026-04-20T09:59:15Z
+update,DO-89920463,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-056,2026-04-20T09:59:15Z
+update,DO-89AF1CCE,updated,2,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:15Z
+review,DO-8AE3A41B,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:15Z
+update,DO-8C497D0C,updated,3,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:15Z
+update,DO-8CCC6230,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-146,2026-04-20T09:59:15Z
+update,DO-8EF2EC20,updated,7,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:15Z
+update,DO-93E086B0,updated,9,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-096,2026-04-20T09:59:16Z
+update,DO-946F617D,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-028,2026-04-20T09:59:16Z
+update,DO-94D87FA7,updated,8,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-036,2026-04-20T09:59:16Z
+update,DO-94EAC337,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-101,2026-04-20T09:59:16Z
+update,DO-9530152E,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-097,2026-04-20T09:59:16Z
+update,DO-9539333E,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-118,2026-04-20T09:59:16Z
+update,DO-95B6BBAB,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-113,2026-04-20T09:59:16Z
+update,DO-9A5C65AF,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-132,2026-04-20T09:59:17Z
+update,DO-9BF76337,updated,1,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:17Z
+update,DO-9CA0B5A8,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-112,2026-04-20T09:59:17Z
+update,DO-9F3CD7DE,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-089,2026-04-20T09:59:17Z
+update,DO-A00CD165,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-033,2026-04-20T09:59:17Z
+update,DO-A11695DB,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-091,2026-04-20T09:59:17Z
+update,DO-A15BFFE4,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-140,2026-04-20T09:59:17Z
+update,DO-A23404E0,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-088,2026-04-20T09:59:18Z
+review,DO-A24A764D,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:18Z
+update,DO-A2553F87,updated,12,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-029,2026-04-20T09:59:18Z
+update,DO-A26CD350,updated,8,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-092,2026-04-20T09:59:18Z
+update,DO-A35D2D57,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-104,2026-04-20T09:59:18Z
+update,DO-A59215DA,updated,10,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-136,2026-04-20T09:59:18Z
+review,DO-A6B89CC7,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:18Z
+update,DO-A6D3FE39,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-131,2026-04-20T09:59:18Z
+review,DO-A76427CD,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:18Z
+review,DO-A7C8A6BD,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:18Z
+update,DO-B1116B14,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-018,2026-04-20T09:59:18Z
+update,DO-B3397C94,updated,9,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:19Z
+review,DO-B4E8836C,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:19Z
+update,DO-B4FC3B22,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-083,2026-04-20T09:59:19Z
+update,DO-B63973E7,updated,8,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:19Z
+review,DO-B648A936,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:19Z
+update,DO-B6E80BEE,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-093,2026-04-20T09:59:19Z
+update,DO-B7060F57,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-007,2026-04-20T09:59:19Z
+update,DO-B70AF10E,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-021,2026-04-20T09:59:19Z
+update,DO-B711D180,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-124,2026-04-20T09:59:19Z
+update,DO-B7FCDAFB,updated,3,phases=9a (DO created from local DI); legacy=DI-LEO-AI-124,2026-04-20T09:59:19Z
+update,DO-B88D4941,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-055,2026-04-20T09:59:20Z
+update,DO-BA2B7A99,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-031,2026-04-20T09:59:20Z
+update,DO-BBD3441A,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-030,2026-04-20T09:59:20Z
+review,DO-BC098903,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:20Z
+review,DO-BC6C7DD5,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:20Z
+update,DO-BCA9B190,updated,9,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-139,2026-04-20T09:59:20Z
+update,DO-BCD21209,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-144,2026-04-20T09:59:20Z
+review,DO-BE8CE98C,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:20Z
+update,DO-BE96444E,updated,16,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:20Z
+update,DO-BEFC4C67,updated,30,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:20Z
+review,DO-C3619627,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:20Z
+update,DO-C4EC82F9,updated,6,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-117,2026-04-20T09:59:21Z
+review,DO-C57BB8ED,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:21Z
+update,DO-C5890265,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-080,2026-04-20T09:59:21Z
+review,DO-C79DBA53,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:21Z
+update,DO-C7C1EBA2,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-026,2026-04-20T09:59:21Z
+update,DO-CAA9690F,updated,1,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:21Z
+update,DO-CBDF8FBC,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-110,2026-04-20T09:59:21Z
+update,DO-CD6408D3,updated,1,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:21Z
+update,DO-CE117D2A,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-077,2026-04-20T09:59:21Z
+update,DO-CFA1ED55,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-143,2026-04-20T09:59:22Z
+review,DO-D345AD27,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:22Z
+update,DO-D537B955,updated,4,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-017,2026-04-20T09:59:22Z
+update,DO-D5B9FE5F,updated,6,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:22Z
+update,DO-D6CE2AA5,updated,6,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-150,2026-04-20T09:59:22Z
+review,DO-D9F0F2D0,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:22Z
+update,DO-DA9FD5E8,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-147,2026-04-20T09:59:22Z
+update,DO-DB78C498,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-115,2026-04-20T09:59:22Z
+update,DO-DB7F8D52,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-012,2026-04-20T09:59:22Z
+update,DO-DD9564E0,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-019,2026-04-20T09:59:22Z
+review,DO-DE09C150,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:22Z
+update,DO-E32DAC8D,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-103,2026-04-20T09:59:23Z
+update,DO-E3885491,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-070,2026-04-20T09:59:23Z
+review,DO-E3A8CDAA,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:23Z
+update,DO-E647765A,updated,5,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-066,2026-04-20T09:59:23Z
+review,DO-E66A98C2,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:23Z
+review,DO-E701D0FA,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:23Z
+update,DO-E74B0605,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-065,2026-04-20T09:59:23Z
+update,DO-EDA32DB1,updated,3,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-020,2026-04-20T09:59:23Z
+update,DO-EE78E305,updated,10,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-090,2026-04-20T09:59:23Z
+update,DO-F1953D1C,updated,3,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:23Z
+update,DO-F2E2A70B,updated,3,phases=8b (reverse-discovery bucket); legacy=,2026-04-20T09:59:24Z
+update,DO-F78C84A6,updated,8,phases=9a (DO created from local DI); legacy=DI-LEO-AI-099,2026-04-20T09:59:24Z
+update,DO-F8631A82,updated,7,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-010,2026-04-20T09:59:24Z
+update,DO-F89916E2,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-025,2026-04-20T09:59:24Z
+review,DO-FA650296,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:24Z
+update,DO-FCF80123,updated,1,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-145,2026-04-20T09:59:24Z
+review,DO-FD83BB4A,no_evidence,0,ledger evidence but no file paths,2026-04-20T09:59:24Z
+update,DO-FEF05EDA,updated,2,phases=0-3 (local DO YAML); legacy=DO-LEO-AI-006,2026-04-20T09:59:24Z
+review,DO-01AB9835,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-03F86B45,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-0998FAF5,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-11B1CC4D,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-146D93D0,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-1477E1D1,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-1E096FA1,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-1EA8DF41,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-22BF1090,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-26DFA118,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-29B56008,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-2B75E3EE,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-313A49AE,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-398A6F83,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-3F6D2664,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-4345E055,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-4613F849,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-4C113BFD,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-4EA9699D,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-511254A3,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-519A836F,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-53F9EB6D,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-5C38F46C,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-6296F926,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-63358A96,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-658A0D6F,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-69FC3974,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-6EB8C7C5,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-75760CA6,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-7CA11F1E,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-828DA28E,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-8B14E71D,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-9132E777,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-A3EC9447,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-A565D841,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-A5B67C1E,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-AC244024,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-B8241CF4,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-CAEB1411,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-CCC30913,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-D17B9B10,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-D1F327CC,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-D6C83599,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-D92018C8,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-E10E756F,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-E97A7471,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-F160C131,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-F360829A,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-F3A6F414,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-F5BDFD51,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-FE9B7BFC,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z
+review,DO-FFA66218,not_in_audit,0,no ledger evidence; likely Phase 2 stub,2026-04-20T09:59:24Z

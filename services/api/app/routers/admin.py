@@ -786,6 +786,7 @@ async def create_group(
             name=body.name,
             description=body.description or "",
             org_id=body.org_id or "",
+            source="local",
         )
         return {"id": group_id}
     finally:

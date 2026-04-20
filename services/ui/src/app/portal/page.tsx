@@ -10,6 +10,7 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import ApartmentOutlinedIcon from "@mui/icons-material/ApartmentOutlined";
+import CloudOutlinedIcon from "@mui/icons-material/CloudOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
@@ -17,6 +18,7 @@ import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import AuthConfig from "@/components/tenant/AuthConfig";
+import EntraIntegration from "@/components/tenant/EntraIntegration";
 import OrgManagement from "@/components/tenant/OrgManagement";
 import OrgDrawer from "@/components/tenant/OrgDrawer";
 import UserManagement from "@/components/tenant/UserManagement";
@@ -87,6 +89,14 @@ const ALL_TABS = [
     icon: <LockOutlinedIcon fontSize="small" />,
     desc: "Control session settings and see who is currently signed in.",
     adminOnly: false,
+    orgAdminOnly: false,
+  },
+  {
+    value: "entra",
+    label: "Entra integration",
+    icon: <CloudOutlinedIcon fontSize="small" />,
+    desc: "Connect LEO to Microsoft Entra so you can browse your tenant's users and security groups, and bind groups to LEO roles.",
+    adminOnly: true,
     orgAdminOnly: false,
   },
   {
@@ -232,6 +242,7 @@ export default function PortalPage() {
       )}
       {activeTab === "users" && <UserManagement />}
       {activeTab === "auth" && <AuthConfig />}
+      {activeTab === "entra" && <EntraIntegration />}
       {activeTab === "subscription" && (
         <SubscriptionPanel orgId={session?.organizations?.[0]?.id} />
       )}

@@ -31,6 +31,7 @@ from typing import Any
 
 import yaml
 
+from libs.cypher.admin_queries import BACKFILL_GROUP_SOURCE_LOCAL
 from libs.cypher.entra_group_queries import (
     ENTRA_GROUP_OBJECT_ID_CONSTRAINT,
     LIST_ENTRA_GROUP_BINDINGS,
@@ -149,6 +150,11 @@ def seed(
     try:
         graph.run(ENTRA_GROUP_OBJECT_ID_CONSTRAINT)
 
+        backfill_rows = list(graph.run(BACKFILL_GROUP_SOURCE_LOCAL))
+        groups_backfilled = (
+            int(backfill_rows[0].get("updated") or 0) if backfill_rows else 0
+        )
+
         canonical = graph.run(
             SEED_CANONICAL_ROLES, role_names=list(CANONICAL_ROLES)
         )
@@ -173,6 +179,7 @@ def seed(
         "canonical_roles": seeded_canonical,
         "role_permissions_updated": [r["name"] for r in roles],
         "bindings_seeded": len(seeded_bindings),
+        "groups_backfilled_to_local": groups_backfilled,
         "catalogue": catalogue,
     }
 

@@ -76,6 +76,21 @@ class OrgPayload(BaseModel):
     region: Optional[str] = None
     address: Optional[AddressPayload] = None
     subscription: Optional[SubscriptionPayload] = None
+    entra_tenant_id: Optional[str] = None  # set when known up-front; otherwise filled on first login
+
+    @field_validator("entra_tenant_id")
+    @classmethod
+    def validate_tenant_id(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        # Accept full GUID (8-4-4-4-12) or 32-char hex.
+        compact = v.replace("-", "").lower()
+        if len(compact) != 32 or any(c not in "0123456789abcdef" for c in compact):
+            raise ValueError("entra_tenant_id must be a GUID")
+        return v.lower()
 
 
 class PrimaryUserPayload(BaseModel):
@@ -197,7 +212,7 @@ def onboard(
             name=org.name,
             ods_code=org.ods_code.upper(),
             short_name=org.name[:30],
-            entra_tenant_id="",  # set when tenant authenticates for first time
+            entra_tenant_id=org.entra_tenant_id or "",
             onboarding_status="pending",
         )
         logger.info(

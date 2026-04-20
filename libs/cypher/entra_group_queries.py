@@ -71,6 +71,8 @@ MERGE (g:Group {entra_object_id: b.entra_object_id})
 SET g.name = b.name,
     g.description = b.description,
     g.org_id = coalesce(b.org_id, ''),
+    g.entra_tenant_id = coalesce(b.entra_tenant_id, g.entra_tenant_id, ''),
+    g.source = 'entra',
     g.updated_at = datetime()
 ON CREATE SET g.created_at = datetime()
 WITH g, b

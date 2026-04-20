@@ -1,0 +1,935 @@
+{
+  "design_inputs": {},
+  "design_outputs": {
+    "DO-0289F3A5": {
+      "dcId": "DO-0289F3A5",
+      "design_inputs": [
+        "DI-A0C90595",
+        "DI-F298AE65"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "LLM extractor paths updated for span resolution, self-rated assertion, self-rated confidence, and clinical-qualifier preservation"
+    },
+    "DO-05064452": {
+      "dcId": "DO-05064452",
+      "design_inputs": [
+        "DI-20104031"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "ODS sync worker entry point (implementation)"
+    },
+    "DO-0A64F95A": {
+      "dcId": "DO-0A64F95A",
+      "design_inputs": [
+        "DI-6051F076"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Specialist outcome letter anchors and inferred benign episode closure"
+    },
+    "DO-0A8B7188": {
+      "dcId": "DO-0A8B7188",
+      "design_inputs": [
+        "DI-AA9F5EDA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Clinical Guidelines workflow rebuilt on the design-system"
+    },
+    "DO-0AE8E53C": {
+      "dcId": "DO-0AE8E53C",
+      "design_inputs": [
+        "DI-21C63B6A"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "services/design-system as npm workspace package '@leo/design-system'"
+    },
+    "DO-0C7A443A": {
+      "dcId": "DO-0C7A443A",
+      "design_inputs": [
+        "DI-FF9C74E2",
+        "DI-FC264BBF"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Episode builder fallback referral-claim and evidence-wins merge"
+    },
+    "DO-0DD91ACD": {
+      "dcId": "DO-0DD91ACD",
+      "design_inputs": [
+        "DI-BB64E479"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Holdout Set Selection Script and Export Contamination Guard"
+    },
+    "DO-0DFA6961": {
+      "dcId": "DO-0DFA6961",
+      "design_inputs": [],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Gold-mined cancer-site dictionary and integration into the text-path episode builder"
+    },
+    "DO-0F42967F": {
+      "dcId": "DO-0F42967F",
+      "design_inputs": [
+        "DI-86A1E16F"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Model registry (Neo4j-backed) with manifest and training adapter (implementation)"
+    },
+    "DO-0F8F8E02": {
+      "dcId": "DO-0F8F8E02",
+      "design_inputs": [
+        "DI-5EECDA58"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Surface Forms Management Router - Terminology API"
+    },
+    "DO-0FB8F15D": {
+      "dcId": "DO-0FB8F15D",
+      "design_inputs": [
+        "DI-FBCCD265"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Encounter classifier (NER + spaCy textcat) (implementation)"
+    },
+    "DO-10218528": {
+      "dcId": "DO-10218528",
+      "design_inputs": [
+        "DI-FAF97A8C"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Role-first shell primitives + feature flag"
+    },
+    "DO-11232EFB": {
+      "dcId": "DO-11232EFB",
+      "design_inputs": [
+        "DI-CD931485"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Pathways admin list rebuilt on the design-system"
+    },
+    "DO-11A2361E": {
+      "dcId": "DO-11A2361E",
+      "design_inputs": [
+        "DI-F46D7A68"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Post-specialist outcome inference engine and analytics integration"
+    },
+    "DO-1373B71F": {
+      "dcId": "DO-1373B71F",
+      "design_inputs": [
+        "DI-17B5738E"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Terminology API: text embedder, ValueSet and ConceptMap queries (implementation)"
+    },
+    "DO-14B332AB": {
+      "dcId": "DO-14B332AB",
+      "design_inputs": [
+        "DI-30D95132"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Unified Encounter Coding Agent"
+    },
+    "DO-14D58359": {
+      "dcId": "DO-14D58359",
+      "design_inputs": [
+        "DI-F8634363"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "SNOMED CT Resolution Service"
+    },
+    "DO-16CE412B": {
+      "dcId": "DO-16CE412B",
+      "design_inputs": [
+        "DI-FE1BC901"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Pipeline label filter and extraction-response parser (implementation)"
+    },
+    "DO-16FFE9D3": {
+      "dcId": "DO-16FFE9D3",
+      "design_inputs": [
+        "DI-04105500"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Post-SNOMED double-negation assertion correction"
+    },
+    "DO-170F0DEE": {
+      "dcId": "DO-170F0DEE",
+      "design_inputs": [
+        "DI-31126C6C",
+        "DI-3B3F7D4B"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "NLP Entity Extraction Pipeline"
+    },
+    "DO-1D5031E0": {
+      "dcId": "DO-1D5031E0",
+      "design_inputs": [
+        "DI-702F4583"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "NER-first extraction routing and deterministic pre-filtering"
+    },
+    "DO-1E9BCC70": {
+      "dcId": "DO-1E9BCC70",
+      "design_inputs": [
+        "DI-3035F221"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Gold-label review dialog: chrome sub-components"
+    },
+    "DO-1EB4FB1D": {
+      "dcId": "DO-1EB4FB1D",
+      "design_inputs": [
+        "DI-3020D1C0"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Assertion-aware analytics queries for CCI and cohort filters"
+    },
+    "DO-1F552BE1": {
+      "dcId": "DO-1F552BE1",
+      "design_inputs": [
+        "DI-1206D9E8",
+        "DI-F3FD2B63"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Quality Checker and KPI Calculator"
+    },
+    "DO-210CF040": {
+      "dcId": "DO-210CF040",
+      "design_inputs": [
+        "DI-E7AFFDA5"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "deidentify_with_span Helper and DOCUMENTS Evidence Sentence Storage"
+    },
+    "DO-2340F614": {
+      "dcId": "DO-2340F614",
+      "design_inputs": [
+        "DI-4885D9FF"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Domain-Driven Episode Detector"
+    },
+    "DO-236545C8": {
+      "dcId": "DO-236545C8",
+      "design_inputs": [
+        "DI-2D9F5064"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Canonical relation schema, policy validation, relation train/eval, and model-first runtime linking"
+    },
+    "DO-245F62CB": {
+      "dcId": "DO-245F62CB",
+      "design_inputs": [
+        "DI-176EA4FF",
+        "DI-091CBBAB"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Pipeline Orchestration Service"
+    },
+    "DO-24AA8840": {
+      "dcId": "DO-24AA8840",
+      "design_inputs": [
+        "DI-693FFEEA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "NICE Syndication API Client and Guideline Ingest Pipeline"
+    },
+    "DO-25BFD246": {
+      "dcId": "DO-25BFD246",
+      "design_inputs": [
+        "DI-81E8F4B8"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Azure managed-identity credential resolver (implementation)"
+    },
+    "DO-2695BE52": {
+      "dcId": "DO-2695BE52",
+      "design_inputs": [
+        "DI-3DFEE507"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Single-source GoldLabel training data and simplified operations workflow"
+    },
+    "DO-273A4EC4": {
+      "dcId": "DO-273A4EC4",
+      "design_inputs": [
+        "DI-C978B245"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "ODS (Organisation Data Service) lookup client (implementation)"
+    },
+    "DO-27B414B3": {
+      "dcId": "DO-27B414B3",
+      "design_inputs": [
+        "DI-DA7584D8",
+        "DI-12015DBC"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Appointment Header Filter and Resolver Input Normalisation"
+    },
+    "DO-2D2CE052": {
+      "dcId": "DO-2D2CE052",
+      "design_inputs": [
+        "DI-D2D0117E"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Surface Form Revoke Endpoint with Cascade CodingReview Creation"
+    },
+    "DO-2D66F23B": {
+      "dcId": "DO-2D66F23B",
+      "design_inputs": [
+        "DI-922114AE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "CodingMode Pipeline Routing"
+    },
+    "DO-308DD1A6": {
+      "dcId": "DO-308DD1A6",
+      "design_inputs": [
+        "DI-D49BCE55"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Practitioner.selected_role, allowed_roles, and (:RoleSwitch) audit"
+    },
+    "DO-33C5C951": {
+      "dcId": "DO-33C5C951",
+      "design_inputs": [
+        "DI-B46AD5CE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Audit Event System"
+    },
+    "DO-34E24FA1": {
+      "dcId": "DO-34E24FA1",
+      "design_inputs": [
+        "DI-1795254D",
+        "DI-710D5213"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "FHIR R4 API Service"
+    },
+    "DO-36C09C0E": {
+      "dcId": "DO-36C09C0E",
+      "design_inputs": [
+        "DI-4247C7E5"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "fix_polarity_encoded_findings guard in post_processing.py and terminology.py"
+    },
+    "DO-38C2D850": {
+      "dcId": "DO-38C2D850",
+      "design_inputs": [
+        "DI-58988BF2"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Pathway Explorer research API and GDS services"
+    },
+    "DO-3AD4D385": {
+      "dcId": "DO-3AD4D385",
+      "design_inputs": [
+        "DI-9DCBC4BA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Pathway Explorer UI components"
+    },
+    "DO-3BA98649": {
+      "dcId": "DO-3BA98649",
+      "design_inputs": [
+        "DI-EE4E6477"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "kpi_calculator wired into build_episodes with named-property persistence"
+    },
+    "DO-3FC2C9D7": {
+      "dcId": "DO-3FC2C9D7",
+      "design_inputs": [
+        "DI-8804DA01"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Review Service and Workflow"
+    },
+    "DO-412DE1A5": {
+      "dcId": "DO-412DE1A5",
+      "design_inputs": [
+        "DI-B884A243"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Redis-backed checkpoint and rebuild status (implementation)"
+    },
+    "DO-448BFA1A": {
+      "dcId": "DO-448BFA1A",
+      "design_inputs": [
+        "DI-84F44836"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Dual Neo4j Database Architecture"
+    },
+    "DO-4A8227DD": {
+      "dcId": "DO-4A8227DD",
+      "design_inputs": [
+        "DI-61CB27B2"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "next/font DM Sans + subtitle1/2 un-monospaced"
+    },
+    "DO-4AB6D361": {
+      "dcId": "DO-4AB6D361",
+      "design_inputs": [
+        "DI-E1913514"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Dual-Model Consensus Runner Module"
+    },
+    "DO-4D563ADF": {
+      "dcId": "DO-4D563ADF",
+      "design_inputs": [
+        "DI-6A0B55A4"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Ambiguous GP Abbreviation Disambiguation Rules"
+    },
+    "DO-4F80FAD8": {
+      "dcId": "DO-4F80FAD8",
+      "design_inputs": [
+        "DI-3103A562"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Training worker entry point and spaCy training CLI (implementation)"
+    },
+    "DO-54397CCD": {
+      "dcId": "DO-54397CCD",
+      "design_inputs": [
+        "DI-6EFD68D0"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Multi-label NER - spancat component, layer 5 nesting refinement, prompt preservation"
+    },
+    "DO-559095B5": {
+      "dcId": "DO-559095B5",
+      "design_inputs": [
+        "DI-2D49649C"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Model artefact blob store (implementation)"
+    },
+    "DO-5B320DDC": {
+      "dcId": "DO-5B320DDC",
+      "design_inputs": [
+        "DI-69C29EEF"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "LLM-Based AppropriatenessRule Authoring with HITL Review Queue"
+    },
+    "DO-5D032346": {
+      "dcId": "DO-5D032346",
+      "design_inputs": [
+        "DI-A93499CE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "OpenTelemetry tracing setup (implementation)"
+    },
+    "DO-5D525D34": {
+      "dcId": "DO-5D525D34",
+      "design_inputs": [
+        "DI-522BBCC4"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "DensityProvider and density-aware primitive resolution"
+    },
+    "DO-5D885390": {
+      "dcId": "DO-5D885390",
+      "design_inputs": [
+        "DI-693FFEEA",
+        "DI-8CE01B3E",
+        "DI-B0A1E549"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "FHIR Workflow Engine"
+    },
+    "DO-5DB895BF": {
+      "dcId": "DO-5DB895BF",
+      "design_inputs": [
+        "DI-39C53CDA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "createLeoTheme() factory in @leo/design-system consumed by services/ui ThemeRegistry"
+    },
+    "DO-5F438C17": {
+      "dcId": "DO-5F438C17",
+      "design_inputs": [
+        "DI-5700882E"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Neo4j MCP server for analyst and reviewer workflows (implementation)"
+    },
+    "DO-61EE87E0": {
+      "dcId": "DO-61EE87E0",
+      "design_inputs": [
+        "DI-6A1CD328"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "FHIR-based agent configuration registry (implementation)"
+    },
+    "DO-622F6579": {
+      "dcId": "DO-622F6579",
+      "design_inputs": [
+        "DI-5E1BA369"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Overcoded CodingReview Creation with Urgent Queue and 48h SLA Alert"
+    },
+    "DO-64BDC193": {
+      "dcId": "DO-64BDC193",
+      "design_inputs": [
+        "DI-88C8BBCD"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "LLM Disambiguation Module"
+    },
+    "DO-65BA6EA0": {
+      "dcId": "DO-65BA6EA0",
+      "design_inputs": [
+        "DI-C0AD09D2"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "/work unified task queue (Cypher UNION, FastAPI, Next.js page, design-system primitive)"
+    },
+    "DO-65E7BCF8": {
+      "dcId": "DO-65E7BCF8",
+      "design_inputs": [
+        "DI-B95A73E9"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Operations workspace inclusive redesign"
+    },
+    "DO-68FDA1E0": {
+      "dcId": "DO-68FDA1E0",
+      "design_inputs": [
+        "DI-3197332F"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Disorder Entity Verifier Module"
+    },
+    "DO-694875ED": {
+      "dcId": "DO-694875ED",
+      "design_inputs": [],
+      "design_outputs": [],
+      "risks": [],
+      "title": "MIN_REFERRAL_TO_DIAG_DAYS + _RE_REFERRAL_PRISM + referral_subtype dedupe"
+    },
+    "DO-6C398363": {
+      "dcId": "DO-6C398363",
+      "design_inputs": [
+        "DI-080A2454"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "first_seen milestone: anchor detector + episode builder wiring"
+    },
+    "DO-6C694CF9": {
+      "dcId": "DO-6C694CF9",
+      "design_inputs": [
+        "DI-21E93377"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Abnormal Result Detector"
+    },
+    "DO-6CD07544": {
+      "dcId": "DO-6CD07544",
+      "design_inputs": [
+        "DI-A0579B64"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Three-Stream SurfaceFormTask Creation with Two-Reviewer Gate"
+    },
+    "DO-6DCC699A": {
+      "dcId": "DO-6DCC699A",
+      "design_inputs": [
+        "DI-9DDC5471"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "MotionProvider, useMotion, and pre-canned transitions"
+    },
+    "DO-6DFD03E0": {
+      "dcId": "DO-6DFD03E0",
+      "design_inputs": [
+        "DI-527848A8"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "libs/clinical_scoping specialty markers + staging subgraph integration"
+    },
+    "DO-6F3EE289": {
+      "dcId": "DO-6F3EE289",
+      "design_inputs": [
+        "DI-FE3FFE50"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Screening Gap Detection Module"
+    },
+    "DO-70D4B1B8": {
+      "dcId": "DO-70D4B1B8",
+      "design_inputs": [
+        "DI-C0AD09D2"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Broadened breast specialty marker"
+    },
+    "DO-7123C55A": {
+      "dcId": "DO-7123C55A",
+      "design_inputs": [
+        "DI-AE7680C0"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "LLM provider cache and Bedrock retry plumbing (implementation)"
+    },
+    "DO-720CD183": {
+      "dcId": "DO-720CD183",
+      "design_inputs": [
+        "DI-1126FFD1"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "SafetyNetAlert with Dedup, Escalation, and LoopConfig Kill Switch"
+    },
+    "DO-77A48DBC": {
+      "dcId": "DO-77A48DBC",
+      "design_inputs": [
+        "DI-4746A178",
+        "DI-F8634363",
+        "DI-B7FEA996"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Terminology API Service"
+    },
+    "DO-7B357FD6": {
+      "dcId": "DO-7B357FD6",
+      "design_inputs": [
+        "DI-693FFEEA",
+        "DI-176EA4FF",
+        "DI-091CBBAB",
+        "DI-B0A1E549"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Unified Pipeline Worker Service"
+    },
+    "DO-7E1BAACC": {
+      "dcId": "DO-7E1BAACC",
+      "design_inputs": [
+        "DI-143F69EB",
+        "DI-1501326A"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Hybrid Encounter Retrieval Module"
+    },
+    "DO-83EBEE2C": {
+      "dcId": "DO-83EBEE2C",
+      "design_inputs": [
+        "DI-B954388C"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Smart Few-Shot Selection + Prompt Caching"
+    },
+    "DO-8620A68B": {
+      "dcId": "DO-8620A68B",
+      "design_inputs": [
+        "DI-5A802C83"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Extraction quality LLM check before terminology"
+    },
+    "DO-86800C9B": {
+      "dcId": "DO-86800C9B",
+      "design_inputs": [
+        "DI-FC80B65A"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Data Quality Toolkit -- Service Layer, API Router, MCP Server, and Admin UI"
+    },
+    "DO-868C7881": {
+      "dcId": "DO-868C7881",
+      "design_inputs": [
+        "DI-EE4E6477"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Shared libs/metrics module for NCDA interval KPIs"
+    },
+    "DO-88BE3CD9": {
+      "dcId": "DO-88BE3CD9",
+      "design_inputs": [
+        "DI-6E6E985B"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Extended value-unit linker in post-processing Layer 6"
+    },
+    "DO-8972ED05": {
+      "dcId": "DO-8972ED05",
+      "design_inputs": [
+        "DI-F0846E55"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Role-first rollout flag removed; duplicate primitives deleted; font @import removed; sx colour-literal lint rule added"
+    },
+    "DO-89920463": {
+      "dcId": "DO-89920463",
+      "design_inputs": [
+        "DI-AF5A1668"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Card-based Operations UX"
+    },
+    "DO-89AF1CCE": {
+      "dcId": "DO-89AF1CCE",
+      "design_inputs": [
+        "DI-3717DFB0"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Shared utilities: device resolver and structured logging setup (implementation)"
+    },
+    "DO-8C497D0C": {
+      "dcId": "DO-8C497D0C",
+      "design_inputs": [
+        "DI-82036B4D"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Terminology preferred-term, surface normalisation, semantic tags (implementation)"
+    },
+    "DO-8CCC6230": {
+      "dcId": "DO-8CCC6230",
+      "design_inputs": [
+        "DI-6C5D77CA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "_rescue_diagnosis_for_open_episode helper + _build_open_episode wiring"
+    },
+    "DO-8EF2EC20": {
+      "dcId": "DO-8EF2EC20",
+      "design_inputs": [
+        "DI-2F963FC6"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "NER post-processing, lab-triple recovery, and seed ingestion (implementation)"
+    },
+    "DO-93E086B0": {
+      "dcId": "DO-93E086B0",
+      "design_inputs": [
+        "DI-F2C18D2E"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Coding quality LLM check and dual-target persistence routing"
+    },
+    "DO-946F617D": {
+      "dcId": "DO-946F617D",
+      "design_inputs": [
+        "DI-E0D60B50"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Coding Verification Consensus Function"
+    },
+    "DO-94D87FA7": {
+      "dcId": "DO-94D87FA7",
+      "design_inputs": [
+        "DI-54D00E21"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Agentic Training Label Auditor with Terminology Tool-Use"
+    },
+    "DO-94EAC337": {
+      "dcId": "DO-94EAC337",
+      "design_inputs": [
+        "DI-48AD06E5"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Assertion-free LLM extraction output with post-processing as sole assertion authority"
+    },
+    "DO-9530152E": {
+      "dcId": "DO-9530152E",
+      "design_inputs": [
+        "DI-DD67ACFF"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Encounter-centric Mission Control and Batch Reset/Recode"
+    },
+    "DO-9539333E": {
+      "dcId": "DO-9539333E",
+      "design_inputs": [
+        "DI-29EEE9C3"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "PageIntro + HelpPopover + CoachMark + ProgressiveReveal + GlossaryTerm + glossary.ts + readability.ts"
+    },
+    "DO-95B6BBAB": {
+      "dcId": "DO-95B6BBAB",
+      "design_inputs": [
+        "DI-F298AE65",
+        "DI-F0B8A7B0"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Per-semantic-tag tier thresholds, extractor confidence fusion, and assertion parity gating"
+    },
+    "DO-9A5C65AF": {
+      "dcId": "DO-9A5C65AF",
+      "design_inputs": [
+        "DI-5E7E8CEF"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Knowledge hub: merged admin Clinical + Knowledge pages"
+    },
+    "DO-A15BFFE4": {
+      "dcId": "DO-A15BFFE4",
+      "design_inputs": [
+        "DI-21946271"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Training Data tab chrome composed from @leo/design-system"
+    },
+    "DO-A23404E0": {
+      "dcId": "DO-A23404E0",
+      "design_inputs": [
+        "DI-23822663"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Stage-at-diagnosis enrichment modules and audit surfacing"
+    },
+    "DO-A2553F87": {
+      "dcId": "DO-A2553F87",
+      "design_inputs": [
+        "DI-425CA252"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "UI Safety, Accessibility, and Usability Remediation"
+    },
+    "DO-A26CD350": {
+      "dcId": "DO-A26CD350",
+      "design_inputs": [
+        "DI-705C806B"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Production Coding Worker WorkflowEngine Routing"
+    },
+    "DO-A35D2D57": {
+      "dcId": "DO-A35D2D57",
+      "design_inputs": [
+        "DI-37B3DC71"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Training pipeline quality - span realign, assertion filter, golden set, warm-start, active learning"
+    },
+    "DO-A59215DA": {
+      "dcId": "DO-A59215DA",
+      "design_inputs": [
+        "DI-900CB621"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Centralised area intro copy + KnowledgePageLayout rollout + feature flag default"
+    },
+    "DO-A6D3FE39": {
+      "dcId": "DO-A6D3FE39",
+      "design_inputs": [
+        "DI-BA2C8F3E"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "libs/analytics/cohorts.py canonical NCDA cohort definition"
+    }
+  }
+}

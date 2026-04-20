@@ -1,0 +1,97 @@
+atlas_dcid,category,title,note
+DO-099877AE,ledger-but-no-paths,,phases_with_evidence=0-3 (local DO YAML); legacy_ids=DO-LEO-AI-069
+DO-09AC56A0,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-135
+DO-1313E92D,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-072
+DO-13C4B6B1,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-139
+DO-1536C1B7,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-128
+DO-18880C7D,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-065
+DO-1D03A444,ledger-but-no-paths,,phases_with_evidence=0-3 (local DO YAML); legacy_ids=DO-LEO-AI-034
+DO-21BFEF36,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-039
+DO-2BA37B59,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-122
+DO-2DB8B203,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-070
+DO-3082DEED,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-011
+DO-35EF404B,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-029
+DO-400CABCC,ledger-but-no-paths,,phases_with_evidence=0-3 (local DO YAML); legacy_ids=DO-LEO-AI-067
+DO-55B68F36,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-044
+DO-5ACA4760,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-098
+DO-69F44D69,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-055
+DO-6A070AC9,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-009
+DO-6BAE3DA7,ledger-but-no-paths,,phases_with_evidence=8b (reverse-discovery bucket); legacy_ids=
+DO-6CC5C08A,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-046
+DO-70668FE7,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-043
+DO-71B50335,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-045
+DO-7EEBABB8,ledger-but-no-paths,,phases_with_evidence=0-3 (local DO YAML); legacy_ids=DO-LEO-AI-068
+DO-8166F6B1,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-148
+DO-8AE3A41B,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-147
+DO-A24A764D,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-155
+DO-A6B89CC7,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-120
+DO-A76427CD,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-064
+DO-A7C8A6BD,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-129
+DO-B4E8836C,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-082
+DO-B648A936,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-096
+DO-BC098903,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-150
+DO-BC6C7DD5,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-034
+DO-BE8CE98C,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-154
+DO-C3619627,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-142
+DO-C57BB8ED,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-149
+DO-C79DBA53,ledger-but-no-paths,,phases_with_evidence=0-3 (local DO YAML); legacy_ids=DO-LEO-AI-035
+DO-D345AD27,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-075
+DO-D9F0F2D0,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-101
+DO-DE09C150,ledger-but-no-paths,,phases_with_evidence=8b (reverse-discovery bucket); legacy_ids=
+DO-E3A8CDAA,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-047
+DO-E66A98C2,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-145
+DO-E701D0FA,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-127
+DO-FA650296,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-071
+DO-FD83BB4A,ledger-but-no-paths,,phases_with_evidence=9a (DO created from local DI); legacy_ids=DI-LEO-AI-080
+DO-01AB9835,not-in-audit,Episode builder subgraph with classification + DQ,no ledger evidence; likely Phase 2 stub
+DO-03F86B45,not-in-audit,"Platform architecture, AI model registry, and CI quality gates",no ledger evidence; likely Phase 2 stub
+DO-0998FAF5,not-in-audit,"Operations, admin, DQ, and override analytics surface",no ledger evidence; likely Phase 2 stub
+DO-11B1CC4D,not-in-audit,"Entra-group-driven role resolution: Cypher catalogue, login-time sync, and idempotent role/binding seeder",no ledger evidence; likely Phase 2 stub
+DO-146D93D0,not-in-audit,Reviewer workflow and change-control surface,no ledger evidence; likely Phase 2 stub
+DO-1477E1D1,not-in-audit,Knowledge tab Test Patients page with aspect filter and per-aspect count tiles,no ledger evidence; likely Phase 2 stub
+DO-1E096FA1,not-in-audit,Tier classifier v2 (libs/coding_engine/tier_classifier.py + post_processing integration),no ledger evidence; likely Phase 2 stub
+DO-1EA8DF41,not-in-audit,Relation reviewer UI with policy-aware triplets,no ledger evidence; likely Phase 2 stub
+DO-22BF1090,not-in-audit,Append-only audit emitter and security-event log,no ledger evidence; likely Phase 2 stub
+DO-26DFA118,not-in-audit,SpanResolver utility (libs/ner/span_resolver.py),no ledger evidence; likely Phase 2 stub
+DO-29B56008,not-in-audit,Audit-quality API and drift analytics surface,no ledger evidence; likely Phase 2 stub
+DO-2B75E3EE,not-in-audit,Clinical intelligence decision-support surface,no ledger evidence; likely Phase 2 stub
+DO-313A49AE,not-in-audit,"Admin portal Entra extension: graph_client, /admin/entra router, schema source-tag, and capability-driven UI",no ledger evidence; likely Phase 2 stub
+DO-398A6F83,not-in-audit,Disorder verifier v2 with fail-closed GATE_FAILED verdict (libs/llm_client/disorder_verifier.py),no ledger evidence; likely Phase 2 stub
+DO-3F6D2664,not-in-audit,Per-type review-queue Cypher and role state,no ledger evidence; likely Phase 2 stub
+DO-4345E055,not-in-audit,"Canonical NCDA cancer-type vocabulary modules, LLM enum, normalisers, UI mirror and migration",no ledger evidence; likely Phase 2 stub
+DO-4613F849,not-in-audit,Developer integration surface,no ledger evidence; likely Phase 2 stub
+DO-4C113BFD,not-in-audit,LLM extractor v2 (prompt + ExtractedTerm/ExtractionItem parser),no ledger evidence; likely Phase 2 stub
+DO-4EA9699D,not-in-audit,"Pathway intervals, waiting times, benchmark + IMD analytics",no ledger evidence; likely Phase 2 stub
+DO-511254A3,not-in-audit,Coding correction review and dependency display surface,no ledger evidence; likely Phase 2 stub
+DO-519A836F,not-in-audit,"Test patient data model, copy-from-real-patient service, and aspect-aware library API",no ledger evidence; likely Phase 2 stub
+DO-53F9EB6D,not-in-audit,"ServiceDataRequirement Neo4j schema, admin API, RBAC, and seed records",no ledger evidence; likely Phase 2 stub
+DO-5C38F46C,not-in-audit,Authoritative source monitoring and release management,no ledger evidence; likely Phase 2 stub
+DO-6296F926,not-in-audit,DO-LEO-AI-527: SimilarCandidatesBatch shared HighlightedText + match rationale chips,no ledger evidence; likely Phase 2 stub
+DO-63358A96,not-in-audit,Entity provenance and audit-trail surface,no ledger evidence; likely Phase 2 stub
+DO-658A0D6F,not-in-audit,Surface forms CRUD with duplicate audit and match frequency,no ledger evidence; likely Phase 2 stub
+DO-69FC3974,not-in-audit,Multi-label NER schema mapper and post-processing normalisation,no ledger evidence; likely Phase 2 stub
+DO-6EB8C7C5,not-in-audit,Patient shortlisting and recall surface,no ledger evidence; likely Phase 2 stub
+DO-75760CA6,not-in-audit,Relation linking subgraph with method-tagged model+LLM merge,no ledger evidence; likely Phase 2 stub
+DO-7CA11F1E,not-in-audit,NER + SNOMED coding surface with assertion handling,no ledger evidence; likely Phase 2 stub
+DO-828DA28E,not-in-audit,Plain-language interpretation and human-review gate,no ledger evidence; likely Phase 2 stub
+DO-8B14E71D,not-in-audit,"MECE lifecycle classifier module, audit summary endpoint and dashboard hero cards",no ledger evidence; likely Phase 2 stub
+DO-9132E777,not-in-audit,DO-LEO-AI-526: libs/search/term_expansion + cypher $terms branch + training router wiring,no ledger evidence; likely Phase 2 stub
+DO-A3EC9447,not-in-audit,Completeness checker LangGraph subgraph and PlanDefinition position validator,no ledger evidence; likely Phase 2 stub
+DO-A565D841,not-in-audit,Data-gap disclosure and small-cohort suppression surface,no ledger evidence; likely Phase 2 stub
+DO-A5B67C1E,not-in-audit,Knowledge base authoring and staging surface,no ledger evidence; likely Phase 2 stub
+DO-AC244024,not-in-audit,Canonical EpisodeOfCare status vocabulary + writer / dashboard / UI refactor + idempotent migration + contract test,no ledger evidence; likely Phase 2 stub
+DO-B8241CF4,not-in-audit,Guideline update review surface,no ledger evidence; likely Phase 2 stub
+DO-CAEB1411,not-in-audit,"Safety-net detector, persistence and pipeline subgraph",no ledger evidence; likely Phase 2 stub
+DO-CCC30913,not-in-audit,Consensus runner v2 (libs/llm_client/consensus.py),no ledger evidence; likely Phase 2 stub
+DO-D17B9B10,not-in-audit,"Auth, role-state and tenant-scope middleware",no ledger evidence; likely Phase 2 stub
+DO-D1F327CC,not-in-audit,Rule-based encounter pre-classification with ClassificationResult persistence,no ledger evidence; likely Phase 2 stub
+DO-D6C83599,not-in-audit,Coding resolver vector-skip threshold (services/terminology_api/app/services/coding_resolver.py),no ledger evidence; likely Phase 2 stub
+DO-D92018C8,not-in-audit,"CompletenessReport writer, SBAR completeness contract, completion-event payload, FHIR Provenance",no ledger evidence; likely Phase 2 stub
+DO-E10E756F,not-in-audit,Research workspace and cohort builder surface,no ledger evidence; likely Phase 2 stub
+DO-E97A7471,not-in-audit,De-identification library + deid validator guard,no ledger evidence; likely Phase 2 stub
+DO-F160C131,not-in-audit,"NLP training, audit agent, and FHIR exposure surface",no ledger evidence; likely Phase 2 stub
+DO-F360829A,not-in-audit,"Conditional integration-fetch edge, IntegrationAdapter contract, CompletenessFetchAttempt audit",no ledger evidence; likely Phase 2 stub
+DO-F3A6F414,not-in-audit,Label-verification and training-export lossless writer,no ledger evidence; likely Phase 2 stub
+DO-F5BDFD51,not-in-audit,Guideline conformance evaluator and rule extraction,no ledger evidence; likely Phase 2 stub
+DO-FE9B7BFC,not-in-audit,Model registry canary lifecycle and promotion gate,no ledger evidence; likely Phase 2 stub
+DO-FFA66218,not-in-audit,SBAR generation subgraph,no ledger evidence; likely Phase 2 stub

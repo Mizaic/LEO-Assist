@@ -38,6 +38,7 @@ limiter = Limiter(
     default_limits=[os.getenv("RATE_LIMIT_DEFAULT", "120/minute")],
 )
 from app.routers.admin import router as admin_router
+from app.routers.admin_entra import router as admin_entra_router
 from app.routers.data_quality import router as data_quality_router
 from app.routers.onboarding import router as onboarding_router
 from app.routers.mail_router import router as mail_router
@@ -295,6 +296,7 @@ async def add_security_headers(request: Request, call_next):
 
 
 app.include_router(admin_router)
+app.include_router(admin_entra_router)
 app.include_router(onboarding_router)
 app.include_router(mail_router)
 app.include_router(anchor_review_router)

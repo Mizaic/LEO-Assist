@@ -1,0 +1,254 @@
+atlas_dcid,title,in_phase13a_audit
+DO-01AB9835,Episode builder subgraph with classification + DQ,0
+DO-0289F3A5,"LLM extractor paths updated for span resolution, self-rated assertion, self-rated confidence, and clinical-qualifier preservation",1
+DO-03F86B45,"Platform architecture, AI model registry, and CI quality gates",0
+DO-05064452,ODS sync worker entry point (implementation),1
+DO-099877AE,ModelConfig Create and Delete API and UI,1
+DO-0998FAF5,"Operations, admin, DQ, and override analytics surface",0
+DO-09AC56A0,Merge /admin/clinical into /admin/knowledge (implementation),1
+DO-0A64F95A,Specialist outcome letter anchors and inferred benign episode closure,1
+DO-0A8B7188,Clinical Guidelines workflow rebuilt on the design-system,1
+DO-0AE8E53C,services/design-system as npm workspace package '@leo/design-system',1
+DO-0C7A443A,Episode builder fallback referral-claim and evidence-wins merge,1
+DO-0DD91ACD,Holdout Set Selection Script and Export Contamination Guard,1
+DO-0DFA6961,Gold-mined cancer-site dictionary and integration into the text-path episode builder,1
+DO-0F42967F,Model registry (Neo4j-backed) with manifest and training adapter (implementation),1
+DO-0F8F8E02,Surface Forms Management Router - Terminology API,1
+DO-0FB8F15D,Encounter classifier (NER + spaCy textcat) (implementation),1
+DO-10218528,Role-first shell primitives + feature flag,1
+DO-11232EFB,Pathways admin list rebuilt on the design-system,1
+DO-11A2361E,Post-specialist outcome inference engine and analytics integration,1
+DO-11B1CC4D,"Entra-group-driven role resolution: Cypher catalogue, login-time sync, and idempotent role/binding seeder",0
+DO-1313E92D,Loop 1: Automated Audit Execution (implementation),1
+DO-1373B71F,"Terminology API: text embedder, ValueSet and ConceptMap queries (implementation)",1
+DO-13C4B6B1,Role-first intro copy + layout across every major area (implementation),1
+DO-146D93D0,Reviewer workflow and change-control surface,0
+DO-1477E1D1,Knowledge tab Test Patients page with aspect filter and per-aspect count tiles,0
+DO-14B332AB,Unified Encounter Coding Agent,1
+DO-14D58359,SNOMED CT Resolution Service,1
+DO-1536C1B7,Care Overview (Dashboard) inclusive redesign (implementation),1
+DO-16CE412B,Pipeline label filter and extraction-response parser (implementation),1
+DO-16FFE9D3,Post-SNOMED double-negation assertion correction,1
+DO-170F0DEE,NLP Entity Extraction Pipeline,1
+DO-175B815C,Service-to-service authentication helper (implementation),1
+DO-18880C7D,"Bitmap Store, Compiler, and Evaluator in Terminology API (implementation)",1
+DO-19EB27A0,Disorder verifier fail-closed with explicit GATE_FAILED verdict,1
+DO-1B7E7255,Coding review modal split and plain-language redesign,1
+DO-1D03A444,Security Gap Remediation Batch 2 — Implementation Artefacts,1
+DO-1D5031E0,NER-first extraction routing and deterministic pre-filtering,1
+DO-1E096FA1,Tier classifier v2 (libs/coding_engine/tier_classifier.py + post_processing integration),0
+DO-1E9BCC70,Gold-label review dialog: chrome sub-components,1
+DO-1EA8DF41,Relation reviewer UI with policy-aware triplets,0
+DO-1EB4FB1D,Assertion-aware analytics queries for CCI and cohort filters,1
+DO-1F552BE1,Quality Checker and KPI Calculator,1
+DO-210CF040,deidentify_with_span Helper and DOCUMENTS Evidence Sentence Storage,1
+DO-21BFEF36,CodingDecision Audit Trail (implementation),1
+DO-22BF1090,Append-only audit emitter and security-event log,0
+DO-2340F614,Domain-Driven Episode Detector,1
+DO-236545C8,"Canonical relation schema, policy validation, relation train/eval, and model-first runtime linking",1
+DO-245F62CB,Pipeline Orchestration Service,1
+DO-24AA8840,NICE Syndication API Client and Guideline Ingest Pipeline,1
+DO-25BFD246,Azure managed-identity credential resolver (implementation),1
+DO-2695BE52,Single-source GoldLabel training data and simplified operations workflow,1
+DO-26DFA118,SpanResolver utility (libs/ner/span_resolver.py),0
+DO-273A4EC4,ODS (Organisation Data Service) lookup client (implementation),1
+DO-27B414B3,Appointment Header Filter and Resolver Input Normalisation,1
+DO-29B56008,Audit-quality API and drift analytics surface,0
+DO-2B75E3EE,Clinical intelligence decision-support surface,0
+DO-2BA37B59,Operations workspace inclusive redesign (implementation),1
+DO-2D2CE052,Surface Form Revoke Endpoint with Cascade CodingReview Creation,1
+DO-2D66F23B,CodingMode Pipeline Routing,1
+DO-2DB8B203,NCDA Report Template Generation (implementation),1
+DO-3082DEED,Episode Consolidation (implementation),1
+DO-308DD1A6,"Practitioner.selected_role, allowed_roles, and (:RoleSwitch) audit",1
+DO-313A49AE,"Admin portal Entra extension: graph_client, /admin/entra router, schema source-tag, and capability-driven UI",0
+DO-33C5C951,Audit Event System,1
+DO-34E24FA1,FHIR R4 API Service,1
+DO-35EF404B,Auto-Scaling Worker Architecture (implementation),1
+DO-36C09C0E,fix_polarity_encoded_findings guard in post_processing.py and terminology.py,1
+DO-38C2D850,Pathway Explorer research API and GDS services,1
+DO-398A6F83,Disorder verifier v2 with fail-closed GATE_FAILED verdict (libs/llm_client/disorder_verifier.py),0
+DO-3AD4D385,Pathway Explorer UI components,1
+DO-3BA98649,kpi_calculator wired into build_episodes with named-property persistence,1
+DO-3F6D2664,Per-type review-queue Cypher and role state,0
+DO-3FC2C9D7,Review Service and Workflow,1
+DO-400CABCC,DO-LEO-AI-067,1
+DO-412DE1A5,Redis-backed checkpoint and rebuild status (implementation),1
+DO-41EF3F1D,The system SHALL provide an admin-triggered bulk reset-and-reprocess capability for all... (implementation),1
+DO-4345E055,"Canonical NCDA cancer-type vocabulary modules, LLM enum, normalisers, UI mirror and migration",0
+DO-448BFA1A,Dual Neo4j Database Architecture,1
+DO-4613F849,Developer integration surface,0
+DO-4709640B,Per-episode specialist visit claiming algorithm,1
+DO-4A8227DD,next/font DM Sans + subtitle1/2 un-monospaced,1
+DO-4AB6D361,Dual-Model Consensus Runner Module,1
+DO-4C113BFD,LLM extractor v2 (prompt + ExtractedTerm/ExtractionItem parser),0
+DO-4D563ADF,Ambiguous GP Abbreviation Disambiguation Rules,1
+DO-4EA9699D,"Pathway intervals, waiting times, benchmark + IMD analytics",0
+DO-4F80FAD8,Training worker entry point and spaCy training CLI (implementation),1
+DO-511254A3,Coding correction review and dependency display surface,0
+DO-519A836F,"Test patient data model, copy-from-real-patient service, and aspect-aware library API",0
+DO-53F9EB6D,"ServiceDataRequirement Neo4j schema, admin API, RBAC, and seed records",0
+DO-54397CCD,"Multi-label NER - spancat component, layer 5 nesting refinement, prompt preservation",1
+DO-559095B5,Model artefact blob store (implementation),1
+DO-55B68F36,Lab Value Diagnostic Inference Prevention (implementation),1
+DO-5ACA4760,The coding pipeline SHALL run a lightweight coding quality LLM check after terminology ... (implementation),1
+DO-5B320DDC,LLM-Based AppropriatenessRule Authoring with HITL Review Queue,1
+DO-5C38F46C,Authoritative source monitoring and release management,0
+DO-5D032346,OpenTelemetry tracing setup (implementation),1
+DO-5D525D34,DensityProvider and density-aware primitive resolution,1
+DO-5D885390,FHIR Workflow Engine,1
+DO-5DB895BF,createLeoTheme() factory in @leo/design-system consumed by services/ui ThemeRegistry,1
+DO-5F438C17,Neo4j MCP server for analyst and reviewer workflows (implementation),1
+DO-61EE87E0,FHIR-based agent configuration registry (implementation),1
+DO-622F6579,Overcoded CodingReview Creation with Urgent Queue and 48h SLA Alert,1
+DO-6296F926,DO-LEO-AI-527: SimilarCandidatesBatch shared HighlightedText + match rationale chips,0
+DO-63358A96,Entity provenance and audit-trail surface,0
+DO-64BDC193,LLM Disambiguation Module,1
+DO-658A0D6F,Surface forms CRUD with duplicate audit and match frequency,0
+DO-65BA6EA0,"/work unified task queue (Cypher UNION, FastAPI, Next.js page, design-system primitive)",1
+DO-65E7BCF8,Operations workspace inclusive redesign,1
+DO-671C15BF,Stage-at-diagnosis enrichment engine (implementation),1
+DO-68FDA1E0,Disorder Entity Verifier Module,1
+DO-694875ED,MIN_REFERRAL_TO_DIAG_DAYS + _RE_REFERRAL_PRISM + referral_subtype dedupe,1
+DO-69F44D69,GDPR-Isolated Learning Loop and Operations UX (implementation),1
+DO-69FC3974,Multi-label NER schema mapper and post-processing normalisation,0
+DO-6A070AC9,Anchor/Milestone Detection (implementation),1
+DO-6BAE3DA7,LLM usage cost configuration module (implementation),1
+DO-6C398363,first_seen milestone: anchor detector + episode builder wiring,1
+DO-6C694CF9,Abnormal Result Detector,1
+DO-6CC5C08A,Admin-Only Clinical Rule Mutation with ReDoS-Safe Regex Validation (implementation),1
+DO-6CD07544,Three-Stream SurfaceFormTask Creation with Two-Reviewer Gate,1
+DO-6DCC699A,"MotionProvider, useMotion, and pre-canned transitions",1
+DO-6DFD03E0,libs/clinical_scoping specialty markers + staging subgraph integration,1
+DO-6EB8C7C5,Patient shortlisting and recall surface,0
+DO-6F3EE289,Screening Gap Detection Module,1
+DO-70668FE7,"UI Safety, Accessibility, and Usability Remediation (implementation)",1
+DO-70D4B1B8,Broadened breast specialty marker,1
+DO-7123C55A,LLM provider cache and Bedrock retry plumbing (implementation),1
+DO-71B50335,LLM Prompt Safety Utilities (implementation),1
+DO-720CD183,"SafetyNetAlert with Dedup, Escalation, and LoopConfig Kill Switch",1
+DO-75760CA6,Relation linking subgraph with method-tagged model+LLM merge,0
+DO-77A48DBC,Terminology API Service,1
+DO-7B357FD6,Unified Pipeline Worker Service,1
+DO-7CA11F1E,NER + SNOMED coding surface with assertion handling,0
+DO-7E1BAACC,Hybrid Encounter Retrieval Module,1
+DO-7EEBABB8,Per-Tenant Billing and Discount Management Implementation,1
+DO-8166F6B1,Wave E Phase 4: AI Instructions list on @leo/design-system (implementation),1
+DO-828DA28E,Plain-language interpretation and human-review gate,0
+DO-83EBEE2C,Smart Few-Shot Selection + Prompt Caching,1
+DO-8620A68B,Extraction quality LLM check before terminology,1
+DO-86800C9B,"Data Quality Toolkit -- Service Layer, API Router, MCP Server, and Admin UI",1
+DO-868C7881,Shared libs/metrics module for NCDA interval KPIs,1
+DO-88BE3CD9,Extended value-unit linker in post-processing Layer 6,1
+DO-8972ED05,Role-first rollout flag removed; duplicate primitives deleted; font @import removed; sx colour-literal lint rule added,1
+DO-89920463,Card-based Operations UX,1
+DO-89AF1CCE,Shared utilities: device resolver and structured logging setup (implementation),1
+DO-8AE3A41B,Wave E Phase 3: CRUD Knowledge tabs on @leo/design-system (implementation),1
+DO-8B14E71D,"MECE lifecycle classifier module, audit summary endpoint and dashboard hero cards",0
+DO-8C497D0C,"Terminology preferred-term, surface normalisation, semantic tags (implementation)",1
+DO-8CCC6230,_rescue_diagnosis_for_open_episode helper + _build_open_episode wiring,1
+DO-8EF2EC20,"NER post-processing, lab-triple recovery, and seed ingestion (implementation)",1
+DO-9132E777,DO-LEO-AI-526: libs/search/term_expansion + cypher $terms branch + training router wiring,0
+DO-93E086B0,Coding quality LLM check and dual-target persistence routing,1
+DO-946F617D,Coding Verification Consensus Function,1
+DO-94D87FA7,Agentic Training Label Auditor with Terminology Tool-Use,1
+DO-94EAC337,Assertion-free LLM extraction output with post-processing as sole assertion authority,1
+DO-9530152E,Encounter-centric Mission Control and Batch Reset/Recode,1
+DO-9539333E,PageIntro + HelpPopover + CoachMark + ProgressiveReveal + GlossaryTerm + glossary.ts + readability.ts,1
+DO-95B6BBAB,"Per-semantic-tag tier thresholds, extractor confidence fusion, and assertion parity gating",1
+DO-9A5C65AF,Knowledge hub: merged admin Clinical + Knowledge pages,1
+DO-9BF76337,De-identification of clinical text before LLM submission (implementation),1
+DO-9CA0B5A8,"run_consensus: single-model default, optional dual-model consensus",1
+DO-9F3CD7DE,Mission Control Analytics API Router,1
+DO-A00CD165,Suggest-Aliases LLM Endpoint (Concepts Router) and Model Inference Reload Safeguard,1
+DO-A11695DB,Spinal-TNM scope guard and LLM prompt disambiguation rule,1
+DO-A15BFFE4,Training Data tab chrome composed from @leo/design-system,1
+DO-A23404E0,Stage-at-diagnosis enrichment modules and audit surfacing,1
+DO-A24A764D,Text-based cancer-site classification from gold-mined surface forms (implementation),1
+DO-A2553F87,"UI Safety, Accessibility, and Usability Remediation",1
+DO-A26CD350,Production Coding Worker WorkflowEngine Routing,1
+DO-A35D2D57,"Training pipeline quality - span realign, assertion filter, golden set, warm-start, active learning",1
+DO-A3EC9447,Completeness checker LangGraph subgraph and PlanDefinition position validator,0
+DO-A565D841,Data-gap disclosure and small-cohort suppression surface,0
+DO-A59215DA,Centralised area intro copy + KnowledgePageLayout rollout + feature flag default,1
+DO-A5B67C1E,Knowledge base authoring and staging surface,0
+DO-A6B89CC7,Global inclusive accessibility baseline (implementation),1
+DO-A6D3FE39,libs/analytics/cohorts.py canonical NCDA cohort definition,1
+DO-A76427CD,LLM-Based AppropriatenessRule Authoring with HITL Gate (implementation),1
+DO-A7C8A6BD,"Practitioner role model (selected_role, allowed_roles, RoleSwitch audit) (implementation)",1
+DO-AC244024,Canonical EpisodeOfCare status vocabulary + writer / dashboard / UI refactor + idempotent migration + contract test,0
+DO-B1116B14,Dashboard and Safety Netting UI,1
+DO-B3397C94,"FHIR API: ActivityDefinition, Library, PlanDefinition, Schema, Benchmark (implementation)",1
+DO-B4E8836C,Audit-Driven Automated Encounter Remediation (implementation),1
+DO-B4FC3B22,Benign Cancer Pathway Closure Detection,1
+DO-B63973E7,"Terminology loaders for SNOMED CT UK, dm+d, OPCS-4, ICD-10 (implementation)",1
+DO-B648A936,The coding pipeline SHALL support a production NER-first extraction route by calling th... (implementation),1
+DO-B6E80BEE,Bulk Reset and Reprocess - Operations Run Flow,1
+DO-B7060F57,Anchor Detection and Episode Builder,1
+DO-B70AF10E,Programme Configuration Registry,1
+DO-B711D180,persist_safety_net_alerts module + dashboards alert_id cleanup,1
+DO-B7FCDAFB,Milestone temporal integrity: referral-to-diagnosis gap + PRISM primacy (implementation),1
+DO-B8241CF4,Guideline update review surface,0
+DO-B88D4941,Surface-form validation and tasking,1
+DO-BA2B7A99,Admin Guard and ReDoS-Safe Regex Validation in Training Router,1
+DO-BBD3441A,LLM Prompt Safety Utilities Module,1
+DO-BC098903,Diagnosis-aware open-episode completion (rescue auto-stale) (implementation),1
+DO-BC6C7DD5,Value Set and Concept Map Management (implementation),1
+DO-BCA9B190,"MetricTile, ProgressStrip, SegmentedTabs, FilterBar, ToolbarActions, ReviewListCard, DataGridCard, StatHero (framer-motion stagger)",1
+DO-BCD21209,AI Instructions list page on @leo/design-system primitives,1
+DO-BE8CE98C,Manual review-time editing of AI-generated guidance rules (implementation),1
+DO-BE96444E,"Cypher query helper library (read-side, multi-tenant) (implementation)",1
+DO-BEFC4C67,"LLM prompt asset registry (templates, examples, output schemas) (implementation)",1
+DO-C3619627,Wave E Phase 1 Knowledge primitives in @leo/design-system (implementation),1
+DO-C4EC82F9,AppShell + primitive a11y fixes + CI a11y gate,1
+DO-C57BB8ED,Histology vocabulary expansion for confirmed-cancer and benign-closure detection (implementation),1
+DO-C5890265,Audit-Driven Automated Encounter Remediation,1
+DO-C79DBA53,Security Gap Remediation Batch 1 — Implementation Artefacts,1
+DO-C7C1EBA2,CodingDecision Audit Trail Queries,1
+DO-CAA9690F,In-memory message bus adapter for development and tests (implementation),1
+DO-CAEB1411,"Safety-net detector, persistence and pipeline subgraph",0
+DO-CBDF8FBC,SpanResolver -- absolute character-offset resolver for LLM-extracted terms,1
+DO-CCC30913,Consensus runner v2 (libs/llm_client/consensus.py),0
+DO-CD6408D3,Assertion inference helper (implementation),1
+DO-CE117D2A,"NER Training Export Script with PII Gate, Stratification Report, and Safety Block",1
+DO-CFA1ED55,"CRUD Knowledge tabs (Context Rules, Surface Forms, Domains, Terminology)",1
+DO-D17B9B10,"Auth, role-state and tenant-scope middleware",0
+DO-D1F327CC,Rule-based encounter pre-classification with ClassificationResult persistence,0
+DO-D345AD27,Loop 2: Surface Form Task Creation (Streams A/B/C) (implementation),1
+DO-D537B955,Analytics Dashboard Service,1
+DO-D5B9FE5F,Algorithm runner and audit-helper routers in analytics API (implementation),1
+DO-D6C83599,Coding resolver vector-skip threshold (services/terminology_api/app/services/coding_resolver.py),0
+DO-D6CE2AA5,Editable rule review dialog with versioned write-back,1
+DO-D92018C8,"CompletenessReport writer, SBAR completeness contract, completion-event payload, FHIR Provenance",0
+DO-D9F0F2D0,Double-Negation Guard for Pre-Negated SNOMED Situation Concepts (implementation),1
+DO-DA9FD5E8,Knowledge tab width parity + Domains/Terminology card consistency,1
+DO-DB78C498,"Token source of truth for LEO UI: theme.ts, theme/tokens.ts, theme/tokens.css",1
+DO-DB7F8D52,Authentication and Authorisation Module,1
+DO-DD9564E0,Container Infrastructure,1
+DO-DE09C150,API request/response contract models (implementation),1
+DO-E10E756F,Research workspace and cohort builder surface,0
+DO-E32DAC8D,Intelligence Console - unified admin UX,1
+DO-E3885491,Automated Weekly Audit Execution with Immutable AuditRun and DriftMetric,1
+DO-E3A8CDAA,Consensus Arbitrator Third-Verdict Audit Alert (implementation),1
+DO-E647765A,Admin Guidance UI -- Plain Language Guideline Management,1
+DO-E66A98C2,First-seen milestone for 2WW fast-track clinic attendances (implementation),1
+DO-E701D0FA,"SafetyNetAlert persistence, Patient edge, and canonical alert_id (implementation)",1
+DO-E74B0605,"Bitmap Store, Guideline Compiler, and Evaluator in Terminology API",1
+DO-E97A7471,De-identification library + deid validator guard,0
+DO-EDA32DB1,LLM Interpretation Module,1
+DO-EE78E305,Clinical Audit Mission Control React UI,1
+DO-F160C131,"NLP training, audit agent, and FHIR exposure surface",0
+DO-F1953D1C,"Audit-quality, escalation, and security event logging (implementation)",1
+DO-F2E2A70B,Episode-engine state and writer rollups for the analysis worker (implementation),1
+DO-F360829A,"Conditional integration-fetch edge, IntegrationAdapter contract, CompletenessFetchAttempt audit",0
+DO-F3A6F414,Label-verification and training-export lossless writer,0
+DO-F5BDFD51,Guideline conformance evaluator and rule extraction,0
+DO-F78C84A6,Encounter-centric Mission Control and Batch Recode (implementation),1
+DO-F8631A82,Coding Review UI,1
+DO-F89916E2,Three-Tier Decision Engine Module,1
+DO-FA650296,Avoidable Delay Assessment (implementation),1
+DO-FCF80123,Histology-aware _RE_CONFIRMED_CANCER and _RE_NO_CANCER patterns,1
+DO-FD83BB4A,Appointment and Admin Header Filtering in NLP Pipeline (implementation),1
+DO-FE9B7BFC,Model registry canary lifecycle and promotion gate,0
+DO-FEF05EDA,Guideline Rule Engine and Safety-Net Detector,1
+DO-FFA66218,SBAR generation subgraph,0

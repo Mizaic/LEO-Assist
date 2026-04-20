@@ -40,11 +40,12 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import InputAdornment from "@mui/material/InputAdornment";
 import {
   assignUserRole, createGroup, createUser, deleteGroup, deleteUser,
-  forceLogoutUser, listGroupMembers, listGroups, listOrgs, listRoles,
+  forceLogoutUser, getEntraCapability, listGroupMembers, listGroups, listOrgs, listRoles,
   listUsers, addGroupMember, removeGroupMember,
-  type Group, type User,
+  type EntraCapability, type Group, type User,
 } from "@/lib/api/admin";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import EntraUserPicker from "@/components/tenant/EntraUserPicker";
 
 // -- Helpers --
 
@@ -107,6 +108,8 @@ export default function UserManagement() {
   const [memberAddEmail, setMemberAddEmail] = useState("");
   const [memberRefresh, setMemberRefresh] = useState(0);
 
+  const [entraCapability, setEntraCapability] = useState<EntraCapability | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -121,6 +124,9 @@ export default function UserManagement() {
     } finally {
       setLoading(false);
     }
+    getEntraCapability()
+      .then(setEntraCapability)
+      .catch(() => setEntraCapability(null));
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -395,6 +401,13 @@ export default function UserManagement() {
                       )}
                     </Box>
                     <Chip
+                      label={g.source === "entra" ? "Entra" : "Local"}
+                      size="small"
+                      color={g.source === "entra" ? "primary" : "default"}
+                      variant={g.source === "entra" ? "filled" : "outlined"}
+                      sx={{ fontSize: "0.65rem", flexShrink: 0 }}
+                    />
+                    <Chip
                       label={`${g.member_count} member${g.member_count !== 1 ? "s" : ""}`}
                       size="small"
                       variant="outlined"
@@ -425,9 +438,27 @@ export default function UserManagement() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             They will be able to log in with this email. You can set their role and which organisations they can see.
           </Typography>
+          {entraCapability?.can_search_users ? (
+            <Box sx={{ mb: 2 }}>
+              <EntraUserPicker
+                selectedEmail={inviteEmail}
+                helperText="Pick a person from Microsoft Entra. We'll fill in their name and email."
+                onSelect={({ email, name }) => {
+                  setInviteEmail(email);
+                  setInviteName(name);
+                }}
+              />
+            </Box>
+          ) : null}
           <TextField fullWidth label="Email address" type="email"
             value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
-            size="small" sx={{ mb: 2 }} />
+            size="small" sx={{ mb: 2 }}
+            helperText={
+              entraCapability?.can_search_users
+                ? "Or type an email manually."
+                : undefined
+            }
+          />
           <TextField fullWidth label="Full name"
             value={inviteName} onChange={(e) => setInviteName(e.target.value)}
             size="small" sx={{ mb: 2 }} />

@@ -20,6 +20,9 @@ auth.entra_groups.resolved      -- Entra `groups` claim resolved to LEO roles at
 auth.entra_groups.missing       -- Token had no `groups` claim, fallthrough to existing edges
 auth.entra_groups.overage       -- Token presented overage indicator, fallthrough to existing edges
 auth.entra_groups.unknown_group -- A group object ID in the claim does not match any :Group node
+auth.entra_admin.call   -- /admin/entra/* successfully called Microsoft Graph (OBO)
+auth.entra_admin.denied -- /admin/entra/* call rejected by Graph (insufficient consent)
+auth.entra_admin.error  -- /admin/entra/* call failed at Graph or in OBO (non-2xx)
 authz.denied            -- require_admin or require_scope raised 403/401
 authz.admin_action      -- Privileged mutation executed by an admin
 data.access             -- Patient-level data accessed
@@ -132,6 +135,97 @@ def emit_unknown_entra_group(*, email: str, ip: str, group_id: str) -> None:
         email=email,
         ip=ip,
         group_id=group_id,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Admin-portal Entra (Microsoft Graph) audit events
+# (DI-6CF7FCE0 / DI-31F4C232 / R-5CE46392)
+# ---------------------------------------------------------------------------
+
+
+def emit_entra_admin_call(
+    *,
+    email: str,
+    ip: str,
+    tenant_id: str,
+    graph_endpoint: str,
+    http_method: str,
+    status_code: int,
+    scopes: list[str],
+    summary: str = "",
+) -> None:
+    """One log line per successful Microsoft Graph call from /admin/entra/*.
+
+    `summary` is a redacted single-string summary of the response body
+    (e.g. "created group <object_id>", "added member <user_id>") -- never
+    the raw response body, which may contain PII.
+    """
+    _emit(
+        "auth.entra_admin.call",
+        email=email,
+        ip=ip,
+        tenant_id=tenant_id,
+        graph_endpoint=graph_endpoint,
+        http_method=http_method,
+        status_code=status_code,
+        scopes=scopes,
+        summary=summary,
+    )
+
+
+def emit_entra_admin_denied(
+    *,
+    email: str,
+    ip: str,
+    tenant_id: str,
+    graph_endpoint: str,
+    http_method: str,
+    scopes: list[str],
+    reason: str,
+) -> None:
+    """Microsoft Graph rejected the call because the tenant has not granted
+    one of the requested delegated permissions. The /admin/entra/* router
+    converts this into HTTP 403 `code: "consent_required"` for the caller.
+    """
+    _emit(
+        "auth.entra_admin.denied",
+        email=email,
+        ip=ip,
+        tenant_id=tenant_id,
+        graph_endpoint=graph_endpoint,
+        http_method=http_method,
+        scopes=scopes,
+        reason=reason,
+    )
+
+
+def emit_entra_admin_error(
+    *,
+    email: str,
+    ip: str,
+    tenant_id: str,
+    graph_endpoint: str,
+    http_method: str,
+    status_code: int,
+    error_code: str = "",
+    detail: str = "",
+) -> None:
+    """Any non-2xx Graph response (or transport error) other than the
+    consent-failure case captured by emit_entra_admin_denied. `error_code`
+    is the Microsoft Graph error code where one is available; `detail` is
+    a redacted message safe to log.
+    """
+    _emit(
+        "auth.entra_admin.error",
+        email=email,
+        ip=ip,
+        tenant_id=tenant_id,
+        graph_endpoint=graph_endpoint,
+        http_method=http_method,
+        status_code=status_code,
+        error_code=error_code,
+        detail=detail,
     )
 
 

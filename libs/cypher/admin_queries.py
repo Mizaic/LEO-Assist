@@ -239,7 +239,10 @@ OPTIONAL MATCH (g)-[:BELONGS_TO]->(o)
 OPTIONAL MATCH (g)<-[:MEMBER_OF]-(pr:Practitioner)
 WITH g, o.id AS org_id, o.name AS org_name, count(pr) AS member_count
 RETURN g.id AS id, g.name AS name, g.description AS description,
-       g.org_id AS org_id, org_name, member_count, g.created_at AS created_at
+       g.org_id AS org_id, org_name, member_count, g.created_at AS created_at,
+       coalesce(g.source, 'local') AS source,
+       g.entra_object_id AS entra_object_id,
+       g.entra_tenant_id AS entra_tenant_id
 ORDER BY g.name
 """
 
@@ -332,20 +335,91 @@ OPTIONAL MATCH (g)-[:BELONGS_TO]->(o)
 OPTIONAL MATCH (g)<-[:MEMBER_OF]-(pr:Practitioner)
 WITH g, o.id AS org_id, o.name AS org_name, count(pr) AS member_count
 RETURN g.id AS id, g.name AS name, g.description AS description,
-       g.org_id AS org_id, org_name, member_count, g.created_at AS created_at
+       g.org_id AS org_id, org_name, member_count, g.created_at AS created_at,
+       coalesce(g.source, 'local') AS source,
+       g.entra_object_id AS entra_object_id,
+       g.entra_tenant_id AS entra_tenant_id
 ORDER BY g.name
 """
 
 CREATE_GROUP = """
 CREATE (g:Group)
 SET g.id = $id, g.name = $name, g.description = $description,
-    g.org_id = $org_id, g.created_at = datetime()
+    g.org_id = $org_id, g.source = coalesce($source, 'local'),
+    g.created_at = datetime()
 WITH g
 OPTIONAL MATCH (o) WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:Organization) AND o.id = $org_id
 FOREACH (_ IN CASE WHEN o IS NOT NULL THEN [1] ELSE [] END |
   MERGE (g)-[:BELONGS_TO]->(o)
 )
 RETURN g.id AS id
+"""
+
+# Backfill any pre-existing :Group rows that lack a `source` property to
+# `source='local'`. Run before opening up the new /admin/entra/* router so
+# the dual local/Entra model has clean defaults. Idempotent: re-running on
+# an already-backfilled database returns 0.
+BACKFILL_GROUP_SOURCE_LOCAL = """
+MATCH (g:Group)
+WHERE g.source IS NULL
+SET g.source = 'local'
+RETURN count(g) AS updated
+"""
+
+# Upsert a shadow `:Group` node that mirrors an Entra security group. Used
+# by `/admin/entra/groups` after a successful Microsoft Graph create/import
+# so the binding catalogue (`(:Group {entra_object_id})-[:GRANTS_ROLE]->`)
+# can be populated by `/admin/entra/groups/{id}/bind`.
+UPSERT_ENTRA_SHADOW_GROUP = """
+MERGE (g:Group {entra_object_id: $entra_object_id})
+SET g.name = $name,
+    g.description = coalesce($description, ''),
+    g.entra_tenant_id = $entra_tenant_id,
+    g.source = 'entra',
+    g.org_id = coalesce($org_id, ''),
+    g.updated_at = datetime()
+ON CREATE SET g.created_at = datetime(),
+              g.id = coalesce(g.id, $entra_object_id)
+RETURN g.entra_object_id AS entra_object_id,
+       g.id AS id,
+       g.name AS name,
+       g.description AS description,
+       g.entra_tenant_id AS entra_tenant_id,
+       g.source AS source
+"""
+
+# Read a single :Group by Entra object id, including any [:GRANTS_ROLE]
+# edge it currently carries. Used by the bind endpoint to report what role
+# (if any) is already attached.
+GET_ENTRA_SHADOW_GROUP = """
+MATCH (g:Group {entra_object_id: $entra_object_id})
+OPTIONAL MATCH (g)-[gr:GRANTS_ROLE]->(role:Role)
+RETURN g.entra_object_id AS entra_object_id,
+       g.name AS name,
+       g.entra_tenant_id AS entra_tenant_id,
+       g.source AS source,
+       collect(DISTINCT role.name) AS role_names
+"""
+
+# Bind an existing shadow :Group {entra_object_id} to a :Role by name.
+# The :Role must exist (seeded by scripts/seed_roles_and_groups.py). The
+# optional `org_id` scopes the grant to a specific organisation; pass an
+# empty string for a global grant.
+BIND_ENTRA_GROUP_TO_ROLE = """
+MATCH (g:Group {entra_object_id: $entra_object_id})
+MATCH (role:Role {name: $role_name})
+MERGE (g)-[gr:GRANTS_ROLE]->(role)
+SET gr.org_id = coalesce($org_id, '')
+RETURN g.entra_object_id AS entra_object_id,
+       role.name AS role_name,
+       gr.org_id AS org_id
+"""
+
+# Drop a single [:GRANTS_ROLE] edge between a shadow :Group and a :Role.
+UNBIND_ENTRA_GROUP_ROLE = """
+MATCH (g:Group {entra_object_id: $entra_object_id})-[gr:GRANTS_ROLE]->(role:Role {name: $role_name})
+DELETE gr
+RETURN count(gr) AS removed
 """
 
 UPDATE_GROUP = """
