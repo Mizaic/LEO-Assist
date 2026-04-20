@@ -1,5 +1,10 @@
 """Anchor domain review API endpoints.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Mirrors the pattern of routers/pipeline.py classification-review endpoints.
 
 Routes
@@ -20,7 +25,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
-from libs.auth.org_scope import CallerScope, get_caller_scope
+from app.deps import require_admin
+from libs.auth.org_scope import CallerScope
 from libs.neo4j_client.client import PatientGraphClient
 
 logger = logging.getLogger(__name__)
@@ -50,7 +56,7 @@ class AnchorVoteRequest(BaseModel):
 
 @router.get("/disagreements")
 async def get_anchor_disagreements(
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, le=500),
 ) -> dict[str, Any]:
@@ -92,7 +98,7 @@ async def get_anchor_disagreements(
 
 @router.get("/non-cancer")
 async def get_non_cancer_flags(
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=200, le=500),
 ) -> dict[str, Any]:
@@ -134,7 +140,7 @@ async def get_non_cancer_flags(
 @router.post("/vote")
 async def submit_anchor_vote(
     payload: AnchorVoteRequest,
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ) -> dict[str, Any]:
     """Record a human reviewer's verdict on an anchor domain disagreement.
 
@@ -180,7 +186,7 @@ async def submit_anchor_vote(
 
 @router.get("/scorecard")
 async def get_anchor_scorecard(
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ) -> dict[str, Any]:
     """Aggregate accuracy stats: how often each model was correct per human vote."""
     from libs.cypher.anchor_review_queries import GET_ANCHOR_SCORECARD
@@ -223,7 +229,7 @@ async def get_anchor_scorecard(
 
 @router.get("/distribution")
 async def get_domain_distribution(
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ) -> dict[str, Any]:
     """Domain distribution across all reviewed records, grouped by milestone."""
     from libs.cypher.anchor_review_queries import GET_ANCHOR_DOMAIN_DISTRIBUTION
@@ -245,7 +251,7 @@ async def get_domain_distribution(
 
 @router.get("/target-rules")
 async def get_target_rules(
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ) -> dict[str, Any]:
     """Return deduplicated medspaCy TargetRules from agreed/voted records.
 

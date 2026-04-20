@@ -1,5 +1,10 @@
 """ModelConfig CRUD + LLM spend analytics router.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Exposes:
   GET    /model-configs                 — list all ModelConfig nodes
   POST   /model-configs                 — create a new ModelConfig node
@@ -20,7 +25,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
-from libs.auth.org_scope import CallerScope, get_caller_scope
+from app.deps import require_admin
+from libs.auth.org_scope import (
+    CallerScope,
+    get_caller_scope,
+    require_patient_in_scope,
+)
 from libs.cypher.model_config_queries import (
     CREATE_MODEL_CONFIG,
     DELETE_MODEL_CONFIG,
@@ -130,7 +140,7 @@ def list_model_configs(scope: CallerScope = Depends(get_caller_scope)):
 @router.post("/model-configs", status_code=201)
 def create_model_config(
     body: ModelConfigCreate,
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ):
     client = CodingGraphClient()
     try:
@@ -159,7 +169,7 @@ def create_model_config(
 @router.delete("/model-configs/{key:path}", status_code=200)
 def delete_model_config(
     key: str,
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ):
     client = CodingGraphClient()
     try:
@@ -177,7 +187,7 @@ def delete_model_config(
 def update_model_config(
     key: str,
     body: ModelConfigUpdate,
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ):
     client = CodingGraphClient()
     try:
@@ -230,7 +240,7 @@ def get_service_config(
 def upsert_service_config(
     key: str,
     body: ServiceConfigUpdate,
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ):
     client = CodingGraphClient()
     try:
@@ -260,9 +270,17 @@ def patient_llm_spend(
     to_date: str | None = Query(None, alias="to"),
     scope: CallerScope = Depends(get_caller_scope),
 ):
-    """Return per-encounter LLM usage for a patient."""
+    """Return per-encounter LLM usage for a patient.
+
+    Tenant scoping: non-admin callers may only query patients whose
+    registered GP is within their org hierarchy. The check raises 404
+    (deliberately indistinguishable from a non-existent patient) when
+    the caller is out of scope, so the endpoint cannot be used to
+    enumerate patient ids belonging to other tenants.
+    """
     client = PatientGraphClient()
     try:
+        require_patient_in_scope(client, scope, patient_id)
         with client.session() as session:
             rows = session.run(
                 GET_PATIENT_LLM_SPEND,
