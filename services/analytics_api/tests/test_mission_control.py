@@ -17,14 +17,19 @@ import pytest
 
 from libs.auth.org_scope import CallerScope
 from services.analytics_api.app.routers.mission_control import (
+    LIFECYCLE_BUCKET_PATTERN,
+    NO_PATHWAY_BUCKET,
     ReviewRequest,
     _apply_cancer_type_filter,
     _apply_closure_reason_filter,
+    _apply_lifecycle_bucket_filter,
     _apply_patient_id_filter,
     _patient_only_query,
     _apply_pathway_filter,
     _apply_review_filter,
     _kpis_cypher,
+    _no_pathway_patients_cypher,
+    _no_pathway_scope_match,
     _normalise_mission_episode_id,
     _normalise_mission_patient_id,
     _patient_pipeline_audit_prefix,
@@ -97,6 +102,150 @@ def test_cancer_type_filter_empty_list_no_change():
     base, params = _apply_cancer_type_filter(BASE, {}, [])
     assert base == base_before
     assert "cancer_types" not in params
+
+
+# ---------------------------------------------------------------------------
+# Lifecycle bucket filter (DI-105A4EC7)
+# ---------------------------------------------------------------------------
+
+
+def test_lifecycle_bucket_filter_all_no_change():
+    """The wildcard 'all' value must not modify base or params."""
+    base_before = BASE
+    base, params = _apply_lifecycle_bucket_filter(BASE, {}, "all")
+    assert base == base_before
+    assert "lifecycle_bucket" not in params
+
+
+def test_lifecycle_bucket_filter_uses_hero_bucket_case():
+    """A real bucket appends a CASE expression bound to $lifecycle_bucket
+    so the filter clause is exactly what the dashboard's hero count
+    Cypher computed. This is the parity guarantee the contract test
+    relies on.
+    """
+    for bucket in ("active", "in_review", "cancer_excluded", "confirmed_cancer"):
+        base, params = _apply_lifecycle_bucket_filter(BASE, {}, bucket)
+        assert "= $lifecycle_bucket" in base
+        # All four MECE bucket strings appear in the appended CASE.
+        for token in (
+            "'active'",
+            "'in_review'",
+            "'cancer_excluded'",
+            "'confirmed_cancer'",
+        ):
+            assert token in base
+        assert "letter_inferred_benign" in base
+        assert params["lifecycle_bucket"] == bucket
+
+
+def test_lifecycle_bucket_filter_unknown_bucket_no_change():
+    """Defensive: a value not in HERO_BUCKETS must not append anything.
+    The endpoint also validates via LIFECYCLE_BUCKET_PATTERN, so this
+    branch is only reachable through bypassed validation.
+    """
+    base_before = BASE
+    base, params = _apply_lifecycle_bucket_filter(BASE, {}, "garbage")
+    assert base == base_before
+    assert "lifecycle_bucket" not in params
+
+
+def test_lifecycle_bucket_pattern_accepts_only_canonical_buckets():
+    """The Query() pattern lets through 'all', the four MECE buckets,
+    and 'no_pathway' (DI-CA1B4C6E). Anything else must be rejected so
+    an attacker can't smuggle an arbitrary $param value through this
+    endpoint.
+    """
+    import re
+
+    rx = re.compile(LIFECYCLE_BUCKET_PATTERN)
+    accepted = (
+        "all",
+        "active",
+        "in_review",
+        "cancer_excluded",
+        "confirmed_cancer",
+        "no_pathway",
+    )
+    for ok in accepted:
+        assert rx.match(ok), ok
+    for bad in (
+        "",
+        "ALL",
+        "Active",
+        "1=1",
+        "active' OR 1=1--",
+        "garbage",
+        "no-pathway",
+        "noPathway",
+    ):
+        assert not rx.match(bad), bad
+
+
+# ---------------------------------------------------------------------------
+# no_pathway lifecycle bucket (DI-CA1B4C6E)
+# ---------------------------------------------------------------------------
+
+
+def test_no_pathway_bucket_treated_as_no_op_by_episode_filter():
+    """The 'no_pathway' bucket is structurally different (matches
+    patients-without-EpisodeOfCare) and must NOT append the
+    episode-bound CASE clause used by the four MECE buckets, otherwise
+    the Cypher would reference a non-existent ``ep`` alias and crash.
+    The endpoint dispatches to _no_pathway_scope_match instead.
+    """
+    base_before = BASE
+    base, params = _apply_lifecycle_bucket_filter(
+        BASE, {}, NO_PATHWAY_BUCKET
+    )
+    assert base == base_before
+    assert "lifecycle_bucket" not in params
+
+
+def test_no_pathway_scope_match_admin_no_org_returns_unscoped_match():
+    """Admin caller without an org_id sees every Patient node not
+    linked to an EpisodeOfCare. The match clause must not bind to any
+    organisation parameter.
+    """
+    scope = CallerScope(email="admin@nhs.net", is_admin=True)
+    base, params = _no_pathway_scope_match(None, scope)
+    assert "(p:Patient)" in base
+    assert "NOT EXISTS" in base
+    assert "HAS_EPISODE_OF_CARE" in base
+    assert "(:EpisodeOfCare)" in base
+    assert params == {}
+
+
+def test_no_pathway_scope_match_with_org_id_uses_alliance_scope():
+    """When an org_id is provided, the no_pathway match clause must
+    follow the same practice/ICB/alliance commissioning chain Mission
+    Control uses for episode-bound queries -- otherwise the deep-link
+    cohort would diverge from the dashboard cohort denominator.
+    """
+    scope = CallerScope(email="qa@example.com", is_admin=True)
+    base, params = _no_pathway_scope_match("ORG-1", scope)
+    assert "$org" in base
+    assert "HAS_GENERAL_PRACTITIONER" in base
+    assert "COMMISSIONED_BY" in base
+    assert "PART_OF_ALLIANCE" in base
+    assert "NOT EXISTS" in base
+    assert params == {"org": "ORG-1"}
+
+
+def test_no_pathway_patients_cypher_returns_empty_episodes_array():
+    """Patients in the no_pathway bucket have no EpisodeOfCare nodes
+    by definition. The data query must return an empty episodes
+    array literal so _row_to_patient yields a well-formed response
+    shape (the UI rendering assumes episodes is always a list).
+    """
+    base = "MATCH (p:Patient) WHERE NOT EXISTS { (p)-[:HAS_EPISODE_OF_CARE]->(:EpisodeOfCare) } "
+    count_q, data_q, params = _no_pathway_patients_cypher(
+        base, {"org": "ORG-1"}, skip=0, limit=25
+    )
+    assert "count(DISTINCT p) AS total" in count_q
+    assert "[] AS episodes" in data_q
+    assert "ORDER BY p.id" in data_q
+    assert "SKIP $skip LIMIT $limit" in data_q
+    assert params == {"org": "ORG-1", "skip": 0, "limit": 25}
 
 
 # ---------------------------------------------------------------------------

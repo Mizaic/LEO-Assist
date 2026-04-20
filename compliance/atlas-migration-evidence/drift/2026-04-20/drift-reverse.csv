@@ -1,1 +1,53 @@
 dc_id,path,category,note
+DO-0A64F95A,services/analysis_worker/app/analyzers/episode_builder.py,missing-file,source_reference lists a file that no longer exists
+DO-0AE8E53C,package.json,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-0AE8E53C,services/design-system/package.json,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-0DD91ACD,scripts/select_holdout_set.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-0DFA6961,scripts/_mine_cancer_site_terms.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-11A2361E,services/analysis_worker/app/analyzers/episode_builder.py,missing-file,source_reference lists a file that no longer exists
+DO-14B332AB,scripts/investigations/audit_encounter_coding.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-170F0DEE,services/coding_worker/app/pipeline/pipeline_service.py,missing-file,source_reference lists a file that no longer exists
+DO-1D5031E0,scripts/seed_plan_definitions.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-2340F614,services/analysis_worker/app/analyzers/episode_builder.py,missing-file,source_reference lists a file that no longer exists
+DO-2695BE52,scripts/migrate_training_labels_to_gold.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-27B414B3,services/coding_worker/app/pipeline/pipeline_service.py,missing-file,source_reference lists a file that no longer exists
+DO-2D66F23B,services/coding_worker/app/pipeline/pipeline_service.py,missing-file,source_reference lists a file that no longer exists
+DO-308DD1A6,scripts/seed_canonical_roles.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-313A49AE,services/ui/src/components/tenant/EntraUserPicker.tsx [phase14c],missing-file,source_reference lists a file that no longer exists
+DO-4A8227DD,services/ui/src/theme.ts,missing-file,source_reference lists a file that no longer exists
+DO-54397CCD,services/training_worker/app/config/base.cfg,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-5DB895BF,services/design-system/package.json,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-5DB895BF,services/ui/src/theme.ts,missing-file,source_reference lists a file that no longer exists
+DO-622F6579,scripts/investigations/audit_encounter_coding.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-6CD07544,scripts/feed_audit_gaps_to_surface_forms.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-6DCC699A,services/design-system/src/motion/transitions.ts,missing-file,source_reference lists a file that no longer exists
+DO-6DCC699A,services/design-system/src/motion/useMotion.ts,missing-file,source_reference lists a file that no longer exists
+DO-720CD183,scripts/investigations/audit_encounter_coding.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-8620A68B,scripts/seed_plan_definitions.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-8620A68B,scripts/seed_prompt_configs.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-86800C9B,libs/dq/rules.yaml,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-868C7881,scripts/build_ncda_export.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-8972ED05,services/ui/eslint.config.mjs,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-8972ED05,services/ui/next.config.mjs,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-8972ED05,services/ui/src/app/globals.css,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-8972ED05,services/ui/src/components/ui/ProgressiveReveal.tsx,missing-file,source_reference lists a file that no longer exists
+DO-93E086B0,scripts/seed_plan_definitions.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-93E086B0,scripts/seed_prompt_configs.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-94D87FA7,libs/audit/auditor.py,missing-file,source_reference lists a file that no longer exists
+DO-94D87FA7,libs/prompts/opus_audit_v1.py,missing-file,source_reference lists a file that no longer exists
+DO-94D87FA7,scripts/opus_training_auditor.py,missing-file,source_reference lists a file that no longer exists
+DO-94D87FA7,services/api/app/services/opus_audit_service.py,missing-file,source_reference lists a file that no longer exists
+DO-94D87FA7,tests/test_opus_training_auditor.py,missing-file,source_reference lists a file that no longer exists
+DO-9539333E,services/ui/src/components/ui/ProgressiveReveal.tsx,missing-file,source_reference lists a file that no longer exists
+DO-9A5C65AF,services/ui/next.config.mjs,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-A23404E0,services/analysis_worker/app/analyzers/episode_builder.py,missing-file,source_reference lists a file that no longer exists
+DO-A2553F87,.cursor/rules/ui-safety.mdc,missing-file,source_reference lists a file that no longer exists
+DO-A2553F87,services/ui/src/components/operations/DeploySection.tsx,missing-file,source_reference lists a file that no longer exists
+DO-A26CD350,scripts/seed_plan_definitions.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-A26CD350,services/coding_worker/app/pipeline/pipeline_service.py,missing-file,source_reference lists a file that no longer exists
+DO-A59215DA,services/ui/next.config.mjs,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-B4FC3B22,scripts/investigations/_pin_2ww_clinic_aliases.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-B4FC3B22,scripts/investigations/_seed_no_cancer_discharge_valueset.py,missing-header,Atlas DO lists this file but file has no Atlas trace block
+DO-B4FC3B22,services/analysis_worker/app/analyzers/episode_builder.py,missing-file,source_reference lists a file that no longer exists
+DO-B7060F57,services/analysis_worker/app/analyzers/episode_builder.py,missing-file,source_reference lists a file that no longer exists
+DO-B7060F57,services/analysis_worker/app/analyzers/episode_consolidator.py,missing-file,source_reference lists a file that no longer exists

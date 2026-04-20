@@ -14,6 +14,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import ExpandMore from "@mui/icons-material/ExpandMore";
+import LockOutlined from "@mui/icons-material/LockOutlined";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import type { CodedLink } from "@/lib/types";
@@ -58,6 +59,11 @@ interface EncounterCardProps {
    *  links and the gold mirror, so the parent can refresh its cached
    *  view of :DOCUMENTS for this encounter (DI-LEO-AI-220/221). */
   onCodingChanged?: () => void;
+  /** When set, this encounter has at least one VerificationLock on
+   * the graph (encounter or any of its coded links / IS_PART_OF
+   * edges). The card renders a lock chip and disables the "Reset and
+   * recode" affordance with a "Release lock to recode" hint. */
+  lockSummary?: import("@/lib/missionControlApi").VerificationLockSummary | null;
 }
 
 // LONG FUNCTION: layout-dense card with collapse panel and inline
@@ -79,7 +85,9 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
       onToggle,
       onRequestReset,
       onCodingChanged,
+      lockSummary,
     } = props;
+    const isLocked = Boolean(lockSummary);
     const encounterKey = String(enc.encounter_id);
     // Expand the query into the deterministic synonym set shared
     // with /care/encounters (DI-LEO-AI-520) so highlights, the
@@ -268,11 +276,19 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
               size="small"
               color="error"
               variant="outlined"
-              disabled={isResetting}
+              disabled={isResetting || isLocked}
               onClick={onRequestReset}
+              data-testid="encounter-card-reset-button"
             >
-              {isResetting ? "Resetting..." : "Reset and recode"}
+              {isResetting
+                ? "Resetting..."
+                : isLocked
+                  ? "Release lock to recode"
+                  : "Reset and recode"}
             </Button>
+            {isLocked && (
+              <LockChipInline lock={lockSummary!} />
+            )}
           </Box>
         </Box>
 
@@ -339,5 +355,29 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
     );
   }
 );
+
+// Local helper -- avoids importing the Drawer-only LockChip in this
+// dense file. Renders the same visual pattern (LockOutlined chip with
+// the reviewer in the tooltip) using primitives already imported.
+function LockChipInline({
+  lock,
+}: {
+  lock: import("@/lib/missionControlApi").VerificationLockSummary;
+}) {
+  const role = lock.locked_by_role === "qa_ra_lead" ? "QA / RA lead" : "clinician";
+  const tooltip = `Locked by ${role} ${lock.locked_by}. Reason: ${lock.lock_reason}`;
+  return (
+    <Chip
+      data-testid="encounter-card-lock-chip"
+      size="small"
+      color="success"
+      variant="filled"
+      icon={<LockOutlined fontSize="small" />}
+      label="Locked"
+      aria-label={tooltip}
+      title={tooltip}
+    />
+  );
+}
 
 export default EncounterCard;

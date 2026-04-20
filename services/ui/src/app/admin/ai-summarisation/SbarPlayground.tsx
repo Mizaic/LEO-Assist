@@ -561,6 +561,7 @@ export default function SbarPlayground() {
         open={finalDialogOpen && !!sbar.finalContent}
         onClose={() => setFinalDialogOpen(false)}
         markdown={sbar.finalContent ?? ""}
+        backgroundParts={sbar.backgroundParts}
         subtitle={
           [
             sbar.runId ? `run ${sbar.runId.slice(0, 8)}` : null,

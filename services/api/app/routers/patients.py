@@ -56,6 +56,22 @@ class RecodeCodedLinkRequest(BaseModel):
     read_code: str | None = None
     semantic_tag: str = "SnomedConcept"
     modifiers: dict[str, Any] | None = None
+    # Reviewer-verification lock fields (DI-C424BB44). When ``lock=True`` the
+    # recode lands inside the same transaction as a VerificationLock that
+    # marks the resulting (encounter_id, new_concept_id) pair as immutable
+    # to the recode pipeline. The reviewer's email and role are recorded on
+    # the lock and on the HumanReconciliation AuditEvent.
+    lock: bool = False
+    lock_reason: str | None = None
+    reviewer_role: str | None = None
+
+
+class CodedLinkLockRequest(BaseModel):
+    """Body for ``POST /coded-links/{concept_id}/lock`` (accept/reject)."""
+
+    decision: str = Field(..., pattern="^(accept|reject)$")
+    reviewer_role: str = Field(..., min_length=1)
+    reason: str = Field(..., min_length=1, max_length=500)
 
 
 class UpdateModifiersRequest(BaseModel):
@@ -936,6 +952,34 @@ def delete_coded_link(
         client.close()
 
 
+def _coded_link_lock_id(encounter_id: str, concept_id: str) -> str:
+    """Composite key used for ``coded_link`` VerificationLocks."""
+    return f"{encounter_id}:{concept_id}"
+
+
+def _ensure_coded_link_unlocked(
+    lock_client, *, encounter_id: str, concept_id: str
+) -> None:
+    """Raise HTTP 409 if the coded link is already verification-locked."""
+    from libs.locks import is_locked
+
+    existing = is_locked(
+        lock_client,
+        entity_type="coded_link",
+        entity_id=_coded_link_lock_id(encounter_id, concept_id),
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Coded link is verification-locked; release lock to recode.",
+                "lock_id": existing.lock_id,
+                "locked_by": existing.locked_by,
+                "locked_by_role": existing.locked_by_role,
+            },
+        )
+
+
 @router.patch("/{patient_id}/encounters/{encounter_id}/coded-links/{concept_id}")
 def recode_coded_link(
     patient_id: str,
@@ -944,38 +988,168 @@ def recode_coded_link(
     body: RecodeCodedLinkRequest,
     scope: CallerScope = Depends(get_caller_scope),
 ):
+    from libs.locks import VerificationLock, apply_with_lock
+
     writer = PatientGraphWriter()
     client = PatientGraphClient()
     try:
         require_patient_in_scope(client, scope, patient_id)
+        # The current coded_link is locked iff (encounter, concept) matches.
+        # Reviewers must release the lock before recoding to prevent silent
+        # overwrites of human-verified clinical data.
+        _ensure_coded_link_unlocked(
+            client, encounter_id=encounter_id, concept_id=concept_id
+        )
+
+        payload = SemanticLinkPayload(
+            encounter_id=encounter_id,
+            semantic_tag=body.semantic_tag,
+            concept_id=body.new_concept_id,
+            term=body.term,
+            read_code=body.read_code,
+            evidence="",
+            confidence=0.9,
+            domain="clinical",
+            context={},
+            modifiers=body.modifiers or {},
+            source="manual_recode",
+        )
+
+        applied_lock: VerificationLock | None = None
+
+        def _recode_in_session(session) -> None:
+            writer.recode_documents_link(
+                patient_id=patient_id,
+                old_concept_id=concept_id,
+                new_payload=payload,
+                session=session,
+            )
+
         try:
-            with client.session() as session:
-                payload = SemanticLinkPayload(
-                    encounter_id=encounter_id,
-                    semantic_tag=body.semantic_tag,
-                    concept_id=body.new_concept_id,
-                    term=body.term,
-                    read_code=body.read_code,
-                    evidence="",
-                    confidence=0.9,
-                    domain="clinical",
-                    context={},
-                    modifiers=body.modifiers or {},
-                    source="manual_recode",
+            if body.lock:
+                if not scope.email:
+                    raise HTTPException(
+                        status_code=401, detail="Authentication required to lock"
+                    )
+                if not body.reviewer_role:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="reviewer_role is required when lock=true",
+                    )
+
+                def _mutation(tx) -> None:
+                    # Adapter so the writer can use the existing session API
+                    # while sharing the lock's transaction.
+                    class _SessionView:
+                        def run(self, query: str, **params):
+                            return tx.run(query, **params)
+
+                    writer.recode_documents_link(
+                        patient_id=patient_id,
+                        old_concept_id=concept_id,
+                        new_payload=payload,
+                        session=_SessionView(),
+                    )
+
+                applied_lock = apply_with_lock(
+                    client,
+                    entity_type="coded_link",
+                    entity_id=_coded_link_lock_id(
+                        encounter_id, body.new_concept_id
+                    ),
+                    locked_by=scope.email,
+                    locked_by_role=body.reviewer_role,
+                    lock_reason=body.lock_reason or "manual recode",
+                    source="encounter_coding_review",
+                    mutation=_mutation,
                 )
-                writer.recode_documents_link(
-                    patient_id=patient_id,
-                    old_concept_id=concept_id,
-                    new_payload=payload,
-                    session=session,
-                )
+            else:
+                with client.session() as session:
+                    _recode_in_session(session)
+        except HTTPException:
+            raise
         except ValueError as exc:
             if str(exc) == "coded_link_not_found":
                 raise HTTPException(
                     status_code=404, detail="Coded link not found"
                 ) from exc
             raise
-        return {"recode": True, "new_concept_id": body.new_concept_id}
+
+        result = {"recode": True, "new_concept_id": body.new_concept_id}
+        if applied_lock is not None:
+            result["lock"] = {
+                "lock_id": applied_lock.lock_id,
+                "entity_type": applied_lock.entity_type,
+                "entity_id": applied_lock.entity_id,
+            }
+        return result
+    finally:
+        client.close()
+
+
+@router.post(
+    "/{patient_id}/encounters/{encounter_id}/coded-links/{concept_id}/lock"
+)
+def lock_or_release_coded_link(
+    patient_id: str,
+    encounter_id: str,
+    concept_id: str,
+    body: CodedLinkLockRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Reviewer accept/reject on a coded link.
+
+    ``accept`` -- writes a VerificationLock so the recode pipeline can no
+    longer overwrite this coded link.
+
+    ``reject`` -- releases the existing lock if any (so the next recode
+    pass can re-evaluate the link). Reviewer email and role are stamped
+    on the HumanReconciliation AuditEvent in either case.
+    """
+    if not scope.email:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    from libs.locks import apply_with_lock, is_locked, release_lock
+
+    client = PatientGraphClient()
+    try:
+        require_patient_in_scope(client, scope, patient_id)
+        entity_id = _coded_link_lock_id(encounter_id, concept_id)
+
+        if body.decision == "accept":
+            lock = apply_with_lock(
+                client,
+                entity_type="coded_link",
+                entity_id=entity_id,
+                locked_by=scope.email,
+                locked_by_role=body.reviewer_role,
+                lock_reason=body.reason,
+                source="encounter_coding_review",
+            )
+            return {
+                "decision": "accept",
+                "lock_id": lock.lock_id,
+                "entity_id": lock.entity_id,
+            }
+
+        existing = is_locked(
+            client, entity_type="coded_link", entity_id=entity_id
+        )
+        if existing is None:
+            return {"decision": "reject", "released": False}
+
+        released = release_lock(
+            client,
+            lock_id=existing.lock_id,
+            released_by=scope.email,
+            released_by_role=body.reviewer_role,
+            reason=body.reason,
+        )
+        return {
+            "decision": "reject",
+            "released": released is not None,
+            "lock_id": existing.lock_id,
+        }
     finally:
         client.close()
 

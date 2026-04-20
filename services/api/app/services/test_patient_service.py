@@ -24,6 +24,7 @@ import httpx
 
 from app.db.neo4j_client import CodingGraphClient
 from app.services._logic_tree import parse_logic_json, trigger_terms_preview
+from libs.auth.service_auth import get_service_auth_header
 from libs.cypher.test_patient_queries import (
     ASSERT_CONCEPTS_PRESENT,
     COUNT_TEST_PATIENTS_BY_ASPECT,
@@ -61,7 +62,16 @@ EVAL_TIMEOUT_S = float(os.getenv("TEST_PATIENT_EVAL_TIMEOUT", "30"))
 
 @dataclass
 class PatientPayload:
-    """Minimal patient profile the dialog and generator both produce."""
+    """Minimal patient profile the dialog and generator both produce.
+
+    ``observations`` (Phase 5e) carries the patient's numeric observation
+    history so OBSERVATION leaves in the rule logic tree have data to
+    answer against. Each row is a dict with ``observable_id`` (SNOMED
+    concept id), ``value`` (numeric reading), ``unit`` (string), and
+    ``observed_at`` (ISO-8601). Empty / absent means the patient has
+    no recorded observations -- OBSERVATION leaves fail closed in
+    that case so the rule does not fire.
+    """
 
     codes: list[str]
     age: float | None = None
@@ -70,17 +80,55 @@ class PatientPayload:
     name: str = ""
     description: str = ""
     generation_source: str = "manual"  # manual | generated | imported
+    observations: list[dict] | None = None
 
     def normalised_codes(self) -> list[str]:
         return sorted({str(c).strip() for c in self.codes if str(c).strip()})
 
+    def normalised_observations(self) -> list[dict]:
+        """Return observations sorted by (observable_id, observed_at, value).
+
+        Sorted so two payloads carrying the same readings hash the same
+        regardless of the order the UI picker happened to insert them.
+        Bad rows (missing observable_id or value) are dropped.
+        """
+        out: list[dict] = []
+        for row in self.observations or []:
+            if not isinstance(row, dict):
+                continue
+            observable_id = str(row.get("observable_id") or "").strip()
+            if not observable_id:
+                continue
+            try:
+                value = float(row.get("value"))
+            except (TypeError, ValueError):
+                continue
+            out.append(
+                {
+                    "observable_id": observable_id,
+                    "value": value,
+                    "unit": str(row.get("unit") or "").strip(),
+                    "observed_at": str(row.get("observed_at") or "").strip(),
+                }
+            )
+        out.sort(
+            key=lambda r: (r["observable_id"], r["observed_at"], r["value"])
+        )
+        return out
+
     def content_hash(self) -> str:
-        """Deterministic dedup key per (codes, age, sex, pathway)."""
+        """Deterministic dedup key per (codes, age, sex, pathway, observations).
+
+        Observations are folded into the hash so two test patients
+        with the same SNOMED codes but different lab values compare
+        unequal -- otherwise OBSERVATION-rule fixtures would collide.
+        """
         payload = {
             "codes": self.normalised_codes(),
             "age": self.age,
             "sex": (self.sex or "").lower() or None,
             "pathway_id": self.pathway_id or None,
+            "observations": self.normalised_observations(),
         }
         raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
         return hashlib.blake2b(raw, digest_size=16).hexdigest()
@@ -164,6 +212,7 @@ def evaluate_against_terminology(
     surface a single error to the UI.
     """
     effective_pathway = pathway_filter or payload.pathway_id
+    observations = payload.normalised_observations()
     body = {
         "patient_codes": payload.normalised_codes(),
         "patient_age": payload.age,
@@ -172,11 +221,12 @@ def evaluate_against_terminology(
         "scope_type": scope_type,
         "scope_id": scope_id,
         "ruleset_version": ruleset_version,
+        "observations": observations or None,
     }
     url = f"{TERMINOLOGY_API_URL}/terminology/guidelines/evaluate"
     try:
         with httpx.Client(timeout=EVAL_TIMEOUT_S) as http:
-            resp = http.post(url, json=body)
+            resp = http.post(url, json=body, headers=get_service_auth_header())
         if resp.status_code >= 400:
             raise RuntimeError(
                 f"Terminology API returned {resp.status_code}: {resp.text[:200]}"
@@ -212,7 +262,7 @@ def compile_draft_ruleset(
     url = f"{TERMINOLOGY_API_URL}/terminology/guidelines/bitmap/compile-draft"
     try:
         with httpx.Client(timeout=EVAL_TIMEOUT_S) as http:
-            resp = http.post(url, json=body)
+            resp = http.post(url, json=body, headers=get_service_auth_header())
         if resp.status_code >= 400:
             raise RuntimeError(
                 f"Terminology API returned {resp.status_code}: {resp.text[:200]}"
@@ -237,7 +287,7 @@ def delete_sandbox_scope(scope_type: str, scope_id: str) -> dict:
     )
     try:
         with httpx.Client(timeout=EVAL_TIMEOUT_S) as http:
-            resp = http.delete(url)
+            resp = http.delete(url, headers=get_service_auth_header())
         if resp.status_code >= 400:
             logger.warning(
                 "delete_sandbox_scope %s/%s returned %s: %s",
@@ -338,6 +388,7 @@ def _attach_regression_diagnostics(
             age=patient.get("age"),
             sex=patient.get("sex"),
             pathway_id=patient.get("pathway_id"),
+            observations=list(patient.get("observations") or []),
         )
         for regression in regressions:
             rid = regression.get("rule_id")
@@ -376,6 +427,7 @@ def diagnose_rule_against_patient(
     uses to fire rules.  This guarantees the diagnostic verdict and
     the live firing decision agree.
     """
+    observations = payload.normalised_observations()
     body = {
         "rule_id": rule_id,
         "patient_codes": payload.normalised_codes(),
@@ -384,11 +436,12 @@ def diagnose_rule_against_patient(
         "scope_type": scope_type,
         "scope_id": scope_id,
         "ruleset_version": ruleset_version,
+        "observations": observations or None,
     }
     url = f"{TERMINOLOGY_API_URL}/terminology/guidelines/diagnose"
     try:
         with httpx.Client(timeout=EVAL_TIMEOUT_S) as http:
-            resp = http.post(url, json=body)
+            resp = http.post(url, json=body, headers=get_service_auth_header())
         if resp.status_code == 404:
             # Forward the structured 404 detail (carries not_compiled,
             # rule_found, recompile_hint, scope_*) so the UI can render
@@ -537,6 +590,7 @@ def confirm_and_save(
         content_hash=content_hash,
         guideline_id=guideline_id,
         created_by=created_by,
+        observations_json=json.dumps(payload.normalised_observations()),
     )
 
     written = 0
@@ -655,7 +709,31 @@ def count_by_aspect(client: CodingGraphClient) -> dict[str, int]:
 
 def get_patient(client: CodingGraphClient, *, patient_id: str) -> dict | None:
     rows = client.run(GET_TEST_PATIENT, id=patient_id)
-    return dict(rows[0]) if rows else None
+    if not rows:
+        return None
+    return _hydrate_patient_row(dict(rows[0]))
+
+
+def _hydrate_patient_row(row: dict) -> dict:
+    """Decode the JSON-encoded observations property into a Python list.
+
+    Neo4j cannot store nested dicts in node properties, so the
+    OBSERVATION-leaf payload (a list of {observable_id, value, unit,
+    observed_at} dicts) is persisted as a JSON string column
+    ``tp.observations_json``. The Python service decodes it at read
+    time and re-encodes at write time so callers never see the JSON
+    plumbing.
+    """
+    raw = row.get("observations_json")
+    if raw is None:
+        row["observations"] = []
+        return row
+    try:
+        decoded = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        decoded = []
+    row["observations"] = list(decoded) if isinstance(decoded, list) else []
+    return row
 
 
 _NON_GUIDELINE_ASPECTS = {a for a in TEST_PATIENT_ASPECTS if a != "guidelines"}
@@ -987,6 +1065,7 @@ def update_patient(
         sex=payload.sex,
         pathway_id=payload.pathway_id,
         content_hash=payload.content_hash(),
+        observations_json=json.dumps(payload.normalised_observations()),
         updated_by=updated_by,
     )
     if not rows:
@@ -1190,6 +1269,7 @@ def replay_one(
         age=patient_row.get("age"),
         sex=patient_row.get("sex"),
         pathway_id=patient_row.get("pathway_id"),
+        observations=list(patient_row.get("observations") or []),
     )
     try:
         eval_result = evaluate_against_terminology(

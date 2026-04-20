@@ -812,6 +812,11 @@ interface RowShellProps {
   testId: string;
   flat?: boolean;
   children: ReactNode;
+  // forwardRefAdapter injects this so RowShell can attach the ref the
+  // outer scrubber needs for focus/scroll-into-view. Declared here so
+  // the generic constraint `P extends { forwardedRef?: ... }` on the
+  // adapter is satisfied without an `as any` at the call site.
+  forwardedRef?: React.Ref<HTMLDivElement>;
 }
 
 const RowShell = forwardRefAdapter<RowShellProps>(function RowShell(
@@ -975,9 +980,15 @@ const oneLine = {
 function forwardRefAdapter<P extends { forwardedRef?: React.Ref<HTMLDivElement> }>(
   Component: (props: P) => JSX.Element,
 ) {
-  return forwardRef<HTMLDivElement, Omit<P, "forwardedRef">>((props, ref) =>
-    Component({ ...(props as P), forwardedRef: ref }),
-  );
+  return forwardRef<HTMLDivElement, Omit<P, "forwardedRef">>((props, ref) => {
+    // The cast goes via `unknown` because `Omit<P, "forwardedRef">`
+    // plus the injected ref structurally equals P, but TS cannot prove
+    // it (P could be instantiated with extra required keys at the call
+    // site). Every concrete row prop interface in this file already
+    // declares `forwardedRef?` so the cast is safe at runtime.
+    const merged = { ...props, forwardedRef: ref } as unknown as P;
+    return Component(merged);
+  });
 }
 
 function withRowRef<P>(

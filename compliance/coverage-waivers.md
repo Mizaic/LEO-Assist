@@ -205,6 +205,51 @@ VT execution: 110 passed, 240 not_executed, 0 failed.
 - **Clear by**: next sprint (DO + VT shells with `record_`
   `verification_run` evidence).
 
+### W-012 -- DI-740BE510 ACs 4-5 not yet implementation-covered
+
+- **Scope**: 2 of 5 ACs on `DI-740BE510` (SBAR source-encounter and
+  coded-entity provenance) are accepted by Atlas but not yet
+  implementation-covered:
+  - **AC4**: source-record provenance preserved in every export
+    pathway (FHIR Composition / DocumentReference, JSON export,
+    downstream API consumers) with a contract test for the round-
+    trip. The current implementation persists `background_parts`
+    on the `:Assessment` node and exposes it on
+    `GET /sbar/assessments/{id}`, but the FHIR export and any
+    downstream JSON export pathways have not been audited and no
+    round-trip contract test exists.
+  - **AC5**: portable / embeddable SBAR renderer SDK trust
+    boundary. The renderer is currently an internal React tree
+    (`services/ui/src/components/sbar-final`) consumed only inside
+    `services/ui`. There is no published web component, NPM
+    package, or iframe widget yet, so the "Shadow DOM / iframe
+    trust boundary that prevents the embedding host from
+    suppressing the source-record disclosure" requirement is not
+    yet exercisable.
+- **Status**: accepted, scheduled (in-scope for the portable-
+  renderer workstream initiated 2026-04-20).
+- **Justification**: ACs 1-3 (structured-data exposure end-to-end,
+  per-section disclosure defaulting to collapsed, no inline
+  source-ID HTML/markdown comments) are covered by `VT-9A9DAA2C`
+  with three recorded passes (jest `sbar-final-view` +
+  `sbar-playground-chrome`, pytest `tests/sbar/*`). ACs 4-5 are
+  the new requirements added when DI-740BE510 was re-scoped on
+  2026-04-20 to own the canonical SBAR provenance contract,
+  including the consuming-systems specification implicit in any
+  third-party renderer distribution.
+- **Owner**: Engineering Lead (renderer SDK), QA / RA Lead
+  (export contract).
+- **Clear by**:
+  - AC4 (export round-trip): next sprint - add a FHIR export
+    contract test under `tests/contracts/` that asserts
+    `background_parts` survives the round-trip and gate any new
+    export adapter on it.
+  - AC5 (renderer trust boundary): tracked in the portable-
+    renderer DO/VT shells once the renderer SDK design output is
+    created and the distribution channel is chosen
+    (web-component vs NPM React vs iframe). Target: design-review
+    sign-off before first external embedding.
+
 ### W-011 -- DI created in parallel without VT
 
 - **Scope**: 1 DI created by another agent / team during the

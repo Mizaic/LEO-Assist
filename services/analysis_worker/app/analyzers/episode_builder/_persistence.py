@@ -109,8 +109,17 @@ def _link_encounters_to_episode(
     patient_client: Any,
     episode_id: str,
     anchors_by_type: list[tuple[list[dict[str, Any]], str]],
+    *,
+    lock_state: Any = None,
 ) -> None:
-    """Replace IS_PART_OF edges for one episode with current milestone links."""
+    """Replace IS_PART_OF edges for one episode with current milestone links.
+
+    DI-C424BB44 rebuild guard: when ``lock_state`` is provided, any
+    ``"<encounter_id>:<episode_id>"`` key present in
+    ``lock_state.locked_is_part_of_keys`` is added to the Cypher
+    parameter ``locked_keys`` so the LINK_ENCOUNTERS query's WHERE NOT
+    clause preserves it across the delete-and-recreate cycle.
+    """
     if not episode_id:
         return
     encounter_links: list[dict[str, Any]] = []
@@ -133,6 +142,14 @@ def _link_encounters_to_episode(
                     }
                 )
                 seen.add(eid)
+    locked_encounter_ids: list[str] = []
+    if lock_state is not None and getattr(lock_state, "locked_is_part_of_keys", None):
+        suffix = ":" + episode_id
+        locked_encounter_ids = [
+            key[: -len(suffix)]
+            for key in lock_state.locked_is_part_of_keys
+            if key.endswith(suffix) and key != suffix
+        ]
     try:
         _run_with_retry(
             patient_client,
@@ -140,6 +157,7 @@ def _link_encounters_to_episode(
             f"LINK encounters -> {episode_id}",
             episode_id=episode_id,
             encounters=encounter_links,
+            locked_encounter_ids=locked_encounter_ids,
         )
     except Exception:  # noqa: BLE001
         logger.error(

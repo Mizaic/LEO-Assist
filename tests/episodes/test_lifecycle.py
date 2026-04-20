@@ -14,9 +14,11 @@ import pytest
 from libs.episodes.lifecycle import (
     HERO_BUCKET_CASE,
     HERO_BUCKETS,
+    BucketFlip,
     HeroBucket,
     build_hero_bucket_case,
     classify_hero_bucket,
+    would_flip_bucket,
 )
 from libs.episodes.status import EpisodeStatus
 
@@ -127,3 +129,133 @@ def test_template_only_has_two_named_placeholders():
     placeholders so callers cannot accidentally inject extra fields."""
     placeholders = re.findall(r"\{(\w+)\}", HERO_BUCKET_CASE)
     assert sorted(set(placeholders)) == ["alias", "has_diag"]
+
+
+# -- would_flip_bucket -----------------------------------------------------
+
+
+def test_would_flip_bucket_returns_dataclass_with_both_buckets() -> None:
+    """The reconcile API and the UI banner both consume the structured
+    result, so the helper must always return a BucketFlip with the
+    current and proposed bucket labels populated."""
+
+    result = would_flip_bucket(
+        current_status=EpisodeStatus.REVIEW.value,
+        current_has_diagnosis_milestone=False,
+        proposed_status=EpisodeStatus.REVIEW.value,
+        proposed_has_diagnosis_milestone=False,
+    )
+
+    assert isinstance(result, BucketFlip)
+    assert result.current_bucket is HeroBucket.IN_REVIEW
+    assert result.proposed_bucket is HeroBucket.IN_REVIEW
+    assert result.flips is False
+
+
+def test_would_flip_bucket_review_to_confirmed_cancer() -> None:
+    """Adding a confirmed diagnosis milestone moves an in_review episode
+    into the confirmed_cancer bucket."""
+
+    result = would_flip_bucket(
+        current_status=EpisodeStatus.REVIEW.value,
+        current_has_diagnosis_milestone=False,
+        proposed_status=EpisodeStatus.REVIEW.value,
+        proposed_has_diagnosis_milestone=True,
+    )
+    assert result.current_bucket is HeroBucket.IN_REVIEW
+    assert result.proposed_bucket is HeroBucket.CONFIRMED_CANCER
+    assert result.flips is True
+
+
+def test_would_flip_bucket_review_to_cancer_excluded() -> None:
+    result = would_flip_bucket(
+        current_status=EpisodeStatus.REVIEW.value,
+        current_has_diagnosis_milestone=False,
+        proposed_status=EpisodeStatus.CLOSED_BENIGN.value,
+        proposed_has_diagnosis_milestone=False,
+    )
+    assert result.proposed_bucket is HeroBucket.CANCER_EXCLUDED
+    assert result.flips is True
+
+
+def test_would_flip_bucket_confirmed_to_excluded_via_letter_flag() -> None:
+    """Setting letter_inferred_benign on an episode that already has a
+    diagnosis milestone moves it from confirmed_cancer back into the
+    cancer_excluded family, even with the same raw status."""
+
+    result = would_flip_bucket(
+        current_status=EpisodeStatus.ACTIVE.value,
+        current_has_diagnosis_milestone=True,
+        current_letter_inferred_benign=False,
+        proposed_status=EpisodeStatus.CLOSED_BENIGN.value,
+        proposed_has_diagnosis_milestone=True,
+        proposed_letter_inferred_benign=True,
+    )
+    assert result.current_bucket is HeroBucket.CONFIRMED_CANCER
+    assert result.proposed_bucket is HeroBucket.CANCER_EXCLUDED
+    assert result.flips is True
+
+
+def test_would_flip_bucket_active_to_review() -> None:
+    result = would_flip_bucket(
+        current_status=EpisodeStatus.ACTIVE.value,
+        current_has_diagnosis_milestone=False,
+        proposed_status=EpisodeStatus.REVIEW.value,
+        proposed_has_diagnosis_milestone=False,
+    )
+    assert result.current_bucket is HeroBucket.ACTIVE
+    assert result.proposed_bucket is HeroBucket.IN_REVIEW
+    assert result.flips is True
+
+
+def test_would_flip_bucket_no_change_when_only_internal_state_moves() -> None:
+    """Confirming an existing diagnosis without changing the bucket
+    inputs must not be reported as a flip."""
+
+    result = would_flip_bucket(
+        current_status=EpisodeStatus.REVIEW.value,
+        current_has_diagnosis_milestone=True,
+        proposed_status=EpisodeStatus.REVIEW.value,
+        proposed_has_diagnosis_milestone=True,
+    )
+    assert result.current_bucket is HeroBucket.CONFIRMED_CANCER
+    assert result.proposed_bucket is HeroBucket.CONFIRMED_CANCER
+    assert result.flips is False
+
+
+@pytest.mark.parametrize(
+    "current,proposed,should_flip",
+    [
+        (HeroBucket.ACTIVE, HeroBucket.IN_REVIEW, True),
+        (HeroBucket.IN_REVIEW, HeroBucket.CONFIRMED_CANCER, True),
+        (HeroBucket.CONFIRMED_CANCER, HeroBucket.CANCER_EXCLUDED, True),
+        (HeroBucket.CANCER_EXCLUDED, HeroBucket.CANCER_EXCLUDED, False),
+    ],
+)
+def test_would_flip_bucket_truth_table(
+    current: HeroBucket,
+    proposed: HeroBucket,
+    should_flip: bool,
+) -> None:
+    """Tests every adjacent transition in the four-bucket lattice."""
+
+    inputs_for = {
+        HeroBucket.ACTIVE: (EpisodeStatus.ACTIVE.value, False, False),
+        HeroBucket.IN_REVIEW: (EpisodeStatus.REVIEW.value, False, False),
+        HeroBucket.CONFIRMED_CANCER: (EpisodeStatus.ACTIVE.value, True, False),
+        HeroBucket.CANCER_EXCLUDED: (EpisodeStatus.CLOSED_BENIGN.value, False, False),
+    }
+    cs, cd, cb = inputs_for[current]
+    ps, pd, pb = inputs_for[proposed]
+
+    result = would_flip_bucket(
+        current_status=cs,
+        current_has_diagnosis_milestone=cd,
+        current_letter_inferred_benign=cb,
+        proposed_status=ps,
+        proposed_has_diagnosis_milestone=pd,
+        proposed_letter_inferred_benign=pb,
+    )
+    assert result.flips is should_flip
+    assert result.current_bucket is current
+    assert result.proposed_bucket is proposed

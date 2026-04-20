@@ -595,3 +595,179 @@ export async function fetchEncounterCodedLinks(
   )}/encounters/${encodeURIComponent(encounterId)}/coded-links`;
   return fetchJson<EncounterCodedLink[]>(url);
 }
+
+// ---------------------------------------------------------------------------
+// Reconcile pathway and VerificationLock client
+//
+// Atlas trace:
+//   DI: DI-C424BB44 (VerificationLock cross-entity primitive)
+//   DI: DI-9DCC9F84 (Reconcile pathway)
+//   DO: this client (UI surface for the reconcile drawer)
+//   VT: VT-96455BC1 (lock service), VT-CABCEC8B (reconcile router)
+// ---------------------------------------------------------------------------
+
+export type ReconcileActionType =
+  | "confirm"
+  | "replace"
+  | "detach"
+  | "not_applicable";
+
+export type ReviewerRole = "clinician" | "qa_ra_lead";
+
+export type LockEntityType =
+  | "episode"
+  | "encounter"
+  | "is_part_of_edge"
+  | "coded_link"
+  | "assertion";
+
+export interface ReconcileAction {
+  slot: string;
+  action: ReconcileActionType;
+  encounter_id?: string | null;
+  milestone_type?: string | null;
+}
+
+export interface ReconcileRequestBody {
+  actions: ReconcileAction[];
+  reviewed_by: string;
+  reviewer_role: ReviewerRole;
+  reason: string;
+  confirm_bucket_flip?: boolean;
+}
+
+export interface ReconcileLockResult {
+  slot: string;
+  lock_id: string;
+  entity_type: LockEntityType;
+  entity_id: string;
+}
+
+export interface ReconcileResponse {
+  episode_id: string;
+  bucket: string;
+  flipped: boolean;
+  current_bucket: string;
+  proposed_bucket: string;
+  locks: ReconcileLockResult[];
+}
+
+export interface VerificationLockSummary {
+  lock_id: string;
+  entity_type: LockEntityType;
+  entity_id: string;
+  locked_by: string;
+  locked_by_role: ReviewerRole;
+  locked_at: string;
+  lock_reason: string;
+  source: string;
+}
+
+export interface EpisodeLocksResponse {
+  episode_id: string;
+  locks: VerificationLockSummary[];
+}
+
+/**
+ * PATCH /mission-control/episodes/{episodeId}/reconcile
+ *
+ * Applies one or more milestone-slot actions in a single transaction.
+ * The server refuses with HTTP 412 when the proposed actions would
+ * silently flip the lifecycle bucket and `confirm_bucket_flip` is
+ * not set to `true`.
+ */
+export async function patchEpisodeReconcile(
+  episodeId: string,
+  body: ReconcileRequestBody
+): Promise<ReconcileResponse> {
+  return fetchJson<ReconcileResponse>(
+    `${PROXY}/mission-control/episodes/${encodeURIComponent(episodeId)}/reconcile`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
+/**
+ * GET /mission-control/episodes/{episodeId}/locks
+ *
+ * Returns every VerificationLock attached to an episode and the
+ * encounters / coded links / assertions that hang off it. Used by the
+ * Reconcile Pathway drawer to render lock chips next to milestones
+ * and encounter cards.
+ */
+export async function listLocksForEpisode(
+  episodeId: string
+): Promise<EpisodeLocksResponse> {
+  return fetchJson<EpisodeLocksResponse>(
+    `${PROXY}/mission-control/episodes/${encodeURIComponent(episodeId)}/locks`
+  );
+}
+
+export interface CodedLinkLockBody {
+  decision: "accept" | "reject";
+  reviewer_role: ReviewerRole;
+  reason: string;
+}
+
+export interface CodedLinkLockResponse {
+  decision: "accept" | "reject";
+  encounter_id: string;
+  concept_id: string;
+  lock?: {
+    lock_id: string;
+    entity_type: LockEntityType;
+    entity_id: string;
+  } | null;
+  released?: boolean;
+}
+
+/**
+ * POST /api/patients/{patientId}/encounters/{encounterId}/coded-links/{conceptId}/lock
+ *
+ * Reviewer accept/reject for a single coded link. `accept` writes a
+ * VerificationLock so the recode pipeline can no longer overwrite this
+ * link; `reject` releases an existing lock so the next recode pass can
+ * re-evaluate it.
+ *
+ * `lockEntity` and `unlockEntity` are thin wrappers that pin the
+ * decision and provide a single call site for the drawer.
+ */
+export async function lockEntity(
+  patientId: string,
+  encounterId: string,
+  conceptId: string,
+  body: Omit<CodedLinkLockBody, "decision">
+): Promise<CodedLinkLockResponse> {
+  return fetchJson<CodedLinkLockResponse>(
+    `${resolveBase()}/api/patients/${encodeURIComponent(
+      patientId
+    )}/encounters/${encodeURIComponent(
+      encounterId
+    )}/coded-links/${encodeURIComponent(conceptId)}/lock`,
+    {
+      method: "POST",
+      body: JSON.stringify({ ...body, decision: "accept" }),
+    }
+  );
+}
+
+export async function unlockEntity(
+  patientId: string,
+  encounterId: string,
+  conceptId: string,
+  body: Omit<CodedLinkLockBody, "decision">
+): Promise<CodedLinkLockResponse> {
+  return fetchJson<CodedLinkLockResponse>(
+    `${resolveBase()}/api/patients/${encodeURIComponent(
+      patientId
+    )}/encounters/${encodeURIComponent(
+      encounterId
+    )}/coded-links/${encodeURIComponent(conceptId)}/lock`,
+    {
+      method: "POST",
+      body: JSON.stringify({ ...body, decision: "reject" }),
+    }
+  );
+}

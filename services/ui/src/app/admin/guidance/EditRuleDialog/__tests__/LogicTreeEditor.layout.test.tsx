@@ -3,8 +3,10 @@
  *
  * Verifies:
  *   - AT-LEAST groups whose children are all CONCEPTs render inline
- *     ("At least N of these: [chip] [chip] ...") rather than as a stacked
- *     selector + separate chip rows.
+ *     ("Any N or more of these [chip] [chip] ...") rather than as a
+ *     stacked selector + separate chip rows. Phase 3 of the wizard
+ *     redesign soft-cased the badge from the all-caps "AT LEAST" to
+ *     plain English ("Any N or more of these").
  *   - Non-root groups are collapsible via a chevron and show a summary of
  *     their contents when collapsed.
  *   - The root group does not show a collapse chevron.
@@ -75,7 +77,7 @@ function makeNestedTree(): EditableLogicNode {
 const noop = () => {};
 
 describe("LogicTreeEditor phase 1 layout", () => {
-  it("renders AT-LEAST with all-CONCEPT children inline (single 'At least' header)", () => {
+  it("renders AT-LEAST with all-CONCEPT children inline (single 'Any N or more of these' header)", () => {
     render(
       <LogicTreeEditor
         root={makeAtLeastTree()}
@@ -85,12 +87,11 @@ describe("LogicTreeEditor phase 1 layout", () => {
         onRequestAdd={noop}
       />,
     );
-    // The inline cluster is signalled by literal "At least" + "of these"
-    // text rather than the dropdown selector that the legacy stacked
-    // layout emits. The trailing colon was removed when the chrome copy
-    // was rewritten for UK reading age 7-11 in DI-LEO-AI-512.
-    expect(screen.getByText("At least")).toBeInTheDocument();
-    expect(screen.getByText(/of these/i)).toBeInTheDocument();
+    // The inline cluster is signalled by the soft-cased "Any" +
+    // "or more of these" labels (Phase 3 of the wizard redesign;
+    // the legacy "AT LEAST" / "At least" all-caps badge was retired).
+    expect(screen.getByText("Any")).toBeInTheDocument();
+    expect(screen.getByText(/or more of these/i)).toBeInTheDocument();
     // All three concept chips appear once each.
     expect(screen.getByText("Cough")).toBeInTheDocument();
     expect(screen.getByText("Fatigue")).toBeInTheDocument();
@@ -130,8 +131,10 @@ describe("LogicTreeEditor phase 1 layout", () => {
         onRequestAdd={noop}
       />,
     );
-    // Mixed-child clusters fall back to the standard selector + add bar.
-    expect(screen.queryByText("At least")).not.toBeInTheDocument();
+    // Mixed-child clusters fall back to the standard selector + add bar
+    // (the inline "Any N or more of these" header is only emitted
+    // when every child is a CONCEPT).
+    expect(screen.queryByText("or more of these")).not.toBeInTheDocument();
     // Both the root AT-LEAST and the nested AND are rendered as standard
     // groups, each with its own kind selector.
     expect(

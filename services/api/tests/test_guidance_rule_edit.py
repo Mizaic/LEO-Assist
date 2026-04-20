@@ -151,6 +151,76 @@ class TestValidateLogicTree:
             LogicNode.model_validate({"kind": "MAYBE", "children": [_concept_node()]})
 
 
+# -- Optional pathway name (Phase 2 wizard redesign) ------------------------
+
+
+class TestPathwayName:
+    """LogicNode.name carries an optional plain-English pathway label.
+
+    Round-trips through Pydantic so the FE can save names on group
+    nodes without a Cypher schema change. Whitespace-only values
+    normalise to None so downstream readers see a single shape.
+
+    Atlas trace: DI-2E01CC45, DO-E67AFBE2, VT-8C96CBC0.
+    """
+
+    def _named_pathway_root(self) -> dict:
+        return {
+            "kind": "OR",
+            "children": [
+                {
+                    "kind": "AND",
+                    "name": "Possible cancer",
+                    "children": [_concept_node("1", "Cough")],
+                },
+                {
+                    "kind": "AND",
+                    "name": "  ",
+                    "children": [_concept_node("2", "Fatigue")],
+                },
+            ],
+        }
+
+    def test_name_round_trips_on_group_node(self) -> None:
+        node = LogicNode.model_validate(self._named_pathway_root())
+        assert node.children[0].name == "Possible cancer"
+        # Whitespace-only normalises to None so the wire format has one
+        # canonical "no name" shape.
+        assert node.children[1].name is None
+
+    def test_name_strips_leading_and_trailing_whitespace(self) -> None:
+        node = LogicNode.model_validate(
+            {
+                "kind": "AND",
+                "name": "   Symptom watch   ",
+                "children": [_concept_node()],
+            }
+        )
+        assert node.name == "Symptom watch"
+
+    def test_name_max_length_enforced(self) -> None:
+        with pytest.raises(Exception):
+            LogicNode.model_validate(
+                {
+                    "kind": "AND",
+                    "name": "x" * 200,
+                    "children": [_concept_node()],
+                }
+            )
+
+    def test_validate_logic_tree_accepts_named_groups(self) -> None:
+        node = LogicNode.model_validate(self._named_pathway_root())
+        assert validate_logic_tree(node) == {"1", "2"}
+
+    def test_name_round_trips_through_model_dump_exclude_none(self) -> None:
+        node = LogicNode.model_validate(self._named_pathway_root())
+        wire = node.model_dump(exclude_none=True)
+        # First child kept its name; second child collapsed to None
+        # and is therefore absent from the wire payload.
+        assert wire["children"][0]["name"] == "Possible cancer"
+        assert "name" not in wire["children"][1]
+
+
 # -- Synonym set (UN-LEO-AI-093 / DI-LEO-AI-508) ----------------------------
 
 

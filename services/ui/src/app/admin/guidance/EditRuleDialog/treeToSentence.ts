@@ -178,6 +178,12 @@ function pathwayConditions(
 }
 
 function pathwayHeadline(node: EditableLogicNode, index: number): string {
+  // Phase 2 of the wizard redesign: a group node may carry an
+  // optional plain-English ``name``. When set, use it verbatim so the
+  // pathway card title actually means something. Otherwise fall back
+  // to the positional letter so legacy data still renders.
+  const named = typeof node.name === "string" ? node.name.trim() : "";
+  if (named) return named;
   if (index === 0) return "Pathway A";
   return `Pathway ${String.fromCharCode(65 + index)}`;
 }

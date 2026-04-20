@@ -10,6 +10,7 @@ export {
   SbarFinalView,
   SbarFinalDialog,
   splitFinalSbar,
+  stripSourceComments,
   STAGE_THEME,
   STAGE_LABELS,
 } from "./SbarFinalView";
@@ -17,5 +18,6 @@ export type {
   SbarFinalViewProps,
   SbarFinalDialogProps,
   SbarSection,
+  SbarBackgroundPart,
   SbarStageName,
 } from "./SbarFinalView";

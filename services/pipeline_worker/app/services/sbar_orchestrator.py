@@ -261,10 +261,12 @@ class SBAROrchestrator:
             )
             bg_notices = self._record_background_notices(bg_result, notices)
             self._record_background_part_errors(bg_result, errors, errors_detail)
+            background_parts = list(bg_result.get("parts") or [])
             session.run(
                 SET_BACKGROUND,
                 assessment_id=assessment_id,
                 background=background_md,
+                background_parts=json.dumps(background_parts),
             )
             self._emit(
                 run_id,
@@ -276,7 +278,7 @@ class SBAROrchestrator:
                     "error": bg_friendly,
                     "notice": bg_notices[0] if bg_notices else None,
                     "notices": bg_notices,
-                    "parts": list(bg_result.get("parts") or []),
+                    "parts": background_parts,
                 },
             )
 

@@ -155,6 +155,13 @@ export function stripNodeIds(node: EditableLogicNode): Record<string, unknown> {
   if (node.value !== undefined && node.value !== null) out.value = node.value;
   if (node.unit !== undefined && node.unit !== null) out.unit = node.unit;
   if (node.min !== undefined) out.min = node.min;
+  // Round-trip the optional pathway name (Phase 2). Trim whitespace
+  // and drop empty strings so legacy data and intentionally-cleared
+  // names produce the same on-the-wire shape.
+  if (typeof node.name === "string") {
+    const trimmed = node.name.trim();
+    if (trimmed.length > 0) out.name = trimmed;
+  }
   if (node.children?.length) out.children = node.children.map(stripNodeIds);
   return out;
 }
@@ -419,9 +426,33 @@ export function applyUpdate(
       return mapNode(root, (n) =>
         n.node_id === update.nodeId ? removeExcluded(n, update.conceptId) : n,
       );
+    case "set_name":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId && canHaveChildren(n.kind)
+          ? renameGroup(n, update.name)
+          : n,
+      );
     default:
       return root;
   }
+}
+
+/**
+ * Update a group node's optional plain-English ``name`` (Phase 2).
+ * Empty / whitespace-only input clears the name so the read-only view
+ * falls back to the positional "Pathway A/B/C" label.
+ */
+function renameGroup(
+  node: EditableLogicNode,
+  name: string,
+): EditableLogicNode {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    const next = { ...node };
+    delete next.name;
+    return next;
+  }
+  return { ...node, name: trimmed };
 }
 
 function canHaveChildren(kind: LogicNodeKind): boolean {

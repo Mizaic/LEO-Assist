@@ -177,9 +177,17 @@ def _stitch_partials_deterministic(parts: list[dict[str, Any]]) -> str:
     Each part renders as::
 
         ### Part {i} of {N} -- records {a}-{b}
-        <!-- sources: id1, id2, ... -->
 
         {part markdown}
+
+    The per-part ``source_ids`` are intentionally NOT embedded here.
+    They live on the structured ``parts`` field returned by
+    ``call_background`` (and persisted as ``background_parts`` on the
+    :Assessment node) so the UI can render them as a separate
+    "Show source records" disclosure rather than leaking raw UUIDs
+    into the rendered Background. Embedding HTML comments here was
+    fragile: any markdown renderer that does not strip comments
+    (e.g. Tiptap with ``html: false``) treats them as visible text.
 
     Failed parts get the heading ``### Part {i} of {N} -- records
     {a}-{b} -- this part did not finish`` and a placeholder body
@@ -193,26 +201,20 @@ def _stitch_partials_deterministic(parts: list[dict[str, Any]]) -> str:
         total = part.get("part_total")
         rr = part.get("record_range") or (0, 0)
         rr_text = _format_record_range(int(rr[0]), int(rr[1]))
-        source_ids = part.get("source_ids") or []
-        comment = (
-            "<!-- sources: " + ", ".join(source_ids) + " -->" if source_ids else ""
-        )
         if part.get("error_message"):
             heading = (
-                f"### Part {idx} of {total} -- {rr_text} " "-- this part did not finish"
+                f"### Part {idx} of {total} -- {rr_text} "
+                "-- this part did not finish"
             )
             body = (
                 "(Background for these records could not be generated. "
                 "See the errors panel above.)"
             )
-            piece = "\n\n".join(p for p in [heading, comment, body] if p)
-            chunks.append(piece)
+            chunks.append("\n\n".join([heading, body]))
             continue
         heading = f"### Part {idx} of {total} -- {rr_text}"
         md = (part.get("background_markdown") or "").strip()
         body_pieces = [heading]
-        if comment:
-            body_pieces.append(comment)
         if md:
             body_pieces.append(md)
         chunks.append("\n\n".join(body_pieces))

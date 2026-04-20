@@ -19,7 +19,6 @@ import {
   render,
   screen,
   waitFor,
-  waitForElementToBeRemoved,
   within,
 } from "@testing-library/react";
 
@@ -89,52 +88,40 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("EditRuleDialog phase 2", () => {
-  it("renders the live-preview banner at the top with the rule summary in plain English", () => {
-    // v2 layout: the SummaryCard lives inside the on-demand preview
-    // drawer. The always-visible banner above the canvas shows a
-    // single-line summary of the rule and a button to open the full
-    // drawer.
+describe("EditRuleDialog phase 3 (always-visible LivePreviewPane)", () => {
+  it("renders the always-visible Live preview pane with the rule summary in plain English", () => {
+    // Phase 3 layout: the LivePreviewBanner + LivePreviewDrawer toggle
+    // was deleted. The plain-English summary now lives in an
+    // always-visible right-hand pane (~40% wide) so a reviewer can
+    // always see what the rule means while editing.
     mockSearch();
     render(
       <EditRuleDialog rule={VAGUE_RULE} open onClose={() => {}} onSave={() => {}} />,
     );
-    const banner = screen.getByRole("status", {
-      name: /live one-line preview of this rule/i,
+    const pane = screen.getByRole("region", {
+      name: /live preview of this rule/i,
     });
-    expect(banner).toBeInTheDocument();
-    expect(within(banner).getByText(/40 years or older/i)).toBeInTheDocument();
-    expect(within(banner).getByText(/symptoms of lung cancer/i)).toBeInTheDocument();
+    expect(pane).toBeInTheDocument();
+    expect(within(pane).getByText(/40 years or older/i)).toBeInTheDocument();
+    expect(within(pane).getByText(/symptoms of lung cancer/i)).toBeInTheDocument();
   });
 
-  it("opens the full preview drawer with the SummaryCard, and closes it via the X", async () => {
+  it("Live preview pane shows 'What the system will do' alongside the summary", () => {
+    // The pane stacks the SummaryCard and the SystemRecap so the
+    // reviewer always knows both the precondition (who matches) and
+    // the resulting action.
     mockSearch();
     render(
       <EditRuleDialog rule={VAGUE_RULE} open onClose={() => {}} onSave={() => {}} />,
     );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /see full live preview/i }),
-    );
-
-    const drawer = await screen.findByRole("region", {
-      name: /plain english summary of this rule/i,
+    const pane = screen.getByRole("region", {
+      name: /live preview of this rule/i,
     });
-    expect(drawer).toBeInTheDocument();
-    expect(within(drawer).getByText(/what this rule means/i)).toBeInTheDocument();
-    expect(within(drawer).getByText(/40 years or older/i)).toBeInTheDocument();
-
-    // Drawer has a visible close button (X) so users can never get
-    // trapped in the preview overlay.
-    fireEvent.click(screen.getByRole("button", { name: /^close preview$/i }));
-    // Drawer plays an exit transition before unmounting; wait for
-    // the SummaryCard region to leave the DOM rather than asserting
-    // synchronously.
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole("region", {
-        name: /plain english summary of this rule/i,
+    expect(
+      within(pane).getByRole("region", {
+        name: /what the system will do when this rule matches/i,
       }),
-    );
+    ).toBeInTheDocument();
   });
 
   it("shows a vague-phrase lightbulb badge next to the vague chip", () => {

@@ -30,6 +30,11 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from libs.guidance_schema.observation_leaf import (
+    ObservationLeaf,
+    ObservationLeafValidationError,
+)
+
 # Default IS_A descendant depth applied when a seed asks for descendant
 # expansion but does not override distance_child. Matches the historical
 # default used by the bitmap compiler before UN-LEO-AI-093.
@@ -44,7 +49,10 @@ MAX_TREE_DEPTH = 6
 MAX_NODE_COUNT = 80
 
 _GROUP_KINDS = {"AND", "OR", "NOT", "AT_LEAST"}
-_LEAF_KINDS = {"CONCEPT", "DEMOGRAPHIC"}
+# OBSERVATION is the Phase 5 numeric-threshold leaf (DI-<assigned>). It
+# sits alongside CONCEPT and DEMOGRAPHIC because the evaluator handles
+# it via a dedicated branch (it does not use the bitmap path).
+_LEAF_KINDS = {"CONCEPT", "DEMOGRAPHIC", "OBSERVATION"}
 _ALL_KINDS = _GROUP_KINDS | _LEAF_KINDS
 
 
@@ -151,6 +159,24 @@ class LogicNode(BaseModel):
     operator: str | None = None
     value: float | str | None = None
     unit: str | None = None
+    # Carries the Phase 5 OBSERVATION leaf payload (numeric threshold,
+    # recency window, optional temporal / reference-range / trend /
+    # aggregation mode). Only populated when ``kind == "OBSERVATION"``.
+    # Kept as a dedicated nested model rather than re-using
+    # ``field/operator/value/unit`` (which DEMOGRAPHIC owns) so the two
+    # leaf shapes are unambiguous on the wire and cannot accidentally
+    # cross-contaminate each other in a malformed payload.
+    observation: ObservationLeaf | None = None
+    # Optional plain-English name for a group node. Surfaces as the
+    # pathway card title in the editor and read-only review view so a
+    # multi-branch rule can label each branch (e.g. "Possible cancer"
+    # vs "Symptom watch") instead of relying on positional letters.
+    # Phase 2 of the edit-rule wizard redesign.
+    #
+    # Capped at 80 chars so a label always fits a card header on a
+    # phone-sized viewport. Whitespace-only values normalise to None so
+    # downstream consumers see a single "no name set" shape.
+    name: str | None = Field(default=None, max_length=80)
 
     @field_validator("kind")
     @classmethod
@@ -159,6 +185,14 @@ class LogicNode(BaseModel):
         if upper not in _ALL_KINDS:
             raise ValueError(f"Unknown node kind {v!r}; expected one of {sorted(_ALL_KINDS)}")
         return upper
+
+    @field_validator("name")
+    @classmethod
+    def _check_name(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        trimmed = v.strip()
+        return trimmed if trimmed else None
 
 
 class RuleUpdates(BaseModel):
@@ -230,6 +264,9 @@ def _walk(
     if kind == "DEMOGRAPHIC":
         _validate_demographic_node(node)
         return
+    if kind == "OBSERVATION":
+        _validate_observation_node(node, concept_ids)
+        return
 
     children = node.children or []
     if not children:
@@ -260,6 +297,34 @@ def _validate_concept_node(node: LogicNode) -> None:
 
 _VALID_DEMOGRAPHIC_FIELDS = {"age", "sex"}
 _VALID_OPERATORS = {">=", "<=", ">", "<", "=", "between"}
+
+
+def _validate_observation_node(node: LogicNode, concept_ids: set[str]) -> None:
+    """Validate an OBSERVATION leaf and register its observable_id.
+
+    The Pydantic model already enforces the shape (operator/value
+    pairing, mutual exclusion of mode sub-models, recency envelope).
+    This step adds two further guarantees:
+
+      1. The leaf has actually populated ``observation`` -- callers
+         that send ``kind="OBSERVATION"`` without the nested payload
+         are rejected up-front rather than failing later in the
+         compiler.
+      2. The observable_id is registered in the same concept_ids set
+         used by CONCEPT leaves so the Cypher verifier
+         (``_VERIFY_CONCEPTS``) catches typos / unknown observables
+         in the same round-trip.
+    """
+    if node.observation is None:
+        raise LogicTreeValidationError(
+            "OBSERVATION node is missing the 'observation' payload."
+        )
+    obs = node.observation
+    if not obs.observable_id.strip():
+        raise LogicTreeValidationError(
+            "OBSERVATION node requires a non-empty observable_id."
+        )
+    concept_ids.add(obs.observable_id)
 
 
 def _validate_demographic_node(node: LogicNode) -> None:
@@ -471,6 +536,8 @@ __all__ = [
     "LogicNode",
     "LogicSeed",
     "LogicTreeValidationError",
+    "ObservationLeaf",
+    "ObservationLeafValidationError",
     "RuleUpdates",
     "apply_rule_edit",
     "validate_logic_tree",

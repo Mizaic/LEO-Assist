@@ -40,6 +40,30 @@ router = APIRouter()
 _compile_jobs: dict[str, dict] = {}
 
 
+class ObservationInstance(BaseModel):
+    """One numeric observation row on a patient.
+
+    Phase 5e -- consumed by OBSERVATION leaves in the logic tree. The
+    evaluator filters this list to the observable_id the leaf asks
+    about, then applies the leaf's recency window and mode.
+
+    Fields:
+      observable_id  SNOMED concept id of the observable (must match
+                     a leaf's ``observable_id``).
+      value          Numeric reading. The evaluator canonicalises via
+                     libs.units.observable_units before comparison.
+      unit           Wire unit string. May be the canonical unit or
+                     any registered alias.
+      observed_at    ISO-8601 datetime. Naive timestamps are treated
+                     as UTC by the evaluator.
+    """
+
+    observable_id: str
+    value: float
+    unit: str
+    observed_at: str
+
+
 class EvaluateRequest(BaseModel):
     """Request body for patient guideline evaluation."""
 
@@ -55,6 +79,10 @@ class EvaluateRequest(BaseModel):
     )
     scope_id: str = "default"
     ruleset_version: str | None = None
+    observations: list[ObservationInstance] | None = None
+    """Numeric observation history for the patient.  Required for
+    rules that contain OBSERVATION leaves; absent / empty payloads
+    fail those leaves CLOSED so the rule does not fire."""
 
 
 class CompileRequest(BaseModel):
@@ -99,6 +127,11 @@ def evaluate_patient(req: EvaluateRequest) -> dict:
         scope_type=req.scope_type,
         scope_id=req.scope_id,
         ruleset_version=req.ruleset_version,
+        patient_observations=(
+            [obs.model_dump() for obs in req.observations]
+            if req.observations
+            else None
+        ),
     )
 
 
@@ -114,6 +147,11 @@ class DiagnoseRequest(BaseModel):
     )
     scope_id: str = "default"
     ruleset_version: str | None = None
+    observations: list[ObservationInstance] | None = None
+    """Same shape as EvaluateRequest.observations -- needed when the
+    diagnosed rule contains OBSERVATION leaves so the per-leaf
+    annotated tree can show fire / no-fire instead of failing closed
+    silently."""
 
 
 @router.post("/guidelines/diagnose")
@@ -140,6 +178,11 @@ def diagnose_patient(req: DiagnoseRequest) -> dict:
         scope_type=req.scope_type,
         scope_id=req.scope_id,
         ruleset_version=req.ruleset_version,
+        patient_observations=(
+            [obs.model_dump() for obs in req.observations]
+            if req.observations
+            else None
+        ),
     )
     if result is None or result.get("rule_found") is False:
         raise HTTPException(

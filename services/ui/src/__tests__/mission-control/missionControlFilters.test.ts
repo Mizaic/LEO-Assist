@@ -16,6 +16,7 @@ const FULL_FILTERS: MissionControlFilters = {
   orgId: "org-123",
   patientId: "4181221113",
   pathwayFilter: "closures",
+  lifecycleBucket: "confirmed_cancer",
   cancerTypes: ["colorectal", "lung"],
   closureReasons: ["closed_benign", "stale_no_diagnosis"],
   reviewStatus: "unreviewed",
@@ -97,5 +98,79 @@ describe("toApiParams", () => {
   test("omits patient_id when blank", () => {
     const params = toApiParams({ ...DEFAULT_FILTERS, patientId: "   " });
     expect(params.get("patient_id")).toBeNull();
+  });
+
+  test("always includes lifecycle_bucket so the API filter is explicit", () => {
+    // Default filters serialise lifecycle_bucket=all so the API knows
+    // the wildcard applies (rather than relying on omission).
+    expect(toApiParams(DEFAULT_FILTERS).get("lifecycle_bucket")).toBe("all");
+    // Each canonical bucket (the four MECE buckets and no_pathway)
+    // round-trips faithfully through toApiParams.
+    for (const bucket of [
+      "active",
+      "in_review",
+      "cancer_excluded",
+      "confirmed_cancer",
+      "no_pathway",
+    ] as const) {
+      expect(
+        toApiParams({ ...DEFAULT_FILTERS, lifecycleBucket: bucket }).get(
+          "lifecycle_bucket",
+        ),
+      ).toBe(bucket);
+    }
+  });
+});
+
+describe("lifecycle_bucket URL parameter", () => {
+  test("omits lifecycle_bucket from the public URL when value is 'all'", () => {
+    const params = serialiseFilters(DEFAULT_FILTERS);
+    expect(params.get("lifecycle_bucket")).toBeNull();
+  });
+
+  test("emits lifecycle_bucket=<bucket> for any non-default value", () => {
+    for (const bucket of [
+      "active",
+      "in_review",
+      "cancer_excluded",
+      "confirmed_cancer",
+      "no_pathway",
+    ] as const) {
+      const params = serialiseFilters({
+        ...DEFAULT_FILTERS,
+        lifecycleBucket: bucket,
+      });
+      expect(params.get("lifecycle_bucket")).toBe(bucket);
+    }
+  });
+
+  test("deserialise rejects unknown values and falls back to 'all'", () => {
+    const params = new URLSearchParams("lifecycle_bucket=garbage");
+    expect(deserialiseFilters(params).lifecycleBucket).toBe("all");
+  });
+
+  test("deserialise round-trips each canonical bucket", () => {
+    for (const bucket of [
+      "active",
+      "in_review",
+      "cancer_excluded",
+      "confirmed_cancer",
+      "no_pathway",
+    ] as const) {
+      const params = new URLSearchParams(`lifecycle_bucket=${bucket}`);
+      expect(deserialiseFilters(params).lifecycleBucket).toBe(bucket);
+    }
+  });
+
+  test("no_pathway is the deep-link bucket from the cohort summary card", () => {
+    // The dashboard cohort summary card surfaces a clickable
+    // 'X have no cancer pathway yet' caption that deep-links here.
+    // The TS contract MUST accept and emit no_pathway end-to-end so
+    // the click opens the right cohort.
+    const filters = { ...DEFAULT_FILTERS, lifecycleBucket: "no_pathway" } as const;
+    const params = serialiseFilters(filters);
+    expect(params.get("lifecycle_bucket")).toBe("no_pathway");
+    expect(deserialiseFilters(params).lifecycleBucket).toBe("no_pathway");
+    expect(toApiParams(filters).get("lifecycle_bucket")).toBe("no_pathway");
   });
 });

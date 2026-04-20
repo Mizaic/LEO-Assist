@@ -1,10 +1,10 @@
 # Drift report -- 2026-04-20
 
-- Files with Atlas trace header: 460
-- Atlas DOs probed: 0
-- Forward drift (file -> Atlas): **0**
-- Reverse drift (Atlas -> file): **0**
-- Stale [phase13b] tags:        **0**
+- Files with Atlas trace header: 1070
+- Atlas DOs probed: 144
+- Forward drift (file -> Atlas): **553**
+- Reverse drift (Atlas -> file): **52**
+- Stale [phase13b] tags:        **123**
 - Header invariant breaches:    **0**
 
 ## Outputs

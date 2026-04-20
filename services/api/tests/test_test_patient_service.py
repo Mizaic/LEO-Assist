@@ -525,9 +525,15 @@ def test_evaluate_against_terminology_pathway_filter_overrides_payload(
         def __exit__(self, *a) -> None:  # noqa: ARG002
             return None
 
-        def post(self, url: str, json: dict) -> _FakeResp:  # noqa: A002
+        def post(
+            self,
+            url: str,
+            json: dict,
+            headers: dict | None = None,
+        ) -> _FakeResp:  # noqa: A002
             sent["url"] = url
             sent["body"] = json
+            sent["headers"] = headers
             return _FakeResp()
 
     monkeypatch.setattr(svc.httpx, "Client", _FakeClient)

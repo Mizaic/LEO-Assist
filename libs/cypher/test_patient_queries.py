@@ -120,6 +120,7 @@ CREATE (tp:TestPatient {
     guideline_id:      $guideline_id,
     aspect:            'guidelines',
     is_test:           true,
+    observations_json: $observations_json,
     created_by:        $created_by,
     created_at:        datetime(),
     updated_at:        datetime()
@@ -345,6 +346,7 @@ RETURN tp.id              AS id,
        tp.scope_id        AS scope_id,
        tp.generation_source AS generation_source,
        tp.content_hash    AS content_hash,
+       coalesce(tp.observations_json, '[]') AS observations_json,
        g.id               AS guideline_id,
        g.title            AS guideline_title,
        toString(tp.created_at) AS created_at,
@@ -862,13 +864,14 @@ UPDATE_TEST_PATIENT = """
 MATCH (tp:TestPatient { id: $id })
 SET tp.name              = $name,
     tp.description       = $description,
-    tp.codes             = $codes,
-    tp.age               = $age,
-    tp.sex               = $sex,
-    tp.pathway_id        = $pathway_id,
-    tp.content_hash      = $content_hash,
-    tp.updated_at        = datetime(),
-    tp.updated_by        = $updated_by
+    tp.codes              = $codes,
+    tp.age                = $age,
+    tp.sex                = $sex,
+    tp.pathway_id         = $pathway_id,
+    tp.content_hash       = $content_hash,
+    tp.observations_json  = $observations_json,
+    tp.updated_at         = datetime(),
+    tp.updated_by         = $updated_by
 WITH tp
 OPTIONAL MATCH (tp)-[er:EXPECTED_RESULT]->()
 DELETE er

@@ -15,6 +15,13 @@
  *   - the dialog wrapper exposes open/onClose, the test-only chip is
  *     visible by default, and "Copy Markdown" copies the source markdown
  *     to the clipboard
+ *   - source-record IDs are read from the typed ``backgroundParts``
+ *     prop (NOT parsed out of the markdown body) and surfaced behind
+ *     a per-section "Show source records" disclosure that defaults
+ *     to collapsed
+ *   - any legacy ``<!-- sources: ... -->`` HTML comments embedded in
+ *     a persisted markdown body are stripped from the rendered view
+ *     so old Assessments do not leak raw UUIDs into the UI
  */
 import "@testing-library/jest-dom";
 import { render, screen, within } from "@testing-library/react";
@@ -23,7 +30,9 @@ import {
   SbarFinalDialog,
   SbarFinalView,
   splitFinalSbar,
+  stripSourceComments,
   STAGE_THEME,
+  type SbarBackgroundPart,
 } from "@/components/sbar-final";
 
 const SAMPLE = `# SBAR
@@ -34,8 +43,14 @@ This 74-year-old male patient has a clinic appointment scheduled.
 
 ## Background
 
+### Part 1 of 2 -- records 1-3
+
 - **Metastatic prostate cancer** [2025-09-05]
 - **PSA 129 ng/mL** [August 2025]
+
+### Part 2 of 2 -- records 4-5
+
+- Follow-up clinic note from oncology
 
 ## Assessment
 
@@ -45,6 +60,29 @@ _No matching guideline rules fired._
 
 Refer urgently under the suspected lung cancer 2WW pathway.
 `;
+
+const SAMPLE_BACKGROUND_PARTS: SbarBackgroundPart[] = [
+  {
+    index: 1,
+    total: 2,
+    recordCount: 3,
+    recordRange: [1, 3],
+    sourceIds: ["enc-001", "enc-002", "doc-007"],
+    status: "completed",
+    errorCode: null,
+    errorMessage: null,
+  },
+  {
+    index: 2,
+    total: 2,
+    recordCount: 2,
+    recordRange: [4, 5],
+    sourceIds: ["enc-019", "doc-021"],
+    status: "completed",
+    errorCode: null,
+    errorMessage: null,
+  },
+];
 
 describe("splitFinalSbar", () => {
   it("returns one entry per SBAR section in canonical order", () => {
@@ -105,6 +143,31 @@ describe("splitFinalSbar", () => {
   });
 });
 
+describe("stripSourceComments", () => {
+  it("removes a standalone <!-- sources: ... --> line", () => {
+    const md =
+      "### Part 1 of 1 -- records 1-2\n<!-- sources: a, b -->\n\n- bullet";
+    expect(stripSourceComments(md)).not.toMatch(/<!--/);
+    expect(stripSourceComments(md)).toContain("- bullet");
+    expect(stripSourceComments(md)).toContain("Part 1 of 1");
+  });
+
+  it("removes inline <!-- sources --> comments mid-paragraph", () => {
+    const md = "prose <!-- sources: x --> more prose";
+    expect(stripSourceComments(md)).toBe("prose  more prose");
+  });
+
+  it("is a no-op when the body has no sources comment", () => {
+    expect(stripSourceComments("- bullet\n- bullet")).toBe(
+      "- bullet\n- bullet",
+    );
+  });
+
+  it("returns falsy input unchanged", () => {
+    expect(stripSourceComments("")).toBe("");
+  });
+});
+
 describe("SbarFinalView", () => {
   it("renders one themed card per SBAR section", () => {
     render(<SbarFinalView markdown={SAMPLE} />);
@@ -160,6 +223,118 @@ describe("SbarFinalView", () => {
       screen.getByTestId("my-sbar-section-situation"),
     ).toBeInTheDocument();
   });
+
+  it("hides the source-records disclosure when no backgroundParts are passed", () => {
+    render(<SbarFinalView markdown={SAMPLE} />);
+    expect(
+      screen.queryByTestId("sbar-final-section-background-sources"),
+    ).toBeNull();
+  });
+
+  it("only mounts the source-records disclosure on the Background card", () => {
+    render(
+      <SbarFinalView
+        markdown={SAMPLE}
+        backgroundParts={SAMPLE_BACKGROUND_PARTS}
+      />,
+    );
+    expect(
+      screen.getByTestId("sbar-final-section-background-sources"),
+    ).toBeInTheDocument();
+    for (const stage of [
+      "situation",
+      "assessment",
+      "recommendation",
+    ] as const) {
+      expect(
+        screen.queryByTestId(`sbar-final-section-${stage}-sources`),
+      ).toBeNull();
+    }
+  });
+
+  it("source-records disclosure starts collapsed and reveals chips on click", async () => {
+    const user = userEvent.setup();
+    render(
+      <SbarFinalView
+        markdown={SAMPLE}
+        backgroundParts={SAMPLE_BACKGROUND_PARTS}
+      />,
+    );
+    const totalIds = SAMPLE_BACKGROUND_PARTS.reduce(
+      (acc, p) => acc + p.sourceIds.length,
+      0,
+    );
+    const toggle = screen.getByTestId(
+      "sbar-final-section-background-sources-toggle",
+    );
+    expect(toggle).toHaveTextContent(`Show source records (${totalIds})`);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("enc-001")).toBeNull();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveTextContent(`Hide source records (${totalIds})`);
+    for (const id of [
+      "enc-001",
+      "enc-002",
+      "doc-007",
+      "enc-019",
+      "doc-021",
+    ]) {
+      expect(screen.getByText(id)).toBeInTheDocument();
+    }
+    // Each part group inside the disclosure carries a caption
+    // showing its part heading. Scope the lookup so the matching
+    // ``### Part ...`` heading inside the rendered markdown body
+    // does not trip a multi-match.
+    const part0 = screen.getByTestId(
+      "sbar-final-section-background-sources-part-0",
+    );
+    expect(
+      within(part0).getByText(/Part 1 of 2 -- records 1-3/),
+    ).toBeInTheDocument();
+    const part1 = screen.getByTestId(
+      "sbar-final-section-background-sources-part-1",
+    );
+    expect(
+      within(part1).getByText(/Part 2 of 2 -- records 4-5/),
+    ).toBeInTheDocument();
+  });
+
+  it("source-records disclosure is hidden when backgroundParts has zero source ids", () => {
+    render(
+      <SbarFinalView
+        markdown={SAMPLE}
+        backgroundParts={[
+          {
+            ...SAMPLE_BACKGROUND_PARTS[0],
+            sourceIds: [],
+          },
+        ]}
+      />,
+    );
+    expect(
+      screen.queryByTestId("sbar-final-section-background-sources"),
+    ).toBeNull();
+  });
+
+  it("does not render a legacy <!-- sources: --> HTML comment as visible text", () => {
+    const legacyMarkdown = `## Background
+
+### Part 1 of 1 -- records 1-2
+
+<!-- sources: legacy-uuid-001, legacy-uuid-002 -->
+
+- bullet body
+`;
+    render(<SbarFinalView markdown={legacyMarkdown} />);
+    expect(
+      screen.queryByText(/legacy-uuid-001/),
+    ).toBeNull();
+    expect(
+      screen.queryByText(/<!-- sources/),
+    ).toBeNull();
+  });
 });
 
 describe("SbarFinalDialog", () => {
@@ -189,6 +364,20 @@ describe("SbarFinalDialog", () => {
         within(dialog).getByTestId(`sbar-final-section-${stage}`),
       ).toBeInTheDocument();
     }
+  });
+
+  it("forwards backgroundParts to the embedded view", () => {
+    render(
+      <SbarFinalDialog
+        open
+        onClose={() => {}}
+        markdown={SAMPLE}
+        backgroundParts={SAMPLE_BACKGROUND_PARTS}
+      />,
+    );
+    expect(
+      screen.getByTestId("sbar-final-section-background-sources"),
+    ).toBeInTheDocument();
   });
 
   it("invokes onClose from both the close icon and the footer Close button", async () => {

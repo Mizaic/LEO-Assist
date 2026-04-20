@@ -67,6 +67,18 @@ export interface EditableLogicNode {
   operator?: string;
   value?: number | string | null;
   unit?: string | null;
+  /**
+   * Optional plain-English name for a group node (Phase 2 of the
+   * edit-rule wizard redesign). Rendered as the pathway card title
+   * in the editor and the read-only review view; falls back to a
+   * positional "Pathway A/B/C" label when absent so legacy data
+   * still renders sensibly.
+   *
+   * Stored as ``node.name`` in the saved JSON tree. The compiler and
+   * evaluator ignore unknown fields, so this round-trips through
+   * ``logic_tree`` without a Cypher schema change.
+   */
+  name?: string;
 }
 
 /** Server response shape from /api/terminology/search. */
@@ -87,6 +99,7 @@ export type NodeUpdate =
   | { kind: "add_concept"; parentNodeId: string; criterion: LogicCriterion }
   | { kind: "add_group"; parentNodeId: string; groupKind: "AND" | "OR" | "NOT" | "AT_LEAST" }
   | { kind: "add_demographic"; parentNodeId: string }
+  | { kind: "set_name"; nodeId: string; name: string }
   // -- Synonym chip ops (UN-LEO-AI-093) --
   | { kind: "add_seed"; nodeId: string; seed: LogicSeed }
   | { kind: "remove_seed"; nodeId: string; conceptId: string }

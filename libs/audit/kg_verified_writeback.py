@@ -31,6 +31,10 @@ from libs.utils.deidentify import deidentify_text
 logger = logging.getLogger(__name__)
 
 AUDIT_VERIFIED_SOURCE = "audit_verified"
+# DI-C424BB44: gold-label source string used when a reviewer locks an
+# entity through the Reconcile Pathway drawer. Downstream training jobs
+# can filter on this source to see only manually-confirmed labels.
+RECONCILE_PATHWAY_SOURCE = "reconcile_pathway"
 SCHEMA_VERSION = "v4"
 
 
@@ -97,6 +101,7 @@ def write_audit_verified_to_kg(
     quality_score: float,
     verified_by: str,
     assessment: str,
+    source: str = AUDIT_VERIFIED_SOURCE,
 ) -> dict[str, Any]:
     """Persist one verified audit outcome to KG if DE-ID validation passes.
 
@@ -106,6 +111,10 @@ def write_audit_verified_to_kg(
         quality_score: Audit confidence in [0, 1].
         verified_by: e.g. ``audit_agent`` or ``audit_prefilter``.
         assessment: ``no_issues`` or ``clean`` (logging only).
+        source: Gold-label source tag. Defaults to ``audit_verified``;
+            reviewer reconciliation promotions pass
+            ``RECONCILE_PATHWAY_SOURCE`` so downstream trainers can
+            distinguish auto-verified from human-confirmed labels.
 
     Returns:
         ``{"written": bool, "errors": [...], "deid_failed": bool}``
@@ -142,7 +151,7 @@ def write_audit_verified_to_kg(
                         UPSERT_TRAINING_CANDIDATE,
                         candidate_id=candidate_id,
                         text=deid_text,
-                        source=AUDIT_VERIFIED_SOURCE,
+                        source=source,
                         status="failed",
                         schema_version=SCHEMA_VERSION,
                     )
@@ -165,7 +174,7 @@ def write_audit_verified_to_kg(
                 UPSERT_TRAINING_CANDIDATE,
                 candidate_id=candidate_id,
                 text=deid_text,
-                source=AUDIT_VERIFIED_SOURCE,
+                source=source,
                 status="processing",
                 schema_version=SCHEMA_VERSION,
             )
@@ -174,7 +183,7 @@ def write_audit_verified_to_kg(
                 label_id=label_id,
                 text=deid_text,
                 entities_json=json.dumps(canonical),
-                source=AUDIT_VERIFIED_SOURCE,
+                source=source,
                 verified_by=verified_by,
                 candidate_id=candidate_id,
                 quality_score=float(quality_score),

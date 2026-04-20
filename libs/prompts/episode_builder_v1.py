@@ -59,6 +59,16 @@ Episode entry point:
 --- Coded data and encounter evidence ---
 {coded_summary}
 
+--- Reviewer-confirmed milestones (do NOT change) ---
+The following milestone slots have been confirmed by a clinical
+reviewer and are LOCKED. Treat them as fixed inputs: keep the same
+encounter_id and milestone_type in your output, fill in any other
+slots around them, and never replace or detach a locked entry. If
+the locked slots are inconsistent with the coded evidence, surface
+the conflict in your reasoning instead of overwriting the lock.
+
+{fixed_milestones}
+
 --- Instructions ---
 The coded data above includes anchor dates, concept names, sources,
 and text snippets from the encounters. Use this evidence to determine:

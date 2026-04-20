@@ -1,14 +1,18 @@
 /**
- * TestPatientsPanel scope regression -- VT-LEO-AI-175.
+ * TestPatientsPanel sandbox-only safety pin -- VT-D7B8FBA9 (Atlas).
  *
- * Pins the fix for the "No bitmap ruleset is loaded" false positive
- * that fired in the EditRuleDialog whenever a per-guideline rule (e.g.
- * NG12) was opened. Production bitmaps live at scope_type=global /
- * scope_id=default; per-guideline scopes are reserved for sandbox /
- * draft compiles. The panel must therefore probe the global scope
- * regardless of which guideline the rule belongs to, otherwise
- * reviewers see a loud warning that the ruleset is missing when in
- * fact the production bitmap is fully loaded.
+ * Phase 1 removed the "Test against live" surface from the rule
+ * editor entirely. The previous test ensured the live-bitmap status
+ * probe used scope_type=global rather than scope_type=guideline so
+ * that reviewers did not see a false "no compiled ruleset" warning.
+ * That probe was deleted along with the live-replay path -- the
+ * editor now has no business asking the live bitmap anything,
+ * because every test the editor offers is a throwaway sandbox.
+ *
+ * This pin guards against accidental regressions: if anybody
+ * re-introduces a live-bitmap call from inside the rule editor we
+ * want CI to fail loudly rather than ship a misleading "Live
+ * results" panel that actually shows the OLD rule.
  */
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -54,34 +58,6 @@ function installFetchStub(): { calls: FetchCall[] } {
           text: async () => JSON.stringify([SAVED_PATIENT]),
         } as Response);
       }
-      if (url.includes("/api/terminology/guidelines/bitmap/status")) {
-        // The global production bitmap IS compiled. The per-guideline
-        // scope is empty -- but the panel must never ask for that
-        // scope, so this branch is unreachable in the happy path.
-        const isGlobal = url.includes("scope_type=global");
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () =>
-            isGlobal
-              ? {
-                  active_version: "v20260419",
-                  rule_count: 42,
-                  compile_timestamp: "2026-04-19T11:00:00Z",
-                  scope_type: "global",
-                  scope_id: "default",
-                }
-              : {
-                  active_version: null,
-                  rule_count: 0,
-                  compile_timestamp: null,
-                  scope_type: "guideline",
-                  scope_id: "NG12",
-                  message: "No active ruleset.",
-                },
-          text: async () => "",
-        } as Response);
-      }
       return Promise.resolve({
         ok: true,
         status: 200,
@@ -96,8 +72,8 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("TestPatientsPanel bitmap-status scope", () => {
-  it("VT-175-TC-015: probes the global scope even when a guidelineId is supplied", async () => {
+describe("TestPatientsPanel never touches the live ruleset", () => {
+  it("does not call the bitmap status endpoint on mount", async () => {
     const { calls } = installFetchStub();
 
     render(
@@ -108,8 +84,6 @@ describe("TestPatientsPanel bitmap-status scope", () => {
       />,
     );
 
-    // Wait for the saved-patient list to load so the status check has
-    // certainly fired.
     await waitFor(() =>
       expect(screen.getByText(/1 saved/i)).toBeInTheDocument(),
     );
@@ -117,16 +91,54 @@ describe("TestPatientsPanel bitmap-status scope", () => {
     const statusCalls = calls.filter((c) =>
       c.url.includes("/api/terminology/guidelines/bitmap/status"),
     );
-    expect(statusCalls.length).toBeGreaterThan(0);
-    for (const call of statusCalls) {
-      expect(call.url).toContain("scope_type=global");
-      expect(call.url).toContain("scope_id=default");
-      expect(call.url).not.toContain("scope_type=guideline");
-      expect(call.url).not.toContain("scope_id=NG12");
-    }
+    expect(statusCalls).toHaveLength(0);
+  });
+
+  it("does not call the live replay endpoint on mount", async () => {
+    const { calls } = installFetchStub();
+
+    render(
+      <TestPatientsPanel
+        ruleId="rule:NG12:abc"
+        guidelineId="NG12"
+        ruleName="Refer for rectal bleeding"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/1 saved/i)).toBeInTheDocument(),
+    );
+
+    const liveReplayCalls = calls.filter(
+      (c) =>
+        c.url.includes("/api/guidance/test-patients/replay") &&
+        !c.url.includes("/sandbox-replay"),
+    );
+    expect(liveReplayCalls).toHaveLength(0);
+  });
+
+  it("does not render a 'Test against live' button", async () => {
+    installFetchStub();
+
+    render(
+      <TestPatientsPanel
+        ruleId="rule:NG12:abc"
+        guidelineId="NG12"
+        ruleName="Refer for rectal bleeding"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/1 saved/i)).toBeInTheDocument(),
+    );
 
     expect(
-      screen.queryByText(/no bitmap ruleset is loaded/i),
+      screen.queryByRole("button", { name: /test against live/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: /test the saved rule against the production ruleset/i,
+      }),
     ).not.toBeInTheDocument();
   });
 });

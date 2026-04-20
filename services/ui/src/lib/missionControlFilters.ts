@@ -9,12 +9,29 @@
  *   DI: DI-6EA84931
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-EE78E305")
  */
+export type LifecycleBucket =
+  | "active"
+  | "in_review"
+  | "cancer_excluded"
+  | "confirmed_cancer"
+  | "no_pathway"
+  | "all";
+
+export const LIFECYCLE_BUCKETS: readonly LifecycleBucket[] = [
+  "active",
+  "in_review",
+  "cancer_excluded",
+  "confirmed_cancer",
+  "no_pathway",
+] as const;
+
 export interface MissionControlFilters {
   dateFrom: string;
   dateTo: string;
   orgId: string;
   patientId: string;
   pathwayFilter: "confirmed" | "closures" | "all";
+  lifecycleBucket: LifecycleBucket;
   cancerTypes: string[];
   closureReasons: string[];
   reviewStatus: "all" | "reviewed" | "unreviewed";
@@ -30,6 +47,7 @@ export const DEFAULT_FILTERS: MissionControlFilters = {
   orgId: "",
   patientId: "",
   pathwayFilter: "all",
+  lifecycleBucket: "all",
   cancerTypes: [],
   closureReasons: [],
   reviewStatus: "all",
@@ -38,6 +56,19 @@ export const DEFAULT_FILTERS: MissionControlFilters = {
   page: 1,
   pageSize: 25,
 };
+
+function parseLifecycleBucket(raw: string | null): LifecycleBucket {
+  if (
+    raw === "active" ||
+    raw === "in_review" ||
+    raw === "cancer_excluded" ||
+    raw === "confirmed_cancer" ||
+    raw === "no_pathway"
+  ) {
+    return raw;
+  }
+  return "all";
+}
 
 /** Serialise filter state to URLSearchParams. */
 export function serialiseFilters(filters: MissionControlFilters): URLSearchParams {
@@ -48,6 +79,7 @@ export function serialiseFilters(filters: MissionControlFilters): URLSearchParam
   const urlPatientId = filters.patientId.trim();
   if (urlPatientId) p.set("patient_id", urlPatientId);
   if (filters.pathwayFilter !== "all") p.set("pathway_filter", filters.pathwayFilter);
+  if (filters.lifecycleBucket !== "all") p.set("lifecycle_bucket", filters.lifecycleBucket);
   if (filters.cancerTypes.length) p.set("cancer_types", filters.cancerTypes.join(","));
   if (filters.closureReasons.length) p.set("closure_reasons", filters.closureReasons.join(","));
   if (filters.reviewStatus !== "all") p.set("review_status", filters.reviewStatus);
@@ -73,6 +105,7 @@ export function deserialiseFilters(params: URLSearchParams): MissionControlFilte
       pathwayFilter === "confirmed" || pathwayFilter === "closures"
         ? pathwayFilter
         : "all",
+    lifecycleBucket: parseLifecycleBucket(params.get("lifecycle_bucket")),
     cancerTypes: params.get("cancer_types")
       ? params.get("cancer_types")!.split(",").filter(Boolean)
       : [],
@@ -99,6 +132,7 @@ export function toApiParams(filters: MissionControlFilters): URLSearchParams {
   const pid = filters.patientId.trim();
   if (pid) p.set("patient_id", pid);
   p.set("pathway_filter", filters.pathwayFilter);
+  p.set("lifecycle_bucket", filters.lifecycleBucket);
   if (filters.cancerTypes.length) p.set("cancer_types", filters.cancerTypes.join(","));
   if (filters.closureReasons.length) p.set("closure_reasons", filters.closureReasons.join(","));
   p.set("review_status", filters.reviewStatus);
