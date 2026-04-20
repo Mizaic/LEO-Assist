@@ -1,5 +1,10 @@
 """Encounter-centric Mission Control endpoints.
 
+Atlas trace:
+  DO: DO-9530152E
+  DI: DI-DD67ACFF, DO-F78C84A6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-9530152E")
+
 Provides org-scoped encounter listing, KPI summary, and hybrid search
 (fulltext + vector) for the /care/pathways replacement UI.
 """

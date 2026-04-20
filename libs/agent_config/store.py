@@ -1,5 +1,10 @@
 """Module-level cache for FHIR agent configuration.
 
+Atlas trace:
+  DO: DO-61EE87E0
+  DI: DI-6A1CD328
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-61EE87E0")
+
 Call set_config() at startup to populate the cache, then use
 get_agent_property / get_agent_prompt / get_agent_extension anywhere.
 """

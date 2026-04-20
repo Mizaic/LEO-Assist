@@ -1,5 +1,10 @@
 """Organization context endpoint.
 
+Atlas trace:
+  DO: DO-D5B9FE5F
+  DI: DI-6E1B71A4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D5B9FE5F")
+
 Returns the organizations a user has access to, based on their
 Practitioner node and WORKS_AT relationships in the Patient Graph.
 Platform admins (is_platform_admin=true) see all organizations.

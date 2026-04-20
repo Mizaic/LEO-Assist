@@ -1,5 +1,10 @@
 """Neo4j-backed model registry. Stores model manifests in the Knowledge Graph.
 
+Atlas trace:
+  DO: DO-0F42967F
+  DI: DI-86A1E16F
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0F42967F")
+
 Use when MODEL_REGISTRY_STORE=neo4j. The registry reads/writes (:ModelVersion)
 nodes and a (:ModelRegistryConfig {id: 'default'}) singleton for active_version.
 

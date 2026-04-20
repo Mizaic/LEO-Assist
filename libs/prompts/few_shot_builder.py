@@ -1,5 +1,10 @@
 """Build a few-shot example section from human-reviewed classification votes.
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 **LLM stages only** — This module injects examples into LLM prompts.
 It must NOT be imported from deterministic or model-only (spaCy) stages.
 For the spaCy retraining corpus use ``libs.prompts.model_training_labels``

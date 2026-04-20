@@ -1,5 +1,10 @@
 """Canonical JSON output schema for the extraction prompt.
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 This is seeded into Neo4j as the ``outputSchema`` field of the
 'extraction' PromptConfig node.  The extractor assembles the final
 system prompt as:  instructions + format_block(outputSchema) + examples.

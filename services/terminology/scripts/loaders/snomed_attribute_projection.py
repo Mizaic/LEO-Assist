@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-B63973E7
+  DI: DI-B4D56E92
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B63973E7")
+
 Phase 3: Materialize readable SNOMED attribute relationships.
 
 This projects generic (:Concept)-[:HAS_RELATIONSHIP {type_id, group}]->(:Concept)

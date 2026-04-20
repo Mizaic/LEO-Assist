@@ -1,5 +1,10 @@
 """NCDA audit section query functions.
 
+Atlas trace:
+  DO: DO-A6D3FE39
+  DI: DI-BA2C8F3E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A6D3FE39")
+
 Each ``_q_*`` function takes (base_cypher, params, client) and returns
 the section-specific payload.  They are called by ``_run_multi_scope``
 for practice, alliance, and england scopes.

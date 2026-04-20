@@ -1,5 +1,11 @@
 """Cohort management endpoints.
 
+Atlas trace:
+  DO: DO-1EB4FB1D
+  Also implements: DO-6F3EE289, DO-D537B955
+  DI: DI-3020D1C0, DI-94359E76, DI-FE3FFE50
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-1EB4FB1D")
+
 Create, list, and resolve patient cohorts by various filters.
 Cohort definitions are stored as Cohort nodes in the Patient Graph.
 

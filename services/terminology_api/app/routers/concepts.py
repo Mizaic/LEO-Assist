@@ -1,4 +1,10 @@
-"""SNOMED concept hierarchy and utility endpoints."""
+"""SNOMED concept hierarchy and utility endpoints.
+
+Atlas trace:
+  DO: DO-A00CD165
+  DI: DI-3FDBB57B
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A00CD165")
+"""
 
 from __future__ import annotations
 

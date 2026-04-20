@@ -19,6 +19,11 @@
  *
  * "Close" was removed -- the X in the title strip is the natural
  * dismiss control.
+ *
+ * Atlas trace:
+ *   DO: DO-1E9BCC70
+ *   DI: DI-3035F221
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-1E9BCC70")
  */
 "use client";
 

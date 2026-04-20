@@ -1,5 +1,10 @@
 """FHIR R4B AuditEvent ingestion endpoint (GAP-012).
 
+Atlas trace:
+  DO: DO-33C5C951
+  DI: DI-B46AD5CE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-33C5C951")
+
 Accepts POST /fhir/AuditEvent from other internal services (core-api, coding-worker,
 etc.) via the audit_emitter lib. Validates the shared-secret token and writes a
 structured log entry to stdout (captured by ACA Log Analytics) and persists to Neo4j.

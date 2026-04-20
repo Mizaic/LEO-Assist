@@ -1,5 +1,10 @@
 """Manual edit pathway for AI-generated AppropriatenessRules.
 
+Atlas trace:
+  DO: DO-D6CE2AA5
+  DI: DI-A3107424
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D6CE2AA5")
+
 When a reviewer edits a pending rule (rather than approve/reject), this
 module is responsible for:
 

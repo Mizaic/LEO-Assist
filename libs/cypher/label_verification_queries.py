@@ -1,5 +1,10 @@
 """Cypher queries for dual-model label verification and HITL resolution.
 
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+
 `LabelVerificationReview` nodes track disagreements between AWS and Azure
 suggestions for a specific entity inside a `TrainingLabel` record.
 

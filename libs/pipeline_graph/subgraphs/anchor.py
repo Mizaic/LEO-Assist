@@ -1,4 +1,10 @@
-"""Anchor detection subgraph."""
+"""Anchor detection subgraph.
+
+Atlas trace:
+  DO: DO-2340F614
+  DI: DI-4885D9FF
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2340F614")
+"""
 
 from __future__ import annotations
 

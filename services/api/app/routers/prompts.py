@@ -1,5 +1,10 @@
 """Prompt Config CRUD router.
 
+Atlas trace:
+  DO: DO-83EBEE2C
+  DI: DI-B954388C
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-83EBEE2C")
+
 Manages PromptConfig nodes in Neo4j — the single source of truth for
 all LLM system prompts, output schemas, and few-shot examples.
 """

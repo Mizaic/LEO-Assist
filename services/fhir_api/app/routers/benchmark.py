@@ -1,5 +1,10 @@
 """Benchmark CRUD and run endpoints.
 
+Atlas trace:
+  DO: DO-B3397C94
+  DI: DI-FC9A8824
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B3397C94")
+
 Serves BenchmarkSet, BenchmarkValue, BenchmarkRule, and upload/run operations.
 """
 

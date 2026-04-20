@@ -1,5 +1,10 @@
 """Versioned system prompts for the unified encounter coding agent.
 
+Atlas trace:
+  DO: DO-14B332AB
+  DI: DI-30D95132
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-14B332AB")
+
 Both audit mode and code mode prompts are stored here. The version hash
 is recorded in every verdict metadata block for regulatory traceability.
 Changes to prompts require a new version string and change-control entry.

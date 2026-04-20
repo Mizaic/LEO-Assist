@@ -1,5 +1,10 @@
 """Operations HITL router.
 
+Atlas trace:
+  DO: DO-B70AF10E
+  DI: DI-A90B19EB
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B70AF10E")
+
 Centralised review queues for:
   - low_confidence_coding: coded candidates below confidence threshold
   - model_disagreement: cross-model disagreements from extractor pipeline

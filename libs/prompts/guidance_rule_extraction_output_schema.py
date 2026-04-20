@@ -1,4 +1,10 @@
-"""Output schema for the exact guidance-rule extraction prompt."""
+"""Output schema for the exact guidance-rule extraction prompt.
+
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+"""
 
 _TERM_SCHEMA = {
     "type": "object",

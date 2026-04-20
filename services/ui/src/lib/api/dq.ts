@@ -1,8 +1,13 @@
 /**
  * Typed API client for /api/admin/dq/* endpoints.
  * All calls require platform admin; session cookie sent via credentials: 'include'.
+ *
+ * Atlas trace:
+ *   DO: DO-0998FAF5
+ *   Also implements: DO-86800C9B
+ *   DI: DI-FC80B65A
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-0998FAF5")
  */
-
 import { api } from './client';
 
 const DQ_BASE = '/api/admin/dq';

@@ -1,5 +1,10 @@
 """OpenTelemetry tracing setup for the clinical pipeline.
 
+Atlas trace:
+  DO: DO-5D032346
+  DI: DI-A93499CE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-5D032346")
+
 Instruments each subgraph execution as a span. Traces the full path:
 event received -> PlanDefinition evaluated -> subgraph dispatched -> Neo4j written.
 

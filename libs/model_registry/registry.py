@@ -1,5 +1,10 @@
 """Versioned model lifecycle registry for spaCy NER models.
 
+Atlas trace:
+  DO: DO-0F42967F
+  DI: DI-86A1E16F
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0F42967F")
+
 Lifecycle states
 ----------------
 registered  → offline_validated → canary → promoted → (rollback →) deprecated

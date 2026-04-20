@@ -6,8 +6,13 @@
  * theme/tokens.css (CSS custom properties for non-MUI DOM).
  *
  * See DI-LEO-AI-118 (tokens) and DI-LEO-AI-119 (density).
+ *
+ * Atlas trace:
+ *   DO: DO-5D525D34
+ *   Also implements: DO-DB78C498, DO-E32DAC8D
+ *   DI: DI-522BBCC4, DI-985976A3, DI-BE09736F
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5D525D34")
  */
-
 export const HEALTH_COLORS = {
   healthy: "#2e7d32",
   warning: "#b45309",

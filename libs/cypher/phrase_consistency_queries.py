@@ -1,4 +1,10 @@
-"""Cypher queries for phrase-level multi-label approval policy."""
+"""Cypher queries for phrase-level multi-label approval policy.
+
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+"""
 
 LIST_PHRASE_MULTILABEL_APPROVALS = """
 MATCH (p:PhraseMultiLabelApproval)

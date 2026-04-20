@@ -1,4 +1,10 @@
-"""FHIR PlanDefinition CRUD, version history, and $apply endpoints."""
+"""FHIR PlanDefinition CRUD, version history, and $apply endpoints.
+
+Atlas trace:
+  DO: DO-7B357FD6
+  DI: DI-091CBBAB, DI-176EA4FF, DI-693FFEEA, DI-B0A1E549
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-7B357FD6")
+"""
 
 from __future__ import annotations
 

@@ -1,5 +1,10 @@
 """NHS Organisation Data Service (ODS) ORD API client.
 
+Atlas trace:
+  DO: DO-273A4EC4
+  DI: DI-C978B245
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-273A4EC4")
+
 Migrated from the deprecated FHIR STU3 endpoint (retired December 2025) to the
 ORD 2-0-0 API, which is supported until at least September 2026.
 

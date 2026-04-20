@@ -1,4 +1,11 @@
-"""Shared filter dataclass used across all DQ service functions."""
+"""Shared filter dataclass used across all DQ service functions.
+
+Atlas trace:
+  DO: DO-0998FAF5
+  Also implements: DO-86800C9B
+  DI: DI-FC80B65A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0998FAF5")
+"""
 
 from __future__ import annotations
 

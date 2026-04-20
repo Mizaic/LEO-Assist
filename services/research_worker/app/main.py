@@ -1,5 +1,10 @@
 """Research Worker service.
 
+Atlas trace:
+  DO: DO-38C2D850
+  DI: DI-58988BF2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-38C2D850")
+
 Always-on FastAPI service (port 8007) that executes Pathway Explorer
 algorithm missions as background jobs.
 

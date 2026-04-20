@@ -7,6 +7,11 @@
  * behaviour is preserved (suppress-on-delete checkbox, two-button
  * confirm/cancel pattern), but restyled to use design-system
  * surface tones and motion.
+ *
+ * Atlas trace:
+ *   DO: DO-1E9BCC70
+ *   DI: DI-3035F221
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-1E9BCC70")
  */
 "use client";
 

@@ -1,5 +1,10 @@
 """Cypher queries for ReferenceRange CRUD and lookup.
 
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+
 ReferenceRange nodes live in the Patient Graph and support tenant overrides:
   - org_id = null: platform default
   - org_id = "<tenant-org-id>": tenant-specific override

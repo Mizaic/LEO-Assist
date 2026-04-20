@@ -1,5 +1,10 @@
 """Load practitioner admin flag and org list from the Patient Graph.
 
+Atlas trace:
+  DO: DO-308DD1A6
+  DI: DI-D49BCE55
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-308DD1A6")
+
 Used during OAuth callback to build the session. This logic must stay aligned
 with ``services/analytics_api/app/routers/org_context.py`` (same Cypher).
 

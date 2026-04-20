@@ -3,8 +3,13 @@
  *
  * All requests go through the Next.js /api/proxy route so the session
  * cookie is forwarded automatically.
+ *
+ * Atlas trace:
+ *   DO: DO-9530152E
+ *   Also implements: DO-EE78E305
+ *   DI: DI-6EA84931, DI-DD67ACFF, DO-F78C84A6
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-9530152E")
  */
-
 import type { MissionControlFilters } from "@/lib/missionControlFilters";
 import { toApiParams } from "@/lib/missionControlFilters";
 import { triggerReauth } from "@/lib/api/client";

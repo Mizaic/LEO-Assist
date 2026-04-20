@@ -1,5 +1,10 @@
 """Shared accelerator resolution and preflight probes.
 
+Atlas trace:
+  DO: DO-89AF1CCE
+  DI: DI-3717DFB0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-89AF1CCE")
+
 Supports CPU, CUDA, and Apple MPS with safe startup-time fallback behavior.
 """
 

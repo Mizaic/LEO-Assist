@@ -1,5 +1,11 @@
 """Subgraph registry for the clinical pipeline.
 
+Atlas trace:
+  DO: DO-14B332AB
+  Also implements: DO-8620A68B, DO-93E086B0, DO-A26CD350
+  DI: DI-30D95132, DI-5A802C83, DI-705C806B, DI-F2C18D2E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-14B332AB")
+
 Subgraphs are registered by ID and can be looked up at runtime by the
 WorkflowEngine when dispatching ActivityDefinition-driven pipeline steps.
 """

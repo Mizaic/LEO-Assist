@@ -6,8 +6,12 @@
  * Used by the CI readability gate for glossary plainLanguage strings
  * (DI-LEO-AI-121, VT-LEO-AI-116) and for regression checks on PageIntro
  * default copy.
+ *
+ * Atlas trace:
+ *   DO: DO-9539333E
+ *   DI: DI-29EEE9C3
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-9539333E")
  */
-
 export function countSentences(text: string): number {
   const trimmed = text.trim();
   if (!trimmed) return 0;

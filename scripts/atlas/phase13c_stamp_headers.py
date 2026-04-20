@@ -185,8 +185,24 @@ def resolve_one(row: AuditRow, cache: dict) -> Resolution:
     if excl:
         return Resolution(decision="excluded", note=excl)
     if row.header_state == "atlas":
-        return Resolution(decision="already_atlas",
-                          note="file already has an Atlas dcId reference")
+        # Only "already_atlas" if the file has the canonical trace marker.
+        # Files that mention Atlas dcIds inline in comments still need a
+        # proper trace block at the top.
+        full = ROOT / row.path
+        if full.exists():
+            try:
+                head = full.open("r", encoding="utf-8",
+                                 errors="replace").read(4096)
+            except OSError:
+                head = ""
+            if ATLAS_TRACE_MARKER in head:
+                return Resolution(decision="already_atlas",
+                                  note="canonical Atlas trace block present")
+        # Fall through to normal resolution. Inline dcIds in code
+        # comments are NOT treated as authoritative ownership -- only
+        # the migration ledgers' owning_atlas_di/do columns are. If the
+        # ledger has nothing, this file ends up in the unresolved bucket
+        # for human triage (we will not infer ownership from comments).
     do_cache = cache["design_outputs"]
     di_cache = cache["design_inputs"]
     dos = sorted(set(row.owning_atlas_dos))
@@ -253,7 +269,8 @@ def resolve_one(row: AuditRow, cache: dict) -> Resolution:
 # ----------------------------------------------------------------------
 
 def _trace_lines_python(res: Resolution) -> list[str]:
-    lines = [f"  DO: {res.primary_do}"]
+    lines = [ATLAS_TRACE_MARKER]
+    lines.append(f"  DO: {res.primary_do}")
     if res.extra_dos:
         lines.append(f"  Also implements: {', '.join(res.extra_dos)}")
     lines.append(f"  DI: {', '.join(res.dis)}")
@@ -267,7 +284,8 @@ def _trace_lines_python(res: Resolution) -> list[str]:
 
 
 def _trace_lines_ts(res: Resolution) -> list[str]:
-    lines = [f" *   DO: {res.primary_do}"]
+    lines = [f" * {ATLAS_TRACE_MARKER}"]
+    lines.append(f" *   DO: {res.primary_do}")
     if res.extra_dos:
         lines.append(f" *   Also implements: {', '.join(res.extra_dos)}")
     lines.append(f" *   DI: {', '.join(res.dis)}")
@@ -394,7 +412,17 @@ def _strip_existing_atlas_block_ts(comment: str) -> tuple[str, bool]:
             continue
         out.append(lines[i])
         i += 1
-    return "\n".join(out), removed
+    # Collapse consecutive blank " *" lines to a single one (idempotency).
+    cleaned: list[str] = []
+    for ln in out:
+        if (
+            ln.strip() in ("*", "")
+            and cleaned
+            and cleaned[-1].strip() in ("*", "")
+        ):
+            continue
+        cleaned.append(ln)
+    return "\n".join(cleaned), removed
 
 
 def stamp_ts(text: str, res: Resolution) -> str:
@@ -406,10 +434,11 @@ def stamp_ts(text: str, res: Resolution) -> str:
         # Remove trailing close so we can re-append cleanly.
         close_idx = comment_clean.rfind("*/")
         body = comment_clean[: close_idx].rstrip()
-        # Append trace lines before close.
+        # Append trace lines before close (trace already includes marker).
+        # Avoid double blank if body already ends with " *".
+        sep = "\n" if body.rstrip("\n").endswith(" *") else "\n *\n"
         new_comment = (
-            body + "\n *\n * "
-            + ATLAS_TRACE_MARKER + "\n"
+            body + sep
             + trace + "\n */\n"
         )
         return new_comment + text[len(block_match.group(0)):]
@@ -419,7 +448,6 @@ def stamp_ts(text: str, res: Resolution) -> str:
         "/**\n"
         f" * {summary}\n"
         " *\n"
-        f" * {ATLAS_TRACE_MARKER}\n"
         + trace + "\n"
         + " */\n"
     )

@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-B6E80BEE
+ *   DI: DI-B8674FBF, DO-41EF3F1D
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-B6E80BEE")
+ */
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";

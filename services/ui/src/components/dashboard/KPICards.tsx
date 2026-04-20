@@ -1,3 +1,12 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-11A2361E
+ *   Also implements: DO-B1116B14
+ *   DI: DI-35494904, DI-F46D7A68
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-11A2361E")
+ */
 "use client";
 
 import Box from "@mui/material/Box";

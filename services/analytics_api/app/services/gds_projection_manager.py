@@ -1,5 +1,10 @@
 """GDS graph projection management for the Pathway Explorer research workspace.
 
+Atlas trace:
+  DO: DO-38C2D850
+  DI: DI-58988BF2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-38C2D850")
+
 Manages three named in-memory graph projections used by research algorithms:
 
   pe-patient-condition  -- Patient <-> SNOMED entity nodes (Layer A).

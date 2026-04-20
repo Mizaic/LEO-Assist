@@ -1,5 +1,10 @@
 """Cypher queries for admin/tenant management.
 
+Atlas trace:
+  DO: DO-308DD1A6
+  DI: DI-D49BCE55
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-308DD1A6")
+
 Organisations, practitioners, groups, roles, and system config.
 """
 

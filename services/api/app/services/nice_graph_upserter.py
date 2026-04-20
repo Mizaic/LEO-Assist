@@ -1,5 +1,10 @@
 """Idempotent Neo4j upsert for NICE guideline content.
 
+Atlas trace:
+  DO: DO-24AA8840
+  DI: DI-693FFEEA
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-24AA8840")
+
 Versioning model
 ----------------
 Every ingest of a guideline creates a new **ingest version** (v1, v2 ...).

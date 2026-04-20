@@ -1,5 +1,10 @@
 """Canonical NCDA cohort definitions shared by every analytics endpoint.
 
+Atlas trace:
+  DO: DO-A6D3FE39
+  DI: DI-BA2C8F3E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A6D3FE39")
+
 See DI-LEO-AI-134 and R-LEO-AI-092.
 
 The helpers below return pure Cypher text fragments -- no Neo4j session,

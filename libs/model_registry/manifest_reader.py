@@ -1,5 +1,10 @@
 """Training manifest reader and cross-plan compatibility gate.
 
+Atlas trace:
+  DO: DO-0F42967F
+  DI: DI-86A1E16F
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0F42967F")
+
 Reads the ``manifest.json`` produced by the NER training pipeline and verifies
 that the model artifact references compatible schema/deid/label-mapping versions
 before the model can be promoted to production.

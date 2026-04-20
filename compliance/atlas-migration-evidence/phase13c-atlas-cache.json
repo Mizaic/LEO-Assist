@@ -1,5 +1,473 @@
 {
-  "design_inputs": {},
+  "design_inputs": {
+    "DI-17B5738E": {
+      "dcId": "DI-17B5738E",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-1373B71F"
+      ],
+      "risks": [],
+      "title": "Terminology API: text embedder, ValueSet and ConceptMap queries"
+    },
+    "DI-20104031": {
+      "dcId": "DI-20104031",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-05064452"
+      ],
+      "risks": [],
+      "title": "ODS sync worker entry point"
+    },
+    "DI-2D49649C": {
+      "dcId": "DI-2D49649C",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-559095B5"
+      ],
+      "risks": [],
+      "title": "Model artefact blob store"
+    },
+    "DI-2D9F5064": {
+      "dcId": "DI-2D9F5064",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-75760CA6",
+        "DO-236545C8"
+      ],
+      "risks": [
+        "R-43911AF2",
+        "R-A143F5AB"
+      ],
+      "title": "Runtime relation linking method disclosure (model prediction vs LLM fallback) to reviewer"
+    },
+    "DI-2F963FC6": {
+      "dcId": "DI-2F963FC6",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-8EF2EC20"
+      ],
+      "risks": [],
+      "title": "NER post-processing, lab-triple recovery, and seed ingestion"
+    },
+    "DI-3020D1C0": {
+      "dcId": "DI-3020D1C0",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-1EB4FB1D"
+      ],
+      "risks": [
+        "R-86BE969D"
+      ],
+      "title": "Analytics filters exclude non-confirmed assertions from CCI and cohort filters"
+    },
+    "DI-3103A562": {
+      "dcId": "DI-3103A562",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-4F80FAD8"
+      ],
+      "risks": [],
+      "title": "Training worker entry point and spaCy training CLI"
+    },
+    "DI-3717DFB0": {
+      "dcId": "DI-3717DFB0",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-89AF1CCE"
+      ],
+      "risks": [],
+      "title": "Shared utilities: device resolver and structured logging setup"
+    },
+    "DI-37B3DC71": {
+      "dcId": "DI-37B3DC71",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-F160C131",
+        "DO-A35D2D57"
+      ],
+      "risks": [
+        "R-036E176B",
+        "R-7A94507D",
+        "R-FFDB88BF",
+        "R-61F5F634"
+      ],
+      "title": "Model improvement cycle with active learning, metrics, golden gate, and warm start"
+    },
+    "DI-37D1B7D7": {
+      "dcId": "DI-37D1B7D7",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-CAA9690F"
+      ],
+      "risks": [],
+      "title": "In-memory message bus adapter for development and tests"
+    },
+    "DI-5700882E": {
+      "dcId": "DI-5700882E",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-5F438C17"
+      ],
+      "risks": [
+        "R-259EBFD9"
+      ],
+      "title": "Neo4j MCP server for analyst and reviewer workflows"
+    },
+    "DI-58988BF2": {
+      "dcId": "DI-58988BF2",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-E10E756F",
+        "DO-38C2D850"
+      ],
+      "risks": [
+        "R-AEC97089",
+        "R-F82D9296",
+        "R-35E85225",
+        "R-1CDAE177",
+        "R-4D6F8C46"
+      ],
+      "title": "Research workspace single-action structured export with method metadata and no patient identifiers"
+    },
+    "DI-5B694FBE": {
+      "dcId": "DI-5B694FBE",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-F2E2A70B"
+      ],
+      "risks": [],
+      "title": "Episode-engine state and writer rollups for the analysis worker"
+    },
+    "DI-5F978E36": {
+      "dcId": "DI-5F978E36",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-175B815C"
+      ],
+      "risks": [],
+      "title": "Service-to-service authentication helper"
+    },
+    "DI-6051F076": {
+      "dcId": "DI-6051F076",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-0A64F95A"
+      ],
+      "risks": [
+        "R-1C482566",
+        "R-8A226E26"
+      ],
+      "title": "Specialist outcome letter inference for benign episode closure"
+    },
+    "DI-65975321": {
+      "dcId": "DI-65975321",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-F1953D1C"
+      ],
+      "risks": [
+        "R-4E31D45A"
+      ],
+      "title": "Audit-quality, escalation, and security event logging"
+    },
+    "DI-6A1CD328": {
+      "dcId": "DI-6A1CD328",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-61EE87E0"
+      ],
+      "risks": [],
+      "title": "FHIR-based agent configuration registry"
+    },
+    "DI-6E1B71A4": {
+      "dcId": "DI-6E1B71A4",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-D5B9FE5F"
+      ],
+      "risks": [
+        "R-259EBFD9"
+      ],
+      "title": "Algorithm runner and audit-helper routers in analytics API"
+    },
+    "DI-6E6E985B": {
+      "dcId": "DI-6E6E985B",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-88BE3CD9"
+      ],
+      "risks": [
+        "R-024429D1"
+      ],
+      "title": "Layer 6 value-unit linker extension for string descriptors and raw-text fallback"
+    },
+    "DI-6EA84931": {
+      "dcId": "DI-6EA84931",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-146D93D0",
+        "DO-EE78E305"
+      ],
+      "risks": [
+        "R-D8230A9A",
+        "R-479839AC",
+        "R-7A94507D",
+        "R-4E72292C",
+        "R-FEF6CAAA",
+        "R-548FB4A5"
+      ],
+      "title": "Deployment status panel on approved change records visible from review interface"
+    },
+    "DI-6EFD68D0": {
+      "dcId": "DI-6EFD68D0",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-F3A6F414",
+        "DO-54397CCD"
+      ],
+      "risks": [
+        "R-4732D911",
+        "R-AEC97089",
+        "R-CA4C7579",
+        "R-575EB05E",
+        "R-FFDB88BF"
+      ],
+      "title": "Lossless multi-label span export to model training format"
+    },
+    "DI-705C806B": {
+      "dcId": "DI-705C806B",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-A26CD350"
+      ],
+      "risks": [
+        "R-7A310BD5"
+      ],
+      "title": "Production coding worker uses WorkflowEngine + encounter_loader subgraph"
+    },
+    "DI-81E8F4B8": {
+      "dcId": "DI-81E8F4B8",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-25BFD246"
+      ],
+      "risks": [],
+      "title": "Azure managed-identity credential resolver"
+    },
+    "DI-82036B4D": {
+      "dcId": "DI-82036B4D",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-8C497D0C"
+      ],
+      "risks": [],
+      "title": "Terminology preferred-term, surface normalisation, semantic tags"
+    },
+    "DI-85AB13D7": {
+      "dcId": "DI-85AB13D7",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-BEFC4C67"
+      ],
+      "risks": [],
+      "title": "LLM prompt asset registry (templates, examples, output schemas)"
+    },
+    "DI-86A1E16F": {
+      "dcId": "DI-86A1E16F",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-0F42967F"
+      ],
+      "risks": [],
+      "title": "Model registry (Neo4j-backed) with manifest and training adapter"
+    },
+    "DI-8A943628": {
+      "dcId": "DI-8A943628",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-9BF76337"
+      ],
+      "risks": [],
+      "title": "De-identification of clinical text before LLM submission"
+    },
+    "DI-9DCBC4BA": {
+      "dcId": "DI-9DCBC4BA",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-E10E756F",
+        "DO-3AD4D385"
+      ],
+      "risks": [
+        "R-35E85225",
+        "R-1CDAE177",
+        "R-4D6F8C46"
+      ],
+      "title": "Persona lens control reframing workspace language for different user roles without changing analysis"
+    },
+    "DI-A93499CE": {
+      "dcId": "DI-A93499CE",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-5D032346"
+      ],
+      "risks": [],
+      "title": "OpenTelemetry tracing setup"
+    },
+    "DI-AE7680C0": {
+      "dcId": "DI-AE7680C0",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-7123C55A"
+      ],
+      "risks": [],
+      "title": "LLM provider cache and Bedrock retry plumbing"
+    },
+    "DI-B2512CB3": {
+      "dcId": "DI-B2512CB3",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-63358A96",
+        "DO-A11695DB"
+      ],
+      "risks": [
+        "R-6FEF2A2F",
+        "R-F858B9E2",
+        "R-575EB05E",
+        "R-8BBCEC23"
+      ],
+      "title": "Immutable source-span linkage and provenance for extracted entities"
+    },
+    "DI-B4D56E92": {
+      "dcId": "DI-B4D56E92",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-B63973E7"
+      ],
+      "risks": [],
+      "title": "Terminology loaders for SNOMED CT UK, dm+d, OPCS-4, ICD-10"
+    },
+    "DI-B884A243": {
+      "dcId": "DI-B884A243",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-412DE1A5"
+      ],
+      "risks": [],
+      "title": "Redis-backed checkpoint and rebuild status"
+    },
+    "DI-BAC284B4": {
+      "dcId": "DI-BAC284B4",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-BE96444E"
+      ],
+      "risks": [
+        "R-259EBFD9"
+      ],
+      "title": "Cypher query helper library (read-side, multi-tenant)"
+    },
+    "DI-BE09736F": {
+      "dcId": "DI-BE09736F",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-0998FAF5",
+        "DO-E32DAC8D"
+      ],
+      "risks": [
+        "R-01B42CE9"
+      ],
+      "title": "Unified Intelligence Console with stage health and next action"
+    },
+    "DI-C978B245": {
+      "dcId": "DI-C978B245",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-273A4EC4"
+      ],
+      "risks": [],
+      "title": "ODS (Organisation Data Service) lookup client"
+    },
+    "DI-CF03E4EA": {
+      "dcId": "DI-CF03E4EA",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-2B75E3EE",
+        "DO-9F3CD7DE"
+      ],
+      "risks": [
+        "R-7A94507D",
+        "R-C2603583",
+        "R-39591899",
+        "R-D67356D9"
+      ],
+      "title": "Clinic list preparation view with pathway status and comparators"
+    },
+    "DI-CF5162BF": {
+      "dcId": "DI-CF5162BF",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-CD6408D3"
+      ],
+      "risks": [],
+      "title": "Assertion inference helper"
+    },
+    "DI-F46D7A68": {
+      "dcId": "DI-F46D7A68",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-11A2361E"
+      ],
+      "risks": [
+        "R-1C482566"
+      ],
+      "title": "Post-specialist outcome inference engine for stale episodes"
+    },
+    "DI-FBCCD265": {
+      "dcId": "DI-FBCCD265",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-0FB8F15D"
+      ],
+      "risks": [
+        "R-259EBFD9"
+      ],
+      "title": "Encounter classifier (NER + spaCy textcat)"
+    },
+    "DI-FC80B65A": {
+      "dcId": "DI-FC80B65A",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-0998FAF5",
+        "DO-86800C9B"
+      ],
+      "risks": [
+        "R-907CC7CB",
+        "R-8CE8CBBE",
+        "R-1C482566",
+        "R-FEF6CAAA",
+        "R-C0F6E549"
+      ],
+      "title": "DQ engine: configurable rules with per-episode persistence of pass/fail and remediation recommendation"
+    },
+    "DI-FC9A8824": {
+      "dcId": "DI-FC9A8824",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-B3397C94"
+      ],
+      "risks": [],
+      "title": "FHIR API: ActivityDefinition, Library, PlanDefinition, Schema, Benchmark"
+    },
+    "DI-FE1BC901": {
+      "dcId": "DI-FE1BC901",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-16CE412B"
+      ],
+      "risks": [],
+      "title": "Pipeline label filter and extraction-response parser"
+    }
+  },
   "design_outputs": {
     "DO-0289F3A5": {
       "dcId": "DO-0289F3A5",
@@ -181,6 +649,33 @@
       "design_outputs": [],
       "risks": [],
       "title": "NLP Entity Extraction Pipeline"
+    },
+    "DO-175B815C": {
+      "dcId": "DO-175B815C",
+      "design_inputs": [
+        "DI-5F978E36"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Service-to-service authentication helper (implementation)"
+    },
+    "DO-19EB27A0": {
+      "dcId": "DO-19EB27A0",
+      "design_inputs": [
+        "DI-9D967259"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Disorder verifier fail-closed with explicit GATE_FAILED verdict"
+    },
+    "DO-1B7E7255": {
+      "dcId": "DO-1B7E7255",
+      "design_inputs": [
+        "DI-EA432FDA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Coding review modal split and plain-language redesign"
     },
     "DO-1D5031E0": {
       "dcId": "DO-1D5031E0",
@@ -402,6 +897,15 @@
       "risks": [],
       "title": "Redis-backed checkpoint and rebuild status (implementation)"
     },
+    "DO-41EF3F1D": {
+      "dcId": "DO-41EF3F1D",
+      "design_inputs": [
+        "DI-E70338A5"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "The system SHALL provide an admin-triggered bulk reset-and-reprocess capability for all... (implementation)"
+    },
     "DO-448BFA1A": {
       "dcId": "DO-448BFA1A",
       "design_inputs": [
@@ -565,6 +1069,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Operations workspace inclusive redesign"
+    },
+    "DO-671C15BF": {
+      "dcId": "DO-671C15BF",
+      "design_inputs": [
+        "DI-2C12A9D7"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Stage-at-diagnosis enrichment engine (implementation)"
     },
     "DO-68FDA1E0": {
       "dcId": "DO-68FDA1E0",
@@ -868,6 +1381,51 @@
       "risks": [],
       "title": "Knowledge hub: merged admin Clinical + Knowledge pages"
     },
+    "DO-9BF76337": {
+      "dcId": "DO-9BF76337",
+      "design_inputs": [
+        "DI-8A943628"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "De-identification of clinical text before LLM submission (implementation)"
+    },
+    "DO-9CA0B5A8": {
+      "dcId": "DO-9CA0B5A8",
+      "design_inputs": [
+        "DI-80DD8A47"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "run_consensus: single-model default, optional dual-model consensus"
+    },
+    "DO-9F3CD7DE": {
+      "dcId": "DO-9F3CD7DE",
+      "design_inputs": [
+        "DI-CF03E4EA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Mission Control Analytics API Router"
+    },
+    "DO-A00CD165": {
+      "dcId": "DO-A00CD165",
+      "design_inputs": [
+        "DI-3FDBB57B"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Suggest-Aliases LLM Endpoint (Concepts Router) and Model Inference Reload Safeguard"
+    },
+    "DO-A11695DB": {
+      "dcId": "DO-A11695DB",
+      "design_inputs": [
+        "DI-B2512CB3"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Spinal-TNM scope guard and LLM prompt disambiguation rule"
+    },
     "DO-A15BFFE4": {
       "dcId": "DO-A15BFFE4",
       "design_inputs": [
@@ -930,6 +1488,394 @@
       "design_outputs": [],
       "risks": [],
       "title": "libs/analytics/cohorts.py canonical NCDA cohort definition"
+    },
+    "DO-B1116B14": {
+      "dcId": "DO-B1116B14",
+      "design_inputs": [
+        "DI-35494904"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Dashboard and Safety Netting UI"
+    },
+    "DO-B3397C94": {
+      "dcId": "DO-B3397C94",
+      "design_inputs": [
+        "DI-FC9A8824"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "FHIR API: ActivityDefinition, Library, PlanDefinition, Schema, Benchmark (implementation)"
+    },
+    "DO-B4FC3B22": {
+      "dcId": "DO-B4FC3B22",
+      "design_inputs": [
+        "DI-ED3A89F5"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Benign Cancer Pathway Closure Detection"
+    },
+    "DO-B63973E7": {
+      "dcId": "DO-B63973E7",
+      "design_inputs": [
+        "DI-B4D56E92"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Terminology loaders for SNOMED CT UK, dm+d, OPCS-4, ICD-10 (implementation)"
+    },
+    "DO-B6E80BEE": {
+      "dcId": "DO-B6E80BEE",
+      "design_inputs": [
+        "DI-B8674FBF"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Bulk Reset and Reprocess - Operations Run Flow"
+    },
+    "DO-B7060F57": {
+      "dcId": "DO-B7060F57",
+      "design_inputs": [
+        "DI-37DDAADE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Anchor Detection and Episode Builder"
+    },
+    "DO-B70AF10E": {
+      "dcId": "DO-B70AF10E",
+      "design_inputs": [
+        "DI-A90B19EB"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Programme Configuration Registry"
+    },
+    "DO-B711D180": {
+      "dcId": "DO-B711D180",
+      "design_inputs": [
+        "DI-CE0A08E5"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "persist_safety_net_alerts module + dashboards alert_id cleanup"
+    },
+    "DO-B7FCDAFB": {
+      "dcId": "DO-B7FCDAFB",
+      "design_inputs": [
+        "DI-A0D8090D"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Milestone temporal integrity: referral-to-diagnosis gap + PRISM primacy (implementation)"
+    },
+    "DO-B88D4941": {
+      "dcId": "DO-B88D4941",
+      "design_inputs": [
+        "DI-AF5A1668"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Surface-form validation and tasking"
+    },
+    "DO-BA2B7A99": {
+      "dcId": "DO-BA2B7A99",
+      "design_inputs": [
+        "DI-3EA60D5A"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Admin Guard and ReDoS-Safe Regex Validation in Training Router"
+    },
+    "DO-BBD3441A": {
+      "dcId": "DO-BBD3441A",
+      "design_inputs": [
+        "DI-F66A7239"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "LLM Prompt Safety Utilities Module"
+    },
+    "DO-BCA9B190": {
+      "dcId": "DO-BCA9B190",
+      "design_inputs": [
+        "DI-C5A523A7"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "MetricTile, ProgressStrip, SegmentedTabs, FilterBar, ToolbarActions, ReviewListCard, DataGridCard, StatHero (framer-motion stagger)"
+    },
+    "DO-BCD21209": {
+      "dcId": "DO-BCD21209",
+      "design_inputs": [
+        "DI-553F50A2"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "AI Instructions list page on @leo/design-system primitives"
+    },
+    "DO-BE96444E": {
+      "dcId": "DO-BE96444E",
+      "design_inputs": [
+        "DI-BAC284B4"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Cypher query helper library (read-side, multi-tenant) (implementation)"
+    },
+    "DO-BEFC4C67": {
+      "dcId": "DO-BEFC4C67",
+      "design_inputs": [
+        "DI-85AB13D7"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "LLM prompt asset registry (templates, examples, output schemas) (implementation)"
+    },
+    "DO-C4EC82F9": {
+      "dcId": "DO-C4EC82F9",
+      "design_inputs": [
+        "DI-B0832A64"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "AppShell + primitive a11y fixes + CI a11y gate"
+    },
+    "DO-C5890265": {
+      "dcId": "DO-C5890265",
+      "design_inputs": [
+        "DI-09E26C1D"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Audit-Driven Automated Encounter Remediation"
+    },
+    "DO-C7C1EBA2": {
+      "dcId": "DO-C7C1EBA2",
+      "design_inputs": [
+        "DI-740BE510"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "CodingDecision Audit Trail Queries"
+    },
+    "DO-CAA9690F": {
+      "dcId": "DO-CAA9690F",
+      "design_inputs": [
+        "DI-37D1B7D7"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "In-memory message bus adapter for development and tests (implementation)"
+    },
+    "DO-CBDF8FBC": {
+      "dcId": "DO-CBDF8FBC",
+      "design_inputs": [
+        "DI-A0C90595"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "SpanResolver -- absolute character-offset resolver for LLM-extracted terms"
+    },
+    "DO-CD6408D3": {
+      "dcId": "DO-CD6408D3",
+      "design_inputs": [
+        "DI-CF5162BF"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Assertion inference helper (implementation)"
+    },
+    "DO-CE117D2A": {
+      "dcId": "DO-CE117D2A",
+      "design_inputs": [
+        "DI-AE477327"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "NER Training Export Script with PII Gate, Stratification Report, and Safety Block"
+    },
+    "DO-CFA1ED55": {
+      "dcId": "DO-CFA1ED55",
+      "design_inputs": [
+        "DI-340279C1"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "CRUD Knowledge tabs (Context Rules, Surface Forms, Domains, Terminology)"
+    },
+    "DO-D537B955": {
+      "dcId": "DO-D537B955",
+      "design_inputs": [
+        "DI-94359E76"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Analytics Dashboard Service"
+    },
+    "DO-D5B9FE5F": {
+      "dcId": "DO-D5B9FE5F",
+      "design_inputs": [
+        "DI-6E1B71A4"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Algorithm runner and audit-helper routers in analytics API (implementation)"
+    },
+    "DO-D6CE2AA5": {
+      "dcId": "DO-D6CE2AA5",
+      "design_inputs": [
+        "DI-A3107424"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Editable rule review dialog with versioned write-back"
+    },
+    "DO-DA9FD5E8": {
+      "dcId": "DO-DA9FD5E8",
+      "design_inputs": [
+        "DI-6424B6FC"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Knowledge tab width parity + Domains/Terminology card consistency"
+    },
+    "DO-DB78C498": {
+      "dcId": "DO-DB78C498",
+      "design_inputs": [
+        "DI-985976A3"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Token source of truth for LEO UI: theme.ts, theme/tokens.ts, theme/tokens.css"
+    },
+    "DO-DB7F8D52": {
+      "dcId": "DO-DB7F8D52",
+      "design_inputs": [
+        "DI-4DBE1A18",
+        "DI-87CCCB18"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Authentication and Authorisation Module"
+    },
+    "DO-E32DAC8D": {
+      "dcId": "DO-E32DAC8D",
+      "design_inputs": [
+        "DI-BE09736F"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Intelligence Console - unified admin UX"
+    },
+    "DO-E3885491": {
+      "dcId": "DO-E3885491",
+      "design_inputs": [
+        "DI-3613871E"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Automated Weekly Audit Execution with Immutable AuditRun and DriftMetric"
+    },
+    "DO-E647765A": {
+      "dcId": "DO-E647765A",
+      "design_inputs": [
+        "DI-0C8FBAF7"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Admin Guidance UI -- Plain Language Guideline Management"
+    },
+    "DO-E74B0605": {
+      "dcId": "DO-E74B0605",
+      "design_inputs": [
+        "DI-5E25E872"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Bitmap Store, Guideline Compiler, and Evaluator in Terminology API"
+    },
+    "DO-EDA32DB1": {
+      "dcId": "DO-EDA32DB1",
+      "design_inputs": [
+        "DI-66F1B177"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "LLM Interpretation Module"
+    },
+    "DO-EE78E305": {
+      "dcId": "DO-EE78E305",
+      "design_inputs": [
+        "DI-6EA84931"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Clinical Audit Mission Control React UI"
+    },
+    "DO-F1953D1C": {
+      "dcId": "DO-F1953D1C",
+      "design_inputs": [
+        "DI-65975321"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Audit-quality, escalation, and security event logging (implementation)"
+    },
+    "DO-F2E2A70B": {
+      "dcId": "DO-F2E2A70B",
+      "design_inputs": [
+        "DI-5B694FBE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Episode-engine state and writer rollups for the analysis worker (implementation)"
+    },
+    "DO-F78C84A6": {
+      "dcId": "DO-F78C84A6",
+      "design_inputs": [
+        "DI-D0FC22FE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Encounter-centric Mission Control and Batch Recode (implementation)"
+    },
+    "DO-F8631A82": {
+      "dcId": "DO-F8631A82",
+      "design_inputs": [
+        "DI-1B8AC856"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Coding Review UI"
+    },
+    "DO-F89916E2": {
+      "dcId": "DO-F89916E2",
+      "design_inputs": [
+        "DI-C7A810AA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Three-Tier Decision Engine Module"
+    },
+    "DO-FCF80123": {
+      "dcId": "DO-FCF80123",
+      "design_inputs": [],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Histology-aware _RE_CONFIRMED_CANCER and _RE_NO_CANCER patterns"
+    },
+    "DO-FEF05EDA": {
+      "dcId": "DO-FEF05EDA",
+      "design_inputs": [
+        "DI-2AFF691F",
+        "DI-6079EC71",
+        "DI-4C73DC01"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Guideline Rule Engine and Safety-Net Detector"
     }
   }
 }

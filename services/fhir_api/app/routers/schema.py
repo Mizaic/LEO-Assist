@@ -1,5 +1,10 @@
 """Schema API for the No-Code Measure Builder.
 
+Atlas trace:
+  DO: DO-B3397C94
+  DI: DI-FC9A8824
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B3397C94")
+
 Exposes a curated subset of the Patient Graph schema for the query builder.
 Uses proper FHIR and Neo4j terminology; the UI maps to display labels.
 """

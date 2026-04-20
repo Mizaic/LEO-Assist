@@ -1,5 +1,10 @@
 """Hybrid SNOMED/Read code resolution.
 
+Atlas trace:
+  DO: DO-14D58359
+  DI: DI-F8634363
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-14D58359")
+
 Ported from PCA services/api/app/services/v3/coding_resolver.py.
 Runs three retrieval branches (exact, fulltext, vector) and fuses scores.
 

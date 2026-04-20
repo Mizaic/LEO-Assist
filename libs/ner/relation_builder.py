@@ -1,5 +1,10 @@
 """Rule-based relation extraction for NER training records.
 
+Atlas trace:
+  DO: DO-170F0DEE
+  DI: DI-31126C6C, DI-3B3F7D4B
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-170F0DEE")
+
 Extracts relations between entities in a single sentence using:
 - Negation cue proximity rules  → negates
 - Temporal modifier proximity   → temporal_of

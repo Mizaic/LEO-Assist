@@ -1,5 +1,11 @@
 """Shared regex-based de-identification for GP encounter text.
 
+Atlas trace:
+  DO: DO-210CF040
+  Also implements: DO-CE117D2A
+  DI: DI-AE477327, DI-E7AFFDA5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-210CF040")
+
 Strips the PII patterns most commonly found in SystmOne / EMIS exports before
 encounter text is sent to external LLMs or stored in training artefacts.
 

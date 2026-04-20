@@ -1,4 +1,11 @@
-"""Lightweight single-turn LLM checks for extraction and coding quality."""
+"""Lightweight single-turn LLM checks for extraction and coding quality.
+
+Atlas trace:
+  DO: DO-8620A68B
+  Also implements: DO-93E086B0
+  DI: DI-2D9F5064, DI-5A802C83, DI-F2C18D2E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8620A68B")
+"""
 
 from __future__ import annotations
 

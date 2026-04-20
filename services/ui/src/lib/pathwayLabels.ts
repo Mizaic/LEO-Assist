@@ -7,8 +7,12 @@
  * Status keys are pinned to the canonical vocabulary in
  * libs/episodes/status.py (mirrored at lib/episodeStatus.ts) -- never
  * hand-write a status string here, always import the constant.
+ *
+ * Atlas trace:
+ *   DO: DO-EE78E305
+ *   DI: DI-6EA84931
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-EE78E305")
  */
-
 import {
   STATUS_COMPLETED,
   STATUS_CLOSED_BENIGN,

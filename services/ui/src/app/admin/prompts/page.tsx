@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-BCD21209
+ *   DI: DI-553F50A2
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-BCD21209")
+ */
 "use client";
 
 /**

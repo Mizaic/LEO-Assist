@@ -1,0 +1,335 @@
+path,reason
+libs/__init__.py,__init__.py (no executable surface)
+libs/agent_config/__init__.py,__init__.py (no executable surface)
+libs/analytics/__init__.py,__init__.py (no executable surface)
+libs/audit/__init__.py,__init__.py (no executable surface)
+libs/auth/__init__.py,__init__.py (no executable surface)
+libs/azure/__init__.py,__init__.py (no executable surface)
+libs/classifiers/__init__.py,__init__.py (no executable surface)
+libs/clinical_scoping/__init__.py,__init__.py (no executable surface)
+libs/coding_engine/__init__.py,__init__.py (no executable surface)
+libs/cypher/__init__.py,__init__.py (no executable surface)
+libs/cypher/test_patient_queries.py,"test_*.py (VT, not DO)"
+libs/deid/__init__.py,__init__.py (no executable surface)
+libs/domain_config/__init__.py,__init__.py (no executable surface)
+libs/domains/__init__.py,__init__.py (no executable surface)
+libs/dq/__init__.py,__init__.py (no executable surface)
+libs/episodes/__init__.py,__init__.py (no executable surface)
+libs/exclusion_detector/__init__.py,__init__.py (no executable surface)
+libs/keyvault/__init__.py,__init__.py (no executable surface)
+libs/llm_client/__init__.py,__init__.py (no executable surface)
+libs/message_bus/__init__.py,__init__.py (no executable surface)
+libs/metrics/__init__.py,__init__.py (no executable surface)
+libs/model_registry/__init__.py,__init__.py (no executable surface)
+libs/model_store/__init__.py,__init__.py (no executable surface)
+libs/neo4j_client/__init__.py,__init__.py (no executable surface)
+libs/ner/__init__.py,__init__.py (no executable surface)
+libs/nlp/__init__.py,__init__.py (no executable surface)
+libs/ods/__init__.py,__init__.py (no executable surface)
+libs/oncology/__init__.py,__init__.py (no executable surface)
+libs/pipeline/__init__.py,__init__.py (no executable surface)
+libs/pipeline_graph/__init__.py,__init__.py (no executable surface)
+libs/pipeline_graph/subgraphs/__init__.py,__init__.py (no executable surface)
+libs/pipeline_graph/utils/__init__.py,__init__.py (no executable surface)
+libs/prompts/__init__.py,__init__.py (no executable surface)
+libs/prompts/episode_engine/__init__.py,__init__.py (no executable surface)
+libs/prompts/test_patient_scaffold_v1.py,"test_*.py (VT, not DO)"
+libs/prompts/test_patient_scenario_v1.py,"test_*.py (VT, not DO)"
+libs/redis_client/__init__.py,__init__.py (no executable surface)
+libs/sbar/__init__.py,__init__.py (no executable surface)
+libs/search/__init__.py,__init__.py (no executable surface)
+libs/service_auth/__init__.py,__init__.py (no executable surface)
+libs/staging/__init__.py,__init__.py (no executable surface)
+libs/telemetry/__init__.py,__init__.py (no executable surface)
+libs/terminology/__init__.py,__init__.py (no executable surface)
+libs/training/__init__.py,__init__.py (no executable surface)
+libs/utils/__init__.py,__init__.py (no executable surface)
+libs/work/__init__.py,__init__.py (no executable surface)
+libs/workflow/__init__.py,__init__.py (no executable surface)
+services/__init__.py,__init__.py (no executable surface)
+services/analysis_worker/__init__.py,__init__.py (no executable surface)
+services/analysis_worker/app/__init__.py,__init__.py (no executable surface)
+services/analysis_worker/app/analyzers/__init__.py,__init__.py (no executable surface)
+services/analysis_worker/app/analyzers/episode_builder/__init__.py,__init__.py (no executable surface)
+services/analysis_worker/app/episode_engine/__init__.py,__init__.py (no executable surface)
+services/analysis_worker/app/episode_engine/agents/__init__.py,__init__.py (no executable surface)
+services/analysis_worker/app/services/__init__.py,__init__.py (no executable surface)
+services/analytics_api/__init__.py,__init__.py (no executable surface)
+services/analytics_api/app/__init__.py,__init__.py (no executable surface)
+services/analytics_api/app/routers/__init__.py,__init__.py (no executable surface)
+services/analytics_api/app/services/__init__.py,__init__.py (no executable surface)
+services/analytics_api/tests/__init__.py,"tests directory (VT, not DO)"
+services/analytics_api/tests/test_analytics_assertion_filter.py,"tests directory (VT, not DO)"
+services/analytics_api/tests/test_audit_summary.py,"tests directory (VT, not DO)"
+services/analytics_api/tests/test_domains_source.py,"tests directory (VT, not DO)"
+services/analytics_api/tests/test_encounter_query_understanding.py,"tests directory (VT, not DO)"
+services/analytics_api/tests/test_mission_control.py,"tests directory (VT, not DO)"
+services/analytics_api/tests/test_mission_control_cohort_kpis.py,"tests directory (VT, not DO)"
+services/analytics_api/tests/test_mission_control_encounters.py,"tests directory (VT, not DO)"
+services/api/app/__init__.py,__init__.py (no executable surface)
+services/api/app/db/__init__.py,__init__.py (no executable surface)
+services/api/app/models/__init__.py,__init__.py (no executable surface)
+services/api/app/routers/__init__.py,__init__.py (no executable surface)
+services/api/app/routers/test_patients.py,"test_*.py (VT, not DO)"
+services/api/app/services/__init__.py,__init__.py (no executable surface)
+services/api/app/services/candidate_ai_first_pass/__init__.py,__init__.py (no executable surface)
+services/api/app/services/test_patient_clone.py,"test_*.py (VT, not DO)"
+services/api/app/services/test_patient_generator.py,"test_*.py (VT, not DO)"
+services/api/app/services/test_patient_redactor.py,"test_*.py (VT, not DO)"
+services/api/app/services/test_patient_scaffolder.py,"test_*.py (VT, not DO)"
+services/api/app/services/test_patient_scenario_scaffolder.py,"test_*.py (VT, not DO)"
+services/api/app/services/test_patient_service.py,"test_*.py (VT, not DO)"
+services/api/scripts/migrations/__init__.py,__init__.py (no executable surface)
+services/api/tests/conftest.py,"tests directory (VT, not DO)"
+services/api/tests/test_ai_first_pass_endpoint.py,"tests directory (VT, not DO)"
+services/api/tests/test_bedrock_retry.py,"tests directory (VT, not DO)"
+services/api/tests/test_candidate_from_dry_run.py,"tests directory (VT, not DO)"
+services/api/tests/test_candidate_prune_endpoint.py,"tests directory (VT, not DO)"
+services/api/tests/test_gold_label_from_encounter.py,"tests directory (VT, not DO)"
+services/api/tests/test_guidance_rule_edit.py,"tests directory (VT, not DO)"
+services/api/tests/test_guidance_rule_edit_action.py,"tests directory (VT, not DO)"
+services/api/tests/test_guidance_rule_generator.py,"tests directory (VT, not DO)"
+services/api/tests/test_guidance_rules_dry_run_audit.py,"tests directory (VT, not DO)"
+services/api/tests/test_guidance_rules_router.py,"tests directory (VT, not DO)"
+services/api/tests/test_model_configs_router.py,"tests directory (VT, not DO)"
+services/api/tests/test_nice_api_client.py,"tests directory (VT, not DO)"
+services/api/tests/test_nice_graph_upserter.py,"tests directory (VT, not DO)"
+services/api/tests/test_nice_guidance_router.py,"tests directory (VT, not DO)"
+services/api/tests/test_nice_integration.py,"tests directory (VT, not DO)"
+services/api/tests/test_patients_batch_recode.py,"tests directory (VT, not DO)"
+services/api/tests/test_pipeline_router_runtime.py,"tests directory (VT, not DO)"
+services/api/tests/test_pricing_router.py,"tests directory (VT, not DO)"
+services/api/tests/test_prompts_router.py,"tests directory (VT, not DO)"
+services/api/tests/test_proxy_router.py,"tests directory (VT, not DO)"
+services/api/tests/test_require_admin_or_service.py,"tests directory (VT, not DO)"
+services/api/tests/test_reset_review_queue_service.py,"tests directory (VT, not DO)"
+services/api/tests/test_reset_service.py,"tests directory (VT, not DO)"
+services/api/tests/test_resolve_path_completeness.py,"tests directory (VT, not DO)"
+services/api/tests/test_sandbox_replay.py,"tests directory (VT, not DO)"
+services/api/tests/test_sync_coded_links_from_gold.py,"tests directory (VT, not DO)"
+services/api/tests/test_sync_service.py,"tests directory (VT, not DO)"
+services/api/tests/test_synthetic_prompt_builder.py,"tests directory (VT, not DO)"
+services/api/tests/test_synthetic_speculative_detector.py,"tests directory (VT, not DO)"
+services/api/tests/test_test_patient_generator.py,"tests directory (VT, not DO)"
+services/api/tests/test_test_patient_library_aspect.py,"tests directory (VT, not DO)"
+services/api/tests/test_test_patient_router.py,"tests directory (VT, not DO)"
+services/api/tests/test_test_patient_scaffolder_friendly_label.py,"tests directory (VT, not DO)"
+services/api/tests/test_test_patient_service.py,"tests directory (VT, not DO)"
+services/api/tests/test_training_candidate_delete.py,"tests directory (VT, not DO)"
+services/api/tests/test_training_search_term_expansion.py,"tests directory (VT, not DO)"
+services/api/tests/test_v3_llm_usage.py,"tests directory (VT, not DO)"
+services/api/tests/test_v3_patient_graph_writer.py,"tests directory (VT, not DO)"
+services/coding_worker/__init__.py,__init__.py (no executable surface)
+services/coding_worker/app/__init__.py,__init__.py (no executable surface)
+services/coding_worker/app/pipeline/__init__.py,__init__.py (no executable surface)
+services/coding_worker/app/pipeline/providers/__init__.py,__init__.py (no executable surface)
+services/coding_worker/app/services/__init__.py,__init__.py (no executable surface)
+services/coding_worker/tests/test_job_handler_engine.py,"tests directory (VT, not DO)"
+services/dq_mcp/__init__.py,__init__.py (no executable surface)
+services/fhir_api/__init__.py,__init__.py (no executable surface)
+services/fhir_api/app/__init__.py,__init__.py (no executable surface)
+services/fhir_api/app/routers/__init__.py,__init__.py (no executable surface)
+services/fhir_api/app/services/__init__.py,__init__.py (no executable surface)
+services/fhir_api/tests/__init__.py,"tests directory (VT, not DO)"
+services/fhir_api/tests/test_plan_definition_version_history.py,"tests directory (VT, not DO)"
+services/model_inference/app/__init__.py,__init__.py (no executable surface)
+services/model_inference/tests/__init__.py,"tests directory (VT, not DO)"
+services/model_inference/tests/test_inference_multi_label.py,"tests directory (VT, not DO)"
+services/neo4j_mcp/__init__.py,__init__.py (no executable surface)
+services/neo4j_mcp/tools/__init__.py,__init__.py (no executable surface)
+services/ods_sync/__init__.py,__init__.py (no executable surface)
+services/ods_sync/app/__init__.py,__init__.py (no executable surface)
+services/pipeline_worker/__init__.py,__init__.py (no executable surface)
+services/pipeline_worker/app/__init__.py,__init__.py (no executable surface)
+services/pipeline_worker/app/graph/__init__.py,__init__.py (no executable surface)
+services/research_worker/app/__init__.py,__init__.py (no executable surface)
+services/terminology/__init__.py,__init__.py (no executable surface)
+services/terminology/scripts/__init__.py,__init__.py (no executable surface)
+services/terminology/scripts/loaders/__init__.py,__init__.py (no executable surface)
+services/terminology_api/__init__.py,__init__.py (no executable surface)
+services/terminology_api/app/__init__.py,__init__.py (no executable surface)
+services/terminology_api/app/queries/__init__.py,__init__.py (no executable surface)
+services/terminology_api/app/routers/__init__.py,__init__.py (no executable surface)
+services/terminology_api/app/services/__init__.py,__init__.py (no executable surface)
+services/terminology_api/tests/test_bitmap_store.py,"tests directory (VT, not DO)"
+services/terminology_api/tests/test_compile_drafts.py,"tests directory (VT, not DO)"
+services/terminology_api/tests/test_guideline_compiler.py,"tests directory (VT, not DO)"
+services/terminology_api/tests/test_guideline_evaluator.py,"tests directory (VT, not DO)"
+services/terminology_api/tests/test_guideline_evaluator_diagnose.py,"tests directory (VT, not DO)"
+services/terminology_api/tests/test_post_compile_replay_hook.py,"tests directory (VT, not DO)"
+services/training_worker/tests/__init__.py,"tests directory (VT, not DO)"
+services/training_worker/tests/test_evaluator.py,"tests directory (VT, not DO)"
+services/training_worker/tests/test_job_store.py,"tests directory (VT, not DO)"
+services/training_worker/tests/test_label_exporter.py,"tests directory (VT, not DO)"
+services/training_worker/tests/test_relation_pipeline.py,"tests directory (VT, not DO)"
+services/training_worker/tests/test_trainer.py,"tests directory (VT, not DO)"
+services/ui/e2e/a11y-baseline.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/auth.setup.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/css-alerts.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/dashboard.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/encounters-batch.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/episode-timeline.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/fixtures.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/knowledge-tabs.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/pathway-editor.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/patient-workflow.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/pipeline.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/report-builder.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/review-workflow.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/sbar-playground.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/e2e/shared-gold-editor.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/next-env.d.ts,declaration-only .d.ts
+services/ui/src/__tests__/admin-url-audit.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/ai-first-pass-dialog-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/ai-first-pass-toolbar-id.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/area-copy-readability.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/area-intro-wiring.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/background-source-picker-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/background-source-picker-chunk-rules.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/background-source-picker-unified-feed.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/cancer-type-options.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/candidate-prune-dialog.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/coding-review-split.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/confirmdialog-a11y.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/console-chrome.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/crud-tabs-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/dashboard-hero-mece.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/dashboard-overview-intro.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/density-context.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/design-system-fonts.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/design-system-knowledge-primitives.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/design-system-motion.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/design-system-resolution.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/design-system-role-gate.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/design-system-task-queue.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/dry-run-open-gold-editor.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/edit-rule-dialog-stepped-copy-reading-age.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/edit-rule-dialog-stepped-live-preview.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/edit-rule-dialog-stepped-rail.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/edit-rule-dialog-stepped-save-gating.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/edit-rule-dialog-stepped-save-payload.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/edit-rule-dialog-stepped-shell.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/encounter-preview-dialog-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/encounter-results-timeline-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/encounter-row-template-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/encounter-search-relevance-chrome.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/explanation-patterns.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/gold-label-detail-ai-chip-and-toggle.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/gold-label-detail-dialog-rekey.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/gold-label-editor-dialog-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/guidance-page-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/guideline-picker-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/knowledge-copy-readability.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/knowledge-hub-merge.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/knowledge-layout-integration.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/knowledge-primitives.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/knowledge-tab-width-and-cards.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/knowledge-tabs-guards.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/EncounterMissionControl.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/EncounterTextTab-scrubber-chrome.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/EncounterTextTab-timeline-filter.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/EncounterTextTab.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/EncounterTimelineScrubber.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/EpisodeTimeline.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/KPIStrip.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/KPIStripCohortDenominator.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/MissionControl.polling.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/ReviewActionsPanel.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/missionControlFilters.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/mission-control/pathwayLabels.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/operations-workspace-intro.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/pathway-canvas-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/pathway-canvas-cleanup.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/pathway-canvas-configurator.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/pathway-canvas-edges.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/pathway-canvas-nodes.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/pathway-explorer-static.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/pathways-list-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/patient-finder-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/patient-finder-typeahead.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/phase6-cleanup.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/prompts-editor-decomposition.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/prompts-list-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/prompts-list-sbar-context-categoriser.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/sbar-final-view.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/sbar-playground-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/sbar-playground-concern.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/server-session-bootstrap.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/settings-terminology-classifications.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/similar-candidates-dialog-search-rationale-chrome.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/statusdot-a11y.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/summarisation-context-select-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/synonym-chip-descendants.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/synonym-chip-tree-ops.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/synonym-chip-tree-to-sentence.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/term-search-classification-titles.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/test-patient-library-knowledge-tab.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/theme-port-structure.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/theme-tokens.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/training-data-chrome.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/training-data-dialog.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/training-data-rows.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/training-data-search-rationale-chrome.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/ui-safety-static.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/use-sbar-stream-wire-format.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/__tests__/work-page-integration.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.action.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.coach.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/LogicTreeEditor.layout.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/TestPatientsPanel.sandbox.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/TestPatientsPanel.scope.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/copy.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/treeOps.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/treeToSentence.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/vaguePhrases.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/guidance/__tests__/RuleReviewSection.merge.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/knowledge/test-patients/replay/__tests__/ReplayResultsDialog.iso13485.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/knowledge/test-patients/replay/__tests__/RulesetNotCompiledBanner.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/operations/__tests__/OperationsDashboard.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/admin/operations/reviews/__tests__/ReviewsPage.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/dashboard/__tests__/DashboardPage.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/app/safety-netting/__tests__/SafetyNetAlertsPage.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/AppShell.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/CodedLinksSection.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/ConfirmDialog.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/CorrectionsLog.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/EntityCard.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/EntitySidebar.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/ManualEntityBanner.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/PatientList.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/ReviewView.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/__tests__/TermSearch.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/audit/__tests__/BenchmarkLegend.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/audit/__tests__/CancerTypeDumbbellChart.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/audit/__tests__/CancerTypeSection.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/audit/__tests__/ComparisonBarChart.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/audit/__tests__/ConsultationsSection.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/audit/__tests__/SectionCard.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/benchmarks/__tests__/BenchmarkSetList.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/benchmarks/__tests__/BenchmarkUploadWizard.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/dashboard/__tests__/EpisodesByTypeChart.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/dashboard/__tests__/KPICards.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/dashboard/__tests__/SafetyNetAlertsSummary.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/episodes/__tests__/CaseloadStrip.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/episodes/__tests__/EpisodeList.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/episodes/__tests__/EpisodeTimelineView.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/episodes/__tests__/PatientGroupList.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/games/__tests__/SnakeGame.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/operations/__tests__/OperationsWorkspace.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/operations/__tests__/ReviewCard.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/operations/__tests__/TrainSection.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/components/pathway/config/__tests__/subgraphs.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/components/reports/__tests__/ReportList.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/context/__tests__/OrgContext.test.tsx,"ui __tests__ (VT, not DO)"
+services/ui/src/hooks/__tests__/usePipelineStream.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/lib/__tests__/analyticsApi.domains.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/lib/__tests__/analyticsApi.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/lib/__tests__/api.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/lib/__tests__/auditVisibleKeys.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/lib/__tests__/dateSort.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/lib/__tests__/pathwayRisk.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/lib/__tests__/sortNatural.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/lib/__tests__/terminologyConfidence.test.ts,"ui __tests__ (VT, not DO)"
+services/ui/src/types/plotly-dist-min.d.ts,declaration-only .d.ts

@@ -1,5 +1,10 @@
 """UK Index of Multiple Deprivation (IMD) data retrieval.
 
+Atlas trace:
+  DO: DO-D537B955
+  DI: DI-94359E76
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D537B955")
+
 Ported from auditor_2 agent/tools/deprivation_data_retriever.py.
 Retrieves IMD 2019 data for UK postcodes and stores on Patient nodes.
 """

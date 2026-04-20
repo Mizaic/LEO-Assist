@@ -1,4 +1,11 @@
-"""Top-level episode building orchestrator."""
+"""Top-level episode building orchestrator.
+
+Atlas trace:
+  DO: DO-0C7A443A
+  Also implements: DO-3BA98649, DO-6C398363, DO-8CCC6230
+  DI: DI-080A2454, DI-6C5D77CA, DI-EE4E6477, DI-FC264BBF, DI-FF9C74E2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0C7A443A")
+"""
 
 from __future__ import annotations
 

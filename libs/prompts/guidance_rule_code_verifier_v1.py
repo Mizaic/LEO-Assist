@@ -1,4 +1,10 @@
-"""Verifier prompt for selecting exact SNOMED/action concepts for guidance rules."""
+"""Verifier prompt for selecting exact SNOMED/action concepts for guidance rules.
+
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+"""
 
 GUIDANCE_RULE_CODE_VERIFIER_SYSTEM_V2 = """\
 You are a clinical safety verifier for NICE guidance rules.

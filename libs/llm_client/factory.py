@@ -1,5 +1,11 @@
 """Unified sync LLM provider factory.
 
+Atlas trace:
+  DO: DO-64BDC193
+  Also implements: DO-83EBEE2C, DO-94D87FA7, DO-EDA32DB1
+  DI: DI-54D00E21, DI-66F1B177, DI-88C8BBCD, DI-B954388C
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-64BDC193")
+
 Returns a lightweight ``LLMClient`` with a ``.converse()`` method that works
 identically regardless of whether the backend is AWS Bedrock or Azure OpenAI.
 

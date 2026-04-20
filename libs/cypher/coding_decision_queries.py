@@ -1,5 +1,10 @@
 """Cypher queries for the CodingDecision audit trail.
 
+Atlas trace:
+  DO: DO-C7C1EBA2
+  DI: DI-740BE510
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-C7C1EBA2")
+
 Every autonomous-mode coding decision is recorded as a CodingDecision node
 so the practice can audit what was coded, flagged, or skipped -- and why.
 """

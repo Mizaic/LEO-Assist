@@ -1,5 +1,10 @@
 """Benchmark loader: JSON flattening and mapping engine.
 
+Atlas trace:
+  DO: DO-B3397C94
+  DI: DI-FC9A8824
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B3397C94")
+
 Used by the upload wizard endpoint to transform arbitrary benchmark JSON
 into flat BenchmarkValue records. Supports built-in templates (e.g. NCDA).
 """

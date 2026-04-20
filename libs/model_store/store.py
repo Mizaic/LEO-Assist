@@ -1,5 +1,10 @@
 """Azure Blob Storage model artifact store.
 
+Atlas trace:
+  DO: DO-559095B5
+  DI: DI-2D49649C
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-559095B5")
+
 A trained spaCy model directory is zipped, uploaded to a versioned blob path,
 and downloaded+unzipped by the inference service at startup.  Hot-reload
 works by downloading a new version while the old one serves traffic, then

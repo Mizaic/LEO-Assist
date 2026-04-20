@@ -1,5 +1,10 @@
 """Shared logging bootstrap for runtime services.
 
+Atlas trace:
+  DO: DO-89AF1CCE
+  DI: DI-3717DFB0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-89AF1CCE")
+
 Console-first logging for local operations with consistent fields across
 APIs and workers. Keeps a clear migration path to structured export later.
 """

@@ -1,4 +1,10 @@
-"""Cypher queries for SurfaceFormTask review workflow."""
+"""Cypher queries for SurfaceFormTask review workflow.
+
+Atlas trace:
+  DO: DO-B88D4941
+  DI: DI-AF5A1668
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B88D4941")
+"""
 
 import uuid
 

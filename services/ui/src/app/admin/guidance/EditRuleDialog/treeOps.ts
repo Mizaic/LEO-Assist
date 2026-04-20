@@ -9,8 +9,12 @@
  * The helpers also strip the synthetic ``node_id`` when serialising the tree
  * for the API: server-side validation accepts ``node_id`` but does not
  * require it, so we drop it to keep the persisted JSON tidy.
+ *
+ * Atlas trace:
+ *   DO: DO-D6CE2AA5
+ *   DI: DI-A3107424
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-D6CE2AA5")
  */
-
 import type {
   EditableLogicNode,
   LogicCriterion,

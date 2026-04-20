@@ -1,5 +1,10 @@
 """spaCy training subprocess wrapper.
 
+Atlas trace:
+  DO: DO-A35D2D57
+  DI: DI-37B3DC71
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A35D2D57")
+
 Runs ``python -m app.run_spacy_train_cli train`` (registers ``leo_training.TransformerListener``)
 in a subprocess, streams stdout/stderr line
 by line to the job log, and returns the path to the best model output.

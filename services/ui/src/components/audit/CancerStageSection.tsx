@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-A23404E0
+ *   DI: DI-23822663, DO-671C15BF
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-A23404E0")
+ */
 "use client";
 
 import SectionCard from "./SectionCard";

@@ -1,5 +1,11 @@
 """Cancer-type specialty markers for clinical text scoping.
 
+Atlas trace:
+  DO: DO-6DFD03E0
+  Also implements: DO-70D4B1B8
+  DI: DI-527848A8, DI-C0AD09D2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-6DFD03E0")
+
 Maps canonical NCDA cancer-site keys (as produced by
 ``services.analysis_worker.app.analyzers.episode_builder._site_resolution``)
 to compiled regex patterns that identify specialty-specific terminology.

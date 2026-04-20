@@ -1,5 +1,10 @@
 """Org-scoped access control for multi-tenant NHS cancer audit platform.
 
+Atlas trace:
+  DO: DO-DB7F8D52
+  DI: DI-4DBE1A18, DI-87CCCB18
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-DB7F8D52")
+
 Resolves a caller's email to their organizational scope using the Neo4j
 Practitioner/WORKS_AT graph.  Platform admins bypass all scope checks.
 

@@ -1,5 +1,10 @@
 """Redis-backed Roaring bitmap store for guideline evaluation.
 
+Atlas trace:
+  DO: DO-E74B0605
+  DI: DI-5E25E872
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E74B0605")
+
 Key scheme:
     rbm:{blake2b_16_hex}                                  -- serialised pyroaring BitMap bytes
     snomed:intids                                         -- Redis hash: concept_id -> int_id

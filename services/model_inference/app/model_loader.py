@@ -1,5 +1,10 @@
 """ModelLoader — thread-safe spaCy model manager for the inference service.
 
+Atlas trace:
+  DO: DO-A00CD165
+  DI: DI-3FDBB57B
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A00CD165")
+
 Downloads model artifacts from Azure Blob Storage (via ModelStore), unpacks
 them to a local cache directory, and loads them into memory.
 

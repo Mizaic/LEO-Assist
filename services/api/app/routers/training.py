@@ -1,5 +1,11 @@
 """Training data management router.
 
+Atlas trace:
+  DO: DO-236545C8
+  Also implements: DO-2D2CE052, DO-54397CCD, DO-6CD07544, DO-94D87FA7, DO-A35D2D57, DO-B88D4941, DO-BA2B7A99
+  DI: DI-2D9F5064, DI-37B3DC71, DI-3EA60D5A, DI-54D00E21, DI-6EFD68D0, DI-A0579B64, DI-AF5A1668, DI-D2D0117E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-236545C8")
+
 Exposes the TrainingLabel store — the single source of truth for all NER
 training data — so reviewers can inspect, include, and exclude individual
 labels before triggering a training run.

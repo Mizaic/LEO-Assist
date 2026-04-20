@@ -1,4 +1,10 @@
-"""First-presentation inference from anchors and encounter text."""
+"""First-presentation inference from anchors and encounter text.
+
+Atlas trace:
+  DO: DO-F2E2A70B
+  DI: DI-5B694FBE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F2E2A70B")
+"""
 
 from __future__ import annotations
 

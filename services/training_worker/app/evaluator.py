@@ -1,5 +1,11 @@
 """Post-training evaluation: precision/recall per entity label.
 
+Atlas trace:
+  DO: DO-54397CCD
+  Also implements: DO-A35D2D57
+  DI: DI-37B3DC71, DI-6EFD68D0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-54397CCD")
+
 Loads the trained model from disk and runs it against the dev DocBin.
 Compares predicted entities to gold entities and computes per-label
 and aggregate P/R/F1 scores.

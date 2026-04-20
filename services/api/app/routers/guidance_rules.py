@@ -1,5 +1,11 @@
 """HITL rule review endpoints for LLM-generated AppropriatenessRules.
 
+Atlas trace:
+  DO: DO-5B320DDC
+  Also implements: DO-D6CE2AA5
+  DI: DI-69C29EEF, DI-A3107424
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-5B320DDC")
+
 Provides:
   POST /guidance/rules/generate                           -- trigger rule generation
   POST /guidance/rules/test/{recommendation_id}           -- dry-run extraction (no writes)

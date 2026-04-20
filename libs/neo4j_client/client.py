@@ -1,5 +1,10 @@
 """Neo4j client wrappers for Patient Graph and Knowledge Graph.
 
+Atlas trace:
+  DO: DO-448BFA1A
+  DI: DI-84F44836
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-448BFA1A")
+
 Ported from Primary-care-audit services/api/app/db/neo4j_client.py.
 Renamed CodingGraphClient -> KnowledgeGraphClient to reflect the merged
 terminology + FHIR resource graph.

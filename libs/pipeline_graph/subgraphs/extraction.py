@@ -1,5 +1,10 @@
 """Extraction subgraph wrapping sentence splitter and extractor registry.
 
+Atlas trace:
+  DO: DO-1D5031E0
+  DI: DI-702F4583
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-1D5031E0")
+
 Prompt resolution order:
 1. ``prompt_config`` dict in state (populated from Neo4j by the parent graph)
 2. ``libs.prompts.registry.get_prompt("extraction", 1)`` (Neo4j → hardcoded)

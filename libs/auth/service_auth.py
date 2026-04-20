@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-175B815C
+  DI: DI-5F978E36
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-175B815C")
+
 Shared-secret inter-service authentication (GAP-007, defence-in-depth).
 
 Used on internal-ingress services (terminology-api, fhir-api, analytics-api)

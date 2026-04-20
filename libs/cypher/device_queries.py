@@ -1,5 +1,10 @@
 """Cypher queries for FHIR-aligned Device nodes.
 
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+
 Each Device node represents a configurable AI model (LLM, NER, ML).
 Sensitive credentials stay in env vars / Key Vault — Neo4j stores only
 the catalog metadata, enabled/disabled status, and which device is active

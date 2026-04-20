@@ -1,4 +1,10 @@
-"""Lazy sentence-transformers embedder for terminology resolver."""
+"""Lazy sentence-transformers embedder for terminology resolver.
+
+Atlas trace:
+  DO: DO-1373B71F
+  DI: DI-17B5738E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-1373B71F")
+"""
 
 from __future__ import annotations
 

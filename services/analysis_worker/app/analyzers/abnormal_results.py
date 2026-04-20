@@ -1,3 +1,10 @@
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-6C694CF9
+  DI: DI-21E93377
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-6C694CF9")
+"""
 from __future__ import annotations
 
 from datetime import date, datetime

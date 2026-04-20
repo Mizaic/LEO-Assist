@@ -1,5 +1,10 @@
 """Persist safety-net signals as SafetyNetAlert nodes.
 
+Atlas trace:
+  DO: DO-B711D180
+  DI: DI-CE0A08E5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B711D180")
+
 Writes the output of detect_safety_net_signals to Neo4j so it can be
 reviewed from the /safety-netting worklist and acknowledged through
 the audit-quality router.

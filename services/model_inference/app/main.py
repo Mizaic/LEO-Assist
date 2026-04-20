@@ -1,5 +1,11 @@
 """spaCy NER model inference service.
 
+Atlas trace:
+  DO: DO-54397CCD
+  Also implements: DO-A00CD165
+  DI: DI-3FDBB57B, DI-6EFD68D0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-54397CCD")
+
 Responsibilities
 ----------------
 1. At startup: download the active model version from Azure Blob Storage into

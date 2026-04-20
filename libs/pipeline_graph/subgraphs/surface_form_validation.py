@@ -1,5 +1,10 @@
 """Surface-form validation subgraph for gold training pipeline.
 
+Atlas trace:
+  DO: DO-B88D4941
+  DI: DI-AF5A1668
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B88D4941")
+
 Checks terminology alignment after resolution and creates review tasks for
 low-confidence/ambiguous mismatches.
 """

@@ -1,5 +1,10 @@
 """Cypher queries for exclusion detector audit persistence.
 
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+
 Persists per-encounter ExclusionResult audit trails and patient-level
 episode status from the exclusion detector fail-safe path.
 """

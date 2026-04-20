@@ -1,4 +1,11 @@
-"""Cypher query constants for episode building."""
+"""Cypher query constants for episode building.
+
+Atlas trace:
+  DO: DO-0C7A443A
+  Also implements: DO-6C398363
+  DI: DI-080A2454, DI-FC264BBF, DI-FF9C74E2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0C7A443A")
+"""
 
 # Benign closure: "No evidence of cancer found" coded in the window
 BENIGN_CLOSURE_QUERY = (

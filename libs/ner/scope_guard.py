@@ -1,5 +1,11 @@
 """Defence-in-depth guard: enforce intended-use boundaries at extraction time.
 
+Atlas trace:
+  DO: DO-8620A68B
+  Also implements: DO-A11695DB
+  DI: DI-5A802C83, DI-B2512CB3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8620A68B")
+
 Clinical safety rules that prevent the pipeline from operating beyond its
 intended purpose as a retrospective clinical-coding tool:
 

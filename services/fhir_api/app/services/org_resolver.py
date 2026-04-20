@@ -1,4 +1,10 @@
-"""Resolve user's allowed orgs and scope from analytics org-context."""
+"""Resolve user's allowed orgs and scope from analytics org-context.
+
+Atlas trace:
+  DO: DO-B3397C94
+  DI: DI-FC9A8824
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B3397C94")
+"""
 
 from __future__ import annotations
 

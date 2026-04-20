@@ -1,4 +1,10 @@
-"""Shared Cypher query templates for terminology operations."""
+"""Shared Cypher query templates for terminology operations.
+
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+"""
 
 SEMANTIC_TAGS_QUERY = """
 MATCH (c:Concept)

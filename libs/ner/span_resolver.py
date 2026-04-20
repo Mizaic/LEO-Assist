@@ -1,5 +1,10 @@
 """Resolve absolute character spans for LLM-extracted clinical entities.
 
+Atlas trace:
+  DO: DO-CBDF8FBC
+  DI: DI-A0C90595
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-CBDF8FBC")
+
 The LLM extractor returns entity ``text`` verbatim from the source sentence but
 does not return character offsets. Downstream post-processing (scope guard,
 ConText, observable/value-unit linking, trend split) reads ``start``/``end``

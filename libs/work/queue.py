@@ -1,5 +1,10 @@
 """Service layer that backs the /work task queue (DI-LEO-AI-138).
 
+Atlas trace:
+  DO: DO-65BA6EA0
+  DI: DI-C0AD09D2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-65BA6EA0")
+
 Wraps libs.cypher.work_queue_queries so the API router never has to
 assemble parameters or normalise source names by hand.
 """

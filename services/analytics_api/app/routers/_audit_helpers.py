@@ -1,5 +1,10 @@
 """Shared helpers for NCDA audit endpoints.
 
+Atlas trace:
+  DO: DO-D5B9FE5F
+  DI: DI-6E1B71A4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D5B9FE5F")
+
 Match templates, scope resolution, benchmark fetching, multi-scope runner.
 """
 

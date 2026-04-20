@@ -1,4 +1,10 @@
-"""Cypher queries for PromptConfig CRUD in Neo4j."""
+"""Cypher queries for PromptConfig CRUD in Neo4j.
+
+Atlas trace:
+  DO: DO-83EBEE2C
+  DI: DI-B954388C
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-83EBEE2C")
+"""
 
 CREATE_CONSTRAINT = """
 CREATE CONSTRAINT prompt_config_id IF NOT EXISTS

@@ -1,5 +1,11 @@
 """Episode KPI calculator.
 
+Atlas trace:
+  DO: DO-1F552BE1
+  Also implements: DO-3BA98649, DO-868C7881
+  DI: DI-1206D9E8, DI-EE4E6477, DI-F3FD2B63
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-1F552BE1")
+
 Computes the four NCDA interval KPIs and persists them as named properties
 on EpisodeOfCare nodes. Designed to be invoked as the terminal post-pass of
 build_episodes() and any on-demand /episodes/rebuild flow.

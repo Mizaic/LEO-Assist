@@ -1,3 +1,12 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-4A8227DD
+ *   Also implements: DO-5D525D34, DO-DB78C498
+ *   DI: DI-522BBCC4, DI-61CB27B2, DI-985976A3
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-4A8227DD")
+ */
 import "./globals.css";
 import "@/theme/tokens.css";
 import type { Metadata } from "next";

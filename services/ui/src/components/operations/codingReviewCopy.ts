@@ -3,8 +3,12 @@
  *
  * Every string here must pass Flesch-Kincaid Grade <=9.
  * See VT-LEO-AI-118 TC-002.
+ *
+ * Atlas trace:
+ *   DO: DO-1B7E7255
+ *   DI: DI-EA432FDA
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-1B7E7255")
  */
-
 export const CODING_REVIEW_INTRO = {
   why: "This is the coding review queue. It shows cases the AI was not sure about.",
   how: "Open each card. Read the note. Accept LEO if the match is right. Or search for a better code. Or suppress the case if the record is not about this finding.",

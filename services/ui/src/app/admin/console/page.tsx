@@ -1,3 +1,12 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-A59215DA
+ *   Also implements: DO-E32DAC8D
+ *   DI: DI-900CB621, DI-BE09736F
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-A59215DA")
+ */
 "use client";
 
 /**

@@ -1,4 +1,10 @@
-"""FHIR Measure CRUD and $evaluate-measure endpoints."""
+"""FHIR Measure CRUD and $evaluate-measure endpoints.
+
+Atlas trace:
+  DO: DO-34E24FA1
+  DI: DI-1795254D, DI-710D5213
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-34E24FA1")
+"""
 
 from __future__ import annotations
 

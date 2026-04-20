@@ -1,5 +1,10 @@
 """Data models for FHIR-based agent configuration.
 
+Atlas trace:
+  DO: DO-61EE87E0
+  DI: DI-6A1CD328
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-61EE87E0")
+
 AgentConfig wraps a single FHIR Device resource.
 FHIRConfig aggregates all agents, valuesets, and measures.
 """

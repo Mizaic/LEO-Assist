@@ -1,5 +1,10 @@
 """V1 SNOMED disambiguation prompt — INSTRUCTIONS ONLY.
 
+Atlas trace:
+  DO: DO-64BDC193
+  DI: DI-88C8BBCD
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-64BDC193")
+
 Output schema and few-shot examples are stored separately in Neo4j and
 assembled at runtime. Do NOT add output format sections or inline examples
 to this file — manage them via the Admin UI at /admin/prompts

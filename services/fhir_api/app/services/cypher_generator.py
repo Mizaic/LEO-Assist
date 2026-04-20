@@ -1,5 +1,10 @@
 """Cypher generator for the No-Code Measure Builder.
 
+Atlas trace:
+  DO: DO-34E24FA1
+  DI: DI-1795254D, DI-710D5213
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-34E24FA1")
+
 Turns a visual query definition into valid Cypher that returns { name, value }[]
 for charts/tables. Uses hardcoded scope patterns for tenant isolation.
 """

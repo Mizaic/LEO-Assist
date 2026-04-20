@@ -1,5 +1,10 @@
 """LLM prompt safety utilities.
 
+Atlas trace:
+  DO: DO-BBD3441A
+  DI: DI-F66A7239
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BBD3441A")
+
 Provides two primitives used by every LLM call site in the codebase:
 
 - INJECTION_GUARD  — prepended to system prompts so models ignore

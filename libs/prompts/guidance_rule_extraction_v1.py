@@ -1,4 +1,10 @@
-"""V1 prompt for extracting exact rule logic from NICE recommendations."""
+"""V1 prompt for extracting exact rule logic from NICE recommendations.
+
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+"""
 
 GUIDANCE_RULE_EXTRACTION_SYSTEM_V2 = """\
 You are a clinical decision-support analyst working with NICE (National \

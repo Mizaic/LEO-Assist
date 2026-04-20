@@ -1,4 +1,11 @@
-"""Tier classification subgraph wrapping libs.coding_engine.tier_classifier."""
+"""Tier classification subgraph wrapping libs.coding_engine.tier_classifier.
+
+Atlas trace:
+  DO: DO-93E086B0
+  Also implements: DO-95B6BBAB
+  DI: DI-F0B8A7B0, DI-F298AE65, DI-F2C18D2E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-93E086B0")
+"""
 
 from __future__ import annotations
 

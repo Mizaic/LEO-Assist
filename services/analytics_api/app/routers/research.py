@@ -1,5 +1,10 @@
 """Pathway Explorer research endpoints.
 
+Atlas trace:
+  DO: DO-38C2D850
+  DI: DI-58988BF2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-38C2D850")
+
 Exposes graph algorithm missions, GDS projection management, and
 async job dispatch for the Research Workspace UI.
 

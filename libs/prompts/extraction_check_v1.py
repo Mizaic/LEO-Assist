@@ -1,4 +1,10 @@
-"""Prompts for lightweight extraction quality checks."""
+"""Prompts for lightweight extraction quality checks.
+
+Atlas trace:
+  DO: DO-8620A68B
+  DI: DI-5A802C83
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8620A68B")
+"""
 
 EXTRACTION_CHECK_SYSTEM_V1 = """You are a clinical extraction quality checker.
 

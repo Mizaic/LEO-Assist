@@ -1,5 +1,10 @@
 """Model training label store for spaCy NER retraining corpus.
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 This store is SEPARATE from ``libs/prompts/few_shot_builder.py``.
 
 Separation contract

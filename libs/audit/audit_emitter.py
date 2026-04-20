@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-33C5C951
+  DI: DI-B46AD5CE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-33C5C951")
+
 Fire-and-forget FHIR R4B AuditEvent emitter.
 
 Emits structured JSON to stdout (captured by ACA Log Analytics) AND

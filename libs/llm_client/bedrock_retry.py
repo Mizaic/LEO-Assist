@@ -1,5 +1,10 @@
 """Exponential backoff retry for AWS Bedrock API calls.
 
+Atlas trace:
+  DO: DO-7123C55A
+  DI: DI-AE7680C0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-7123C55A")
+
 Retries on 429/throttling and transient server errors so the pipeline
 does not fail or skip encounters when rate-limited.
 """

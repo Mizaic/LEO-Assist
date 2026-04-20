@@ -1,5 +1,10 @@
 """ODS Nightly Sync Job — entrypoint.
 
+Atlas trace:
+  DO: DO-05064452
+  DI: DI-20104031
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-05064452")
+
 Loads secrets from Azure Key Vault (or environment variables for local dev),
 initialises the Neo4j client, and runs the ODS sync service.
 

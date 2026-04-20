@@ -1,5 +1,10 @@
 """Charlson Comorbidity Index (CCI) scoring.
 
+Atlas trace:
+  DO: DO-1EB4FB1D
+  DI: DI-3020D1C0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-1EB4FB1D")
+
 Calculates CCI score for patients based on coded comorbidities
 in the Patient Graph. Used for risk stratification and NCDA analysis.
 """

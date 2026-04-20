@@ -1,5 +1,10 @@
 """Prompt for resolving label disagreements in NER verification — INSTRUCTIONS ONLY.
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 Output schema and few-shot examples are stored separately in Neo4j and
 assembled at runtime. Do NOT add output format sections or inline examples
 to this file — manage them via the Admin UI at /admin/prompts

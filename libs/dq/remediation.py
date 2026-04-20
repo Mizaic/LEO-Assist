@@ -1,5 +1,11 @@
 """Safe graph mutation tools -- all operations default to dry_run=True.
 
+Atlas trace:
+  DO: DO-0998FAF5
+  Also implements: DO-86800C9B
+  DI: DI-FC80B65A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0998FAF5")
+
 IMPORTANT: Never call with dry_run=False unless the caller has reviewed the
 dry-run preview and explicitly confirmed the operation.
 """

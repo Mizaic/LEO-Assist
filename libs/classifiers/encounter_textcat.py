@@ -1,5 +1,10 @@
 """Rule-based spaCy encounter textcat component.
 
+Atlas trace:
+  DO: DO-0FB8F15D
+  DI: DI-FBCCD265
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0FB8F15D")
+
 Classifies GP encounters as admin_only / document_transfer / clinical using
 deterministic phrase and regex pattern matching. EPR text is never sent to an
 LLM, eliminating the prompt injection surface identified in NER-T-001.

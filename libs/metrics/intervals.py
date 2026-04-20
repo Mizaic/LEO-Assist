@@ -1,5 +1,10 @@
 """NCDA interval KPI math.
 
+Atlas trace:
+  DO: DO-868C7881
+  DI: DI-EE4E6477
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-868C7881")
+
 Pure functions with no Neo4j or LLM dependency so the same values are
 computed identically by:
   - services/analysis_worker/app/analyzers/kpi_calculator.py

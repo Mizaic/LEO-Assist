@@ -1,4 +1,11 @@
-"""Relation linking subgraph for extracted entities."""
+"""Relation linking subgraph for extracted entities.
+
+Atlas trace:
+  DO: DO-236545C8
+  Also implements: DO-8620A68B
+  DI: DI-2D9F5064, DI-5A802C83
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-236545C8")
+"""
 
 from __future__ import annotations
 

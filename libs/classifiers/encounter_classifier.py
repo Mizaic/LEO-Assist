@@ -1,5 +1,10 @@
 """Encounter pre-classification via rule-based spaCy textcat component.
 
+Atlas trace:
+  DO: DO-0FB8F15D
+  DI: DI-FBCCD265
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0FB8F15D")
+
 Classifies each encounter as admin_only / document_transfer / clinical
 BEFORE extraction. Saves processing cost by skipping extraction for
 non-clinical encounters.

@@ -1,4 +1,10 @@
-"""Persistence operations for review queue and audit artifacts."""
+"""Persistence operations for review queue and audit artifacts.
+
+Atlas trace:
+  DO: DO-7E1BAACC
+  DI: DI-143F69EB, DI-1501326A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-7E1BAACC")
+"""
 
 from __future__ import annotations
 

@@ -1,5 +1,10 @@
 """Redis-backed checkpoint store for durable pipeline recovery.
 
+Atlas trace:
+  DO: DO-412DE1A5
+  DI: DI-B884A243
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-412DE1A5")
+
 Each pipeline stage writes a checkpoint immediately after completing work.
 On retry the stage reads the checkpoint and skips re-doing expensive work
 (LLM calls, Neo4j writes that already succeeded, etc.).

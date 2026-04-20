@@ -1,5 +1,11 @@
 """Mission Control endpoints for Clinical Audit case management.
 
+Atlas trace:
+  DO: DO-9F3CD7DE
+  Also implements: DO-A6D3FE39
+  DI: DI-BA2C8F3E, DI-CF03E4EA
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-9F3CD7DE")
+
 Provides endpoints:
   GET  /mission-control/patients  -- paginated, filtered patient+episode list
   GET  /mission-control/kpis      -- 6 aggregate KPI values for filter context

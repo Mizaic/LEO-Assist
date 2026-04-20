@@ -1,5 +1,10 @@
 """Offline compiler: reads active AppropriatenessRules from Neo4j and builds bitmaps.
 
+Atlas trace:
+  DO: DO-E74B0605
+  DI: DI-5E25E872
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E74B0605")
+
 The compile step is CPU-bound (pyroaring BitMap construction). It is run via
 ``asyncio.to_thread()`` so it does not block the async event loop.
 

@@ -1,5 +1,10 @@
 """Ontology-aware relation policy helpers.
 
+Atlas trace:
+  DO: DO-236545C8
+  DI: DI-2D9F5064
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-236545C8")
+
 This module centralises relation allowlists and compatibility checks used by:
 - gold review UI/API validation
 - runtime relation linking

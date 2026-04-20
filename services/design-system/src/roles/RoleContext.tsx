@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-10218528
+ *   DI: DI-FAF97A8C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-10218528")
+ */
 "use client";
 
 import {

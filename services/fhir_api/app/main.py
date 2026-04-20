@@ -1,5 +1,10 @@
 """FHIR API service.
 
+Atlas trace:
+  DO: DO-B3397C94
+  DI: DI-FC9A8824
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B3397C94")
+
 R4B-compliant endpoints for Measure, MeasureReport, Library, Device,
 PlanDefinition. Evaluates Measures against Patient Graph using Library
 Cypher queries stored in Knowledge Graph.

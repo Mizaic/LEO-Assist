@@ -1,4 +1,10 @@
-"""HTTP helper functions for API-backed MCP operations."""
+"""HTTP helper functions for API-backed MCP operations.
+
+Atlas trace:
+  DO: DO-5F438C17
+  DI: DI-5700882E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-5F438C17")
+"""
 
 from __future__ import annotations
 

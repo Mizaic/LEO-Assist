@@ -1,5 +1,10 @@
 """Pipeline verification prompt — INSTRUCTIONS ONLY.
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 Output schema is stored separately in Neo4j and assembled at runtime.
 Do NOT add inline output-format sections or examples here — manage them via
 /admin/prompts (name='verification', version=1).

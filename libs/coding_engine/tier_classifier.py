@@ -1,5 +1,11 @@
 """Three-tier decision engine for autonomous and HITL coding.
 
+Atlas trace:
+  DO: DO-95B6BBAB
+  Also implements: DO-F89916E2
+  DI: DI-C7A810AA, DI-F0B8A7B0, DI-F298AE65
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-95B6BBAB")
+
 Classifies each entity into one of three tiers based on assertion, context
 detection status, terminology confidence, surface form status, and the
 extractor's self-rated confidence.

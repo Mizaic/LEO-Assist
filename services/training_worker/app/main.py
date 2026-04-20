@@ -1,5 +1,10 @@
 """NER Training Worker service.
 
+Atlas trace:
+  DO: DO-4F80FAD8
+  DI: DI-3103A562
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4F80FAD8")
+
 Always-on FastAPI service (port 8005) that manages training jobs:
 fine-tunes Bio_ClinicalBERT-backed spaCy NER on approved TrainingLabel data.
 

@@ -1,5 +1,10 @@
 """Guideline evaluation and bitmap lifecycle endpoints.
 
+Atlas trace:
+  DO: DO-E74B0605
+  DI: DI-5E25E872
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E74B0605")
+
 Provides:
   POST /terminology/guidelines/evaluate          -- patient SNOMED code evaluation
   POST /terminology/guidelines/bitmap/compile    -- compile active rules into bitmaps

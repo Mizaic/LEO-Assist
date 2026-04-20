@@ -1,5 +1,11 @@
 """Cypher queries for GDPR-isolated TrainingCandidate nodes.
 
+Atlas trace:
+  DO: DO-8620A68B
+  Also implements: DO-A35D2D57, DO-B88D4941
+  DI: DI-37B3DC71, DI-5A802C83, DI-AF5A1668
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8620A68B")
+
 TrainingCandidate is the anonymized learning-loop input. It MUST NOT contain
 patient, encounter, tenant, or organization identifiers.
 """

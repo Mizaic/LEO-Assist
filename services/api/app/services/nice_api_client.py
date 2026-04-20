@@ -1,5 +1,10 @@
 """NICE Syndication API client -- structured JSON fetch only, no LLM.
 
+Atlas trace:
+  DO: DO-24AA8840
+  DI: DI-693FFEEA
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-24AA8840")
+
 URL structure (from NICE Syndication API guide ECD10):
   Root guidance:   https://api.nice.org.uk/services/guidance.json
   Guidance index:  https://api.nice.org.uk/services/guidance/index.json[?q=keyword]

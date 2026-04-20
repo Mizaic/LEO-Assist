@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-A59215DA
+ *   DI: DI-900CB621
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-A59215DA")
+ */
 import type { IntroRoleCopy } from "@leo/design-system";
 
 // AREA_INTRO_COPY -- role-aware intro copy for every major landing

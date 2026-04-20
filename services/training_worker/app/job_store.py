@@ -1,5 +1,10 @@
 """In-memory + Redis job state store for training jobs.
 
+Atlas trace:
+  DO: DO-A35D2D57
+  DI: DI-37B3DC71
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A35D2D57")
+
 Mirrors the pattern used by the coding worker job store.  In-process dict
 is the primary store (fast reads); Redis is used for pub/sub progress events
 that the SSE relay endpoint consumes.

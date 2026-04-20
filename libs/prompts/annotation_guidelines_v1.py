@@ -1,4 +1,11 @@
-"""Shared annotation guidelines for reviewer and LLM alignment."""
+"""Shared annotation guidelines for reviewer and LLM alignment.
+
+Atlas trace:
+  DO: DO-54397CCD
+  Also implements: DO-8620A68B
+  DI: DI-5A802C83, DI-6EFD68D0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-54397CCD")
+"""
 
 from __future__ import annotations
 

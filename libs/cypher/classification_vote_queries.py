@@ -1,5 +1,10 @@
 """Cypher queries for the HITL classification review workflow.
 
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+
 ClassificationVote nodes record a human reviewer's verdict on encounters
 where the two classification models disagreed.  Each vote links back to the
 Encounter so the correct label can be applied and the model score-card updated.

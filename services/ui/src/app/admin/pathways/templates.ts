@@ -4,8 +4,12 @@
  * Used by the New Pathway dialog (NewPathwayDialog.tsx).
  *
  * Design Controls: DI-LEO-AI-150, DO-LEO-AI-146.
+ *
+ * Atlas trace:
+ *   DO: DO-11232EFB
+ *   DI: DI-CD931485
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-11232EFB")
  */
-
 export interface PathwayTemplate {
   id: string;
   name: string;

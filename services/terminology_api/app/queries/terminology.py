@@ -1,4 +1,11 @@
-"""Cypher queries for terminology operations against the Knowledge Graph."""
+"""Cypher queries for terminology operations against the Knowledge Graph.
+
+Atlas trace:
+  DO: DO-0F8F8E02
+  Also implements: DO-14D58359, DO-A00CD165
+  DI: DI-3FDBB57B, DI-5EECDA58, DI-F8634363
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0F8F8E02")
+"""
 
 _NORMALISED_TAG_EXPR = (
     "toLower("

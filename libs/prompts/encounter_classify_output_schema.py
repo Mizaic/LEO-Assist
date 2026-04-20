@@ -1,5 +1,10 @@
 """Canonical JSON output schema for the encounter_classify prompt.
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 Seeded into Neo4j as the ``outputSchema`` field of the
 'encounter_classify' PromptConfig node (version 1).
 """

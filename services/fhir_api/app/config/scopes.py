@@ -1,5 +1,10 @@
 """Hardcoded scope types for tenant filtering.
 
+Atlas trace:
+  DO: DO-B3397C94
+  DI: DI-FC9A8824
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B3397C94")
+
 Prevents tenant leakage by only allowing these three scope types.
 No arbitrary scope params; new scope types require code change.
 """

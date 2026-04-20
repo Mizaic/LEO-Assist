@@ -1,4 +1,10 @@
-"""Output schema for verifier-backed guidance rule code selection."""
+"""Output schema for verifier-backed guidance rule code selection.
+
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+"""
 
 _LEAF_DECISION = {
     "type": "object",

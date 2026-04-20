@@ -1,5 +1,10 @@
 """Unified encounter coding/audit agent subgraph.
 
+Atlas trace:
+  DO: DO-14B332AB
+  DI: DI-30D95132
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-14B332AB")
+
 One LangGraph StateGraph for both SNOMED coding and audit:
   load_encounter -> coder (tool loop) -> post_process
 

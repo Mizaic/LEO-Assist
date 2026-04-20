@@ -1,5 +1,10 @@
 """OAuth auth routes: login, callback, logout, session.
 
+Atlas trace:
+  DO: DO-308DD1A6
+  DI: DI-D49BCE55
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-308DD1A6")
+
 Handles Azure AD OAuth flow. Tokens stored server-side in Redis.
 Frontend uses session cookie only (no token in browser).
 """

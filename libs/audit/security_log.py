@@ -1,5 +1,10 @@
 """Durable structured security audit log (GAP-012).
 
+Atlas trace:
+  DO: DO-F1953D1C
+  DI: DI-65975321
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F1953D1C")
+
 Every call to emit_* writes a single-line JSON record to the
 'security.audit' logger at WARNING level so it is always emitted
 regardless of the application's default log level.

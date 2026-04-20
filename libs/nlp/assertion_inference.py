@@ -1,5 +1,10 @@
 """Canonical assertion inference from clinical text.
 
+Atlas trace:
+  DO: DO-CD6408D3
+  DI: DI-CF5162BF
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD6408D3")
+
 Consolidates the duplicated _infer_assertion() implementations from
 mine_all_domains.py, normalize_training.py, and semantic_exclusion_search.py.
 All pipeline code should import from here — do NOT duplicate.

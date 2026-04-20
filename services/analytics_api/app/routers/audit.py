@@ -1,5 +1,11 @@
 """NCDA Audit endpoints.
 
+Atlas trace:
+  DO: DO-11A2361E
+  Also implements: DO-2340F614, DO-A23404E0, DO-A6D3FE39
+  DI: DI-23822663, DI-4885D9FF, DI-BA2C8F3E, DI-F46D7A68, DO-671C15BF
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-11A2361E")
+
 Provides retrospective audit data mirroring the 14 sections of the
 National Cancer Diagnosis Audit (NCDA) report.
 

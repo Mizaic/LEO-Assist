@@ -1,5 +1,10 @@
 """Terminology writeback: approved surface-form -> SNOMED mappings.
 
+Atlas trace:
+  DO: DO-77A48DBC
+  DI: DI-4746A178, DI-B7FEA996, DI-F8634363
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-77A48DBC")
+
 Ported from PCA services/api/app/services/terminology_writeback_service.py.
 Reads approved EncounterCandidates from Patient Graph, writes SurfaceForm
 nodes into Knowledge Graph so the resolver learns from reviewer corrections.

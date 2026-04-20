@@ -1,5 +1,10 @@
 """Cypher queries for ModelVersion nodes in the Patient Graph.
 
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+
 Model manifests are stored as (:ModelVersion) nodes. One (:ModelRegistryConfig)
 singleton holds the active_version pointer.
 """

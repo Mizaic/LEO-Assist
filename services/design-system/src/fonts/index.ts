@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-4A8227DD
+ *   DI: DI-61CB27B2
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-4A8227DD")
+ */
 // Font CSS variable names used across the app. The actual next/font/google
 // loaders must be called from the consuming Next app's `app/layout.tsx`,
 // then `dmSans.variable` and `jetBrainsMono.variable` should be applied to

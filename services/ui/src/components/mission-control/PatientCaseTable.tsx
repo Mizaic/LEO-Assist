@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-EE78E305
+ *   DI: DI-6EA84931
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-EE78E305")
+ */
 "use client";
 
 import Alert from "@mui/material/Alert";

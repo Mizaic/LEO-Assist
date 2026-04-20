@@ -1,5 +1,11 @@
 """SNOMED mapping config loader and domain registry.
 
+Atlas trace:
+  DO: DO-2340F614
+  Also implements: DO-7E1BAACC, DO-B4FC3B22, DO-B70AF10E
+  DI: DI-143F69EB, DI-1501326A, DI-4885D9FF, DI-6051F076, DI-A90B19EB, DI-ED3A89F5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2340F614")
+
 All config is loaded via from_fhir() at startup from FHIR ValueSet
 resources stored in the Knowledge Graph. Falls back to predefined
 domain configs when FHIR data is unavailable.

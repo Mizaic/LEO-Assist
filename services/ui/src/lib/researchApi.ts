@@ -1,6 +1,11 @@
 /**
  * API client for Pathway Explorer research endpoints.
  * Uses the backend proxy (session cookie auth).
+ *
+ * Atlas trace:
+ *   DO: DO-3AD4D385
+ *   DI: DI-9DCBC4BA
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-3AD4D385")
  */
 import { triggerReauth } from "@/lib/api/client";
 

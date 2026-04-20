@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-DB7F8D52
+  DI: DI-4DBE1A18, DI-87CCCB18
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-DB7F8D52")
+
 Inbound Bearer token validation for internal services.
 
 Validates tokens issued by Entra ID and checks that the 'Call' app role

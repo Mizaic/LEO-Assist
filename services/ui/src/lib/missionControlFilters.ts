@@ -3,8 +3,12 @@
  *
  * This is the single place that maps filter state <-> URL search params.
  * Deep-links from the audit page use these serialised params.
+ *
+ * Atlas trace:
+ *   DO: DO-EE78E305
+ *   DI: DI-6EA84931
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-EE78E305")
  */
-
 export interface MissionControlFilters {
   dateFrom: string;
   dateTo: string;

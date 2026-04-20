@@ -1,5 +1,10 @@
 """FHIR Measure CRUD and evaluation against the Knowledge Graph.
 
+Atlas trace:
+  DO: DO-34E24FA1
+  DI: DI-1795254D, DI-710D5213
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-34E24FA1")
+
 Ported from VRB fhir-api/app/services/measure_service.py.
 """
 

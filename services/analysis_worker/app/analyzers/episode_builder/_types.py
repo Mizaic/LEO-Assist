@@ -1,4 +1,11 @@
-"""Shared types and pure utility functions for the episode builder."""
+"""Shared types and pure utility functions for the episode builder.
+
+Atlas trace:
+  DO: DO-0C7A443A
+  Also implements: DO-6C398363
+  DI: DI-080A2454, DI-FC264BBF, DI-FF9C74E2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0C7A443A")
+"""
 
 from __future__ import annotations
 

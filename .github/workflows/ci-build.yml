@@ -37,6 +37,9 @@ jobs:
       - name: Lint - black format check
         run: black --check --diff .
 
+      - name: Atlas trace headers (every Class B+ source file)
+        run: python3 scripts/atlas/check_atlas_trace_headers.py
+
       - name: Lint - flake8
         run: |
           BASE_SHA="${{ github.event.before }}"

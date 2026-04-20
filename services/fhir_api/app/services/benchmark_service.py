@@ -1,5 +1,10 @@
 """Benchmark CRUD and run logic.
 
+Atlas trace:
+  DO: DO-B3397C94
+  DI: DI-FC9A8824
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B3397C94")
+
 Manages BenchmarkSet, BenchmarkValue, and BenchmarkRule nodes in the Knowledge Graph.
 """
 

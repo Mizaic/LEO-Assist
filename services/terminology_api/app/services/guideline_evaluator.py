@@ -1,5 +1,10 @@
 """Fast bitmap-based guideline evaluation against patient SNOMED codes.
 
+Atlas trace:
+  DO: DO-E74B0605
+  DI: DI-5E25E872
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E74B0605")
+
 Evaluation logic:
   A rule MATCHES when ALL of its criteria_groups pass AND all APPLIES_TO
   demographic constraints are satisfied.

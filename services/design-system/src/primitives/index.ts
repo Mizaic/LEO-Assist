@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-BCA9B190
+ *   DI: DI-C5A523A7
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-BCA9B190")
+ */
 export {
   IntroCard,
   type IntroCardProps,

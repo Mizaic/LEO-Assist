@@ -1,5 +1,11 @@
 """Dashboard aggregation endpoints.
 
+Atlas trace:
+  DO: DO-11A2361E
+  Also implements: DO-A6D3FE39, DO-B711D180, DO-D537B955
+  DI: DI-94359E76, DI-BA2C8F3E, DI-CE0A08E5, DI-F46D7A68
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-11A2361E")
+
 Pre-computed reads from Patient Graph for episode summaries,
 cancer type distributions, and timeline views.
 

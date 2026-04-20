@@ -1,5 +1,10 @@
 """Evidence-wins duplicate-episode resolution.
 
+Atlas trace:
+  DO: DO-0C7A443A
+  DI: DI-FC264BBF, DI-FF9C74E2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0C7A443A")
+
 Design controls: DI-LEO-AI-137, DO-LEO-AI-133, R-LEO-AI-097, VT-LEO-AI-138.
 
 Two-stage algorithm:

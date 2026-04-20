@@ -1,5 +1,10 @@
 """Research job runner.
 
+Atlas trace:
+  DO: DO-38C2D850
+  DI: DI-58988BF2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-38C2D850")
+
 Executes algorithm missions in background threads.
 Writes results back to the job store.
 Publishes progress events to Redis pub/sub channel ``research:{job_id}``

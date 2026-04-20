@@ -1,4 +1,10 @@
-"""In-memory queue adapter for local development (no Azure Service Bus needed)."""
+"""In-memory queue adapter for local development (no Azure Service Bus needed).
+
+Atlas trace:
+  DO: DO-CAA9690F
+  DI: DI-37D1B7D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-CAA9690F")
+"""
 
 from __future__ import annotations
 

@@ -1,5 +1,10 @@
 """Few-shot example library for the anchor_domain_review prompt.
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 Each example has:
   input       -- a JSON array of JSONL lines (the batch to review)
   output      -- expected JSON array (one object per input line)

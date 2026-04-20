@@ -1,4 +1,11 @@
 """WorkflowEngine: interprets FHIR PlanDefinitions stored in Neo4j,
+
+Atlas trace:
+  DO: DO-7B357FD6
+  Also implements: DO-8620A68B, DO-93E086B0, DO-A26CD350
+  DI: DI-091CBBAB, DI-176EA4FF, DI-5A802C83, DI-693FFEEA, DI-705C806B, DI-B0A1E549, DI-F2C18D2E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-7B357FD6")
+
 matches incoming events to actions, resolves ActivityDefinitions to
 subgraph configurations, and dispatches execution via SubgraphRegistry.
 

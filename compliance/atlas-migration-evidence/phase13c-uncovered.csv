@@ -1,0 +1,604 @@
+path,header_state,legacy_ids_in_file,phase8_bucket_dir,note
+libs/auth/density_state.py,legacy,DI-LEO-AI-169,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/auth/entra_group_sync.py,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/auth/role_state.py,legacy,DI-LEO-AI-129; R-LEO-AI-089,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/chunk_queries.py,legacy,DI-LEO-AI-185,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/density_queries.py,legacy,DI-LEO-AI-129; DI-LEO-AI-169,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/entra_group_queries.py,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/gold_label_queries.py,legacy,DI-LEO-AI-526,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/model_config_queries.py,legacy,DI-LEO-AI-506; DI-LEO-AI-517; DI-LEO-AI-518,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/pricing_queries.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/role_queries.py,legacy,DI-LEO-AI-129,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/sbar_assessment_queries.py,legacy,DI-LEO-AI-188; DI-LEO-AI-189; DI-LEO-AI-506,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/domains/code_inventories.py,legacy,DI-LEO-AI-145; DI-LEO-AI-159; DI-LEO-AI-161; DI-LEO-AI-171; DI-LEO-AI-172; DI-LEO-AI-173; DI-LEO-AI-175; DI-LEO-AI-177; DI-LEO-AI-178; DI-LEO-AI-200; DI-LEO-AI-203; DI-LEO-AI-210; DI-LEO-AI-215; DI-LEO-AI-217; DI-LEO-AI-219; DI-LEO-AI-220; DI-LEO-AI-401; DI-LEO-AI-402; R-LEO-AI-162; R-LEO-AI-163; R-LEO-AI-170; R-LEO-AI-171; R-LEO-AI-172; R-LEO-AI-173; VT-LEO-AI-157; VT-LEO-AI-161; VT-LEO-AI-170; VT-LEO-AI-172,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/episodes/lifecycle.py,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/episodes/status.py,legacy,DI-LEO-AI-529,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/exclusion_detector/detector.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/keyvault/loader.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/llm_client/json_helper.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/llm_client/providers.py,legacy,DI-LEO-AI-515,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/llm_client/token_tracker.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/llm_client/usage_recorder.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/llm_usage.py,none,,libs/llm_usage.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/message_bus/azure_adapter.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/message_bus/base.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/context_engine.py,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/extractor_contract.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/lab_triple_recovery.py,legacy,DI-LEO-AI-156,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/lab_value_guard.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/precision_gates.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/schema_mapper.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/oncology/cancer_types.py,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/state.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/compliance.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/episode.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/episode_engine.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/guidance_rule_extraction.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/guidance_rule_extraction_v2_impl.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/hitl_ner_queue.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/human_review_gate.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/next_best_action.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/post_processing.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/quality_check.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/queue_publish.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/rest_connector.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/sbar.py,legacy,DI-LEO-AI-186,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/verification.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/utils/deidentify.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/episode_engine/_shared.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/episode_engine/audit_relevance_filter_v1.py,legacy,DI-LEO-AI-524,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/episode_engine/classifier_v1.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/episode_engine/milestone_extractor_v1.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/episode_engine/reconciler_v1.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/episode_engine/segmenter_v1.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/sbar_background_reduce_v1.py,legacy,DI-LEO-AI-517; DO-LEO-AI-517,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/sbar_background_v1.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/sbar_output_schemas.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/sbar_recommendation_v1.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/sbar_situation_v1.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/redis_client/session.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/sbar/assessment_formatter.py,legacy,DI-LEO-AI-189; DI-LEO-AI-510; UN-LEO-AI-093,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/sbar/background_partitioner.py,legacy,DI-LEO-AI-513; DI-LEO-AI-518; DI-LEO-AI-521; DI-LEO-AI-522; DO-LEO-AI-521; VT-LEO-AI-520,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/sbar/error_messages.py,legacy,DI-LEO-AI-513; DI-LEO-AI-516; VT-LEO-AI-514,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/sbar/events.py,legacy,DI-LEO-AI-186; DI-LEO-AI-507,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/sbar/prompt_calls.py,legacy,DO-LEO-AI-191,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/sbar/source_resolver.py,legacy,DI-LEO-AI-507,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/search/term_expansion.py,legacy,DI-LEO-AI-526,,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/training/lab_span_detector.py,legacy,DI-LEO-AI-054,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/analyzers/episode_builder/_milestone_dedup.py,legacy,DI-LEO-AI-403; DO-LEO-AI-403; R-LEO-AI-403; VT-LEO-AI-403,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/analyzers/episode_builder/_status.py,legacy,DI-LEO-AI-202,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/agents/_common.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/agents/audit_guards.py,legacy,DI-LEO-AI-524; R-LEO-AI-512,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/agents/audit_relevance_filter.py,legacy,DI-LEO-AI-524,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/agents/classifier.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/agents/milestone_extractor.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/agents/reconciler.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/agents/segmenter.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/chain.py,legacy,DI-LEO-AI-524,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/schemas.py,legacy,DI-LEO-AI-524; DI-LEO-AI-525,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/timeline_loader.py,legacy,DI-LEO-AI-525,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/tracing.py,legacy,DI-LEO-AI-517,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/window_partitioner.py,legacy,DI-LEO-AI-525; R-LEO-AI-513,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/writer.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/services/job_handler.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analytics_api/app/routers/patient_finder.py,legacy,DI-LEO-AI-230,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analytics_api/app/services/encounter_query_understanding.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/main.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/models/contracts.py,none,,services/api,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/models/neo4j_schema.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/_training_ai_first_pass.py,legacy,DI-LEO-AI-209; DO-LEO-AI-206,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/_training_askleo.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/admin.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/anchor_review.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/audit.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/devices.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/events.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/exports.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/games.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/mail_router.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/model_configs.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/model_registry.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/onboarding.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/presets.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/pricing.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/proxy.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/reference_ranges.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/sbar.py,legacy,DI-LEO-AI-186; DI-LEO-AI-190,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/terminology.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/terminology_admin.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/_logic_tree.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/candidate_ai_first_pass/_coder.py,legacy,DI-LEO-AI-208; DO-LEO-AI-205,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/candidate_ai_first_pass/_extractor.py,legacy,DI-LEO-AI-208; DO-LEO-AI-205,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/candidate_ai_first_pass/_gold_pool.py,legacy,DI-LEO-AI-208; DO-LEO-AI-205,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/candidate_ai_first_pass/_job_runner.py,legacy,DI-LEO-AI-209; DO-LEO-AI-206,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/candidate_ai_first_pass/_types.py,legacy,DI-LEO-AI-208; DO-LEO-AI-205,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/candidate_ai_first_pass/_verdict.py,legacy,DI-LEO-AI-208; DO-LEO-AI-205,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/candidate_ai_first_pass/_writeback.py,legacy,DI-LEO-AI-208; DO-LEO-AI-205; R-LEO-AI-197,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/candidate_prune.py,legacy,DI-LEO-AI-186; DI-LEO-AI-196; UN-LEO-AI-083,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/context_reconciler.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/encounter_classifier.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/entity_alignment.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/export_service.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/fix_analyzer.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/inference_service.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/label_verifier.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/llm_usage.py,legacy,DI-LEO-AI-519,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/loop_config_seed.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/mail.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/model_config_seed.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/patient_graph_writer.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/reset_review_queue_service.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/reset_service.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/service_config_seed.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/session_store.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/sync_service.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/tenant_seed.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/term_patcher.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/terminology_writeback_service.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/training_creator.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/trud_sync.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/scripts/probe_nice_taxonomy.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/coding_worker/app/pipeline/extractor_contract.py,none,,services/coding_worker,no resolvable Atlas DI/DO via Phase 13a evidence
+services/coding_worker/app/pipeline/providers/llm_provider.py,none,,services/coding_worker,no resolvable Atlas DI/DO via Phase 13a evidence
+services/coding_worker/app/pipeline/sentence_splitter.py,none,,services/coding_worker,no resolvable Atlas DI/DO via Phase 13a evidence
+services/coding_worker/app/services/progress_publisher.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/copy/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/copy/readability.ts,legacy,DI-LEO-AI-128; DI-LEO-AI-132,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/motion/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/primitives/IntroCard.tsx,legacy,DI-LEO-AI-136; VT-LEO-AI-132,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/primitives/KnowledgePageLayout.tsx,legacy,DI-LEO-AI-144,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/primitives/NudgeStrip.tsx,legacy,DI-LEO-AI-164; DO-LEO-AI-163; R-LEO-AI-165; VT-LEO-AI-162,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/primitives/PipelineRail.tsx,legacy,DI-LEO-AI-164; DO-LEO-AI-163; R-LEO-AI-165; VT-LEO-AI-162,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/primitives/ProgressiveReveal.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/primitives/PromptEditorCard.tsx,legacy,DI-LEO-AI-170; VT-LEO-AI-169,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/roles/RoleGate.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/roles/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/roles/types.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/tokens/color.ts,legacy,DI-LEO-AI-130,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/tokens/density.ts,legacy,DI-LEO-AI-119,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/tokens/motion.ts,legacy,DI-LEO-AI-131,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/tokens/spacing.ts,legacy,DI-LEO-AI-130,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/tokens/typography.ts,legacy,DI-LEO-AI-132,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/neo4j_mcp/tools/query_pack_pathway.py,legacy,DI-LEO-AI-137; DI-LEO-AI-182,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/neo4j_mcp/tools/query_pack_safety.py,legacy,DI-LEO-AI-160; R-LEO-AI-162,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/neo4j_mcp/tools/training.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ods_sync/app/circuit_breaker.py,legacy,R-LEO-AI-038,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ods_sync/app/sync_service.py,legacy,R-LEO-AI-038; R-LEO-AI-039; R-LEO-AI-040; R-LEO-AI-045; VT-LEO-AI-048,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/pipeline_worker/app/graph/builder.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/pipeline_worker/app/main.py,legacy,DI-LEO-AI-186,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/pipeline_worker/app/services/guidance_rule_generator.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/pipeline_worker/app/services/label_verifier.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/pipeline_worker/app/services/sbar_orchestrator.py,legacy,DI-LEO-AI-186; DI-LEO-AI-188; DI-LEO-AI-189; DI-LEO-AI-506,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology/scripts/loaders/file_finder.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology/scripts/loaders/icd10_xml.py,legacy,DI-LEO-AI-228; DO-LEO-AI-301,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology/scripts/loaders/opcs4.py,legacy,DI-LEO-AI-226; DO-LEO-AI-223,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology/scripts/loaders/run_all.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology/scripts/loaders/schema.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology/scripts/loaders/snomed_map.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology_api/app/services/conceptmap_service.py,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/jest.config.js,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/jest.setup.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/playwright.config.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/__mocks__/fileMock.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/__mocks__/next/navigation.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx,legacy,DI-LEO-AI-186; DI-LEO-AI-191; DI-LEO-AI-230; DI-LEO-AI-231; DI-LEO-AI-232; DI-LEO-AI-233; DI-LEO-AI-516; R-LEO-AI-185,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/ai-summarisation/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/billing/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/context-rules/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/data-quality/domain/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/data-quality/episodes/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/data-quality/patient/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/data-quality/sitrep/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/data-quality/terminology/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/domains/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/domains/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/gold-dataset/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/ActionPanel.tsx,legacy,DI-LEO-AI-170; DO-LEO-AI-169; R-LEO-AI-169,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/ChipSearchPopover.tsx,legacy,DI-LEO-AI-512; R-LEO-AI-509; UN-LEO-AI-094; VT-LEO-AI-511,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/ConceptCoachPopover.tsx,legacy,DI-LEO-AI-155,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/HorizontalStepper.tsx,legacy,DI-LEO-AI-512; R-LEO-AI-509; UN-LEO-AI-094; VT-LEO-AI-511,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewBanner.tsx,legacy,DI-LEO-AI-512; R-LEO-AI-509; UN-LEO-AI-094; VT-LEO-AI-511,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewDrawer.tsx,legacy,DI-LEO-AI-512; R-LEO-AI-509; UN-LEO-AI-094; VT-LEO-AI-511,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewPane.tsx,legacy,DI-LEO-AI-234; DO-LEO-AI-234; VT-LEO-AI-510,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/SeedDescendantsList.tsx,legacy,DI-LEO-AI-511; R-LEO-AI-509; UN-LEO-AI-093; VT-LEO-AI-510,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/StepRail.tsx,legacy,DI-LEO-AI-234; DO-LEO-AI-234; VT-LEO-AI-510,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/SummaryCard.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/SynonymChipEditor.tsx,legacy,DI-LEO-AI-511; R-LEO-AI-509; UN-LEO-AI-093,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/TestPatientsPanel.tsx,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/copy.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/namedSets.ts,legacy,DI-LEO-AI-156,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step1Who.tsx,legacy,DI-LEO-AI-512; R-LEO-AI-509; UN-LEO-AI-094; VT-LEO-AI-511,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step2Suggest.tsx,legacy,DI-LEO-AI-234; DO-LEO-AI-234; VT-LEO-AI-510,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step3Try.tsx,legacy,DI-LEO-AI-234; DO-LEO-AI-234; VT-LEO-AI-510,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step4Save.tsx,legacy,DI-LEO-AI-234; DO-LEO-AI-234; VT-LEO-AI-510,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/treeToSentence.ts,legacy,DI-LEO-AI-155,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/types.ts,legacy,UN-LEO-AI-093,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/vaguePhrases.ts,legacy,DI-LEO-AI-155,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/GuidelineSubgraphDrawer.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/LoadedGuidelinesPanel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/TaxonomyBrowserDrawer.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/integrations/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/BuildPatientDialog.tsx,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/CopyFromRealDialog.tsx,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromRuleDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromScenarioDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/api.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/editor/EditTestPatientDrawer.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/editor/EncounterListEditor.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/editor/ExpectedSbarEditor.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/editor/RulePickerDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/editor/SnomedConceptPicker.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/page.tsx,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/replay/ReplayResultsDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/replay/RulesetNotCompiledBanner.tsx,legacy,DI-LEO-AI-181; R-LEO-AI-176,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/types.ts,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/models/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/pathways/[id]/editor/PathwayLoadError.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/pathways/[id]/editor/PathwaySaveBar.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/pathways/[id]/editor/PathwayToolbar.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/pathways/[id]/editor/dialogs/DeletePathwayDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/pathways/[id]/editor/dialogs/EdgeDeleteConfirm.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/pathways/[id]/editor/dialogs/PublishDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/pathways/[id]/editor/hooks/useDirtyGuard.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/pathways/[id]/editor/utils.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/ExampleCard.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/IdentitySection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/InputDisplay.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/InstructionsTab.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/OutputFormatTab.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/OutputPreview.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/SandboxCostTable.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/SandboxTab.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/TeachingExamplesTab.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/types.ts,legacy,DI-LEO-AI-170; VT-LEO-AI-169,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/surface-forms/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/terminology/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/agent/executive-summary/route.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/agent/interpret/route.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/auth/[...nextauth]/route.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/pipeline/test-run/batch/route.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/pipeline/test-run/route.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/pipeline/test-run/stream/route.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/sbar/assessments/[assessmentId]/route.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/sbar/jobs/[runId]/events/route.ts,legacy,DI-LEO-AI-191; DI-LEO-AI-194,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/sbar/jobs/route.ts,legacy,DI-LEO-AI-194,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/training/candidates/ai-first-pass/jobs/[runId]/events/route.ts,legacy,DI-LEO-AI-209; DO-LEO-AI-206,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/audit/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/auth/callback/route.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/auth/login/route.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/benchmarks/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/benchmarks/rules/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/benchmarks/rules/new/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/benchmarks/sets/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/benchmarks/upload/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/audit/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/benchmarks/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/benchmarks/rules/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/benchmarks/rules/new/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/benchmarks/sets/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/benchmarks/upload/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/cohorts/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/measures/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/measures/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/pathways/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/patients/[patientId]/encounters/[encounterId]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/patients/[patientId]/encounters/view/[encounterId]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/patients/[patientId]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/patients/[patientId]/timeline/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/portal/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/reports/[id]/edit/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/reports/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/reports/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/safety-netting/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/wellbeing/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/cohorts/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/games/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/gold-dataset/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/mail/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/measures/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/measures/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/onboarding/accept/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/operations/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/pathways/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/patients/[patientId]/encounters/[encounterId]/page.tsx,legacy,DI-LEO-AI-220,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/patients/[patientId]/encounters/view/[encounterId]/page.tsx,legacy,DI-LEO-AI-220,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/patients/[patientId]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/patients/[patientId]/timeline/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/patients/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/pipeline/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/portal/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/reports/[id]/edit/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/reports/[id]/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/reports/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/settings/domains/_components/ConfigureSubdomainDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/settings/domains/_components/CreateSubdomainDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/settings/domains/_components/DomainDetailChrome.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/settings/domains/_components/DomainSubdomainCards.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/settings/domains/_components/SubdomainConceptSearchPanel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/settings/domains/_components/domainConstants.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/settings/preferences/page.tsx,legacy,DI-LEO-AI-169; VT-LEO-AI-168,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/sign-in/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/tenant/page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/AreaIntro.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/AssertionChip.tsx,legacy,DI-LEO-AI-118,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/AuthProviderWrapper.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/CodedLinksSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/CorrectionsLog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/EncounterList.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/ManualEntityBanner.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/PatientList.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/PatientTimeline.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/UnauthorizedScreen.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/AuditReportShell.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/AuditSnapshotView.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/AuditSummarySection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/AvoidableDelaysSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/BenchmarkLegend.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/CancerStageAccordion.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/CancerStageBulletChart.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/CancerTypeBenchmarkGrid.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/CancerTypeDumbbellChart.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/CancerTypeSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/ComparisonBarChart.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/ConsultationsSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/DemographicsSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/DiagnosticIntervalSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/DirectionChip.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/EmergencyReferralRoutesSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/IntervalStripPlot.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/InvestigationsSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/MultipleConsultationsSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/PlaceOfPresentationSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/PrimaryCareIntervalSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/ReferralsSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/SafetyNettingSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/SectionCard.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/SummaryStatsRow.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/benchmarks/BenchmarkRuleEditor.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/benchmarks/BenchmarkSetDetail.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/benchmarks/BenchmarkSetList.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/benchmarks/BenchmarkUploadWizard.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/console/ConsoleStagePanel.tsx,legacy,DI-LEO-AI-164; DO-LEO-AI-163; R-LEO-AI-165; VT-LEO-AI-162,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/dashboard/DiagnosedByTypeChart.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/dashboard/EpisodesByTypeChart.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/dashboard/LLMSpendPanel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/dashboard/SafetyAlertModal.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/dashboard/SafetyNetAlertsSummary.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/CanvasArea.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/CohortFiltersDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/DataElementSettings.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/Element.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/ElementPalette.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/InterpretationSettings.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/MeasureSettings.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/Page.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/PageThumbnails.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/PropertiesPanel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/ReportEditor.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/ReportEditorDialogs.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/StatsElementSettings.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/TextElementSettings.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/Toolbar.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/agentTypes.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/BulletListElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/ChartElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/ChecklistElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/ComparisonBarsElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/ComplianceHeatmapElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/CoverElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/DividerElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/ExecutiveSummaryElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/HeadingElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/HeroStatsElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/ImageElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/InterpretationElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/KpiCardElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/MeasureElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/PathwayGanttElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/PopulationPyramidElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/SafetyNetMatchProgressionElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/TableElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/TableOfContentsElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/TextElement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/chartBoxPlot.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/chartRechartsTypes.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/chartRenderers.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/chartSankeyFunnel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/chartTickComponents.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/chartUtils.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/interpretationParsing.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/elements/useMeasureData.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/reportEditorHandlers.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/reportEditorHelpers.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/useElementDragResize.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/useToolbarData.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/episodes/CaseloadStrip.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/episodes/PatientGroupList.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/games/BreakoutGame.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/games/Leaderboard.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/games/LeaderboardTab.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/games/SnakeGame.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/games/SpaceInvaders.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/AIFirstPassDialog.tsx,legacy,DI-LEO-AI-209; DO-LEO-AI-206; R-LEO-AI-197,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/CandidatePruneDialog.tsx,legacy,DI-LEO-AI-197; DO-LEO-AI-195; DO-LEO-AI-196,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/CandidateReviewList.tsx,legacy,DI-LEO-AI-144; DI-LEO-AI-209; DI-LEO-AI-523; R-LEO-AI-197; UN-LEO-AI-096,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/CandidateRowActions.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/DatasetHealthPanel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/EntityChipView.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/GoldLabelReviewList.tsx,legacy,DI-LEO-AI-145; DI-LEO-AI-523; UN-LEO-AI-096,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/GoldLabelRowActions.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/RelationRow.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/SimilarCandidatesBatch.tsx,legacy,DI-LEO-AI-527,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/SnomedInlineSearch.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/goldDatasetTypes.ts,legacy,DI-LEO-AI-208; DI-LEO-AI-209,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/goldDatasetUtils.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/labSpanDetector.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/useKeyboardShortcuts.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-editor/GoldLabelEditorDialog.tsx,legacy,DI-LEO-AI-219; R-LEO-AI-206,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-editor/api.ts,legacy,DI-LEO-AI-219; DI-LEO-AI-220; DI-LEO-AI-221; DI-LEO-AI-222,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-editor/index.ts,legacy,DI-LEO-AI-219,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-editor/types.ts,legacy,DI-LEO-AI-219; R-LEO-AI-206,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-editor/useDualSaveAdapter.ts,legacy,DI-LEO-AI-221,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/markdown-editor/MarkdownEditor.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/markdown-editor/Toolbar.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/markdown-editor/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/measures/LibraryPicker.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/measures/MeasureEditor.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/measures/MeasureList.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/measures/MeasurePickerDialog.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/measures/QueryBuilder.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/measures/measureCategoryUtils.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterBatchBar.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterCard.tsx,legacy,DI-LEO-AI-220; DI-LEO-AI-520,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterCodesPanel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterKpiStrip.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterPreviewDialog.tsx,legacy,DI-LEO-AI-220; DI-LEO-AI-221; DI-LEO-AI-223,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterResultsTable.tsx,legacy,DI-LEO-AI-514,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterResultsTimeline.tsx,legacy,DI-LEO-AI-179; DI-LEO-AI-516; DO-LEO-AI-515; R-LEO-AI-063; R-LEO-AI-174; R-LEO-AI-206; UN-LEO-AI-096; VT-LEO-AI-514,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterSearchPanel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterTimelineScrubber.tsx,legacy,DI-LEO-AI-179; DO-LEO-AI-178; R-LEO-AI-174; UN-LEO-AI-077; VT-LEO-AI-173,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/HighlightedText.tsx,legacy,DI-LEO-AI-514,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/Score3DMap.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/ScoreHistogram.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/TimelineBinPopover.tsx,legacy,DI-LEO-AI-179; DO-LEO-AI-178; R-LEO-AI-174; UN-LEO-AI-077; VT-LEO-AI-173,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/TimelineHistogramBar.tsx,legacy,DI-LEO-AI-179; DO-LEO-AI-178; R-LEO-AI-174; UN-LEO-AI-077; VT-LEO-AI-173,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/TimelineOverlays.tsx,legacy,DI-LEO-AI-213; DO-LEO-AI-210; R-LEO-AI-174; UN-LEO-AI-077; VT-LEO-AI-205,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/TimelineRangeBrush.tsx,legacy,DI-LEO-AI-179; DO-LEO-AI-178; R-LEO-AI-174; UN-LEO-AI-077; VT-LEO-AI-173,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/TrainingSetAdvisor.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/encounterFilters.ts,legacy,DI-LEO-AI-213; DI-LEO-AI-520; DO-LEO-AI-210; R-LEO-AI-174; UN-LEO-AI-077; UN-LEO-AI-096; VT-LEO-AI-205; VT-LEO-AI-519,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/encounterRecodeProgress.ts,legacy,DI-LEO-AI-179; DO-LEO-AI-178,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/encounterRelevance.ts,legacy,DI-LEO-AI-520,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/encounterStyles.ts,legacy,DI-LEO-AI-179; DO-LEO-AI-178,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/encounterTextUtils.tsx,legacy,DI-LEO-AI-179; DI-LEO-AI-514; DO-LEO-AI-178,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/timelineBins.ts,legacy,DI-LEO-AI-179; DI-LEO-AI-213; DI-LEO-AI-232; DO-LEO-AI-178; R-LEO-AI-174; UN-LEO-AI-077; VT-LEO-AI-173,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/trainingAdvisorUtils.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/useEncounterBatch.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/useEncounterLoad.ts,legacy,DI-LEO-AI-179; DO-LEO-AI-178,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/useEncounterRecode.ts,legacy,DI-LEO-AI-213; DO-LEO-AI-210; UN-LEO-AI-077; VT-LEO-AI-205,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/CaseCardLeoResult.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/CaseCardSuppressForm.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/CodingReviewCasesModalTitle.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/PipelineOverviewDiagram.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/RecordMindMap.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/RunSection.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/TabFlowDiagram.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/config/subgraphs.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/config/triggers.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/config/types.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/context/PipelineTestContext.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/ProbeInspectorDrawer.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitor.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorBanners.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorChanges.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorData.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorValidate.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/SemanticSection.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/TreeNode.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/diff.ts,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/index.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/PortEdge/utils.ts,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/probeStrategies.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; R-LEO-AI-166; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/probes/_shared.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/probes/connectors.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/probes/extraction.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/probes/guidance.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/probes/persist.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/edges/probes/verification.tsx,legacy,DI-LEO-AI-165; DO-LEO-AI-164; VT-LEO-AI-163,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/hooks/usePathwayStore.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/hooks/usePredecessorIO.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/hooks/useValidation.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/ActionNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/ConditionNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/ConnectorNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/MergeNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/MiniHitlNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/OutputNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/ParallelNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/SourceNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/TransformNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/TriggerNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/_base/BaseNode.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/_base/NodeHandle.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/_base/NodeHeader.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/_base/NodeStatusStrip.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/_base/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/nodes/nodeTypes.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/panel/ConditionRuleBuilder.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/viewer/MiniHitlCard.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/reports/ReportList.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/safety-netting/PathwayDetailPanel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/safety-netting/PathwayProgressBar.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/safety-netting/WorklistFilters.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/safety-netting/WorklistSummaryCards.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/sbar-final/SbarFinalView.tsx,legacy,DI-LEO-AI-191; R-LEO-AI-185,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/sbar-final/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/sbar-playground/BackgroundSourcePicker.tsx,legacy,DI-LEO-AI-179; DI-LEO-AI-213; DI-LEO-AI-232; R-LEO-AI-185; R-LEO-AI-211,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/sbar-playground/GuidelinePicker.tsx,legacy,DI-LEO-AI-233,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/sbar-playground/PatientFinder.tsx,legacy,DI-LEO-AI-230,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/sbar-playground/SummarisationContextSelect.tsx,legacy,DI-LEO-AI-231; DI-LEO-AI-507,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/schema-builder/SchemaBuilder.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/tenant/AuthConfig.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/tenant/OrgDrawer.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/tenant/OrgGraph.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/tenant/OrgManagement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/tenant/SubOrgManagement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/tenant/SubscriptionPanel.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/tenant/UserManagement.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/ui/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/context/AnalyticsDateFilterContext.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/context/AuditBenchmarkOverlayContext.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/context/OrgContext.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/context/PipelineContext.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/hooks/usePipelineStream.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/hooks/useSbarStream.ts,legacy,DI-LEO-AI-194,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/abbrev.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/admin.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/agent.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/benchmarks.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/client.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/legacy.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/libraries.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/mail.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/measureReports.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/measures.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/organizations.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/patients.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/schema.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/auditVisibleKeys.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/authContext.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/cancerTypeKeys.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/cancerTypes.ts,atlas,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/chartRecommendations.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/chartTheme.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/dateSort.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/entitySemanticLabels.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/episodeStatus.ts,legacy,DI-LEO-AI-529,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/exportContextRulesPdf.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/fonts.ts,legacy,DI-LEO-AI-132,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/knowledgeCopy.ts,atlas,DI-LEO-AI-137; R-LEO-AI-094,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/measureData.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/nerAnnotation.tsx,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/nhsNumber.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/pathwayRisk.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/serverSession.ts,legacy,DI-LEO-AI-218; VT-LEO-AI-218,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/sortNatural.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/taxYearPresets.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/templates.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/types.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/types/elementTypes.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/types/fhir.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/types/layout.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/useIdleLogout.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/utils/toc.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/proxy.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/stores/editorStore/documentActions.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/stores/editorStore/elementActions.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/stores/editorStore/index.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/stores/editorStore/pageActions.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/stores/editorStore/types.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/stores/editorStore/utils.ts,none,,,no resolvable Atlas DI/DO via Phase 13a evidence

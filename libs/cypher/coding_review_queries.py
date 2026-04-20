@@ -1,4 +1,11 @@
 """Cypher queries for coding verification — tracking which training entities
+
+Atlas trace:
+  DO: DO-2D2CE052
+  Also implements: DO-622F6579
+  DI: DI-5E1BA369, DI-D2D0117E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2D2CE052")
+
 resolve successfully to SNOMED concepts via the terminology API.
 
 CodingReview nodes record:

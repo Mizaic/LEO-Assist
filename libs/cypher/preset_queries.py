@@ -1,5 +1,10 @@
 """Cypher queries for ModelPreset nodes stored in the Knowledge Graph.
 
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+
 A ModelPreset is a named, reusable pipeline configuration that pathway
 designers select when building workflow steps.  Each preset encapsulates
 the full routing config (consensus mode, tier, provider, extractor backend)

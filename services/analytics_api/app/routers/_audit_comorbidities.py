@@ -1,5 +1,10 @@
 """NCDA audit comorbidity section.
 
+Atlas trace:
+  DO: DO-D5B9FE5F
+  DI: DI-6E1B71A4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D5B9FE5F")
+
 Separated from the main section queries because the comorbidity logic
 is domain-registry-driven and substantially larger than other sections.
 """

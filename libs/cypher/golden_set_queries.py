@@ -1,5 +1,10 @@
 """Cypher queries for the frozen golden evaluation set.
 
+Atlas trace:
+  DO: DO-A35D2D57
+  DI: DI-37B3DC71
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A35D2D57")
+
 The golden set is a stable, locked subset of GoldLabel nodes used to measure
 model quality against a consistent benchmark. Unlike the dev split (which
 changes every run), the golden set never changes once frozen, providing a

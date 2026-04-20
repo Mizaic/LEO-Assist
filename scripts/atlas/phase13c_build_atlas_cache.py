@@ -41,14 +41,22 @@ def _split(s: str) -> list[str]:
 
 
 def collect_targets() -> tuple[set[str], set[str]]:
+    """Some Phase 13a rows put DO ids into the DI column (legacy DI mapped
+    to an Atlas DO). Route every id to the correct fetcher by prefix."""
     audit = list(csv.DictReader(AUDIT_CSV.open()))
     dos: set[str] = set()
     dis: set[str] = set()
     for r in audit:
         for d in _split(r["owning_atlas_dos"]):
-            dos.add(d)
+            if d.startswith("DO-"):
+                dos.add(d)
+            elif d.startswith("DI-"):
+                dis.add(d)
         for d in _split(r["owning_atlas_dis"]):
-            dis.add(d)
+            if d.startswith("DI-"):
+                dis.add(d)
+            elif d.startswith("DO-"):
+                dos.add(d)
     return dos, dis
 
 

@@ -1,4 +1,10 @@
-"""LangGraph state for the episode engine chain."""
+"""LangGraph state for the episode engine chain.
+
+Atlas trace:
+  DO: DO-F2E2A70B
+  DI: DI-5B694FBE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F2E2A70B")
+"""
 
 from __future__ import annotations
 

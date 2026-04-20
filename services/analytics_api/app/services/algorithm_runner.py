@@ -1,5 +1,10 @@
 """GDS algorithm runner for Pathway Explorer research missions.
 
+Atlas trace:
+  DO: DO-38C2D850
+  DI: DI-58988BF2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-38C2D850")
+
 Public interface: call run_mission() with a mission ID and scoping params.
 
 Internally the module delegates to three focused sub-modules:

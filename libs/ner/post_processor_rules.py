@@ -1,4 +1,10 @@
-"""Shared post-processor rule engine for extracted/training entities."""
+"""Shared post-processor rule engine for extracted/training entities.
+
+Atlas trace:
+  DO: DO-8EF2EC20
+  DI: DI-2F963FC6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8EF2EC20")
+"""
 
 from __future__ import annotations
 

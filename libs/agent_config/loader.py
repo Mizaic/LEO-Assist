@@ -1,5 +1,10 @@
 """Load FHIR configuration from the knowledge graph.
 
+Atlas trace:
+  DO: DO-61EE87E0
+  DI: DI-6A1CD328
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-61EE87E0")
+
 Unlike the VRB which uses HTTP to talk to a separate fhir-api,
 PCA reads Device/Measure/ValueSet nodes directly from the
 KnowledgeGraphClient since all services share the same process.

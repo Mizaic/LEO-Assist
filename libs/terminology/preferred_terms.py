@@ -1,5 +1,10 @@
 """Shared SNOMED preferred-term cache helpers.
 
+Atlas trace:
+  DO: DO-8C497D0C
+  DI: DI-82036B4D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8C497D0C")
+
 This module centralizes concept-id -> preferred-term hydration using Redis-first
 lookup with Neo4j fallback.
 """

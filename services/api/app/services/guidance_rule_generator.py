@@ -1,5 +1,10 @@
 """LLM-based AppropriatenessRule generator with HITL gate.
 
+Atlas trace:
+  DO: DO-5B320DDC
+  DI: DI-69C29EEF
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-5B320DDC")
+
 Pipeline
 --------
 For each normative Recommendation linked to the Guideline:

@@ -1,5 +1,10 @@
 """Strict de-identification validator for NER training records.
 
+Atlas trace:
+  DO: DO-8EF2EC20
+  DI: DI-2F963FC6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8EF2EC20")
+
 Two concerns:
 1.  PHI leak detection  — scan text and metadata for patterns that survive
     de-identification (residual identifiers after deidentify_text() pass).

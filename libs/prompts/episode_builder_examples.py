@@ -1,5 +1,10 @@
 """Few-shot example library for the episode builder and consolidation prompts.
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 Each example has:
   input       -- coded summary / episode summaries fed to the prompt
   output      -- expected JSON result

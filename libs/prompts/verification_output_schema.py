@@ -1,4 +1,10 @@
-"""Canonical JSON output schema for the verification prompt (v1)."""
+"""Canonical JSON output schema for the verification prompt (v1).
+
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+"""
 
 VERIFICATION_OUTPUT_SCHEMA: dict = {
     "description": "Return JSON only — no markdown.",

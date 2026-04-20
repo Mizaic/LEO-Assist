@@ -1,5 +1,10 @@
 """Surface-form CRUD endpoints for the terminology API.
 
+Atlas trace:
+  DO: DO-0F8F8E02
+  DI: DI-5EECDA58
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0F8F8E02")
+
 Provides browsing, editing, and auditing of SurfaceForm→Concept mappings
 stored in the Knowledge Graph.  These are consumed by the UI's
 Settings → Surface Forms page.

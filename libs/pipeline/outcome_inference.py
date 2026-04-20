@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-11A2361E
+  DI: DI-F46D7A68
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-11A2361E")
+
 Post-specialist outcome inference engine.
 
 Scans the 180-day window of encounters following a specialist visit and

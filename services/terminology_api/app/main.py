@@ -1,5 +1,10 @@
 """Terminology API service.
 
+Atlas trace:
+  DO: DO-0F8F8E02
+  DI: DI-5EECDA58
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0F8F8E02")
+
 Owns SNOMED search, hybrid coding resolution, terminology writeback,
 ValueSet/ConceptMap CRUD, and Redis-cached terminology lookups,
 all against the Knowledge Graph.

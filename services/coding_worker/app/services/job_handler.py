@@ -1,4 +1,10 @@
-"""Service Bus handler: validate coding jobs and run WorkflowEngine."""
+"""Service Bus handler: validate coding jobs and run WorkflowEngine.
+
+Atlas trace:
+  DO: DO-A26CD350
+  DI: DI-705C806B
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A26CD350")
+"""
 
 from __future__ import annotations
 

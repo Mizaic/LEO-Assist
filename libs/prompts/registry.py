@@ -1,5 +1,11 @@
 """Neo4j-only prompt registry.
 
+Atlas trace:
+  DO: DO-54397CCD
+  Also implements: DO-8620A68B, DO-EDA32DB1
+  DI: DI-5A802C83, DI-66F1B177, DI-6EFD68D0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-54397CCD")
+
 Prompts are stored as ``PromptConfig`` nodes in the Knowledge Graph and
 are editable at runtime via /admin/prompts without a code deploy.
 

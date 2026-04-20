@@ -1,4 +1,10 @@
-"""Evaluate lightweight relation model against dev JSONL."""
+"""Evaluate lightweight relation model against dev JSONL.
+
+Atlas trace:
+  DO: DO-236545C8
+  DI: DI-2D9F5064
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-236545C8")
+"""
 
 from __future__ import annotations
 

@@ -1,5 +1,10 @@
 """Cleanup / reset Cypher queries for the Patient Graph.
 
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+
 Centralised from services/api/app/models/neo4j_schema.py.
 """
 

@@ -1,5 +1,11 @@
 """Disorder entity verifier: LLM-judge gate for disorder false positives.
 
+Atlas trace:
+  DO: DO-19EB27A0
+  Also implements: DO-68FDA1E0
+  DI: DI-3197332F, DI-9D967259
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-19EB27A0")
+
 Only called for disorder entities whose assertion is ``present`` after
 ConText. Classifies whether the entity is an active confirmed diagnosis or
 merely informational / historical / uncertain context within the encounter

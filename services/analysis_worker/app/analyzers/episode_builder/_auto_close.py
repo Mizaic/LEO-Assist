@@ -1,4 +1,10 @@
-"""Second and third pass: auto-close, merge, and outcome inference."""
+"""Second and third pass: auto-close, merge, and outcome inference.
+
+Atlas trace:
+  DO: DO-0C7A443A
+  DI: DI-FC264BBF, DI-FF9C74E2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0C7A443A")
+"""
 
 from __future__ import annotations
 

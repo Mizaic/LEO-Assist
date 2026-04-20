@@ -1,3 +1,11 @@
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-14B332AB
+  Also implements: DO-170F0DEE
+  DI: DI-30D95132, DI-31126C6C, DI-3B3F7D4B
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-14B332AB")
+"""
 from __future__ import annotations
 
 import logging

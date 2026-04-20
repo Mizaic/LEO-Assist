@@ -1,5 +1,10 @@
 """Alert escalation logic for the audit quality loop (Loop 1).
 
+Atlas trace:
+  DO: DO-F1953D1C
+  DI: DI-65975321
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F1953D1C")
+
 Called at the end of audit Phase 4 and via
 POST /operations/quality/runs/escalation-check.
 

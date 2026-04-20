@@ -1,5 +1,10 @@
 """Seed dataset ingestion with validation, dedupe, and provenance tracking.
 
+Atlas trace:
+  DO: DO-8EF2EC20
+  DI: DI-2F963FC6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8EF2EC20")
+
 Ingests exports/ner/training/exclusion_domain_v1.jsonl (and any future seed
 files) as SILVER data into the gold-standard training corpus.
 

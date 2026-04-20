@@ -1,5 +1,10 @@
 """Canonical surface-form normalisation for SNOMED resolution.
 
+Atlas trace:
+  DO: DO-8C497D0C
+  DI: DI-82036B4D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8C497D0C")
+
 Two functions are exported:
 
 ``normalize_surface(text)``

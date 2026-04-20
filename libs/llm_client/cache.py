@@ -1,5 +1,10 @@
 """LLM response caching with LRU eviction and optional TTL.
 
+Atlas trace:
+  DO: DO-7123C55A
+  DI: DI-AE7680C0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-7123C55A")
+
 Ported from auditor_2 agent/core/llm_cache.py.
 """
 

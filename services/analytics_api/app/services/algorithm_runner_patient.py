@@ -1,5 +1,10 @@
 """Patient-focused Pathway Explorer missions.
 
+Atlas trace:
+  DO: DO-D5B9FE5F
+  DI: DI-6E1B71A4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D5B9FE5F")
+
 Missions: groups (Leiden), similar (node similarity), gaps (WCC), circles (SCC).
 """
 

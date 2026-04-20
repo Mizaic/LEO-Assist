@@ -1,4 +1,10 @@
-"""Neo4j client wrappers for HITL MVP — patient graph and coding graph."""
+"""Neo4j client wrappers for HITL MVP — patient graph and coding graph.
+
+Atlas trace:
+  DO: DO-448BFA1A
+  DI: DI-84F44836
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-448BFA1A")
+"""
 
 from __future__ import annotations
 

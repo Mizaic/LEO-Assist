@@ -1,4 +1,10 @@
-"""Configuration helpers for HITL MVP API."""
+"""Configuration helpers for HITL MVP API.
+
+Atlas trace:
+  DO: DO-2D66F23B
+  DI: DI-922114AE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2D66F23B")
+"""
 
 from __future__ import annotations
 

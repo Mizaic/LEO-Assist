@@ -1,5 +1,11 @@
 """Model escalation service: small -> big -> max.
 
+Atlas trace:
+  DO: DO-4D563ADF
+  Also implements: DO-946F617D
+  DI: DI-6A0B55A4, DI-E0D60B50
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4D563ADF")
+
 When a small model cannot resolve a clinical disagreement with sufficient
 confidence, this module escalates to progressively larger models.  Each
 tier's rationale is preserved so the HITL operator (or an audit) can see

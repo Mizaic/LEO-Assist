@@ -1,5 +1,11 @@
 """Canonical post-processing stack applied identically to training and runtime.
 
+Atlas trace:
+  DO: DO-16FFE9D3
+  Also implements: DO-19EB27A0, DO-36C09C0E, DO-54397CCD, DO-8620A68B, DO-88BE3CD9, DO-95B6BBAB
+  DI: DI-04105500, DI-4247C7E5, DI-5A802C83, DI-6E6E985B, DI-6EFD68D0, DI-9D967259, DI-F0B8A7B0, DI-F298AE65
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-16FFE9D3")
+
 All 9 layers execute in a fixed order on plain entity dicts.  Both the
 training verification pipeline (label_verifier) and the runtime coding
 pipeline (pipeline_service) call ``run_post_processing()`` so that gold

@@ -1,4 +1,10 @@
-"""Queue coding issues for human review and training."""
+"""Queue coding issues for human review and training.
+
+Atlas trace:
+  DO: DO-93E086B0
+  DI: DI-F2C18D2E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-93E086B0")
+"""
 
 from __future__ import annotations
 

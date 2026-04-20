@@ -1,5 +1,10 @@
 """Audit quality router -- Loop 1 quality dashboard endpoints.
 
+Atlas trace:
+  DO: DO-720CD183
+  DI: DI-1126FFD1
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-720CD183")
+
 Prefix: /operations/quality
 
 Endpoints

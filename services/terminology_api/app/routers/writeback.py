@@ -1,5 +1,10 @@
 """Terminology writeback endpoint.
 
+Atlas trace:
+  DO: DO-77A48DBC
+  DI: DI-4746A178, DI-B7FEA996, DI-F8634363
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-77A48DBC")
+
 Writes approved surface-form -> SNOMED mappings from Patient Graph
 into Knowledge Graph SurfaceForm nodes (the learning loop).
 """

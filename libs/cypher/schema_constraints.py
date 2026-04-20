@@ -1,5 +1,10 @@
 """Schema constraints and indexes for Neo4j databases.
 
+Atlas trace:
+  DO: DO-E3885491
+  DI: DI-3613871E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E3885491")
+
 Centralised from services/api/app/models/neo4j_schema.py.
 Includes missing indexes for EncounterCandidate properties identified during audit.
 """

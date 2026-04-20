@@ -1,5 +1,10 @@
 """Unified work queue endpoints.
 
+Atlas trace:
+  DO: DO-65BA6EA0
+  DI: DI-C0AD09D2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-65BA6EA0")
+
 Backs the /work route consumed by the staff role (DI-LEO-AI-138). Every
 row returned here already carries a deep-link resolve_url, so this router
 is read-only and never mutates the underlying task sources.

@@ -1,5 +1,11 @@
 """LLM-judge runner used by the disorder gate and coding-verifier steps.
 
+Atlas trace:
+  DO: DO-4AB6D361
+  Also implements: DO-9CA0B5A8
+  DI: DI-80DD8A47, DI-E1913514
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4AB6D361")
+
 The pipeline is NER-then-LLM-as-judge-and-fixer: the deterministic post-
 processing stack emits entity dicts and terminology candidates, then the
 LLM is invoked as a *judge* to classify disorder context or validate a

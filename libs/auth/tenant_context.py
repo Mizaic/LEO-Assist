@@ -1,5 +1,10 @@
 """Azure AD JWT validation and tenant context extraction.
 
+Atlas trace:
+  DO: DO-DB7F8D52
+  DI: DI-4DBE1A18, DI-87CCCB18
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-DB7F8D52")
+
 Ported from visual-report-builder fhir-api/app/core/auth.py.
 Adapted to be a standalone shared library with no service-specific dependencies.
 """

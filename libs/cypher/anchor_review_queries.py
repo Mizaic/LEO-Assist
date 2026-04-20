@@ -1,5 +1,10 @@
 """Cypher queries for the anchor domain review workflow.
 
+Atlas trace:
+  DO: DO-BE96444E
+  DI: DI-BAC284B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE96444E")
+
 AnchorReview nodes record the dual-model domain classification of each
 training record.  AnchorVote nodes record a human reviewer's verdict on
 records where the two models disagreed.

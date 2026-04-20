@@ -1,5 +1,10 @@
 """Data Quality API router -- /admin/dq/*
 
+Atlas trace:
+  DO: DO-86800C9B
+  DI: DI-FC80B65A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-86800C9B")
+
 All endpoints require platform admin access (require_admin).
 Read-only endpoints use GET; mutation endpoints use POST with dry_run=True default.
 

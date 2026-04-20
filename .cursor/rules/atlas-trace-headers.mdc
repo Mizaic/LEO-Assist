@@ -1,0 +1,148 @@
+# Atlas Trace Headers - Required on Every Class B+ Source File
+
+Every Class B+ source file (any `.py`, `.ts`, or `.tsx` under `libs/` or
+`services/`) MUST carry exactly one Atlas trace header that names the
+file's owning Atlas Design Output (DO) and parent Design Input (DI).
+
+This is the only place we encode design-control IDs in source. All
+other inline references to legacy `*-LEO-AI-N` IDs were removed in
+Phase 13c; do not reintroduce them.
+
+CI enforces this gate via `scripts/atlas/check_atlas_trace_headers.py`.
+A PR that adds a Class B+ file without a trace header (and does not
+add it to the allow-list) will fail the build.
+
+## Format - Python
+
+The block lives at the very top of the module docstring, immediately
+after the one-line summary. Use Atlas dcIds (UUID8 form), never
+legacy `*-LEO-AI-N` ids.
+
+```python
+"""Cohort analytics helpers.
+
+Atlas trace:
+  DO: DO-A6D3FE39
+  DI: DI-9F2C1B4E
+  Risks: R-72C9B609
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A6D3FE39")
+
+Rest of the module docstring continues here ...
+"""
+```
+
+If the file has no module docstring, create one whose only content is
+the Atlas trace block. Do not put code above the docstring.
+
+## Format - TypeScript / TSX
+
+The block lives in a JSDoc comment at the top of the file, before any
+imports.
+
+```typescript
+/**
+ * Cohort analytics helpers.
+ *
+ * Atlas trace:
+ *   DO: DO-A6D3FE39
+ *   DI: DI-9F2C1B4E
+ *   Risks: R-72C9B609
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-A6D3FE39")
+ */
+```
+
+## Field rules
+
+- `DO:` REQUIRED. Every Class B+ file has exactly one owning DO.
+  Files that legitimately implement multiple DOs put the
+  lexicographically smallest dcId on the `DO:` line and additional
+  dcIds on an `Also implements:` line.
+- `DI:` REQUIRED. The DI is `IMPLEMENTS`-linked to the DO. If a DO
+  has multiple parent DIs, list them comma-separated on a single line.
+- `Risks:` OPTIONAL. Only include risks that Atlas links to one of
+  the DIs above (`MITIGATES` edges in `traceability.risks`).
+- `Look up via:` REQUIRED. Documents the exact MCP call to read the
+  authoritative spec. Always cite the `DO:` dcId here, not the DI.
+
+## When you create a new Class B+ file
+
+1. Identify or create the owning DI in Atlas (`create_design_input`
+   on `PROD-LEO-CORE-AI-20260415-6AE8A23B`).
+2. Identify or create the owning DO (`create_design_output`) and link
+   it to the DI (`link_design_controls`).
+3. Set the DO's `source_reference` to the new file's path
+   (`update_design_output(source_reference=...)`).
+4. Add the Atlas trace header to the new file using the dcIds you
+   just got back. Include any `MITIGATES`-linked risks.
+5. The CI gate will pass.
+
+## When you move or rename a Class B+ file
+
+1. The header travels with the file (it lives inside the docstring).
+2. Update the owning DO's `source_reference` in Atlas via
+   `update_design_output(source_reference=<new path list>)`.
+3. The CI gate will keep passing because the file still has the
+   header.
+
+## Excluded paths (no header required)
+
+The CI gate skips:
+
+- Test files: `tests/`, `e2e/`, `__tests__/`, `test_*.py`,
+  `*.test.ts(x)`, `conftest.py`. Tests trace to a VT, not a DO; the
+  VT id appears in the test docstring per `vt-enforcement.mdc`.
+- `__init__.py` (no executable surface beyond re-exports).
+- Declaration-only `.d.ts`.
+- Build outputs: `node_modules/`, `.next/`, `dist/`, `build/`.
+
+## Allow-lists (use sparingly)
+
+Two CSVs allow files through the CI gate without a header:
+
+- `compliance/atlas-migration-evidence/phase13c-uncovered.csv` -- 591
+  files identified during Phase 13a as having no Atlas DI/DO
+  ownership in the migration ledgers. These need to be triaged into
+  Atlas DOs before they can be removed from the allow-list.
+- `compliance/atlas-migration-evidence/phase13c-allow-list.csv` -- a
+  hand-maintained list of files added after the Phase 13a snapshot
+  that need owning-DO triage. Add a row when you must temporarily
+  bypass the gate, with a `reason` and a `added_at` date. Treat each
+  row as a follow-up TODO.
+
+If a header is missing in CI, prefer adding the header (option 1)
+over allow-listing.
+
+## Forbidden after Phase 13c
+
+- Any reference of the form `(DI|DO|UN|VT|VAL|R)-LEO-AI-\d+` outside
+  `compliance/atlas-migration-evidence/**` and `scripts/atlas/**`.
+  Phase 13c stripped them; do not reintroduce.
+- Multiple `Atlas trace:` blocks in one file.
+- A trace block that names a legacy id.
+- A trace block where the `DO:` field cannot be resolved to a real
+  Atlas dcId.
+
+## Re-running the stamper
+
+If you bulk-add files (e.g. a new service), you can re-run the
+Phase 13c stamper to add headers in bulk:
+
+```bash
+python3 scripts/atlas/phase13c_build_atlas_cache.py
+python3 scripts/atlas/phase13c_stamp_headers.py --apply
+python3 scripts/atlas/check_atlas_trace_headers.py
+```
+
+The stamper is idempotent: re-running on already-stamped files makes
+no changes.
+
+## Why this matters
+
+Atlas is the single source of truth (see `design-controls-first.mdc`).
+Without an in-file header pointing at the owning DO, code drifts
+silently from its design control. The header gives:
+
+- forward trace: code -> DO (and via Atlas, DO -> DI -> UN -> Risks).
+- reverse trace: Atlas DO `source_reference` -> file path.
+- regulatory evidence: any audit can grep `Atlas trace:` and confirm
+  every Class B+ file is governed.

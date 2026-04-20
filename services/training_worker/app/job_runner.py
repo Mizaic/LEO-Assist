@@ -1,4 +1,10 @@
 """Training job runner — executes the full fine-tuning pipeline in a
+
+Atlas trace:
+  DO: DO-236545C8
+  DI: DI-2D9F5064, DI-37B3DC71
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-236545C8")
+
 background thread so the FastAPI process stays responsive.
 
 Pipeline phases per job

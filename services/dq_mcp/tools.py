@@ -1,5 +1,11 @@
 """MCP tool definitions for the LEO DQ server.
 
+Atlas trace:
+  DO: DO-0998FAF5
+  Also implements: DO-86800C9B
+  DI: DI-FC80B65A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0998FAF5")
+
 All tools are READ-ONLY. Mutation tools are intentionally excluded from MCP
 to prevent AI agents from triggering graph writes (R-LEO-AI-063).
 

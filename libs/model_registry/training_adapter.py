@@ -1,5 +1,10 @@
 """Training artifact → runtime DTO adapter.
 
+Atlas trace:
+  DO: DO-0F42967F
+  DI: DI-86A1E16F
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0F42967F")
+
 This module is the explicit boundary between the NER training pipeline (which
 owns raw training JSON files under exports/) and the coding runtime (which owns
 ExtractionItem and DOCUMENTS writes).

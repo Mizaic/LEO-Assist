@@ -1,5 +1,10 @@
 """Few-shot example library for the label_disambiguation prompt (v1).
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 Each example has:
   input       -- model A label + rationale, model B label + rationale, entity text, encounter context
   output      -- expected JSON: {"resolved_label": "...", "confidence": ..., "reason": "..."}

@@ -1,5 +1,11 @@
 """DOCUMENTS relationship and semantic link queries.
 
+Atlas trace:
+  DO: DO-0DD91ACD
+  Also implements: DO-210CF040
+  DI: DI-BB64E479, DI-E7AFFDA5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0DD91ACD")
+
 Centralised from services/api/app/models/neo4j_schema.py.
 
 write_documents_from_sentences_payload() is the shared helper used by both

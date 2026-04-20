@@ -1,5 +1,10 @@
 """Cypher queries for audit-driven encounter remediation.
 
+Atlas trace:
+  DO: DO-C5890265
+  DI: DI-09E26C1D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-C5890265")
+
 These queries are called by scripts/remediate_audit_findings.py after
 Sonnet verifies each proposed coding change (confidence >= 0.80).
 

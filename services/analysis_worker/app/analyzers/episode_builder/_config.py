@@ -1,4 +1,11 @@
-"""Episode builder configuration with environment-variable overrides."""
+"""Episode builder configuration with environment-variable overrides.
+
+Atlas trace:
+  DO: DO-694875ED
+  Also implements: DO-6C398363
+  DI: DI-080A2454, DO-B7FCDAFB
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-694875ED")
+"""
 
 from __future__ import annotations
 

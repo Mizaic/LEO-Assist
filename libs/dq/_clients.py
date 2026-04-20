@@ -1,5 +1,11 @@
 """Shared client factory for the DQ toolkit.
 
+Atlas trace:
+  DO: DO-0998FAF5
+  Also implements: DO-86800C9B
+  DI: DI-FC80B65A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0998FAF5")
+
 All environment variables are read at call time (not module load) so that
 tests can patch them without import-order issues.
 """

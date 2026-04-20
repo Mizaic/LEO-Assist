@@ -1,4 +1,10 @@
-"""Review queue endpoints."""
+"""Review queue endpoints.
+
+Atlas trace:
+  DO: DO-3FC2C9D7
+  DI: DI-8804DA01
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3FC2C9D7")
+"""
 
 from __future__ import annotations
 

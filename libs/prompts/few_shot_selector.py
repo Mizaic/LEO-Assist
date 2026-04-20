@@ -1,4 +1,10 @@
-"""Few-shot selector that ranks dynamic examples by semantic similarity."""
+"""Few-shot selector that ranks dynamic examples by semantic similarity.
+
+Atlas trace:
+  DO: DO-83EBEE2C
+  DI: DI-B954388C
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-83EBEE2C")
+"""
 
 from __future__ import annotations
 

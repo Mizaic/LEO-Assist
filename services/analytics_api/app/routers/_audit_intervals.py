@@ -1,5 +1,10 @@
 """NCDA audit interval section: PCI and DI calculations.
 
+Atlas trace:
+  DO: DO-A6D3FE39
+  DI: DI-BA2C8F3E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A6D3FE39")
+
 Separated from the main section queries because the interval logic uses
 its own Cypher fragments (INFERRED_CANCER_DIAG_CASE, FP_DATE_EXPR) that
 are also referenced by the summary endpoint.

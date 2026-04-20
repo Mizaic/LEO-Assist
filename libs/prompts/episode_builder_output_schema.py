@@ -1,5 +1,10 @@
 """Canonical JSON output schemas for the episode builder and consolidation prompts.
 
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+
 Two schemas live here:
   EPISODE_BUILDER_OUTPUT_SCHEMA      -- result from episode_builder_system / episode_builder_task
   EPISODE_CONSOLIDATION_OUTPUT_SCHEMA -- result from episode_consolidation_system / episode_consolidation_task

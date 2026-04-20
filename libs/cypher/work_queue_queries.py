@@ -1,5 +1,10 @@
 """Cypher queries for the unified /work task queue (DI-LEO-AI-138).
 
+Atlas trace:
+  DO: DO-65BA6EA0
+  DI: DI-C0AD09D2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-65BA6EA0")
+
 All three sources (CodingReview, SafetyNetAlert, TrainingCandidate pending)
 are returned in one Cypher UNION so the per-source counts on the landing
 page and the page of rendered rows cannot drift against each other.

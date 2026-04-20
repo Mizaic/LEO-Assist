@@ -1,5 +1,10 @@
 """Pure-function rollup helpers for the episode-engine writer.
 
+Atlas trace:
+  DO: DO-F2E2A70B
+  DI: DI-5B694FBE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F2E2A70B")
+
 Split out of writer.py to keep that module under the 500-LOC cap and to
 make these helpers independently unit-testable. Nothing in here touches
 Neo4j; everything here is deterministic in/out.

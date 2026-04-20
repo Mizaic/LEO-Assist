@@ -1,5 +1,10 @@
 """Helper for upserting TrainingLabel nodes into Neo4j.
 
+Atlas trace:
+  DO: DO-8EF2EC20
+  DI: DI-2F963FC6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8EF2EC20")
+
 All learning sources (HITL resolution, coding-UX corrections, bulk script
 imports) call ``upsert_training_label``.  This is the single write path so
 de-identification, deduplication, and precision-gate checks are applied

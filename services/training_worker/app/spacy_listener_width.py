@@ -1,5 +1,10 @@
 """Register TransformerListener with explicit hidden width for frozen-transformer init.
 
+Atlas trace:
+  DO: DO-4F80FAD8
+  DI: DI-3103A562
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4F80FAD8")
+
 When ``transformer`` is in ``frozen_components``, ``init_nlp`` disables that pipe
 during ``Language.initialize``. The upstream ``TransformerModel`` then never runs
 ``initialize``, so it never sets ``nO`` and ``add_listener`` cannot copy the

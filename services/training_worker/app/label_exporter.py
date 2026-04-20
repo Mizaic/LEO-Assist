@@ -1,5 +1,11 @@
 """Export GoldLabel nodes from Neo4j into spaCy DocBin format.
 
+Atlas trace:
+  DO: DO-2695BE52
+  Also implements: DO-54397CCD, DO-A35D2D57
+  DI: DI-37B3DC71, DI-3DFEE507, DI-6EFD68D0
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2695BE52")
+
 Called by the training job runner as Phase 1 of the training pipeline.
 Produces train.spacy and dev.spacy files in a temporary directory.
 

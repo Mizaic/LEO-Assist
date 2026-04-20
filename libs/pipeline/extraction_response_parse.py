@@ -1,5 +1,10 @@
 """Parse LLM responses for clinical term extraction (JSON + safe fallbacks).
 
+Atlas trace:
+  DO: DO-16CE412B
+  DI: DI-FE1BC901
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-16CE412B")
+
 Models sometimes return markdown prose (e.g. "No codable clinical entities")
 instead of strict JSON. This module normalises those cases so callers can treat
 an empty extraction consistently without logging spurious JSON errors.

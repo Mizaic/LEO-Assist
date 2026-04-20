@@ -1,5 +1,10 @@
 """Shared data types and helper functions for the Pathway Explorer algorithm runner.
 
+Atlas trace:
+  DO: DO-D5B9FE5F
+  DI: DI-6E1B71A4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D5B9FE5F")
+
 Consumed by algorithm_runner.py, algorithm_runner_patient.py, and
 algorithm_runner_condition.py.  Kept separate to avoid circular imports.
 """

@@ -1,5 +1,10 @@
 """NICE guideline ingestion endpoints.
 
+Atlas trace:
+  DO: DO-24AA8840
+  DI: DI-693FFEEA
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-24AA8840")
+
 Provides:
   GET  /nice/catalogue?q=   -- searchable guideline index (Redis-cached, relevance-ranked)
   GET  /nice/taxonomy       -- taxonomy hierarchy from Neo4j with loaded status per guideline

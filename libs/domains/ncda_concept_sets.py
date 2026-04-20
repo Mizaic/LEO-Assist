@@ -1,5 +1,11 @@
 """NCDA milestone domain concept sets.
 
+Atlas trace:
+  DO: DO-7E1BAACC
+  Also implements: DO-FEF05EDA
+  DI: DI-143F69EB, DI-1501326A, DI-2AFF691F, DI-4C73DC01, DI-6079EC71
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-7E1BAACC")
+
 Curated SNOMED CT concept IDs used by the analysis worker to detect
 episode milestones from :DOCUMENTS relationships in the patient graph.
 

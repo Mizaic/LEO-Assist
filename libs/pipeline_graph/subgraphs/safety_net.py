@@ -1,4 +1,10 @@
-"""Safety net detection subgraph."""
+"""Safety net detection subgraph.
+
+Atlas trace:
+  DO: DO-B711D180
+  DI: DI-CE0A08E5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B711D180")
+"""
 
 from __future__ import annotations
 

@@ -1,5 +1,10 @@
 """Write audit-verified encounters to the Knowledge Graph as training data.
 
+Atlas trace:
+  DO: DO-F1953D1C
+  DI: DI-65975321
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F1953D1C")
+
 Only de-identified text is stored. Raw patient/encounter IDs never enter the
 KG. Mirrors the DI-ID gate in ``persist.write_gold_training``.
 """

@@ -1,5 +1,10 @@
 """Plain-English headline generator for Pathway Explorer algorithm results.
 
+Atlas trace:
+  DO: DO-38C2D850
+  DI: DI-58988BF2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-38C2D850")
+
 Each mission has a template that turns raw algorithm output into a
 single, confident, jargon-free sentence that a clinician will understand.
 

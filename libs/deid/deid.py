@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-9BF76337
+  DI: DI-8A943628
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-9BF76337")
+
 De-identification pass for clinical text before NER extraction (GAP-008).
 
 Replaces patient-identifiable patterns (names, postcodes, NHS numbers, dates,

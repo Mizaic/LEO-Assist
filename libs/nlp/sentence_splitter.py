@@ -1,5 +1,11 @@
 """Canonical sentence splitter for clinical text.
 
+Atlas trace:
+  DO: DO-1D5031E0
+  Also implements: DO-27B414B3, DO-8620A68B
+  DI: DI-12015DBC, DI-5A802C83, DI-702F4583, DI-DA7584D8
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-1D5031E0")
+
 Provides a lightweight sentence splitter that handles clinical text.
 Can optionally use MedSpaCy's PyRuSH for more accurate splits.
 All pipeline code should import from here — do NOT duplicate.

@@ -1,4 +1,10 @@
-"""Cypher queries for ConceptMap CRUD against the Knowledge Graph."""
+"""Cypher queries for ConceptMap CRUD against the Knowledge Graph.
+
+Atlas trace:
+  DO: DO-1373B71F
+  DI: DI-17B5738E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-1373B71F")
+"""
 
 CONCEPTMAP_UPSERT = """
 MERGE (c:ConceptMap {id: $conceptMapId})

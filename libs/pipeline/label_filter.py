@@ -1,5 +1,10 @@
 """Filtering and span-realignment helpers for the GoldLabel export pipeline.
 
+Atlas trace:
+  DO: DO-16CE412B
+  DI: DI-FE1BC901
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-16CE412B")
+
 Shared between the training worker (label_exporter.py) and the read-only
 API diagnostics endpoint so dropped entities can be inspected on demand
 without triggering a full training export.

@@ -1,4 +1,10 @@
-"""Patient and encounter endpoints reading from patient Neo4j graph."""
+"""Patient and encounter endpoints reading from patient Neo4j graph.
+
+Atlas trace:
+  DO: DO-9530152E
+  DI: DI-DD67ACFF, DO-F78C84A6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-9530152E")
+"""
 
 from __future__ import annotations
 

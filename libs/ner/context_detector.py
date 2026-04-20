@@ -1,5 +1,10 @@
 """Situation lookup normalisation for UK primary care NER entities.
 
+Atlas trace:
+  DO: DO-170F0DEE
+  DI: DI-31126C6C, DI-3B3F7D4B
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-170F0DEE")
+
 Context assertion detection (negation, historical, hypothetical, declined)
 has been moved to libs/ner/context_engine.py which uses MedSpaCy ConText.
 

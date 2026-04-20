@@ -1,5 +1,11 @@
 """V2 clinical entity extraction prompt - INSTRUCTIONS ONLY.
 
+Atlas trace:
+  DO: DO-0289F3A5
+  Also implements: DO-4D563ADF, DO-54397CCD, DO-94EAC337, DO-A11695DB
+  DI: DI-48AD06E5, DI-6A0B55A4, DI-6EFD68D0, DI-A0C90595, DI-B2512CB3, DI-F298AE65
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0289F3A5")
+
 Output format and few-shot examples are stored separately in Neo4j and
 assembled at runtime by the extractor. Do NOT add output format sections
 or inline examples to this file - manage them via the Admin UI at

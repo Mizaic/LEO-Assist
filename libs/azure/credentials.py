@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-25BFD246
+  DI: DI-81E8F4B8
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-25BFD246")
+
 Shared credential singletons for sync and async Azure SDK clients.
 
 In Azure Container Apps: resolves via the user-assigned managed identity

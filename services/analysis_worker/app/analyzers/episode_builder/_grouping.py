@@ -1,4 +1,11 @@
-"""Grouping algorithms: diagnosis-led grouping, specialist claiming, phantom detection."""
+"""Grouping algorithms: diagnosis-led grouping, specialist claiming, phantom detection.
+
+Atlas trace:
+  DO: DO-0C7A443A
+  Also implements: DO-694875ED
+  DI: DI-FC264BBF, DI-FF9C74E2, DO-B7FCDAFB
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0C7A443A")
+"""
 
 from __future__ import annotations
 
