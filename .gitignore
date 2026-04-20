@@ -188,6 +188,8 @@ storybook-static/
 # ============================================================
 
 secrets/
+secrets.zip
+*.zip
 *.pem
 *.key
 *.p12
