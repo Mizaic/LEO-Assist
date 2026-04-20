@@ -484,18 +484,23 @@ class LLMClient:
 
         _RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
-        # Redact key for logging — show last 4 chars only
+        # Redact key for logging - never log any portion of the API key.
+        # The previous implementation logged the last 4 characters as a
+        # "hint" but those 4 chars meaningfully shrink the search space for
+        # an attacker who has obtained log files (and the same 4 chars
+        # appear across dozens of log lines below). We now log only whether
+        # a key is configured.
         _endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "<not set>")
-        _key_hint = (os.getenv("AZURE_OPENAI_API_KEY") or "")[-4:] or "<not set>"
+        _key_status = "configured" if os.getenv("AZURE_OPENAI_API_KEY") else "missing"
         _api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
 
         logger.debug(
-            "Azure call START: model=%s endpoint=%s api_version=%s key=****%s "
+            "Azure call START: model=%s endpoint=%s api_version=%s key=%s "
             "max_completion_tokens=%s reasoning_effort=%s use_reasoning=%s",
             self.model_id,
             _endpoint,
             _api_version,
-            _key_hint,
+            _key_status,
             kwargs.get("max_completion_tokens"),
             kwargs.get("reasoning_effort"),
             self.use_reasoning,
@@ -532,7 +537,7 @@ class LLMClient:
                 if attempt == _max_retries:
                     logger.error(
                         "Azure %s: TIMEOUT after %.1fs on final attempt %d/%d. "
-                        "endpoint=%s model=%s key=****%s — check Azure portal for "
+                        "endpoint=%s model=%s key=%s -- check Azure portal for "
                         "deployment health and regional capacity.",
                         self.model_id,
                         elapsed,
@@ -540,22 +545,22 @@ class LLMClient:
                         _max_retries,
                         _endpoint,
                         self.model_id,
-                        _key_hint,
+                        _key_status,
                     )
                     raise
                 delay = min(
                     _max_delay, _base_delay * (2 ** (attempt - 1))
                 ) + random.uniform(0, 0.5)
                 logger.warning(
-                    "Azure %s: TIMEOUT after %.1fs on attempt %d/%d — retrying in %.1fs. "
-                    "endpoint=%s key=****%s",
+                    "Azure %s: TIMEOUT after %.1fs on attempt %d/%d -- retrying in %.1fs. "
+                    "endpoint=%s key=%s",
                     self.model_id,
                     elapsed,
                     attempt,
                     _max_retries,
                     delay,
                     _endpoint,
-                    _key_hint,
+                    _key_status,
                 )
                 time.sleep(delay)
                 continue
@@ -566,14 +571,14 @@ class LLMClient:
                 if attempt == _max_retries:
                     logger.error(
                         "Azure %s: CONNECTION ERROR after %.1fs on final attempt %d/%d. "
-                        "endpoint=%s key=****%s — is the endpoint reachable from this host? "
+                        "endpoint=%s key=%s -- is the endpoint reachable from this host? "
                         "Error: %s",
                         self.model_id,
                         elapsed,
                         attempt,
                         _max_retries,
                         _endpoint,
-                        _key_hint,
+                        _key_status,
                         exc,
                     )
                     raise
@@ -615,13 +620,13 @@ class LLMClient:
                     continue
                 logger.error(
                     "Azure %s: HTTP %s after %.1fs (not retrying). "
-                    "endpoint=%s model=%s key=****%s request_id=%s body=%.300s",
+                    "endpoint=%s model=%s key=%s request_id=%s body=%.300s",
                     self.model_id,
                     exc.status_code,
                     elapsed,
                     _endpoint,
                     self.model_id,
-                    _key_hint,
+                    _key_status,
                     getattr(exc, "request_id", "?"),
                     str(getattr(exc, "response", ""))[:300],
                 )

@@ -287,7 +287,15 @@ class ModelStore:
             unpack_dir,
         )
         with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as tar:
-            tar.extractall(unpack_dir)
+            # Use the 'data' filter (Python 3.12+) to reject members with
+            # absolute paths, '..' traversal, device files, or symlinks
+            # pointing outside the extraction directory. Falls back to the
+            # 'tar' filter on older interpreters which still blocks the
+            # most dangerous tarbomb / Zip-Slip patterns.
+            extract_kwargs: dict[str, str] = {}
+            if hasattr(tarfile, "data_filter"):
+                extract_kwargs["filter"] = "data"
+            tar.extractall(unpack_dir, **extract_kwargs)
 
         if not local_model_dir.exists():
             raise RuntimeError(
