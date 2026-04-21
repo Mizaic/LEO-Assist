@@ -15,10 +15,6 @@ const HISTOGRAM_BAR_PATH = resolve(
   __dirname,
   "../../components/mission-control/TimelineHistogramBar.tsx"
 );
-const POPOVER_PATH = resolve(
-  __dirname,
-  "../../components/mission-control/TimelineBinPopover.tsx"
-);
 const BRUSH_PATH = resolve(
   __dirname,
   "../../components/mission-control/TimelineRangeBrush.tsx"
@@ -82,12 +78,15 @@ describe("EncounterTimelineScrubber static source - VT-LEO-AI-173", () => {
     expect(src).toMatch(/top:\s*0/);
   });
 
-  test("scrubber composes binning helpers, brush, and popover siblings", () => {
+  test("scrubber composes binning helpers and brush siblings", () => {
     expect(src).toMatch(/from\s*["']\.\/timelineBins["']/);
-    expect(src).toMatch(/from\s*["']\.\/TimelineBinPopover["']/);
     expect(src).toMatch(/from\s*["']\.\/TimelineRangeBrush["']/);
     expect(src).toMatch(/buildBins/);
     expect(src).toMatch(/pickGranularity/);
+  });
+
+  test("scrubber no longer imports the legacy bin popover (DI-15E0094F)", () => {
+    expect(src).not.toMatch(/TimelineBinPopover/);
   });
 
   test("scrubber wires reset zoom button only when zoomed", () => {
@@ -112,20 +111,6 @@ describe("timelineBins helpers - VT-LEO-AI-173", () => {
     expect(src).toMatch(/export function buildDated/);
     expect(src).toMatch(/export function pickGranularity/);
     expect(src).toMatch(/export function clampRange/);
-  });
-});
-
-describe("TimelineBinPopover static source - VT-LEO-AI-173", () => {
-  const src = readSource(POPOVER_PATH);
-
-  test("popover exposes data-testid and per-row data-encounter-id markers", () => {
-    expect(src).toMatch(/data-testid=["']timeline-bin-popover["']/);
-    expect(src).toMatch(/data-popover-row=["']true["']/);
-    expect(src).toMatch(/data-encounter-id=\{id\}/);
-  });
-
-  test("popover handles Escape to close", () => {
-    expect(src).toMatch(/event\.key\s*===\s*["']Escape["']/);
   });
 });
 
@@ -283,5 +268,75 @@ describe("EncounterTimelineScrubber overlays - VT-LEO-AI-205", () => {
   test("VT-205-TC-OVERLAY-005: milestone markers expose accessible labels and keyboard activation", () => {
     expect(overlaysSrc).toMatch(/aria-label=\{`Milestone:/);
     expect(overlaysSrc).toMatch(/event\.key === "Enter"/);
+  });
+});
+
+// VT-827AA57F: histogram search overlay + click-to-filter (Atlas
+// DI-15E0094F, DO-7986A957). The reviewer types in the search box,
+// the scrubber dims non-matching bins and outlines matching bins
+// with an amber ring; clicking any bar always sets the visible
+// range to that bar's [startMs, endMs] (no jump-to-encounter and
+// no popover -- removed by DI-15E0094F).
+describe("EncounterTimelineScrubber search overlay - VT-827AA57F", () => {
+  const src = readSource(SCRUBBER_PATH);
+  const barSrc = readSource(HISTOGRAM_BAR_PATH);
+  const tabSrc = readSource(TAB_PATH);
+
+  test("VT-827AA57F-TC-001: scrubber accepts a searchMatchEncounterIds prop", () => {
+    expect(src).toMatch(/searchMatchEncounterIds\?:\s*Set<string>/);
+  });
+
+  test("VT-827AA57F-TC-002: scrubber tracks searchActive from the prop and threads it to bars", () => {
+    expect(src).toMatch(/const searchActive\s*=\s*searchMatchEncounterIds\s*!==\s*undefined/);
+    expect(src).toMatch(/searchActive=\{searchActive\}/);
+    expect(src).toMatch(/hasSearchMatch=\{searchMatchCountByBin\[idx\]\s*>\s*0\}/);
+    expect(src).toMatch(/searchMatchCount=\{searchMatchCountByBin\[idx\]\}/);
+  });
+
+  test("VT-827AA57F-TC-003: HistogramBar dims non-matching bins and outlines matching bins", () => {
+    expect(barSrc).toMatch(/searchActive\?:\s*boolean/);
+    expect(barSrc).toMatch(/hasSearchMatch\?:\s*boolean/);
+    expect(barSrc).toMatch(/data-search-active=\{searchActive\s*\?\s*["']true["']\s*:\s*["']false["']\}/);
+    expect(barSrc).toMatch(/data-search-match=\{hasSearchMatch\s*\?\s*["']true["']\s*:\s*["']false["']\}/);
+    expect(barSrc).toMatch(/data-testid=["']timeline-search-match-ring["']/);
+    expect(barSrc).toMatch(/SEARCH_DIMMED_OPACITY/);
+    expect(barSrc).toMatch(/COLOR_SEARCH_MATCH_RING/);
+  });
+
+  test("VT-827AA57F-TC-004: bar click always sets visible range (no jump, no popover)", () => {
+    // Click handler clamps the bin range against full range and
+    // calls onVisibleRangeChange (controlled) or sets internal zoom
+    // (uncontrolled). The handleBarActivate body MUST NOT call
+    // onJumpToEncounter or touch any popover state for any bar.
+    const bodyMatch = src.match(
+      /const\s+handleBarActivate\s*=\s*\(bar:\s*BarRect\)\s*=>\s*\{([\s\S]*?)\n\s*\};/
+    );
+    expect(bodyMatch).not.toBeNull();
+    const body = bodyMatch![1];
+    expect(body).toMatch(/clampRange\(bar\.bin\.startMs,\s*bar\.bin\.endMs/);
+    expect(body).toMatch(/onVisibleRangeChange/);
+    expect(body).not.toMatch(/onJumpToEncounter/);
+    expect(body).not.toMatch(/popover/i);
+  });
+
+  test("VT-827AA57F-TC-005: scrubber no longer renders TimelineBinPopover", () => {
+    expect(src).not.toMatch(/<TimelineBinPopover/);
+    expect(src).not.toMatch(/popoverBar/);
+    expect(src).not.toMatch(/popoverBinKey/);
+  });
+
+  test("VT-827AA57F-TC-006: caption copy advertises click-to-filter behaviour", () => {
+    expect(src).toMatch(/Click a bar to filter the list to that period/);
+    expect(src).not.toMatch(/Click a bar to jump\b/);
+  });
+
+  test("VT-827AA57F-TC-007: EncounterTextTab computes searchMatchEncounterIds and passes it to the scrubber", () => {
+    expect(tabSrc).toMatch(/searchMatchEncounterIds\s*=\s*useMemo/);
+    expect(tabSrc).toMatch(/searchMatchEncounterIds=\{searchMatchEncounterIds\}/);
+    // The match-set ignores codedOnly + timelineRange so the
+    // overlay reflects the entire patient timeline.
+    expect(tabSrc).toMatch(
+      /applyCommonFilters\(encounters,\s*\{[\s\S]*codedOnly:\s*false[\s\S]*search,[\s\S]*timelineRange:\s*null/
+    );
   });
 });

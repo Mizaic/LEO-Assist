@@ -245,6 +245,45 @@ class KnowledgeGraphClient(_BaseClient):
         )
 
 
+def _async_pool_kwargs() -> dict:
+    """Hardening kwargs shared by every async driver.
+
+    - liveness_check_timeout: lightweight ping before reusing a pooled
+      connection that has been idle for more than this many seconds.
+      Catches connections that the Aura load-balancer closed silently
+      while the worker was busy with an LLM call.
+    - max_connection_lifetime: forcibly recycle connections after this
+      many seconds. Aura closes the underlying TCP socket after roughly
+      five minutes of idleness, which surfaces as BrokenPipeError on the
+      next write. Recycling at four minutes stays inside that window.
+    - max_connection_pool_size: bound per-process pool. Async workers
+      tend to fan out -- 50 is plenty for a single uvicorn worker and
+      keeps any one process from exhausting the cluster-wide quota.
+    - connection_acquisition_timeout: do not hang forever waiting for a
+      pooled connection if the pool is saturated.
+    """
+    return {
+        "liveness_check_timeout": 5,
+        "max_connection_lifetime": int(
+            os.getenv("NEO4J_MAX_CONNECTION_LIFETIME", "240")
+        ),
+        "max_connection_pool_size": int(os.getenv("NEO4J_MAX_POOL_SIZE", "50")),
+        "connection_acquisition_timeout": float(
+            os.getenv("NEO4J_ACQUIRE_TIMEOUT", "60")
+        ),
+    }
+
+
+def _build_async_driver(uri: str, username: str, password: str):
+    """Create an async driver with the hardening kwargs, falling back if
+    the installed neo4j package does not recognise one of them."""
+    kwargs = _async_pool_kwargs()
+    try:
+        return AsyncGraphDatabase.driver(uri, auth=(username, password), **kwargs)
+    except ConfigurationError:
+        return AsyncGraphDatabase.driver(uri, auth=(username, password))
+
+
 def get_async_driver():
     """Return an async Neo4j driver for the Knowledge Graph.
 
@@ -257,7 +296,7 @@ def get_async_driver():
     password = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
     if not all([uri, username, password]):
         raise RuntimeError("Neo4j credentials missing for async knowledge graph driver")
-    return AsyncGraphDatabase.driver(uri, auth=(username, password))
+    return _build_async_driver(uri, username, password)
 
 
 def get_async_patient_driver():
@@ -269,4 +308,4 @@ def get_async_patient_driver():
     )
     if not all([uri, username, password]):
         raise RuntimeError("Neo4j credentials missing for async patient graph driver")
-    return AsyncGraphDatabase.driver(uri, auth=(username, password))
+    return _build_async_driver(uri, username, password)

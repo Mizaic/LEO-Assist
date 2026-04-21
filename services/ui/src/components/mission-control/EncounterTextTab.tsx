@@ -13,54 +13,66 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { MissionEpisode } from "@/lib/missionControlApi";
-import { fetchEncounterCodedLinks } from "@/lib/api";
 import { useEpisodeEncounterLocks } from "./useEpisodeEncounterLocks";
+import { useEncounterCodedLinks } from "./useEncounterCodedLinks";
 import { padRange } from "./encounterTextRange";
-import type { CodedLink } from "@/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { sortByIsoDateAsc } from "@/lib/dateSort";
 import EncounterCard from "./EncounterCard";
 import EncounterTimelineScrubber from "./EncounterTimelineScrubber";
-import { MILESTONE_LABELS, shortDate } from "./encounterTextUtils";
+import MilestoneJumpChips from "./MilestoneJumpChips";
+import MilestoneCurationDialog from "./MilestoneCurationDialog";
+import { shortDate } from "./encounterTextUtils";
 import { applyCommonFilters } from "./encounterFilters";
 import { useEncounterLoad, type Encounter } from "./useEncounterLoad";
 import { useEncounterRecode } from "./useEncounterRecode";
+import {
+  buildMilestoneLookup,
+  useMilestoneCuration,
+} from "./useMilestoneCuration";
 
 interface Props {
   patientId: string;
   episode: MissionEpisode;
+  /** Sibling episodes for this patient. The MilestoneCurationDialog
+   *  picker offers any of these as the milestone target so a
+   *  reviewer can re-attach an encounter to a different episode
+   *  without leaving the drawer. Defaults to [episode]. */
+  episodes?: MissionEpisode[];
+  /** Reviewer role; threaded through to the curation dialog so its
+   *  audit-event payload picks up the right actor. */
+  reviewerRole?: string;
   /** Bubbles a coding-change signal so the drawer refreshes
    *  sibling tabs (CodedDataTab, AuditTrailTab) live. */
   onCodingChanged?: () => void;
 }
 
-interface MilestoneJump {
-  key: string;
-  encounterId: string;
-  label: string;
-  date: string | null;
-}
-
 export default function EncounterTextTab({
   patientId,
   episode,
+  episodes,
+  reviewerRole = "developer",
   onCodingChanged,
 }: Props) {
   const { encounters, loading, error, refresh } = useEncounterLoad(patientId);
   const [codedOnly, setCodedOnly] = useState(false);
   const [search, setSearch] = useState("");
-  const [codedByEncounter, setCodedByEncounter] = useState<Record<string, CodedLink[]>>({});
-  const [codingErrorByEncounter, setCodingErrorByEncounter] = useState<
-    Record<string, string>
-  >({});
-  const [codingLoadingFor, setCodingLoadingFor] = useState<Record<string, boolean>>({});
+  const codedLinks = useEncounterCodedLinks(patientId);
+  const {
+    codedByEncounter,
+    codingErrorByEncounter,
+    codingLoadingFor,
+    fetchFor: fetchCodesForEncounter,
+    invalidate: invalidateCodedFor,
+    clearLinks: clearCodedFor,
+    reset: resetCodedCache,
+  } = codedLinks;
   const [collapsedEncounters, setCollapsedEncounters] = useState<Record<string, boolean>>({});
   const [confirmResetEncounterId, setConfirmResetEncounterId] = useState<string | null>(null);
   const [focusedEncounterId, setFocusedEncounterId] = useState<string | null>(null);
@@ -70,47 +82,23 @@ export default function EncounterTextTab({
   >(null);
   const encounterRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const encounterLocks = useEpisodeEncounterLocks(episode.episode_id);
+  const dialogEpisodes = useMemo(
+    () => (episodes && episodes.length > 0 ? episodes : [episode]),
+    [episodes, episode]
+  );
+  const milestoneLookup = useMemo(
+    () => buildMilestoneLookup(dialogEpisodes),
+    [dialogEpisodes]
+  );
+  const curate = useMilestoneCuration(encounters);
 
-  const loadedRef = useRef<Set<string>>(new Set());
-  const loadingRef = useRef<Set<string>>(new Set());
   const defaultRangeAppliedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    loadedRef.current = new Set();
-    loadingRef.current = new Set();
-    setCodedByEncounter({});
-    setCodingErrorByEncounter({});
-    setCodingLoadingFor({});
+    resetCodedCache();
     setCollapsedEncounters({});
     defaultRangeAppliedRef.current = null;
-  }, [patientId, episode.episode_id]);
-
-  const fetchCodesForEncounter = useCallback(
-    async (encounterId: string) => {
-      const key = String(encounterId);
-      if (loadedRef.current.has(key) || loadingRef.current.has(key)) return;
-      loadingRef.current.add(key);
-      setCodingLoadingFor((prev) => ({ ...prev, [key]: true }));
-      setCodingErrorByEncounter((prev) => ({ ...prev, [key]: "" }));
-      try {
-        const links = await fetchEncounterCodedLinks(patientId, key);
-        loadedRef.current.add(key);
-        setCodedByEncounter((prev) => ({ ...prev, [key]: links }));
-      } catch (e) {
-        setCodingErrorByEncounter((prev) => ({
-          ...prev,
-          [key]:
-            e instanceof Error
-              ? e.message
-              : "Could not load coded concepts for this encounter.",
-        }));
-      } finally {
-        loadingRef.current.delete(key);
-        setCodingLoadingFor((prev) => ({ ...prev, [key]: false }));
-      }
-    },
-    [patientId]
-  );
+  }, [patientId, episode.episode_id, resetCodedCache]);
 
   // Stabilise milestones/linked_encounter_ids so downstream memos and
   // effects do not refire when the field is undefined (`?? []` would
@@ -210,6 +198,23 @@ export default function EncounterTextTab({
     return sortByIsoDateAsc(filtered, (e) => e.date ?? null);
   }, [encounters, codedOnly, search, timelineRange]);
 
+  // Search match overlay for the histogram (DI-15E0094F). Only the
+  // free-text search affects which bars are highlighted -- the
+  // Coded-only switch and the brush window stay independent so the
+  // reviewer can see "where in the patient's life is this term"
+  // without the brush hiding any bars. `undefined` means "no
+  // search active"; an empty Set means "search active but zero
+  // matches anywhere".
+  const searchMatchEncounterIds = useMemo<Set<string> | undefined>(() => {
+    if (!search.trim()) return undefined;
+    const matched = applyCommonFilters(encounters, {
+      codedOnly: false,
+      search,
+      timelineRange: null,
+    });
+    return new Set(matched.map((e) => String(e.encounter_id)));
+  }, [encounters, search]);
+
   useEffect(() => {
     if (loading) return;
     visibleEncounters.forEach((enc) => {
@@ -218,10 +223,12 @@ export default function EncounterTextTab({
     });
   }, [visibleEncounters, loading, fetchCodesForEncounter]);
 
-  const handleRecodeCleared = useCallback((encounterId: string) => {
-    setCodedByEncounter((prev) => ({ ...prev, [encounterId]: [] }));
-    loadedRef.current.delete(String(encounterId));
-  }, []);
+  const handleRecodeCleared = useCallback(
+    (encounterId: string) => {
+      clearCodedFor(encounterId);
+    },
+    [clearCodedFor]
+  );
   const recode = useEncounterRecode({
     patientId,
     refresh,
@@ -231,24 +238,6 @@ export default function EncounterTextTab({
     setConfirmResetEncounterId(null);
     void recode.start(encounterId);
   };
-
-  const milestoneJumps = useMemo<MilestoneJump[]>(() => {
-    const rows = milestones
-      .filter((m) => Boolean(m.encounter_id))
-      .map((m, idx) => ({
-        key: `${m.milestone_type}-${m.encounter_id}-${idx}`,
-        encounterId: String(m.encounter_id),
-        label: MILESTONE_LABELS[m.milestone_type] ?? m.milestone_type.replaceAll("_", " "),
-        date: m.date ?? null,
-      }));
-    return rows.sort((a, b) => {
-      const ta = Date.parse(a.date ?? "");
-      const tb = Date.parse(b.date ?? "");
-      if (!Number.isFinite(ta)) return 1;
-      if (!Number.isFinite(tb)) return -1;
-      return ta - tb;
-    });
-  }, [milestones]);
 
   const jumpToEncounter = useCallback((encounterId: string) => {
     setCodedOnly(false);
@@ -356,6 +345,10 @@ export default function EncounterTextTab({
         codingLinks={codedByEncounter[encounterKey] ?? []}
         codingError={codingErrorByEncounter[encounterKey]}
         lockSummary={encounterLocks[encounterKey] ?? null}
+        currentMilestoneType={
+          milestoneLookup.get(encounterKey)?.milestoneType ?? null
+        }
+        onCurateMilestone={() => curate.open(enc)}
         onToggle={() =>
           setCollapsedEncounters((prev) => ({ ...prev, [encounterKey]: isExpanded }))
         }
@@ -365,7 +358,7 @@ export default function EncounterTextTab({
           // next render re-fetches from /coded-links and shows the
           // post-edit live state. Then bubble to the drawer so
           // sibling tabs refetch too. See DI-LEO-AI-221.
-          loadedRef.current.delete(encounterKey);
+          invalidateCodedFor(encounterKey);
           void fetchCodesForEncounter(encounterKey);
           onCodingChanged?.();
         }}
@@ -392,24 +385,11 @@ export default function EncounterTextTab({
           {recode.recodeMessage}
         </Alert>
       )}
-      {milestoneJumps.length > 0 && (
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
-          <Typography variant="caption" color="text.secondary">
-            Jump to milestone encounter:
-          </Typography>
-          {milestoneJumps.map((milestone) => (
-            <Chip
-              key={milestone.key}
-              size="small"
-              clickable
-              onClick={() => jumpToEncounter(milestone.encounterId)}
-              color={focusedEncounterId === milestone.encounterId ? "primary" : "default"}
-              variant={focusedEncounterId === milestone.encounterId ? "filled" : "outlined"}
-              label={`${milestone.label} - ${shortDate(milestone.date)}`}
-            />
-          ))}
-        </Box>
-      )}
+      <MilestoneJumpChips
+        milestones={milestones}
+        focusedEncounterId={focusedEncounterId}
+        onJump={jumpToEncounter}
+      />
 
       <EncounterTimelineScrubber
         encounters={encounters}
@@ -422,6 +402,7 @@ export default function EncounterTextTab({
         visibleFromMs={timelineRange?.fromMs ?? null}
         visibleToMs={timelineRange?.toMs ?? null}
         onVisibleRangeChange={handleTimelineRangeChange}
+        searchMatchEncounterIds={searchMatchEncounterIds}
       />
       {timelineRange && (
         <Alert
@@ -489,6 +470,25 @@ export default function EncounterTextTab({
           onConfirm={() => void handleResetAndRecode(confirmResetEncounterId)}
         />
       )}
+      <MilestoneCurationDialog
+        open={Boolean(curate.target)}
+        triggerEncounter={curate.triggerEncounter}
+        sameDayEncounters={curate.sameDayEncounters}
+        episodes={dialogEpisodes}
+        defaultEpisodeId={episode.episode_id}
+        existingLink={
+          curate.target
+            ? milestoneLookup.get(String(curate.target.encounter_id)) ?? null
+            : null
+        }
+        reviewerRole={reviewerRole}
+        onClose={curate.close}
+        onChanged={() => {
+          curate.close();
+          refresh();
+          onCodingChanged?.();
+        }}
+      />
     </Box>
   );
 }

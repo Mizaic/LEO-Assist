@@ -3,11 +3,17 @@
  * when the inline encounter editor commits a coding change.
  *
  * Atlas trace:
- *   DO: DO-EE78E305 (Patient detail drawer)
- *   Also touches: DO-146D93D0 (CodedDataTab, AuditTrailTab),
- *                 DO-5312F884 (EncounterCard inline editor)
- *   DI: DI-6EA84931
- *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-6EA84931")
+ *   VT: VT-E3F857AA
+ *   VERIFIES: DI-AA1F5F5B (Mission Control SHALL co-locate AI
+ *             output, state, and actions; AC: "Live pipeline events
+ *             appear without manual refresh", "Reviewer actions
+ *             complete optimistically and reconcile against the
+ *             server response.")
+ *   TESTS:    DO-5312F884 (Mission Control UI implementation,
+ *             services/ui/src/components/mission-control/*)
+ *   Parent UN: UN-0A3167F4
+ *   Look up via:
+ *     get_design_control(dc_type="verification-test", dc_id="VT-E3F857AA")
  *
  * Bug fixed: opening /care/patients?lifecycle_bucket=confirmed_cancer,
  * editing codes inside the side drawer, and saving did not refresh

@@ -36,6 +36,9 @@ from services.analytics_api.app.routers.cohorts import (
     seed_nhs_cohorts,
 )
 from services.analytics_api.app.routers.dashboards import router as dashboard_router
+from services.analytics_api.app.routers.episode_crud import (
+    router as episode_crud_router,
+)
 from services.analytics_api.app.routers.domains import router as domain_router
 from services.analytics_api.app.routers.imd import router as imd_router
 from services.analytics_api.app.routers.cci import router as cci_router
@@ -144,6 +147,9 @@ app.add_middleware(ServerTimingMiddleware)
 
 app.include_router(org_context_router, prefix="/analytics", tags=["auth"])
 app.include_router(dashboard_router, prefix="/analytics", tags=["dashboards"])
+app.include_router(
+    episode_crud_router, prefix="/analytics", tags=["episode-crud"]
+)
 app.include_router(cohort_router, prefix="/analytics", tags=["cohorts"])
 app.include_router(domain_router, prefix="/analytics", tags=["domains"])
 app.include_router(imd_router, prefix="/analytics", tags=["imd"])

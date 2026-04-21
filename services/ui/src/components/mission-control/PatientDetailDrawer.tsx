@@ -20,14 +20,28 @@ import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import Close from "@mui/icons-material/Close";
 import RestartAlt from "@mui/icons-material/RestartAlt";
+import Tooltip from "@mui/material/Tooltip";
+import Add from "@mui/icons-material/Add";
+import Edit from "@mui/icons-material/Edit";
+import DeleteOutline from "@mui/icons-material/DeleteOutline";
+import { useRole } from "@leo/design-system";
 import AuditTrailTab from "./AuditTrailTab";
 import CodedDataTab from "./CodedDataTab";
 import EncounterTextTab from "./EncounterTextTab";
 import OverviewTab from "./OverviewTab";
+import CreateEpisodeDialog from "./CreateEpisodeDialog";
+import EditEpisodeDialog from "./EditEpisodeDialog";
+import DeleteEpisodeConfirm from "./DeleteEpisodeConfirm";
 import type { MissionEpisode, MissionPatient } from "@/lib/missionControlApi";
 import { getCancerTypeLabel } from "@/lib/pathwayLabels";
 import { rerunEpisodeDetector } from "@/lib/missionControlApi";
 import ConfirmDialog from "@/components/ConfirmDialog";
+
+const EPISODE_CURATOR_ROLES = new Set([
+  "clinician",
+  "qa_ra_lead",
+  "platform_admin",
+]);
 
 const DRAWER_WIDTH = "62vw";
 
@@ -64,12 +78,41 @@ export default function PatientDetailDrawer({
   const [focusedEpisodeId, setFocusedEpisodeId] = useState(
     patient.episodes[0]?.episode_id ?? ""
   );
+  // Manual EpisodeOfCare CRUD dialogs (DI-3A19BE12 / DI-F4C06C92 /
+  // DI-41B71BF8 / DI-B35DCA0F / DI-6C3E4783). Role-gated locally;
+  // the backend enforces the same gate independently. Verified by
+  // VT-26729755 / VT-79845292 / VT-B5EE8C55 / VT-4A333473 /
+  // VT-80AAC194.
+  const { selectedRole } = useRole();
+  const reviewerRole = selectedRole ?? "";
+  const isEpisodeCurator = EPISODE_CURATOR_ROLES.has(reviewerRole);
+  const [editEpisodeOpen, setEditEpisodeOpen] = useState(false);
+  const [deleteEpisodeOpen, setDeleteEpisodeOpen] = useState(false);
+  const [createEpisodeOpen, setCreateEpisodeOpen] = useState(false);
+  const triggerPatientRefresh = () => {
+    if (onPatientRebuilt) {
+      void onPatientRebuilt(patient.patient_id);
+    }
+  };
+  const handleEpisodeCreated = (newEpisodeId: string) => {
+    setFocusedEpisodeId(newEpisodeId);
+    triggerPatientRefresh();
+  };
+  const handleEpisodeRemoved = (episodeId: string) => {
+    if (focusedEpisodeId === episodeId) {
+      const next = patient.episodes.find((e) => e.episode_id !== episodeId);
+      setFocusedEpisodeId(next?.episode_id ?? "");
+    }
+    triggerPatientRefresh();
+  };
   // Bumped whenever a child surface (today: the encounter text editor)
   // commits a coding change. Sibling tabs that fetch their own
   // patient-scoped data observe this nonce in their effect deps so
   // they refetch live data without the user having to close and
-  // reopen the drawer (DI-6EA84931 acceptance: "drawer reflects
-  // the latest coded state after an inline save").
+  // reopen the drawer. Verifies DI-AA1F5F5B AC: "Live pipeline
+  // events appear without manual refresh" and "Reviewer actions
+  // complete optimistically and reconcile against the server
+  // response." Pinned by VT-E3F857AA.
   const [refreshNonce, setRefreshNonce] = useState(0);
   const bumpRefresh = () => setRefreshNonce((n) => n + 1);
 
@@ -246,35 +289,104 @@ export default function PatientDetailDrawer({
         </Box>
       )}
 
-      {/* Tabs */}
-      {patient.episodes.length > 1 && (
-        <Box
-          sx={{
-            px: 3,
-            py: 1,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            display: "flex",
-            gap: 1,
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
-        >
+      {/* Episode focus chips + manual CRUD affordances. The +New /
+          Edit / Delete buttons are role-gated locally; the backend
+          enforces the same gate independently. */}
+      <Box
+        sx={{
+          px: 3,
+          py: 1,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          display: "flex",
+          gap: 1,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+        data-testid="patient-drawer-episode-controls"
+      >
+        {patient.episodes.length > 0 && (
           <Typography variant="caption" color="text.secondary">
             Episode in focus:
           </Typography>
-          {patient.episodes.map((ep) => (
-            <Chip
-              key={ep.episode_id}
+        )}
+        {patient.episodes.map((ep) => (
+          <Chip
+            key={ep.episode_id}
+            size="small"
+            label={ep.cancer_type ? getCancerTypeLabel(ep.cancer_type) : ep.status}
+            variant={focusedEpisodeId === ep.episode_id ? "filled" : "outlined"}
+            color={focusedEpisodeId === ep.episode_id ? "primary" : "default"}
+            onClick={() => setFocusedEpisodeId(ep.episode_id)}
+          />
+        ))}
+        <Box sx={{ flex: 1 }} />
+        <Tooltip
+          title={
+            isEpisodeCurator
+              ? "Create a new episode"
+              : "Switch to clinician or QA / RA lead to create episodes"
+          }
+        >
+          <span>
+            <Button
               size="small"
-              label={ep.cancer_type ? getCancerTypeLabel(ep.cancer_type) : ep.status}
-              variant={focusedEpisodeId === ep.episode_id ? "filled" : "outlined"}
-              color={focusedEpisodeId === ep.episode_id ? "primary" : "default"}
-              onClick={() => setFocusedEpisodeId(ep.episode_id)}
-            />
-          ))}
-        </Box>
-      )}
+              variant="outlined"
+              startIcon={<Add fontSize="small" />}
+              onClick={() => setCreateEpisodeOpen(true)}
+              disabled={!isEpisodeCurator}
+              data-testid="patient-drawer-create-episode"
+            >
+              New episode
+            </Button>
+          </span>
+        </Tooltip>
+        {focusedEpisode && (
+          <>
+            <Tooltip
+              title={
+                isEpisodeCurator
+                  ? `Edit episode ${focusedEpisode.episode_id}`
+                  : "Switch to clinician or QA / RA lead to edit"
+              }
+            >
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<Edit fontSize="small" />}
+                  onClick={() => setEditEpisodeOpen(true)}
+                  disabled={!isEpisodeCurator}
+                  data-testid="patient-drawer-edit-episode"
+                >
+                  Edit
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip
+              title={
+                isEpisodeCurator
+                  ? `Delete episode ${focusedEpisode.episode_id}`
+                  : "Switch to clinician or QA / RA lead to delete"
+              }
+            >
+              <span>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteOutline fontSize="small" />}
+                  onClick={() => setDeleteEpisodeOpen(true)}
+                  disabled={!isEpisodeCurator}
+                  data-testid="patient-drawer-delete-episode"
+                >
+                  Delete
+                </Button>
+              </span>
+            </Tooltip>
+          </>
+        )}
+      </Box>
 
       <Box sx={{ borderBottom: "1px solid", borderColor: "divider", flexShrink: 0 }}>
         <Tabs
@@ -324,6 +436,8 @@ export default function PatientDetailDrawer({
               <EncounterTextTab
                 patientId={patient.patient_id}
                 episode={focusedEpisode}
+                episodes={patient.episodes}
+                reviewerRole={reviewerRole}
                 onCodingChanged={bumpRefresh}
               />
             ) : (
@@ -353,6 +467,40 @@ export default function PatientDetailDrawer({
           variant="danger"
           onConfirm={handleRebuildConfirmed}
           onCancel={() => setConfirmRebuild(false)}
+        />
+      )}
+      <CreateEpisodeDialog
+        open={createEpisodeOpen}
+        patientId={patient.patient_id}
+        reviewerRole={reviewerRole}
+        onClose={() => setCreateEpisodeOpen(false)}
+        onCreated={handleEpisodeCreated}
+      />
+      {focusedEpisode && (
+        <EditEpisodeDialog
+          open={editEpisodeOpen}
+          episode={focusedEpisode}
+          patientId={patient.patient_id}
+          siblingEpisodes={patient.episodes}
+          reviewerEmail={userEmail}
+          reviewerRole={reviewerRole}
+          onClose={() => setEditEpisodeOpen(false)}
+          onSaved={triggerPatientRefresh}
+          onEpisodeRemoved={handleEpisodeRemoved}
+        />
+      )}
+      {focusedEpisode && (
+        <DeleteEpisodeConfirm
+          open={deleteEpisodeOpen}
+          episodeId={focusedEpisode.episode_id}
+          episodeLabel={
+            focusedEpisode.cancer_type
+              ? getCancerTypeLabel(focusedEpisode.cancer_type)
+              : focusedEpisode.condition_type
+          }
+          reviewerRole={reviewerRole}
+          onClose={() => setDeleteEpisodeOpen(false)}
+          onDeleted={handleEpisodeRemoved}
         />
       )}
     </Drawer>

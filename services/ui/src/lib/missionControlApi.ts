@@ -771,3 +771,302 @@ export async function unlockEntity(
     }
   );
 }
+
+// ---------------------------------------------------------------------------
+// Manual EpisodeOfCare CRUD - DI-3A19BE12, DI-F4C06C92, DI-B35DCA0F,
+// DI-41B71BF8 / DOs DO-0792E2CB, DO-BDBEDA43, DO-13EA9B93, DO-CFB91205.
+// ---------------------------------------------------------------------------
+
+export interface EpisodeEncounterAttachment {
+  encounter_id: string;
+  milestone_type: string;
+}
+
+export interface EpisodeCreateBody {
+  patient_id: string;
+  cancer_type?: string | null;
+  condition_type?: string | null;
+  cancer_stage?: string | null;
+  referral_date?: string | null;
+  end_date?: string | null;
+  status?: string;
+  audit_notes?: string | null;
+  audit_flag?: string | null;
+  initial_encounter_links?: EpisodeEncounterAttachment[];
+}
+
+export interface EpisodeUpdateBody {
+  cancer_type?: string | null;
+  condition_type?: string | null;
+  cancer_stage?: string | null;
+  referral_date?: string | null;
+  end_date?: string | null;
+  inferred_outcome?: string | null;
+  audit_notes?: string | null;
+  audit_flag?: string | null;
+}
+
+export interface EpisodeDeleteBody {
+  confirm_episode_id: string;
+  reason?: string | null;
+}
+
+export interface EpisodeDerivedDates {
+  referral_date: string | null;
+  end_date: string | null;
+  diagnostic_interval_days: number | null;
+  primary_care_interval_days: number | null;
+}
+
+export interface EpisodeCreateResponse {
+  success: true;
+  episode_id: string;
+  patient_id: string;
+  derived_dates: EpisodeDerivedDates | null;
+}
+
+export interface EpisodeUpdateResponse {
+  success: true;
+  episode_id: string;
+  updated_fields: string[];
+}
+
+export interface EpisodeDeleteResponse {
+  success: true;
+  episode_id: string;
+  patient_id: string;
+}
+
+export interface EpisodeAttachResponse {
+  success: true;
+  episode_id: string;
+  encounter_id: string;
+  milestone_type: string;
+  derived_dates: EpisodeDerivedDates;
+}
+
+export interface EpisodeDetachResponse {
+  success: true;
+  episode_id: string;
+  encounter_id: string;
+  derived_dates: EpisodeDerivedDates;
+}
+
+/**
+ * POST /analytics/episodes - manually create an EpisodeOfCare from
+ * the patient drawer. The server enforces role gating
+ * (clinician / qa_ra_lead / platform_admin) and org-scope on
+ * `patient_id`. Optional `initial_encounter_links` are attached as
+ * IS_PART_OF edges and the episode dates are re-derived from them.
+ */
+export async function createEpisode(
+  body: EpisodeCreateBody
+): Promise<EpisodeCreateResponse> {
+  return fetchJson<EpisodeCreateResponse>(`${PROXY}/episodes`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * PATCH /analytics/episodes/{episodeId} - sparse patch on
+ * EpisodeOfCare properties. Only fields present in `body` are
+ * written; the server stamps `updated_by` / `updated_at` and writes
+ * an EpisodeManualUpdate AuditEvent with before / after snapshots.
+ */
+export async function updateEpisode(
+  episodeId: string,
+  body: EpisodeUpdateBody
+): Promise<EpisodeUpdateResponse> {
+  return fetchJson<EpisodeUpdateResponse>(
+    `${PROXY}/episodes/${encodeURIComponent(episodeId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
+/**
+ * DELETE /analytics/episodes/{episodeId} - hard delete with a
+ * type-the-id confirm gate. `confirm_episode_id` MUST equal
+ * `episodeId`; the server returns 400 before any graph write
+ * otherwise. Encounters survive the deletion (DETACH DELETE on the
+ * episode only). Writes an EpisodeManualDelete AuditEvent
+ * containing the full property snapshot of the deleted node.
+ */
+export async function deleteEpisode(
+  episodeId: string,
+  body: EpisodeDeleteBody
+): Promise<EpisodeDeleteResponse> {
+  return fetchJson<EpisodeDeleteResponse>(
+    `${PROXY}/episodes/${encodeURIComponent(episodeId)}`,
+    {
+      method: "DELETE",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
+/**
+ * POST /analytics/episodes/{episodeId}/encounters - attach an
+ * Encounter to an EpisodeOfCare with a milestone slot. The server
+ * tags the IS_PART_OF edge with `linked_by="manual_attach"` and
+ * re-derives the episode dates from the resulting attachments.
+ */
+export async function attachEncounterToEpisode(
+  episodeId: string,
+  body: EpisodeEncounterAttachment
+): Promise<EpisodeAttachResponse> {
+  return fetchJson<EpisodeAttachResponse>(
+    `${PROXY}/episodes/${encodeURIComponent(episodeId)}/encounters`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
+}
+
+/**
+ * DELETE /analytics/episodes/{episodeId}/encounters/{encounterId} -
+ * detach an Encounter from an EpisodeOfCare. Both nodes survive;
+ * only the IS_PART_OF edge is removed. Episode dates are re-derived
+ * afterwards.
+ */
+export async function detachEncounterFromEpisode(
+  episodeId: string,
+  encounterId: string
+): Promise<EpisodeDetachResponse> {
+  return fetchJson<EpisodeDetachResponse>(
+    `${PROXY}/episodes/${encodeURIComponent(
+      episodeId
+    )}/encounters/${encodeURIComponent(encounterId)}`,
+    {
+      method: "DELETE",
+    }
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inline milestone curation (DI-4B99678C / DO-7986A957). Wraps the
+// per-encounter attach/detach endpoints with same-day grouping so a
+// single milestone slot represents a "clinical day" rather than a
+// single encounter row. The server still records one EpisodeMilestone
+// per attached encounter; the orchestrator below loops over the
+// per-day encounter group and aggregates the per-call results so the
+// UI can report a single outcome to the reviewer.
+//
+// The helpers stay client-side for v1 (server endpoints are
+// unchanged) so the existing role gate, audit trail, and date
+// re-derive logic in the FastAPI handler are reused as-is.
+// ---------------------------------------------------------------------------
+
+export interface MilestoneAttachFailure {
+  encounter_id: string;
+  error: string;
+}
+
+export interface MilestoneDayResult {
+  success: boolean;
+  episode_id: string;
+  milestone_type: string;
+  date: string;
+  attempted: string[];
+  succeeded: string[];
+  failed: MilestoneAttachFailure[];
+  derived_dates: EpisodeDerivedDates | null;
+}
+
+export interface MilestoneAttachDayBody {
+  episodeId: string;
+  milestoneType: string;
+  date: string;
+  encounterIds: string[];
+}
+
+export interface MilestoneDetachDayBody {
+  episodeId: string;
+  encounterIds: string[];
+}
+
+/**
+ * Attach every encounter from the same calendar day to one milestone
+ * slot. Calls the per-encounter attach endpoint sequentially so a
+ * partial failure leaves the graph in a coherent state and we can
+ * return a precise list of which encounters did and did not attach.
+ *
+ * Per DI-4B99678C the milestone slot is (milestone_type, date), so
+ * the caller MUST hand in the full set of encounters on that
+ * calendar day. The orchestrator does NOT re-query the encounter
+ * list -- it trusts the day group built by the UI component.
+ */
+export async function attachEncounterDayToMilestone(
+  body: MilestoneAttachDayBody
+): Promise<MilestoneDayResult> {
+  const succeeded: string[] = [];
+  const failed: MilestoneAttachFailure[] = [];
+  let derived: EpisodeDerivedDates | null = null;
+  for (const encounterId of body.encounterIds) {
+    try {
+      const res = await attachEncounterToEpisode(body.episodeId, {
+        encounter_id: encounterId,
+        milestone_type: body.milestoneType,
+      });
+      succeeded.push(encounterId);
+      derived = res.derived_dates;
+    } catch (e) {
+      failed.push({
+        encounter_id: encounterId,
+        error: e instanceof Error ? e.message : "Could not attach encounter.",
+      });
+    }
+  }
+  return {
+    success: failed.length === 0 && succeeded.length > 0,
+    episode_id: body.episodeId,
+    milestone_type: body.milestoneType,
+    date: body.date,
+    attempted: body.encounterIds,
+    succeeded,
+    failed,
+    derived_dates: derived,
+  };
+}
+
+/**
+ * Detach every encounter from the same calendar day. Used by the
+ * Replace branch of the conflict flow (DI-4B99678C R-56B52B64) and
+ * by the per-card "Remove from milestone" affordance.
+ */
+export async function detachEncounterDayFromMilestone(
+  body: MilestoneDetachDayBody
+): Promise<MilestoneDayResult> {
+  const succeeded: string[] = [];
+  const failed: MilestoneAttachFailure[] = [];
+  let derived: EpisodeDerivedDates | null = null;
+  for (const encounterId of body.encounterIds) {
+    try {
+      const res = await detachEncounterFromEpisode(
+        body.episodeId,
+        encounterId
+      );
+      succeeded.push(encounterId);
+      derived = res.derived_dates;
+    } catch (e) {
+      failed.push({
+        encounter_id: encounterId,
+        error: e instanceof Error ? e.message : "Could not detach encounter.",
+      });
+    }
+  }
+  return {
+    success: failed.length === 0,
+    episode_id: body.episodeId,
+    milestone_type: "",
+    date: "",
+    attempted: body.encounterIds,
+    succeeded,
+    failed,
+    derived_dates: derived,
+  };
+}

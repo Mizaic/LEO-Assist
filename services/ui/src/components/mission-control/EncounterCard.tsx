@@ -34,6 +34,7 @@ import {
   type GoldLabel,
   type DualSaveEncounterContext,
 } from "@/components/gold-editor";
+import { milestoneLabel } from "./milestoneOptions";
 
 export interface EncounterCardData {
   encounter_id: string;
@@ -64,6 +65,14 @@ interface EncounterCardProps {
    * edges). The card renders a lock chip and disables the "Reset and
    * recode" affordance with a "Release lock to recode" hint. */
   lockSummary?: import("@/lib/missionControlApi").VerificationLockSummary | null;
+  /** When the encounter already fills a milestone slot anywhere in
+   *  the patient's episodes, this is the slot type. The button
+   *  renders as "Linked: <slot>" instead of "Add to milestone".
+   *  Inline curation -- DI-4B99678C. */
+  currentMilestoneType?: string | null;
+  /** Reviewer clicked the "Add to milestone" / "Linked: <slot>"
+   *  button. Parent opens MilestoneCurationDialog. */
+  onCurateMilestone?: () => void;
 }
 
 // LONG FUNCTION: layout-dense card with collapse panel and inline
@@ -86,6 +95,8 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
       onRequestReset,
       onCodingChanged,
       lockSummary,
+      currentMilestoneType,
+      onCurateMilestone,
     } = props;
     const isLocked = Boolean(lockSummary);
     const encounterKey = String(enc.encounter_id);
@@ -272,6 +283,20 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
             >
               {openingEditor ? "Opening..." : "Edit codes"}
             </Button>
+            {onCurateMilestone && (
+              <Button
+                size="small"
+                variant={currentMilestoneType ? "contained" : "outlined"}
+                color={currentMilestoneType ? "primary" : "inherit"}
+                data-testid="encounter-card-milestone-button"
+                data-milestone-linked={currentMilestoneType ? "true" : "false"}
+                onClick={onCurateMilestone}
+              >
+                {currentMilestoneType
+                  ? `Linked: ${milestoneLabel(currentMilestoneType)}`
+                  : "Add to milestone"}
+              </Button>
+            )}
             <Button
               size="small"
               color="error"

@@ -28,11 +28,23 @@ const SIX_ENCOUNTERS: ScrubberEncounter[] = [
 
 const FOUR_ENCOUNTERS: ScrubberEncounter[] = SIX_ENCOUNTERS.slice(0, 4);
 
+interface RenderOverrides {
+  encounters?: ScrubberEncounter[];
+  linkedEncounterIds?: Set<string>;
+  episodeFrom?: string | null;
+  episodeTo?: string | null;
+  milestones?: Array<{ milestone_type: string; encounter_id: string; date: string }>;
+  activeEncounterId?: string | null;
+  onJumpToEncounter?: jest.Mock;
+  onVisibleRangeChange?: jest.Mock;
+  searchMatchEncounterIds?: Set<string>;
+}
+
 const defaultProps = {
   encounters: SIX_ENCOUNTERS,
   linkedEncounterIds: new Set(["enc-3", "enc-4"]),
-  episodeFrom: "2024-03-01",
-  episodeTo: "2024-05-31",
+  episodeFrom: "2024-03-01" as string | null,
+  episodeTo: "2024-05-31" as string | null,
   milestones: [
     { milestone_type: "gp_referral", encounter_id: "enc-3", date: "2024-02-25" },
     { milestone_type: "specialist_visit", encounter_id: "enc-4", date: "2024-04-04" },
@@ -41,7 +53,7 @@ const defaultProps = {
   onJumpToEncounter: jest.fn(),
 };
 
-function renderScrubber(overrides: Partial<typeof defaultProps> = {}) {
+function renderScrubber(overrides: RenderOverrides = {}) {
   const props = { ...defaultProps, ...overrides };
   return render(<EncounterTimelineScrubber {...props} />);
 }
@@ -136,11 +148,27 @@ describe("EncounterTimelineScrubber - VT-LEO-AI-173", () => {
     expect(screen.queryAllByTestId("timeline-milestone-marker").length).toBe(0);
   });
 
-  test("VT-173-TC-005: clicking a single-encounter bar jumps directly", () => {
+  test("VT-173-TC-005: clicking a single-encounter bar filters the list to that bin (DI-15E0094F)", () => {
+    // Per DI-15E0094F the click-to-filter behaviour is uniform for
+    // every bar: it never calls onJumpToEncounter, it never opens
+    // a popover, it always sets the visible range to the bar's bin.
     const onJump = jest.fn();
-    renderScrubber({ onJumpToEncounter: onJump });
+    const onRange = jest.fn();
+    renderScrubber({
+      onJumpToEncounter: onJump,
+      onVisibleRangeChange: onRange,
+    });
     fireEvent.click(findBarByLabel("Apr 24"));
-    expect(onJump).toHaveBeenCalledWith("enc-4");
+    expect(onJump).not.toHaveBeenCalled();
+    expect(onRange).toHaveBeenCalledTimes(1);
+    const [fromMs, toMs] = onRange.mock.calls[0] as [number, number];
+    expect(typeof fromMs).toBe("number");
+    expect(typeof toMs).toBe("number");
+    expect(toMs).toBeGreaterThan(fromMs);
+    // April 2024 falls inside the chosen window.
+    const apr15 = Date.parse("2024-04-15T00:00:00.000Z");
+    expect(apr15).toBeGreaterThanOrEqual(fromMs);
+    expect(apr15).toBeLessThanOrEqual(toMs);
     expect(screen.queryByTestId("timeline-bin-popover")).not.toBeInTheDocument();
   });
 
@@ -156,44 +184,52 @@ describe("EncounterTimelineScrubber - VT-LEO-AI-173", () => {
       });
   });
 
-  test("VT-173-TC-007: pressing Enter on a focused single-encounter bar jumps", () => {
+  test("VT-173-TC-007: pressing Enter on a focused bar filters to that bin (DI-15E0094F)", () => {
     const onJump = jest.fn();
-    renderScrubber({ onJumpToEncounter: onJump });
+    const onRange = jest.fn();
+    renderScrubber({
+      onJumpToEncounter: onJump,
+      onVisibleRangeChange: onRange,
+    });
     const may = findBarByLabel("May 24");
     may.focus();
     fireEvent.keyDown(may, { key: "Enter" });
-    expect(onJump).toHaveBeenCalledWith("enc-5");
-  });
-
-  test("VT-173-TC-008: clicking a multi-encounter bar opens the popover", () => {
-    const onJump = jest.fn();
-    renderScrubber({ onJumpToEncounter: onJump });
-    fireEvent.click(findBarByLabel("Feb 24"));
-    const popover = screen.getByTestId("timeline-bin-popover");
-    expect(popover).toBeInTheDocument();
-    expect(popover.getAttribute("data-bin-label")).toBe("Feb 24");
     expect(onJump).not.toHaveBeenCalled();
-    const rows = within(popover)
-      .getAllByRole("button")
-      .filter((node) => node.getAttribute("data-popover-row") === "true");
-    expect(rows).toHaveLength(2);
-    expect(rows.map((r) => r.getAttribute("data-encounter-id")).sort()).toEqual([
-      "enc-2",
-      "enc-3",
-    ]);
+    expect(onRange).toHaveBeenCalledTimes(1);
   });
 
-  test("VT-173-TC-009: clicking a popover row jumps to that encounter", () => {
+  test("VT-173-TC-008: clicking a multi-encounter bar filters to that bin (no popover, DI-15E0094F)", () => {
+    const onJump = jest.fn();
+    const onRange = jest.fn();
+    renderScrubber({
+      onJumpToEncounter: onJump,
+      onVisibleRangeChange: onRange,
+    });
+    fireEvent.click(findBarByLabel("Feb 24"));
+    expect(screen.queryByTestId("timeline-bin-popover")).not.toBeInTheDocument();
+    expect(onJump).not.toHaveBeenCalled();
+    expect(onRange).toHaveBeenCalledTimes(1);
+    const [fromMs, toMs] = onRange.mock.calls[0] as [number, number];
+    const feb15 = Date.parse("2024-02-15T00:00:00.000Z");
+    expect(feb15).toBeGreaterThanOrEqual(fromMs);
+    expect(feb15).toBeLessThanOrEqual(toMs);
+  });
+
+  test("VT-173-TC-009: bar click in uncontrolled mode triggers internal zoom and Reset zoom appears", () => {
+    // When the parent does not pass onVisibleRangeChange the
+    // scrubber falls back to its internal zoom state, so the only
+    // public-observable side-effect of the click is the appearance
+    // of the Reset zoom button (TC-011 covers the full reset flow).
     const onJump = jest.fn();
     renderScrubber({ onJumpToEncounter: onJump });
+    expect(
+      screen.queryByRole("button", { name: /reset zoom/i })
+    ).not.toBeInTheDocument();
     fireEvent.click(findBarByLabel("Feb 24"));
-    const popover = screen.getByTestId("timeline-bin-popover");
-    const enc3Row = within(popover)
-      .getAllByRole("button")
-      .find((node) => node.getAttribute("data-encounter-id") === "enc-3");
-    expect(enc3Row).toBeDefined();
-    fireEvent.click(enc3Row!);
-    expect(onJump).toHaveBeenCalledWith("enc-3");
+    expect(onJump).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: /reset zoom/i })
+    ).toBeInTheDocument();
   });
 
   test("VT-173-TC-010: range brush exposes two role=slider handles with aria-value attributes", () => {
@@ -318,5 +354,83 @@ describe("EncounterTimelineScrubber - VT-LEO-AI-173", () => {
     expect(toAfter).toBeGreaterThan(toBefore);
     expect(toAfter - fromAfter).toBeCloseTo(toBefore - fromBefore, -3);
     expect(band.getAttribute("aria-label") ?? "").not.toBe(labelBeforePan);
+  });
+});
+
+// VT-827AA57F: histogram search overlay + click-to-filter
+// (Atlas DI-15E0094F, R-LEO-AI-174). Live-render coverage of the
+// per-bin amber outline, the dimming of non-matching bins, and the
+// click-to-filter contract (TC-005..TC-009 above already cover the
+// click side; this block focuses on the search overlay).
+describe("EncounterTimelineScrubber search overlay - VT-827AA57F", () => {
+  test("VT-827AA57F-LIVE-001: with no search, bars carry data-search-active='false' and no match ring", () => {
+    renderScrubber();
+    getBars().forEach((bar) => {
+      expect(bar.getAttribute("data-search-active")).toBe("false");
+      expect(bar.getAttribute("data-search-match")).toBe("false");
+    });
+    expect(
+      screen.queryAllByTestId("timeline-search-match-ring").length
+    ).toBe(0);
+  });
+
+  test("VT-827AA57F-LIVE-002: matching bins outline amber, non-matching bins dim", () => {
+    // enc-3 matches in Feb; enc-4 matches in Apr. All other bins
+    // should be dimmed and carry data-search-match='false'.
+    renderScrubber({
+      searchMatchEncounterIds: new Set(["enc-3", "enc-4"]),
+    });
+    getBars().forEach((bar) => {
+      expect(bar.getAttribute("data-search-active")).toBe("true");
+    });
+    const feb = findBarByLabel("Feb 24");
+    const apr = findBarByLabel("Apr 24");
+    const may = findBarByLabel("May 24");
+    expect(feb.getAttribute("data-search-match")).toBe("true");
+    expect(apr.getAttribute("data-search-match")).toBe("true");
+    expect(may.getAttribute("data-search-match")).toBe("false");
+    // Feb and Apr each get an amber ring rendered inside their
+    // motion wrapper.
+    expect(
+      within(feb).getByTestId("timeline-search-match-ring")
+    ).toBeInTheDocument();
+    expect(
+      within(apr).getByTestId("timeline-search-match-ring")
+    ).toBeInTheDocument();
+    expect(
+      within(may).queryByTestId("timeline-search-match-ring")
+    ).not.toBeInTheDocument();
+  });
+
+  test("VT-827AA57F-LIVE-003: zero-match search dims every bin and shows zero rings", () => {
+    renderScrubber({ searchMatchEncounterIds: new Set<string>() });
+    getBars().forEach((bar) => {
+      expect(bar.getAttribute("data-search-active")).toBe("true");
+      expect(bar.getAttribute("data-search-match")).toBe("false");
+    });
+    expect(
+      screen.queryAllByTestId("timeline-search-match-ring").length
+    ).toBe(0);
+  });
+
+  test("VT-827AA57F-LIVE-004: per-bin match count is exposed for assistive tech and tests", () => {
+    renderScrubber({
+      searchMatchEncounterIds: new Set(["enc-2", "enc-3", "enc-5"]),
+    });
+    expect(findBarByLabel("Feb 24").getAttribute("data-search-match-count")).toBe("2");
+    expect(findBarByLabel("May 24").getAttribute("data-search-match-count")).toBe("1");
+    expect(findBarByLabel("Apr 24").getAttribute("data-search-match-count")).toBe("0");
+  });
+
+  test("VT-827AA57F-LIVE-005: bar aria-label includes the search match count", () => {
+    renderScrubber({
+      searchMatchEncounterIds: new Set(["enc-3"]),
+    });
+    expect(findBarByLabel("Feb 24").getAttribute("aria-label")).toMatch(
+      /1 match search/
+    );
+    expect(findBarByLabel("May 24").getAttribute("aria-label") ?? "").not.toMatch(
+      /match search/
+    );
   });
 });

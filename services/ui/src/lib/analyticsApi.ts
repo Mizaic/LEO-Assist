@@ -1130,3 +1130,32 @@ export async function batchAddConceptsToSubdomain(
     },
   );
 }
+
+// ---------------------------------------------------------------------------
+// Manual EpisodeOfCare CRUD - DI-3A19BE12, DI-F4C06C92, DI-B35DCA0F,
+// DI-41B71BF8 / DOs DO-0792E2CB, DO-BDBEDA43, DO-13EA9B93, DO-CFB91205.
+// Re-exported from missionControlApi.ts so the patient drawer can import
+// the manual-CRUD helpers from the same module as closeEpisode /
+// mergeEpisodes / editMilestone.
+// ---------------------------------------------------------------------------
+
+export {
+  createEpisode,
+  updateEpisode,
+  deleteEpisode,
+  attachEncounterToEpisode,
+  detachEncounterFromEpisode,
+} from "@/lib/missionControlApi";
+
+export type {
+  EpisodeEncounterAttachment,
+  EpisodeCreateBody,
+  EpisodeUpdateBody,
+  EpisodeDeleteBody,
+  EpisodeDerivedDates,
+  EpisodeCreateResponse,
+  EpisodeUpdateResponse,
+  EpisodeDeleteResponse,
+  EpisodeAttachResponse,
+  EpisodeDetachResponse,
+} from "@/lib/missionControlApi";

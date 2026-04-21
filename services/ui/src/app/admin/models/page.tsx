@@ -59,7 +59,10 @@ import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import SaveIcon from "@mui/icons-material/Save";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import StarIcon from "@mui/icons-material/Star";
+import TimelineIcon from "@mui/icons-material/Timeline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+
+import AccuracyOverTime from "./AccuracyOverTime";
 
 // =============================================================================
 // Types
@@ -1891,6 +1894,18 @@ export default function ModelsPage() {
               config={terminologyRuntimeConfig}
               onSave={handleSaveTerminologyRuntimeConfig}
             />
+          </SectionCard>
+
+          {/* ================================================================ */}
+          {/* ZONE 3a — Accuracy over time                                     */}
+          {/* ================================================================ */}
+          <SectionCard
+            icon={<TimelineIcon color="primary" />}
+            title="Accuracy over time"
+            description="How the medical coder's offline test scores have changed across registered versions. Use this to spot a trend before promoting a new model to live."
+            defaultOpen
+          >
+            <AccuracyOverTime versions={versions} />
           </SectionCard>
 
           {/* ================================================================ */}

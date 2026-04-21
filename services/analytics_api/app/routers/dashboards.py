@@ -318,6 +318,12 @@ def edit_milestone(
         client.close()
 
 
+# Manual EpisodeOfCare CRUD endpoints live in episode_crud.py to keep this
+# file inside the 500 LOC hard limit. They are mounted on the same /analytics
+# prefix in main.py, so the URL surface (POST/PATCH/DELETE /episodes/...) is
+# identical to what the patient drawer expects.
+
+
 def _normalise_row_field(rows: list, key: str) -> list:
     """Coerce a single per-row ``cancer_type`` / ``condition_type`` value to
     canonical NCDA, leaving the rest of the row untouched. Used for

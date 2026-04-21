@@ -30,12 +30,9 @@ import type {
   ReviewerRole,
 } from "@/lib/missionControlApi";
 import {
-  listLocksForEpisode,
   patchEpisodeReview,
   patchEpisodeStatus,
 } from "@/lib/missionControlApi";
-import ReconcilePathwayDrawer from "./ReconcilePathwayDrawer";
-import type { SlotRowData } from "./MilestoneSlotRow";
 import {
   STATUS_COMPLETED,
   STATUS_CLOSED_BENIGN,
@@ -66,52 +63,19 @@ export default function ReviewActionsPanel({ episode, userEmail, onReviewed }: P
   const [error, setError] = useState<string | null>(null);
   const [overrideStatus, setOverrideStatus] = useState("");
   const [confirmOverride, setConfirmOverride] = useState(false);
-  const [reconcileOpen, setReconcileOpen] = useState(false);
-  const [episodeLocks, setEpisodeLocks] = useState<EpisodeLocksResponse | null>(null);
 
   const { selectedRole } = useRole();
   const reviewerRole: ReviewerRole | null =
     selectedRole === "clinician" || selectedRole === "qa_ra_lead"
       ? selectedRole
       : null;
-  const canReconcile =
-    episode.status === STATUS_REVIEW && reviewerRole !== null;
 
   const isReviewed = Boolean(episode.reviewed_by);
-
-  // Pre-fetch the episode locks once (lightweight) so the drawer can
-  // mark already-confirmed milestones without a second round-trip.
-  useEffect(() => {
-    if (!canReconcile) return;
-    let cancelled = false;
-    listLocksForEpisode(episode.episode_id)
-      .then((res) => {
-        if (!cancelled) setEpisodeLocks(res);
-      })
-      .catch(() => {
-        if (!cancelled) setEpisodeLocks(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [episode.episode_id, canReconcile]);
-
-  const slotRows = useMemo<SlotRowData[]>(() => {
-    const rows: SlotRowData[] = [];
-    for (const m of episode.milestones ?? []) {
-      rows.push({
-        slot: m.milestone_type,
-        label: m.milestone_type
-          .split("_")
-          .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-          .join(" "),
-        engineEncounterId: m.encounter_id,
-        engineMilestoneType: m.milestone_type,
-        rationale: null,
-      });
-    }
-    return rows;
-  }, [episode.milestones]);
+  // The reconcile-pathway flow is now reached via the patient
+  // drawer's "Edit episode" button (EditEpisodeDialog -> Review tab).
+  // We keep reviewerRole here only because the existing override UI
+  // below still gates on it.
+  void reviewerRole;
 
   const handleMarkReviewed = async () => {
     setSaving(true);
@@ -240,43 +204,17 @@ export default function ReviewActionsPanel({ episode, userEmail, onReviewed }: P
             Mark as reviewed
           </Button>
         )}
-        {canReconcile && (
-          <Button
-            size="small"
-            variant="outlined"
-            color="primary"
-            startIcon={<LockOutlined />}
-            onClick={() => setReconcileOpen(true)}
-            data-testid="open-reconcile-drawer"
+        {episode.status === STATUS_REVIEW && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ alignSelf: "center" }}
           >
-            Reconcile pathway
-          </Button>
+            Use the &quot;Edit episode&quot; button at the top of the drawer
+            to reconcile pathway milestones.
+          </Typography>
         )}
       </Box>
-
-      {canReconcile && reviewerRole && (
-        <ReconcilePathwayDrawer
-          open={reconcileOpen}
-          episode={episode}
-          rows={slotRows}
-          reviewerEmail={userEmail}
-          reviewerRole={reviewerRole}
-          locks={episodeLocks}
-          onReplaceClick={() => {
-            // The encounter picker is mounted by the patient drawer
-            // (see ui-mount task); emitting here would cross drawer
-            // boundaries, so the parent listens via onReviewed.
-          }}
-          onClose={() => setReconcileOpen(false)}
-          onSaved={() => {
-            // Refresh locks and let the parent refresh episode state.
-            listLocksForEpisode(episode.episode_id)
-              .then(setEpisodeLocks)
-              .catch(() => setEpisodeLocks(null));
-            onReviewed({});
-          }}
-        />
-      )}
 
       <Divider />
 

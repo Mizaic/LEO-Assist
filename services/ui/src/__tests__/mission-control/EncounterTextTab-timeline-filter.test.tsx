@@ -148,12 +148,15 @@ describe("EncounterTextTab + timeline brush filter - VT-LEO-AI-205", () => {
     expect(banner).toBeInTheDocument();
   });
 
-  test("VT-205-TC-004: jumping via the timeline (single-bin click) clears the filter", async () => {
+  test("VT-205-TC-004: clicking a bar (DI-15E0094F) re-filters the list to that bin's date range", async () => {
+    // Per DI-15E0094F a bar click is now a uniform "filter the list
+    // to this period" action -- it never jumps and never clears the
+    // banner. Clicking the Aug 24 bin should keep the banner visible
+    // (with a new window) and surface enc-6, which sits in Aug 24.
     await renderTab();
     await screen.findByTestId("timeline-filter-banner");
+    expect(visibleCardIds()).not.toContain("enc-6");
 
-    // Aug 24 sits OUTSIDE the default padded episode window so the
-    // bar is dimmed but still clickable.
     const augBar = screen
       .getAllByRole("button")
       .find((node) => node.getAttribute("data-bin-label") === "Aug 24");
@@ -161,8 +164,12 @@ describe("EncounterTextTab + timeline brush filter - VT-LEO-AI-205", () => {
     fireEvent.click(augBar!);
 
     await waitFor(() => {
-      expect(screen.queryByTestId("timeline-filter-banner")).not.toBeInTheDocument();
       expect(visibleCardIds()).toContain("enc-6");
     });
+    expect(screen.getByTestId("timeline-filter-banner")).toBeInTheDocument();
+    // Encounters that sat outside the new Aug-2024 window should be
+    // gone from the list.
+    expect(visibleCardIds()).not.toContain("enc-3");
+    expect(visibleCardIds()).not.toContain("enc-4");
   });
 });

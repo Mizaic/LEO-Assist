@@ -977,14 +977,21 @@ class WorkflowEngine:
         resolved_subgraph_id = (
             ad_node["subgraphId"] if ad_node else action_node.get("subgraphId", "")
         )
-        # Plans seeded before nodeType was stored on the Action node lack the
-        # property. Infer node_type from the resolved subgraph_id so that
-        # condition and trigger nodes still route correctly without a re-seed.
+        # subgraph_id is authoritative for the special routing/trigger node
+        # types. Stored nodeType can drift to "action" when a plan was first
+        # seeded before _nodeType was added to seed_plan_definitions.py and
+        # later seed runs MERGE on Action.id without overwriting the legacy
+        # default. Without this override the engine sends a condition node
+        # down the subgraph executor and halts with "Unknown subgraph:
+        # condition". Honour stored nodeType in every other case so custom
+        # node types (e.g. trigger names from canvas-built plans) survive.
         _SUBGRAPH_IMPLIES_NODE_TYPE = {"condition": "condition", "trigger": "trigger"}
+        implied_node_type = _SUBGRAPH_IMPLIES_NODE_TYPE.get(resolved_subgraph_id)
         raw_node_type = action_node.get("nodeType") or action_node.get("node_type", "")
-        node_type = raw_node_type or _SUBGRAPH_IMPLIES_NODE_TYPE.get(
-            resolved_subgraph_id, "action"
-        )
+        if implied_node_type is not None:
+            node_type = implied_node_type
+        else:
+            node_type = raw_node_type or "action"
         return ActionDefinition(
             action_id=action_id,
             subgraph_id=resolved_subgraph_id,

@@ -25,6 +25,11 @@ const COLOR_LINKED = "#2563eb";
 const COLOR_OTHER = "#cbd5e1";
 const COLOR_OTHER_HOVER = "#94a3b8";
 const COLOR_ACTIVE_RING = "#1d4ed8";
+// Amber outline used when free-text search has matches inside this
+// bin. Mirrors the amber palette of milestone markers so the two
+// overlays feel like the same family.
+const COLOR_SEARCH_MATCH_RING = "#d97706";
+const SEARCH_DIMMED_OPACITY = 0.25;
 
 export interface BarRect {
   bin: TimelineBin;
@@ -32,13 +37,15 @@ export interface BarRect {
   widthPct: number;
 }
 
-function ariaLabelForBin(bin: TimelineBin): string {
+function ariaLabelForBin(bin: TimelineBin, searchMatchCount = 0): string {
   const start = shortDate(new Date(bin.startMs).toISOString());
   const end = shortDate(new Date(bin.endMs - 1).toISOString());
   const linkedPart =
     bin.linked > 0 ? ` (${bin.linked} linked to focused episode)` : "";
   const noun = bin.total === 1 ? "encounter" : "encounters";
-  return `Bin ${bin.label}, ${bin.total} ${noun}${linkedPart}, from ${start} to ${end}`;
+  const matchPart =
+    searchMatchCount > 0 ? `, ${searchMatchCount} match search` : "";
+  return `Bin ${bin.label}, ${bin.total} ${noun}${linkedPart}${matchPart}, from ${start} to ${end}`;
 }
 
 interface HoverPreviewProps {
@@ -102,6 +109,14 @@ interface HistogramBarProps {
   isOutOfFocus: boolean;
   maxTotal: number;
   hoverDuration: number;
+  // Free-text search overlay state. When `searchActive` is true the
+  // bar dims to SEARCH_DIMMED_OPACITY unless `hasSearchMatch` is
+  // also true, in which case the bar keeps full opacity and grows an
+  // amber outline so the reviewer can see at a glance which date
+  // bins contain hits.
+  searchActive?: boolean;
+  hasSearchMatch?: boolean;
+  searchMatchCount?: number;
   onActivate: () => void;
   onArrow: (direction: -1 | 1) => void;
   onHoverChange: (hovered: boolean) => void;
@@ -114,6 +129,9 @@ export default function HistogramBar({
   isOutOfFocus,
   maxTotal,
   hoverDuration,
+  searchActive = false,
+  hasSearchMatch = false,
+  searchMatchCount = 0,
   onActivate,
   onArrow,
   onHoverChange,
@@ -139,11 +157,20 @@ export default function HistogramBar({
   const linkedShare = bar.bin.total > 0 ? bar.bin.linked / bar.bin.total : 0;
   const linkedHeightPct = totalHeightPct * linkedShare;
   const otherHeightPct = totalHeightPct - linkedHeightPct;
+  // When a free-text search is active, dim non-matching bars so the
+  // matching bars pop. Out-of-focus (zoom) dimming wins so the
+  // reviewer always sees the brush window.
+  const dimmedBySearch = searchActive && !hasSearchMatch;
+  const baseOpacity = isOutOfFocus
+    ? 0.35
+    : dimmedBySearch
+      ? SEARCH_DIMMED_OPACITY
+      : 1;
   return (
     <Box
       role="button"
       tabIndex={bar.bin.total > 0 ? 0 : -1}
-      aria-label={ariaLabelForBin(bar.bin)}
+      aria-label={ariaLabelForBin(bar.bin, searchMatchCount)}
       aria-pressed={isActive}
       data-bin-label={bar.bin.label}
       data-total-count={bar.bin.total}
@@ -151,6 +178,9 @@ export default function HistogramBar({
       data-other-count={bar.bin.other}
       data-active={isActive ? "true" : "false"}
       data-in-focus={isOutOfFocus ? "false" : "true"}
+      data-search-active={searchActive ? "true" : "false"}
+      data-search-match={hasSearchMatch ? "true" : "false"}
+      data-search-match-count={searchMatchCount}
       onClick={() => bar.bin.total > 0 && onActivate()}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => onHoverChange(true)}
@@ -183,7 +213,7 @@ export default function HistogramBar({
           marginLeft: "11%",
           height: `${totalHeightPct}%`,
           minHeight: bar.bin.total > 0 ? 4 : 0,
-          opacity: isOutOfFocus ? 0.35 : 1,
+          opacity: baseOpacity,
           transition: "opacity 0.15s ease-out",
         }}
       >
@@ -215,6 +245,20 @@ export default function HistogramBar({
               bgcolor: COLOR_LINKED,
               borderTopLeftRadius: bar.bin.other > 0 ? 0 : 3,
               borderTopRightRadius: bar.bin.other > 0 ? 0 : 3,
+            }}
+          />
+        )}
+        {searchActive && hasSearchMatch && (
+          <Box
+            data-testid="timeline-search-match-ring"
+            aria-hidden="true"
+            sx={{
+              position: "absolute",
+              inset: -2,
+              border: `1.5px solid ${COLOR_SEARCH_MATCH_RING}`,
+              borderRadius: "4px",
+              boxShadow: `0 0 0 1px rgba(217, 119, 6, 0.18)`,
+              pointerEvents: "none",
             }}
           />
         )}
