@@ -281,3 +281,43 @@ nmslib_index.bin
 e2e/.auth/
 playwright-report/
 test-results/
+
+# ============================================================
+# Patient cohort data and pipeline output (PHI risk - never commit)
+# ============================================================
+
+# Cohort + episode ground truth (real LLR primary-care data)
+data/ground_truth/
+data/audit/
+data/backfill/
+data/Cancer Diagnosis Audit*.xlsx
+data/training/manual-gold-seed-*.yaml
+
+# Root-level cohort CSVs and spot-check logs
+/cancer_audit*.csv
+/cancer_expressions.csv
+/referral_episodes.csv
+/ng12_*.txt
+/rebuild_checkpoint.txt
+
+# Pipeline run results / reports that quote real records
+results/
+reports/lab_triple_backfill_*.json
+
+# Investigation dumps (per-patient JSON, audit DBs, investigation notes)
+scripts/investigations/encounter_audit/
+scripts/investigations/encounter_audit_*/
+scripts/investigations/no_referral_encounters/
+scripts/investigations/output/
+scripts/investigations/episode_engine_spike/
+scripts/investigations/_patient_*.py
+scripts/investigations/fix_*.py
+
+# Frozen episode-engine cohort fixtures (real patient ids)
+scripts/regression/episode_engine_frozen/cohort*
+
+# Patient-id-named tests (replace with synthetic SYN-EE-* fixtures)
+tests/test_patient_*_patterns.py
+
+# Local pipeline run logs
+tmp/

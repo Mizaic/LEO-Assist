@@ -11,6 +11,11 @@
  *   DO: DO-2C03CA0E
  *   DI: DI-3F771AFB
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *
+ * Phase 6a trace (OBSERVATION leaf UI):
+ *   UN: UN-26E57FA1
+ *   DI: DI-7790EEA5 (extended)
+ *   DO: DO-710270EF (extended)
  */
 export type LogicNodeKind =
   | "AND"
@@ -18,7 +23,8 @@ export type LogicNodeKind =
   | "NOT"
   | "AT_LEAST"
   | "CONCEPT"
-  | "DEMOGRAPHIC";
+  | "DEMOGRAPHIC"
+  | "OBSERVATION";
 
 /**
  * One SNOMED code in a CONCEPT criterion's synonym set (UN-LEO-AI-093).
@@ -57,6 +63,80 @@ export interface LogicCriterion {
   primary_concept_id?: string;
 }
 
+/**
+ * Comparison operators supported on an OBSERVATION leaf. Mirrors the
+ * ``ComparisonOperator`` Literal in
+ * ``libs/guidance_schema/observation_leaf.py``.
+ */
+export type ObservationOperator =
+  | ">="
+  | "<="
+  | ">"
+  | "<"
+  | "="
+  | "between";
+
+/**
+ * N-consecutive-readings temporal pattern (for example "two PSAs more
+ * than six months apart"). Mirrors ``TemporalSpec``.
+ */
+export interface ObservationTemporalSpec {
+  count: number;
+  interval_min_days: number;
+  interval_max_days?: number | null;
+}
+
+/**
+ * Reference-range-relative comparison (for example "above ULN").
+ * Mirrors ``ReferenceRangeSpec``.
+ */
+export interface ObservationReferenceRangeSpec {
+  bound: "upper" | "lower";
+  multiple_of_range?: number;
+}
+
+/**
+ * Trend / delta over a window (for example "eGFR fell 25% in the last
+ * year"). Mirrors ``TrendSpec``.
+ */
+export interface ObservationTrendSpec {
+  delta_kind: "absolute" | "percent";
+  window_days: number;
+}
+
+/**
+ * Mean / median / min / max of the last N readings. Mirrors
+ * ``AggregateSpec``.
+ */
+export interface ObservationAggregateSpec {
+  kind: "mean" | "median" | "min" | "max";
+  lookback_n: number;
+}
+
+/**
+ * Flat wire shape for the OBSERVATION leaf payload. Matches
+ * ``ObservationLeaf`` in ``libs/guidance_schema/observation_leaf.py``
+ * 1-for-1 so the tree can round-trip through the Pydantic validator
+ * without field-name translation.
+ *
+ * Exactly one of ``temporal`` / ``reference_range`` / ``trend`` /
+ * ``aggregation`` may be populated. All four absent means "absolute"
+ * mode (default).
+ */
+export interface EditableObservationPayload {
+  kind?: "OBSERVATION";
+  observable_id: string;
+  observable_term?: string;
+  operator: ObservationOperator;
+  value: number | [number, number];
+  unit: string;
+  within_days?: number;
+  temporal?: ObservationTemporalSpec | null;
+  reference_range?: ObservationReferenceRangeSpec | null;
+  trend?: ObservationTrendSpec | null;
+  aggregation?: ObservationAggregateSpec | null;
+}
+
 export interface EditableLogicNode {
   node_id: string;
   kind: LogicNodeKind;
@@ -79,6 +159,15 @@ export interface EditableLogicNode {
    * ``logic_tree`` without a Cypher schema change.
    */
   name?: string;
+  /**
+   * OBSERVATION leaf payload (Phase 6a). Present only on nodes with
+   * ``kind === "OBSERVATION"``. Authoring in the sentence canvas is
+   * limited to absolute-mode scalars in v1; ingest may populate the
+   * advanced modes (temporal / reference_range / trend / aggregation)
+   * which the canvas then renders read-only with a hint that the
+   * Advanced view is needed for structural edits.
+   */
+  observation?: EditableObservationPayload;
 }
 
 /** Server response shape from /api/terminology/search. */
@@ -99,7 +188,15 @@ export type NodeUpdate =
   | { kind: "add_concept"; parentNodeId: string; criterion: LogicCriterion }
   | { kind: "add_group"; parentNodeId: string; groupKind: "AND" | "OR" | "NOT" | "AT_LEAST" }
   | { kind: "add_demographic"; parentNodeId: string }
+  // -- Phase 2: optional pathway name --
   | { kind: "set_name"; nodeId: string; name: string }
+  // -- Phase 6a: OBSERVATION leaf --
+  | { kind: "add_observation"; parentNodeId: string }
+  | {
+      kind: "set_observation";
+      nodeId: string;
+      observation: EditableObservationPayload;
+    }
   // -- Synonym chip ops (UN-LEO-AI-093) --
   | { kind: "add_seed"; nodeId: string; seed: LogicSeed }
   | { kind: "remove_seed"; nodeId: string; conceptId: string }
@@ -110,7 +207,11 @@ export type NodeUpdate =
   | { kind: "remove_excluded"; nodeId: string; conceptId: string };
 
 export const GROUP_KINDS: ReadonlyArray<LogicNodeKind> = ["AND", "OR", "NOT", "AT_LEAST"];
-export const LEAF_KINDS: ReadonlyArray<LogicNodeKind> = ["CONCEPT", "DEMOGRAPHIC"];
+export const LEAF_KINDS: ReadonlyArray<LogicNodeKind> = [
+  "CONCEPT",
+  "DEMOGRAPHIC",
+  "OBSERVATION",
+];
 
 /** Demographic field/operator vocabularies must match the backend allow-list. */
 export const DEMOGRAPHIC_FIELDS = ["age", "sex"] as const;

@@ -26,6 +26,7 @@ export const GROUP_KIND_LABELS: Record<LogicNodeKind, string> = {
   AT_LEAST: "Patient must have at least N of these",
   CONCEPT: "Symptom or sign",
   DEMOGRAPHIC: "Patient detail",
+  OBSERVATION: "Lab value or reading",
 };
 
 /** Short label used inside small chips / badges. */
@@ -36,6 +37,49 @@ export const GROUP_KIND_SHORT: Record<LogicNodeKind, string> = {
   AT_LEAST: "AT LEAST n of",
   CONCEPT: "Symptom",
   DEMOGRAPHIC: "Patient detail",
+  OBSERVATION: "Lab value",
+};
+
+/**
+ * Plain-English labels for the recency window on an OBSERVATION leaf.
+ * Keys are ``within_days`` values; values are sentence-case phrases
+ * that read naturally in both the editor (&quot;in the last year&quot;) and
+ * the sentence renderer (&quot;... in the last year&quot;).
+ *
+ * Keep the list short: the picker renders it as a dropdown and adding
+ * more options than fit on a 600px screen makes the picker feel like
+ * a data-entry form. Reviewers who need a non-standard window can
+ * type a number directly into the &quot;days&quot; field.
+ */
+export const RECENCY_LABELS: ReadonlyArray<{
+  days: number;
+  label: string;
+}> = [
+  { days: 30, label: "in the last month" },
+  { days: 90, label: "in the last 3 months" },
+  { days: 180, label: "in the last 6 months" },
+  { days: 365, label: "in the last year" },
+  { days: 730, label: "in the last 2 years" },
+  { days: 1825, label: "in the last 5 years" },
+];
+
+/** Human-readable label for a ``within_days`` value; falls back to "in the last N days". */
+export function recencyLabel(days: number | undefined): string {
+  if (!Number.isFinite(days) || !days || days <= 0) {
+    return "in the last year";
+  }
+  const match = RECENCY_LABELS.find((r) => r.days === days);
+  if (match) return match.label;
+  return `in the last ${days} days`;
+}
+
+/** Plain-English phrase for each OBSERVATION evaluation mode. */
+export const OBSERVATION_MODE_LABELS: Record<string, string> = {
+  absolute: "One reading",
+  temporal: "Several readings in a row",
+  reference_range: "Compared to the patient's normal range",
+  trend: "Change over time",
+  aggregate: "Average or max of recent readings",
 };
 
 /** Plain-English label for each demographic field. */
@@ -93,6 +137,7 @@ export const ADD_BAR_LABELS = {
   choice: "Add a choice (any of these)",
   subgroup: "Add a sub-group (all of these)",
   pathway: "Add another pathway",
+  observation: "Add a lab value or reading",
 };
 
 /**
