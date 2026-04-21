@@ -15,8 +15,11 @@
  *   DI: DI-3F771AFB
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
-import { friendlyTerm } from "./copy";
-import type { EditableLogicNode } from "./types";
+import { OBSERVATION_MODE_LABELS, friendlyTerm, recencyLabel } from "./copy";
+import type {
+  EditableLogicNode,
+  EditableObservationPayload,
+} from "./types";
 
 export interface PathwaySummary {
   /** Connector word ("" for the first pathway, "or" thereafter). */
@@ -137,12 +140,67 @@ function joinWithLast(items: string[], lastSep: "and" | "or"): string {
   return `${items.slice(0, -1).join(", ")}, ${lastSep} ${items[items.length - 1]}`;
 }
 
+function observationOperatorText(op: string): string {
+  switch (op) {
+    case ">=":
+      return "at least";
+    case "<=":
+      return "at most";
+    case ">":
+      return "more than";
+    case "<":
+      return "less than";
+    case "=":
+      return "exactly";
+    case "between":
+      return "between";
+    default:
+      return op;
+  }
+}
+
+function observationToText(obs: EditableObservationPayload): string {
+  const term = friendlyTerm(obs.observable_term).toLowerCase() || "a lab value";
+
+  // Advanced modes are summarised softly so clinicians see the shape
+  // without pretending the canvas can edit them inline.
+  if (obs.temporal) {
+    return `has ${term} with a timing rule (${OBSERVATION_MODE_LABELS.temporal.toLowerCase()})`;
+  }
+  if (obs.reference_range) {
+    return `has ${term} outside the expected range for the patient`;
+  }
+  if (obs.trend) {
+    return `has ${term} with a trend check across readings`;
+  }
+  if (obs.aggregation) {
+    return `has ${term} with an average or running summary`;
+  }
+
+  const opWord = observationOperatorText(obs.operator ?? ">=");
+  const unit = obs.unit ? ` ${obs.unit}` : "";
+  let valueText: string;
+  if (Array.isArray(obs.value)) {
+    const [lo, hi] = obs.value;
+    valueText = `${lo} and ${hi}${unit}`;
+  } else {
+    valueText = `${obs.value ?? "?"}${unit}`;
+  }
+  const recency = recencyLabel(obs.within_days).toLowerCase();
+  return `has ${term} ${opWord} ${valueText} ${recency}`.trim();
+}
+
 function leafToCondition(
   node: EditableLogicNode,
   resolve?: TermResolver,
 ): string {
   if (node.kind === "DEMOGRAPHIC") return demographicToText(node);
   if (node.kind === "CONCEPT") return `has ${conceptText(node, resolve)}`;
+  if (node.kind === "OBSERVATION") {
+    return node.observation
+      ? observationToText(node.observation)
+      : "has a lab value that still needs to be filled in";
+  }
   if (node.kind === "AT_LEAST") {
     const concepts = (node.children ?? []).filter((c) => c.kind === "CONCEPT");
     const list = listOfConcepts(concepts, resolve);

@@ -226,7 +226,19 @@ def _warm_up() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Warm up models, then start the message bus consumer as a background task."""
-    # Kick off model warm-up (non-blocking — runs in daemon threads)
+    # Lift the anyio threadpool ceiling so sync `def` endpoints (and sync I/O
+    # called via `to_thread`) do not bottleneck on Starlette's default 40
+    # tokens. See plan: backend-concurrency-overhaul Phase 0.
+    try:
+        import anyio
+
+        _limiter = anyio.to_thread.current_default_thread_limiter()
+        _tokens = int(os.getenv("ANYIO_THREADPOOL_TOKENS", "200"))
+        _limiter.total_tokens = _tokens
+        logger.info("anyio threadpool ceiling set to %d", _tokens)
+    except Exception as exc:
+        logger.warning("Failed to lift anyio threadpool ceiling: %s", exc)
+    # Kick off model warm-up (non-blocking - runs in daemon threads)
     _warm_up()
 
     bus = create_message_bus()

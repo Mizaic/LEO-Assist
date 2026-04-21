@@ -8,6 +8,7 @@ Atlas trace:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
@@ -194,24 +195,43 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
             logger.warning("No clinical encounters for patient_id=%s", job.patient_id)
             return
 
-        for row in rows:
-            encounter_id = str(row.get("encounter_id") or "").strip()
-            if not encounter_id:
-                continue
-            await _dispatch_engine_for_encounter(
-                handler,
-                _build_progress_callback(
-                    run_id,
-                    patient_id=job.patient_id,
-                    suppress_run_completed=True,
-                ),
-                body,
-                patient_id=job.patient_id,
-                encounter_id=encounter_id,
-                run_id=run_id,
-                dry_run=job.dry_run,
-                trigger_analysis=job.trigger_analysis,
+        encounter_ids = [
+            str(row.get("encounter_id") or "").strip()
+            for row in rows
+            if str(row.get("encounter_id") or "").strip()
+        ]
+
+        # Bound per-patient encounter parallelism. Each encounter still
+        # holds the upstream LLM rate limit etc., so we cap with a
+        # semaphore. Default 4 concurrent encounters per patient.
+        try:
+            max_parallel = max(
+                1, int(os.getenv("CODING_ENCOUNTER_PARALLELISM", "4"))
             )
+        except ValueError:
+            max_parallel = 4
+        sem = asyncio.Semaphore(max_parallel)
+
+        async def _run_one(encounter_id: str) -> None:
+            async with sem:
+                await _dispatch_engine_for_encounter(
+                    handler,
+                    _build_progress_callback(
+                        run_id,
+                        patient_id=job.patient_id,
+                        suppress_run_completed=True,
+                    ),
+                    body,
+                    patient_id=job.patient_id,
+                    encounter_id=encounter_id,
+                    run_id=run_id,
+                    dry_run=job.dry_run,
+                    trigger_analysis=job.trigger_analysis,
+                )
+
+        await asyncio.gather(
+            *(_run_one(eid) for eid in encounter_ids), return_exceptions=False
+        )
         from services.coding_worker.app.services.progress_publisher import (
             publish_progress,
         )

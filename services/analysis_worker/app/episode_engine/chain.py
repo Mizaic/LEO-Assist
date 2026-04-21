@@ -23,7 +23,9 @@ Public entry points:
 from __future__ import annotations
 
 import logging
+import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -71,6 +73,20 @@ logger = logging.getLogger(__name__)
 _EXTRACT_EPISODE_TYPES = {"cancer", "multi_site", "benign"}
 # Drop windows below this confidence
 _CLASSIFIER_MIN_CONFIDENCE = 0.4
+
+
+def _candidate_parallelism() -> int:
+    """Bounded parallelism for per-window LLM fan-out.
+
+    Each candidate window is an independent Anthropic call. Running them
+    sequentially turns a 5-window patient into 5x latency. Cap at 8 by
+    default to avoid hammering the upstream model rate limit; tunable
+    via ``EPISODE_ENGINE_CANDIDATE_PARALLELISM``.
+    """
+    try:
+        return max(1, int(os.getenv("EPISODE_ENGINE_CANDIDATE_PARALLELISM", "8")))
+    except (TypeError, ValueError):
+        return 8
 
 
 # -- Result wrapper -------------------------------------------------------
@@ -161,11 +177,12 @@ def _node_classifier(state: EngineState) -> dict[str, Any]:
         return {"classified_windows": []}
 
     llm = _llm("small")
-    classified: list[dict[str, Any]] = []
     new_traces: list[StageTrace] = []
     errors: list[str] = list(state.get("errors") or [])
 
-    for window in candidates:
+    def _classify_one(window: dict[str, Any]) -> tuple[
+        dict[str, Any] | None, StageTrace | None, str | None
+    ]:
         window_text = _slice_window_trunk(state, window)
         try:
             result, trace = classifier_agent.run(
@@ -177,13 +194,22 @@ def _node_classifier(state: EngineState) -> dict[str, Any]:
                 window_end=str(window.get("window_end") or ""),
                 window_text=window_text,
             )
-            classified.append(result.model_dump(mode="json"))
-            new_traces.append(trace)
+            return result.model_dump(mode="json"), trace, None
         except StageError as exc:
-            errors.append(f"classifier[{window.get('window_id')}]: {exc}")
-            new_traces.append(
-                _failed_trace("classifier", str(exc))
+            return None, _failed_trace("classifier", str(exc)), (
+                f"classifier[{window.get('window_id')}]: {exc}"
             )
+
+    classified: list[dict[str, Any]] = []
+    max_workers = min(_candidate_parallelism(), len(candidates))
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        for cls, trace, err in pool.map(_classify_one, candidates):
+            if cls is not None:
+                classified.append(cls)
+            if trace is not None:
+                new_traces.append(trace)
+            if err is not None:
+                errors.append(err)
 
     return {
         "classified_windows": classified,
@@ -213,38 +239,64 @@ def _node_audit_relevance_filter(state: EngineState) -> dict[str, Any]:
     new_traces: list[StageTrace] = []
     errors: list[str] = list(state.get("errors") or [])
 
+    eligible: list[dict[str, Any]] = []
     for cls in classified:
         if cls.get("episode_type") not in _EXTRACT_EPISODE_TYPES:
             continue
         if float(cls.get("confidence") or 0.0) < _CLASSIFIER_MIN_CONFIDENCE:
             continue
-
         window_id = cls.get("window_id", "")
         window = candidates_by_id.get(window_id) or {}
         in_window = _encounters_in_window(window, encounter_index)
         if not in_window:
             continue
+        eligible.append(
+            {
+                "window_id": window_id,
+                "window": window,
+                "in_window": in_window,
+                "hint_ids": _hint_flagged_ids(in_window),
+            }
+        )
 
-        hint_ids = _hint_flagged_ids(in_window)
+    def _filter_one(item: dict[str, Any]) -> tuple[
+        str, dict[str, Any] | None, list[StageTrace], str | None
+    ]:
+        window_id = item["window_id"]
+        window = item["window"]
         try:
             focused, traces = audit_filter_agent.run(
                 llm=llm,
                 patient_id=str(state.get("patient_id") or ""),
                 window_id=window_id,
                 suspected_site=window.get("suspected_site", "unknown"),
-                encounters=in_window,
+                encounters=item["in_window"],
                 segmenter_anchors=window.get("anchors") or {},
-                cancer_coded_encounter_ids=window.get("cancer_coded_encounter_ids")
+                cancer_coded_encounter_ids=window.get(
+                    "cancer_coded_encounter_ids"
+                )
                 or [],
-                hint_flagged_encounter_ids=hint_ids,
+                hint_flagged_encounter_ids=item["hint_ids"],
             )
-            focused_sets[window_id] = focused.model_dump(mode="json")
-            new_traces.extend(traces)
+            return window_id, focused.model_dump(mode="json"), list(traces), None
         except Exception as exc:  # pragma: no cover - guarded by audit_filter
-            errors.append(f"audit_relevance_filter[{window_id}]: {exc}")
-            new_traces.append(
-                _failed_trace("audit_relevance_filter", str(exc))
+            return (
+                window_id,
+                None,
+                [_failed_trace("audit_relevance_filter", str(exc))],
+                f"audit_relevance_filter[{window_id}]: {exc}",
             )
+
+    if eligible:
+        max_workers = min(_candidate_parallelism(), len(eligible))
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            for window_id, dump, traces, err in pool.map(_filter_one, eligible):
+                if dump is not None:
+                    focused_sets[window_id] = dump
+                if traces:
+                    new_traces.extend(traces)
+                if err is not None:
+                    errors.append(err)
 
     return {
         "focused_sets": focused_sets,
@@ -268,11 +320,17 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
     new_traces: list[StageTrace] = []
     errors: list[str] = list(state.get("errors") or [])
 
-    for cls in classified:
+    def _extract_one(cls: dict[str, Any]) -> dict[str, Any] | None:
+        """Process a single classifier window and return per-window output.
+
+        Returns a dict with keys: extracted (dict|None), eoc_trace
+        (dict|None), traces (list), errors (list). Returns None if the
+        window should be skipped silently.
+        """
         if cls.get("episode_type") not in _EXTRACT_EPISODE_TYPES:
-            continue
+            return None
         if float(cls.get("confidence") or 0.0) < _CLASSIFIER_MIN_CONFIDENCE:
-            continue
+            return None
 
         window_id = cls.get("window_id", "")
         window = candidates_by_id.get(window_id) or {}
@@ -293,19 +351,23 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
             }
             for fe in focused.encounters
         ]
-        focused_encounters = [e for e in focused_encounters if e.get("encounter_id")]
-
+        focused_encounters = [
+            e for e in focused_encounters if e.get("encounter_id")
+        ]
         if not focused_encounters:
-            continue
+            return None
+
+        local_errors: list[str] = []
+        local_traces: list[StageTrace] = []
 
         partitions, partition_report = partition_window(focused_encounters)
         if partition_report.too_many_parts:
-            errors.append(
+            local_errors.append(
                 f"milestone[{window_id}]: audit_partition_overflow "
                 f"({partition_report.notice or 'too many parts'})"
             )
-            extracted.append(
-                MilestoneExtractorResult(
+            return {
+                "extracted": MilestoneExtractorResult(
                     window_id=window_id,
                     milestones=[],
                     needs_human_review=True,
@@ -317,18 +379,17 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
                             "one run. Ask a clinician to review."
                         )
                     ),
-                ).model_dump(mode="json")
-            )
-            eoc_traces.append(
-                _build_eoc_trace(
+                ).model_dump(mode="json"),
+                "eoc_trace": _build_eoc_trace(
                     window_id=window_id,
                     focused=focused,
                     parts=[],
                     overflow=True,
                     audit_parts=0,
-                ).model_dump(mode="json")
-            )
-            continue
+                ).model_dump(mode="json"),
+                "traces": local_traces,
+                "errors": local_errors,
+            }
 
         per_part_results: list[MilestoneExtractorResult] = []
         part_traces: list[PartTrace] = []
@@ -348,7 +409,7 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
                     window_full_text=part_full_text,
                 )
                 per_part_results.append(result)
-                new_traces.append(trace)
+                local_traces.append(trace)
                 part_traces.append(
                     PartTrace(
                         part_index=part.index,
@@ -357,10 +418,12 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
                     )
                 )
             except StageError as exc:
-                errors.append(
+                local_errors.append(
                     f"milestone[{window_id} part {part.index}/{part.total}]: {exc}"
                 )
-                new_traces.append(_failed_trace("milestone_extractor", str(exc)))
+                local_traces.append(
+                    _failed_trace("milestone_extractor", str(exc))
+                )
                 per_part_results.append(
                     MilestoneExtractorResult(
                         window_id=window_id,
@@ -384,16 +447,31 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
         merged = merge_milestones_deterministic(
             per_part_results, window_id=window_id
         )
-        extracted.append(merged.model_dump(mode="json"))
-        eoc_traces.append(
-            _build_eoc_trace(
+        return {
+            "extracted": merged.model_dump(mode="json"),
+            "eoc_trace": _build_eoc_trace(
                 window_id=window_id,
                 focused=focused,
                 parts=part_traces,
                 overflow=False,
                 audit_parts=len(partitions),
-            ).model_dump(mode="json")
-        )
+            ).model_dump(mode="json"),
+            "traces": local_traces,
+            "errors": local_errors,
+        }
+
+    if classified:
+        max_workers = min(_candidate_parallelism(), len(classified))
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            for result in pool.map(_extract_one, classified):
+                if result is None:
+                    continue
+                if result.get("extracted"):
+                    extracted.append(result["extracted"])
+                if result.get("eoc_trace"):
+                    eoc_traces.append(result["eoc_trace"])
+                new_traces.extend(result.get("traces") or [])
+                errors.extend(result.get("errors") or [])
 
     return {
         "extracted": extracted,

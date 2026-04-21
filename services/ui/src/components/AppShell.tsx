@@ -618,25 +618,59 @@ function TrainingProgressBanner() {
 
   useEffect(() => {
     let cancelled = false;
-    const poll = async () => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const ACTIVE_INTERVAL_MS = 5000;
+    const IDLE_INTERVAL_MS = 60000;
+
+    const schedule = (delay: number) => {
+      if (cancelled) return;
+      timer = setTimeout(tick, delay);
+    };
+
+    const tick = async () => {
+      let active: { job_id: string; phase: string; f1?: number; status: string } | null = null;
       try {
+        if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+          // Skip polling when the tab is hidden; resume when visible.
+          schedule(IDLE_INTERVAL_MS);
+          return;
+        }
         const res = await fetch("/api/training-worker/jobs");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (cancelled) return;
-        const active = (data.jobs ?? data ?? []).find(
-          (j: { status: string }) => j.status === "running" || j.status === "evaluating" || j.status === "uploading"
-        );
-        setRunningJob(active ?? null);
+        if (res.ok) {
+          const data = await res.json();
+          active = (data.jobs ?? data ?? []).find(
+            (j: { status: string }) =>
+              j.status === "running" ||
+              j.status === "evaluating" ||
+              j.status === "uploading"
+          ) ?? null;
+        }
       } catch {
         // ignore
       }
+      if (cancelled) return;
+      setRunningJob(active);
+      schedule(active ? ACTIVE_INTERVAL_MS : IDLE_INTERVAL_MS);
     };
-    poll();
-    const id = setInterval(poll, 5000);
+
+    const onVisibility = () => {
+      if (typeof document === "undefined") return;
+      if (document.visibilityState === "visible") {
+        if (timer) clearTimeout(timer);
+        schedule(0);
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibility);
+    }
+
+    schedule(0);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      if (timer) clearTimeout(timer);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
     };
   }, []);
 

@@ -74,9 +74,13 @@ function ConfidenceCell({ confidence }: { confidence: number | null }) {
 interface Props {
   patientId: string;
   episode: MissionEpisode;
+  /** Bumped by the parent drawer after an inline coding edit so this
+   *  tab refetches its patient-scoped concept list and shows the
+   *  saved state without forcing a drawer close/reopen. */
+  refreshKey?: number;
 }
 
-export default function CodedDataTab({ patientId, episode }: Props) {
+export default function CodedDataTab({ patientId, episode, refreshKey = 0 }: Props) {
   const [rows, setRows] = useState<ConceptRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +92,7 @@ export default function CodedDataTab({ patientId, episode }: Props) {
       .then(setRows)
       .catch((e) => setError(e instanceof Error ? e.message : "Could not load coded data."))
       .finally(() => setLoading(false));
-  }, [patientId]);
+  }, [patientId, refreshKey]);
 
   const linkedIdsFromEdges = episode.linked_encounter_ids ?? [];
   const linkedIdsFromMilestones = (episode.milestones ?? []).map((m) => m.encounter_id);

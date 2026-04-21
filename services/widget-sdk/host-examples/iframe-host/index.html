@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LEO widget host example - hardened iframe</title>
+    <link rel="stylesheet" href="../react-host/styles.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <h1>Beta Hospital - 2WW review (iframe host example)</h1>
+      <p>
+        This page mounts the LEO widget in the hardened iframe
+        variant. The iframe is sandboxed (allow-scripts only),
+        served from a Mizaic-controlled origin (in this demo,
+        the local Vite dev server), and the host has no DOM-level
+        access to the SBAR rendering, branding, or source-record
+        disclosure. Lifecycle events arrive via window.postMessage.
+      </p>
+    </header>
+
+    <main class="page-main">
+      <section class="patient-card">
+        <h2>Patient summary (host data)</h2>
+        <ul>
+          <li>Patient: Mr B (NHS 888 888 8888)</li>
+          <li>Pathway: 2WW lower GI</li>
+          <li>Reviewer: Dr C (clinician)</li>
+        </ul>
+      </section>
+
+      <section class="leo-frame">
+        <h2>LEO SBAR (iframe variant)</h2>
+        <iframe
+          id="leo-widget-iframe"
+          title="LEO SBAR"
+          sandbox="allow-scripts"
+          src="/demo/iframe-shell/index.html?assessment-id=ass-2WW-002&widget-token=dev-stub-token"
+          style="width: 100%; height: 520px; border: 0;"
+        ></iframe>
+        <p class="leo-status" id="leo-status" role="status">
+          Waiting for LEO widget to load...
+        </p>
+      </section>
+    </main>
+
+    <script>
+      const status = document.getElementById("leo-status");
+      window.addEventListener("message", (event) => {
+        const data = event.data;
+        if (!data || typeof data !== "object" || data.source !== "leo-widget") {
+          return;
+        }
+        if (data.event === "loaded") {
+          status.textContent = "LEO widget loaded.";
+        } else if (data.event === "error") {
+          status.textContent = "LEO widget error - host SHALL surface this without modification.";
+        } else if (data.event === "disclosure-opened") {
+          console.log("[host] reviewer opened the source-record disclosure");
+        } else if (data.event === "source-id-clicked") {
+          console.log("[host] reviewer clicked source", data.payload);
+        }
+      });
+    </script>
+  </body>
+</html>

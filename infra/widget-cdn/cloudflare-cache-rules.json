@@ -1,0 +1,73 @@
+{
+  "_comment": "Cloudflare Cache Rules for the LEO widget CDN. Atlas trace: DO-3B62F38E. Apply to whichever zone hosts the widget FQDN configured in WIDGET_PUBLIC_HOST (e.g. widget.leo-ai-audit.healthcarecopilot.ai). Apply via the Cloudflare Rules > Cache Rules UI in that zone, or via the Cloudflare API (POST /zones/{zone_id}/rulesets). Each rule has a stable 'description' so they can be diffed in code review. Path-based expressions are host-agnostic; you can change WIDGET_PUBLIC_HOST without editing this file.",
+  "rules": [
+    {
+      "description": "leo-widget-bundle: aggressive cache, immutable per release",
+      "expression": "(starts_with(http.request.uri.path, \"/v1/leo-widget.js\")) or (starts_with(http.request.uri.path, \"/iframe/\"))",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": true,
+        "edge_ttl": {
+          "mode": "override_origin",
+          "default": 31536000
+        },
+        "browser_ttl": {
+          "mode": "override_origin",
+          "default": 86400
+        },
+        "respect_strong_etags": true,
+        "serve_stale": {
+          "disable_stale_while_updating": false
+        }
+      }
+    },
+    {
+      "description": "leo-widget-manifest: short edge TTL, must-revalidate so CSO rollback propagates within 60s",
+      "expression": "http.request.uri.path eq \"/v1/manifest.json\"",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": true,
+        "edge_ttl": {
+          "mode": "respect_origin"
+        },
+        "browser_ttl": {
+          "mode": "respect_origin"
+        },
+        "respect_strong_etags": true
+      }
+    },
+    {
+      "description": "leo-widget-advisory: short edge TTL, must-revalidate so CSO advisories propagate within 60s",
+      "expression": "http.request.uri.path eq \"/v1/advisory.json\"",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": true,
+        "edge_ttl": {
+          "mode": "respect_origin"
+        },
+        "browser_ttl": {
+          "mode": "respect_origin"
+        },
+        "respect_strong_etags": true
+      }
+    },
+    {
+      "description": "leo-widget-default-deny: any path outside the widget surface MUST 404 from origin (defence in depth)",
+      "expression": "not (starts_with(http.request.uri.path, \"/v1/\") or starts_with(http.request.uri.path, \"/iframe/\"))",
+      "action": "set_cache_settings",
+      "action_parameters": {
+        "cache": false
+      }
+    }
+  ],
+  "_security_settings_to_apply_separately": {
+    "ssl_mode": "Full (strict)",
+    "min_tls_version": "1.2",
+    "always_use_https": true,
+    "automatic_https_rewrites": true,
+    "browser_check": false,
+    "security_level": "medium",
+    "challenge_ttl_seconds": 0,
+    "_comment": "browser_check / 'are you human' interstitial MUST be disabled on this zone -- the widget is loaded by other web apps, not by humans browsing directly, and a JS challenge would break every embedding host."
+  }
+}

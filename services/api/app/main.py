@@ -75,6 +75,10 @@ from app.routers.pricing import router as pricing_router
 from app.routers.reference_ranges import router as reference_ranges_router
 from app.routers.audit_quality import router as audit_quality_router
 from app.routers.sbar import router as sbar_router
+from app.routers.sdk_auth import router as sdk_auth_router
+from app.routers.sdk_governance import router as sdk_governance_router
+from app.routers.sdk_release import router as sdk_release_router
+from app.routers.sdk_telemetry import router as sdk_telemetry_router
 
 
 def _validate_startup_deps():
@@ -123,6 +127,23 @@ def _validate_startup_deps():
 @asynccontextmanager
 async def lifespan(app: object):
     import threading
+
+    # Lift the anyio threadpool ceiling so sync `def` endpoints (and sync I/O
+    # called via `to_thread`) do not bottleneck on Starlette's default 40
+    # tokens. See plan: backend-concurrency-overhaul Phase 0.
+    try:
+        import anyio
+
+        _limiter = anyio.to_thread.current_default_thread_limiter()
+        _tokens = int(os.getenv("ANYIO_THREADPOOL_TOKENS", "200"))
+        _limiter.total_tokens = _tokens
+        logging.getLogger(__name__).info(
+            "anyio threadpool ceiling set to %d", _tokens
+        )
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "Failed to lift anyio threadpool ceiling: %s", exc
+        )
 
     _validate_startup_deps()
 
@@ -240,6 +261,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from libs.observability import ServerTimingMiddleware  # noqa: E402
+
+app.add_middleware(ServerTimingMiddleware)
+
 
 @app.middleware("http")
 async def bind_request_logging_context(request: Request, call_next):
@@ -333,6 +358,10 @@ app.include_router(reference_ranges_router)
 app.include_router(audit_quality_router)
 app.include_router(data_quality_router)
 app.include_router(sbar_router)
+app.include_router(sdk_auth_router)
+app.include_router(sdk_telemetry_router)
+app.include_router(sdk_release_router)
+app.include_router(sdk_governance_router)
 
 
 @app.get("/health")

@@ -48,6 +48,18 @@ logger = logging.getLogger("terminology-api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("Terminology API starting")
+    # Lift the anyio threadpool ceiling so sync `def` endpoints (and sync I/O
+    # called via `to_thread`) do not bottleneck on Starlette's default 40
+    # tokens. See plan: backend-concurrency-overhaul Phase 0.
+    try:
+        import anyio
+
+        _limiter = anyio.to_thread.current_default_thread_limiter()
+        _tokens = int(os.getenv("ANYIO_THREADPOOL_TOKENS", "200"))
+        _limiter.total_tokens = _tokens
+        logger.info("anyio threadpool ceiling set to %d", _tokens)
+    except Exception as exc:
+        logger.warning("Failed to lift anyio threadpool ceiling: %s", exc)
     # Pre-load the embedding model in a thread so each worker is warm before
     # it accepts its first real request.  Without this, the first request to
     # each worker blocks for 20-60s while the SentenceTransformer loads on CPU,
@@ -87,6 +99,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Service-Token"],
 )
+
+from libs.observability import ServerTimingMiddleware  # noqa: E402
+
+app.add_middleware(ServerTimingMiddleware)
 
 app.include_router(search_router, prefix="/terminology", tags=["search"])
 app.include_router(resolve_router, prefix="/terminology", tags=["resolve"])

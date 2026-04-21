@@ -64,6 +64,14 @@ export default function PatientDetailDrawer({
   const [focusedEpisodeId, setFocusedEpisodeId] = useState(
     patient.episodes[0]?.episode_id ?? ""
   );
+  // Bumped whenever a child surface (today: the encounter text editor)
+  // commits a coding change. Sibling tabs that fetch their own
+  // patient-scoped data observe this nonce in their effect deps so
+  // they refetch live data without the user having to close and
+  // reopen the drawer (DI-6EA84931 acceptance: "drawer reflects
+  // the latest coded state after an inline save").
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const bumpRefresh = () => setRefreshNonce((n) => n + 1);
 
   useEffect(() => {
     setTab(tabToIndex(initialTab));
@@ -71,6 +79,7 @@ export default function PatientDetailDrawer({
 
   useEffect(() => {
     setFocusedEpisodeId(patient.episodes[0]?.episode_id ?? "");
+    setRefreshNonce(0);
   }, [patient.patient_id]);
 
   const focusedEpisode = useMemo(
@@ -296,7 +305,11 @@ export default function PatientDetailDrawer({
         {tab === 1 && (
           <Box role="tabpanel" id="panel-coded" aria-labelledby="tab-coded">
             {focusedEpisode ? (
-              <CodedDataTab patientId={patient.patient_id} episode={focusedEpisode} />
+              <CodedDataTab
+                patientId={patient.patient_id}
+                episode={focusedEpisode}
+                refreshKey={refreshNonce}
+              />
             ) : (
               <Alert severity="info">
                 No pathway is available yet for this patient. Coded data appears after rebuild
@@ -308,7 +321,11 @@ export default function PatientDetailDrawer({
         {tab === 2 && (
           <Box role="tabpanel" id="panel-text" aria-labelledby="tab-text">
             {focusedEpisode ? (
-              <EncounterTextTab patientId={patient.patient_id} episode={focusedEpisode} />
+              <EncounterTextTab
+                patientId={patient.patient_id}
+                episode={focusedEpisode}
+                onCodingChanged={bumpRefresh}
+              />
             ) : (
               <Alert severity="info">
                 No pathway is available yet for this patient. Encounter text linked to a pathway
@@ -323,6 +340,7 @@ export default function PatientDetailDrawer({
               patientId={patient.patient_id}
               episode={focusedEpisode ?? null}
               orgId={orgId}
+              refreshKey={refreshNonce}
             />
           </Box>
         )}

@@ -1,0 +1,275 @@
+name: Widget release - build, gate, deploy
+
+# Atlas trace
+#   DO: DO-3B62F38E (auto-update + CSO rollback + advisory channel)
+#   DI: DI-3C06AFD0
+#   Look up via: get_design_control(dc_type="design-output", dc_id="DO-3B62F38E")
+#
+# What this workflow does
+#   1. Build the LEO widget bundle (web-component + hardened iframe).
+#   2. Run the four DISCLOSURE-CRITICAL VTs in isolation and capture
+#      pass/fail per VT (this is the contract the gate enforces).
+#   3. Run scripts/widget_release_gate.py with that input. The gate
+#      refuses PROMOTE if ANY disclosure VT is failing.
+#   4. Only on PROMOTE: upload to Azure Storage Static Website
+#      (origin) and purge the immutable paths from Cloudflare so the
+#      new bundle goes live globally within ~5s.
+#
+# How to trigger
+#   - workflow_dispatch with environment=dev|val|prod (manual)
+#   - workflow_run after CI - Build and Push Images on main (auto-dev)
+#
+# What it requires (per environment secrets)
+#   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (OIDC)
+#   AZURE_WIDGET_STORAGE_ACCOUNT                             (e.g. leoaiwidgetcdnprod)
+#   CLOUDFLARE_API_TOKEN                                     (zone-scoped, cache:purge)
+#   CLOUDFLARE_ZONE_ID                                       (zone id of the WIDGET_PUBLIC_HOST parent, e.g. healthcarecopilot.ai)
+#   WIDGET_PUBLIC_HOST                                       (e.g. widget.leo-ai-audit.healthcarecopilot.ai)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: dev
+        type: choice
+        options: [dev, val, prod]
+      build_label:
+        description: Build label (default = sha-of-HEAD)
+        required: false
+  workflow_run:
+    workflows: ["CI - Build and Push Images"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-gate:
+    name: Build and gate
+    runs-on: ubuntu-latest
+    outputs:
+      promote: ${{ steps.gate.outputs.promote }}
+      build_label: ${{ steps.label.outputs.label }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve build label
+        id: label
+        env:
+          INPUT_LABEL: ${{ github.event.inputs.build_label }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          LABEL="$INPUT_LABEL"
+          if [ -z "$LABEL" ]; then
+            LABEL="sha-${GITHUB_SHA}"
+          fi
+          if ! [[ "$LABEL" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "build_label $LABEL contains disallowed characters" >&2
+            exit 1
+          fi
+          echo "label=$LABEL" >> "$GITHUB_OUTPUT"
+
+      - name: Install widget SDK deps
+        working-directory: services/widget-sdk
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright browsers
+        working-directory: services/widget-sdk
+        run: npx playwright install --with-deps chromium
+
+      - name: VT-AD41127B - brand-mutation API surface (jest)
+        id: vt_ad41127b
+        working-directory: services/widget-sdk
+        continue-on-error: true
+        run: npx jest src/__tests__/brand-lock.test.ts --no-coverage --ci
+
+      - name: VT-F6F5681E - host CSS isolation (playwright)
+        id: vt_f6f5681e
+        working-directory: services/widget-sdk
+        continue-on-error: true
+        run: npx playwright test e2e/brand-immutability.spec.ts --reporter=line
+
+      - name: VT-50EE589C - disclosure visibility (playwright)
+        id: vt_50ee589c
+        working-directory: services/widget-sdk
+        continue-on-error: true
+        run: npx playwright test e2e/host-css-isolation.spec.ts --reporter=line
+
+      - name: VT-265DACC1 - host JS isolation (playwright)
+        id: vt_265dacc1
+        working-directory: services/widget-sdk
+        continue-on-error: true
+        run: npx playwright test e2e/host-js-isolation.spec.ts --reporter=line
+
+      - name: Compose gate input
+        id: gate_input
+        env:
+          R_AD41127B: ${{ steps.vt_ad41127b.outcome }}
+          R_F6F5681E: ${{ steps.vt_f6f5681e.outcome }}
+          R_50EE589C: ${{ steps.vt_50ee589c.outcome }}
+          R_265DACC1: ${{ steps.vt_265dacc1.outcome }}
+          LABEL: ${{ steps.label.outputs.label }}
+        run: |
+          map() { [ "$1" = "success" ] && echo "pass" || echo "fail"; }
+          cat > gate-input.json <<EOF
+          {
+            "build": "${LABEL}",
+            "vts": {
+              "VT-AD41127B": "$(map "$R_AD41127B")",
+              "VT-F6F5681E": "$(map "$R_F6F5681E")",
+              "VT-50EE589C": "$(map "$R_50EE589C")",
+              "VT-265DACC1": "$(map "$R_265DACC1")"
+            }
+          }
+          EOF
+          cat gate-input.json
+
+      - name: Run widget release gate
+        id: gate
+        run: |
+          set +e
+          OUT="$(python scripts/widget_release_gate.py gate-input.json)"
+          GATE_EXIT=$?
+          echo "$OUT"
+          if [ $GATE_EXIT -eq 0 ]; then
+            echo "promote=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "promote=false" >> "$GITHUB_OUTPUT"
+            exit $GATE_EXIT
+          fi
+
+      - name: Build widget bundles (web-component + hardened iframe)
+        if: steps.gate.outputs.promote == 'true'
+        working-directory: services/widget-sdk
+        run: npm run build:all
+
+      - name: Upload bundle artefact
+        if: steps.gate.outputs.promote == 'true'
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4
+        with:
+          name: leo-widget-${{ steps.label.outputs.label }}
+          path: |
+            services/widget-sdk/dist/v1/
+            services/widget-sdk/dist/iframe/
+          retention-days: 30
+
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'dev' }}
+    needs: [build-and-gate]
+    if: needs.build-and-gate.outputs.promote == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    concurrency:
+      group: widget-deploy-${{ github.event.inputs.environment || 'dev' }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Download bundle artefact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: leo-widget-${{ needs.build-and-gate.outputs.build_label }}
+          path: services/widget-sdk/dist
+
+      - name: Azure login (OIDC)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Upload web-component bundle to Azure Storage origin
+        env:
+          ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
+        run: |
+          az storage blob upload-batch \
+            --account-name "$ACCOUNT" \
+            --auth-mode login \
+            --destination '$web' \
+            --source services/widget-sdk/dist/v1 \
+            --destination-path v1/ \
+            --content-cache "public, max-age=31536000, immutable" \
+            --overwrite
+
+      - name: Upload hardened iframe to Azure Storage origin
+        env:
+          ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
+        run: |
+          az storage blob upload-batch \
+            --account-name "$ACCOUNT" \
+            --auth-mode login \
+            --destination '$web' \
+            --source services/widget-sdk/dist/iframe \
+            --destination-path iframe/ \
+            --content-cache "public, max-age=31536000, immutable" \
+            --overwrite
+
+      - name: Purge Cloudflare immutable paths
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
+        run: |
+          BODY=$(cat <<JSON
+          { "files": [
+              "https://${HOST}/v1/leo-widget.js",
+              "https://${HOST}/iframe/index.html",
+              "https://${HOST}/iframe/shell.js"
+          ] }
+          JSON
+          )
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer ${CF_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" \
+            -d "$BODY"
+
+      - name: Smoke check the public CDN
+        env:
+          HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
+        run: |
+          for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html; do
+            echo "Checking https://${HOST}${path}"
+            curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+                 --output /dev/null --write-out "HTTP %{http_code}\n" \
+                 "https://${HOST}${path}"
+          done
+
+      - name: Report deploy summary
+        env:
+          LABEL: ${{ needs.build-and-gate.outputs.build_label }}
+          ENV: ${{ github.event.inputs.environment || 'dev' }}
+          HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
+        run: |
+          {
+            echo "## LEO widget deploy"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Environment | ${ENV} |"
+            echo "| Build label | ${LABEL} |"
+            echo "| CDN host    | https://${HOST}/v1/leo-widget.js |"
+            echo "| Manifest    | https://${HOST}/v1/manifest.json |"
+            echo "| Advisory    | https://${HOST}/v1/advisory.json |"
+            echo "| Iframe      | https://${HOST}/iframe/index.html |"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -29,6 +29,10 @@ interface Props {
   patientId: string;
   episode: MissionEpisode | null;
   orgId?: string;
+  /** Bumped by the parent drawer after an inline coding edit so this
+   *  tab refetches the pipeline / audit history and shows new
+   *  events without forcing a drawer close/reopen. */
+  refreshKey?: number;
 }
 
 function formatDateTime(iso: string | null): string {
@@ -76,7 +80,12 @@ function formatDurationMs(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)} s`;
 }
 
-export default function AuditTrailTab({ patientId, episode, orgId }: Props) {
+export default function AuditTrailTab({
+  patientId,
+  episode,
+  orgId,
+  refreshKey = 0,
+}: Props) {
   const [pipelineEvents, setPipelineEvents] = useState<PipelineAuditEvent[] | null>(null);
   const [pipelineError, setPipelineError] = useState<string | null>(null);
   const [pipelineLoading, setPipelineLoading] = useState(true);
@@ -102,7 +111,7 @@ export default function AuditTrailTab({ patientId, episode, orgId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [patientId, episode?.episode_id, orgId]);
+  }, [patientId, episode?.episode_id, orgId, refreshKey]);
 
   const hasReview = Boolean(episode?.reviewed_by);
   const hasHumanAudit =

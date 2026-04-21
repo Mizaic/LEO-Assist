@@ -364,15 +364,45 @@ export async function createCohort(
   description: string,
   filters: CohortFilter,
 ): Promise<Cohort> {
-  return fetchJson<Cohort>(`${ANALYTICS_BASE}/analytics/cohorts`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, description, filters }),
-  });
+  const created = await fetchJson<Cohort>(
+    `${ANALYTICS_BASE}/analytics/cohorts`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description, filters }),
+    },
+  );
+  invalidateCohortCache();
+  return created;
 }
 
+// In-flight + short-TTL cache for the cohort list. Patient finder dialogs
+// call fetchCohorts() on every mount; without caching this becomes one
+// extra round-trip every time a clinician opens the picker.
+const _COHORT_TTL_MS = 60 * 1000;
+let _cohortCache: { fetchedAt: number; rows: Cohort[] } | null = null;
+let _cohortInflight: Promise<Cohort[]> | null = null;
+
 export async function fetchCohorts(): Promise<Cohort[]> {
-  return fetchJson<Cohort[]>(`${ANALYTICS_BASE}/analytics/cohorts`);
+  const now = Date.now();
+  if (_cohortCache && now - _cohortCache.fetchedAt < _COHORT_TTL_MS) {
+    return _cohortCache.rows;
+  }
+  if (_cohortInflight) return _cohortInflight;
+  _cohortInflight = (async () => {
+    try {
+      const rows = await fetchJson<Cohort[]>(`${ANALYTICS_BASE}/analytics/cohorts`);
+      _cohortCache = { fetchedAt: Date.now(), rows };
+      return rows;
+    } finally {
+      _cohortInflight = null;
+    }
+  })();
+  return _cohortInflight;
+}
+
+export function invalidateCohortCache(): void {
+  _cohortCache = null;
 }
 
 export async function resolveCohort(cohortId: string): Promise<CohortPatients> {
@@ -382,10 +412,12 @@ export async function resolveCohort(cohortId: string): Promise<CohortPatients> {
 }
 
 export async function deleteCohort(cohortId: string): Promise<{ success: boolean }> {
-  return fetchJson<{ success: boolean }>(
+  const result = await fetchJson<{ success: boolean }>(
     `${ANALYTICS_BASE}/analytics/cohorts/${cohortId}`,
     { method: "DELETE" },
   );
+  invalidateCohortCache();
+  return result;
 }
 
 export async function previewCohort(

@@ -11,6 +11,8 @@ Match templates, scope resolution, benchmark fetching, multi-scope runner.
 from __future__ import annotations
 
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Optional
 
 from libs.auth.org_scope import CallerScope, ORG_PATIENT_FILTER
@@ -269,7 +271,6 @@ def _run_multi_scope(
     practice_base, practice_params = _add_date_filters(
         practice_base, practice_params, date_from, date_to
     )
-    practice_data = query_fn(practice_base, practice_params, client)
 
     alliance_data = None
     england_data = None
@@ -280,22 +281,50 @@ def _run_multi_scope(
     if effective_org:
         alliance_id = _resolve_alliance_id(effective_org, client)
         org_ods_code = _resolve_org_ods_code(effective_org, client)
-        if alliance_id:
-            a_base, a_params = _ORG_PATIENT_MATCH, {"org": alliance_id}
-            a_base, a_params = _add_date_filters(a_base, a_params, date_from, date_to)
-            try:
-                alliance_data = query_fn(a_base, a_params, client)
-            except Exception:
-                logger.exception("Alliance scope query failed for %s", alliance_id)
-                alliance_data = None
 
-        e_base, e_params = _ENGLAND_BASE, {}
-        e_base, e_params = _add_date_filters(e_base, e_params, date_from, date_to)
+    # Run practice / alliance / england queries in parallel. Each query
+    # checks out its own connection from the Neo4j driver pool so they
+    # do not contend on a single session. Bounded threadpool so we never
+    # use more than one slot per scope.
+    def _run_practice():
+        return query_fn(practice_base, practice_params, client)
+
+    def _run_alliance():
+        if not alliance_id:
+            return None
+        a_base, a_params = _ORG_PATIENT_MATCH, {"org": alliance_id}
+        a_base, a_params = _add_date_filters(
+            a_base, a_params, date_from, date_to
+        )
         try:
-            england_data = query_fn(e_base, e_params, client)
+            return query_fn(a_base, a_params, client)
+        except Exception:
+            logger.exception(
+                "Alliance scope query failed for %s", alliance_id
+            )
+            return None
+
+    def _run_england():
+        if not effective_org:
+            return None
+        e_base, e_params = _ENGLAND_BASE, {}
+        e_base, e_params = _add_date_filters(
+            e_base, e_params, date_from, date_to
+        )
+        try:
+            return query_fn(e_base, e_params, client)
         except Exception:
             logger.exception("England scope query failed")
-            england_data = None
+            return None
+
+    max_workers = int(os.getenv("AUDIT_SCOPE_PARALLELISM", "3"))
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        practice_fut = pool.submit(_run_practice)
+        alliance_fut = pool.submit(_run_alliance)
+        england_fut = pool.submit(_run_england)
+        practice_data = practice_fut.result()
+        alliance_data = alliance_fut.result()
+        england_data = england_fut.result()
 
     benchmark = None
     if benchmark_set_id:

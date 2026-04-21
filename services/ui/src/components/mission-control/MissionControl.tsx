@@ -199,6 +199,9 @@ export default function MissionControl() {
 
     let polling = false;
     const interval = window.setInterval(async () => {
+      // Skip polling when the tab is hidden -- the next render after the
+      // user comes back will pick up the latest status anyway.
+      if (typeof document !== "undefined" && document.hidden) return;
       if (polling) return;
       polling = true;
       const updates = await Promise.all(

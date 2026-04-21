@@ -36,6 +36,9 @@ import { useEncounterRecode } from "./useEncounterRecode";
 interface Props {
   patientId: string;
   episode: MissionEpisode;
+  /** Bubbles a coding-change signal so the drawer refreshes
+   *  sibling tabs (CodedDataTab, AuditTrailTab) live. */
+  onCodingChanged?: () => void;
 }
 
 interface MilestoneJump {
@@ -45,7 +48,11 @@ interface MilestoneJump {
   date: string | null;
 }
 
-export default function EncounterTextTab({ patientId, episode }: Props) {
+export default function EncounterTextTab({
+  patientId,
+  episode,
+  onCodingChanged,
+}: Props) {
   const { encounters, loading, error, refresh } = useEncounterLoad(patientId);
   const [codedOnly, setCodedOnly] = useState(false);
   const [search, setSearch] = useState("");
@@ -356,9 +363,11 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
         onCodingChanged={() => {
           // Invalidate the cached coded links for this encounter so the
           // next render re-fetches from /coded-links and shows the
-          // post-edit live state.  See DI-LEO-AI-221.
+          // post-edit live state. Then bubble to the drawer so
+          // sibling tabs refetch too. See DI-LEO-AI-221.
           loadedRef.current.delete(encounterKey);
           void fetchCodesForEncounter(encounterKey);
+          onCodingChanged?.();
         }}
       />
     );

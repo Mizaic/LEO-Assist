@@ -531,7 +531,10 @@ class WorkflowEngine:
                 )
         try:
             subgraph = self._registry.build(action.subgraph_id)
-            result = subgraph.invoke(state)
+            # The LangGraph subgraph is fully synchronous and can park the
+            # event loop for 5-120s. Run it on the threadpool so the message
+            # bus consumer + HTTP routes stay responsive while a step runs.
+            result = await asyncio.to_thread(subgraph.invoke, state)
             duration = int((time.monotonic() - t0) * 1000)
             entities = (
                 result.get("entities")

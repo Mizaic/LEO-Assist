@@ -111,6 +111,25 @@ def _resolve_startup_version() -> str:
     return ""
 
 
+def _bound_extract_concurrency() -> int:
+    """Cap concurrent /extract calls at CPU count (default <=4) to stop spaCy
+    thrashing under burst. Override with MODEL_INFERENCE_MAX_CONCURRENCY."""
+    override = os.getenv("MODEL_INFERENCE_MAX_CONCURRENCY")
+    if override:
+        try:
+            return max(1, int(override))
+        except ValueError:
+            pass
+    try:
+        cpu = os.cpu_count() or 1
+    except Exception:
+        cpu = 1
+    return max(1, min(cpu, 4))
+
+
+_EXTRACT_LIMITER: Optional["asyncio.Semaphore"] = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(
@@ -120,13 +139,29 @@ async def lifespan(app: FastAPI):
         _INFERENCE_ACCEL.fallback_applied,
         _INFERENCE_ACCEL.fallback_reason or "none",
     )
+    global _EXTRACT_LIMITER
+    _EXTRACT_LIMITER = asyncio.Semaphore(_bound_extract_concurrency())
+    logger.info(
+        "Bounded /extract concurrency to %d", _bound_extract_concurrency()
+    )
+    # Lift the anyio threadpool ceiling so the bounded semaphore -- not the
+    # default 40-slot threadpool -- is the limiter for CPU work.
+    try:
+        import anyio
+
+        _limiter = anyio.to_thread.current_default_thread_limiter()
+        _tokens = int(os.getenv("ANYIO_THREADPOOL_TOKENS", "100"))
+        _limiter.total_tokens = _tokens
+        logger.info("anyio threadpool ceiling set to %d", _tokens)
+    except Exception as exc:
+        logger.warning("Failed to lift anyio threadpool ceiling: %s", exc)
     version = _resolve_startup_version()
     if version:
         try:
             await asyncio.to_thread(_loader.load_version, version)
         except Exception:
             logger.warning(
-                "Inference service: startup model load failed — serving degraded",
+                "Inference service: startup model load failed - serving degraded",
                 exc_info=True,
             )
     yield
@@ -204,17 +239,7 @@ def health() -> dict[str, Any]:
     }
 
 
-@app.post(
-    "/extract",
-    response_model=ExtractResponse,
-    dependencies=[Depends(verify_service_token)],
-)
-def extract(req: ExtractRequest) -> ExtractResponse:
-    """Run NER extraction on a batch of sentences.
-
-    The coding worker sends this request; the response is parsed by
-    ``ModelExtractorProvider._parse_service_response()``.
-    """
+def _extract_sync(req: ExtractRequest) -> ExtractResponse:
     nlp = _loader.nlp
     if nlp is None:
         raise HTTPException(
@@ -262,6 +287,23 @@ def extract(req: ExtractRequest) -> ExtractResponse:
         entity_count=len(entities),
         entities=entities,
     )
+
+
+@app.post(
+    "/extract",
+    response_model=ExtractResponse,
+    dependencies=[Depends(verify_service_token)],
+)
+async def extract(req: ExtractRequest) -> ExtractResponse:
+    """Run NER extraction on a batch of sentences.
+
+    Uses an asyncio Semaphore (sized to CPU count, max 4) to prevent
+    spaCy thrashing under burst. The CPU-bound work runs in a thread.
+    """
+    if _EXTRACT_LIMITER is None:
+        return await asyncio.to_thread(_extract_sync, req)
+    async with _EXTRACT_LIMITER:
+        return await asyncio.to_thread(_extract_sync, req)
 
 
 @app.post("/reload", dependencies=[Depends(verify_service_token)])

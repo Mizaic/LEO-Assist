@@ -12,10 +12,12 @@
  *   DI: DI-3F771AFB
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  *
- * Phase 6a trace (OBSERVATION leaf UI):
+ * Phase 6 trace (OBSERVATION leaf UI + ingest + backfill):
  *   UN: UN-26E57FA1
- *   DI: DI-7790EEA5 (extended)
- *   DO: DO-710270EF (extended)
+ *   DI: DI-4C8A09C3
+ *   DO: DO-CB6324A3
+ *   Risk: R-555C8691 (shared with Phase 5 backend)
+ *   VT: VT-1A7862B9 (execution_status=passed)
  */
 export type LogicNodeKind =
   | "AND"
@@ -191,7 +193,17 @@ export type NodeUpdate =
   // -- Phase 2: optional pathway name --
   | { kind: "set_name"; nodeId: string; name: string }
   // -- Phase 6a: OBSERVATION leaf --
-  | { kind: "add_observation"; parentNodeId: string }
+  | {
+      kind: "add_observation";
+      parentNodeId: string;
+      /**
+       * Phase 6b: optional seed for the new OBSERVATION leaf. When a
+       * reviewer picks an observable concept in the search panel we
+       * preload the observable_id / observable_term / unit so the
+       * reviewer only has to fill in the operator and threshold.
+       */
+      seed?: Partial<EditableObservationPayload>;
+    }
   | {
       kind: "set_observation";
       nodeId: string;

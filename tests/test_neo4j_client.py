@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch, PropertyMock
-import time
+from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _clear_driver_cache():
+    """Reset the module-level driver pool between tests so each test
+    gets a fresh `GraphDatabase` mock applied."""
+    from libs.neo4j_client import client as mod
+
+    mod._DRIVER_CACHE.clear()
+    yield
+    mod._DRIVER_CACHE.clear()
 
 
 class TestBaseClient:
@@ -44,15 +54,29 @@ class TestBaseClient:
 
         client = _BaseClient("bolt://localhost:7687", "neo4j", "pass")
         with client.session() as s:
-            assert s == mock_session
+            assert s is mock_session
         mock_session.close.assert_called_once()
 
     @patch("libs.neo4j_client.client.GraphDatabase")
-    def test_close_closes_driver(self, MockGD):
+    def test_close_is_noop_to_protect_shared_pool(self, MockGD):
+        """Per-instance close() must not tear down the cached driver
+        because the pool is shared across the process. The driver is
+        only closed at interpreter shutdown via atexit."""
         from libs.neo4j_client.client import _BaseClient
 
         client = _BaseClient("bolt://localhost:7687", "neo4j", "pass")
         client.close()
+        MockGD.driver.return_value.close.assert_not_called()
+
+    @patch("libs.neo4j_client.client.GraphDatabase")
+    def test_atexit_closes_cached_drivers(self, MockGD):
+        from libs.neo4j_client.client import (
+            _BaseClient,
+            _close_all_cached_drivers,
+        )
+
+        _BaseClient("bolt://localhost:7687", "neo4j", "pass")
+        _close_all_cached_drivers()
         MockGD.driver.return_value.close.assert_called_once()
 
 

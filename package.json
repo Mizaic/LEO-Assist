@@ -5,6 +5,7 @@
   "description": "LEO-AI-CORE monorepo. Top-level manifest exists to declare workspaces for JS/TS services. Python services are unaffected.",
   "workspaces": [
     "services/ui",
-    "services/design-system"
+    "services/design-system",
+    "services/widget-sdk"
   ]
 }

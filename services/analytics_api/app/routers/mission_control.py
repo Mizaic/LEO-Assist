@@ -626,7 +626,7 @@ def _cohort_denominator_cypher(
 
 
 @router.get("/mission-control/patients")
-async def get_mission_control_patients(
+def get_mission_control_patients(
     org_id: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
@@ -724,7 +724,7 @@ async def get_mission_control_patients(
 
 
 @router.get("/mission-control/kpis")
-async def get_mission_control_kpis(
+def get_mission_control_kpis(
     org_id: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),

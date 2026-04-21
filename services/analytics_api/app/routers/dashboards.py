@@ -81,49 +81,52 @@ async def rebuild_patient_episodes(
     """Rebuild episodes for a single patient. Runs anchor detection and episode building.
     Optionally deletes existing episodes first."""
     scope = _coerce_scope(scope)
+    import anyio
+
     from libs.auth.org_scope import require_patient_in_scope
+    from libs.domain_config.registry import DomainRegistry
+    from libs.pipeline_graph.subgraphs.staging_enrichment import enrich_staging
+    from services.analysis_worker.app.analyzers.anchor_detector import (
+        detect_anchors,
+    )
+    from services.analysis_worker.app.analyzers.episode_builder import (
+        build_episodes,
+    )
 
     client = PatientGraphClient()
     try:
-        require_patient_in_scope(client, scope, body.patient_id)
-        if body.delete_existing:
-            client.run(
-                "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-                "WHERE toString(p.id) = $pid "
-                "DETACH DELETE ep",
-                pid=body.patient_id,
+
+        def _prep_anchors():
+            require_patient_in_scope(client, scope, body.patient_id)
+            if body.delete_existing:
+                client.run(
+                    "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+                    "WHERE toString(p.id) = $pid "
+                    "DETACH DELETE ep",
+                    pid=body.patient_id,
+                )
+            registry = DomainRegistry.from_defaults()
+            return detect_anchors(
+                patient_id=body.patient_id,
+                start_date="2000-01-01",
+                end_date="2030-12-31",
+                patient_client=client,
+                registry=registry,
             )
 
-        from libs.domain_config.registry import DomainRegistry
-        from libs.pipeline_graph.subgraphs.staging_enrichment import enrich_staging
-        from services.analysis_worker.app.analyzers.anchor_detector import (
-            detect_anchors,
-        )
-        from services.analysis_worker.app.analyzers.episode_builder import (
-            build_episodes,
-        )
-
-        registry = DomainRegistry.from_defaults()
-        anchors = detect_anchors(
-            patient_id=body.patient_id,
-            start_date="2000-01-01",
-            end_date="2030-12-31",
-            patient_client=client,
-            registry=registry,
-        )
+        anchors = await anyio.to_thread.run_sync(_prep_anchors)
         result = await build_episodes(
             patient_id=body.patient_id,
             anchors=anchors,
             patient_client=client,
         )
-        # Ensure rebuild path also re-derives stage-at-diagnosis fields so
-        # audit cancer-stage section stays populated after manual reruns.
-        enrich_state = enrich_staging(
+        enrich_state = await anyio.to_thread.run_sync(
+            enrich_staging,
             {
                 "patient_id": body.patient_id,
                 "episode_ids": result.episode_ids,
                 "errors": [],
-            }
+            },
         )
         return {
             "success": True,

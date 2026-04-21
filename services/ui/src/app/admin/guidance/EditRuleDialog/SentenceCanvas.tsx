@@ -453,8 +453,13 @@ function PathwayCardView({
 }: PathwayCardViewProps) {
   const accent = pathwayAccent(index);
   const letter = String.fromCharCode(65 + index);
+  const cardAriaLabel = card.name
+    ? `${card.positional}: ${card.name}`
+    : card.positional;
   return (
     <Box
+      role="region"
+      aria-label={cardAriaLabel}
       sx={{
         flex: 1,
         minWidth: { xs: "100%", md: 280 },
@@ -694,6 +699,16 @@ function CanvasAddBar({
         variant="outlined"
         onClick={() =>
           onUpdate({ kind: "add_demographic", parentNodeId })
+        }
+        sx={addChipSx}
+      />
+      <Chip
+        icon={<AddIcon sx={{ fontSize: 14 }} />}
+        label={ADD_BAR_LABELS.observation}
+        size="small"
+        variant="outlined"
+        onClick={() =>
+          onUpdate({ kind: "add_observation", parentNodeId })
         }
         sx={addChipSx}
       />

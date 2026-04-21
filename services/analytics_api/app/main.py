@@ -75,6 +75,18 @@ def _check_service_auth_secret():
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("Analytics API starting")
+    # Lift the anyio threadpool ceiling so sync `def` endpoints (and sync I/O
+    # called via `to_thread`) do not bottleneck on Starlette's default 40
+    # tokens. See plan: backend-concurrency-overhaul Phase 0.
+    try:
+        import anyio
+
+        _limiter = anyio.to_thread.current_default_thread_limiter()
+        _tokens = int(os.getenv("ANYIO_THREADPOOL_TOKENS", "200"))
+        _limiter.total_tokens = _tokens
+        logger.info("anyio threadpool ceiling set to %d", _tokens)
+    except Exception as exc:
+        logger.warning("Failed to lift anyio threadpool ceiling: %s", exc)
     _check_service_auth_secret()
     try:
         n = seed_nhs_cohorts()
@@ -125,6 +137,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from libs.observability import ServerTimingMiddleware  # noqa: E402
+
+app.add_middleware(ServerTimingMiddleware)
 
 app.include_router(org_context_router, prefix="/analytics", tags=["auth"])
 app.include_router(dashboard_router, prefix="/analytics", tags=["dashboards"])

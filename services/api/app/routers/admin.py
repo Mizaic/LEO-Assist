@@ -20,7 +20,7 @@ from pydantic import BaseModel
 
 from app.deps import require_admin, require_admin_or_org_admin, permitted_child_types
 from app.services import mail as mail_svc
-from libs.auth.org_scope import CallerScope
+from libs.auth.org_scope import CallerScope, invalidate_caller_scope_cache
 from libs.neo4j_client.client import PatientGraphClient
 from libs.cypher import admin_queries as aq
 from app.services.session_store import (
@@ -445,6 +445,7 @@ async def add_user_to_org(
         rows = client.run(aq.ADD_PRACTITIONER_TO_ORG, email=email, org_id=org_id)
         if not rows:
             raise HTTPException(404, "Practitioner or organisation not found")
+        invalidate_caller_scope_cache(email)
         return {"email": email, "org_id": org_id, "action": "added"}
     finally:
         client.close()
@@ -465,6 +466,7 @@ async def remove_user_from_org(
         rows = client.run(aq.REMOVE_PRACTITIONER_FROM_ORG, email=email, org_id=org_id)
         if not rows:
             raise HTTPException(404, "User is not associated with this organisation")
+        invalidate_caller_scope_cache(email)
         return {"email": email, "org_id": org_id, "action": "removed"}
     finally:
         client.close()
@@ -579,6 +581,7 @@ async def create_user(
             id=str(uuid.uuid4()),
             org_ids=body.org_ids or [],
         )
+        invalidate_caller_scope_cache(email)
     finally:
         client.close()
 
@@ -615,6 +618,7 @@ async def patch_user(
             updates=updates,
             org_ids=org_ids,
         )
+        invalidate_caller_scope_cache(email)
         return {"email": email}
     finally:
         client.close()
@@ -630,6 +634,7 @@ async def delete_user(
     client = _client()
     try:
         client.run(aq.DEACTIVATE_PRACTITIONER, email=email)
+        invalidate_caller_scope_cache(email)
         return {"email": email}
     finally:
         client.close()
@@ -677,6 +682,7 @@ async def assign_user_role(
             role_name=body.role_name,
             org_id=body.org_id or "",
         )
+        invalidate_caller_scope_cache(email)
         return {"role": body.role_name, "org_id": body.org_id}
     finally:
         client.close()
@@ -693,6 +699,7 @@ async def remove_user_role(
     client = _client()
     try:
         client.run(aq.REMOVE_USER_ROLE, email=email, role_name=role_name)
+        invalidate_caller_scope_cache(email)
         return {"role": role_name}
     finally:
         client.close()

@@ -33,7 +33,8 @@ COPY services/terminology_api/ /app/services/terminology_api/
 WORKDIR /app
 ENV PYTHONPATH=/app:/app/services/terminology_api \
     HF_HOME=/var/model_cache/hf_cache \
-    HF_HUB_OFFLINE=1
+    HF_HUB_OFFLINE=1 \
+    UVICORN_WORKERS=4
 EXPOSE 8001
 ENTRYPOINT ["/venv/bin/python3", "-m", "uvicorn", "services.terminology_api.app.main:app", \
             "--host", "0.0.0.0", "--port", "8001"]
