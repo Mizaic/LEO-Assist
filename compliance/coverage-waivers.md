@@ -327,10 +327,74 @@ fully cleared and removed from the open list:
   DE-ID-gate are highest priority because both gate downstream
   work.
 
+### W-016 -- 10 MVP-scope VTs blocked by source-or-scope drift (2026-04-21)
+
+- **Scope**: 10 of 270 distinct MVP-scope VTs in
+  `scripts/vt_execution/mvp_vt_backlog.csv` cannot be executed
+  against the current code revision and have been triaged out of
+  the 30-day MVP execution window:
+  - **3 obsolete-source pytest VTs** (`blocked_obsolete_source`)
+    -- the implementation file named in the linked DO has been
+    deleted or renamed in the live tree:
+    - `VT-8FA86B8B` -- DO points at
+      `libs/cypher/completeness_report_queries.py` (deleted).
+    - `VT-C3250CA6` -- DO points at
+      `tests/pipeline_graph/test_completeness_subgraph.py`
+      (deleted; subgraph refactored into
+      `libs/pipeline_graph/subgraphs/`).
+    - `VT-CE4E3C57` -- DO points at
+      `libs/pipeline_graph/edges/integration_fetch_edge.py`
+      (replaced by
+      `libs/pipeline_graph/subgraphs/rest_connector.py`).
+  - **7 umbrella VTs** (`blocked_umbrella_decompose`) -- each VT
+    has 4-11 linked DIs spanning multiple capabilities and a
+    "verify ALL ACs of ALL linked DIs" pass criterion that is
+    not addressable by a single test file:
+    - `VT-51A869C2` -- 4 safety DIs: data-gap detection,
+      small-cohort suppression, mandatory acknowledgement gate.
+    - `VT-51320DA9` -- ServiceDataRequirement registry: schema,
+      CRUD, RBAC, immutable history, seed records.
+    - `VT-B764F925` -- 4 DIs: multi-mode encounter shortlisting
+      (keyword + BM25 + vector fusion + recall measurement).
+    - `VT-FFF3909C` -- 11 DIs across `libs/training`,
+      `libs/audit_agent`, `services/fhir_api`, and
+      `services/coding_worker`.
+    - `VT-0010386B` -- reviewer workflow + change-control
+      surface (multiple DIs).
+    - `VT-E265DA74` -- knowledge base authoring + staging
+      surface (multiple DIs).
+    - `VT-1E5FC70A` -- authoritative source monitoring +
+      release management (multiple DIs).
+- **Status**: accepted, awaiting architectural decisions; both
+  groups need an architect / QA-RA lead action before any new test
+  code can land.
+- **Justification**: writing tests against deleted source modules
+  would create false-positive evidence; bundling 11 distinct DI
+  surfaces into one VT pass criterion violates the project rule
+  that "VT acceptance criteria match the linked DI ACs one-for-one"
+  (see `code-quality.mdc`). The fix in both cases is the standard
+  Atlas remediation flow: update the DO `source_reference` (or
+  retire the DO) for the obsolete-source group, and decompose each
+  umbrella VT into per-DI sub-VTs with their own ACs and test
+  files for the umbrella group.
+- **Net result**: 260 of 270 distinct MVP-scope VTs (96.3%) are
+  now passed and recorded against `record_verification_run` in
+  Atlas. The 10 blocked entries are tagged in the backlog CSV with
+  `current_status` and `owner` columns so they appear in the next
+  triage report instead of being lost.
+- **Owner**:
+  - Obsolete-source group: QA / RA Lead + responsible
+    code-area architect to update or retire the DO.
+  - Umbrella group: QA / RA Lead + Engineering Lead to
+    decompose into per-DI VTs and link them in Atlas.
+- **Clear by**: 30 days from this entry (target 2026-05-21);
+  follow-up captured in the MVP backlog and the next per-release
+  Engineering review.
+
 ## Review cadence
 
 - **Per-release**: Engineering Lead inspects W-004 / W-007 /
-  W-013 / W-015 via the CSO queue.
+  W-013 / W-015 / W-016 via the CSO queue.
 - **Quarterly**: QA/RA Lead clears W-001 / W-003 / W-005 / W-006 /
   W-009 / W-014 in the design review meeting; CSO signs off any
   residual.
