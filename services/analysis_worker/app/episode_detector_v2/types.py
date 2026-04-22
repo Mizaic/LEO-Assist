@@ -189,3 +189,9 @@ class EpisodeBuildResultV2:
     errors: list[str] = field(default_factory=list)
     coverage_report: CoverageReport | None = None
     review_count: int = 0
+    # All resolved episodes before the auto-only persist filter. Populated
+    # for dry-run / parity tooling so a caller can inspect review- and
+    # suggest-tier proposals that never reach Neo4j. Left empty in the
+    # hot path: the production runner only sets this when called by a
+    # debug harness.
+    resolved_episodes: list[ResolvedEpisode] = field(default_factory=list)

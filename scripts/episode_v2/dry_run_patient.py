@@ -134,6 +134,37 @@ async def dry_run(patient_id: str) -> int:
             _print_episode(i, ep)
         print()
 
+    # Also print the review / suggest tiers so a dry-run against a real
+    # patient shows every resolved proposal, not just the auto ones that
+    # would be written to Neo4j. Encounter IDs are included so the caller
+    # can diff against a manual reviewer's membership.
+    non_auto = [
+        ep for ep in result.resolved_episodes if ep.confidence_tier != "auto"
+    ]
+    if non_auto:
+        print("Proposed REVIEW / SUGGEST episodes (would NOT persist):")
+        for i, ep in enumerate(non_auto, start=1):
+            print(
+                f"  [{i}] site={ep.site_key:<20} "
+                f"tier={ep.confidence_tier:<7} "
+                f"status={ep.status:<14} intent={ep.intent:<10} "
+                f"start={ep.start_date} end={ep.end_date}"
+            )
+            print(f"       episode_id={ep.episode_id}")
+            print(f"       encounters={len(ep.encounter_ids)}")
+            print(f"       review_reasons={ep.review_reasons}")
+            print(f"       encounter_ids={list(ep.encounter_ids)}")
+        print()
+
+    # Include encounter IDs for auto-tier proposals too. The Neo4j write
+    # payload already has them, but printing inline keeps the diff with
+    # the manual reviewer in one place.
+    if proposed:
+        print("AUTO episode encounter IDs:")
+        for ep in proposed:
+            print(f"  {ep.get('episode_id')} -> {list(ep.get('encounter_ids') or [])}")
+        print()
+
     if result.coverage_report is not None:
         cov = result.coverage_report
         n_total = len(cov.encounter_ids_total)

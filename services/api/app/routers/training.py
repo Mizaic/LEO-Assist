@@ -6223,7 +6223,22 @@ def gold_label_from_encounter(
                         "entities_json_original"
                     ),
                 }
-            gold_label = {**dict(label_row), **ai_audit}
+            # Always mirror the current live :DOCUMENTS state into the
+            # returned entities_json. The stored GoldLabel can carry
+            # stale entities from a prior coding of this encounter
+            # (since reset and recoded) or from a different encounter
+            # that shares the same de-identified text. Returning the
+            # stored gold entities would open the editor pre-populated
+            # against an uncoded encounter, making it look like the
+            # encounter is already coded and letting a silent save
+            # push those stale terms onto the live record. Dual save
+            # on :DOCUMENTS sync overwrites the gold mirror, so no
+            # stored gold data is lost without an explicit save.
+            gold_label = {
+                **dict(label_row),
+                "entities_json": entities_json,
+                **ai_audit,
+            }
     finally:
         kg_client.close()
 

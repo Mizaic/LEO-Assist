@@ -450,4 +450,5 @@ async def build_episodes(
         errors=errors,
         coverage_report=coverage,
         review_count=review_count,
+        resolved_episodes=list(resolved_episodes),
     )

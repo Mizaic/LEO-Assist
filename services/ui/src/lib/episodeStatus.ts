@@ -102,3 +102,71 @@ export function isClosed(raw: string | null | undefined): boolean {
   const v = normaliseStatus(raw);
   return v != null && CLOSED_STATUSES.has(v);
 }
+
+
+// -- Review verdict --------------------------------------------------------
+//
+// Mirror of libs/episodes/lifecycle.py ReviewVerdict. The contract test
+// tests/contracts/test_episode_status_vocabulary.py parses this list and
+// asserts it is identical to the Python enum.
+//
+// Atlas trace:
+//   DI: DI-E2498DF6
+//   DO: DO-2A124BA0
+//   VT: VT-2487F804
+
+export const VERDICT_CONFIRMED_ACTIVE = "confirmed_active";
+export const VERDICT_CONFIRMED_COMPLETED = "confirmed_completed";
+export const VERDICT_CONFIRMED_BENIGN = "confirmed_benign";
+export const VERDICT_CONFIRMED_MERGED = "confirmed_merged";
+export const VERDICT_REJECTED = "rejected";
+
+export const REVIEW_VERDICT_VALUES: readonly string[] = [
+  VERDICT_CONFIRMED_ACTIVE,
+  VERDICT_CONFIRMED_COMPLETED,
+  VERDICT_CONFIRMED_BENIGN,
+  VERDICT_CONFIRMED_MERGED,
+  VERDICT_REJECTED,
+];
+
+// Projection verdict -> resulting EpisodeOfCare.status. Mirror of
+// libs/episodes/lifecycle.py VERDICT_TO_STATUS. Consumers SHOULD use
+// this map when they need to pre-render the status that a verdict
+// would produce (e.g. for a confirmation dialog); the canonical
+// writer is the /sign-off endpoint, never the client.
+export const VERDICT_TO_STATUS: Readonly<Record<string, string>> = {
+  [VERDICT_CONFIRMED_ACTIVE]: STATUS_ACTIVE,
+  [VERDICT_CONFIRMED_COMPLETED]: STATUS_COMPLETED,
+  [VERDICT_CONFIRMED_BENIGN]: STATUS_CLOSED_BENIGN,
+  [VERDICT_CONFIRMED_MERGED]: STATUS_MERGED,
+  [VERDICT_REJECTED]: STATUS_EXCLUDED,
+};
+
+// Plain-English labels for each verdict. Kept short (2-4 words) so
+// the ReviewActionsPanel verdict selector is legible on narrow
+// drawers. Plain English: "confirm active" not "confirm_active".
+export const REVIEW_VERDICT_LABELS: Readonly<Record<string, string>> = {
+  [VERDICT_CONFIRMED_ACTIVE]: "Confirm pathway is active",
+  [VERDICT_CONFIRMED_COMPLETED]: "Confirm pathway is completed",
+  [VERDICT_CONFIRMED_BENIGN]: "Confirm ruled out (benign)",
+  [VERDICT_CONFIRMED_MERGED]: "Confirm duplicate of another pathway",
+  [VERDICT_REJECTED]: "Reject (not a pathway)",
+};
+
+// One-sentence help text per verdict, shown under the selector.
+export const REVIEW_VERDICT_HELP: Readonly<Record<string, string>> = {
+  [VERDICT_CONFIRMED_ACTIVE]:
+    "The patient is still being investigated or treated on this pathway.",
+  [VERDICT_CONFIRMED_COMPLETED]:
+    "Treatment is finished and no further action is expected.",
+  [VERDICT_CONFIRMED_BENIGN]:
+    "Cancer has been ruled out. Close this pathway as benign.",
+  [VERDICT_CONFIRMED_MERGED]:
+    "This pathway is a duplicate of another active pathway.",
+  [VERDICT_REJECTED]:
+    "The detector was wrong. This is not a real pathway.",
+};
+
+export function isValidVerdict(raw: string | null | undefined): boolean {
+  return raw != null && REVIEW_VERDICT_VALUES.includes(raw);
+}

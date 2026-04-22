@@ -677,3 +677,143 @@ async def test_patient_rebuild_status_returns_estimates(monkeypatch):
     assert result["queue_depth"] == 12
     assert result["queue_position_estimate"] == 11
     assert result["eta_seconds_estimate"] is not None
+
+
+# ---------------------------------------------------------------------------
+# VT-2487F804: PATCH /sign-off writes verdict + status atomically
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_signoff_writes_verdict_status_and_review_stamp(monkeypatch):
+    """Verdict + mapped status + reviewed_* flags are in one Cypher call."""
+    from services.analytics_api.app.routers import mission_control as mc
+    from services.analytics_api.app.routers.mission_control import (
+        SignOffRequest,
+        patch_episode_sign_off,
+    )
+
+    captured: dict = {}
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            captured["query"] = query
+            captured["params"] = kwargs
+            return [
+                {
+                    "episode_id": kwargs["episode_id"],
+                    "review_verdict": kwargs["review_verdict"],
+                    "status": kwargs["status"],
+                    "reviewed_at": "2026-04-22T09:00:00",
+                    "reviewed_by": kwargs["reviewed_by"],
+                }
+            ]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(mc, "PatientGraphClient", _FakeClient)
+
+    scope = CallerScope(
+        email="qa@example.com",
+        is_admin=True,
+        org_ids=[],
+    )
+    body = SignOffRequest(
+        verdict="confirmed_benign",
+        reviewed_by="qa@example.com",
+        audit_notes="Ruled out on biopsy",
+    )
+    result = await patch_episode_sign_off("ep-1", body, scope=scope)
+
+    assert result["review_verdict"] == "confirmed_benign"
+    # closed_benign is the canonical status for confirmed_benign.
+    assert result["status"] == "closed_benign"
+    # The endpoint MUST write the verdict, status, reviewed stamp and
+    # both review flags in a single MATCH.
+    cy = captured["query"]
+    assert "ep.review_verdict = $review_verdict" in cy
+    assert "ep.status = $status" in cy
+    assert "ep.reviewed_at = datetime()" in cy
+    assert "ep.needs_human_review = false" in cy
+    assert "ep.needs_review = false" in cy
+    params = captured["params"]
+    assert params["review_verdict"] == "confirmed_benign"
+    assert params["status"] == "closed_benign"
+    assert params["reviewed_by"] == "qa@example.com"
+    assert params["audit_notes"] == "Ruled out on biopsy"
+
+
+@pytest.mark.asyncio
+async def test_signoff_rejects_unknown_verdict():
+    """VT-2487F804: unknown verdict -> HTTP 400 with helpful message."""
+    from fastapi import HTTPException
+    from services.analytics_api.app.routers.mission_control import (
+        SignOffRequest,
+        patch_episode_sign_off,
+    )
+
+    scope = CallerScope(email="qa@example.com", is_admin=True, org_ids=[])
+    body = SignOffRequest(verdict="maybe_cancer", reviewed_by="qa@example.com")
+    with pytest.raises(HTTPException) as exc_info:
+        await patch_episode_sign_off("ep-1", body, scope=scope)
+    assert exc_info.value.status_code == 400
+    assert "verdict must be one of" in str(exc_info.value.detail)
+
+
+@pytest.mark.asyncio
+async def test_signoff_unauthenticated_returns_401():
+    """VT-2487F804: no caller email -> HTTP 401."""
+    from fastapi import HTTPException
+    from services.analytics_api.app.routers.mission_control import (
+        SignOffRequest,
+        patch_episode_sign_off,
+    )
+
+    class EmptyScope:
+        email = None
+        is_admin = False
+        org_ids = []
+        primary_org_id = None
+
+        def to_query_params(self):
+            return {}
+
+    body = SignOffRequest(
+        verdict="confirmed_active",
+        reviewed_by="qa@example.com",
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        await patch_episode_sign_off(
+            "ep-1", body, scope=EmptyScope(),  # type: ignore[arg-type]
+        )
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_signoff_returns_404_when_episode_missing(monkeypatch):
+    """Unknown episode_id -> HTTP 404."""
+    from fastapi import HTTPException
+    from services.analytics_api.app.routers import mission_control as mc
+    from services.analytics_api.app.routers.mission_control import (
+        SignOffRequest,
+        patch_episode_sign_off,
+    )
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            return []
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(mc, "PatientGraphClient", _FakeClient)
+
+    scope = CallerScope(email="qa@example.com", is_admin=True, org_ids=[])
+    body = SignOffRequest(
+        verdict="confirmed_active",
+        reviewed_by="qa@example.com",
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        await patch_episode_sign_off("ep-missing", body, scope=scope)
+    assert exc_info.value.status_code == 404

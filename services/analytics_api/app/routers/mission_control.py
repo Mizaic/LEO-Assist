@@ -31,7 +31,13 @@ from pydantic import BaseModel
 
 from libs.analytics import confirmed_cancer_where
 from libs.auth.org_scope import ORG_PATIENT_FILTER, CallerScope, get_caller_scope
-from libs.episodes.lifecycle import HERO_BUCKETS, build_hero_bucket_case
+from libs.episodes.lifecycle import (
+    HERO_BUCKETS,
+    REVIEW_VERDICT_VALUES,
+    SIGNOFF_SET_FRAGMENT,
+    build_hero_bucket_case,
+    canonical_signoff_props,
+)
 from libs.episodes.status import (
     ALWAYS_EXCLUDE_STATUSES,
     CLOSURE_REASON_STATUSES,
@@ -75,6 +81,22 @@ _MISSION_EPISODE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 class ReviewRequest(BaseModel):
+    reviewed_by: str
+    audit_notes: Optional[str] = None
+    audit_flag: bool = False
+
+
+class SignOffRequest(BaseModel):
+    """Atomic curator sign-off payload (DI-E2498DF6).
+
+    Carries the reviewer's verdict and any audit notes. The server
+    writes the verdict, the mapped status, the reviewed_by / reviewed_at
+    stamps, and the cleared needs_human_review / needs_review flags in
+    a single Cypher transaction so the episode cannot be left in a
+    half-reviewed state.
+    """
+
+    verdict: str
     reviewed_by: str
     audit_notes: Optional[str] = None
     audit_flag: bool = False
@@ -412,6 +434,7 @@ _EPISODE_PROJECTION = (
     "  auto_close_reason: ep.auto_close_reason, "
     "  reviewed_by: ep.reviewed_by, "
     "  reviewed_at: toString(ep.reviewed_at), "
+    "  review_verdict: ep.review_verdict, "
     "  audit_notes: ep.audit_notes, "
     "  audit_flag: coalesce(ep.audit_flag, false), "
     "  linked_encounter_ids: [ "
@@ -1223,6 +1246,101 @@ async def patch_episode_review(
         raise HTTPException(status_code=404, detail=f"Episode {episode_id!r} not found")
 
     return {"episode_id": episode_id, "status": "reviewed"}
+
+
+# ---------------------------------------------------------------------------
+# PATCH /mission-control/episodes/{episode_id}/sign-off  (DI-E2498DF6)
+# ---------------------------------------------------------------------------
+#
+# The atomic sign-off endpoint. Replaces the pre-verdict "mark reviewed
+# + override status" dual path with a single transaction that writes
+# the reviewer's verdict, the mapped EpisodeStatus, the reviewed_at /
+# reviewed_by stamp, and the cleared needs_human_review / needs_review
+# flags together. The curator UI MUST use this endpoint; the legacy
+# /review endpoint above is kept for backwards compatibility with
+# existing clients and the reconcile flow only.
+
+_SIGNOFF_QUERY = (
+    "MATCH (ep:EpisodeOfCare {episode_id: $episode_id}) "
+    + SIGNOFF_SET_FRAGMENT
+    + "RETURN ep.episode_id AS episode_id, "
+    "  ep.review_verdict AS review_verdict, "
+    "  ep.status AS status, "
+    "  toString(ep.reviewed_at) AS reviewed_at, "
+    "  ep.reviewed_by AS reviewed_by"
+)
+
+
+@router.patch("/mission-control/episodes/{episode_id}/sign-off")
+async def patch_episode_sign_off(
+    episode_id: str,
+    body: SignOffRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, str]:
+    """Record a curator's verdict and apply the matching status in one write.
+
+    The verdict MUST be a member of
+    :data:`libs.episodes.lifecycle.REVIEW_VERDICT_VALUES`; any other
+    value returns 400. The request MUST be authenticated; missing
+    caller email returns 401. The endpoint is idempotent: signing
+    off the same episode twice with the same verdict is a no-op
+    semantically (re-writes the same values).
+    """
+
+    if not scope.email:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    try:
+        props = canonical_signoff_props(
+            verdict=body.verdict,
+            reviewer_email=body.reviewed_by or scope.email,
+            audit_notes=body.audit_notes,
+            audit_flag=body.audit_flag,
+        )
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+
+    params = {
+        "episode_id": episode_id,
+        "review_verdict": props["review_verdict"],
+        "status": props["status"],
+        "status_source": props["status_source"],
+        "reviewed_by": props["reviewed_by"],
+        "audit_notes": props.get("audit_notes") or "",
+        "audit_flag": props["audit_flag"],
+    }
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(_SIGNOFF_QUERY, **params)
+    finally:
+        client.close()
+
+    if not rows:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Episode {episode_id!r} not found",
+        )
+    row = rows[0]
+    return {
+        "episode_id": row.get("episode_id") or episode_id,
+        "review_verdict": row.get("review_verdict") or props["review_verdict"],
+        "status": row.get("status") or props["status"],
+        "reviewed_at": row.get("reviewed_at") or "",
+        "reviewed_by": row.get("reviewed_by") or props["reviewed_by"],
+    }
+
+
+# Sanity check at import time: the verdict list the router advertises
+# stays in lockstep with the canonical enum. Any drift surfaces as a
+# hard import failure in CI rather than a silent runtime 400.
+assert set(REVIEW_VERDICT_VALUES) == {
+    "confirmed_active",
+    "confirmed_completed",
+    "confirmed_benign",
+    "confirmed_merged",
+    "rejected",
+}
 
 
 # ---------------------------------------------------------------------------

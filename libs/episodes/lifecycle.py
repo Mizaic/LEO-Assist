@@ -39,7 +39,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from libs.episodes.status import EpisodeStatus
+from libs.episodes.status import CLOSED_STATUSES, EpisodeStatus, normalise as normalise_status
 
 
 class HeroBucket(str, Enum):
@@ -267,6 +267,156 @@ def canonical_review_props(reviewer_email: str) -> dict:
         "needs_review": False,
         "needs_human_review": False,
     }
+
+
+# ---------------------------------------------------------------------------
+# Review verdict model (DI-E2498DF6, R-2AA626E7)
+#
+# A first-class verdict written atomically when a curator signs off on an
+# EpisodeOfCare. Closes a real hole in the pre-verdict curator UX where
+# "Mark reviewed", "Close pathway" and "Override status" were three
+# disconnected actions; reviewers were able to leave an episode with
+# reviewed_at set but status unchanged, or status changed but no reviewer
+# stamp. Capturing the verdict as a single canonical field eliminates
+# the ambiguity and lets the active-learning loop consume the human
+# decision unambiguously.
+# ---------------------------------------------------------------------------
+
+
+class ReviewVerdict(str, Enum):
+    """What a curator decided when they signed an episode off.
+
+    Every value is ASCII-only and snake_case. Mirrored in TypeScript at
+    ``services/ui/src/lib/episodeStatus.ts`` as
+    ``REVIEW_VERDICT_VALUES``. The contract test in
+    ``tests/contracts/test_episode_status_vocabulary.py`` asserts the two
+    stay aligned.
+    """
+
+    CONFIRMED_ACTIVE = "confirmed_active"
+    CONFIRMED_COMPLETED = "confirmed_completed"
+    CONFIRMED_BENIGN = "confirmed_benign"
+    CONFIRMED_MERGED = "confirmed_merged"
+    REJECTED = "rejected"
+
+
+REVIEW_VERDICT_VALUES: tuple[str, ...] = tuple(v.value for v in ReviewVerdict)
+
+
+# Canonical projection from a verdict to the resulting EpisodeStatus.
+# The sign-off endpoint writes the mapped status atomically in the same
+# Cypher transaction that records the verdict itself, so the graph can
+# never end up with a verdict that disagrees with its status.
+VERDICT_TO_STATUS: dict[str, str] = {
+    ReviewVerdict.CONFIRMED_ACTIVE.value: EpisodeStatus.ACTIVE.value,
+    ReviewVerdict.CONFIRMED_COMPLETED.value: EpisodeStatus.COMPLETED.value,
+    ReviewVerdict.CONFIRMED_BENIGN.value: EpisodeStatus.CLOSED_BENIGN.value,
+    ReviewVerdict.CONFIRMED_MERGED.value: EpisodeStatus.MERGED.value,
+    ReviewVerdict.REJECTED.value: EpisodeStatus.EXCLUDED.value,
+}
+
+
+# Inverse map used by the backfill migration to infer a verdict from an
+# already-signed-off episode's current status. "active", "review" and
+# "in_progress" all collapse to CONFIRMED_ACTIVE because by the time a
+# reviewer has stamped reviewed_at the pathway is, by construction, one
+# the reviewer has confirmed is still in flight.
+STATUS_TO_VERDICT: dict[str, str] = {
+    EpisodeStatus.ACTIVE.value: ReviewVerdict.CONFIRMED_ACTIVE.value,
+    EpisodeStatus.REVIEW.value: ReviewVerdict.CONFIRMED_ACTIVE.value,
+    EpisodeStatus.IN_PROGRESS.value: ReviewVerdict.CONFIRMED_ACTIVE.value,
+    EpisodeStatus.COMPLETED.value: ReviewVerdict.CONFIRMED_COMPLETED.value,
+    EpisodeStatus.CLOSED.value: ReviewVerdict.CONFIRMED_COMPLETED.value,
+    EpisodeStatus.CLOSED_BENIGN.value: ReviewVerdict.CONFIRMED_BENIGN.value,
+    EpisodeStatus.MERGED.value: ReviewVerdict.CONFIRMED_MERGED.value,
+    EpisodeStatus.EXCLUDED.value: ReviewVerdict.REJECTED.value,
+}
+
+
+def verdict_from_legacy_status(status: str | None) -> tuple[str, bool]:
+    """Infer a review verdict from an episode's current status.
+
+    Returns ``(verdict, inferred)`` where ``inferred`` is True when the
+    status was not directly in :data:`STATUS_TO_VERDICT` and the caller
+    should record a one-line audit_notes entry explaining the fallback.
+    Legacy aliases registered in ``LEGACY_STATUS_REWRITES`` (e.g.
+    ``in_review`` -> ``review``) are normalised before the lookup so a
+    known-good alias counts as a direct map, not an inferred fallback.
+    Unknown statuses collapse to ``CONFIRMED_ACTIVE`` so a signed-off
+    episode is never left without a verdict.
+    """
+
+    if status is None:
+        return ReviewVerdict.CONFIRMED_ACTIVE.value, True
+    canonical = normalise_status(status) or status
+    direct = STATUS_TO_VERDICT.get(canonical)
+    if direct is not None:
+        return direct, False
+    # stale_* closures, closed_related, closed_phantom -> collapse to
+    # confirmed_completed so the curator's sign-off is preserved as a
+    # closure rather than flipping it open.
+    if canonical in CLOSED_STATUSES:
+        return ReviewVerdict.CONFIRMED_COMPLETED.value, True
+    return ReviewVerdict.CONFIRMED_ACTIVE.value, True
+
+
+def canonical_signoff_props(
+    verdict: str,
+    reviewer_email: str,
+    audit_notes: str | None = None,
+    audit_flag: bool = False,
+) -> dict:
+    """Property map for an atomic curator sign-off.
+
+    Called by the PATCH /sign-off endpoint and by the backfill
+    migration (with ``audit_notes=None`` so it only fills in the
+    missing verdict without clobbering existing notes).
+
+    Raises ``ValueError`` when ``verdict`` is not a member of
+    :data:`REVIEW_VERDICT_VALUES` so the API layer can return a 400.
+    The returned dict carries every field the graph needs to keep
+    status, the review-flag pair and the verdict in lockstep. The
+    actual ``reviewed_at`` timestamp is written by the SET clause in
+    the Cypher (``datetime()``) so a single transaction stamps time
+    and verdict together.
+    """
+
+    canonical_verdict = (verdict or "").strip()
+    if canonical_verdict not in REVIEW_VERDICT_VALUES:
+        raise ValueError(
+            f"verdict must be one of {list(REVIEW_VERDICT_VALUES)}; "
+            f"got {verdict!r}"
+        )
+    mapped_status = VERDICT_TO_STATUS[canonical_verdict]
+    props: dict = {
+        "review_verdict": canonical_verdict,
+        "status": mapped_status,
+        "status_source": "curator_signoff",
+        "reviewed_by": reviewer_email or "",
+        "needs_review": False,
+        "needs_human_review": False,
+        "audit_flag": bool(audit_flag),
+    }
+    if audit_notes is not None:
+        props["audit_notes"] = audit_notes
+    return props
+
+
+# Cypher SET fragment used by the /sign-off endpoint. All fields are
+# written in one statement so status/verdict/reviewed_at cannot drift.
+SIGNOFF_SET_FRAGMENT: str = (
+    "SET ep.review_verdict = $review_verdict, "
+    "    ep.status = $status, "
+    "    ep.status_source = $status_source, "
+    "    ep.status_updated_at = datetime(), "
+    "    ep.reviewed_by = $reviewed_by, "
+    "    ep.reviewed_at = datetime(), "
+    "    ep.audit_notes = $audit_notes, "
+    "    ep.audit_flag = $audit_flag, "
+    "    ep.needs_review = false, "
+    "    ep.needs_human_review = false, "
+    "    ep.last_updated = datetime() "
+)
 
 
 # Allowed canonical statuses for the "Close pathway" curator action.

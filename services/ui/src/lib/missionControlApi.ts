@@ -95,6 +95,7 @@ export interface MissionEpisode {
   auto_close_reason: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+  review_verdict?: string | null;
   audit_notes: string | null;
   audit_flag: boolean;
   linked_encounter_ids?: string[];
@@ -141,6 +142,28 @@ export interface ReviewPayload {
   reviewed_by: string;
   audit_notes?: string;
   audit_flag: boolean;
+}
+
+/**
+ * Curator sign-off payload (DI-E2498DF6).
+ *
+ * The `verdict` MUST be a member of `REVIEW_VERDICT_VALUES` from
+ * `@/lib/episodeStatus`. The server maps the verdict to the canonical
+ * EpisodeStatus and writes the whole thing in one Cypher transaction.
+ */
+export interface SignOffPayload {
+  verdict: string;
+  reviewed_by: string;
+  audit_notes?: string;
+  audit_flag?: boolean;
+}
+
+export interface SignOffResponse {
+  episode_id: string;
+  review_verdict: string;
+  status: string;
+  reviewed_at: string;
+  reviewed_by: string;
 }
 
 /** One persisted pipeline run (Neo4j AuditEvent, type PipelineRun). */
@@ -253,6 +276,25 @@ export async function patchEpisodeReview(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+/**
+ * Atomic curator sign-off: records the reviewer's verdict and the
+ * mapped EpisodeStatus together (DI-E2498DF6). Prefer this over
+ * patchEpisodeReview + patchEpisodeStatus for any new UI so the
+ * episode cannot end up in a half-reviewed state.
+ */
+export async function patchEpisodeSignOff(
+  episodeId: string,
+  payload: SignOffPayload
+): Promise<SignOffResponse> {
+  return fetchJson(
+    `${PROXY}/mission-control/episodes/${episodeId}/sign-off`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export interface MissionPatientEpisodesResponse {
