@@ -238,6 +238,91 @@ def test_normalize_does_not_emit_finding_when_no_interpretation() -> None:
     assert len(findings) == 0
 
 
+# ---------------------------------------------------------------------------
+# Tests for "now <value>" current-value marker
+# (e.g. "weight loss 10kg - now 79kg" -- only 79kg is the current measurement)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_measurement_now_marker_picks_post_now_value() -> None:
+    parsed = parse_measurement_from_text("weight loss 10kg - now 79kg")
+    assert parsed["numeric_value"] == "79"
+    assert parsed["unit"].lower() == "kg"
+    assert parsed["value_span"].lower() == "79kg"
+    assert parsed.get("current_value_marker") == "now"
+
+
+def test_parse_measurement_currently_marker_supported() -> None:
+    parsed = parse_measurement_from_text(
+        "Serum potassium 5.9 mmol/L - currently 4.8 mmol/L"
+    )
+    assert parsed["numeric_value"] == "4.8"
+    assert parsed["unit"].lower() == "mmol/l"
+    assert parsed.get("current_value_marker") == "now"
+
+
+def test_normalize_observable_now_marker_overrides_existing_llm_value() -> None:
+    encounter = "weight loss 10kg - now 79kg"
+    entities = [
+        {
+            "text": encounter,
+            "label": "observable_entity",
+            "start": 0,
+            "end": len(encounter),
+            "value": "10",
+            "unit": "kg",
+            "confidence": 0.9,
+        }
+    ]
+    normalized = normalize_observable_entities(
+        encounter, entities, add_qualifier_value=True
+    )
+    obs = next(e for e in normalized if e["label"] == "observable_entity")
+    assert obs["value"] == "79"
+    assert obs["unit"].lower() == "kg"
+    assert obs["text"] == "weight loss 10kg"
+    qualifiers = [e for e in normalized if e["label"] == "qualifier_value"]
+    assert any(q["text"].lower() == "79kg" for q in qualifiers)
+    assert not any(q["text"].lower() == "10kg" for q in qualifiers)
+
+
+def test_normalize_observable_now_marker_no_existing_value() -> None:
+    encounter = "Body weight - now 79 kg"
+    entities = [
+        {
+            "text": encounter,
+            "label": "observable_entity",
+            "start": 0,
+            "end": len(encounter),
+            "confidence": 0.95,
+        }
+    ]
+    normalized = normalize_observable_entities(
+        encounter, entities, add_qualifier_value=True
+    )
+    obs = next(e for e in normalized if e["label"] == "observable_entity")
+    assert obs["value"] == "79"
+    assert obs["unit"].lower() == "kg"
+    assert obs["text"] == "Body weight"
+
+
+def test_normalize_observable_no_now_marker_keeps_legacy_behaviour() -> None:
+    encounter = "Neutrophil count 2.41 10^9/L"
+    entities = [
+        {
+            "text": encounter,
+            "label": "observable_entity",
+            "start": 0,
+            "end": len(encounter),
+            "confidence": 0.9,
+        }
+    ]
+    normalized = normalize_observable_entities(encounter, entities)
+    obs = next(e for e in normalized if e["label"] == "observable_entity")
+    assert obs["value"] == "2.41"
+    assert obs["unit"].lower() == "10^9/l"
+
+
 def test_normalize_suppresses_interpretation_finding_when_flag_off() -> None:
     encounter = "MCH 22.5 pg [27 - 32] - Outside reference range"
     entities = [

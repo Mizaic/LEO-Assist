@@ -19,6 +19,7 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import type { CodedLink } from "@/lib/types";
 import CodesPanel from "./EncounterCodesPanel";
+import EncounterEpisodeChips from "./EncounterEpisodeChips";
 import {
   HighlightedText,
   collectHighlightTerms,
@@ -35,6 +36,7 @@ import {
   type DualSaveEncounterContext,
 } from "@/components/gold-editor";
 import { milestoneLabel } from "./milestoneOptions";
+import type { EncounterEpisodeLink } from "./useMilestoneCuration";
 
 export interface EncounterCardData {
   encounter_id: string;
@@ -65,14 +67,24 @@ interface EncounterCardProps {
    * edges). The card renders a lock chip and disables the "Reset and
    * recode" affordance with a "Release lock to recode" hint. */
   lockSummary?: import("@/lib/missionControlApi").VerificationLockSummary | null;
-  /** When the encounter already fills a milestone slot anywhere in
-   *  the patient's episodes, this is the slot type. The button
-   *  renders as "Linked: <slot>" instead of "Add to milestone".
-   *  Inline curation -- DI-4B99678C. */
-  currentMilestoneType?: string | null;
+  /** Every milestone slot this encounter currently fills across the
+   *  patient's episodes. One encounter can fill multiple slots on
+   *  the same episode (DI-F5E030ED), so this is an array. The
+   *  button renders "Linked: <slot>", "Linked: <slot> + <slot>", or
+   *  "Add to milestone" based on array length. DI-4B99678C. */
+  currentMilestoneTypes?: string[] | null;
   /** Reviewer clicked the "Add to milestone" / "Linked: <slot>"
    *  button. Parent opens MilestoneCurationDialog. */
   onCurateMilestone?: () => void;
+  /** One entry per episode this encounter is linked to. The card
+   *  renders one removable Chip per entry (DI-5159A336). Click the
+   *  chip's X to unlink the encounter from THAT episode entirely
+   *  (every milestone slot in one call). */
+  episodeLinks?: EncounterEpisodeLink[];
+  /** Called when the curator confirms the unlink for an episode
+   *  chip. Parent issues the detach call and refreshes patient state.
+   *  Should resolve before the chip's busy spinner clears. */
+  onUnlinkFromEpisode?: (episodeId: string) => Promise<void>;
 }
 
 // LONG FUNCTION: layout-dense card with collapse panel and inline
@@ -95,9 +107,17 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
       onRequestReset,
       onCodingChanged,
       lockSummary,
-      currentMilestoneType,
+      currentMilestoneTypes,
       onCurateMilestone,
+      episodeLinks,
+      onUnlinkFromEpisode,
     } = props;
+    const linkedSlots = currentMilestoneTypes ?? [];
+    const episodeChips = episodeLinks ?? [];
+    const hasLinkedSlots = linkedSlots.length > 0;
+    const linkedLabel = hasLinkedSlots
+      ? `Linked: ${linkedSlots.map(milestoneLabel).join(" + ")}`
+      : "Add to milestone";
     const isLocked = Boolean(lockSummary);
     const encounterKey = String(enc.encounter_id);
     // Expand the query into the deterministic synonym set shared
@@ -228,19 +248,28 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
               </Typography>
             )}
           </Typography>
-          {isLinkedToEpisode && (
-            <Chip
-              size="small"
-              label="In episode"
-              data-testid="encounter-in-episode-chip"
-              sx={{
-                height: 20,
-                fontSize: "0.65rem",
-                bgcolor: "#DBEAFE",
-                color: "#1E40AF",
-                fontWeight: 600,
-              }}
-            />
+          {episodeChips.length > 0 && onUnlinkFromEpisode ? (
+            <Box onClick={(e) => e.stopPropagation()}>
+              <EncounterEpisodeChips
+                episodeLinks={episodeChips}
+                onUnlink={onUnlinkFromEpisode}
+              />
+            </Box>
+          ) : (
+            isLinkedToEpisode && (
+              <Chip
+                size="small"
+                label="In episode"
+                data-testid="encounter-in-episode-chip"
+                sx={{
+                  height: 20,
+                  fontSize: "0.65rem",
+                  bgcolor: "#DBEAFE",
+                  color: "#1E40AF",
+                  fontWeight: 600,
+                }}
+              />
+            )
           )}
           {showRationaleChips && (
             <Box
@@ -286,15 +315,14 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
             {onCurateMilestone && (
               <Button
                 size="small"
-                variant={currentMilestoneType ? "contained" : "outlined"}
-                color={currentMilestoneType ? "primary" : "inherit"}
+                variant={hasLinkedSlots ? "contained" : "outlined"}
+                color={hasLinkedSlots ? "primary" : "inherit"}
                 data-testid="encounter-card-milestone-button"
-                data-milestone-linked={currentMilestoneType ? "true" : "false"}
+                data-milestone-linked={hasLinkedSlots ? "true" : "false"}
+                data-milestone-slot-count={linkedSlots.length}
                 onClick={onCurateMilestone}
               >
-                {currentMilestoneType
-                  ? `Linked: ${milestoneLabel(currentMilestoneType)}`
-                  : "Add to milestone"}
+                {linkedLabel}
               </Button>
             )}
             <Button

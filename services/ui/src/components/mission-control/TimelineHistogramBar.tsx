@@ -2,8 +2,8 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-5312F884
- *   DI: DI-AA1F5F5B
+ *   DO: DO-5312F884, DO-17AF3E5E
+ *   DI: DI-AA1F5F5B, DI-8ECE2DAE
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5312F884")
  */
 "use client";
@@ -30,6 +30,19 @@ const COLOR_ACTIVE_RING = "#1d4ed8";
 // overlays feel like the same family.
 const COLOR_SEARCH_MATCH_RING = "#d97706";
 const SEARCH_DIMMED_OPACITY = 0.25;
+// Emerald underline drawn along the bottom edge of any bin that
+// contains at least one coded encounter (coded_count > 0). Opacity
+// is scaled to the coded fraction so a fully-coded month is solid
+// and a partially-coded month is faint, but always visible above a
+// minimum so single-coded bins are not lost. DI-8ECE2DAE.
+const COLOR_CODED_UNDERLINE = "#059669";
+const CODED_UNDERLINE_MIN_OPACITY = 0.25;
+const CODED_UNDERLINE_HEIGHT_PX = 3;
+
+function codedUnderlineOpacity(codedFraction: number): number {
+  if (!Number.isFinite(codedFraction) || codedFraction <= 0) return 0;
+  return Math.max(CODED_UNDERLINE_MIN_OPACITY, Math.min(1, codedFraction));
+}
 
 export interface BarRect {
   bin: TimelineBin;
@@ -45,7 +58,9 @@ function ariaLabelForBin(bin: TimelineBin, searchMatchCount = 0): string {
   const noun = bin.total === 1 ? "encounter" : "encounters";
   const matchPart =
     searchMatchCount > 0 ? `, ${searchMatchCount} match search` : "";
-  return `Bin ${bin.label}, ${bin.total} ${noun}${linkedPart}${matchPart}, from ${start} to ${end}`;
+  const codedPart =
+    bin.codedCount > 0 ? `, ${bin.codedCount} of ${bin.total} coded` : "";
+  return `Bin ${bin.label}, ${bin.total} ${noun}${linkedPart}${codedPart}${matchPart}, from ${start} to ${end}`;
 }
 
 interface HoverPreviewProps {
@@ -92,6 +107,20 @@ export function HoverPreview({ bar, trackHeight }: HoverPreviewProps) {
         {bar.bin.total} {bar.bin.total === 1 ? "encounter" : "encounters"}
         {bar.bin.linked > 0 ? ` - ${bar.bin.linked} linked` : ""}
       </Typography>
+      {bar.bin.codedCount > 0 && (
+        <Typography
+          data-testid="timeline-coded-hover-line"
+          variant="caption"
+          sx={{
+            display: "block",
+            color: COLOR_CODED_UNDERLINE,
+            fontWeight: 600,
+            mb: 0.25,
+          }}
+        >
+          {bar.bin.codedCount} of {bar.bin.total} coded
+        </Typography>
+      )}
       <Typography
         variant="caption"
         sx={{ display: "block", color: "#94a3b8", fontSize: "0.66rem" }}
@@ -181,6 +210,8 @@ export default function HistogramBar({
       data-search-active={searchActive ? "true" : "false"}
       data-search-match={hasSearchMatch ? "true" : "false"}
       data-search-match-count={searchMatchCount}
+      data-coded-count={bar.bin.codedCount}
+      data-coded-fraction={bar.bin.codedFraction.toFixed(3)}
       onClick={() => bar.bin.total > 0 && onActivate()}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => onHoverChange(true)}
@@ -285,6 +316,29 @@ export default function HistogramBar({
           />
         )}
       </fm.div>
+      {bar.bin.total > 0 && bar.bin.codedCount > 0 && (
+        // Bottom-edge coded-data indicator. Sits inside the bar root
+        // (so it spans the column width) but outside the inner
+        // motion.div (so its opacity stays decoupled from the
+        // bar's height/dim animation). Anchored 1px above the axis
+        // line so a fully-coded month reads as a solid emerald bar
+        // hugging the timeline. DI-8ECE2DAE.
+        <Box
+          data-testid="timeline-coded-underline"
+          aria-hidden="true"
+          sx={{
+            position: "absolute",
+            left: "11%",
+            width: "78%",
+            bottom: 1,
+            height: `${CODED_UNDERLINE_HEIGHT_PX}px`,
+            bgcolor: COLOR_CODED_UNDERLINE,
+            opacity: codedUnderlineOpacity(bar.bin.codedFraction),
+            borderRadius: "2px",
+            pointerEvents: "none",
+          }}
+        />
+      )}
     </Box>
   );
 }

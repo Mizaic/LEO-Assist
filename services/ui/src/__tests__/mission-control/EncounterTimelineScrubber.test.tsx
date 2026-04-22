@@ -178,8 +178,10 @@ describe("EncounterTimelineScrubber - VT-LEO-AI-173", () => {
       .filter((node) => Number(node.getAttribute("data-total-count")) > 0)
       .forEach((node) => {
         const label = node.getAttribute("aria-label") ?? "";
+        // Coded suffix (", X of Y coded") is appended for bins with
+        // codedCount > 0; permitted but optional. DI-8ECE2DAE.
         expect(label).toMatch(
-          /^Bin .+, \d+ encounters?( \(\d+ linked to focused episode\))?, from .+ to .+$/
+          /^Bin .+, \d+ encounters?( \(\d+ linked to focused episode\))?(, \d+ of \d+ coded)?, from .+ to .+$/
         );
       });
   });
@@ -432,5 +434,91 @@ describe("EncounterTimelineScrubber search overlay - VT-827AA57F", () => {
     expect(findBarByLabel("May 24").getAttribute("aria-label") ?? "").not.toMatch(
       /match search/
     );
+  });
+});
+
+// VT-C54B4A77: coded-data indicator on histogram bars (DI-8ECE2DAE).
+// SIX_ENCOUNTERS coding profile by month, after binning by month:
+//   Jan 24: total=1, coded=1 (enc-1, coded_count=1)            -> fraction 1.00
+//   Feb 24: total=2, coded=1 (enc-2 uncoded, enc-3 coded=3)    -> fraction 0.50
+//   Apr 24: total=1, coded=1 (enc-4, coded_count=2)            -> fraction 1.00
+//   May 24: total=1, coded=1 (enc-5, coded_count=5)            -> fraction 1.00
+//   Aug 24: total=1, coded=1 (enc-6, coded_count=1)            -> fraction 1.00
+// Mar / Jun / Jul: total=0 (empty months) -> no underline.
+describe("EncounterTimelineScrubber coded-data indicator - VT-C54B4A77", () => {
+  test("VT-C54B4A77-LIVE-001: bars expose data-coded-count and data-coded-fraction", () => {
+    renderScrubber();
+    const feb = findBarByLabel("Feb 24");
+    expect(feb.getAttribute("data-coded-count")).toBe("1");
+    expect(Number(feb.getAttribute("data-coded-fraction"))).toBeCloseTo(0.5, 2);
+    const apr = findBarByLabel("Apr 24");
+    expect(apr.getAttribute("data-coded-count")).toBe("1");
+    expect(Number(apr.getAttribute("data-coded-fraction"))).toBeCloseTo(1.0, 2);
+  });
+
+  test("VT-C54B4A77-LIVE-002: empty bins (total=0) carry zero coded count and no underline", () => {
+    renderScrubber();
+    const empties = getBars().filter(
+      (bar) => Number(bar.getAttribute("data-total-count")) === 0
+    );
+    expect(empties.length).toBeGreaterThan(0);
+    empties.forEach((bar) => {
+      expect(bar.getAttribute("data-coded-count")).toBe("0");
+      expect(
+        within(bar).queryByTestId("timeline-coded-underline")
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  test("VT-C54B4A77-LIVE-003: bars with codedCount > 0 render the emerald underline", () => {
+    renderScrubber();
+    const feb = findBarByLabel("Feb 24");
+    expect(within(feb).getByTestId("timeline-coded-underline")).toBeInTheDocument();
+    const apr = findBarByLabel("Apr 24");
+    expect(within(apr).getByTestId("timeline-coded-underline")).toBeInTheDocument();
+  });
+
+  test("VT-C54B4A77-LIVE-004: underline opacity scales with coded fraction (clamped >= 0.25)", () => {
+    renderScrubber();
+    const apr = findBarByLabel("Apr 24");
+    const aprUnderline = within(apr).getByTestId("timeline-coded-underline");
+    expect(Number(window.getComputedStyle(aprUnderline).opacity)).toBeCloseTo(1.0, 2);
+    const feb = findBarByLabel("Feb 24");
+    const febUnderline = within(feb).getByTestId("timeline-coded-underline");
+    expect(Number(window.getComputedStyle(febUnderline).opacity)).toBeCloseTo(0.5, 2);
+  });
+
+  test("VT-C54B4A77-LIVE-005: bar aria-label appends ', X of Y coded' when codedCount > 0", () => {
+    renderScrubber();
+    expect(findBarByLabel("Feb 24").getAttribute("aria-label")).toMatch(/1 of 2 coded/);
+    expect(findBarByLabel("Apr 24").getAttribute("aria-label")).toMatch(/1 of 1 coded/);
+  });
+
+  test("VT-C54B4A77-LIVE-006: HoverPreview shows the 'X of Y coded' line when bar is hovered", () => {
+    renderScrubber();
+    const feb = findBarByLabel("Feb 24");
+    fireEvent.mouseEnter(feb);
+    const codedLine = screen.getByTestId("timeline-coded-hover-line");
+    expect(codedLine).toHaveTextContent("1 of 2 coded");
+  });
+
+  test("VT-C54B4A77-LIVE-007: bars with zero coded encounters render no coded-line in hover", () => {
+    // Construct a fixture where one month has encounters but none coded.
+    const ENCOUNTERS_WITH_UNCODED_BIN: ScrubberEncounter[] = [
+      { encounter_id: "u1", date: "2024-01-05", text: "n", coded_count: 0 },
+      { encounter_id: "u2", date: "2024-02-10", text: "n", coded_count: 0 },
+      { encounter_id: "u3", date: "2024-03-12", text: "n", coded_count: 0 },
+      { encounter_id: "u4", date: "2024-04-04", text: "n", coded_count: 0 },
+      { encounter_id: "u5", date: "2024-05-18", text: "n", coded_count: 0 },
+      { encounter_id: "u6", date: "2024-08-30", text: "n", coded_count: 0 },
+    ];
+    renderScrubber({ encounters: ENCOUNTERS_WITH_UNCODED_BIN });
+    expect(
+      screen.queryAllByTestId("timeline-coded-underline").length
+    ).toBe(0);
+    fireEvent.mouseEnter(findBarByLabel("Feb 24"));
+    expect(
+      screen.queryByTestId("timeline-coded-hover-line")
+    ).not.toBeInTheDocument();
   });
 });

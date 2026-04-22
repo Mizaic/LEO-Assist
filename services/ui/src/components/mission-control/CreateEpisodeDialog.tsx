@@ -30,24 +30,27 @@ import Typography from "@mui/material/Typography";
 import Close from "@mui/icons-material/Close";
 import { createEpisode } from "@/lib/missionControlApi";
 import type { EpisodeCreateBody } from "@/lib/missionControlApi";
+import {
+  STATUS_ACTIVE,
+  STATUS_COMPLETED,
+  STATUS_REVIEW,
+  EPISODE_STATUS_LABELS,
+} from "@/lib/episodeLifecycle";
+import { MILESTONE_OPTIONS } from "./milestoneOptions";
 
-const MILESTONE_OPTIONS = [
-  { value: "first_presentation", label: "First presentation" },
-  { value: "presentation", label: "Presentation" },
-  { value: "referral", label: "Referral" },
-  { value: "referral_sent", label: "Referral sent" },
-  { value: "specialist_visit", label: "Specialist visit" },
-  { value: "first_clinic_visit", label: "First clinic visit" },
-  { value: "clinic_visit", label: "Clinic visit" },
-  { value: "first_clinic", label: "First clinic" },
-  { value: "investigation", label: "Investigation" },
-  { value: "diagnosis", label: "Diagnosis" },
-  { value: "diagnosis_confirmed", label: "Diagnosis confirmed" },
-  { value: "treatment_decision", label: "Treatment decision" },
-  { value: "treatment", label: "Treatment" },
-  { value: "treatment_started", label: "Treatment started" },
-  { value: "first_treatment", label: "First treatment" },
-  { value: "related", label: "Related" },
+// Restricted starting-status set for manual create. The full
+// vocabulary in libs/episodes/status.py is wider, but on the manual
+// create path we expose only the four engine-output values that are
+// meaningful for a brand-new pathway. Closed / merged / stale_*
+// statuses are written by their dedicated actions on the Edit
+// dialog (Close, Merge, etc.), never by Create.
+const CREATE_STATUS_OPTIONS: ReadonlyArray<{
+  value: string;
+  label: string;
+}> = [
+  { value: STATUS_REVIEW, label: `${EPISODE_STATUS_LABELS[STATUS_REVIEW]} (default)` },
+  { value: STATUS_ACTIVE, label: EPISODE_STATUS_LABELS[STATUS_ACTIVE] },
+  { value: STATUS_COMPLETED, label: EPISODE_STATUS_LABELS[STATUS_COMPLETED] },
 ];
 
 const CURATOR_ROLES = new Set(["clinician", "qa_ra_lead", "platform_admin"]);
@@ -80,11 +83,11 @@ const INITIAL_FORM: FormState = {
   condition_type: "",
   referral_date: "",
   end_date: "",
-  status: "in_review",
+  status: STATUS_REVIEW,
   audit_notes: "",
   attachInitialEncounter: false,
   initialEncounterId: "",
-  initialMilestoneType: "presentation",
+  initialMilestoneType: "first_presentation",
 };
 
 function buildBody(patientId: string, form: FormState): EpisodeCreateBody {
@@ -95,7 +98,7 @@ function buildBody(patientId: string, form: FormState): EpisodeCreateBody {
     condition_type: form.condition_type || null,
     referral_date: form.referral_date || null,
     end_date: form.end_date || null,
-    status: form.status || "in_review",
+    status: form.status || STATUS_REVIEW,
     audit_notes: form.audit_notes || null,
   };
   if (form.attachInitialEncounter && form.initialEncounterId.trim()) {
@@ -131,6 +134,7 @@ export default function CreateEpisodeDialog({
     };
 
   const handleCreate = async () => {
+    if (!isCurator || saving) return;
     setSaving(true);
     setError(null);
     try {
@@ -146,6 +150,11 @@ export default function CreateEpisodeDialog({
     }
   };
 
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    void handleCreate();
+  };
+
   const handleClose = () => {
     if (saving) return;
     setForm(INITIAL_FORM);
@@ -153,10 +162,21 @@ export default function CreateEpisodeDialog({
     onClose();
   };
 
+  // Block backdrop and Escape dismissals -- they were being mistaken
+  // for a successful create. The user must use Cancel, the X icon,
+  // or a successful submit to close the dialog.
+  const handleDialogClose = (
+    _event: object,
+    reason: "backdropClick" | "escapeKeyDown",
+  ) => {
+    if (reason === "backdropClick" || reason === "escapeKeyDown") return;
+    handleClose();
+  };
+
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
+      onClose={handleDialogClose}
       fullWidth
       maxWidth="sm"
       aria-labelledby="create-episode-dialog-title"
@@ -172,6 +192,7 @@ export default function CreateEpisodeDialog({
           <Close />
         </IconButton>
       </DialogTitle>
+      <Box component="form" onSubmit={handleSubmit} noValidate>
       <DialogContent dividers>
         {!isCurator && (
           <Alert severity="warning" sx={{ mb: 2 }}>
@@ -243,10 +264,11 @@ export default function CreateEpisodeDialog({
             disabled={!isCurator || saving}
             inputProps={{ "aria-label": "Initial status" }}
           >
-            <MenuItem value="in_review">In review (default)</MenuItem>
-            <MenuItem value="confirmed">Confirmed</MenuItem>
-            <MenuItem value="suspected">Suspected</MenuItem>
-            <MenuItem value="completed">Completed</MenuItem>
+            {CREATE_STATUS_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
           </TextField>
           <TextField
             label="Audit notes"
@@ -301,19 +323,20 @@ export default function CreateEpisodeDialog({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={saving}>
+        <Button onClick={handleClose} disabled={saving} type="button">
           Cancel
         </Button>
         <Button
-          onClick={handleCreate}
+          type="submit"
           variant="contained"
           disabled={!isCurator || saving}
           startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}
           data-testid="create-episode-confirm"
         >
-          Create episode
+          {saving ? "Creating..." : "Create episode"}
         </Button>
       </DialogActions>
+      </Box>
     </Dialog>
   );
 }

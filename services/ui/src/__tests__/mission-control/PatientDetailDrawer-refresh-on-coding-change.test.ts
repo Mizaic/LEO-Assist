@@ -48,11 +48,30 @@ describe("PatientDetailDrawer - refresh sibling tabs after inline coding edit", 
     expect(src).toMatch(/setRefreshNonce\s*\(\s*\(\s*n\s*\)\s*=>\s*n\s*\+\s*1\s*\)/);
   });
 
-  test("TC-002: drawer wires onCodingChanged on EncounterTextTab to bumpRefresh", () => {
+  test("TC-002: drawer wires onCodingChanged on EncounterTextTab to a combined refresh handler", () => {
+    // The handler must do TWO things, mirroring the milestone
+    // attach / detach refresh path:
+    //   (a) bumpRefresh()        - sibling tabs (CodedDataTab,
+    //                              AuditTrailTab) refetch via the
+    //                              refreshKey nonce.
+    //   (b) triggerLiveRefresh() - the drawer-local episode list
+    //                              refetches so the chip rail and
+    //                              Overview tab pick up changed
+    //                              audit_flag / coded summaries.
+    // Wiring `onCodingChanged` straight to bumpRefresh (the old
+    // behaviour) only covered (a), so the chip rail stayed stale
+    // until the user closed and reopened the drawer.
     const src = readFile(DRAWER);
     const encTextTag = src.match(/<EncounterTextTab[\s\S]*?\/>/);
     expect(encTextTag).not.toBeNull();
-    expect(encTextTag![0]).toMatch(/onCodingChanged=\{\s*bumpRefresh\s*\}/);
+    expect(encTextTag![0]).toMatch(/onCodingChanged=\{\s*handleCodingChanged\s*\}/);
+    const handlerMatch = src.match(
+      /const\s+handleCodingChanged\s*=\s*\(\s*\)\s*=>\s*\{([\s\S]*?)\};/
+    );
+    expect(handlerMatch).not.toBeNull();
+    const body = handlerMatch![1];
+    expect(body).toMatch(/bumpRefresh\(\s*\)/);
+    expect(body).toMatch(/triggerLiveRefresh\(\s*\)/);
   });
 
   test("TC-003: drawer passes refreshKey to CodedDataTab and AuditTrailTab", () => {
@@ -68,7 +87,10 @@ describe("PatientDetailDrawer - refresh sibling tabs after inline coding edit", 
   test("TC-004: drawer resets refreshNonce when the patient changes", () => {
     const src = readFile(DRAWER);
     expect(src).toMatch(/setRefreshNonce\s*\(\s*0\s*\)/);
-    expect(src).toMatch(/\[\s*patient\.patient_id\s*\]/);
+    // The reset effect's dep array must contain patient.patient_id
+    // (it may also contain patient.episodes -- that is the
+    // drawerEpisodes seeding effect).
+    expect(src).toMatch(/\[\s*patient\.patient_id(?:\s*,\s*patient\.episodes)?\s*\]/);
   });
 
   test("TC-005: EncounterTextTab accepts an onCodingChanged prop and forwards it from EncounterCard", () => {
@@ -96,5 +118,39 @@ describe("PatientDetailDrawer - refresh sibling tabs after inline coding edit", 
     );
     expect(effectMatch).not.toBeNull();
     expect(effectMatch![1]).toMatch(/refreshKey/);
+  });
+
+  test("TC-008: triggerLiveRefresh refetches the drawer-local episode list", () => {
+    // triggerLiveRefresh must call refreshDrawerEpisodes() so the
+    // chip rail / Overview tab refetch via the
+    // /mission-control/patients/{patient_id}/episodes endpoint.
+    // Without this, an "Edit codes" save updates sibling tabs but
+    // leaves the chip rail and overview showing pre-edit state.
+    const src = readFile(DRAWER);
+    const triggerMatch = src.match(
+      /const\s+triggerLiveRefresh\s*=\s*\(\s*\)\s*=>\s*\{([\s\S]*?)\};/
+    );
+    expect(triggerMatch).not.toBeNull();
+    expect(triggerMatch![1]).toMatch(/refreshDrawerEpisodes\(\s*\)/);
+  });
+
+  test("TC-009: EncounterTextTab refreshes the encounter list after a coding edit", () => {
+    // The per-card `coded_count` badge comes from useEncounterLoad,
+    // not /coded-links, so the inline /coded-links refetch alone
+    // leaves it stale. The card's onCodingChanged callback must
+    // also call refresh() so the badge updates without the user
+    // having to recode or close the drawer.
+    const src = readFile(ENCOUNTER_TEXT_TAB);
+    const cardTag = src.match(/<EncounterCard[\s\S]*?\/>\s*\)\s*;/);
+    expect(cardTag).not.toBeNull();
+    const onCodingChangedMatch = cardTag![0].match(
+      /onCodingChanged=\{\s*\(\s*\)\s*=>\s*\{([\s\S]*?)\}\s*\}/
+    );
+    expect(onCodingChangedMatch).not.toBeNull();
+    const body = onCodingChangedMatch![1];
+    expect(body).toMatch(/invalidateCodedFor\(\s*encounterKey\s*\)/);
+    expect(body).toMatch(/fetchCodesForEncounter\(\s*encounterKey\s*\)/);
+    expect(body).toMatch(/refresh\(\s*\)/);
+    expect(body).toMatch(/onCodingChanged\?\.\(\s*\)/);
   });
 });

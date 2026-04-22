@@ -505,6 +505,108 @@ def test_pipeline_events_query_falls_back_when_episode_missing():
 
 
 # ---------------------------------------------------------------------------
+# DI-3A19BE12 -- manual-events endpoint surfaces EpisodeManual* AuditEvents
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_manual_events_returns_starts_with_episode_manual():
+    """The query MUST filter to EpisodeManual* event_type values so
+    PipelineRun rows do not bleed into the Human edits section."""
+    from services.analytics_api.app.routers.mission_control import (
+        get_patient_manual_events,
+    )
+    import inspect
+
+    source = inspect.getsource(get_patient_manual_events)
+    assert "STARTS WITH 'EpisodeManual'" in source
+    assert "ORDER BY ae.created_at DESC" in source
+
+
+@pytest.mark.asyncio
+async def test_manual_events_returns_curator_rows():
+    """End-to-end shape: the endpoint maps Cypher rows to the
+    ManualAuditEvent JSON schema the UI expects (event_type, actor,
+    notes, created_at)."""
+    from unittest.mock import patch
+    from libs.auth.org_scope import CallerScope
+    from services.analytics_api.app.routers.mission_control import (
+        get_patient_manual_events,
+    )
+
+    fake_rows = [
+        {
+            "id": "ae-1",
+            "event_type": "EpisodeManualAttach",
+            "subtype": "episode_manual_edit",
+            "created_at": "2026-04-22T09:00:00",
+            "actor_email": "rob@example.com",
+            "actor_role": "qa_ra_lead",
+            "episode_id": "ep-001",
+            "patient_id": "P-1",
+            "notes": "Attached encounter=enc-1 as milestone=diagnosis_confirmed",
+            "before_json": "",
+            "after_json": "",
+        }
+    ]
+
+    with patch(
+        "services.analytics_api.app.routers.mission_control.PatientGraphClient"
+    ) as MockPG:
+        client = MockPG.return_value
+        client.run.return_value = fake_rows
+
+        scope = CallerScope(email="x@y", is_admin=True, org_ids=[])
+        result = await get_patient_manual_events(
+            patient_id="P-1",
+            org_id=None,
+            episode_id=None,
+            limit=40,
+            scope=scope,
+        )
+
+    assert result["patient_id"] == "P-1"
+    assert len(result["events"]) == 1
+    ev = result["events"][0]
+    assert ev["event_type"] == "EpisodeManualAttach"
+    assert ev["actor_email"] == "rob@example.com"
+    assert ev["actor_role"] == "qa_ra_lead"
+    assert "diagnosis_confirmed" in ev["notes"]
+
+
+@pytest.mark.asyncio
+async def test_manual_events_filters_to_episode_when_specified():
+    """When episode_id is supplied the Cypher must add the
+    `ae.episode_id = $episode_id OR coalesce(ae.episode_id, '') = ''`
+    clause so each episode tab only shows its own audit trail (plus
+    the patient-wide create event for that episode)."""
+    from unittest.mock import patch
+    from libs.auth.org_scope import CallerScope
+    from services.analytics_api.app.routers.mission_control import (
+        get_patient_manual_events,
+    )
+
+    with patch(
+        "services.analytics_api.app.routers.mission_control.PatientGraphClient"
+    ) as MockPG:
+        client = MockPG.return_value
+        client.run.return_value = []
+
+        scope = CallerScope(email="x@y", is_admin=True, org_ids=[])
+        await get_patient_manual_events(
+            patient_id="P-1",
+            org_id=None,
+            episode_id="ep-001",
+            limit=40,
+            scope=scope,
+        )
+
+        cypher = client.run.call_args[0][0]
+        assert "ae.episode_id = $episode_id" in cypher
+        assert client.run.call_args.kwargs["episode_id"] == "ep-001"
+
+
+# ---------------------------------------------------------------------------
 # TC-008: unauthenticated access
 # ---------------------------------------------------------------------------
 

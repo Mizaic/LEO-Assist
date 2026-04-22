@@ -34,6 +34,10 @@ interface Props {
   userEmail: string;
   onEpisodeUpdated: (episodeId: string, patch: Partial<MissionEpisode>) => void;
   onFocusEpisode: (episodeId: string) => void;
+  /** Override the episode list (DI-5E47FA5D). When set, used instead of
+   *  `patient.episodes` so the drawer can show every EpisodeOfCare for
+   *  the patient regardless of the dashboard cohort filter. */
+  episodes?: MissionEpisode[];
 }
 
 function IntervalChip({ days, label }: { days: number | null; label: string }) {
@@ -94,12 +98,68 @@ function outcomeText(episode: MissionEpisode): string {
   }
 }
 
+// "Slot evidence wins" -- the curator may have attached a
+// benign_closure or diagnosis_confirmed milestone before the
+// pipeline has had a chance to recompute episode.status /
+// episode.end_date. The rail already prefers the slot date over
+// the stored status; the Outcome / Outcome date pair in the
+// header MUST follow the same rule, otherwise the header reads
+// "active. Outcome date: --" while the rail right below it shows
+// "Diagnosed 18 Sep 25" (the bug from the screenshot).
+//
+// Returns null when no terminal slot is attached so the caller
+// falls back to the status-driven text and end_date.
+function findMilestoneDate(
+  episode: MissionEpisode,
+  types: readonly string[]
+): string | null {
+  for (const m of episode.milestones ?? []) {
+    if (types.includes(m.milestone_type)) return m.date;
+  }
+  return null;
+}
+
+interface SlotOutcome {
+  text: string;
+  date: string | null;
+}
+
+export function slotDerivedOutcome(
+  episode: MissionEpisode
+): SlotOutcome | null {
+  // Closure beats diagnosis (same rule as the rail terminal node):
+  // if a benign_closure slot was attached after a diagnosis the
+  // pathway end is the closure event.
+  const closureDate = findMilestoneDate(episode, ["benign_closure"]);
+  if (closureDate) {
+    return { text: "No cancer found.", date: closureDate };
+  }
+  // Accept the legacy "cancer_diagnosis" key as well so pre-2026
+  // episodes resolve, matching EpisodeTimeline LEGACY_ALIASES.
+  const diagDate = findMilestoneDate(episode, [
+    "diagnosis_confirmed",
+    "cancer_diagnosis",
+  ]);
+  if (diagDate) {
+    const type = episode.cancer_type
+      ? ` in ${getCancerTypeLabel(episode.cancer_type).toLowerCase()}`
+      : "";
+    const stage = episode.cancer_stage
+      ? ` (stage ${episode.cancer_stage})`
+      : "";
+    return { text: `Cancer confirmed${type}${stage}.`, date: diagDate };
+  }
+  return null;
+}
+
 export default function OverviewTab({
   patient,
   userEmail,
   onEpisodeUpdated,
   onFocusEpisode,
+  episodes,
 }: Props) {
+  const episodeList = episodes ?? patient.episodes;
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Demographics */}
@@ -142,7 +202,7 @@ export default function OverviewTab({
       <Divider />
 
       {/* Episodes */}
-      {patient.episodes.map((episode) => (
+      {episodeList.map((episode) => (
         <Box key={episode.episode_id}>
           {/* Episode header */}
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1, flexWrap: "wrap" }}>
@@ -200,12 +260,21 @@ export default function OverviewTab({
               <Typography variant="caption" color="text.secondary">
                 Outcome
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {outcomeText(episode)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Outcome date: {formatShortDate(episode.end_date)}
-              </Typography>
+              {(() => {
+                const slotOutcome = slotDerivedOutcome(episode);
+                const text = slotOutcome?.text ?? outcomeText(episode);
+                const date = slotOutcome?.date ?? episode.end_date;
+                return (
+                  <>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {text}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Outcome date: {formatShortDate(date)}
+                    </Typography>
+                  </>
+                );
+              })()}
             </Box>
           </Box>
 

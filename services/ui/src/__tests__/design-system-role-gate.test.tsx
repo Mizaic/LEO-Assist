@@ -28,7 +28,11 @@ function makeApi(
     getRoleState: async () => initial,
     setSelectedRole: async (role) => {
       onSet?.(role);
-      return { selectedRole: role, allowedRoles: initial.allowedRoles };
+      return {
+        selectedRole: role,
+        allowedRoles: initial.allowedRoles,
+        needsSessionRoleChoice: false,
+      };
     },
   };
 }
@@ -38,10 +42,15 @@ describe("VT-129 - Role-first primitives", () => {
     const api = makeApi({
       selectedRole: null,
       allowedRoles: ["clinician", "staff"],
+      needsSessionRoleChoice: true,
     });
     render(
       <RoleProvider
-        initialState={{ selectedRole: null, allowedRoles: ["clinician", "staff"] }}
+        initialState={{
+          selectedRole: null,
+          allowedRoles: ["clinician", "staff"],
+          needsSessionRoleChoice: true,
+        }}
         api={api}
       >
         <RoleGate>
@@ -59,13 +68,21 @@ describe("VT-129 - Role-first primitives", () => {
   test("TC-002 picker PATCHes on confirm", async () => {
     const calls: string[] = [];
     const api = makeApi(
-      { selectedRole: null, allowedRoles: ["clinician", "staff"] },
+      {
+        selectedRole: null,
+        allowedRoles: ["clinician", "staff"],
+        needsSessionRoleChoice: true,
+      },
       (role) => calls.push(role),
     );
     const user = userEvent.setup();
     render(
       <RoleProvider
-        initialState={{ selectedRole: null, allowedRoles: ["clinician", "staff"] }}
+        initialState={{
+          selectedRole: null,
+          allowedRoles: ["clinician", "staff"],
+          needsSessionRoleChoice: true,
+        }}
         api={api}
       >
         <RoleGate>
@@ -81,8 +98,16 @@ describe("VT-129 - Role-first primitives", () => {
   test("TC-003 switcher hidden for single-role users", async () => {
     const { container } = render(
       <RoleProvider
-        initialState={{ selectedRole: "clinician", allowedRoles: ["clinician"] }}
-        api={makeApi({ selectedRole: "clinician", allowedRoles: ["clinician"] })}
+        initialState={{
+          selectedRole: "clinician",
+          allowedRoles: ["clinician"],
+          needsSessionRoleChoice: false,
+        }}
+        api={makeApi({
+          selectedRole: "clinician",
+          allowedRoles: ["clinician"],
+          needsSessionRoleChoice: false,
+        })}
       >
         <RoleSwitcher />
       </RoleProvider>,
@@ -96,10 +121,12 @@ describe("VT-129 - Role-first primitives", () => {
         initialState={{
           selectedRole: "clinician",
           allowedRoles: ["clinician", "qa_ra_lead"],
+          needsSessionRoleChoice: false,
         }}
         api={makeApi({
           selectedRole: "clinician",
           allowedRoles: ["clinician", "qa_ra_lead"],
+          needsSessionRoleChoice: false,
         })}
       >
         <RoleSwitcher />
@@ -112,8 +139,16 @@ describe("VT-129 - Role-first primitives", () => {
   test("TC-005 disabled RoleGate does not render the picker", async () => {
     render(
       <RoleProvider
-        initialState={{ selectedRole: null, allowedRoles: ["clinician", "staff"] }}
-        api={makeApi({ selectedRole: null, allowedRoles: ["clinician", "staff"] })}
+        initialState={{
+          selectedRole: null,
+          allowedRoles: ["clinician", "staff"],
+          needsSessionRoleChoice: true,
+        }}
+        api={makeApi({
+          selectedRole: null,
+          allowedRoles: ["clinician", "staff"],
+          needsSessionRoleChoice: true,
+        })}
       >
         <RoleGate enabled={false}>
           <div data-testid="app">app</div>
@@ -122,5 +157,31 @@ describe("VT-129 - Role-first primitives", () => {
     );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByTestId("app")).toBeInTheDocument();
+  });
+
+  test("TC-006 picker renders for multi-role session until role is confirmed", async () => {
+    const api = makeApi({
+      selectedRole: "clinician",
+      allowedRoles: ["clinician", "staff"],
+      needsSessionRoleChoice: true,
+    });
+    render(
+      <RoleProvider
+        initialState={{
+          selectedRole: "clinician",
+          allowedRoles: ["clinician", "staff"],
+          needsSessionRoleChoice: true,
+        }}
+        api={api}
+      >
+        <RoleGate>
+          <div data-testid="app">app</div>
+        </RoleGate>
+      </RoleProvider>,
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByTestId("app")).toBeInTheDocument();
+    const continueBtn = screen.getByRole("button", { name: /Continue/i });
+    expect(continueBtn).not.toBeDisabled();
   });
 });

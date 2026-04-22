@@ -21,7 +21,9 @@ from libs.message_bus.base import Message
 logger = logging.getLogger(__name__)
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
-_ALLOWED_MODES = frozenset({"all", "extract_encounter", "extract_patient"})
+_ALLOWED_MODES = frozenset(
+    {"all", "extract_encounter", "extract_patient", "episode_bundle"}
+)
 
 
 class CodingJobMessage(BaseModel):
@@ -29,6 +31,9 @@ class CodingJobMessage(BaseModel):
 
     patient_id: str = Field(..., min_length=1, max_length=128)
     encounter_id: str | None = Field(default=None, max_length=128)
+    episode_id: str | None = Field(default=None, max_length=128)
+    encounter_ids: list[str] | None = Field(default=None)
+    episode_context: dict[str, Any] | None = Field(default=None)
     mode: str = "all"
     dry_run: bool = False
     trigger_analysis: bool = False
@@ -48,6 +53,27 @@ class CodingJobMessage(BaseModel):
         if not _ID_RE.fullmatch(value):
             raise ValueError("invalid encounter_id")
         return value
+
+    @field_validator("episode_id")
+    @classmethod
+    def _validate_episode_id(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if not _ID_RE.fullmatch(value):
+            raise ValueError("invalid episode_id")
+        return value
+
+    @field_validator("encounter_ids")
+    @classmethod
+    def _validate_encounter_ids(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
+            return None
+        cleaned: list[str] = []
+        for raw in value:
+            if not isinstance(raw, str) or not _ID_RE.fullmatch(raw):
+                raise ValueError("invalid encounter_id in encounter_ids")
+            cleaned.append(raw)
+        return cleaned
 
     @field_validator("mode")
     @classmethod
@@ -131,6 +157,48 @@ async def _dispatch_engine_for_encounter(
     )
 
 
+async def _dispatch_engine_for_episode_bundle(
+    handler,
+    step_callback,
+    base_body: dict[str, Any],
+    *,
+    patient_id: str,
+    episode_id: str,
+    encounter_ids: list[str],
+    episode_context: dict[str, Any] | None,
+    run_id: str,
+    dry_run: bool,
+    trigger_analysis: bool,
+) -> None:
+    """Dispatch a single episode-bundle event.
+
+    The event holds the episode envelope plus the ordered list of
+    encounter_ids that belong to it. WorkflowEngine receives a single
+    `episode_bundle` event and decides internally how to fan out per
+    encounter so each LLM call sees the bundle context.
+    """
+    body = {
+        "event_type": "episode_bundle",
+        "patient_id": patient_id,
+        "encounter_id": (encounter_ids[0] if encounter_ids else None),
+        "plan_definition_id": str(
+            base_body.get("plan_definition_id") or "pd-episode-bundle-coding"
+        ),
+        "context": {
+            "dry_run": dry_run,
+            "mode": "episode_bundle",
+            "episode_id": episode_id,
+            "encounter_ids": list(encounter_ids),
+            "episode_context": dict(episode_context or {}),
+            "trigger_analysis": trigger_analysis,
+        },
+    }
+    await handler.handle_message(
+        Message(body=body, correlation_id=run_id, subject="episode-bundle"),
+        step_callback=step_callback,
+    )
+
+
 async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
     from libs.neo4j_client.client import (
         PatientGraphClient,
@@ -172,6 +240,26 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
                 body,
                 patient_id=job.patient_id,
                 encounter_id=job.encounter_id,
+                run_id=run_id,
+                dry_run=job.dry_run,
+                trigger_analysis=job.trigger_analysis,
+            )
+            return
+
+        if job.mode == "episode_bundle":
+            if not job.episode_id or not job.encounter_ids:
+                logger.error(
+                    "episode_bundle job missing episode_id or encounter_ids"
+                )
+                return
+            await _dispatch_engine_for_episode_bundle(
+                handler,
+                _build_progress_callback(run_id, patient_id=job.patient_id),
+                body,
+                patient_id=job.patient_id,
+                episode_id=job.episode_id,
+                encounter_ids=job.encounter_ids,
+                episode_context=job.episode_context,
                 run_id=run_id,
                 dry_run=job.dry_run,
                 trigger_analysis=job.trigger_analysis,

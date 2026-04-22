@@ -82,6 +82,7 @@ export const ALWAYS_EXCLUDE_STATUSES: readonly string[] = [
 
 export const LEGACY_STATUS_REWRITES: Readonly<Record<string, string>> = {
   benign_closed: STATUS_CLOSED_BENIGN,
+  in_review: STATUS_REVIEW,
 };
 
 

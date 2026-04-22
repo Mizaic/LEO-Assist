@@ -131,10 +131,12 @@ describe("EncounterTextTab milestone jump", () => {
     expect(screen.getByLabelText("Search text in shown encounters")).toBeInTheDocument();
   });
 
-  test("episode-linked encounters render an In episode chip", async () => {
+  test("episode-linked encounters render an episode chip with the pathway label (DI-5159A336)", async () => {
     render(<EncounterTextTab patientId="patient-1" episode={MOCK_EPISODE} />);
     await waitFor(() => {
-      expect(screen.getAllByTestId("encounter-in-episode-chip").length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByTestId("encounter-card-episode-chips").length
+      ).toBeGreaterThan(0);
     });
   });
 

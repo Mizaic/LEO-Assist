@@ -1,12 +1,4 @@
-/**
- * Auto-stamped Atlas trace.
- *
- * Atlas trace:
- *   DO: DO-146D93D0
- *   Also implements: DO-EE78E305
- *   DI: DI-6EA84931
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-146D93D0")
- */
+// Atlas trace: DO-146D93D0 (also DO-EE78E305) -> DI-6EA84931
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -34,23 +26,19 @@ import { useEncounterLoad, type Encounter } from "./useEncounterLoad";
 import { useEncounterRecode } from "./useEncounterRecode";
 import {
   buildMilestoneLookup,
+  useEncounterEpisodeChips,
   useMilestoneCuration,
 } from "./useMilestoneCuration";
 
 interface Props {
   patientId: string;
   episode: MissionEpisode;
-  /** Sibling episodes for this patient. The MilestoneCurationDialog
-   *  picker offers any of these as the milestone target so a
-   *  reviewer can re-attach an encounter to a different episode
-   *  without leaving the drawer. Defaults to [episode]. */
+  // Sibling episodes for re-attaching across the patient's pathways.
   episodes?: MissionEpisode[];
-  /** Reviewer role; threaded through to the curation dialog so its
-   *  audit-event payload picks up the right actor. */
   reviewerRole?: string;
-  /** Bubbles a coding-change signal so the drawer refreshes
-   *  sibling tabs (CodedDataTab, AuditTrailTab) live. */
   onCodingChanged?: () => void;
+  // Refresh patient.episodes after milestone attach / detach.
+  onEpisodeStructureChanged?: () => void;
 }
 
 export default function EncounterTextTab({
@@ -59,6 +47,7 @@ export default function EncounterTextTab({
   episodes,
   reviewerRole = "developer",
   onCodingChanged,
+  onEpisodeStructureChanged,
 }: Props) {
   const { encounters, loading, error, refresh } = useEncounterLoad(patientId);
   const [codedOnly, setCodedOnly] = useState(false);
@@ -90,6 +79,16 @@ export default function EncounterTextTab({
     () => buildMilestoneLookup(dialogEpisodes),
     [dialogEpisodes]
   );
+  // Per-episode chip lookup + confirm-then-detach handler
+  // (DI-5159A336). The hook removes every IS_PART_OF edge between
+  // the encounter and the chosen episode in one call.
+  const onEpisodeChipChanged = useCallback(async () => {
+    await refresh();
+    onEpisodeStructureChanged?.();
+    onCodingChanged?.();
+  }, [refresh, onEpisodeStructureChanged, onCodingChanged]);
+  const { lookup: episodeLinkLookup, unlink: handleUnlinkFromEpisode } =
+    useEncounterEpisodeChips(dialogEpisodes, onEpisodeChipChanged);
   const curate = useMilestoneCuration(encounters);
 
   const defaultRangeAppliedRef = useRef<string | null>(null);
@@ -199,12 +198,9 @@ export default function EncounterTextTab({
   }, [encounters, codedOnly, search, timelineRange]);
 
   // Search match overlay for the histogram (DI-15E0094F). Only the
-  // free-text search affects which bars are highlighted -- the
-  // Coded-only switch and the brush window stay independent so the
-  // reviewer can see "where in the patient's life is this term"
-  // without the brush hiding any bars. `undefined` means "no
-  // search active"; an empty Set means "search active but zero
-  // matches anywhere".
+  // free-text search affects which bars are highlighted; coded-only
+  // and brush window stay independent. undefined = no search,
+  // empty Set = search active with zero matches.
   const searchMatchEncounterIds = useMemo<Set<string> | undefined>(() => {
     if (!search.trim()) return undefined;
     const matched = applyCommonFilters(encounters, {
@@ -345,8 +341,14 @@ export default function EncounterTextTab({
         codingLinks={codedByEncounter[encounterKey] ?? []}
         codingError={codingErrorByEncounter[encounterKey]}
         lockSummary={encounterLocks[encounterKey] ?? null}
-        currentMilestoneType={
-          milestoneLookup.get(encounterKey)?.milestoneType ?? null
+        currentMilestoneTypes={
+          (milestoneLookup.get(encounterKey) ?? []).map(
+            (e) => e.milestoneType
+          )
+        }
+        episodeLinks={episodeLinkLookup.get(encounterKey) ?? []}
+        onUnlinkFromEpisode={(episodeId) =>
+          handleUnlinkFromEpisode(encounterKey, episodeId)
         }
         onCurateMilestone={() => curate.open(enc)}
         onToggle={() =>
@@ -354,12 +356,12 @@ export default function EncounterTextTab({
         }
         onRequestReset={() => setConfirmResetEncounterId(encounterKey)}
         onCodingChanged={() => {
-          // Invalidate the cached coded links for this encounter so the
-          // next render re-fetches from /coded-links and shows the
-          // post-edit live state. Then bubble to the drawer so
-          // sibling tabs refetch too. See DI-LEO-AI-221.
+          // Refresh coded-links cache, encounter list (per-card
+          // coded_count badge), and drawer (sibling tabs + chip
+          // rail) so "Edit codes" matches milestone curation.
           invalidateCodedFor(encounterKey);
           void fetchCodesForEncounter(encounterKey);
+          void refresh();
           onCodingChanged?.();
         }}
       />
@@ -476,16 +478,18 @@ export default function EncounterTextTab({
         sameDayEncounters={curate.sameDayEncounters}
         episodes={dialogEpisodes}
         defaultEpisodeId={episode.episode_id}
-        existingLink={
+        existingLinks={
           curate.target
-            ? milestoneLookup.get(String(curate.target.encounter_id)) ?? null
-            : null
+            ? milestoneLookup.get(String(curate.target.encounter_id)) ?? []
+            : []
         }
         reviewerRole={reviewerRole}
         onClose={curate.close}
         onChanged={() => {
           curate.close();
           refresh();
+          // Refetch patient.episodes so per-card labels stay in sync.
+          onEpisodeStructureChanged?.();
           onCodingChanged?.();
         }}
       />

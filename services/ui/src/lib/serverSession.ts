@@ -33,6 +33,7 @@ interface RawSessionPayload {
   idleTimeoutMinutes?: number;
   selected_role?: string | null;
   allowed_roles?: unknown;
+  needs_role_choice?: boolean;
   density_preference?: string | null;
 }
 
@@ -60,6 +61,7 @@ function _coerceSession(data: RawSessionPayload | null): Session | null {
     idleTimeoutMinutes: data.idleTimeoutMinutes ?? 30,
     selectedRole: data.selected_role ?? null,
     allowedRoles,
+    needsRoleChoice: data.needs_role_choice === true,
     densityPreference: _coerceDensity(data.density_preference),
   };
 }

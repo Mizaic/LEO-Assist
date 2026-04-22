@@ -15,6 +15,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
+import Snackbar from "@mui/material/Snackbar";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
@@ -34,7 +35,10 @@ import EditEpisodeDialog from "./EditEpisodeDialog";
 import DeleteEpisodeConfirm from "./DeleteEpisodeConfirm";
 import type { MissionEpisode, MissionPatient } from "@/lib/missionControlApi";
 import { getCancerTypeLabel } from "@/lib/pathwayLabels";
-import { rerunEpisodeDetector } from "@/lib/missionControlApi";
+import {
+  fetchMissionPatientEpisodes,
+  rerunEpisodeDetector,
+} from "@/lib/missionControlApi";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 const EPISODE_CURATOR_ROLES = new Set([
@@ -63,6 +67,11 @@ interface Props {
   onClose: () => void;
   onEpisodeUpdated: (episodeId: string, patch: Partial<MissionEpisode>) => void;
   onPatientRebuilt?: (patientId: string) => Promise<void> | void;
+  /** Refresh the patient list without closing the drawer. Used for
+   *  in-flight edits (milestone attach/detach, episode CRUD) where
+   *  the user expects the drawer to stay open and reflect the new
+   *  state. DI-4B99678C. */
+  onPatientRefreshed?: (patientId: string) => Promise<void> | void;
 }
 
 export default function PatientDetailDrawer({
@@ -73,8 +82,20 @@ export default function PatientDetailDrawer({
   onClose,
   onEpisodeUpdated,
   onPatientRebuilt,
+  onPatientRefreshed,
 }: Props) {
   const [tab, setTab] = useState(tabToIndex(initialTab));
+  // Drawer-local episode list: hydrated from the new
+  // /mission-control/patients/{patient_id}/episodes endpoint
+  // (DI-5E47FA5D), which returns every EpisodeOfCare for the patient
+  // regardless of the dashboard cohort filter. Seeded from
+  // patient.episodes so the first paint is never blank.
+  const [drawerEpisodes, setDrawerEpisodes] = useState<MissionEpisode[]>(
+    patient.episodes,
+  );
+  const [drawerEpisodesNonce, setDrawerEpisodesNonce] = useState(0);
+  const refreshDrawerEpisodes = () =>
+    setDrawerEpisodesNonce((n) => n + 1);
   const [focusedEpisodeId, setFocusedEpisodeId] = useState(
     patient.episodes[0]?.episode_id ?? ""
   );
@@ -90,17 +111,44 @@ export default function PatientDetailDrawer({
   const [deleteEpisodeOpen, setDeleteEpisodeOpen] = useState(false);
   const [createEpisodeOpen, setCreateEpisodeOpen] = useState(false);
   const triggerPatientRefresh = () => {
+    refreshDrawerEpisodes();
     if (onPatientRebuilt) {
       void onPatientRebuilt(patient.patient_id);
     }
   };
-  const handleEpisodeCreated = (newEpisodeId: string) => {
-    setFocusedEpisodeId(newEpisodeId);
+  // Refresh-without-close path for in-flight edits like milestone
+  // attach / detach. Falls back to the rebuild handler so legacy
+  // hosts still get a refresh, even if the drawer collapses.
+  const triggerLiveRefresh = () => {
+    refreshDrawerEpisodes();
+    if (onPatientRefreshed) {
+      void onPatientRefreshed(patient.patient_id);
+      return;
+    }
     triggerPatientRefresh();
+  };
+  // After a successful create we want to KEEP the drawer open and
+  // surface a clear toast, because:
+  //   1. The full rebuild path (`onPatientRebuilt`) closes the drawer
+  //      via setSelectedPatient(null) -- the user loses context and
+  //      thinks "nothing happened".
+  //   2. New episodes default to status='in_review', so the
+  //      Mission Control cohort filter (e.g. lifecycle_bucket=
+  //      confirmed_cancer) will hide them. The toast tells the user
+  //      where to look.
+  const [createdToast, setCreatedToast] = useState<string | null>(null);
+  const handleEpisodeCreated = (newEpisodeId: string) => {
+    // The drawer fetches the patient's full episode list independent
+    // of the dashboard cohort filter (DI-5E47FA5D), so the new
+    // in_review episode WILL appear in the drawer chip rail after
+    // the next refresh -- focus it so the curator sees the change.
+    setFocusedEpisodeId(newEpisodeId);
+    setCreatedToast(newEpisodeId);
+    triggerLiveRefresh();
   };
   const handleEpisodeRemoved = (episodeId: string) => {
     if (focusedEpisodeId === episodeId) {
-      const next = patient.episodes.find((e) => e.episode_id !== episodeId);
+      const next = drawerEpisodes.find((e) => e.episode_id !== episodeId);
       setFocusedEpisodeId(next?.episode_id ?? "");
     }
     triggerPatientRefresh();
@@ -115,6 +163,17 @@ export default function PatientDetailDrawer({
   // response." Pinned by VT-E3F857AA.
   const [refreshNonce, setRefreshNonce] = useState(0);
   const bumpRefresh = () => setRefreshNonce((n) => n + 1);
+  // Wired into EncounterTextTab.onCodingChanged so an "Edit codes"
+  // save refreshes the same surfaces a milestone attach / detach
+  // does: sibling tabs (via the nonce) AND the drawer-local
+  // episode list (via triggerLiveRefresh). Without the latter the
+  // chip rail and Overview tab keep showing pre-edit coded counts
+  // and audit_flag state until the user closes and reopens the
+  // drawer. DI-AA1F5F5B + DI-5E47FA5D.
+  const handleCodingChanged = () => {
+    bumpRefresh();
+    triggerLiveRefresh();
+  };
 
   useEffect(() => {
     setTab(tabToIndex(initialTab));
@@ -122,14 +181,40 @@ export default function PatientDetailDrawer({
 
   useEffect(() => {
     setFocusedEpisodeId(patient.episodes[0]?.episode_id ?? "");
+    setDrawerEpisodes(patient.episodes);
+    setDrawerEpisodesNonce(0);
     setRefreshNonce(0);
-  }, [patient.patient_id]);
+  }, [patient.patient_id, patient.episodes]);
+
+  // Hydrate the drawer-local episode list from the dedicated
+  // patient-scoped endpoint so a manually-created in_review episode
+  // is visible in the drawer even when the dashboard cohort filter
+  // (e.g. lifecycle_bucket=confirmed_cancer) hides it from the
+  // patient row. DI-5E47FA5D, mitigates R-A737EE12.
+  useEffect(() => {
+    let cancelled = false;
+    void fetchMissionPatientEpisodes(patient.patient_id, { orgId })
+      .then((res) => {
+        if (cancelled) return;
+        if (Array.isArray(res?.episodes)) {
+          setDrawerEpisodes(res.episodes);
+        }
+      })
+      .catch(() => {
+        // Fail open: keep showing the cohort-filtered list from
+        // patient.episodes. The curator can still operate; only the
+        // hidden-by-filter case degrades back to the old behaviour.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [patient.patient_id, orgId, drawerEpisodesNonce]);
 
   const focusedEpisode = useMemo(
     () =>
-      patient.episodes.find((e) => e.episode_id === focusedEpisodeId) ??
-      patient.episodes[0],
-    [patient.episodes, focusedEpisodeId]
+      drawerEpisodes.find((e) => e.episode_id === focusedEpisodeId) ??
+      drawerEpisodes[0],
+    [drawerEpisodes, focusedEpisodeId]
   );
 
   const title = focusedEpisode?.cancer_type
@@ -305,12 +390,12 @@ export default function PatientDetailDrawer({
         }}
         data-testid="patient-drawer-episode-controls"
       >
-        {patient.episodes.length > 0 && (
+        {drawerEpisodes.length > 0 && (
           <Typography variant="caption" color="text.secondary">
             Episode in focus:
           </Typography>
         )}
-        {patient.episodes.map((ep) => (
+        {drawerEpisodes.map((ep) => (
           <Chip
             key={ep.episode_id}
             size="small"
@@ -411,6 +496,7 @@ export default function PatientDetailDrawer({
               userEmail={userEmail}
               onEpisodeUpdated={onEpisodeUpdated}
               onFocusEpisode={focusEpisodeAndOpenEvidence}
+              episodes={drawerEpisodes}
             />
           </Box>
         )}
@@ -436,9 +522,10 @@ export default function PatientDetailDrawer({
               <EncounterTextTab
                 patientId={patient.patient_id}
                 episode={focusedEpisode}
-                episodes={patient.episodes}
+                episodes={drawerEpisodes}
                 reviewerRole={reviewerRole}
-                onCodingChanged={bumpRefresh}
+                onCodingChanged={handleCodingChanged}
+                onEpisodeStructureChanged={triggerLiveRefresh}
               />
             ) : (
               <Alert severity="info">
@@ -481,7 +568,7 @@ export default function PatientDetailDrawer({
           open={editEpisodeOpen}
           episode={focusedEpisode}
           patientId={patient.patient_id}
-          siblingEpisodes={patient.episodes}
+          siblingEpisodes={drawerEpisodes}
           reviewerEmail={userEmail}
           reviewerRole={reviewerRole}
           onClose={() => setEditEpisodeOpen(false)}
@@ -503,6 +590,24 @@ export default function PatientDetailDrawer({
           onDeleted={handleEpisodeRemoved}
         />
       )}
+      <Snackbar
+        open={createdToast !== null}
+        autoHideDuration={9000}
+        onClose={() => setCreatedToast(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          onClose={() => setCreatedToast(null)}
+          sx={{ width: "100%" }}
+          data-testid="patient-drawer-create-episode-toast"
+        >
+          Episode created (id: {createdToast}) and now in focus. New
+          episodes start in &quot;In review&quot;. To see it in the
+          patient list, change the cohort filter to &quot;In
+          review&quot; or &quot;All pathways&quot; to see it in the list.
+        </Alert>
+      </Snackbar>
     </Drawer>
   );
 }

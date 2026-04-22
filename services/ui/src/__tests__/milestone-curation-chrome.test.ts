@@ -45,8 +45,11 @@ describe("VT-DEF041C5 - inline milestone curation chrome", () => {
     const src = readComponent("EncounterCard.tsx");
     expect(src).toMatch(/data-testid="encounter-card-milestone-button"/);
     expect(src).toMatch(/Add to milestone/);
-    expect(src).toMatch(/Linked: \$\{milestoneLabel\(currentMilestoneType\)\}/);
+    // Multi-slot (DI-F5E030ED): the label is built from the array of
+    // currently-linked slots and joined with " + ".
+    expect(src).toMatch(/linkedSlots\.map\(milestoneLabel\)\.join\(" \+ "\)/);
     expect(src).toMatch(/data-milestone-linked=/);
+    expect(src).toMatch(/data-milestone-slot-count=/);
     expect(src).toMatch(/onCurateMilestone\?: \(\) => void/);
     // The new button must sit next to (i.e. inside the same action
     // row as) the existing "Edit codes" button.
@@ -58,11 +61,13 @@ describe("VT-DEF041C5 - inline milestone curation chrome", () => {
     expect(milestoneIdx).toBeGreaterThan(editCodesIdx);
   });
 
-  it("VT-DEF041C5-TC-002: EncounterTextTab passes currentMilestoneType + onCurateMilestone to every card", () => {
+  it("VT-DEF041C5-TC-002: EncounterTextTab passes currentMilestoneTypes + onCurateMilestone to every card", () => {
     const src = readComponent("EncounterTextTab.tsx");
     expect(src).toMatch(/buildMilestoneLookup/);
     expect(src).toMatch(/useMilestoneCuration/);
-    expect(src).toMatch(/currentMilestoneType=\{[\s\S]*?milestoneLookup\.get/);
+    // Multi-slot wiring: pass an array of milestoneType strings.
+    expect(src).toMatch(/currentMilestoneTypes=\{[\s\S]*?milestoneLookup\.get/);
+    expect(src).toMatch(/\.map\([\s\S]{0,40}=>[\s\S]{0,40}\.milestoneType\s*\)/);
     expect(src).toMatch(/onCurateMilestone=\{\(\) => curate\.open\(enc\)\}/);
     // The dialog mounts and consumes the same hook.
     expect(src).toMatch(/<MilestoneCurationDialog/);
@@ -78,66 +83,113 @@ describe("VT-DEF041C5 - inline milestone curation chrome", () => {
     expect(src).toMatch(/encounters[\s\S]{0,40}\.filter[\s\S]{0,40}isoDay/);
   });
 
-  it("VT-DEF041C5-TC-004: MilestoneCurationDialog stages pick -> conflict -> confirm -> result", () => {
+  it("VT-DEF041C5-TC-004: MilestoneCurationDialog stages pick -> (conflict | notice) -> confirm -> result", () => {
     const src = readComponent("MilestoneCurationDialog.tsx");
     expect(src).toMatch(/data-testid="milestone-curation-dialog"/);
-    // Stage type-script enumerates the four stages.
     const partsSrc = readComponent("MilestoneCurationParts.tsx");
+    const actionsSrc = readComponent("MilestoneCurationActions.tsx");
+    const resultsSrc = readComponent("MilestoneCurationResults.tsx");
+    // Stage type now enumerates the five stages: notice was added
+    // for context-tier soft-conflict handling (DI-50C7E89C).
     expect(partsSrc).toMatch(
-      /export type Stage =\s*"pick"\s*\|\s*"conflict"\s*\|\s*"confirm"\s*\|\s*"result";/
+      /export type Stage =\s*"pick"\s*\|\s*"conflict"\s*\|\s*"notice"\s*\|\s*"confirm"\s*\|\s*"result";/
     );
     // Pick step: episode + slot + day-encounter list.
     expect(partsSrc).toMatch(/data-testid="milestone-dialog-episode"/);
     expect(partsSrc).toMatch(/data-testid="milestone-dialog-slot"/);
     expect(partsSrc).toMatch(/data-testid="milestone-dialog-day-encounters"/);
-    // Conflict step: warning alert with the existing date + preview.
+    // Conflict step (pathway tier): warning alert + Replace.
     expect(partsSrc).toMatch(/data-testid="milestone-dialog-conflict"/);
-    expect(partsSrc).toMatch(/data-testid="milestone-dialog-replace"/);
-    expect(partsSrc).toMatch(
+    expect(actionsSrc).toMatch(/data-testid="milestone-dialog-replace"/);
+    expect(actionsSrc).toMatch(
       /data-testid="milestone-dialog-pick-different-slot"/
     );
+    // Notice step (context tier): info alert + Add anyway, NO Replace.
+    expect(resultsSrc).toMatch(/data-testid="milestone-dialog-notice"/);
+    expect(actionsSrc).toMatch(/data-testid="milestone-dialog-add-anyway"/);
     // Confirm step.
     expect(src).toMatch(/data-testid="milestone-dialog-confirm"/);
-    expect(partsSrc).toMatch(
+    expect(actionsSrc).toMatch(
       /data-testid="milestone-dialog-confirm-attach"/
     );
-    // Result step.
-    expect(partsSrc).toMatch(/data-testid="milestone-dialog-result"/);
-    expect(partsSrc).toMatch(/data-testid="milestone-dialog-close"/);
+    // Result step lives in the new results module after the multi-slot
+    // split (DI-F5E030ED).
+    expect(resultsSrc).toMatch(/data-testid="milestone-dialog-result"/);
+    expect(actionsSrc).toMatch(/data-testid="milestone-dialog-close"/);
   });
 
-  it("VT-DEF041C5-TC-005: dialog detects a same-slot, different-day conflict and suppresses self-conflict", () => {
+  it("VT-DEF041C5-TC-004b: detectConflicts splits pathway conflicts from context notices (DI-50C7E89C)", () => {
     const src = readComponent("MilestoneCurationDialog.tsx");
-    // detectConflict groups by milestone_type and excludes any
-    // milestone whose date already matches the chosen day, so
-    // re-saving the same day-group does not look like a conflict.
-    expect(src).toMatch(/function detectConflict/);
-    expect(src).toMatch(/m\.milestone_type === milestoneType/);
+    const opts = readComponent("milestoneOptions.ts");
+    // Tier helpers exist on the vocabulary.
+    expect(opts).toMatch(/export function isContextMilestone/);
+    expect(opts).toMatch(/export function milestoneTier/);
+    // detectConflicts returns both buckets and routes context-tier
+    // slots to notices, pathway-tier slots to conflicts.
+    expect(src).toMatch(
+      /interface ConflictBuckets\s*\{[\s\S]*?conflicts:\s*SlotConflict\[\];[\s\S]*?notices:\s*SlotNotice\[\];/
+    );
+    expect(src).toMatch(
+      /function detectConflicts[\s\S]*?\):\s*ConflictBuckets/
+    );
+    expect(src).toMatch(/if \(isContextMilestone\(mt\)\)/);
+    // handleProceed routes pathway > notice > confirm.
+    expect(src).toMatch(
+      /if \(conflicts\.length > 0\)\s*\{[\s\S]{0,80}setStage\("conflict"\);/
+    );
+    expect(src).toMatch(
+      /if \(notices\.length > 0\)\s*\{[\s\S]{0,80}setStage\("notice"\);/
+    );
+    // The notice action row reuses runAttach (no detach) so existing
+    // context-tier days are never undone.
+    const dialog = src;
+    expect(dialog).toMatch(/onConfirmAttach=\{runAttach\}/);
+    // Notice render uses NoticeAlert from the results module.
+    expect(dialog).toMatch(/<NoticeAlert notices=\{notices\}/);
+  });
+
+  it("VT-DEF041C5-TC-005: dialog detects same-slot different-day conflicts per picked slot and suppresses self-conflict", () => {
+    const src = readComponent("MilestoneCurationDialog.tsx");
+    // detectConflicts loops over the picked slot list, groups by
+    // milestone_type, and excludes any milestone whose date already
+    // matches the chosen day so re-saving the same day-group does
+    // not look like a conflict (DI-F5E030ED).
+    expect(src).toMatch(/function detectConflicts/);
+    expect(src).toMatch(/for \(const mt of milestoneTypes\)/);
+    expect(src).toMatch(/m\.milestone_type === mt/);
     expect(src).toMatch(/isoDay\(m\.date\) !== chosenDay/);
   });
 
-  it("VT-DEF041C5-TC-006: dialog Remove path uses the existing-link slot from the trigger encounter", () => {
+  it("VT-DEF041C5-TC-006: dialog per-slot remove chip calls detach with milestone_type filter", () => {
+    // Multi-slot (DI-F5E030ED): the remove path now lives on the
+    // existing-link chips in PickStage. Each chip's onDelete routes
+    // through handleRemoveExistingLink, which calls
+    // detachEncounterDayFromMilestone with the slot-specific
+    // milestoneType so only that edge is removed.
     const src = readComponent("MilestoneCurationDialog.tsx");
     const parts = readComponent("MilestoneCurationParts.tsx");
-    expect(src).toMatch(/runRemove/);
+    expect(src).toMatch(/handleRemoveExistingLink/);
     expect(src).toMatch(/detachEncounterDayFromMilestone\(/);
-    expect(parts).toMatch(/data-testid="milestone-dialog-remove"/);
-    // The remove path attaches the existing slot to the result so
-    // the success banner names the slot the reviewer just cleared.
-    expect(src).toMatch(
-      /milestone_type:\s*existingLink\.milestoneType/
+    expect(src).toMatch(/milestoneType:\s*link\.milestoneType/);
+    expect(parts).toMatch(
+      /data-testid=\{`milestone-dialog-existing-chip-\$\{link\.milestoneType\}`\}/
     );
+    // The result banner names the slot the reviewer just cleared.
+    expect(src).toMatch(/milestone_type:\s*link\.milestoneType/);
   });
 
-  it("VT-DEF041C5-TC-007: dialog Replace path detaches first, then attaches; both via existing endpoints", () => {
+  it("VT-DEF041C5-TC-007: dialog Replace path detaches each conflicting slot, then attaches the multi-slot batch", () => {
     const src = readComponent("MilestoneCurationDialog.tsx");
     const replaceMatch = src.match(/runReplace[\s\S]*?\n  };/);
     expect(replaceMatch).not.toBeNull();
     const body = replaceMatch![0];
+    // Multi-slot replace (DI-F5E030ED): detach loops per-conflict,
+    // then a single multi-slot attach call covers every picked slot.
     const detachIdx = body.indexOf("detachEncounterDayFromMilestone");
-    const attachIdx = body.indexOf("attachEncounterDayToMilestone");
+    const attachIdx = body.indexOf("attachEncounterDayToMultipleMilestones");
     expect(detachIdx).toBeGreaterThan(-1);
     expect(attachIdx).toBeGreaterThan(detachIdx);
+    expect(body).toMatch(/for \(const c of conflicts\)/);
     // No new server endpoint -- both helpers wrap the existing
     // single-encounter attach / detach.
     const apiSrc = readLib("missionControlApi.ts");
@@ -147,10 +199,15 @@ describe("VT-DEF041C5 - inline milestone curation chrome", () => {
     const detachDayMatch = apiSrc.match(
       /export async function detachEncounterDayFromMilestone[\s\S]*?\n}/
     );
+    const multiMatch = apiSrc.match(
+      /export async function attachEncounterDayToMultipleMilestones[\s\S]*?\n}/
+    );
     expect(attachDayMatch).not.toBeNull();
     expect(detachDayMatch).not.toBeNull();
+    expect(multiMatch).not.toBeNull();
     expect(attachDayMatch![0]).toMatch(/attachEncounterToEpisode\(/);
     expect(detachDayMatch![0]).toMatch(/detachEncounterFromEpisode\(/);
+    expect(multiMatch![0]).toMatch(/attachEncounterDayToMilestone\(/);
   });
 
   it("VT-DEF041C5-TC-008: dialog body never displays raw encounter IDs as text", () => {
@@ -189,6 +246,82 @@ describe("VT-DEF041C5 - inline milestone curation chrome", () => {
     expect(partsSrc).toMatch(
       /import\s+\{[^}]*MILESTONE_OPTIONS[^}]*\}\s+from\s+"\.\/milestoneOptions"/
     );
+  });
+
+  it("VT-DEF041C5-TC-011: dialog pick stage is an explicit per-encounter multi-select; trigger encounter is the only default", () => {
+    const dialog = readComponent("MilestoneCurationDialog.tsx");
+    const parts = readComponent("MilestoneCurationParts.tsx");
+    // The dialog tracks a selected set seeded from the trigger encounter.
+    expect(dialog).toMatch(/useState<Set<string>>\(new Set\(\)\)/);
+    expect(dialog).toMatch(
+      /seed\.add\(String\(triggerEncounter\.encounter_id\)\)/
+    );
+    // PickStage renders a Checkbox per same-day encounter.
+    expect(parts).toMatch(/<Checkbox/);
+    expect(parts).toMatch(
+      /data-testid=\{`milestone-dialog-day-encounter-\$\{id\}`\}/
+    );
+    // attach / replace / remove all consume the selected list, not
+    // the full same-day group.
+    expect(dialog).toMatch(/encounterIds:\s*selectedList/);
+    expect(dialog).not.toMatch(
+      /encounterIds:\s*sameDayEncounters\.map\(\(e\) => String\(e\.encounter_id\)\)/
+    );
+    // Continue / Remove / Replace are gated on a non-empty selection
+    // and on at least one milestone slot being picked (DI-F5E030ED).
+    // The action row was extracted to MilestoneCurationActions.tsx
+    // when the notice-stage buttons landed (DI-50C7E89C).
+    const actions = readComponent("MilestoneCurationActions.tsx");
+    expect(actions).toMatch(/const noneSelected = selectedCount === 0/);
+    expect(actions).toMatch(/const noSlot = slotCount === 0/);
+    // Continue is also gated on noEpisode (DI-74AF7AD8) so the
+    // dialog cannot attach to a pathway the curator never picked.
+    expect(actions).toMatch(
+      /episodesEmpty\s*\|\|\s*\n?\s*noEpisode\s*\|\|\s*\n?\s*noneSelected\s*\|\|\s*\n?\s*noSlot/
+    );
+  });
+
+  it("VT-DEF041C5-TC-012: pick stage exposes a multi-select milestone slot picker (DI-F5E030ED)", () => {
+    const parts = readComponent("MilestoneCurationParts.tsx");
+    // The slot input is multi-select: SelectProps.multiple=true, the
+    // value is a string[], and already-linked slots are disabled in
+    // the dropdown so the reviewer cannot accidentally re-pick them.
+    expect(parts).toMatch(/multiple:\s*true/);
+    expect(parts).toMatch(/milestoneTypes:\s*string\[\]/);
+    expect(parts).toMatch(/setMilestoneTypes:\s*\(v:\s*string\[\]\)\s*=>\s*void/);
+    expect(parts).toMatch(/linkedOnEpisode\.has\(opt\.value\)/);
+    expect(parts).toMatch(/disabled=\{linked\}/);
+    expect(parts).toMatch(
+      /data-testid=\{`milestone-dialog-slot-option-\$\{opt\.value\}`\}/
+    );
+    expect(parts).toMatch(
+      /data-testid=\{`milestone-dialog-slot-chip-\$\{mt\}`\}/
+    );
+  });
+
+  it("VT-DEF041C5-TC-013: pick stage caps both Select popovers and anchors them downward so the dialog action row stays reachable (DI-4B99678C)", () => {
+    // Regression: the MUI Select popover defaults to ~50% of the
+    // viewport, which on a tall dialog covered the Cancel / Continue
+    // row and trapped the curator in the dropdown. Both selects must
+    // pin a maxHeight on PaperProps and anchor below the field so the
+    // action row stays visible.
+    const parts = readComponent("MilestoneCurationParts.tsx");
+    // Episode picker: maxHeight on its PaperProps and downward anchor.
+    expect(parts).toMatch(
+      /"data-testid":\s*"milestone-dialog-episode-menu"[\s\S]{0,120}maxHeight:\s*\d+/
+    );
+    // Slot picker: same treatment, larger cap because it has groups.
+    expect(parts).toMatch(
+      /"data-testid":\s*"milestone-dialog-slot-menu"[\s\S]{0,120}maxHeight:\s*\d+/
+    );
+    // Both popovers anchor under the field (vertical: "bottom" anchor,
+    // vertical: "top" transform) so the menu cannot grow upward over
+    // a higher field and so it pushes the picker downward away from
+    // the action row at the bottom of the dialog.
+    const anchorMatches = parts.match(
+      /anchorOrigin:\s*\{\s*vertical:\s*"bottom",\s*horizontal:\s*"left"\s*\}/g
+    );
+    expect(anchorMatches?.length ?? 0).toBeGreaterThanOrEqual(2);
   });
 
   it("VT-DEF041C5-TC-010: EditEpisodeEncountersTab no longer offers a paste-encounter-ID attach form", () => {

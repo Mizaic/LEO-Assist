@@ -314,6 +314,28 @@ export default function MissionControl() {
     setSelectedPatient(null);
   };
 
+  // Live refresh: reload the list (and let the sync effect below
+  // re-point the drawer at the refreshed patient). Used for
+  // in-flight edits (milestone attach / detach) where the drawer
+  // must stay open. DI-4B99678C.
+  const handlePatientRefreshed = async (_patientId: string) => {
+    await loadData(applied, page, pageSize, sortBy, sortDir);
+  };
+
+  // Re-sync the open drawer with refreshed list data without closing
+  // it. Mutations like milestone attach / detach update the patient's
+  // episode graph, and the per-encounter "Linked: <slot>" labels read
+  // from this snapshot. DI-4B99678C.
+  useEffect(() => {
+    if (!selectedPatient) return;
+    const fresh = patients.find(
+      (p) => p.patient_id === selectedPatient.patient_id
+    );
+    if (fresh && fresh !== selectedPatient) {
+      setSelectedPatient(fresh);
+    }
+  }, [patients, selectedPatient]);
+
   const handleClearLifecycleBucket = useCallback(() => {
     setDraft((prev) => ({ ...prev, lifecycleBucket: "all" }));
     setApplied((prev) => ({ ...prev, lifecycleBucket: "all" }));
@@ -445,6 +467,7 @@ export default function MissionControl() {
             handleEpisodeUpdated(selectedPatient.patient_id, episodeId, patch)
           }
           onPatientRebuilt={handlePatientRebuilt}
+          onPatientRefreshed={handlePatientRefreshed}
         />
       )}
     </Box>

@@ -153,7 +153,51 @@ def deduplicate_lines(text: str) -> str:
     return "\n".join(deduped)
 
 
-_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
+# DI-D3391745 (DO-1DB93C8E): only treat blank lines, sentence-terminating
+# punctuation, and end-of-line semicolons as hard sentence boundaries.
+# Single newlines are soft wraps (EHR line wrapping) and stay inside one
+# SentenceChunk so downstream NER/post-processing can recognise lab
+# observable + interpretation phrases that span line breaks.
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n{2,}|(?<=;)[ \t]*\n")
+_SOFT_WRAP_GAP_RE = re.compile(r"^[ \t]*\n[ \t]*$")
+_SENTENCE_TERMINATOR_TAIL_RE = re.compile(r"""[.!?][\"')\]]?\s*$""")
+
+
+def _rejoin_soft_wraps(
+    text: str, chunks: list["SentenceChunk"]
+) -> list["SentenceChunk"]:
+    """Merge adjacent chunks separated only by a single newline (soft wrap).
+
+    PyRuSH treats every newline as a hard sentence boundary, but EHR exports
+    routinely wrap long lines (e.g. lab result lines) on single newlines. A
+    chunk pair is merged when:
+      - the gap between them contains exactly one '\\n' (no blank line), and
+      - the leading chunk does not end with sentence-terminating punctuation.
+    Blank-line separated paragraphs and full sentences are left untouched.
+    """
+    if len(chunks) <= 1:
+        return chunks
+    merged: list["SentenceChunk"] = []
+    current = chunks[0]
+    for nxt in chunks[1:]:
+        gap = text[current.end : nxt.start]
+        is_soft_wrap = (
+            _SOFT_WRAP_GAP_RE.fullmatch(gap) is not None
+            and _SENTENCE_TERMINATOR_TAIL_RE.search(current.text) is None
+        )
+        if is_soft_wrap:
+            merged_text = text[current.start : nxt.end].strip()
+            current = SentenceChunk(
+                sentence_id=current.sentence_id,
+                text=merged_text,
+                start=current.start,
+                end=nxt.end,
+            )
+        else:
+            merged.append(current)
+            current = nxt
+    merged.append(current)
+    return merged
 
 
 class SentenceSplitter:
@@ -178,7 +222,7 @@ class SentenceSplitter:
             return nlp
         except Exception:
             logger.debug(
-                "PyRuSH sentence splitter unavailable — falling back to regex",
+                "PyRuSH sentence splitter unavailable -- falling back to regex",
                 exc_info=True,
             )
             return None
@@ -190,7 +234,7 @@ class SentenceSplitter:
             chunks = self._split_pyrush(text)
             if len(chunks) <= 1 and _SENTENCE_SPLIT.search(text):
                 return self._split_regex(text)
-            return chunks
+            return _rejoin_soft_wraps(text, chunks)
         return self._split_regex(text)
 
     def _split_pyrush(self, text: str) -> list[SentenceChunk]:

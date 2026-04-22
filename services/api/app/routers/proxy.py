@@ -71,7 +71,17 @@ async def _proxy_request(
     if session_id:
         headers["X-Leo-Session"] = session_id
     try:
-        body = await request.body() if method in ("POST", "PUT", "PATCH") else None
+        # Forward the request body for any method that legitimately
+        # carries one. Per RFC 7230 a DELETE MAY include a body, and
+        # several upstream endpoints (e.g. DELETE /episodes/{id} with
+        # the type-the-id confirmation gate) require it; dropping the
+        # body here causes FastAPI to respond with
+        # "body: Field required" (HTTP 422).
+        body = (
+            await request.body()
+            if method in ("POST", "PUT", "PATCH", "DELETE")
+            else None
+        )
     except ClientDisconnect:
         logger.info(
             "Client disconnected before request body was fully received: %s %s",

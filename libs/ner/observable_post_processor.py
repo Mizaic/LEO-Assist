@@ -42,6 +42,21 @@ _KNOWN_UNIT_TOKEN_RE = re.compile(
     re.IGNORECASE,
 )
 
+# "now <value> <unit>" (or "currently"/"today") flags the value reported AFTER
+# the marker as the current measurement. Used to handle expressions such as
+# "weight loss 10kg - now 79kg" where 10kg is a delta (weight change), not the
+# observable's current value -- only the 79kg should become the linked value.
+_CURRENT_VALUE_MARKER_RE = re.compile(
+    r"\b(?:now|currently|today)\b\s*[:\-]?\s*"
+    r"(?P<value>[<>]?\s*\d+(?:\.\d+)?(?:/\d+(?:\.\d+)?)?)\s*"
+    r"(?P<unit>(?:10\^\d+\/[A-Za-z]+|[A-Za-z%]+(?:\/[A-Za-z]+)*))",
+    re.IGNORECASE,
+)
+_TRAILING_CURRENT_MARKER_RE = re.compile(
+    r"[\s\-:;,]*\b(?:now|currently|today)\s*$",
+    re.IGNORECASE,
+)
+
 # ---------------------------------------------------------------------------
 # Interpretation-suffix detection
 # ---------------------------------------------------------------------------
@@ -161,6 +176,22 @@ def parse_measurement_from_text(text: str) -> dict[str, str]:
     searchable = _READ_CODE_RE.sub(" ", raw)
     searchable = _REF_RANGE_RE.sub(" ", searchable)
 
+    # Strong override: "now <value> <unit>" reports the current measurement.
+    # Any earlier number in the same span is a delta (e.g. "weight loss 10kg")
+    # and must not become the observable's value.
+    now_match = _CURRENT_VALUE_MARKER_RE.search(searchable)
+    if now_match and _KNOWN_UNIT_TOKEN_RE.search(now_match.group("unit") or ""):
+        value = _collapse_ws(now_match.group("value"))
+        unit = _collapse_ws(now_match.group("unit"))
+        if value and unit:
+            out["numeric_value"] = value
+            out["unit"] = unit
+            value_start = now_match.start("value")
+            value_end = now_match.end("unit")
+            out["value_span"] = _collapse_ws(searchable[value_start:value_end])
+            out["current_value_marker"] = "now"
+            return out
+
     matches = list(_VALUE_UNIT_RE.finditer(searchable))
     if not matches:
         return out
@@ -227,13 +258,17 @@ def normalize_observable_entities(
         existing_value = str(ent.get("value", "") or "").strip()
         existing_unit = str(ent.get("unit", "") or "").strip()
         existing_range = str(ent.get("reference_range", "") or "").strip()
+        # "now <value>" is a strong clinical signal that the post-marker value
+        # is the current measurement, so it overrides any pre-set value the
+        # extractor (or upstream LLM) supplied for the earlier delta.
+        force_override = parsed.get("current_value_marker") == "now"
 
         if parsed.get("numeric_value") and (
-            not preserve_existing_structured or not existing_value
+            not preserve_existing_structured or not existing_value or force_override
         ):
             ent["value"] = parsed["numeric_value"]
         if parsed.get("unit") and (
-            not preserve_existing_structured or not existing_unit
+            not preserve_existing_structured or not existing_unit or force_override
         ):
             ent["unit"] = parsed["unit"]
         if parsed.get("reference_range") and (
@@ -262,6 +297,10 @@ def normalize_observable_entities(
                 if interp:
                     interpretation_text, interpretation_qualifier = interp
 
+                # Drop a trailing current-value marker word ("now", "currently",
+                # "today") so the entity text is not left with a dangling
+                # connector after the post-marker value has been split off.
+                before = _TRAILING_CURRENT_MARKER_RE.sub("", before).strip(" -:;,")
                 stripped = _collapse_ws(before)
             elif value_pos == 0:
                 after = stripped[len(value_span) :]

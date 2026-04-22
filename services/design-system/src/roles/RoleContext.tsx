@@ -22,6 +22,8 @@ import { isRole, type Role } from "./types";
 export interface RoleState {
   selectedRole: Role | null;
   allowedRoles: Role[];
+  /** True until the user confirms a role for this browser session (multi-role only). */
+  needsSessionRoleChoice: boolean;
 }
 
 export interface RoleContextValue extends RoleState {
@@ -36,6 +38,7 @@ export interface RoleContextValue extends RoleState {
 const defaultValue: RoleContextValue = {
   selectedRole: null,
   allowedRoles: [],
+  needsSessionRoleChoice: false,
   switchRole: async () => undefined,
   refetch: async () => undefined,
   error: null,
@@ -50,6 +53,8 @@ export interface RoleProviderProps {
   // Injected to make the provider trivially testable without stubbing fetch.
   // Default implementation calls /auth/session and /auth/session/role.
   api?: RoleApi;
+  /** Optional hook for the host app to refetch auth after a role write (session parity). */
+  onSessionRoleSynced?: () => void | Promise<void>;
 }
 
 export interface RoleApi {
@@ -66,7 +71,12 @@ export const defaultRoleApi: RoleApi = {
       ? (data.allowed_roles as unknown[]).filter(isRole)
       : [];
     const selected = isRole(data?.selected_role) ? data.selected_role : null;
-    return { selectedRole: selected, allowedRoles: allowed };
+    const needsSessionRoleChoice = data?.needs_role_choice === true;
+    return {
+      selectedRole: selected,
+      allowedRoles: allowed,
+      needsSessionRoleChoice,
+    };
   },
   async setSelectedRole(role: Role) {
     const res = await fetch("/auth/session/role", {
@@ -81,18 +91,30 @@ export const defaultRoleApi: RoleApi = {
       ? (data.allowed_roles as unknown[]).filter(isRole)
       : [];
     const selected = isRole(data?.selected_role) ? data.selected_role : role;
-    return { selectedRole: selected, allowedRoles: allowed };
+    const needsSessionRoleChoice = data?.needs_role_choice === true;
+    return {
+      selectedRole: selected,
+      allowedRoles: allowed,
+      needsSessionRoleChoice,
+    };
   },
 };
+
+function _normalizeInitial(state?: RoleState): RoleState {
+  return {
+    selectedRole: state?.selectedRole ?? null,
+    allowedRoles: state?.allowedRoles ?? [],
+    needsSessionRoleChoice: state?.needsSessionRoleChoice ?? false,
+  };
+}
 
 export function RoleProvider({
   children,
   initialState,
   api = defaultRoleApi,
+  onSessionRoleSynced,
 }: RoleProviderProps) {
-  const [state, setState] = useState<RoleState>(
-    initialState ?? { selectedRole: null, allowedRoles: [] },
-  );
+  const [state, setState] = useState<RoleState>(() => _normalizeInitial(initialState));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -118,6 +140,7 @@ export function RoleProvider({
       setLoading(true);
       try {
         const updated = await api.setSelectedRole(next);
+        await onSessionRoleSynced?.();
         setState(updated);
         setError(null);
       } catch (err) {
@@ -126,19 +149,28 @@ export function RoleProvider({
         setLoading(false);
       }
     },
-    [api, state.allowedRoles],
+    [api, state.allowedRoles, onSessionRoleSynced],
   );
 
   const value = useMemo<RoleContextValue>(
     () => ({
       selectedRole: state.selectedRole,
       allowedRoles: state.allowedRoles,
+      needsSessionRoleChoice: state.needsSessionRoleChoice,
       switchRole,
       refetch,
       error,
       loading,
     }),
-    [state.selectedRole, state.allowedRoles, switchRole, refetch, error, loading],
+    [
+      state.selectedRole,
+      state.allowedRoles,
+      state.needsSessionRoleChoice,
+      switchRole,
+      refetch,
+      error,
+      loading,
+    ],
   );
 
   return (

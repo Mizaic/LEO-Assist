@@ -37,6 +37,12 @@ from typing import Any, Iterable, Optional
 from fastapi import HTTPException
 
 from libs.auth.org_scope import CallerScope
+from libs.episodes.lifecycle import (
+    RECOMPUTE_RESPECTED_STATUSES,
+    is_reviewed,
+    respect_reviewed_audit_line,
+)
+from libs.episodes.status import EpisodeStatus
 from libs.neo4j_client.client import PatientGraphClient
 
 # Roles allowed to create / update / delete / link EpisodeOfCare nodes
@@ -46,30 +52,64 @@ EOC_CURATOR_ROLES: frozenset[str] = frozenset(
     {"clinician", "qa_ra_lead", "platform_admin"}
 )
 
-# Milestone enum reused by edit_milestone (services/analytics_api/app/
-# routers/dashboards.py::edit_milestone). Kept in sync deliberately --
-# attach / detach must validate the same set.
-MILESTONE_TYPES: frozenset[str] = frozenset(
+# Canonical milestone vocabulary -- write-side allow-list shared by
+# the manual CRUD attach / detach endpoints (episode_crud.py) and
+# dashboards.edit_milestone.
+#
+# Two tiers (mirrored in services/ui/.../milestoneOptions.ts):
+#
+#   1. Pathway tier (PATHWAY_MILESTONE_TYPES) -- the canonical nine
+#      the AI engine can emit:
+#        - eight from services/analysis_worker/app/episode_engine/
+#          schemas.py Milestone.type Literal
+#        - care_obstruction from services/analysis_worker/app/
+#          analyzers/anchor_detector.py
+#      These feed episode date roll-ups via the _*_MILESTONES sets
+#      below.
+#
+#   2. Context tier (CONTEXT_MILESTONE_TYPES) -- supporting evidence
+#      the curator can attach manually but the AI engine does NOT
+#      emit. They never feed date roll-ups; they exist so the
+#      timeline carries the full reviewer narrative. DI-50C7E89C.
+#
+# MILESTONE_TYPES is the union of both tiers and is what the
+# attach / edit_milestone validators check against. Pinned by
+# VT-900E2453 (canonical nine) and VT-AD52DFB4 (multi-slot).
+PATHWAY_MILESTONE_TYPES: frozenset[str] = frozenset(
     {
         "first_presentation",
-        "presentation",
         "referral",
-        "referral_sent",
-        "specialist_visit",
-        "first_clinic_visit",
-        "clinic_visit",
-        "first_clinic",
-        "investigation",
-        "diagnosis",
+        "first_seen",
+        "outcome_letter",
         "diagnosis_confirmed",
-        "treatment_decision",
-        "treatment",
         "treatment_started",
-        "first_treatment",
-        "related",
+        "treatment_completed",
+        "benign_closure",
+        "care_obstruction",
     }
 )
 
+CONTEXT_MILESTONE_TYPES: frozenset[str] = frozenset(
+    {
+        "related_gp_visit",
+        "primary_care_investigations",
+        "referral_admin",
+        "referral_sent",
+        "related_specialist_visit",
+        "specialist_diagnostics",
+        "related_correspondence",
+    }
+)
+
+MILESTONE_TYPES: frozenset[str] = (
+    PATHWAY_MILESTONE_TYPES | CONTEXT_MILESTONE_TYPES
+)
+
+# Read-side date-bucket sets carry legacy values (presentation,
+# referral_sent, diagnosis, treatment, first_treatment,
+# treatment_decision) so historical episodes still resolve their
+# referral_date / presentation_date / diagnosis_date / end_date
+# properties. New writes are restricted to MILESTONE_TYPES above.
 _REFERRAL_MILESTONES = {"referral", "referral_sent", "first_presentation"}
 _PRESENTATION_MILESTONES = {
     "first_presentation",
@@ -79,6 +119,7 @@ _DIAGNOSIS_MILESTONES = {"diagnosis", "diagnosis_confirmed"}
 _TREATMENT_MILESTONES = {
     "treatment",
     "treatment_started",
+    "treatment_completed",
     "first_treatment",
     "treatment_decision",
 }
@@ -143,6 +184,33 @@ def require_episode_in_scope(
         if gp_id not in scope.org_ids:
             raise HTTPException(status_code=404, detail="Episode not found")
     return str(patient_id) if patient_id else ""
+
+
+def encounter_slot_edge_exists(
+    client: PatientGraphClient,
+    encounter_id: str,
+    episode_id: str,
+    milestone_type: str,
+) -> bool:
+    """Return True when the exact (encounter, episode, slot) edge exists.
+
+    The attach endpoint calls this as a pre-check so it can
+    short-circuit idempotent re-MERGE calls (same encounter + same
+    episode + same milestone_type) without writing an AuditEvent --
+    see DI-F5E030ED.
+    """
+    rows = client.run(
+        "MATCH (e:Encounter {id: $enc})-"
+        "[r:IS_PART_OF {milestone_type: $mt}]->"
+        "(ep:EpisodeOfCare {episode_id: $eid}) "
+        "RETURN count(r) AS n",
+        enc=encounter_id,
+        eid=episode_id,
+        mt=milestone_type,
+    )
+    if not rows:
+        return False
+    return int(rows[0].get("n") or 0) > 0
 
 
 def recompute_episode_dates(
@@ -229,6 +297,121 @@ def recompute_episode_dates(
     }
 
 
+# Status the engine writes when the episode reaches diagnosis or
+# benign closure. Imported from the canonical vocabulary in
+# libs.episodes.status so this module cannot drift.
+_STATUS_ACTIVE = EpisodeStatus.ACTIVE.value
+_STATUS_COMPLETED = EpisodeStatus.COMPLETED.value
+_STATUS_CLOSED_BENIGN = EpisodeStatus.CLOSED_BENIGN.value
+
+
+def recompute_episode_status(
+    client: PatientGraphClient,
+    episode_id: str,
+) -> dict:
+    """Re-derive the episode status from the current milestone slots.
+
+    Rules (DI-3A19BE12, DI-C4CEFA32):
+
+    - benign_closure slot present  -> status = "closed_benign"
+    - diagnosis_confirmed slot     -> status = "completed"
+    - neither, but status is currently "completed" / "closed_benign"
+      (i.e. a previous milestone was just detached)  -> revert to
+      "active" so the rail and the cohort filters reflect that the
+      pathway is open again.
+    - any current status outside :data:`RECOMPUTE_RESPECTED_STATUSES`
+      (e.g. "review", "in_progress", "stale_*", "merged") is left
+      untouched -- those represent decisions the engine or curator
+      made deliberately and we should never silently overwrite them.
+    - if a curator has signed off (``reviewed_at IS NOT NULL``) and
+      the proposed change would invert the verdict, the recompute is
+      suppressed and a one-line audit_notes entry is appended via
+      :func:`respect_reviewed_audit_line`. Curator decisions ARE
+      ground truth (R-2AA626E7).
+
+    Returns ``{"status": <new>, "previous_status": <old>, "changed": bool}``
+    so the caller can include it in the audit note for the milestone
+    edit that triggered the recompute.
+    """
+    rows = client.run(
+        "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
+        "OPTIONAL MATCH (e:Encounter)-[r:IS_PART_OF]->(ep) "
+        "WHERE r.milestone_type IS NOT NULL "
+        "WITH ep, collect(DISTINCT r.milestone_type) AS slots "
+        "RETURN ep.status AS status, "
+        "       toString(ep.reviewed_at) AS reviewed_at, "
+        "       coalesce(ep.audit_notes, '') AS audit_notes, "
+        "       slots",
+        eid=episode_id,
+    )
+    if not rows:
+        return {"status": None, "previous_status": None, "changed": False}
+
+    row = rows[0]
+    current = str(row.get("status") or "")
+    slots = {str(s) for s in (row.get("slots") or []) if s}
+
+    if "benign_closure" in slots:
+        target: Optional[str] = _STATUS_CLOSED_BENIGN
+    elif "diagnosis_confirmed" in slots:
+        target = _STATUS_COMPLETED
+    elif current in {_STATUS_COMPLETED, _STATUS_CLOSED_BENIGN}:
+        target = _STATUS_ACTIVE
+    else:
+        target = None
+
+    if (
+        target is None
+        or target == current
+        or current not in RECOMPUTE_RESPECTED_STATUSES
+    ):
+        return {
+            "status": current or None,
+            "previous_status": current or None,
+            "changed": False,
+        }
+
+    if is_reviewed({"reviewed_at": row.get("reviewed_at")}):
+        # Curator already signed off -- record the contradiction in
+        # audit_notes but never overwrite the verdict.
+        existing_notes = str(row.get("audit_notes") or "")
+        new_line = respect_reviewed_audit_line(
+            target, current or None, "manual_milestone_recompute"
+        )
+        appended = (
+            f"{existing_notes}\n{new_line}".strip()
+            if existing_notes
+            else new_line
+        )
+        client.run(
+            "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
+            "SET ep.audit_notes = $notes",
+            eid=episode_id,
+            notes=appended,
+        )
+        return {
+            "status": current or None,
+            "previous_status": current or None,
+            "changed": False,
+            "respected_review": True,
+            "would_have_been": target,
+        }
+
+    client.run(
+        "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
+        "SET ep.status = $status, "
+        "    ep.status_updated_at = datetime(), "
+        "    ep.status_source = 'manual_milestone_recompute'",
+        eid=episode_id,
+        status=target,
+    )
+    return {
+        "status": target,
+        "previous_status": current or None,
+        "changed": True,
+    }
+
+
 def _date_diff_days(start: Optional[str], end: Optional[str]) -> Optional[int]:
     if not start or not end:
         return None
@@ -238,6 +421,17 @@ def _date_diff_days(start: Optional[str], end: Optional[str]) -> Optional[int]:
     except ValueError:
         return None
     return (e - s).days
+
+
+VALID_CORRECTION_TARGETS = frozenset(
+    {
+        "detector_boundary",
+        "sbar_text",
+        "coding_decision",
+        "canonical_code",
+        "other",
+    }
+)
 
 
 def write_episode_audit_event(
@@ -250,6 +444,7 @@ def write_episode_audit_event(
     before: Optional[dict],
     after: Optional[dict],
     notes: Optional[str] = None,
+    correction_target: Optional[str] = None,
 ) -> str:
     """Create an ``:AuditEvent`` row for a manual EoC mutation.
 
@@ -259,10 +454,18 @@ def write_episode_audit_event(
     an ``(:AuditEvent)-[:AUDIT_FOR]->(:Patient)`` edge is created so the
     Mission Control audit trail tab surfaces the event.
 
+    The optional ``correction_target`` keys the manual edit to one of the
+    Phase 5 active-learning training surfaces (detector_boundary,
+    sbar_text, coding_decision, canonical_code). Unknown values are
+    coerced to "other" so a user can never crash the audit write.
+
     Returns the new AuditEvent id.
     """
     audit_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    target = (correction_target or "").strip().lower()
+    if target and target not in VALID_CORRECTION_TARGETS:
+        target = "other"
     props = {
         "id": audit_id,
         "type": event_type,
@@ -274,6 +477,7 @@ def write_episode_audit_event(
         "before_json": _safe_json(before),
         "after_json": _safe_json(after),
         "notes": notes or "",
+        "correction_target": target,
         "created_at_iso": now,
     }
     client.run(

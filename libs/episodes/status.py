@@ -146,6 +146,14 @@ LEGACY_STATUS_REWRITES: dict[str, str] = {
     # idempotent migration in
     # scripts/migrations/2026_normalise_episode_status_vocabulary.py.
     "benign_closed": EpisodeStatus.CLOSED_BENIGN.value,
+    # Pre-DI-C4CEFA32 the manual-create endpoint and the v2 detector's
+    # "needs human review" boundary state both wrote "in_review", but
+    # the canonical lifecycle vocabulary spells the same state
+    # "review". The 2026_unify_episode_lifecycle migration consults
+    # this map to fix existing data, and read-side helpers
+    # (normalise / is_open) follow it so a legacy row keeps round-
+    # tripping while it is being rewritten.
+    "in_review": EpisodeStatus.REVIEW.value,
 }
 
 

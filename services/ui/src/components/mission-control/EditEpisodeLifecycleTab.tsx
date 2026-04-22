@@ -13,7 +13,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
@@ -30,6 +30,21 @@ import Typography from "@mui/material/Typography";
 import { closeEpisode, mergeEpisodes } from "@/lib/analyticsApi";
 import { patchEpisodeReview } from "@/lib/missionControlApi";
 import type { MissionEpisode } from "@/lib/missionControlApi";
+import {
+  STATUS_CLOSED,
+  STATUS_CLOSED_BENIGN,
+  STATUS_COMPLETED,
+  STATUS_MERGED,
+  availableActions,
+  episodeStatusLabel,
+  isReviewed,
+  normaliseStatus,
+} from "@/lib/episodeLifecycle";
+
+type ManualCloseStatus =
+  | typeof STATUS_COMPLETED
+  | typeof STATUS_CLOSED
+  | typeof STATUS_CLOSED_BENIGN;
 
 interface Props {
   section: "review" | "close" | "merge";
@@ -58,6 +73,10 @@ function ReviewSection({ episode, reviewerEmail, disabled, onSaved, onError }: P
   const [flag, setFlag] = useState(Boolean(episode.audit_flag));
   const [saving, setSaving] = useState(false);
 
+  const allowed = useMemo(() => new Set(availableActions(episode)), [episode]);
+  const reviewed = isReviewed(episode);
+  const statusLabel = episodeStatusLabel(episode.status);
+
   const handleMarkReviewed = async () => {
     setSaving(true);
     try {
@@ -74,11 +93,26 @@ function ReviewSection({ episode, reviewerEmail, disabled, onSaved, onError }: P
     }
   };
 
+  if (reviewed && !allowed.has("review.mark")) {
+    return (
+      <Stack spacing={2} data-testid="edit-episode-review-already-signed-off">
+        <Typography variant="body2" color="text.secondary">
+          This pathway is already signed off (status:{" "}
+          <strong>{statusLabel}</strong>; reviewed by{" "}
+          <strong>{episode.reviewed_by ?? "a curator"}</strong> on{" "}
+          {episode.reviewed_at ?? "an earlier date"}). Use Close or Merge
+          to take a new action.
+        </Typography>
+      </Stack>
+    );
+  }
+
   return (
     <Stack spacing={2}>
       <Typography variant="body2" color="text.secondary">
         Confirm the pathway is correct and add a note for the audit trail.
         Marking as reviewed records you as the reviewer with a timestamp.
+        Current status: <strong>{statusLabel}</strong>.
       </Typography>
       <TextField
         label="Reviewer notes"

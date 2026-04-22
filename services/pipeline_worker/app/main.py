@@ -60,6 +60,9 @@ from libs.message_bus.base import Message
 from libs.utils.logging import configure_logging
 from libs.workflow.engine import ActionDefinition, WorkflowEngine
 from libs.workflow.events import ServiceBusEventHandler
+from services.pipeline_worker.app.services.progress_callback import (
+    build_progress_callback as _build_progress_callback,
+)
 
 configure_logging(service_name="pipeline-worker")
 
@@ -308,8 +311,27 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                     pass
                 raise
 
+        # Wire a step_callback so WorkflowEngine emits step_completed and
+        # run_completed events to Redis pub/sub for the SSE stream
+        # /pipeline/progress/{run_id}. Without this, the patient-drawer
+        # "Reset and recode" chip stays stuck at "Resetting..." because no
+        # progress event ever reaches the browser even though the engine
+        # finishes the work in Neo4j. Atlas: DI-705C806B / VT-297D9C18.
+        run_id = str(msg.correlation_id or msg.message_id or "")
+        if isinstance(body, dict) and not run_id:
+            run_id = str(body.get("run_id") or "")
+        patient_id = ""
+        if isinstance(body, dict):
+            patient_id = str(body.get("patient_id") or "")
+
+        step_callback = None
+        if run_id:
+            step_callback = _build_progress_callback(
+                run_id, patient_id=patient_id
+            )
+
         try:
-            await handler.handle_message(msg)
+            await handler.handle_message(msg, step_callback=step_callback)
         except Exception:
             # Emit a progress error event so UI subscribers do not appear idle
             # when a run fails before first workflow step.
@@ -318,7 +340,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                     publish_progress,
                 )
 
-                run_id = str(msg.correlation_id or msg.message_id or "")
                 if run_id:
                     publish_progress(
                         run_id,

@@ -392,6 +392,45 @@ def _sort_clause(sort_by: str, sort_dir: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+# Per-episode projection shared between the cohort list and the
+# per-patient drawer endpoint (DI-5E47FA5D). Both surfaces MUST return
+# identical episode shapes so the UI can swap one for the other
+# without per-field translation.
+_EPISODE_PROJECTION = (
+    "{ "
+    "  episode_id: ep.episode_id, "
+    "  cancer_type: ep.cancer_type, "
+    "  condition_type: ep.condition_type, "
+    "  status: ep.status, "
+    "  cancer_stage: ep.cancer_stage, "
+    "  referral_date: toString(ep.referral_date), "
+    "  end_date: toString(ep.end_date), "
+    "  specialist_visit_date: toString(ep.specialist_visit_date), "
+    "  diagnostic_interval_days: ep.diagnostic_interval_days, "
+    "  primary_care_interval_days: ep.primary_care_interval_days, "
+    "  inferred_outcome: ep.inferred_outcome, "
+    "  auto_close_reason: ep.auto_close_reason, "
+    "  reviewed_by: ep.reviewed_by, "
+    "  reviewed_at: toString(ep.reviewed_at), "
+    "  audit_notes: ep.audit_notes, "
+    "  audit_flag: coalesce(ep.audit_flag, false), "
+    "  linked_encounter_ids: [ "
+    "    (ep)<-[:IS_PART_OF]-(enc_all:Encounter) "
+    "    | toString(enc_all.id) "
+    "  ], "
+    "  milestones: [ "
+    "    (ep)<-[r:IS_PART_OF]-(enc:Encounter) "
+    "    WHERE r.milestone_type IS NOT NULL "
+    "    | { "
+    "        milestone_type: r.milestone_type, "
+    "        encounter_id: toString(enc.id), "
+    "        date: toString(enc.date) "
+    "      } "
+    "  ] "
+    "}"
+)
+
+
 def _patients_cypher(
     base: str, params: dict, sort_by: str, sort_dir: str, skip: int, limit: int
 ) -> tuple[str, str, dict]:
@@ -413,37 +452,7 @@ def _patients_cypher(
         "  p.gender AS gender, "
         "  p.birthDate AS birth_date, "
         "  gp.name AS practice_name, "
-        "  [ep IN episodes | { "
-        "    episode_id: ep.episode_id, "
-        "    cancer_type: ep.cancer_type, "
-        "    condition_type: ep.condition_type, "
-        "    status: ep.status, "
-        "    cancer_stage: ep.cancer_stage, "
-        "    referral_date: toString(ep.referral_date), "
-        "    end_date: toString(ep.end_date), "
-        "    specialist_visit_date: toString(ep.specialist_visit_date), "
-        "    diagnostic_interval_days: ep.diagnostic_interval_days, "
-        "    primary_care_interval_days: ep.primary_care_interval_days, "
-        "    inferred_outcome: ep.inferred_outcome, "
-        "    auto_close_reason: ep.auto_close_reason, "
-        "    reviewed_by: ep.reviewed_by, "
-        "    reviewed_at: toString(ep.reviewed_at), "
-        "    audit_notes: ep.audit_notes, "
-        "    audit_flag: coalesce(ep.audit_flag, false), "
-        "    linked_encounter_ids: [ "
-        "      (ep)<-[:IS_PART_OF]-(enc_all:Encounter) "
-        "      | toString(enc_all.id) "
-        "    ], "
-        "    milestones: [ "
-        "      (ep)<-[r:IS_PART_OF]-(enc:Encounter) "
-        "      WHERE r.milestone_type IS NOT NULL "
-        "      | { "
-        "          milestone_type: r.milestone_type, "
-        "          encounter_id: toString(enc.id), "
-        "          date: toString(enc.date) "
-        "        } "
-        "    ] "
-        "  }] AS episodes "
+        f"  [ep IN episodes | {_EPISODE_PROJECTION}] AS episodes "
     )
     params = {**params, "skip": skip, "limit": limit}
     return count_q, data_q, params
@@ -957,6 +966,105 @@ async def get_patient_pipeline_events(
     return {"patient_id": pid, "episode_id": eid, "events": events}
 
 
+def _row_to_manual_event(row: dict[str, Any]) -> dict[str, Any]:
+    """Coerce a manual EpisodeManual* AuditEvent row into a JSON-safe
+    dict for the audit trail tab. Mirrors _row_to_pipeline_event but
+    surfaces the actor / before / after fields the curator dialogs
+    write via write_episode_audit_event."""
+    return {
+        "id": row.get("id"),
+        "event_type": row.get("event_type"),
+        "subtype": row.get("subtype"),
+        "created_at": row.get("created_at"),
+        "actor_email": row.get("actor_email") or "",
+        "actor_role": row.get("actor_role") or "",
+        "episode_id": row.get("episode_id") or "",
+        "patient_id": row.get("patient_id") or "",
+        "notes": row.get("notes") or "",
+        # before/after JSON blobs are written by
+        # write_episode_audit_event for full traceability of every
+        # property change. The UI only renders a short summary of
+        # them so we truncate aggressively for safety.
+        "before_json": _truncate_audit_text(row.get("before_json")),
+        "after_json": _truncate_audit_text(row.get("after_json")),
+    }
+
+
+@router.get("/mission-control/patients/{patient_id}/manual-events")
+async def get_patient_manual_events(
+    patient_id: str,
+    org_id: Optional[str] = Query(None),
+    episode_id: Optional[str] = Query(
+        None,
+        description=(
+            "When set, only manual events targeting this episode are "
+            "returned (so each episode tab only shows its own audit "
+            "trail). Patient-wide manual events (e.g. episode CREATE) "
+            "are also returned so the create event of the in-focus "
+            "episode is visible."
+        ),
+    ),
+    limit: int = Query(50, ge=1, le=200),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return EpisodeManual* AuditEvent rows for the audit trail tab.
+
+    Manual events are written by the EpisodeOfCare CRUD endpoints in
+    services/analytics_api/app/routers/episode_crud.py via
+    write_episode_audit_event. They carry the curator's email/role
+    and a before/after property snapshot so QA / RA leads can
+    reconstruct any human change to a pathway.
+
+    DI-3A19BE12 (audit trail visibility), R-A737EE12 (no untracked
+    manual mutation).
+    """
+    pid = _normalise_mission_patient_id(patient_id)
+    if not pid:
+        raise HTTPException(status_code=400, detail="Invalid patient_id")
+
+    eid = _normalise_mission_episode_id(episode_id)
+    prefix, extra = _patient_pipeline_audit_prefix(scope, org_id)
+
+    # Filter on the EpisodeManual* family of event_type values
+    # (Create / Update / Delete / Attach / Detach / Replace). Using a
+    # STARTS WITH filter keeps the endpoint forward-compatible if we
+    # add more verbs later.
+    episode_clause = (
+        "AND (ae.episode_id = $episode_id OR coalesce(ae.episode_id, '') = '') "
+        if eid
+        else ""
+    )
+
+    full_q = (
+        f"{prefix}"
+        "WITH p "
+        "MATCH (ae:AuditEvent)-[:AUDIT_FOR]->(p) "
+        "WHERE coalesce(ae.`type`, '') STARTS WITH 'EpisodeManual' "
+        f"{episode_clause}"
+        "RETURN ae.id AS id, ae.`type` AS event_type, ae.subtype AS subtype, "
+        "toString(ae.created_at) AS created_at, "
+        "ae.actor_email AS actor_email, ae.actor_role AS actor_role, "
+        "ae.episode_id AS episode_id, ae.patient_id AS patient_id, "
+        "ae.notes AS notes, "
+        "ae.before_json AS before_json, ae.after_json AS after_json "
+        "ORDER BY ae.created_at DESC "
+        "LIMIT $limit"
+    )
+
+    params: dict[str, Any] = {**extra, "patient_id": pid, "limit": limit}
+    if eid:
+        params["episode_id"] = eid
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(full_q, **params)
+    finally:
+        client.close()
+
+    events = [_row_to_manual_event(r) for r in rows]
+    return {"patient_id": pid, "episode_id": eid, "events": events}
+
+
 @router.get("/mission-control/patients/{patient_id}/rebuild-status")
 async def get_patient_rebuild_status(
     patient_id: str,
@@ -1013,6 +1121,61 @@ async def get_patient_rebuild_status(
     }
 
 
+@router.get("/mission-control/patients/{patient_id}/episodes")
+async def get_patient_episodes(
+    patient_id: str,
+    org_id: Optional[str] = Query(None),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return every EpisodeOfCare attached to ``patient_id``.
+
+    Mirrors the per-episode shape used by the cohort list endpoint
+    (``_EPISODE_PROJECTION``) but applies NO cohort filters
+    (lifecycle_bucket / pathway_filter / review_status / cancer_types
+    / closure_reasons). Used by the Mission Control patient drawer so
+    a manually-created in_review episode is visible to the curator
+    immediately, even when the dashboard is filtered to a different
+    bucket (DI-5E47FA5D, mitigates R-A737EE12).
+
+    Same org-scope contract as get_patient_pipeline_events:
+      - in-scope patient -> 200 with episodes (possibly empty)
+      - out-of-scope or unknown patient -> 404
+      - malformed patient_id -> 400
+    """
+    pid = _normalise_mission_patient_id(patient_id)
+    if not pid:
+        raise HTTPException(status_code=400, detail="Invalid patient_id")
+
+    prefix, extra = _patient_pipeline_audit_prefix(scope, org_id)
+    query = (
+        f"{prefix}"
+        "WITH p "
+        "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+        "WITH p, ep "
+        "ORDER BY ep.referral_date DESC, ep.episode_id ASC "
+        "WITH p, collect(DISTINCT ep) AS raw_episodes "
+        "WITH p, [ep IN raw_episodes WHERE ep IS NOT NULL] AS episodes "
+        f"RETURN [ep IN episodes | {_EPISODE_PROJECTION}] AS episodes, "
+        "  p.id AS patient_id"
+    )
+    params: dict[str, Any] = {**extra, "patient_id": pid}
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(query, **params)
+    finally:
+        client.close()
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    row = rows[0]
+    return {
+        "patient_id": row.get("patient_id") or pid,
+        "episodes": row.get("episodes") or [],
+    }
+
+
 @router.patch("/mission-control/episodes/{episode_id}/review")
 async def patch_episode_review(
     episode_id: str,
@@ -1027,12 +1190,20 @@ async def patch_episode_review(
     if not scope.email:
         raise HTTPException(status_code=401, detail="Authentication required")
 
+    # Clear BOTH the legacy ``needs_review`` and the canonical
+    # ``needs_human_review`` flags when a curator signs off so the
+    # two parallel fields cannot drift (DI-C4CEFA32). The v2 detector
+    # reads needs_human_review; the legacy dashboards still read
+    # needs_review; keeping both in lockstep until the legacy field
+    # can be removed.
     q = (
         "MATCH (ep:EpisodeOfCare {episode_id: $episode_id}) "
         "SET ep.reviewed_by = $reviewed_by, "
         "    ep.reviewed_at = datetime(), "
         "    ep.audit_notes = $audit_notes, "
-        "    ep.audit_flag = $audit_flag "
+        "    ep.audit_flag = $audit_flag, "
+        "    ep.needs_review = false, "
+        "    ep.needs_human_review = false "
         "RETURN ep.episode_id AS episode_id"
     )
 

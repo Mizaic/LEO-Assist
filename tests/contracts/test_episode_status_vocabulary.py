@@ -296,6 +296,7 @@ _BENIGN_CLOSED_ALLOWLIST = {
     "libs/episodes/status.py",
     "services/ui/src/lib/episodeStatus.ts",
     "scripts/migrations/2026_normalise_episode_status_vocabulary.py",
+    "scripts/migrations/2026_unify_episode_lifecycle.py",
     "tests/contracts/test_episode_status_vocabulary.py",
 }
 
@@ -347,4 +348,135 @@ def test_no_production_file_uses_benign_closed_literal():
         "These files use the forbidden legacy status spelling "
         "'benign_closed' (use closed_benign via libs/episodes/status.py): "
         + ", ".join(sorted(offenders))
+    )
+
+
+# ---------------------------------------------------------------------------
+# 5. Writer parity (DI-C4CEFA32). Every backend writer of
+#    EpisodeOfCare.status MUST emit a member of
+#    libs.episodes.status.EpisodeStatus -- not the legacy 'in_review',
+#    not the v2 boundary labels 'open' / 'closed' / 'benign_closure',
+#    not anything else. This guards against a regression where a
+#    writer is added that bypasses the canonical lifecycle module.
+# ---------------------------------------------------------------------------
+
+
+# Files allowed to mention the forbidden non-canonical status string
+# literals because they are migrations / lifecycle helpers / tests
+# that document the migration itself.
+_NON_CANONICAL_STATUS_ALLOWLIST = {
+    "libs/episodes/status.py",
+    "libs/episodes/lifecycle.py",
+    "services/ui/src/lib/episodeStatus.ts",
+    "scripts/migrations/2026_normalise_episode_status_vocabulary.py",
+    "scripts/migrations/2026_unify_episode_lifecycle.py",
+    "tests/contracts/test_episode_status_vocabulary.py",
+    "tests/episodes/test_lifecycle.py",
+    "tests/episode_detector_v2/test_runner_persist_canonical.py",
+    # Boundary detector and tests own the internal 'open'/'closed'/
+    # 'benign_closure' vocabulary; the canonical translator
+    # (canonical_status_from_v2_boundary) projects it to canonical
+    # before any persist happens.
+    "services/analysis_worker/app/episode_detector_v2/boundary.py",
+}
+
+
+# Forbidden non-canonical status STRING LITERALS that production
+# writers must not emit. These are the spellings shipped to the live
+# graph before DI-C4CEFA32 unified the lifecycle.
+_FORBIDDEN_STATUS_LITERALS: tuple[str, ...] = (
+    "in_review",
+    # Note: 'open', 'closed', 'benign_closure' appear elsewhere
+    # (e.g. as field names, dictionary keys, or non-status string
+    # values like "open episodes"). We only flag them when they
+    # appear in a context that matches a Cypher SET on a status
+    # column or a Python writer assigning ep.status. The simpler
+    # 'in_review' spelling is unambiguous and is the highest-value
+    # gate for this contract.
+)
+
+
+# Patterns that suggest an EpisodeOfCare.status WRITE in TS or
+# Python, where the value 'in_review' would land on the graph
+# instead of the canonical 'review'. We deliberately do NOT flag:
+#   * comments ("// in_review default"),
+#   * HeroBucket labels (`in_review` is a UI bucket name, separate
+#     vocabulary owned by libs/episodes/lifecycle.py),
+#   * response-field keys like `in_review_episodes`,
+#   * legacy-rewrite map keys (those legitimately mention the
+#     legacy spelling, by definition).
+_WRITER_LITERAL_PATTERNS_IN_REVIEW: tuple[re.Pattern[str], ...] = (
+    # TS object literal: status: "in_review"
+    re.compile(r'\bstatus\s*:\s*["\']in_review["\']'),
+    # TS arrow / assignment: status = "in_review"
+    re.compile(r'\bstatus\s*=\s*["\']in_review["\']'),
+    # Python kwarg / dict: status="in_review" or 'status': 'in_review'
+    re.compile(r'\bstatus\s*=\s*["\']in_review["\']'),
+    re.compile(r'["\']status["\']\s*:\s*["\']in_review["\']'),
+    # Cypher SET clause embedded in a Python f-string / triple-string.
+    re.compile(r'\.status\s*=\s*["\']in_review["\']'),
+)
+
+
+def _strip_line_comment(line: str) -> str:
+    """Remove a trailing line-comment so the writer scan does not
+    flag literals that only appear inside ``// ...`` / ``# ...`` /
+    `` * ...`` (JSDoc) commentary."""
+    stripped = line.lstrip()
+    if stripped.startswith(("//", "#", "*")):
+        return ""
+    # Strip trailing // ... or # ... preserving string-literal content
+    # that contains those tokens (close enough for this lint -- the
+    # writer patterns we care about would not embed `// ` or `# ` in
+    # the same statement).
+    for marker in ("//", "#"):
+        idx = line.find(f" {marker}")
+        if idx >= 0:
+            line = line[:idx]
+    return line
+
+
+def test_no_production_writer_uses_legacy_in_review_literal():
+    """VT-66DA36EC-TC-001: no production writer assigns the legacy
+    ``in_review`` status string to ``EpisodeOfCare.status``. Use
+    ``EpisodeStatus.REVIEW.value`` (= ``"review"``) instead.
+
+    Comments, hero-bucket labels (``in_review`` as a UI bucket name),
+    legacy-rewrite map keys, and response-field keys
+    (``in_review_episodes``) are deliberately NOT flagged -- only
+    direct assignments to a ``status`` field in non-comment lines of
+    production (non-test) source files."""
+    offenders: list[str] = []
+    for path in _walk_production_files():
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        if rel in _NON_CANONICAL_STATUS_ALLOWLIST:
+            continue
+        # Skip test files: tests intentionally seed legacy status
+        # values to verify backward compatibility / migration paths.
+        if (
+            "__tests__" in rel
+            or "/tests/" in rel
+            or rel.endswith(".test.ts")
+            or rel.endswith(".test.tsx")
+            or rel.endswith(".test.py")
+            or "/test_" in rel
+        ):
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for line_no, raw_line in enumerate(text.splitlines(), start=1):
+            line = _strip_line_comment(raw_line)
+            if not line:
+                continue
+            for pat in _WRITER_LITERAL_PATTERNS_IN_REVIEW:
+                if pat.search(line):
+                    offenders.append(f"{rel}:{line_no} {line.strip()}")
+                    break
+    assert not offenders, (
+        "These production writers assign the legacy 'in_review' "
+        "status to EpisodeOfCare.status. Switch to "
+        "EpisodeStatus.REVIEW.value (Python) or STATUS_REVIEW (TS):\n"
+        + "\n".join(sorted(offenders))
     )

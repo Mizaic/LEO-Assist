@@ -121,6 +121,16 @@ class RunCohortRequest(BaseModel):
     preview: bool = False
 
 
+class RunEpisodeBundleRequest(BaseModel):
+    """Trigger episode-aware coding for a single EpisodeOfCare."""
+
+    patient_id: str
+    episode_id: str
+    encounter_ids: list[str] | None = None
+    episode_context: dict[str, object] | None = None
+    preview: bool = False
+
+
 _BULK_RESET_CONFIRM_TEXT = "RESET AND REPROCESS ALL PATIENTS"
 
 
@@ -1007,6 +1017,153 @@ async def run_patient(
         "preview": payload.preview,
         "stream_path": f"/api/pipeline/progress/{run_id}",
         "cleaned_totals": cleaned_totals,
+    }
+
+
+def _resolve_episode_encounter_ids(
+    patient_id: str, episode_id: str
+) -> tuple[list[str], dict[str, object]]:
+    """Look up encounter ids and minimal context for an EpisodeOfCare."""
+    from libs.neo4j_client.client import PatientGraphClient as LibPGClient
+
+    client = LibPGClient()
+    try:
+        rows = client.run(
+            "MATCH (p:Patient)-[:HAS_EPISODE]->(e:Episode {episode_id: $episode_id}) "
+            "WHERE toString(p.patient_id) = $pid OR toString(p.id) = $pid "
+            "OPTIONAL MATCH (e)-[:INCLUDES_ENCOUNTER]->(enc:Encounter) "
+            "RETURN toString(e.episode_id) AS episode_id, "
+            "       e.suspected_site AS suspected_site, "
+            "       e.intent AS intent, "
+            "       e.status AS status, "
+            "       collect(DISTINCT toString(enc.encounter_id)) AS encounter_ids",
+            pid=patient_id,
+            episode_id=episode_id,
+        )
+        if not rows:
+            return [], {}
+        row = rows[0]
+        encounter_ids = [eid for eid in (row.get("encounter_ids") or []) if eid]
+        context = {
+            "suspected_site": row.get("suspected_site"),
+            "intent": row.get("intent"),
+            "status": row.get("status"),
+        }
+        return encounter_ids, context
+    finally:
+        client.close()
+
+
+async def _publish_episode_bundle_job(
+    *,
+    patient_id: str,
+    episode_id: str,
+    encounter_ids: list[str],
+    episode_context: dict[str, object],
+    run_id: str,
+    preview: bool,
+) -> None:
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    bus = create_message_bus()
+    try:
+        await bus.send(
+            PIPELINE_QUEUE,
+            Message(
+                body={
+                    "event_type": "episode_bundle",
+                    "patient_id": patient_id,
+                    "encounter_id": (encounter_ids[0] if encounter_ids else None),
+                    "plan_definition_id": "pd-episode-bundle-coding",
+                    "mode": "episode_bundle",
+                    "episode_id": episode_id,
+                    "encounter_ids": encounter_ids,
+                    "episode_context": episode_context,
+                    "dry_run": preview,
+                    "context": {
+                        "dry_run": preview,
+                        "mode": "episode_bundle",
+                        "episode_id": episode_id,
+                        "encounter_ids": encounter_ids,
+                        "episode_context": episode_context,
+                    },
+                },
+                correlation_id=run_id,
+                subject="episode-bundle",
+            ),
+        )
+    finally:
+        await bus.close()
+
+
+@router.post("/run-episode-bundle")
+async def run_episode_bundle(
+    payload: RunEpisodeBundleRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Trigger episode-aware coding for one EpisodeOfCare.
+
+    Atlas trace:
+      DI: DI-E8FE404D (Episode-aware coding pipeline)
+    """
+    patient_id = (payload.patient_id or "").strip()
+    episode_id = (payload.episode_id or "").strip()
+    if not patient_id:
+        raise HTTPException(status_code=400, detail="patient_id is required")
+    if not episode_id:
+        raise HTTPException(status_code=400, detail="episode_id is required")
+    _require_patients_in_scope(scope, [patient_id])
+
+    encounter_ids = [
+        eid.strip()
+        for eid in (payload.encounter_ids or [])
+        if eid and eid.strip()
+    ]
+    episode_context = dict(payload.episode_context or {})
+    if not encounter_ids:
+        encounter_ids, resolved_ctx = _resolve_episode_encounter_ids(
+            patient_id, episode_id
+        )
+        if not encounter_ids:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"No encounters found for episode {episode_id} "
+                    f"on patient {patient_id}."
+                ),
+            )
+        for k, v in resolved_ctx.items():
+            episode_context.setdefault(k, v)
+
+    run_id = str(uuid.uuid4())
+    try:
+        await _publish_episode_bundle_job(
+            patient_id=patient_id,
+            episode_id=episode_id,
+            encounter_ids=encounter_ids,
+            episode_context=episode_context,
+            run_id=run_id,
+            preview=payload.preview,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "status": "failed",
+                "run_id": run_id,
+                "error": str(exc),
+            },
+        ) from exc
+
+    return {
+        "run_id": run_id,
+        "queued": 1,
+        "patient_id": patient_id,
+        "episode_id": episode_id,
+        "encounter_count": len(encounter_ids),
+        "preview": payload.preview,
+        "stream_path": f"/api/pipeline/progress/{run_id}",
     }
 
 

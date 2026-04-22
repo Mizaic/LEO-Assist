@@ -175,3 +175,172 @@ def would_flip_bucket(
         proposed_bucket=proposed,
         flips=current != proposed,
     )
+
+
+# ---------------------------------------------------------------------------
+# Writer-side parity helpers (DI-C4CEFA32, R-2AA626E7)
+#
+# Every writer of EpisodeOfCare.status (manual create / update / close /
+# merge / review, v2 detector, milestone recompute) MUST go through these
+# helpers so the persisted vocabulary stays inside EpisodeStatus and the
+# two parallel review-flag fields (needs_review and needs_human_review)
+# stay in sync.
+# ---------------------------------------------------------------------------
+
+
+# v2 boundary detector emits its own internal vocabulary
+# (open / closed / benign_closure) plus an `intent` flag and a
+# `needs_human_review` boolean. This map projects that internal state
+# onto the canonical EpisodeStatus.
+_V2_BOUNDARY_TO_CANONICAL: dict[tuple[str, bool], str] = {
+    ("benign_closure", False): EpisodeStatus.CLOSED_BENIGN.value,
+    ("benign_closure", True): EpisodeStatus.CLOSED_BENIGN.value,
+    ("closed", False): EpisodeStatus.COMPLETED.value,
+    ("closed", True): EpisodeStatus.COMPLETED.value,
+    ("open", False): EpisodeStatus.ACTIVE.value,
+    ("open", True): EpisodeStatus.REVIEW.value,
+}
+
+
+def canonical_status_from_v2_boundary(
+    boundary_status: str,
+    needs_human_review: bool,
+) -> str:
+    """Translate v2 boundary vocabulary to canonical EpisodeStatus.
+
+    Falls back to :data:`EpisodeStatus.REVIEW` for any unknown
+    boundary state so an upstream regression cannot persist a
+    non-canonical status string. Always returns a member of
+    :data:`libs.episodes.status.ENGINE_OUTPUT_STATUSES`.
+    """
+
+    raw = (boundary_status or "").strip().lower()
+    return _V2_BOUNDARY_TO_CANONICAL.get(
+        (raw, bool(needs_human_review)), EpisodeStatus.REVIEW.value
+    )
+
+
+# Statuses that recompute_episode_status is allowed to flip. The full
+# vocabulary in libs.episodes.status.EpisodeStatus is wider, but the
+# recompute path only ever derives one of these four engine-output
+# values; if the current status is anything else (merged, excluded,
+# stale_*, etc.) the curator or another sub-system made the call and
+# we never overwrite.
+RECOMPUTE_RESPECTED_STATUSES: frozenset[str] = frozenset(
+    {
+        EpisodeStatus.ACTIVE.value,
+        EpisodeStatus.REVIEW.value,
+        EpisodeStatus.COMPLETED.value,
+        EpisodeStatus.CLOSED_BENIGN.value,
+    }
+)
+
+
+def is_reviewed(props: dict | None) -> bool:
+    """True when the episode has a curator sign-off recorded.
+
+    A curator sign-off is the presence of ``reviewed_at`` (set by
+    the mission-control review endpoint). The reviewed status MUST
+    be respected by every downstream automated writer.
+    """
+
+    if not props:
+        return False
+    raw = props.get("reviewed_at")
+    if raw is None:
+        return False
+    if isinstance(raw, str):
+        return raw.strip() != ""
+    return True
+
+
+def canonical_review_props(reviewer_email: str) -> dict:
+    """Property map for marking an EpisodeOfCare as reviewed.
+
+    Writes both legacy ``needs_review`` and canonical
+    ``needs_human_review`` fields so the two flags stay in lockstep
+    until ``needs_review`` can be retired.
+    """
+
+    return {
+        "reviewed_by": reviewer_email or "",
+        "needs_review": False,
+        "needs_human_review": False,
+    }
+
+
+# Allowed canonical statuses for the "Close pathway" curator action.
+# These are the only values the close endpoint will accept on the
+# wire. Other vocabulary (merged, stale_*, excluded) belongs to
+# specialised endpoints (merge, archive) and is not exposed via the
+# generic close button in the UI.
+MANUAL_CLOSE_STATUSES: frozenset[str] = frozenset(
+    {
+        EpisodeStatus.COMPLETED.value,
+        EpisodeStatus.CLOSED.value,
+        EpisodeStatus.CLOSED_BENIGN.value,
+    }
+)
+
+
+def canonical_close_props(
+    status: str,
+    reason: str,
+    actor_email: str = "manual",
+) -> dict:
+    """Property map for closing an EpisodeOfCare.
+
+    Raises ``ValueError`` if ``status`` is not in
+    :data:`MANUAL_CLOSE_STATUSES` so the API layer can return a
+    400. Writes both legacy ``needs_review`` and canonical
+    ``needs_human_review`` to keep the two flags in lockstep.
+    """
+
+    canonical = (status or "").strip().lower()
+    if canonical not in MANUAL_CLOSE_STATUSES:
+        raise ValueError(
+            f"close status must be one of {sorted(MANUAL_CLOSE_STATUSES)}; "
+            f"got {status!r}"
+        )
+    return {
+        "status": canonical,
+        "agent_reasoning": reason or "",
+        "completed_by": actor_email or "manual",
+        "needs_review": False,
+        "needs_human_review": False,
+    }
+
+
+def canonical_merge_props(
+    primary_episode_id: str,
+    reasoning: str,
+) -> dict:
+    """Property map for the secondary side of a merge."""
+
+    return {
+        "status": EpisodeStatus.MERGED.value,
+        "merged_into": primary_episode_id,
+        "merge_reasoning": reasoning or "",
+        "needs_review": False,
+        "needs_human_review": False,
+    }
+
+
+def respect_reviewed_audit_line(
+    target_status: str | None,
+    current_status: str | None,
+    source: str,
+) -> str:
+    """One-line audit_notes entry written when recompute is suppressed.
+
+    Used by ``recompute_episode_status`` (and any future automated
+    writer) so a clinician auditing the trail can see exactly why the
+    status was NOT updated and what the new evidence would have
+    flipped it to.
+    """
+
+    return (
+        f"recompute skipped: reviewed verdict respected; source={source}; "
+        f"would_flip {current_status or 'null'} -> "
+        f"{target_status or 'null'}"
+    )

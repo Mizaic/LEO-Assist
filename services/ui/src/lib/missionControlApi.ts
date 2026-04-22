@@ -182,6 +182,33 @@ export interface PipelineEventsResponse {
   events: PipelineAuditEvent[];
 }
 
+/**
+ * One human-curator action recorded by write_episode_audit_event.
+ * The pipeline-events endpoint does NOT return these; use
+ * fetchPatientManualEvents(). DI-3A19BE12, R-A737EE12.
+ */
+export interface ManualAuditEvent {
+  id: string | null;
+  /** EpisodeManualCreate / EpisodeManualUpdate / EpisodeManualDelete /
+   *  EpisodeManualAttach / EpisodeManualDetach / EpisodeManualReplace. */
+  event_type: string | null;
+  subtype: string | null;
+  created_at: string | null;
+  actor_email: string;
+  actor_role: string;
+  episode_id: string;
+  patient_id: string;
+  notes: string;
+  before_json: string | null;
+  after_json: string | null;
+}
+
+export interface ManualEventsResponse {
+  patient_id: string;
+  episode_id: string | null;
+  events: ManualAuditEvent[];
+}
+
 export interface RebuildStatus {
   patient_id: string;
   run_id: string | null;
@@ -228,6 +255,30 @@ export async function patchEpisodeReview(
   });
 }
 
+export interface MissionPatientEpisodesResponse {
+  patient_id: string;
+  episodes: MissionEpisode[];
+}
+
+/**
+ * Full EpisodeOfCare list for a single patient, NOT filtered by the
+ * Mission Control cohort filter (DI-5E47FA5D). The patient drawer uses
+ * this as the source of truth so that newly-created in_review episodes
+ * are visible immediately on a confirmed_cancer cohort view.
+ */
+export async function fetchMissionPatientEpisodes(
+  patientId: string,
+  options?: { orgId?: string },
+): Promise<MissionPatientEpisodesResponse> {
+  const p = new URLSearchParams();
+  if (options?.orgId) p.set("org_id", options.orgId);
+  const q = p.toString();
+  const base = `${PROXY}/mission-control/patients/${encodeURIComponent(
+    patientId,
+  )}/episodes`;
+  return fetchJson<MissionPatientEpisodesResponse>(q ? `${base}?${q}` : base);
+}
+
 /** Pipeline AuditEvent history for Mission Control audit trail. */
 export async function fetchPatientPipelineEvents(
   patientId: string,
@@ -240,6 +291,25 @@ export async function fetchPatientPipelineEvents(
   const q = p.toString();
   const path = `${PROXY}/mission-control/patients/${encodeURIComponent(patientId)}/pipeline-events`;
   return fetchJson<PipelineEventsResponse>(q ? `${path}?${q}` : path);
+}
+
+/**
+ * Manual EpisodeManual* AuditEvent history for the audit trail tab.
+ * Returns the curator-driven mutations (create / update / delete /
+ * attach / detach / replace) that the pipeline-events endpoint
+ * deliberately filters out.
+ */
+export async function fetchPatientManualEvents(
+  patientId: string,
+  options?: { episodeId?: string; orgId?: string; limit?: number }
+): Promise<ManualEventsResponse> {
+  const p = new URLSearchParams();
+  if (options?.episodeId) p.set("episode_id", options.episodeId);
+  if (options?.orgId) p.set("org_id", options.orgId);
+  if (options?.limit != null) p.set("limit", String(options.limit));
+  const q = p.toString();
+  const path = `${PROXY}/mission-control/patients/${encodeURIComponent(patientId)}/manual-events`;
+  return fetchJson<ManualEventsResponse>(q ? `${path}?${q}` : path);
 }
 
 export async function fetchPatientRebuildStatus(
@@ -842,7 +912,11 @@ export interface EpisodeAttachResponse {
   episode_id: string;
   encounter_id: string;
   milestone_type: string;
-  derived_dates: EpisodeDerivedDates;
+  // True when the (encounter, episode, milestone_type) edge already
+  // existed -- backend short-circuits via DI-F5E030ED. derived_dates
+  // is null in this no-op case (no re-derive runs).
+  already_linked?: boolean;
+  derived_dates: EpisodeDerivedDates | null;
 }
 
 export interface EpisodeDetachResponse {
@@ -935,12 +1009,19 @@ export async function attachEncounterToEpisode(
  */
 export async function detachEncounterFromEpisode(
   episodeId: string,
-  encounterId: string
+  encounterId: string,
+  opts?: { milestoneType?: string | null }
 ): Promise<EpisodeDetachResponse> {
+  const mt = opts?.milestoneType ?? null;
+  // When milestoneType is supplied we pass it as a query param so
+  // the backend removes only that one :IS_PART_OF edge and leaves
+  // any other slots this encounter fills on the same episode in
+  // place -- DI-F5E030ED.
+  const qs = mt ? `?milestone_type=${encodeURIComponent(mt)}` : "";
   return fetchJson<EpisodeDetachResponse>(
     `${PROXY}/episodes/${encodeURIComponent(
       episodeId
-    )}/encounters/${encodeURIComponent(encounterId)}`,
+    )}/encounters/${encodeURIComponent(encounterId)}${qs}`,
     {
       method: "DELETE",
     }
@@ -973,6 +1054,11 @@ export interface MilestoneDayResult {
   date: string;
   attempted: string[];
   succeeded: string[];
+  // Subset of `succeeded` whose edge already existed before the
+  // attach, surfaced by the backend's already_linked short-circuit
+  // (DI-F5E030ED). Useful so the multi-slot UI can say "1 added,
+  // 2 already linked" without falsely claiming new writes.
+  alreadyLinked: string[];
   failed: MilestoneAttachFailure[];
   derived_dates: EpisodeDerivedDates | null;
 }
@@ -987,6 +1073,10 @@ export interface MilestoneAttachDayBody {
 export interface MilestoneDetachDayBody {
   episodeId: string;
   encounterIds: string[];
+  // When set, only the :IS_PART_OF edge whose milestone_type matches
+  // is removed. Leaves any other slots the encounter fills intact
+  // -- DI-F5E030ED.
+  milestoneType?: string | null;
 }
 
 /**
@@ -1004,6 +1094,7 @@ export async function attachEncounterDayToMilestone(
   body: MilestoneAttachDayBody
 ): Promise<MilestoneDayResult> {
   const succeeded: string[] = [];
+  const alreadyLinked: string[] = [];
   const failed: MilestoneAttachFailure[] = [];
   let derived: EpisodeDerivedDates | null = null;
   for (const encounterId of body.encounterIds) {
@@ -1013,7 +1104,8 @@ export async function attachEncounterDayToMilestone(
         milestone_type: body.milestoneType,
       });
       succeeded.push(encounterId);
-      derived = res.derived_dates;
+      if (res.already_linked) alreadyLinked.push(encounterId);
+      if (res.derived_dates) derived = res.derived_dates;
     } catch (e) {
       failed.push({
         encounter_id: encounterId,
@@ -1028,6 +1120,7 @@ export async function attachEncounterDayToMilestone(
     date: body.date,
     attempted: body.encounterIds,
     succeeded,
+    alreadyLinked,
     failed,
     derived_dates: derived,
   };
@@ -1048,7 +1141,8 @@ export async function detachEncounterDayFromMilestone(
     try {
       const res = await detachEncounterFromEpisode(
         body.episodeId,
-        encounterId
+        encounterId,
+        { milestoneType: body.milestoneType ?? null }
       );
       succeeded.push(encounterId);
       derived = res.derived_dates;
@@ -1066,7 +1160,73 @@ export async function detachEncounterDayFromMilestone(
     date: "",
     attempted: body.encounterIds,
     succeeded,
+    alreadyLinked: [],
     failed,
     derived_dates: derived,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Multi-slot day attach (DI-F5E030ED). One encounter day can fill
+// several milestone slots on the same EpisodeOfCare in a single
+// reviewer action -- this helper loops over the slot list, calls
+// the per-slot day-attach helper above, and returns one aggregated
+// result per slot so the UI can render a clean summary banner.
+// ---------------------------------------------------------------------------
+
+export interface MilestoneAttachMultiSlotBody {
+  episodeId: string;
+  milestoneTypes: string[];
+  date: string;
+  encounterIds: string[];
+}
+
+export interface MilestoneMultiSlotResult {
+  episodeId: string;
+  date: string;
+  perSlot: MilestoneDayResult[];
+  // Number of (slot, encounter) pairs that resulted in a *new*
+  // :IS_PART_OF edge being written.
+  newlyLinked: number;
+  // Number of (slot, encounter) pairs the backend short-circuited
+  // because the edge already existed.
+  alreadyLinked: number;
+  // Number of (slot, encounter) pairs that errored out.
+  failed: number;
+  // Convenience: true iff every slot reported success.
+  allSucceeded: boolean;
+}
+
+export async function attachEncounterDayToMultipleMilestones(
+  body: MilestoneAttachMultiSlotBody
+): Promise<MilestoneMultiSlotResult> {
+  const perSlot: MilestoneDayResult[] = [];
+  for (const milestoneType of body.milestoneTypes) {
+    const res = await attachEncounterDayToMilestone({
+      episodeId: body.episodeId,
+      milestoneType,
+      date: body.date,
+      encounterIds: body.encounterIds,
+    });
+    perSlot.push(res);
+  }
+  let newlyLinked = 0;
+  let alreadyLinked = 0;
+  let failed = 0;
+  let allSucceeded = perSlot.length > 0;
+  for (const r of perSlot) {
+    newlyLinked += r.succeeded.length - r.alreadyLinked.length;
+    alreadyLinked += r.alreadyLinked.length;
+    failed += r.failed.length;
+    if (!r.success) allSucceeded = false;
+  }
+  return {
+    episodeId: body.episodeId,
+    date: body.date,
+    perSlot,
+    newlyLinked,
+    alreadyLinked,
+    failed,
+    allSucceeded,
   };
 }

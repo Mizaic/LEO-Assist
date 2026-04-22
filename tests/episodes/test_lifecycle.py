@@ -14,13 +14,21 @@ import pytest
 from libs.episodes.lifecycle import (
     HERO_BUCKET_CASE,
     HERO_BUCKETS,
+    MANUAL_CLOSE_STATUSES,
+    RECOMPUTE_RESPECTED_STATUSES,
     BucketFlip,
     HeroBucket,
     build_hero_bucket_case,
+    canonical_close_props,
+    canonical_merge_props,
+    canonical_review_props,
+    canonical_status_from_v2_boundary,
     classify_hero_bucket,
+    is_reviewed,
+    respect_reviewed_audit_line,
     would_flip_bucket,
 )
-from libs.episodes.status import EpisodeStatus
+from libs.episodes.status import ENGINE_OUTPUT_STATUSES, EpisodeStatus
 
 
 # (status, has_diagnosis_milestone, letter_inferred_benign, expected bucket)
@@ -259,3 +267,109 @@ def test_would_flip_bucket_truth_table(
     assert result.flips is should_flip
     assert result.current_bucket is current
     assert result.proposed_bucket is proposed
+
+
+# -- Writer-side parity helpers (DI-C4CEFA32) -----------------------------
+
+
+@pytest.mark.parametrize(
+    "boundary,needs_human_review,expected",
+    [
+        ("open", False, EpisodeStatus.ACTIVE.value),
+        ("open", True, EpisodeStatus.REVIEW.value),
+        ("closed", False, EpisodeStatus.COMPLETED.value),
+        ("closed", True, EpisodeStatus.COMPLETED.value),
+        ("benign_closure", False, EpisodeStatus.CLOSED_BENIGN.value),
+        ("benign_closure", True, EpisodeStatus.CLOSED_BENIGN.value),
+        ("OPEN", False, EpisodeStatus.ACTIVE.value),
+        ("garbage", False, EpisodeStatus.REVIEW.value),
+        ("", False, EpisodeStatus.REVIEW.value),
+    ],
+)
+def test_canonical_status_from_v2_boundary(
+    boundary: str, needs_human_review: bool, expected: str
+) -> None:
+    """The v2 detector boundary vocabulary always projects onto a
+    canonical EpisodeStatus value; an unknown boundary defaults to
+    REVIEW so a regression cannot persist a free-text status."""
+
+    actual = canonical_status_from_v2_boundary(boundary, needs_human_review)
+    assert actual == expected
+    assert actual in ENGINE_OUTPUT_STATUSES
+
+
+def test_recompute_respected_statuses_subset_of_engine_output() -> None:
+    """Recompute is only ever allowed to flip between the four
+    engine-output statuses; anything else (merged, stale_*, excluded)
+    is a curator decision and must be left alone."""
+
+    assert RECOMPUTE_RESPECTED_STATUSES <= ENGINE_OUTPUT_STATUSES
+
+
+def test_is_reviewed_truth_table() -> None:
+    assert is_reviewed(None) is False
+    assert is_reviewed({}) is False
+    assert is_reviewed({"reviewed_at": None}) is False
+    assert is_reviewed({"reviewed_at": ""}) is False
+    assert is_reviewed({"reviewed_at": "2026-04-22T10:00:00Z"}) is True
+    # Non-string truthy values (e.g. neo4j DateTime) should also be
+    # treated as reviewed.
+    assert is_reviewed({"reviewed_at": 1729600000}) is True
+
+
+def test_canonical_review_props_clears_both_review_flags() -> None:
+    props = canonical_review_props("nurse@example.com")
+    assert props["reviewed_by"] == "nurse@example.com"
+    assert props["needs_review"] is False
+    assert props["needs_human_review"] is False
+
+
+def test_canonical_close_props_writes_canonical_status() -> None:
+    props = canonical_close_props(
+        EpisodeStatus.COMPLETED.value, "diagnosis confirmed"
+    )
+    assert props["status"] == EpisodeStatus.COMPLETED.value
+    assert props["agent_reasoning"] == "diagnosis confirmed"
+    assert props["needs_review"] is False
+    assert props["needs_human_review"] is False
+
+
+def test_canonical_close_props_accepts_closed_benign() -> None:
+    props = canonical_close_props(
+        EpisodeStatus.CLOSED_BENIGN.value, "ruled out by MDT"
+    )
+    assert props["status"] == EpisodeStatus.CLOSED_BENIGN.value
+
+
+def test_canonical_close_props_rejects_unknown_status() -> None:
+    with pytest.raises(ValueError):
+        canonical_close_props("in_review", "should fail")
+    with pytest.raises(ValueError):
+        canonical_close_props("", "empty")
+
+
+def test_manual_close_statuses_contains_only_closed_vocabulary() -> None:
+    """The Close pathway button MUST never offer 'review' or 'active'
+    as a closure target; only the closed family are valid."""
+
+    forbidden = {EpisodeStatus.ACTIVE.value, EpisodeStatus.REVIEW.value}
+    assert not (MANUAL_CLOSE_STATUSES & forbidden)
+
+
+def test_canonical_merge_props_marks_secondary_as_merged() -> None:
+    props = canonical_merge_props("ep-primary", "duplicate pathway")
+    assert props["status"] == EpisodeStatus.MERGED.value
+    assert props["merged_into"] == "ep-primary"
+    assert props["needs_review"] is False
+    assert props["needs_human_review"] is False
+
+
+def test_respect_reviewed_audit_line_includes_attempted_flip() -> None:
+    line = respect_reviewed_audit_line(
+        EpisodeStatus.ACTIVE.value,
+        EpisodeStatus.COMPLETED.value,
+        "milestone_recompute",
+    )
+    assert "recompute skipped" in line
+    assert "milestone_recompute" in line
+    assert "would_flip completed -> active" in line
