@@ -1,0 +1,150 @@
+{
+  "activation": {
+    "auto_publish": true,
+    "min_precision": 0.95,
+    "suggest": true
+  },
+  "anchors": {
+    "clinic_seen_snomed": [
+      "382841000000109"
+    ],
+    "confirmed_snomed": [
+      "254900004",
+      "254915003",
+      "399068003"
+    ],
+    "referral_snomed": [
+      "199251000000107",
+      "276431000000102"
+    ],
+    "suspected_snomed": [
+      "162572001",
+      "315268008",
+      "397657005"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": 90,
+      "requires_any_of": [
+        "result.negative_terms",
+        "snomed:260385009",
+        "snomed:266569009"
+      ]
+    },
+    "completed": {
+      "and_no_confirmed_within_days": 180,
+      "requires_any_of": [
+        "snomed:277022003",
+        "snomed:801541000000102"
+      ]
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [
+    "134405005",
+    "162573006",
+    "162574000",
+    "162575004"
+  ],
+  "dependencies": {
+    "derived_from": "prostate-urological-gold-cohort",
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v1-2026.04.0",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.9,
+    "result": 0.95,
+    "text": 0.4,
+    "treatment": 0.6
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [
+        "260385009",
+        "266569009"
+      ],
+      "confirmed_confidence": 0.9,
+      "confirmed_snomed": [
+        "254900004",
+        "254915003",
+        "399068003"
+      ],
+      "suspected_confidence": 0.8,
+      "suspected_snomed": [
+        "162572001",
+        "315268008",
+        "397657005"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_prostate",
+        "2ww_prostate_urological",
+        "2ww_urology"
+      ],
+      "reason_regex": [
+        "\\b(prostate|urology|urological|psa)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [
+        "prostate biopsy",
+        "prostate mri",
+        "prostate ultrasound",
+        "psa",
+        "transrectal ultrasound"
+      ],
+      "negative_terms": [
+        "benign",
+        "negative",
+        "no abnormality",
+        "no malignancy",
+        "normal"
+      ],
+      "observation_snomed": [
+        "1030791000000100"
+      ],
+      "positive_terms": [
+        "adenocarcinoma",
+        "carcinoma",
+        "malignant",
+        "positive for malignancy",
+        "prostate cancer"
+      ]
+    },
+    "text_channel": {
+      "regex_catalogue": [
+        "\\b(prostate|prostat\\w+)\\b",
+        "\\b(psa|prostate[- ]specific antigen)\\b",
+        "\\b(urology|urological|urologist)\\b",
+        "\\b(trus|transrectal)\\b",
+        "\\b(mri prostate|mp[- ]?mri)\\b",
+        "\\b(bph|benign prostatic|lower urinary tract symptoms|luts)\\b",
+        "\\b(haematuria|blood in (the )?urine)\\b",
+        "\\b(bladder cancer|renal cell|kidney cancer)\\b",
+        "\\b(nocturia|hesitancy|poor stream|dribbling)\\b",
+        "\\b(digital rectal exam|dre)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "prostate_urological",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 540,
+    "lookback_days": 180
+  }
+}

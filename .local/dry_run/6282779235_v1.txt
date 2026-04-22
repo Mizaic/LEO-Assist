@@ -1,0 +1,38 @@
+[dry-run] v1 rulebooks installed for: breast, lung, prostate_urological, upper_gi
+==============================================================================
+Episode Detector v2 dry-run for patient 6282779235
+==============================================================================
+Timeline events loaded:          298
+Auto-published episodes:         1
+Review-required candidates:      0
+Encounters linked (auto):        8
+Suppressed write Cypher count:   2
+Errors:                          ['coverage_incomplete:1_unaccounted']
+
+Proposed AUTO episodes (would persist):
+  [1] site=prostate_urological  tier=auto    status=active         start=2025-07-04 end=None
+       episode_id=ep-v2-f1d8cfc51ee71c69
+       encounters=8
+
+AUTO episode encounter IDs:
+  ep-v2-f1d8cfc51ee71c69 -> ['c322c648-a19f-4864-a46f-b46df25ff982', '98bde2e8-2139-4134-8b9a-1dec56bfa570', '72e8095f-5ff0-439b-90c3-dc524da6babd', '137327c3-b403-4049-87f4-f020bdbb5ace', '727f1407-a5d1-464f-8017-f1b692644c62', 'af8b7dbf-b243-4991-bd90-6ddf35b49d13', '44a4cbd9-5993-4d25-bd9d-355982dfdb9e', '28449c92-dd67-4ec1-8a17-52e206f866d1']
+
+Coverage report:
+  total encounters:               298
+  in_episodes:                    8
+  adjacent_to_active_episode:     151
+  no_signal:                      138
+  unaccounted (review needed):    1
+  unaccounted ids (first 10):
+    - 4bcf0e06-2a2b-4b09-a670-04101e502fba
+  adjacent ids (first 10):
+    - 09b518eb-aaf5-4f00-9b3d-ab4ba741c804
+    - 3706e2cc-45de-47ce-a86f-fc2b484641d5
+    - 85dda3b8-2b83-4f5a-ac23-a188559fea67
+    - a44116c2-0ff1-414f-92ef-49b7112b7d31
+    - c3045487-708d-44f6-afa1-9acfed8336c0
+    - 8d0dc784-6bb1-4628-bd33-9d2c04a04b03
+    - 9588cd26-1cf7-4f4b-b270-80982fb24536
+    - 97c2218b-1a3c-415d-a403-1812ba35dc42
+    - a70f03bf-3fa6-4daf-855d-fddae2b8f946
+    - 67436f3f-b4c0-43be-b37d-df50bd7dc691

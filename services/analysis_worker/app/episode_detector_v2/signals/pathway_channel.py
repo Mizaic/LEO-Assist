@@ -32,7 +32,10 @@ from ..site_keys import (
 from ..types import Signal, TimelineEvent
 
 
-_FORM_TYPE_TO_SITE = {
+# v0 constants -- kept for back-compat with tests and instances that
+# run without a rulebook bundle installed. Production always installs
+# the champion bundle at boot so these are the safe-fallback path.
+_V0_FORM_TYPE_TO_SITE = {
     # Canonical 2ww_<site_key> form types built by the live-graph
     # normaliser. Keep in sync with site_keys.ALL_SITES.
     "2ww_breast": SITE_BREAST,
@@ -57,7 +60,7 @@ _FORM_TYPE_TO_SITE = {
 }
 
 
-_REASON_TO_SITE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+_V0_REASON_TO_SITE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bbreast\b", re.I), SITE_BREAST),
     (re.compile(r"\b(oesophagus|gastric|stomach|upper gi|dysphagia)\b", re.I), SITE_UPPER_GI),
     (re.compile(r"\b(colorectal|colon|rectal|lower gi|pr bleed)\b", re.I), SITE_LOWER_GI),
@@ -71,14 +74,72 @@ _REASON_TO_SITE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 ]
 
 
+def _rulebook_form_type_map() -> dict[str, str]:
+    """Build the form_type -> site map from the installed rulebook
+    bundle, merged on top of the v0 Python constants. Rulebook entries
+    win on a collision so v1 can add new aliases without a binary ship.
+    """
+    try:
+        from libs.episode_detector.loader import current_bundle
+
+        merged: dict[str, str] = dict(_V0_FORM_TYPE_TO_SITE)
+        bundle = current_bundle()
+        for site in ALL_SITES:
+            rb = bundle.get(site)
+            if rb is None:
+                continue
+            for form_type in rb.signals.pathway_channel.form_types:
+                token = (form_type or "").strip().lower()
+                if token:
+                    merged[token] = site
+        return merged
+    except Exception:
+        return dict(_V0_FORM_TYPE_TO_SITE)
+
+
+def _rulebook_reason_patterns() -> list[tuple[re.Pattern[str], str]]:
+    """Return reason-regex patterns, preferring the champion rulebook's
+    catalogue when present and falling back to the v0 list for sites
+    without a rulebook.
+    """
+    try:
+        from libs.episode_detector.loader import current_bundle
+
+        patterns: list[tuple[re.Pattern[str], str]] = []
+        bundle = current_bundle()
+        sites_covered: set[str] = set()
+        for site in ALL_SITES:
+            rb = bundle.get(site)
+            if rb is None:
+                continue
+            for raw in rb.signals.pathway_channel.reason_regex:
+                try:
+                    patterns.append((re.compile(raw, re.IGNORECASE), site))
+                    sites_covered.add(site)
+                except re.error:
+                    # A malformed regex in the rulebook must not crash
+                    # the extractor; fail safe to v0 for that site.
+                    continue
+        # Fall back to the v0 pattern for any site the rulebook did
+        # not cover -- for example during the early v1 rollout when
+        # only breast ships a reason catalogue.
+        for pattern, site in _V0_REASON_TO_SITE_PATTERNS:
+            if site not in sites_covered:
+                patterns.append((pattern, site))
+        return patterns
+    except Exception:
+        return list(_V0_REASON_TO_SITE_PATTERNS)
+
+
 def _site_from_form(form: dict | None) -> str:
     if not form:
         return SITE_UNKNOWN
+    form_type_to_site = _rulebook_form_type_map()
     raw_type = (form.get("form_type") or "").strip().lower()
-    if raw_type in _FORM_TYPE_TO_SITE:
-        return _FORM_TYPE_TO_SITE[raw_type]
+    if raw_type in form_type_to_site:
+        return form_type_to_site[raw_type]
     reason = str(form.get("reason") or "")
-    for pattern, site in _REASON_TO_SITE_PATTERNS:
+    for pattern, site in _rulebook_reason_patterns():
         if pattern.search(reason):
             return site
     return SITE_UNKNOWN

@@ -1,0 +1,109 @@
+{
+  "activation": {
+    "auto_publish": false,
+    "min_precision": 0.95,
+    "suggest": false
+  },
+  "anchors": {
+    "clinic_seen_snomed": [
+      "382841000000109"
+    ],
+    "confirmed_snomed": [
+      "254900004",
+      "254915003",
+      "399068003"
+    ],
+    "referral_snomed": [
+      "276431000000102"
+    ],
+    "suspected_snomed": [
+      "315268008"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [],
+  "dependencies": {
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v0-2026.04.0",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.8,
+    "result": 0.9,
+    "text": 0.4,
+    "treatment": 0.6
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [],
+      "confirmed_confidence": 0.85,
+      "confirmed_snomed": [
+        "254900004",
+        "254915003",
+        "399068003"
+      ],
+      "suspected_confidence": 0.7,
+      "suspected_snomed": [
+        "315268008"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_prostate",
+        "2ww_prostate_urological",
+        "2ww_urology"
+      ],
+      "reason_regex": [
+        "\\b(prostate|urology|urological|psa)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [],
+      "negative_terms": [],
+      "observation_snomed": [],
+      "positive_terms": []
+    },
+    "text_channel": {
+      "regex_catalogue": [
+        "\\b(prostate|prostat\\w+)\\b",
+        "\\b(psa|prostate[- ]specific antigen)\\b",
+        "\\b(urology|urological|urologist)\\b",
+        "\\b(trus|transrectal)\\b",
+        "\\b(mri prostate|mp[- ]?mri)\\b",
+        "\\b(bph|benign prostatic|lower urinary tract symptoms|luts)\\b",
+        "\\b(haematuria|blood in (the )?urine)\\b",
+        "\\b(bladder cancer|renal cell|kidney cancer)\\b",
+        "\\b(nocturia|hesitancy|poor stream|dribbling)\\b",
+        "\\b(digital rectal exam|dre)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "prostate_urological",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 730,
+    "lookback_days": 365
+  }
+}

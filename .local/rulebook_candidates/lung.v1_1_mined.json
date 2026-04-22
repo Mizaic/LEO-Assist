@@ -1,0 +1,141 @@
+{
+  "activation": {
+    "auto_publish": true,
+    "min_precision": 0.95,
+    "suggest": true
+  },
+  "anchors": {
+    "clinic_seen_snomed": [],
+    "confirmed_snomed": [
+      "254632001",
+      "254637007",
+      "363358000",
+      "363504009"
+    ],
+    "referral_snomed": [
+      "276401000000108"
+    ],
+    "suspected_snomed": [
+      "162573006"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": 90,
+      "requires_any_of": [
+        "result.negative_terms",
+        "snomed:1290959000",
+        "snomed:260385009",
+        "snomed:266569009"
+      ]
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": [
+        "snomed:277022003"
+      ]
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [
+    "134405005",
+    "162574000",
+    "162575004",
+    "315266007",
+    "315268008",
+    "315273002",
+    "397657005",
+    "162573006"
+  ],
+  "dependencies": {
+    "derived_from": "lung-gold-cohort",
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v1-2026.04.0+mined.gold3",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.9,
+    "result": 0.95,
+    "text": 0.5,
+    "treatment": 0.5
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.75,
+      "benign_closure_snomed": [
+        "1290959000",
+        "260385009",
+        "266569009"
+      ],
+      "confirmed_confidence": 0.9,
+      "confirmed_snomed": [
+        "254632001",
+        "254637007",
+        "363358000",
+        "363504009"
+      ],
+      "suspected_confidence": 0.8,
+      "suspected_snomed": [
+        "162573006"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_lung",
+        "lung_2ww"
+      ],
+      "reason_regex": [
+        "\\b(lung|chest|haemoptysis|cough|breathless|smoker)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [
+        "bronchoscopy",
+        "chest ct",
+        "chest x-ray",
+        "chest xray",
+        "ct thorax",
+        "cxr"
+      ],
+      "negative_terms": [
+        "benign",
+        "negative",
+        "no abnormality",
+        "no malignancy",
+        "normal"
+      ],
+      "observation_snomed": [
+        "1290959000"
+      ],
+      "positive_terms": [
+        "adenocarcinoma",
+        "carcinoma",
+        "invasive",
+        "malignant",
+        "squamous cell carcinoma"
+      ]
+    },
+    "text_channel": {
+      "regex_catalogue": [
+        "\\b(smoker|ex-smoker|pack year|cough|haemoptysis|breathless|chest pain)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "lung",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 540,
+    "lookback_days": 180
+  }
+}

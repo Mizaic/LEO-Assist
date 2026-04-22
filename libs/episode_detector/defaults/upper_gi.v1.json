@@ -1,0 +1,148 @@
+{
+  "activation": {
+    "auto_publish": true,
+    "min_precision": 0.95,
+    "suggest": true
+  },
+  "anchors": {
+    "clinic_seen_snomed": [
+      "382811000000108"
+    ],
+    "confirmed_snomed": [
+      "16013000",
+      "363349007",
+      "363402007"
+    ],
+    "referral_snomed": [
+      "276551000000108"
+    ],
+    "suspected_snomed": [
+      "162574000",
+      "315266007",
+      "315273002"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": 90,
+      "requires_any_of": [
+        "result.negative_terms",
+        "snomed:260385009",
+        "snomed:266569009"
+      ]
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": [
+        "snomed:277022003"
+      ]
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [
+    "134405005",
+    "162573006",
+    "162575004",
+    "315268008",
+    "397657005"
+  ],
+  "dependencies": {
+    "derived_from": "upper-gi-gold-cohort",
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v1-2026.04.0",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.9,
+    "result": 0.9,
+    "text": 0.5,
+    "treatment": 0.7
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [
+        "260385009",
+        "266569009"
+      ],
+      "confirmed_confidence": 0.9,
+      "confirmed_snomed": [
+        "16013000",
+        "363349007",
+        "363402007"
+      ],
+      "suspected_confidence": 0.8,
+      "suspected_snomed": [
+        "162574000",
+        "315266007",
+        "315273002"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_upper_gi",
+        "upper_gi_2ww"
+      ],
+      "reason_regex": [
+        "\\b(oesophagus|gastric|stomach|upper gi|dysphagia|indigestion|reflux)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [
+        "barium swallow",
+        "endoscopy",
+        "gastroscopy",
+        "ogd",
+        "oesophagogastroduodenoscopy"
+      ],
+      "negative_terms": [
+        "benign",
+        "negative",
+        "no abnormality",
+        "no malignancy",
+        "normal"
+      ],
+      "observation_snomed": [],
+      "positive_terms": [
+        "adenocarcinoma",
+        "carcinoma",
+        "invasive",
+        "malignant",
+        "squamous cell carcinoma"
+      ]
+    },
+    "text_channel": {
+      "regex_catalogue": [
+        "\\b(dysphagia|odynophagia)\\b",
+        "\\b(reflux|heartburn|indigestion|dyspepsia|epigastric)\\b",
+        "\\b(ogd|gastroscop\\w*|endoscop\\w*|oesophago\\w*)\\b",
+        "\\b(stomach cancer|gastric cancer|oesophageal cancer)\\b",
+        "\\b(barrett|barretts|barrett's)\\b",
+        "\\b(weight loss|appetite loss|anorexi\\w*)\\b",
+        "\\b(helicobacter|h\\. pylori|h pylori)\\b",
+        "\\b(upper gi|upper gastrointestinal)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [
+        "\\b(proton pump inhibitor|ppi|omeprazole|lansoprazole|pantoprazole)\\b"
+      ],
+      "snomed": [
+        "108666007"
+      ]
+    }
+  },
+  "site_key": "upper_gi",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 540,
+    "lookback_days": 180
+  }
+}

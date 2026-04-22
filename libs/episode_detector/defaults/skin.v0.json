@@ -1,0 +1,98 @@
+{
+  "activation": {
+    "auto_publish": false,
+    "min_precision": 0.95,
+    "suggest": false
+  },
+  "anchors": {
+    "clinic_seen_snomed": [],
+    "confirmed_snomed": [
+      "372244006"
+    ],
+    "referral_snomed": [
+      "276441000000106"
+    ],
+    "suspected_snomed": [
+      "276751004"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [],
+  "dependencies": {
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v0-2026.04.0",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.8,
+    "result": 0.9,
+    "text": 0.4,
+    "treatment": 0.6
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [],
+      "confirmed_confidence": 0.85,
+      "confirmed_snomed": [
+        "372244006"
+      ],
+      "suspected_confidence": 0.7,
+      "suspected_snomed": [
+        "276751004"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_skin"
+      ],
+      "reason_regex": [
+        "\\b(melanoma|skin lesion)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [],
+      "negative_terms": [],
+      "observation_snomed": [],
+      "positive_terms": []
+    },
+    "text_channel": {
+      "regex_catalogue": [
+        "\\b(melanoma|melanocytic)\\b",
+        "\\b(mole|nevus|naevus)\\b.{0,30}\\b(chang\\w+|irregular|asymmetric|bleed\\w*)\\b",
+        "\\b(bcc|basal cell carcinoma)\\b",
+        "\\b(scc|squamous cell carcinoma)\\b",
+        "\\b(skin lesion|pigment\\w* lesion)\\b",
+        "\\b(dermoscop\\w*|dermoscopy)\\b",
+        "\\b(2[- ]?week wait skin|skin 2ww)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "skin",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 730,
+    "lookback_days": 365
+  }
+}

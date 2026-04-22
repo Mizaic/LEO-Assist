@@ -1,0 +1,99 @@
+{
+  "activation": {
+    "auto_publish": false,
+    "min_precision": 0.95,
+    "suggest": false
+  },
+  "anchors": {
+    "clinic_seen_snomed": [],
+    "confirmed_snomed": [
+      "363375008"
+    ],
+    "referral_snomed": [
+      "276421000000104"
+    ],
+    "suspected_snomed": [
+      "315264005"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [],
+  "dependencies": {
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v0-2026.04.0",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.8,
+    "result": 0.9,
+    "text": 0.4,
+    "treatment": 0.6
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [],
+      "confirmed_confidence": 0.85,
+      "confirmed_snomed": [
+        "363375008"
+      ],
+      "suspected_confidence": 0.7,
+      "suspected_snomed": [
+        "315264005"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_head_neck"
+      ],
+      "reason_regex": [
+        "\\b(head and neck|throat|laryng)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [],
+      "negative_terms": [],
+      "observation_snomed": [],
+      "positive_terms": []
+    },
+    "text_channel": {
+      "regex_catalogue": [
+        "\\b(oral cavity|tongue|throat|larynx|laryngeal|pharynx|pharyngeal)\\b",
+        "\\b(hoarseness|persistent hoarse)\\b",
+        "\\b(neck (lump|mass|swelling))\\b",
+        "\\b(thyroid (lump|nodule|cancer))\\b",
+        "\\b(oral ulcer|mouth ulcer|white patch|red patch|leukoplakia)\\b",
+        "\\b(head and neck|head[- ]?and[- ]?neck)\\b",
+        "\\b(ent referral|ent clinic)\\b",
+        "\\b(salivary gland|parotid)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "head_neck",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 730,
+    "lookback_days": 365
+  }
+}

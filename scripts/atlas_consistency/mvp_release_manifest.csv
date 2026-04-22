@@ -1,0 +1,979 @@
+dc_type,dc_uuid,dc_id,dc_title,safety_class,release_wave
+design-input,00e16f9e-1a48-4fa0-ba4b-b6833578e834,DI-00E16F9E,Mandatory acknowledgement gate for coverage and data-gap warnings,B,R1
+design-input,0338a282-0c42-4fc3-bd1e-07c92a3f86b6,DI-0338A282,Histology vocabulary expansion for confirmed-cancer and benign-closure detection,B,R3
+design-input,04105500-d813-4cf8-96b0-3409c4d28433,DI-04105500,"Coding correction request structured display schema (original, replacement, concept, rationale)",B,R4
+design-input,058524db-5b57-4e2d-bab7-0547a4b9030d,DI-058524DB,API request/response contract models,A,R5
+design-input,080a2454-acb4-42a6-8e37-527089c33476,DI-080A2454,Provenance record immutable retention policy enforcement (7-year minimum),B,R3
+design-input,098d2c0d-b35b-48f0-b629-f1674fedd21a,DI-098D2C0D,Cohort metadata disclosure in clinician-facing outputs,B,R1
+design-input,09df0a10-e4c5-4f1d-80ab-f7c9aeb2d3d1,DI-09DF0A10,Auth and settings SHALL provide consistent shell and onboarding,B,R5
+design-input,09e26c1d-57ac-4091-b78e-ad9c539f6422,DI-09E26C1D,Audit trail API providing provenance access without clinical record exposure,B,R3
+design-input,0a239b7d-a050-448c-9e65-afccc29095dc,DI-0A239B7D,"Canonical NCDA cancer-type vocabulary enforced end-to-end across LLM, graph, API and UI",B,R3
+design-input,0a5cc384-af30-4492-9c66-03e7d2ee1569,DI-0A5CC384,Exportable tamper-evident review decision ledger,B,R3
+design-input,0c8fbaf7-c211-49ae-8d86-c6d45f3eeb73,DI-0C8FBAF7,Change history pattern surfacing and systematic guideline divergence flagging in impact review panel,B,R4
+design-input,0d7dcc52-5c27-4c26-8669-f448c089aab8,DI-0D7DCC52,Programme-level configuration of completeness and suppression thresholds,B,R1
+design-input,0ffa05bb-1ac9-4cb9-a7ae-49cb53f755ea,DI-0FFA05BB,"AI first-pass SHALL generate, score, and queue candidate codes",B,R3
+design-input,105a4ec7-a68e-49ae-95c9-3f61acec63ca,DI-105A4EC7,MECE lifecycle classifier for hero cards,B,R3
+design-input,10bb41e9-4a6f-4446-a495-6d0e687e7883,DI-10BB41E9,Shortlisting recall quality gate: minimum 95% recall on gold-standard labelled dataset,B,R3
+design-input,12015dbc-0e72-4291-9208-0702ac4242fa,DI-12015DBC,SNOMED coding accuracy quality gate: minimum F1 0.85 on gold-standard dataset,B,R1
+design-input,13f340b9-fe7a-4a37-bbdf-31d321643dc6,DI-13F340B9,Large-scale coding correction mandatory secondary review threshold gate,B,R4
+design-input,143f69eb-c5a1-4376-aea1-b7a31fb4c8e7,DI-143F69EB,"Multi-mode encounter shortlisting: keyword, full-text, and vector similarity search with configurable fusion",B,R3
+design-input,147c8ef0-0bac-468e-9bd3-7f3522911aef,DI-147C8EF0,Guidance rule extraction: AI-generated structured candidates with source section reference and prompt version,B,R4
+design-input,1501326a-fbeb-4823-b9c2-2c363ed629c2,DI-1501326A,Programme inclusion criteria stored as versioned configuration applied without code deployment,B,R3
+design-input,155bb31e-c6ac-4b7c-bff7-bc3f8fd9fdaf,DI-155BB31E,Patient data encrypted at rest with AES-256 and in transit with TLS 1.2 minimum,B,R1
+design-input,1795254d-68df-4473-ad84-4a5172cb1b26,DI-1795254D,FHIR R4 compliant API for all patient record ingestion and audit result export,B,R5
+design-input,17b5738e-74be-4f98-9c99-8f02d1fe6bbe,DI-17B5738E,"Terminology API: text embedder, ValueSet and ConceptMap queries",B,R5
+design-input,181a2f08-53ba-4f34-8fa9-bf8e75c19c66,DI-181A2F08,Cypher and outbound HTTP input controls,B,R4
+design-input,1987bcf5-0d3a-479d-8600-e3eb8d60b319,DI-1987BCF5,Onboarding checklist: six mandatory steps with completion recording and programme activation gate,A,R5
+design-input,19b08ffc-006a-4396-b092-6f8292da30e4,DI-19B08FFC,Per-tenant AI usage accounting and configurable commercial rates,A,R5
+design-input,1b8ac856-3623-44ea-a2de-eff74a67a55f,DI-1B8AC856,Coding correction review with dependency and terminology validation,B,R4
+design-input,1d584d40-6b10-4bfe-b04d-18109f10be36,DI-1D584D40,Care portal SHALL provide patient and encounter navigation,B,R3
+design-input,1e8d8678-1fb1-4c8a-9e63-633025b51f44,DI-1E8D8678,Guideline update review: side-by-side version comparison with source navigation and affected rules enumeration,B,R3
+design-input,20104031-04d8-4876-b9c8-e2caa16dc987,DI-20104031,ODS sync worker entry point,B,R5
+design-input,2049fd08-8564-4269-9fa5-82e6e1cfe4b6,DI-2049FD08,Value Set and Concept Map Management,B,R4
+design-input,21996926-a875-4392-9535-85b5c7430e8d,DI-21996926,LLM usage cost configuration module,B,R5
+design-input,21c63b6a-1c48-4089-999f-82aac32c3d64,DI-21C63B6A,"Single @leo/design-system workspace package for tokens, primitives, motion, copy",A,R3
+design-input,22404ce4-c909-4b80-9967-d477f46b9ea9,DI-22404CE4,Rule editor sandbox-only test surface and saved-not-live banner,B,R4
+design-input,22d862b0-276b-447e-aa71-0cb808ac51c0,DI-22D862B0,Reviewer engagement metrics logging and clinical safety officer monitoring view for automation bias detection,B,R3
+design-input,22f4e3ce-33d6-4ab8-b996-3a31419c70b8,DI-22F4E3CE,Historical code frequency display on coding correction review page,B,R4
+design-input,23822663-b4be-4aae-a804-0635147f32c3,DI-23822663,Assertion evidence text context stored alongside assertion label,B,R3
+design-input,250f32ec-9db3-4a0a-8361-951071fa2137,DI-250F32EC,Reversible de-identification placeholder substitution with in-memory session mapping,B,R1
+design-input,26cbdb16-60d9-4210-9373-bbbe7665f851,DI-26CBDB16,Terminology currency validation for proposed replacement codes in coding corrections,B,R4
+design-input,2774e3e4-8a4a-4b6b-b384-55c5b87bde90,DI-2774E3E4,"UI Safety, Accessibility, and Usability Remediation",B,R3
+design-input,280f5a0c-29f5-476d-8b29-4792e5162321,DI-280F5A0C,DE-ID leakage gate for training corpora,B,R3
+design-input,29eee9c3-0ce9-4c81-a293-9403d43d5aa9,DI-29EEE9C3,"Five reusable explanation primitives (PageIntro, HelpPopover, CoachMark, ProgressiveReveal, GlossaryTerm)",B,R3
+design-input,2aff691f-fccc-4573-b584-39d5468a400e,DI-2AFF691F,Automated guideline conformance evaluation on coded encounters,B,R1
+design-input,2b050b59-1a7c-4dd4-acc5-3f88ebb2d482,DI-2B050B59,"CompletenessReport persisted to Neo4j, embedded in SBAR, and emitted on completion event",B,R1
+design-input,2ba09666-6c12-483b-b6c4-aab3c3ec9037,DI-2BA09666,Service-aware completeness checker subgraph executed before guideline / biomap evaluation,B,R1
+design-input,2c12a9d7-629a-402c-af85-3f7eb3e9bc59,DI-2C12A9D7,Stage-at-diagnosis enrichment engine,B,R3
+design-input,2d49649c-4308-4507-bd4c-9baa5e359ecd,DI-2D49649C,Model artefact blob store,B,R5
+design-input,2e01cc45-c253-4829-b594-6ba5a8610da0,DI-2E01CC45,Rule editor SHALL let reviewers name each pathway in plain English,B,R5
+design-input,2f157317-7f89-4e03-bcd4-65902de31f4f,DI-2F157317,Content currency gate: marking as current requires linked verification event; automatic overdue transition by type-specific interval,B,R3
+design-input,2f963fc6-c933-4557-b5c8-a62b1d666875,DI-2F963FC6,"NER post-processing, lab-triple recovery, and seed ingestion",B,R5
+design-input,2fbdac7d-ce8e-4019-ad07-2f3988be2efd,DI-2FBDAC7D,"LEO widget hosts SHALL be governed by SaaS Embedding Agreement, DPA, DCB0129 reference, and IFU acknowledgement",B,R7
+design-input,3020d1c0-487f-4ce1-8472-22af3d4a06d9,DI-3020D1C0,Analytics filters exclude non-confirmed assertions from CCI and cohort filters,B,R1
+design-input,30d9cc61-420c-42a0-b884-4c14665103ee,DI-30D9CC61,"SBAR: AI-generated structured summary from coded encounters, pathway stage, and safety netting alerts",B,R1
+design-input,3103a562-4755-40bd-9528-e2090ec6fb6d,DI-3103A562,Training worker entry point and spaCy training CLI,B,R5
+design-input,31126c6c-2b3a-4970-b4ac-03d3834d5a60,DI-31126C6C,NER-to-SNOMED entity extraction with confidence score and full provenance metadata,B,R1
+design-input,3197332f-83e5-4588-87fa-5200e33adee9,DI-3197332F,Disorder verifier classifies active/informational/historical/uncertain with mode-aware fail-safe,B,R1
+design-input,31f4c232-ef3a-4012-8994-9d3097b6b12f,DI-31F4C232,"/admin/entra/* SHALL provide Microsoft-Graph-backed domain, user, and group management using the signed-in admin's delegated token",B,R5
+design-input,3610585d-910e-4117-9364-4874db833e96,DI-3610585D,"LEO Entra app reg SHALL restrict Microsoft Graph use to delegated, OBO calls from the admin portal only",B,R5
+design-input,3717dfb0-bbce-4bcf-8fb3-cfb0d4ec7a4a,DI-3717DFB0,Shared utilities: device resolver and structured logging setup,A,R5
+design-input,37315d03-f5c4-4a6c-b2cf-9cc625086add,DI-37315D03,Audit quality loops: per-entity-type coding frequency drift detection with configurable threshold,B,R3
+design-input,375c7eb1-f98d-48a6-b924-c453fe7a27ba,DI-375C7EB1,Assertion context label and evidence display on SNOMED coding review card,B,R1
+design-input,378f987a-e955-41a6-8f4e-4b1b65a286b2,DI-378F987A,Post-processing preservation of overlapping same-label spans with divergent terminology lookups,B,R3
+design-input,37b3dc71-8a3d-4018-9dea-4565fe22f1ec,DI-37B3DC71,"Model improvement cycle with active learning, metrics, golden gate, and warm start",B,R3
+design-input,37b52693-b716-463d-9630-5ccbdd19a80a,DI-37B52693,"Triage view: visually distinct labelled panels, cohort filter by age/symptom/source, single-view completion",B,R3
+design-input,37d1b7d7-1c8a-4361-ae28-838bf471f1e5,DI-37D1B7D7,In-memory message bus adapter for development and tests,A,R5
+design-input,37ddaade-41c4-4970-bc52-268a2c02fefa,DI-37DDAADE,"Episode classification status schema (confirmed, excluded, inconclusive)",B,R3
+design-input,386607a5-42d4-4f72-97c4-73bd7d240dc8,DI-386607A5,MECE lifecycle classifier and audit summary endpoint for dashboard hero cards,B,R3
+design-input,39c53cda-9e4e-4ed3-8f37-304fb909fff5,DI-39C53CDA,Centralised MUI theme factory (createLeoTheme) sourced from design-system tokens,A,R3
+design-input,3b3f7d4b-e626-43ff-9eda-3476d54f176a,DI-3B3F7D4B,DI-LEO-AI-005,B,R1
+design-input,3c06afd0-11e6-4f21-876d-06fd1257e371,DI-3C06AFD0,LEO widget SHALL auto-update within a major under LEO QMS with CSO-controlled rollback and safety advisory channel,B,R7
+design-input,3dfee507-85bb-4ef2-9d10-2a1eabf23993,DI-3DFEE507,Knowledge Graph GoldLabel as single source of truth for training data,B,R3
+design-input,3f771afb-51d8-4e20-b18b-aa56a6318709,DI-3F771AFB,Admin portal SHALL expose self-service tenant configuration,B,R5
+design-input,4221a226-f4f6-4ed9-af05-b8ce813640ab,DI-4221A226,NLP surface form dependency display in coding correction review,B,R4
+design-input,4247c7e5-b9a0-4e37-92ff-51191224a32c,DI-4247C7E5,HITL gate: SNOMED coding proposals require individual reviewer decision before entering final audit data,B,R1
+design-input,425ca252-48c0-4654-a78a-5444c81ba602,DI-425CA252,Structured override taxonomy capture on every coding correction,B,R3
+design-input,44802df3-c562-43d3-8839-fbdf62f70884,DI-44802DF3,NICE TA and QS impact tracking with SLA timers,B,R4
+design-input,452d4303-2894-4ade-b112-7533c740fe3c,DI-452D4303,PII detection gate: training export aborted and logged if patient identifiers detected,B,R3
+design-input,4710ef03-46b3-47f2-a33d-3ccca27584ec,DI-4710EF03,Text-based cancer-site classification from gold-mined surface forms,B,R3
+design-input,4746a178-d464-4a93-adfa-1a722508d873,DI-4746A178,Ranked patient shortlist with fused relevance score and supporting evidence spans,B,R3
+design-input,4885d9ff-3492-46a2-992a-412b1ee6be10,DI-4885D9FF,Episode timeline generation with pathway gap highlighting,B,R3
+design-input,48acd153-4580-40f3-b6ad-46e9de1fb419,DI-48ACD153,Guideline conflict detection before staging with under-review status preserving active availability,B,R3
+design-input,48ad06e5-43dc-4319-a57b-53aba0b9f28e,DI-48AD06E5,LLM extractor emits self-rated assertion and confidence per entity,B,R3
+design-input,48c13eb6-95ae-4c79-a287-5e8b8a572722,DI-48C13EB6,ConText rule change: pre-save assertion distribution impact report against held-out corpus,B,R3
+design-input,49403c92-1a08-4c47-b7bb-d8652b1d523c,DI-49403C92,Post-treatment recovery markers and comparable trajectories,B,R3
+design-input,497f8a50-9de1-4cf7-9a70-e9c3ddd251e8,DI-497F8A50,LLM-Based AppropriatenessRule Authoring with HITL Gate,B,R1
+design-input,49a8f570-4dc4-4841-a43f-370353219643,DI-49A8F570,Present investigation escalation thresholds and comparable cohort trajectories,B,R3
+design-input,4dfab32f-f9ca-4e1c-8a1e-78560b7b8c8a,DI-4DFAB32F,Learnable ConText assertion classifier,B,R3
+design-input,4f67189b-b8b1-4998-a46c-10eddbbedd0b,DI-4F67189B,Reviewer correction event schema immutably linked to extraction provenance,B,R3
+design-input,522bbcc4-52fa-493d-af9e-e5f8659ec41e,DI-522BBCC4,"LEO UI density modes (Compact, Comfortable, Spacious) with patient-route safe defaults",B,R3
+design-input,527848a8-7847-49cf-b8ea-4afac2ad6aea,DI-527848A8,Staging enrichment uses post-diagnosis window with site-specialty filter,B,R3
+design-input,54d00e21-c397-4cad-99ba-699d5056688b,DI-54D00E21,Audit agent resource bounds: configurable iteration limit and token/cost budget enforcement,B,R3
+design-input,55c1c21f-4bf7-4743-bbb2-32032040274d,DI-55C1C21F,DI-LEO-AI-526: Server-side search term expansion for the dry-run review queue,B,R3
+design-input,5672762d-e582-4744-99eb-c826f65a6024,DI-5672762D,Diagnosis-aware open-episode completion (rescue auto-stale),B,R3
+design-input,5700882e-e4f0-43b2-82f2-648b9cdc6819,DI-5700882E,Neo4j MCP server for analyst and reviewer workflows,B,R3
+design-input,57daab93-2bdf-4eca-9877-31f3393e6251,DI-57DAAB93,CodingDecision Audit Trail,B,R1
+design-input,587eb97e-12f0-4472-9bdb-9d729e773ab8,DI-587EB97E,Operations workspace inclusive redesign,B,R3
+design-input,59824215-f081-474d-add7-9225743e45cb,DI-59824215,"The system shall keep test patients in the same shape as real patients, with a clear test marker, so the AI tools read them the same way",B,R4
+design-input,59f2b21e-ee5a-4aa2-a52a-2e06bfdfffc2,DI-59F2B21E,Mandatory clinical impact assessment section before approval,B,R4
+design-input,5a18a227-dbb1-478c-a688-a248721190ef,DI-5A18A227,/admin/portal SHALL remain fully functional for tenants that have not granted Microsoft Graph admin consent,B,R5
+design-input,5adec3d1-5afc-4e8b-bd24-1372d88c1489,DI-5ADEC3D1,Confirmation state reset on reviewer correction with mandatory re-engagement before re-confirmation,B,R3
+design-input,5b694fbe-1c21-4bfe-858a-bced75c7d1dd,DI-5B694FBE,Episode-engine state and writer rollups for the analysis worker,B,R5
+design-input,5e25e872-d289-403b-8112-fa5002986fb0,DI-5E25E872,Guideline evaluation completion within 5 seconds per patient at p95,B,R1
+design-input,5e7e8cef-4266-4d1b-a027-da20adbd8929,DI-5E7E8CEF,Global active training job indicator visible from all admin pages,A,R5
+design-input,5eecda58-ec73-4011-9dd9-75fae11f9952,DI-5EECDA58,Reviewer self-approval prevention and administrator-only credential profile management with full audit logging,B,R4
+design-input,5f121122-8362-4f03-a901-c9755e8b81d8,DI-5F121122,LEO widget SHALL emit required disclosure-engagement telemetry to LEO analytics,B,R7
+design-input,5f978e36-9468-4e16-a13d-9e1f3e8d484e,DI-5F978E36,Service-to-service authentication helper,B,R5
+design-input,604767b1-76f3-40a7-99fc-488d75035e6d,DI-604767B1,Human-review gate blocking publication of AI-generated interpretations without reviewer decision,B,R1
+design-input,6051f076-88e0-439d-8cb2-655b8b3da979,DI-6051F076,Specialist outcome letter inference for benign episode closure,B,R3
+design-input,61cb27b2-41a7-4f8e-ac89-e9e152fccad7,DI-61CB27B2,DM Sans typography via next/font with humanist sans for clinical labels,A,R3
+design-input,620fe631-d795-4689-ad94-e1dba1b45fdb,DI-620FE631,End-to-end single-patient pipeline processing within 10 seconds at the 95th percentile,B,R3
+design-input,636d331a-4065-416f-92ff-90c9fa39af67,DI-636D331A,"Change queue item context display, sort/filter, reviewer notification, and escalation for overdue items",B,R4
+design-input,65975321-ef5a-4ad0-89bd-947ced64643b,DI-65975321,"Audit-quality, escalation, and security event logging",B,R5
+design-input,66f1b177-a916-428c-aa58-6d0b0030cd62,DI-66F1B177,Plain-language interpretation of coded findings for reviewers,B,R1
+design-input,69c29eef-c8d2-46a7-85aa-a88d0500f1a7,DI-69C29EEF,Clinical significance framing: interpretation content bounded to structured input facts,B,R1
+design-input,6a0b55a4-484b-4847-9427-a651edf73560,DI-6A0B55A4,Clinical qualifier preservation in LLM extraction for SNOMED specificity,B,R3
+design-input,6a1cd328-fccd-4c55-9115-1a324d10d9b3,DI-6A1CD328,FHIR-based agent configuration registry,B,R5
+design-input,6b05cc05-6440-4617-a01d-c87d603a4b88,DI-6B05CC05,API authorization and tenant scoping,B,R4
+design-input,6b085c04-d076-4760-8197-e1c0d3d3dc63,DI-6B085C04,NICE structured assessment prompt with mandatory obligation detection and 'not applicable' rationale recording,B,R4
+design-input,6c5d77ca-26a6-4c88-977c-d402ee41ffd3,DI-6C5D77CA,Referral triage view with eligibility rules and comparable outcomes,B,R3
+design-input,6cf7fce0-0c86-46b9-a048-c539d05c336f,DI-6CF7FCE0,"/admin/entra/* Graph calls SHALL be OBO-only, tenant-scoped, and fully audited",B,R5
+design-input,6e1b71a4-42b4-4e68-9132-4c64bd206b79,DI-6E1B71A4,Algorithm runner and audit-helper routers in analytics API,B,R5
+design-input,6e6c9336-f6fa-4bbf-83f1-ffc7d3c9edd5,DI-6E6C9336,Inference API response schema: one result per span-label pair for multi-type spans,B,R3
+design-input,6ea84931-6749-466e-9317-cf63a38f47e2,DI-6EA84931,Deployment status panel on approved change records visible from review interface,B,R4
+design-input,6efd68d0-feb3-48f0-8e8c-639cbb0a8e25,DI-6EFD68D0,Lossless multi-label span export to model training format,B,R3
+design-input,702f4583-7030-45ba-82af-db2612e15425,DI-702F4583,Programme configuration hot-reload: changes take effect at next run without service restart,B,R4
+design-input,71087a9e-01cb-4627-8e61-8db100570ccb,DI-71087A9E,CI/CD pipeline integrity,B,R4
+design-input,710d5213-3e9a-45c8-b775-88eb46ba84ec,DI-710D5213,"FHIR R4: coded findings as Observation, milestones as EpisodeOfCare, audit results as MeasureReport with meta.source provenance",B,R5
+design-input,736b698b-2c76-43ac-92d7-160692c779bc,DI-736B698B,Episode classification accuracy gate: minimum 85% F1 against expert consensus,B,R3
+design-input,740be510-b7a7-422e-bc91-d85e55d80e70,DI-740BE510,SBAR: source encounter and coded entity provenance links on every clinical statement,B,R1
+design-input,748c2625-c6ed-4e13-867a-49aeb1e5f058,DI-748C2625,Lock-aware episode_builder and recode rebuild,B,R3
+design-input,760f5fb7-58c9-4ee7-bcfd-af320dbccd00,DI-760F5FB7,Terminology tools SHALL provide import/maintenance + safe MCP read,B,R4
+design-input,7625c251-5c82-43fa-8419-d2ad0623051a,DI-7625C251,"The Test Patients page shall live in the Knowledge area of the admin app, with a filter for which part of the AI to test",B,R4
+design-input,770fd74a-8ea8-46a3-86c3-69d2eb55b716,DI-770FD74A,Runtime-configurable override error category taxonomy with version tracking,B,R3
+design-input,7736f734-2076-4d75-b12b-3c47b45af18f,DI-7736F734,Care Overview PageIntro and accessible summary card typography,B,R3
+design-input,7790eea5-8157-4752-a74f-e932b5af77a8,DI-7790EEA5,Rule engine SHALL support observation-based criteria with five evaluation modes and fail-closed unit handling,B,R5
+design-input,7913344a-f1bf-4b57-8550-761014eb8072,DI-7913344A,Human-review gate blocking downstream actions from unreviewed guideline alerts,B,R1
+design-input,79509e39-a495-4f50-9b40-130818715977,DI-79509E39,Alert fatigue suppression for normal-range investigation results with configurable programme-level thresholds,B,R3
+design-input,7a7bfa0c-e1d5-4e2d-ba01-fdbf80c65114,DI-7A7BFA0C,Terminology hybrid retrieval skips vector search only when top lexical score >= 0.7,B,R1
+design-input,7c53cc70-b0ba-4832-95dd-ed689c238074,DI-7C53CC70,"Benchmark chart rendering: three-state colour scheme, delta labels, WCAG 2.1 AA compliance, human-readable labels",A,R3
+design-input,7c5ec850-401c-4ad0-8f1d-62e83b222be4,DI-7C5EC850,Risk-scored change queue with production deployment interlock,B,R4
+design-input,7efe2326-be4f-4ad0-9b10-0b9b0a8b0a95,DI-7EFE2326,ServiceDataRequirement registry: versioned per-service data completeness configuration,B,R1
+design-input,7f08913a-bffd-4f5e-9e2d-3742ed84ccef,DI-7F08913A,GDPR-Isolated Learning Loop and Operations UX,B,R3
+design-input,80579dcc-ba3c-4941-b7d5-d98a21546caa,DI-80579DCC,Guideline authoring with mandatory source linkage and staged promotion,B,R3
+design-input,80dd8a47-41e4-42e2-acdb-529aadae52d3,DI-80DD8A47,Configurable single-vs-dual-model LLM consensus runner,B,R1
+design-input,81e8f4b8-22d3-449e-b963-f93546235ff5,DI-81E8F4B8,Azure managed-identity credential resolver,B,R5
+design-input,82036b4d-50d2-491e-bf48-1f0ca497697b,DI-82036B4D,"Terminology preferred-term, surface normalisation, semantic tags",B,R5
+design-input,8239c932-9060-4ea4-96a4-5740bd9b1d44,DI-8239C932,Frontend redirect and content sanitisation,B,R4
+design-input,84f44836-fd58-42a8-92fa-b841074cbd4b,DI-84F44836,Physical separation of patient data and terminology data into distinct database instances,B,R1
+design-input,85944331-ca4c-43d5-a774-47bc6c3d483e,DI-85944331,LEO widget SHALL render with locked LEO-by-Mizaic branding and reactive light/dark mode,B,R7
+design-input,85ab13d7-30c1-46b2-a107-08837f79cdb1,DI-85AB13D7,"LLM prompt asset registry (templates, examples, output schemas)",B,R5
+design-input,85b110a5-86ad-4b48-81a1-9988d653ca0a,DI-85B110A5,Editor SHALL support clinical review and gold-label authoring,B,R3
+design-input,85c95e53-d211-4919-9867-3e92b00a143d,DI-85C95E53,LEO widget SHALL distribute as Shadow-DOM web component plus hardened iframe variant,B,R7
+design-input,86a1e16f-ef7b-4075-979b-0c24695e5c24,DI-86A1E16F,Model registry (Neo4j-backed) with manifest and training adapter,B,R5
+design-input,87cccb18-2221-40f1-9102-103f4321eb6f,DI-87CCCB18,Multi-tenancy: tenant token validation before query execution with architecturally enforced single-driver scoping,B,R1
+design-input,8804da01-adbb-4e43-bda9-c183c9860fa9,DI-8804DA01,SBAR: mandatory human review gate before finalisation with AI-original/edit delta record,B,R1
+design-input,88c1715a-cb82-4e4b-95d0-866a479d308f,DI-88C1715A,API service tier SHALL implement business logic outside routers,B,R3
+design-input,88c8bbcd-9fa8-4548-a495-7cba52698955,DI-88C8BBCD,LLM fallback method labelling and threshold configuration for NER coding proposals,B,R1
+design-input,88f20177-128a-4864-8863-f9ea06aaddc1,DI-88F20177,Data-gap detection and mandatory disclosure for clinician-facing outputs derived from incomplete data,B,R1
+design-input,890be989-9b05-4f6e-a2ab-918feea50c24,DI-890BE989,Unified review queue for all AI proposal types with reviewer corrections stored as structured training data,B,R3
+design-input,894d904c-b24f-4968-b505-fb769f1e14fe,DI-894D904C,Defensive hardening (medium-severity batch),B,R4
+design-input,8a943628-f94f-4b67-b56c-ccc84a242ff7,DI-8A943628,De-identification of clinical text before LLM submission,B,R5
+design-input,8c236a1a-fcf5-464b-b007-4a31a93f9e40,DI-8C236A1A,Episode classification method disclosure (rule-based vs LLM fallback) to reviewer,B,R3
+design-input,8fde6740-c792-405f-b33d-cfbaf55d84da,DI-8FDE6740,Conditional approval condition list with per-condition confirmation tracking and deployment gate enforcement,B,R4
+design-input,900cb621-77dc-4288-aece-417a6f31ac1f,DI-900CB621,Prominent data completeness and reliability indicators on clinician outputs,B,R1
+design-input,90c08758-67ae-4ec8-b5c8-24264657771d,DI-90C08758,First-seen milestone for 2WW fast-track clinic attendances,B,R3
+design-input,916bd8c8-391e-4842-a24e-35d25b1a1d90,DI-916BD8C8,Benchmark comparison charts in audit exports,B,R3
+design-input,9205cf41-de96-40fa-ab38-c23f201ceaf2,DI-9205CF41,"Practitioner role model (selected_role, allowed_roles, RoleSwitch audit)",B,R3
+design-input,922114ae-ab2d-4850-ae40-f874d56e0ff0,DI-922114AE,"Safety gate: SNOMED coding defects in training labels always routed to human review, never auto-corrected",B,R3
+design-input,926a4b95-4657-45c4-b6bf-69be00efb1bb,DI-926A4B95,Global inclusive accessibility baseline,B,R1
+design-input,93d89dc6-f296-4d2c-83e0-c471b0a4462d,DI-93D89DC6,Inbound referral integration: consume normalised referrals from upstream ingestion product via Azure Service Bus,B,R5
+design-input,982cc3ad-5a6b-4b07-98a5-9560ca8ce4c2,DI-982CC3AD,"Ops UI SHALL expose console, mail outbox, and tenant integration",B,R3
+design-input,985976a3-3d10-438a-9d2a-f780a21a7e4e,DI-985976A3,LEO UI design tokens and accessible theme foundation,B,R3
+design-input,9bf6087f-7088-4d0d-8534-1f63809ee255,DI-9BF6087F,Conditional integration-fetch edge for missing data items before clinician notification,B,R1
+design-input,9d0df618-b12b-42bd-9c7c-06e7b42bbbd1,DI-9D0DF618,API SHALL expose tenant-scoped routers for every capability,B,R5
+design-input,9d967259-01a1-4440-abd7-90caf4932ace,DI-9D967259,Disorder gate fail-closed with GATE_FAILED verdict,B,R1
+design-input,9ddc5471-b3e6-4135-9c82-79a2905900da,DI-9DDC5471,Motion layer with framer-motion and prefers-reduced-motion gating,B,R3
+design-input,a0c90595-49bc-4bf0-abc7-ab51062cd876,DI-A0C90595,Absolute character-offset resolver for LLM-extracted entities,B,R3
+design-input,a0d8090d-2509-4441-b294-60b58f25b306,DI-A0D8090D,Milestone temporal integrity: referral-to-diagnosis gap + PRISM primacy,B,R3
+design-input,a1206416-5121-4b3d-a4fb-2435cb12c0e5,DI-A1206416,LEO widget auth SHALL use host-proxied short-lived widget tokens,B,R7
+design-input,a23d11fa-c4a3-43e5-8724-8023d34cbf28,DI-A23D11FA,Active evidence engagement gate before AI recommendation confirmation with urgency-criterion requirement,B,R3
+design-input,a3107424-6e93-4c61-8a7e-712267b0f56a,DI-A3107424,Diagnostic and treatment recommendation exclusion from generated interpretations,B,R1
+design-input,a41033fc-7aad-47c3-acde-4e42f947845e,DI-A41033FC,Reconcile Pathway drawer and API,B,R3
+design-input,a93499ce-c08f-46bc-96c2-3c3bfabcdaf6,DI-A93499CE,OpenTelemetry tracing setup,A,R5
+design-input,aa1f5f5b-22a9-4356-b0be-e8ad9b7d3ad8,DI-AA1F5F5B,"Mission Control SHALL co-locate AI output, state, and actions",B,R3
+design-input,aa8014f9-9ae7-4cc8-a75d-901be3269896,DI-AA8014F9,Programme-level guideline rule set configuration without code deployment,B,R1
+design-input,acb587dd-e75b-4c99-b6eb-3064e8a28ea6,DI-ACB587DD,Pipeline configuration dry-run validation before activation,B,R5
+design-input,adbebcbb-765e-4b75-98ba-c0fce3bb406c,DI-ADBEBCBB,Anchor/Milestone Detection,B,R3
+design-input,ae477327-3142-4842-acb9-2b2a89d6392e,DI-AE477327,Training corpus stratification report with safety-critical entity count quality gate,B,R3
+design-input,ae7680c0-adaf-4481-85f8-c137abed2381,DI-AE7680C0,LLM provider cache and Bedrock retry plumbing,B,R5
+design-input,af53cf08-aba0-4715-9037-6e0afacf6a8b,DI-AF53CF08,Merge /admin/clinical into /admin/knowledge,A,R3
+design-input,af5a1668-b5d9-4bd0-bc21-e84188012f72,DI-AF5A1668,Multi-tenancy: dedicated Neo4j patient graph per tenant with automated provisioning,B,R1
+design-input,b1e0ee52-3a19-4300-8501-f22d95bd358b,DI-B1E0EE52,Audit quality loops: root cause labelling of drift alerts with 2-year immutable alert history,B,R3
+design-input,b2512cb3-415b-4ba6-8d35-b0156699bc9f,DI-B2512CB3,Immutable source-span linkage and provenance for extracted entities,B,R3
+design-input,b4d56e92-4e54-4a3e-8734-93f907cfb8f0,DI-B4D56E92,"Terminology loaders for SNOMED CT UK, dm+d, OPCS-4, ICD-10",B,R4
+design-input,b5c5f8d3-e87a-41ba-a2f6-8987b6a6c822,DI-B5C5F8D3,Double-Negation Guard for Pre-Negated SNOMED Situation Concepts,B,R1
+design-input,b7fea996-b046-4fce-8544-1069b04a6154,DI-B7FEA996,Terminology mapping writeback for reviewer-approved SurfaceForms,B,R4
+design-input,b884a243-d625-4226-a3fc-0131ea5e4280,DI-B884A243,Redis-backed checkpoint and rebuild status,B,R5
+design-input,b88f2a76-9f27-4041-8ae4-44a708e9a31f,DI-B88F2A76,Audit trail 10-year retention enforcement with platform version recording and summary report by date range,B,R3
+design-input,b954388c-3a85-4362-8634-ee91f5f8961d,DI-B954388C,PromptConfig with smart few-shot selection and prompt caching,B,R3
+design-input,b95a73e9-b574-4145-a3b7-7ea9093a293c,DI-B95A73E9,Plain-language coverage indicator explanation reachable in one action,B,R1
+design-input,bac284b4-82ad-42ec-98fb-c4d4854db1e1,DI-BAC284B4,"Cypher query helper library (read-side, multi-tenant)",B,R5
+design-input,bb64e479-254a-432f-b6cf-db2788965b4f,DI-BB64E479,De-identified training corpus with immutable holdout separation,B,R3
+design-input,bc39b803-e974-4c8b-a63a-27850ddd8754,DI-BC39B803,Structured before/after diff rendering for all change types in the review pane,B,R4
+design-input,bcccbcaf-12ee-45ab-a87e-c2526deb7c1d,DI-BCCCBCAF,"Bitmap Store, Compiler, and Evaluator in Terminology API",B,R1
+design-input,bcdc245c-f8f0-4d16-ba58-9ebf632c0583,DI-BCDC245C,DI-LEO-AI-527: Similar-candidates batch dialog highlighter + match rationale chips,B,R3
+design-input,bd696225-9719-42bc-b0e5-9112fe8b3970,DI-BD696225,Human-review gate blocking audit reporting use of unreviewed episode classifications,B,R3
+design-input,bd826fa6-2bb2-48e9-8a3c-e266e2f2a240,DI-BD826FA6,"Trajectory deviation prompts require structured documented clinician response, not dismissal",B,R3
+design-input,be09736f-797d-43b3-912f-a2e0b8940509,DI-BE09736F,Unified Intelligence Console with stage health and next action,B,R5
+design-input,c2f1ff32-5fb2-478c-a616-bd7e70943001,DI-C2F1FF32,Rejection return workflow with mandatory reasons-addressed step and parent-child change linkage,B,R4
+design-input,c424bb44-2e28-4e4b-8ec3-47864fa3a3a2,DI-C424BB44,VerificationLock cross-entity primitive,B,R3
+design-input,c46ddfa3-2466-4daa-9235-bf8e7a7ef945,DI-C46DDFA3,Rule editor SHALL provide a plain-English sentence canvas as the primary authoring surface,B,R5
+design-input,c58e5515-5f1d-40df-b532-ef3e72a235e7,DI-C58E5515,Onboarding: resumable state persisted across sessions with admin dashboard progress indicator,A,R5
+design-input,c899d282-6c5a-4493-b397-e9bc692fc4ef,DI-C899D282,LLM semantic tag scope constraint to validated NER model output set,B,R3
+design-input,c978b245-e013-4872-b4f1-3d908343a7dc,DI-C978B245,ODS (Organisation Data Service) lookup client,B,R5
+design-input,ca1b4c6e-49d1-4ad4-aa22-0156f298da61,DI-CA1B4C6E,Hero card drill-through preserves cohort identity and surfaces all-cohort denominator,B,R3
+design-input,cb3df3e1-fd9f-49ac-bdd9-078677a4f652,DI-CB3DF3E1,Small-cohort output suppression and low-confidence flagging,B,R1
+design-input,cd931485-46fc-4d67-8dab-5d360caf9081,DI-CD931485,Data-driven audit programme configuration without deployment,B,R4
+design-input,ce0a08e5-32b9-4487-9551-fca469a42d7b,DI-CE0A08E5,Per-entity-type precision/recall/F1 metrics stored per training job and accessible via model registry,B,R3
+design-input,cf5162bf-6eae-4959-98e0-b8a8c8f678a9,DI-CF5162BF,Assertion inference helper,B,R5
+design-input,cfa65509-1c22-4c94-ace7-1717644149ac,DI-CFA65509,Automated training-label audit with bounded auto-fix and review queues,B,R3
+design-input,d0fc22fe-da85-45f3-9def-ac812dc1c7a6,DI-D0FC22FE,Encounter-centric Mission Control and Batch Recode,B,R4
+design-input,d149aedb-0a08-44a2-bbb1-86f23a5bcad2,DI-D149AEDB,Episode Consolidation,B,R3
+design-input,d14b711f-8b75-445a-9403-1e313eb67585,DI-D14B711F,Canonical EpisodeOfCare status vocabulary,B,R3
+design-input,d49bce55-8b98-44ba-ac1b-14f465586022,DI-D49BCE55,Structured approval capture with immutable audit and deploy interlock,B,R4
+design-input,d801a490-08a4-4927-b407-ceebfca6a2c0,DI-D801A490,Rule editor SHALL replay sandbox tests on edit and surface impact inline on every sentence card,B,R5
+design-input,d9d4ba02-811b-4047-b40e-073c8fc0c717,DI-D9D4BA02,core-api SHALL resolve practitioner roles from the Entra groups claim via a Neo4j Group->Role binding catalogue,B,R5
+design-input,da7584d8-024d-492c-ab59-4afe9367b68d,DI-DA7584D8,Confidence level displayed alongside each AI-generated interpretation,B,R1
+design-input,db62ef12-6095-4cdb-8b35-1b217083986d,DI-DB62EF12,Credential scope and conflict checks before approval actions,B,R4
+design-input,dc61f5b6-df10-4e6d-a375-c6292606c471,DI-DC61F5B6,Multi-type span classification for overlapping SNOMED concepts,B,R3
+design-input,dfaf200b-cd96-472c-882e-35c980085fff,DI-DFAF200B,ConText rule management: full parameter CRUD with test-run gate before activation,B,R3
+design-input,e0d60b50-2606-4aff-94f5-b91395033786,DI-E0D60B50,Terminology index match verifier with mode-aware fail behaviour,B,R1
+design-input,e10bde6e-08e8-410e-b2b4-8f9460f15e36,DI-E10BDE6E,Role-first intro copy + layout across every major area,A,R3
+design-input,e1913514-c012-4637-bc37-73198ff6c427,DI-E1913514,Dual-model consensus with Sonnet arbitration for safety-critical decisions,B,R1
+design-input,e5609239-465d-47df-a887-008501394de7,DI-E5609239,Knowledge base currency dashboard with exportable surveillance evidence,B,R3
+design-input,e609c4e5-49b5-4d85-874d-74fe2bbe6013,DI-E609C4E5,Persistent informational-only disclaimer on all clinician-facing clinical intelligence output panels,B,R3
+design-input,e6a32ff5-8ad3-43cc-b76e-23a82a8aa112,DI-E6A32FF5,DQ sitrep dashboard: pass rate aggregation by rule/programme/tenant with trend and CSV export,B,R5
+design-input,e70338a5-57e6-48b6-b00f-d457689fb088,DI-E70338A5,DI-LEO-AI-095,B,R4
+design-input,e7affda5-2ffe-45ac-9015-d584230a9994,DI-E7AFFDA5,Span realignment and offset validation on training export with misaligned annotation exclusion,B,R3
+design-input,e81545be-b936-4145-ac91-6a502260fdeb,DI-E81545BE,Source-text highlight linking for reviewer entity selection,B,R3
+design-input,e83828a9-8126-4cc3-a0f8-0296fd6cd89e,DI-E83828A9,RBAC enforcement for all AI output review and finalisation actions,B,R3
+design-input,ea432fda-8ea0-47f5-97a0-602af760bd24,DI-EA432FDA,Coding-review bulk modal split with plain-language explanations,B,R3
+design-input,eb8642f4-34ed-4f73-99ce-66b49fb953bc,DI-EB8642F4,DI-LEO-AI-096,B,R3
+design-input,ec27e4e7-60d4-491a-8aa4-31db0ca83f9a,DI-EC27E4E7,Integrity-verified deployment package matching approved artifact,B,R4
+design-input,ec96f102-27f4-4691-bec9-7f358817363f,DI-EC96F102,Lab-value guard prevents diagnostic inference from observable measurements,B,R3
+design-input,ed0d477a-53d0-4a18-9945-68f440781cbd,DI-ED0D477A,Per-pathway NICE alignment status report with exportable post-market surveillance output,B,R4
+design-input,ee80c271-7319-4916-8097-c6ad7e115e17,DI-EE80C271,Label verification step multi-label annotation fidelity,B,R3
+design-input,f0846e55-a477-467d-8e05-9eed8c3def0a,DI-F0846E55,"Role-first shell rollout cleanup (flag removal, duplicates, lint)",A,R3
+design-input,f0b8a7b0-f4ca-468f-a490-02ff7ece5df3,DI-F0B8A7B0,Per-semantic-tag tier thresholds with extractor-confidence fusion,B,R1
+design-input,f0c1170a-155d-4003-b4c5-5911946726d4,DI-F0C1170A,Appointment and Admin Header Filtering in NLP Pipeline,B,R1
+design-input,f298ae65-5848-4c00-bcb8-f7173fd71678,DI-F298AE65,Assertion parity check between LLM extractor and ConText post-processing,B,R3
+design-input,f2c18d2e-7530-4602-be7b-bc893a75d37e,DI-F2C18D2E,UI-only pipeline configuration editing with override gate for failed test mode promotions,B,R5
+design-input,f3c8c118-a27f-4b93-b0f4-cdafd08741bb,DI-F3C8C118,Outbound completion event publication for upstream referral integration,B,R5
+design-input,f3efea88-a29a-402d-88b9-c9a8e4d093b3,DI-F3EFEA88,Independent source conformance and safety checks for guideline updates,B,R3
+design-input,f407cc45-8b38-4214-a042-e30747d7ad11,DI-F407CC45,"Configurable margin-derived pricing with per-tenant discounts, 100% discount cap, and immutable pricing change log",A,R5
+design-input,f46494ae-e3c1-42bf-be8f-7f7148f42ecd,DI-F46494AE,Analytics + ODS sync SHALL provide read API and scheduled sync,B,R5
+design-input,f46d7a68-d49b-4e57-9384-6e4685a73339,DI-F46D7A68,Post-specialist outcome inference engine for stale episodes,B,R3
+design-input,f66a7239-88d8-4fb8-8efa-4cfff1738b44,DI-F66A7239,Mandatory pre-LLM de-identification safety gate enforced in LLM client wrapper with bypass prevention,B,R1
+design-input,f7828e0c-f810-4b7e-9e30-84a574942482,DI-F7828E0C,Multi-corpus gold promotion from reconciliation,B,R3
+design-input,f8634363-9f41-4d89-84dd-b5ed6ad966aa,DI-F8634363,Terminology search API with hybrid SNOMED CT search,A,R4
+design-input,f93acedb-3eb5-4555-b951-c201326e889e,DI-F93ACEDB,Avoidable delay assessment with cause classification and impact calculation,B,R3
+design-input,f94eb13f-9b12-464e-a740-317c4a72ff23,DI-F94EB13F,Guidance rule review queue: per-candidate mandatory decision with bidirectional provenance links on promotion,B,R4
+design-input,faf97a8c-3f47-410e-bce6-4c3d9c4618eb,DI-FAF97A8C,"RoleGate, RolePicker, RoleSwitcher primitives with feature-flagged role-first shell",B,R3
+design-input,fbccd265-936e-48ec-94bf-56c781ed05e2,DI-FBCCD265,Encounter classifier (NER + spaCy textcat),B,R5
+design-input,fc80b65a-14c4-4e5c-99d8-29f188340c55,DI-FC80B65A,DQ engine: configurable rules with per-episode persistence of pass/fail and remediation recommendation,B,R5
+design-input,fc9a8824-bb5a-4105-947c-f68a6759ccfa,DI-FC9A8824,"FHIR API: ActivityDefinition, Library, PlanDefinition, Schema, Benchmark",B,R5
+design-input,fe1bc901-6828-4b5d-a258-64a264f753d4,DI-FE1BC901,Pipeline label filter and extraction-response parser,B,R5
+design-input,fefcd950-cde2-41e9-bdc6-c6b5d92fe5db,DI-FEFCD950,Manual review-time editing of AI-generated guidance rules,B,R1
+design-input,ff9c74e2-b37d-490d-b417-f8a8d209c9a7,DI-FF9C74E2,Deterministic episode construction from related encounters,B,R3
+design-input,ffcd4f96-5178-413a-915c-7a83e8d71f13,DI-FFCD4F96,"Override analytics dashboard with category distribution, trends, and reviewer role breakdown",B,R3
+design-input,fff37760-7ce5-4d07-8b32-b9a038ee0d71,DI-FFF37760,Internal service authentication and CORS,B,R4
+design-output,01ab9835-f36b-4d1e-87cb-c7e2fa657556,DO-01AB9835,Episode builder subgraph with classification + DQ,,
+design-output,0289f3a5-9a92-41b5-a335-66dc14d2c46d,DO-0289F3A5,"LLM extractor paths updated for span resolution, self-rated assertion, self-rated confidence, and clinical-qualifier preservation",,
+design-output,05064452-9cce-4180-be3f-4a1d72c5b7e7,DO-05064452,ODS sync worker entry point (implementation),,
+design-output,0998faf5-2bdf-47cd-9f08-9a53a756f603,DO-0998FAF5,"Operations, admin, DQ, and override analytics surface",,
+design-output,09ac56a0-43b6-4050-90ef-47c9ba84fb50,DO-09AC56A0,Merge /admin/clinical into /admin/knowledge (implementation),,
+design-output,0a64f95a-a3a1-4464-a7ae-f2c7ee4be282,DO-0A64F95A,Specialist outcome letter anchors and inferred benign episode closure,,
+design-output,0ae8e53c-7f1e-4dfe-a76b-ff7f5bacf9f2,DO-0AE8E53C,services/design-system as npm workspace package '@leo/design-system',,
+design-output,0c7a443a-4505-4688-b7a9-c0bb8b020cac,DO-0C7A443A,Episode builder fallback referral-claim and evidence-wins merge,,
+design-output,0d83ef2c-dcea-420a-bb6e-9d70d33786a2,DO-0D83EF2C,Sandbox-only TestPatientsPanel + NotLiveYetBanner + Step 3/4 copy,,
+design-output,0d8619ce-9f5f-49f9-bea7-2d051f4c3648,DO-0D8619CE,Debounced sandbox-on-commit replay + inline impact badges (TestPatientsPanel + SentenceCanvas wiring),,
+design-output,0dd91acd-08c5-4cfd-9e28-5e6c1f03c679,DO-0DD91ACD,Holdout Set Selection Script and Export Contamination Guard,,
+design-output,0f42967f-324c-4da7-a999-ba64ca35a386,DO-0F42967F,Model registry (Neo4j-backed) with manifest and training adapter (implementation),,
+design-output,0f8f8e02-340d-4f28-b464-8364142d6865,DO-0F8F8E02,Surface Forms Management Router - Terminology API,,
+design-output,0fb8f15d-965c-40ec-aee7-fbf0e439d2de,DO-0FB8F15D,Encounter classifier (NER + spaCy textcat) (implementation),,
+design-output,10218528-a399-480b-84f7-85989cc86c24,DO-10218528,Role-first shell primitives + feature flag,,
+design-output,11232efb-26e7-42e0-972a-042a496ba888,DO-11232EFB,Pathways admin list rebuilt on the design-system,,
+design-output,11a2361e-a684-4e13-82ce-419f466086c8,DO-11A2361E,Post-specialist outcome inference engine and analytics integration,,
+design-output,11b1cc4d-f1bd-4a70-b71e-5bc725bdda37,DO-11B1CC4D,"Entra-group-driven role resolution: Cypher catalogue, login-time sync, and idempotent role/binding seeder",,
+design-output,1373b71f-d8de-4620-8630-8519ab851ff7,DO-1373B71F,"Terminology API: text embedder, ValueSet and ConceptMap queries (implementation)",,
+design-output,13c4b6b1-ca19-43f0-a259-a1ab15e8acc4,DO-13C4B6B1,Role-first intro copy + layout across every major area (implementation),,
+design-output,146d93d0-754d-44f8-9161-7959986252d1,DO-146D93D0,Reviewer workflow and change-control surface,,
+design-output,1477e1d1-141b-4479-aa06-fb9dfa782c4a,DO-1477E1D1,Knowledge tab Test Patients page with aspect filter and per-aspect count tiles,,
+design-output,14d58359-a875-477e-8b33-6f5e1e23f114,DO-14D58359,SNOMED CT Resolution Service,,
+design-output,1536c1b7-b26c-4533-887d-5bfe2297f697,DO-1536C1B7,Care Overview (Dashboard) inclusive redesign (implementation),,
+design-output,16ce412b-9af0-4ab0-8b4c-3d51c371f8c1,DO-16CE412B,Pipeline label filter and extraction-response parser (implementation),,
+design-output,16ffe9d3-4667-4ca9-9e76-f7341571cbc2,DO-16FFE9D3,Post-SNOMED double-negation assertion correction,,
+design-output,170f0dee-bf5d-4f7b-adfa-b6e9717e7bfc,DO-170F0DEE,NLP Entity Extraction Pipeline,,
+design-output,175b815c-cd26-4aa2-acc2-5f9a928f6129,DO-175B815C,Service-to-service authentication helper (implementation),,
+design-output,18880c7d-f42f-4387-a97b-5d68e9055311,DO-18880C7D,"Bitmap Store, Compiler, and Evaluator in Terminology API (implementation)",,
+design-output,18e985bb-f83b-4ae0-b906-977a89ddee44,DO-18E985BB,LEO-by-Mizaic SBAR portable widget runtime (implementation),,
+design-output,19eb27a0-003b-4ab1-9ba8-4b5fff932f79,DO-19EB27A0,Disorder verifier fail-closed with explicit GATE_FAILED verdict,,
+design-output,1b7e7255-f57e-4d1f-9c2b-abb48d9952de,DO-1B7E7255,Coding review modal split and plain-language redesign,,
+design-output,1d5031e0-6e69-418b-9d2f-bf2bc53bf3cb,DO-1D5031E0,NER-first extraction routing and deterministic pre-filtering,,
+design-output,1e096fa1-bf7d-45e0-9ab5-0892b0d9997d,DO-1E096FA1,Tier classifier v2 (libs/coding_engine/tier_classifier.py + post_processing integration),,
+design-output,1eb4fb1d-04ce-4569-8ca2-1de9fa0573e2,DO-1EB4FB1D,Assertion-aware analytics queries for CCI and cohort filters,,
+design-output,210cf040-0dcd-4295-85d8-21e42664cbb3,DO-210CF040,deidentify_with_span Helper and DOCUMENTS Evidence Sentence Storage,,
+design-output,21936fdd-a793-4f88-ac33-2c24498e9609,DO-21936FDD,"Settings, auth and onboarding UI implementation",,
+design-output,21bfef36-427b-4490-8244-6715a5a84d55,DO-21BFEF36,CodingDecision Audit Trail (implementation),,
+design-output,22bf1090-de83-4bdc-a937-a87309b5fbf4,DO-22BF1090,Append-only audit emitter and security-event log,,
+design-output,2340f614-4d0c-4520-845e-732bada34e2f,DO-2340F614,Domain-Driven Episode Detector,,
+design-output,25bfd246-71d0-4d26-9db7-036c986366a4,DO-25BFD246,Azure managed-identity credential resolver (implementation),,
+design-output,2695be52-8013-4854-91e6-0f5b7a7a7f0b,DO-2695BE52,Single-source GoldLabel training data and simplified operations workflow,,
+design-output,26dfa118-c327-4e71-804d-eb09ce27cfd6,DO-26DFA118,SpanResolver utility (libs/ner/span_resolver.py),,
+design-output,273a4ec4-cbe2-4476-8f5e-4f3ed0dfbff4,DO-273A4EC4,ODS (Organisation Data Service) lookup client (implementation),,
+design-output,27b414b3-1ac7-499d-ba0d-19e831077ed4,DO-27B414B3,Appointment Header Filter and Resolver Input Normalisation,,
+design-output,29b56008-184c-4b43-9367-f4e34adee8e3,DO-29B56008,Audit-quality API and drift analytics surface,,
+design-output,2b75e3ee-ff79-4869-be91-c17e10c3c00b,DO-2B75E3EE,Clinical intelligence decision-support surface,,
+design-output,2ba37b59-25ff-4a57-a836-c6a215107e85,DO-2BA37B59,Operations workspace inclusive redesign (implementation),,
+design-output,2c03ca0e-10da-42a3-b8e8-ffc4f8a9f7c9,DO-2C03CA0E,Tenant admin portal UI implementation,,
+design-output,2d66f23b-c504-4b49-bf6c-1307025c74a1,DO-2D66F23B,CodingMode Pipeline Routing,,
+design-output,3082deed-3816-462b-9051-ab3f6e9ee3c6,DO-3082DEED,Episode Consolidation (implementation),,
+design-output,308dd1a6-d96d-4185-936e-700046611a76,DO-308DD1A6,"Practitioner.selected_role, allowed_roles, and (:RoleSwitch) audit",,
+design-output,30a82196-a87a-4223-af82-90ddd88b2f13,DO-30A82196,Document and gold-label editor UI implementation,,
+design-output,313a49ae-d77d-4628-8aee-f5090747a7a7,DO-313A49AE,"Admin portal Entra extension: graph_client, /admin/entra router, schema source-tag, and capability-driven UI",,
+design-output,31410049-222e-4ac7-9442-c04ffb7de627,DO-31410049,Analytics API and ODS sync workers implementation,,
+design-output,34e24fa1-2d0d-427a-b435-cab361a0ffa7,DO-34E24FA1,FHIR R4 API Service,,
+design-output,36c09c0e-6722-45cb-9a34-71db96de1024,DO-36C09C0E,fix_polarity_encoded_findings guard in post_processing.py and terminology.py,,
+design-output,398a6f83-be62-418b-9902-975011862050,DO-398A6F83,Disorder verifier v2 with fail-closed GATE_FAILED verdict (libs/llm_client/disorder_verifier.py),,
+design-output,3f6d2664-4c2c-4c59-b68c-5c71d013c5ee,DO-3F6D2664,Per-type review-queue Cypher and role state,,
+design-output,3fc2c9d7-8298-4584-a1b8-5348dc379fbe,DO-3FC2C9D7,Review Service and Workflow,,
+design-output,412de1a5-f113-4559-978e-06152cc1ca44,DO-412DE1A5,Redis-backed checkpoint and rebuild status (implementation),,
+design-output,41ef3f1d-6db6-4a78-9725-5f54db6289d2,DO-41EF3F1D,The system SHALL provide an admin-triggered bulk reset-and-reprocess capability for all... (implementation),,
+design-output,4345e055-5074-4f0a-b4b8-6f82768d49e1,DO-4345E055,"Canonical NCDA cancer-type vocabulary modules, LLM enum, normalisers, UI mirror and migration",,
+design-output,444819d8-3842-40d8-897b-8816eb5b5687,DO-444819D8,Internal service authentication and CORS (implementation),,
+design-output,448bfa1a-c653-4537-875c-46e09edbb32d,DO-448BFA1A,Dual Neo4j Database Architecture,,
+design-output,4613f849-fa38-41f9-8541-2939abeaaa03,DO-4613F849,Developer integration surface,,
+design-output,48061888-e4a5-475b-8cbc-3c540555ba7b,DO-48061888,DE-ID leakage gate evaluator + person-name pass (implementation),,
+design-output,49df9c12-146a-414f-a181-cbe3e66b3f4b,DO-49DF9C12,"Reconcile Pathway: PATCH router, BucketFlip safety, drawer + slot row",,
+design-output,4a8227dd-8646-43a1-bf58-ddfe86695565,DO-4A8227DD,next/font DM Sans + subtitle1/2 un-monospaced,,
+design-output,4ab6d361-d4c0-4e4c-b105-551cd3e9b554,DO-4AB6D361,Dual-Model Consensus Runner Module,,
+design-output,4c113bfd-0244-41f5-b978-5e8f7831fd08,DO-4C113BFD,LLM extractor v2 (prompt + ExtractedTerm/ExtractionItem parser),,
+design-output,4d563adf-f38e-4a77-90d6-5b4f964f0cc9,DO-4D563ADF,Ambiguous GP Abbreviation Disambiguation Rules,,
+design-output,4d608335-26f5-4b28-8dbb-7785ec4a2c2d,DO-4D608335,Terminology tooling and Neo4j MCP tools implementation,,
+design-output,4f80fad8-55d0-42e7-a0f9-21ffc57132db,DO-4F80FAD8,Training worker entry point and spaCy training CLI (implementation),,
+design-output,511254a3-65f7-4b33-a52e-7c852354d42e,DO-511254A3,Coding correction review and dependency display surface,,
+design-output,5176ad0a-3f9e-43be-8fa6-686a87160f10,DO-5176AD0A,LEO widget host governance pack (SaaS Embedding Agreement + DPA + DCB0129 supplier safety case + IFU),,
+design-output,519a836f-c7eb-4bcb-9b2a-ee1822b77cbc,DO-519A836F,"Test patient data model, copy-from-real-patient service, and aspect-aware library API",,
+design-output,5312f884-4a1b-460f-a3d2-412c3183a9ae,DO-5312F884,Mission Control UI implementation,,
+design-output,53f9eb6d-01a1-4347-924d-4678140a9846,DO-53F9EB6D,"ServiceDataRequirement Neo4j schema, admin API, RBAC, and seed records",,
+design-output,54397ccd-1ec1-4434-b917-58726c1b18cd,DO-54397CCD,"Multi-label NER - spancat component, layer 5 nesting refinement, prompt preservation",,
+design-output,559095b5-d583-462a-861d-bac2387b724c,DO-559095B5,Model artefact blob store (implementation),,
+design-output,55b68f36-60bb-417d-8d56-33e63ac08c07,DO-55B68F36,Lab Value Diagnostic Inference Prevention (implementation),,
+design-output,5aa5398a-bea6-4325-ac20-b21b87d6fd42,DO-5AA5398A,Inbound referral event consumer (Service Bus subscriber + workflow dispatcher),,
+design-output,5b320ddc-3305-47f3-b9c2-1bd18e419c6e,DO-5B320DDC,LLM-Based AppropriatenessRule Authoring with HITL Review Queue,,
+design-output,5c38f46c-b3e5-4a2c-9aa1-d6bec416f56a,DO-5C38F46C,Authoritative source monitoring and release management,,
+design-output,5d032346-4914-4358-aaf6-7832bc234be2,DO-5D032346,OpenTelemetry tracing setup (implementation),,
+design-output,5d525d34-1902-4239-bb8d-6f5f683e98b4,DO-5D525D34,DensityProvider and density-aware primitive resolution,,
+design-output,5db895bf-cb2e-4dc0-a5c8-8b270a2cfa25,DO-5DB895BF,createLeoTheme() factory in @leo/design-system consumed by services/ui ThemeRegistry,,
+design-output,5f438c17-2c69-4990-9474-7d2d45bf20b2,DO-5F438C17,Neo4j MCP server for analyst and reviewer workflows (implementation),,
+design-output,5f9a50d8-098d-4ed5-9e31-7d4784d2aebd,DO-5F9A50D8,Care portal patient and encounter UI implementation,,
+design-output,6036d724-d807-4103-afce-7fb1a166578c,DO-6036D724,CI/CD pipeline integrity (implementation),,
+design-output,61ee87e0-4668-4c99-9444-5f8d681f0680,DO-61EE87E0,FHIR-based agent configuration registry (implementation),,
+design-output,6296f926-7200-404e-aa3a-3143610609d2,DO-6296F926,DO-LEO-AI-527: SimilarCandidatesBatch shared HighlightedText + match rationale chips,,
+design-output,63358a96-4f34-4d58-bd04-43b2886f5732,DO-63358A96,Entity provenance and audit-trail surface,,
+design-output,64bdc193-0108-4686-a28a-4dab00a75761,DO-64BDC193,LLM Disambiguation Module,,
+design-output,65e7bcf8-efe6-4928-8432-46cbfacf9152,DO-65E7BCF8,Operations workspace inclusive redesign,,
+design-output,671c15bf-a368-4c23-ba3f-de529263b288,DO-671C15BF,Stage-at-diagnosis enrichment engine (implementation),,
+design-output,68fda1e0-60d1-49ce-aca1-b9677e6fb235,DO-68FDA1E0,Disorder Entity Verifier Module,,
+design-output,69f44d69-66c7-4e77-b82d-6561d12d1af6,DO-69F44D69,GDPR-Isolated Learning Loop and Operations UX (implementation),,
+design-output,69f60330-8ecf-4942-b362-5002ffe62922,DO-69F60330,Learnable ConText assertion classifier (implementation),,
+design-output,69fc3974-5fe2-4727-bf02-54715dec0ed1,DO-69FC3974,Multi-label NER schema mapper and post-processing normalisation,,
+design-output,6a070ac9-32ee-440f-a8e3-86cf9ad68ad0,DO-6A070AC9,Anchor/Milestone Detection (implementation),,
+design-output,6bae3da7-a88a-4c10-9bde-63ca94106f91,DO-6BAE3DA7,LLM usage cost configuration module (implementation),,
+design-output,6c398363-3020-4c42-acad-4c584877645f,DO-6C398363,first_seen milestone: anchor detector + episode builder wiring,,
+design-output,6dcc699a-038b-422e-8283-bb6ac1225af8,DO-6DCC699A,"MotionProvider, useMotion, and pre-canned transitions",,
+design-output,6dfd03e0-3e77-4697-a130-6a69b7999dd1,DO-6DFD03E0,libs/clinical_scoping specialty markers + staging subgraph integration,,
+design-output,6eb8c7c5-ef23-4056-b92f-37b25bcd30e7,DO-6EB8C7C5,Patient shortlisting and recall surface,,
+design-output,70668fe7-7e89-4d02-8254-725e9c316b33,DO-70668FE7,"UI Safety, Accessibility, and Usability Remediation (implementation)",,
+design-output,710270ef-6f02-4040-8f44-b11eef6c092d,DO-710270EF,"OBSERVATION leaf backend (schema, units, compiler, evaluator, payload)",,
+design-output,7123c55a-2ab8-459b-9497-b5bb6e81987a,DO-7123C55A,LLM provider cache and Bedrock retry plumbing (implementation),,
+design-output,77a48dbc-cb46-4b61-be1c-0473f40df942,DO-77A48DBC,Terminology API Service,,
+design-output,7ca11f1e-c4f1-4cf7-94f4-37c79c6bc1e7,DO-7CA11F1E,NER + SNOMED coding surface with assertion handling,,
+design-output,7e1baacc-c5b4-4c6a-bf36-9e28f13ea62f,DO-7E1BAACC,Hybrid Encounter Retrieval Module,,
+design-output,7eebabb8-827b-413a-a381-4e7b3860dc48,DO-7EEBABB8,Per-Tenant Billing and Discount Management Implementation,,
+design-output,7fc83480-8c63-439e-9a30-796a709d5c95,DO-7FC83480,API authorization and tenant scoping (implementation),,
+design-output,828da28e-e49b-4256-9b1e-4659c25c54f5,DO-828DA28E,Plain-language interpretation and human-review gate,,
+design-output,83ebee2c-3c44-458f-aab7-6a4ebad53768,DO-83EBEE2C,Smart Few-Shot Selection + Prompt Caching,,
+design-output,86800c9b-c460-49e4-b3eb-70a58ca1fe04,DO-86800C9B,"Data Quality Toolkit -- Service Layer, API Router, MCP Server, and Admin UI",,
+design-output,8972ed05-c472-48d1-8aaf-22df4c6d541c,DO-8972ED05,Role-first rollout flag removed; duplicate primitives deleted; font @import removed; sx colour-literal lint rule added,,
+design-output,89920463-fe5e-4758-b6a1-d4bea5e93543,DO-89920463,Card-based Operations UX,,
+design-output,89af1cce-4282-498c-b35a-d2c757fbdda0,DO-89AF1CCE,Shared utilities: device resolver and structured logging setup (implementation),,
+design-output,8b14e71d-ae22-436a-9271-957ae2ea5f74,DO-8B14E71D,"MECE lifecycle classifier module, audit summary endpoint and dashboard hero cards",,
+design-output,8c497d0c-e984-48ef-9cb2-07e509409817,DO-8C497D0C,"Terminology preferred-term, surface normalisation, semantic tags (implementation)",,
+design-output,8ccc6230-ea29-4c56-b4b1-efb576c5e09a,DO-8CCC6230,_rescue_diagnosis_for_open_episode helper + _build_open_episode wiring,,
+design-output,8ef2ec20-7bdf-411e-8f93-4f25f59cda81,DO-8EF2EC20,"NER post-processing, lab-triple recovery, and seed ingestion (implementation)",,
+design-output,9132e777-3ca2-4417-9e2c-dab08a6a7b84,DO-9132E777,DO-LEO-AI-526: libs/search/term_expansion + cypher $terms branch + training router wiring,,
+design-output,92f92efb-fce8-4945-a2d8-00e3d3ea9e3f,DO-92F92EFB,API service tier implementation,,
+design-output,93e086b0-a4ba-4e58-b630-45196898e7c7,DO-93E086B0,Coding quality LLM check and dual-target persistence routing,,
+design-output,946f617d-f2c4-46e0-a6a7-c9b5fca73422,DO-946F617D,Coding Verification Consensus Function,,
+design-output,94d87fa7-e6d3-4f35-99e7-25b859fdb8a7,DO-94D87FA7,Agentic Training Label Auditor with Terminology Tool-Use,,
+design-output,94eac337-0a9b-4f42-8f7b-6bf334a98d96,DO-94EAC337,Assertion-free LLM extraction output with post-processing as sole assertion authority,,
+design-output,9539333e-7ca8-4eb4-9981-7b78c750a999,DO-9539333E,PageIntro + HelpPopover + CoachMark + ProgressiveReveal + GlossaryTerm + glossary.ts + readability.ts,,
+design-output,95b6bbab-8106-4a38-af73-64d41031da50,DO-95B6BBAB,"Per-semantic-tag tier thresholds, extractor confidence fusion, and assertion parity gating",,
+design-output,97855e28-32d4-41e5-a5c0-5b233f6d638e,DO-97855E28,LEO widget auto-update channel + CSO-controlled rollback (implementation),,
+design-output,9a5c65af-935f-4940-9987-847da882cccd,DO-9A5C65AF,Knowledge hub: merged admin Clinical + Knowledge pages,,
+design-output,9bf76337-a2ea-4a9a-9635-4418c78550cb,DO-9BF76337,De-identification of clinical text before LLM submission (implementation),,
+design-output,9ca0b5a8-7df3-4478-9c2a-6b8fe9afbae7,DO-9CA0B5A8,"run_consensus: single-model default, optional dual-model consensus",,
+design-output,a11695db-a45c-40d3-a6d0-a1fbe0baa3f1,DO-A11695DB,Spinal-TNM scope guard and LLM prompt disambiguation rule,,
+design-output,a23404e0-e9aa-41e1-9a34-50e23189c2d7,DO-A23404E0,Stage-at-diagnosis enrichment modules and audit surfacing,,
+design-output,a24a764d-dd59-4be9-a89c-3d238d62715a,DO-A24A764D,Text-based cancer-site classification from gold-mined surface forms (implementation),,
+design-output,a2553f87-90a7-43e3-9d26-1c8a0007dd4d,DO-A2553F87,"UI Safety, Accessibility, and Usability Remediation",,
+design-output,a35d2d57-862f-498c-83c8-e2a0f5d26c9e,DO-A35D2D57,"Training pipeline quality - span realign, assertion filter, golden set, warm-start, active learning",,
+design-output,a3ec9447-aae6-4e27-9c76-e1d1305a2e76,DO-A3EC9447,Completeness checker LangGraph subgraph and PlanDefinition position validator,,
+design-output,a565d841-e3b9-4bf3-a263-0171475f9ab4,DO-A565D841,Data-gap disclosure and small-cohort suppression surface,,
+design-output,a59215da-d05b-4ae1-b45b-e568b0547f27,DO-A59215DA,Centralised area intro copy + KnowledgePageLayout rollout + feature flag default,,
+design-output,a5b67c1e-df09-4c01-acad-f4f7d7a905dd,DO-A5B67C1E,Knowledge base authoring and staging surface,,
+design-output,a6b89cc7-7df7-47a4-a78d-bd7ccbe83d8e,DO-A6B89CC7,Global inclusive accessibility baseline (implementation),,
+design-output,a76427cd-9fee-486d-b49a-52da015b030b,DO-A76427CD,LLM-Based AppropriatenessRule Authoring with HITL Gate (implementation),,
+design-output,a7c8a6bd-c090-4e21-9ce1-d30b18879c30,DO-A7C8A6BD,"Practitioner role model (selected_role, allowed_roles, RoleSwitch audit) (implementation)",,
+design-output,ac244024-c435-4da4-aaa5-49252c6e674e,DO-AC244024,Canonical EpisodeOfCare status vocabulary + writer / dashboard / UI refactor + idempotent migration + contract test,,
+design-output,b3397c94-5b22-4bee-bb26-981061899a9f,DO-B3397C94,"FHIR API: ActivityDefinition, Library, PlanDefinition, Schema, Benchmark (implementation)",,
+design-output,b63973e7-5030-4ef3-bf55-a7f67eeb6e49,DO-B63973E7,"Terminology loaders for SNOMED CT UK, dm+d, OPCS-4, ICD-10 (implementation)",,
+design-output,b648a936-a122-43f4-8690-7e8dc54c67e8,DO-B648A936,The coding pipeline SHALL support a production NER-first extraction route by calling th... (implementation),,
+design-output,b7060f57-7c75-43d3-86ff-eb325a1df571,DO-B7060F57,Anchor Detection and Episode Builder,,
+design-output,b711d180-c7ff-4539-9fd1-0da571aad45a,DO-B711D180,persist_safety_net_alerts module + dashboards alert_id cleanup,,
+design-output,b7fcdafb-51e8-48e9-b156-95839a3da043,DO-B7FCDAFB,Milestone temporal integrity: referral-to-diagnosis gap + PRISM primacy (implementation),,
+design-output,b8241cf4-8369-4108-867c-a40cce9fd50e,DO-B8241CF4,Guideline update review surface,,
+design-output,b88d4941-ae69-4a4f-b9c8-929a5c60b010,DO-B88D4941,Surface-form validation and tasking,,
+design-output,bbd3441a-b167-47d3-ae8e-619301cf4df3,DO-BBD3441A,LLM Prompt Safety Utilities Module,,
+design-output,bc098903-3d50-41e5-913b-b4962251b031,DO-BC098903,Diagnosis-aware open-episode completion (rescue auto-stale) (implementation),,
+design-output,bc6c7dd5-de00-4f7f-9690-d5b19e144548,DO-BC6C7DD5,Value Set and Concept Map Management (implementation),,
+design-output,be8ce98c-3db6-4ee6-84a0-435d98eafd97,DO-BE8CE98C,Manual review-time editing of AI-generated guidance rules (implementation),,
+design-output,be96444e-d278-46d8-a0be-6efd07229be6,DO-BE96444E,"Cypher query helper library (read-side, multi-tenant) (implementation)",,
+design-output,befc4c67-9b91-40db-b0d9-3d823848aa67,DO-BEFC4C67,"LLM prompt asset registry (templates, examples, output schemas) (implementation)",,
+design-output,c57bb8ed-3ed3-48fb-ac8a-384167f430b0,DO-C57BB8ED,Histology vocabulary expansion for confirmed-cancer and benign-closure detection (implementation),,
+design-output,c5890265-5e74-4ccb-8807-91ae43b2fb8f,DO-C5890265,Audit-Driven Automated Encounter Remediation,,
+design-output,c60d6f3c-ac35-48b1-bd1c-7e6bef5da6ec,DO-C60D6F3C,Clickable hero cards + cohort summary card + lifecycle_bucket filter (UI + analytics API + parity contract),,
+design-output,c79dba53-aafc-4119-b90b-0a3127f5feae,DO-C79DBA53,Security Gap Remediation Batch 1 — Implementation Artefacts,,
+design-output,c7c1eba2-b116-4f3b-a71c-c81e89c0e227,DO-C7C1EBA2,CodingDecision Audit Trail Queries,,
+design-output,ca39b561-d33e-4e72-aad3-a4df7ade9b18,DO-CA39B561,Defensive hardening (implementation),,
+design-output,caa9690f-5010-4b09-8a22-d27129c91d3d,DO-CAA9690F,In-memory message bus adapter for development and tests (implementation),,
+design-output,cbdf8fbc-831a-46b0-b1b0-79c017b1a2bb,DO-CBDF8FBC,SpanResolver -- absolute character-offset resolver for LLM-extracted terms,,
+design-output,cbe90d5d-f767-441b-96ab-ae91c95ffed8,DO-CBE90D5D,Operations console and tenant integration UI implementation,,
+design-output,ccc30913-5480-4c7c-8f0f-bd13773444ee,DO-CCC30913,Consensus runner v2 (libs/llm_client/consensus.py),,
+design-output,cd6408d3-fa5d-4bbc-8c02-40dce9308c15,DO-CD6408D3,Assertion inference helper (implementation),,
+design-output,ce117d2a-9aa3-441d-9907-b9035ff80277,DO-CE117D2A,"NER Training Export Script with PII Gate, Stratification Report, and Safety Block",,
+design-output,d17b9b10-fd8d-4731-bf6e-47da3dc210b3,DO-D17B9B10,"Auth, role-state and tenant-scope middleware",,
+design-output,d4d4caa8-34f2-425d-a0e9-6c4bbe68be5b,DO-D4D4CAA8,Plain-English sentence canvas for the rule editor (SentenceCanvas + treeToCanvas + SentenceRow),,
+design-output,d5b9fe5f-cda4-48f0-9611-70ae954887c5,DO-D5B9FE5F,Algorithm runner and audit-helper routers in analytics API (implementation),,
+design-output,d6c83599-42f8-448c-93a7-808c32701f0e,DO-D6C83599,Coding resolver vector-skip threshold (services/terminology_api/app/services/coding_resolver.py),,
+design-output,d6ce2aa5-c536-4563-963f-12f4c6daf7d1,DO-D6CE2AA5,Editable rule review dialog with versioned write-back,,
+design-output,d7005c41-3f84-491d-aa67-e0c50d588efc,DO-D7005C41,AI first-pass candidate generation service,,
+design-output,d92018c8-40cc-473d-8f65-63824806fab4,DO-D92018C8,"CompletenessReport writer, SBAR completeness contract, completion-event payload, FHIR Provenance",,
+design-output,d9f0f2d0-dc14-49b2-b2bc-af522804be7e,DO-D9F0F2D0,Double-Negation Guard for Pre-Negated SNOMED Situation Concepts (implementation),,
+design-output,daa36537-a52b-4950-adab-f9e5c4f02d77,DO-DAA36537,"VerificationLock primitive: graph schema, lock_service, and audit-aware writeback",,
+design-output,db78c498-2b20-4ca3-aaa1-ffec14701976,DO-DB78C498,"Token source of truth for LEO UI: theme.ts, theme/tokens.ts, theme/tokens.css",,
+design-output,db7f8d52-0cc1-4484-a255-97ce61e258bd,DO-DB7F8D52,Authentication and Authorisation Module,,
+design-output,dd9564e0-4971-4d2f-bd5a-40c3661abcec,DO-DD9564E0,Container Infrastructure,,
+design-output,de09c150-100c-44eb-9fe2-07df054952ad,DO-DE09C150,API request/response contract models (implementation),,
+design-output,e06315c0-b866-475c-b89b-e8bf25a1b4c1,DO-E06315C0,Multi-corpus gold promotion from reconciliation (implementation),,
+design-output,e32dac8d-9cb6-4598-a904-2759f00f2ba3,DO-E32DAC8D,Intelligence Console - unified admin UX,,
+design-output,e645de13-2dae-42a1-a107-13f586e8043f,DO-E645DE13,Frontend redirect and content sanitisation (implementation),,
+design-output,e647765a-4663-4ca1-94e3-3a23a27d6bc6,DO-E647765A,Admin Guidance UI -- Plain Language Guideline Management,,
+design-output,e66a98c2-1dbd-4d06-bb70-90ba35a0109a,DO-E66A98C2,First-seen milestone for 2WW fast-track clinic attendances (implementation),,
+design-output,e67afbe2-0032-4eca-aa8e-2f65c7755afa,DO-E67AFBE2,Optional pathway name on rule logic group nodes (editor + read-only view + API),,
+design-output,e74b0605-39e1-45dd-925d-7583459a2f8e,DO-E74B0605,"Bitmap Store, Guideline Compiler, and Evaluator in Terminology API",,
+design-output,e97a7471-07bd-4d21-8b85-0cb842d6757e,DO-E97A7471,De-identification library + deid validator guard,,
+design-output,ec41233c-ae65-4fa3-8867-f1337415a67e,DO-EC41233C,FastAPI router surface implementation,,
+design-output,eda32db1-04bf-4067-b3d9-bd678ab3229c,DO-EDA32DB1,LLM Interpretation Module,,
+design-output,edec869f-c373-461b-b195-6b47949145c4,DO-EDEC869F,Lock-aware episode_builder rebuild guard and prompt fixed_milestones block,,
+design-output,ee78e305-5346-4792-8bb1-e51a4d14d501,DO-EE78E305,Clinical Audit Mission Control React UI,,
+design-output,f160c131-4039-4d99-ac3a-bee9b1f2a63e,DO-F160C131,"NLP training, audit agent, and FHIR exposure surface",,
+design-output,f1953d1c-3125-41f6-b09f-cb72fd2b41c2,DO-F1953D1C,"Audit-quality, escalation, and security event logging (implementation)",,
+design-output,f2e2a70b-60bd-4cf8-a836-08a07108032d,DO-F2E2A70B,Episode-engine state and writer rollups for the analysis worker (implementation),,
+design-output,f360829a-8c67-4263-bd0c-ff119f2ad629,DO-F360829A,"Conditional integration-fetch edge, IntegrationAdapter contract, CompletenessFetchAttempt audit",,
+design-output,f3a6f414-f5a7-460d-9481-b853a0f70200,DO-F3A6F414,Label-verification and training-export lossless writer,,
+design-output,f4884f5a-e448-4ecf-b6f6-84d2a08bb7e1,DO-F4884F5A,Cypher allowlist and rest_connector SSRF guard (implementation),,
+design-output,f5bdfd51-8884-43fa-a52b-a07a78fcb182,DO-F5BDFD51,Guideline conformance evaluator and rule extraction,,
+design-output,f78c84a6-3f3e-49c2-ab00-3e53cf40b97a,DO-F78C84A6,Encounter-centric Mission Control and Batch Recode (implementation),,
+design-output,f8631a82-d82b-4095-a726-4612f07543b3,DO-F8631A82,Coding Review UI,,
+design-output,fa650296-28b1-4ca5-8c4c-7f9da9911a32,DO-FA650296,Avoidable Delay Assessment (implementation),,
+design-output,fd83bb4a-f8bc-42e4-9741-7b4ee66cabe3,DO-FD83BB4A,Appointment and Admin Header Filtering in NLP Pipeline (implementation),,
+design-output,fef05eda-86e7-4c62-9e72-9162af51a4c8,DO-FEF05EDA,Guideline Rule Engine and Safety-Net Detector,,
+design-output,ff21348a-7c85-41af-8e36-04b7e1b47b2b,DO-FF21348A,Outbound completion event publisher (progress channel + queue publish subgraph),,
+design-output,ffa66218-c0ef-4099-af25-fad943525bb3,DO-FFA66218,SBAR generation subgraph,,
+verification-test,0010386b-9575-4ead-a7ff-46648eaf899b,VT-0010386B,Verify reviewer workflow and change-control surface,,
+verification-test,01f07048-6f5b-4c67-a834-846a4299a9ae,VT-01F07048,"CancerTypeDumbbellChart rendering, colour logic, label formatting, and empty state",B,
+verification-test,0357417a-5ea6-44f3-8b0f-cd3419a30f8d,VT-0357417A,Reconcile Pathway API and drawer behaviour,B,
+verification-test,03b607ba-e6c8-4974-8e5d-293226898dec,VT-03B607BA,Verify clinical intelligence decision-support surface,,
+verification-test,079f08d4-1134-49bc-b7ff-cb81635b4b83,VT-079F08D4,FHIR R4 Conformance Verification,B,
+verification-test,07ec3438-14a7-4e32-b51c-e155a43dad62,VT-07EC3438,TrainingCandidate cascade delete removes linked KG artifacts,B,
+verification-test,08423226-c669-467d-a9f6-be3d8adf26aa,VT-08423226,Verification of Training worker entry point and spaCy training CLI,B,
+verification-test,088da6cf-7f47-4a5b-8909-81a241fbedd2,VT-088DA6CF,Dual-Model Consensus Runner Verification,B,
+verification-test,09a07bff-799e-4c41-b9d8-781e225eb9b8,VT-09A07BFF,ConText classifier trainer and per-class F1 gate,B,
+verification-test,0c7c078a-3400-47c8-9966-b65c1e3752bb,VT-0C7C078A,"Verification of FHIR API: ActivityDefinition, Library, PlanDefinition, Schema, Benchmark",B,
+verification-test,0d1f6c26-07eb-4d32-b43d-fe42fa4657ef,VT-0D1F6C26,"GoldLabel entities include text,label,semantic_tag,start,end,assertion",B,
+verification-test,0d5e90c2-c0e3-4898-b3a7-47e99881533e,VT-0D5E90C2,Milestone temporal integrity: referral-to-diagnosis gap + PRISM primacy - acceptance verification,B,
+verification-test,0d9f02dc-a760-4ec9-a146-03f98b95d7ae,VT-0D9F02DC,Pathways admin list redesigned on @leo/design-system,B,
+verification-test,0f4d43a7-ec95-47ea-86ac-e4c57aad6fef,VT-0F4D43A7,Terminology Service Verification,B,
+verification-test,100df0fa-d8b3-4067-95bd-0256b7796c69,VT-100DF0FA,GoldLabel single-source training flow verification,B,
+verification-test,1087f4f8-a65a-4091-8b6e-12edf2ee3a99,VT-1087F4F8,useMotion() collapses transitions when reduced motion is requested,B,
+verification-test,108d0072-ead9-487f-9cf2-e55f59fad44d,VT-108D0072,Evidence-wins merge with IS_PART_OF edge migration,B,
+verification-test,110d1103-aaca-4b35-87bf-0321dccfc08b,VT-110D1103,Verify plain-language interpretation surface,,
+verification-test,11538a31-1192-4499-ad61-c3aac5393991,VT-11538A31,Density provider resolves correct tier and guarantees 44px touch targets on patient-reachable routes,B,
+verification-test,119fe0df-089e-4048-aff8-548de10ba0fc,VT-119FE0DF,Operations dashboard renders summary cards and links,B,
+verification-test,11cd37a5-2029-47f5-b8f8-48ec1a7e7361,VT-11CD37A5,"Inbound referral consumer integration test (subscribe, dispatch, error path)",B,
+verification-test,11dcd848-0447-4185-9f2d-a23cb53b1e91,VT-11DCD848,NCDA Report Template Generation Verification,A,
+verification-test,123bde46-df38-4ad6-b953-699ce19227fc,VT-123BDE46,"Sentence canvas - shape conversion, layout, soft-cased AT-LEAST, and unsupported-shape fallback",B,
+verification-test,14d8c35d-c6de-4d38-b7c1-45b5e3f7c728,VT-14D8C35D,Coding quality LLM check verification,B,
+verification-test,1554c885-afcd-4729-b0d5-ad8dd8a27bea,VT-1554C885,Verification of LLM usage cost configuration module,B,
+verification-test,16591aa0-25a6-4d77-908f-2265baef5488,VT-16591AA0,Verification of ODS (Organisation Data Service) lookup client,B,
+verification-test,18312f28-663f-4a82-9a3d-632c32e5b2d5,VT-18312F28,"Ambiguous Abbreviation Disambiguation - Extraction, Escalation, and Resolver",B,
+verification-test,186c4114-ffdc-417f-87cc-b858701b1d21,VT-186C4114,Stage-at-diagnosis parser and rules engine verification,B,
+verification-test,19165b6f-83b3-44d5-add1-7f3a2156bf12,VT-19165B6F,Automated Encounter Remediation - LLM Gate and Audit Trail,B,
+verification-test,19237b32-15f8-47d4-a0dc-d844ce681cf3,VT-19237B32,useMotion() collapses transitions when reduced motion is requested,B,
+verification-test,19536665-d1c4-4a59-84d9-dc0d5268cfb6,VT-19536665,FHIR R4 Resource Endpoints,A,
+verification-test,1c38a76b-b52a-47a6-8398-b0ebae1afe98,VT-1C38A76B,Frontend redirect and content sanitisation tests,B,
+verification-test,1e5fc70a-cc75-4933-80f8-943b78e5adfa,VT-1E5FC70A,Verify authoritative source monitoring and release management,,
+verification-test,1eeed757-dd29-4d03-a2af-ac1a176559b8,VT-1EEED757,Verification of Service-to-service authentication helper,B,
+verification-test,1f85363b-3999-404e-8ec4-63774cf87529,VT-1F85363B,FHIR R4 Resource Endpoints,A,
+verification-test,1fa06eb9-59b2-4706-97fb-ef3f5829aabd,VT-1FA06EB9,Defensive hardening tests,B,
+verification-test,21a09e8a-bedc-4873-9085-8077a2f721f8,VT-21A09E8A,GoldLabel single-source training flow verification,B,
+verification-test,21adb5ee-89aa-481c-834b-e5be04137553,VT-21ADB5EE,FHIR Measure Evaluation,B,
+verification-test,2202b852-0366-479e-b7b6-2ab369eebbe9,VT-2202B852,"Verify canonical NCDA cancer-type vocabulary parity across LLM, writer, analytics API, UI mirror and migration",B,
+verification-test,2214d39d-5908-480b-b194-42d1aa95d236,VT-2214D39D,Dual-Model Consensus Runner Verification,B,
+verification-test,24d944b2-8810-45e9-9333-03a22642786e,VT-24D944B2,"Verify MECE lifecycle classifier and dashboard hero cards (sum == cohort, no Safety alerts in hero)",B,
+verification-test,258a4c84-b84c-452c-9371-37e950f38e66,VT-258A4C84,FHIR Measure Evaluation,B,
+verification-test,26de93bc-a300-4f85-a34d-330463869a58,VT-26DE93BC,Knowledge hub migration onto primitives with role-aware copy,A,
+verification-test,27d517d2-d85c-4d26-9f3b-fd01ceb22113,VT-27D517D2,LLM Disambiguation Verification,B,
+verification-test,27fa2154-9138-4b4e-a3e9-ea7c794ed8fa,VT-27FA2154,Guideline Compliance and Safety Net Verification,B,
+verification-test,28648c85-6120-4cab-92b4-ac5a10d5a3ee,VT-28648C85,Intended-Use Scope Guard Verification,B,
+verification-test,2a038620-8818-405a-ae41-b127bf6f85a8,VT-2A038620,Review UI Verification,B,
+verification-test,2b00f853-9079-4593-b69e-81b2ae549baf,VT-2B00F853,Atlas DO-4D608335 bucket VT - Terminology tooling and Neo4j MCP tools,B,
+verification-test,2b7969c0-5a11-46b7-8eec-2ca4bd9079d0,VT-2B7969C0,Value Set and Concept Map Management,B,
+verification-test,2de1e024-4d7c-4ead-aacc-89851766aa21,VT-2DE1E024,Coding review modal split and inclusive redesign verification,B,
+verification-test,2e80bcfc-6098-48d8-986a-f3151062a840,VT-2E80BCFC,Loop 3 De-identified Evidence Collection and Zero-PII Verification,B,
+verification-test,2ec65556-d2ac-4165-9cd2-e184c0899563,VT-2EC65556,VT: Multi-label NER schema mapper and normalisation,B,
+verification-test,2f4e1b2c-a201-46aa-9870-462822849bdc,VT-2F4E1B2C,CI/CD pipeline integrity tests,B,
+verification-test,3093a2da-c940-45de-9b0e-37571c8c8271,VT-3093A2DA,"Design tokens expose typography, spacing, motion, focus, and contrast pairs that meet WCAG AA",B,
+verification-test,30dc4ffb-b06d-464c-8f4d-33ea3625951b,VT-30DC4FFB,LLM Disambiguation Verification,B,
+verification-test,316f0769-e4a2-404e-8566-d3b111b1f869,VT-316F0769,Role-first shell primitives behave per spec and respect the feature flag,B,
+verification-test,32d840e7-72ba-42c1-a58d-9cb9c4ef3e48,VT-32D840E7,@leo/design-system package is resolvable from services/ui,A,
+verification-test,354e24da-3251-43f9-805e-f36ab6a7c0cf,VT-354E24DA,VT: Per-type review queue Cypher and role-state,B,
+verification-test,3670cb92-866d-4e11-8689-ba84d8b1aebb,VT-3670CB92,Verification of API request/response contract models,A,
+verification-test,36ffec67-d16b-428c-b930-6e8d2c63966f,VT-36FFEC67,Surface Forms Management API Verification,B,
+verification-test,37769b5d-64e3-4a61-9f19-3087c72ff57f,VT-37769B5D,Appointment Header Filter and Resolver Input Normalisation,B,
+verification-test,398f1fa2-b4d4-45c4-aadd-cdde962ad659,VT-398F1FA2,Outbound completion event publisher test (progress channel + queue publish subgraph),B,
+verification-test,3a424250-93b3-4762-b029-ad27876f20c8,VT-3A424250,FHIR R4 Conformance Verification,B,
+verification-test,3aadd05c-21bc-4b82-94af-d346403c269c,VT-3AADD05C,Operations workspace inclusive redesign verification,B,
+verification-test,3aae048e-c8b4-47ba-9543-a169ee480d65,VT-3AAE048E,Anchor/Milestone Detection - acceptance verification,B,
+verification-test,3b2f2ecb-4c38-42be-a759-9571eac20af0,VT-3B2F2ECB,"first_seen milestone: regex, classification, claiming, and d-0 referral",B,
+verification-test,3b7aa77c-d853-4715-9bf7-96c7a5db67a5,VT-3B7AA77C,NCDA ground-truth regression harness,B,
+verification-test,3b8596ec-d0c8-4ccd-aa5b-681274345bd7,VT-3B8596EC,NER-first extraction routing and deterministic pre-filter verification,B,
+verification-test,3b88d639-4a96-4494-b6e8-5c59a4f408fe,VT-3B88D639,Post-specialist outcome inference engine unit tests,B,
+verification-test,3d311917-df96-4e0d-9d47-cb5dc307e4bd,VT-3D311917,Analytics assertion filter - CCI and cohort queries,B,
+verification-test,3fb93faf-776f-42f7-930c-0aea4f3aad86,VT-3FB93FAF,DE-ID person-name pass and leakage-rate gate,B,
+verification-test,404c1e2c-2234-4c61-9dee-5ea97eed1d98,VT-404C1E2C,"OBSERVATION leaf backend -- schema, units, compiler, evaluator, payload acceptance",B,
+verification-test,4096d5a2-1cf0-4935-b5d0-e19d2501ba55,VT-4096D5A2,Verification of Pipeline label filter and extraction-response parser,B,
+verification-test,40c25ab8-c9ae-4cf3-acd4-0e12f16b88ac,VT-40C25AB8,Episode Building Verification,B,
+verification-test,40ccb0c7-3d4e-476e-9c06-c1086d61f077,VT-40CCB0C7,Loop 3 De-identified Evidence Collection and Zero-PII Verification,B,
+verification-test,42ff9fc7-4cea-41d9-897e-66927155f6b0,VT-42FF9FC7,Intelligence Console UX - URL audit and component rendering,A,
+verification-test,43806b97-b9d7-4e5d-b136-02911f133845,VT-43806B97,Tier classifier v2 verification (tests/test_tier_classifier.py),B,
+verification-test,447fa683-afad-4da9-b5a0-948da6598a27,VT-447FA683,Gold pipeline blocks records with residual PHI patterns,B,
+verification-test,454970de-0975-4755-a7d7-316e39c534d6,VT-454970DE,"Mission Control Frontend UI -- Labels, Filters, Timeline, Review Actions",B,
+verification-test,4568f544-27a3-4e97-b581-219b44551b84,VT-4568F544,Review UI Verification,B,
+verification-test,4649835f-d777-4185-90a4-487727a358e7,VT-4649835F,"Verification of Terminology loaders for SNOMED CT UK, dm+d, OPCS-4, ICD-10",B,
+verification-test,48d33113-dc2a-43e4-9fa6-c46b5c49f895,VT-48D33113,"Verification of LLM prompt asset registry (templates, examples, output schemas)",B,
+verification-test,49dbd2c9-7de1-444c-84fb-1b5209036543,VT-49DBD2C9,Double-negation guard for pre-negated SNOMED situation concepts,B,
+verification-test,4be22f10-603c-483c-b365-5370b620354b,VT-4BE22F10,Verify entity provenance and audit-trail surface,,
+verification-test,4cafbb2d-33c8-47f1-89a9-2fd2ca6f1a10,VT-4CAFBB2D,Knowledge hub migration onto primitives with role-aware copy,A,
+verification-test,4dc818cb-5033-4bc9-b8fc-343a21517314,VT-4DC818CB,Double-negation guard for pre-negated SNOMED situation concepts,B,
+verification-test,4e89f761-680c-46c5-bb98-186fa0725c58,VT-4E89F761,MUI theme factory lives in @leo/design-system,A,
+verification-test,4e9e857c-1cac-4a1c-b428-6e8de504d2fd,VT-4E9E857C,Polarity-encoded finding guard corrects assertion inversion after SNOMED resolution,B,
+verification-test,4ec1eb64-9613-4355-bddf-7b36c796a881,VT-4EC1EB64,Surface form mismatch creates review task,B,
+verification-test,4f212f78-6359-4215-80fb-266162ad1540,VT-4F212F78,next/font DM Sans applied and subtitles not monospaced,A,
+verification-test,4f7314cb-5344-4db5-8f18-ef6ea36fe42e,VT-4F7314CB,MUI theme factory lives in @leo/design-system,A,
+verification-test,50903880-1dc1-4867-870b-7980af6fe1af,VT-50903880,Verification of Redis-backed checkpoint and rebuild status,B,
+verification-test,51320da9-f421-49d1-8b3b-7d4cf030cc18,VT-51320DA9,"ServiceDataRequirement registry: schema, CRUD, RBAC, immutable history, seed records",B,
+verification-test,51811957-ef1e-4cee-bfc4-ce77ea780e77,VT-51811957,NLP Entity Extraction Verification,B,
+verification-test,51a869c2-236b-4ef0-bb06-21c94b09b3f2,VT-51A869C2,Verify data-gap disclosure and small-cohort suppression,,
+verification-test,52628a07-ecff-491a-a58e-40a5907290b8,VT-52628A07,"Verification of Terminology preferred-term, surface normalisation, semantic tags",B,
+verification-test,52ed5e12-3c33-46c8-9970-eb7cfaf1d380,VT-52ED5E12,Disorder Entity Verifier Verification,B,
+verification-test,532b5aaa-676a-4ebc-bfa1-01654d5addeb,VT-532B5AAA,LLM Prompt Safety Utilities and Attack Simulation Verification,B,
+verification-test,562da8dd-f308-4dd3-af0f-5424bf276ac0,VT-562DA8DD,Operations language meets low reading-age labels,B,
+verification-test,56b7fcbb-f8ec-43a8-bff8-d252161caf46,VT-56B7FCBB,"PageIntro, HelpPopover, CoachMark, ProgressiveReveal, GlossaryTerm, glossary, and readability gate",B,
+verification-test,575269ac-ff42-4130-aa25-e5e501e51147,VT-575269AC,Density provider resolves correct tier and guarantees 44px touch targets on patient-reachable routes,B,
+verification-test,58fb199a-81f3-4bc1-aacc-992eedbe9c2d,VT-58FB199A,Coding review modal split and inclusive redesign verification,B,
+verification-test,59ed0e32-2489-4b12-9c2f-8d28f5cb0ea4,VT-59ED0E32,Terminology Writeback,B,
+verification-test,5a0ef74e-9d84-40a8-8fb6-14c9ac9ae3d8,VT-5A0EF74E,Role-first shell primitives behave per spec and respect the feature flag,B,
+verification-test,5ba2bc32-e95b-40e0-966b-831c3725e7dc,VT-5BA2BC32,GDPR-Isolated Learning Loop and Operations UX - acceptance verification,B,
+verification-test,5bdfe5f7-37a7-4e0c-b126-54767251d120,VT-5BDFE5F7,"Centralised test patient library: data shape, cross-graph copy, redaction, SBAR seed, dialog wiring, per-aspect editor, AI authoring AND SBAR / referral triage surfacing (relabel + outcome filter + NG12 backfill)",B,
+verification-test,5cba9d19-536f-4f32-bdf7-64e88e597f97,VT-5CBA9D19,Verification of In-memory message bus adapter for development and tests,A,
+verification-test,5d19adf3-10b0-46d1-8875-d3fddb1cdf10,VT-5D19ADF3,Spinal vertebral notation suppressed; valid TNM staging preserved,B,
+verification-test,5f280bc3-6ee9-4317-9187-ceaafef86b4c,VT-5F280BC3,"Knowledge hub consolidation, legacy redirects and URL audit",A,
+verification-test,60bd1e36-db23-4472-a05f-688a69022668,VT-60BD1E36,LLM Prompt Safety Utilities and Attack Simulation Verification,B,
+verification-test,61a437c5-15c4-43d3-b6f4-c9868b6679a7,VT-61A437C5,Open-episode diagnosis rescue + first_seen_date persistence,B,
+verification-test,629124f7-fa88-4aec-b300-6715d4b01f24,VT-629124F7,Agentic Training Label Auditor with Terminology Tool-Use Verification,B,
+verification-test,62c4d640-712a-4af3-bb49-e403499a5241,VT-62C4D640,@leo/design-system package is resolvable from services/ui,A,
+verification-test,656d2578-d873-4057-bc27-50a585a38bdc,VT-656D2578,Operations workspace inclusive redesign verification,B,
+verification-test,66ea38d9-7b32-47e1-814e-b320ae25c554,VT-66EA38D9,Intelligence Console UX - URL audit and component rendering,A,
+verification-test,67fb9c97-9bc3-4555-9836-957b436f5db9,VT-67FB9C97,Entra group claim resolves to canonical roles via Neo4j binding catalogue,B,
+verification-test,6951aba1-51ba-40cd-bac1-6c4e703ebec1,VT-6951ABA1,VT: Append-only audit emitter and security-event log,B,
+verification-test,6a53ad3b-c3c4-4168-8a2a-ac3dd93d651f,VT-6A53AD3B,Data Quality Toolkit -- Service Layer and API Verification,B,
+verification-test,6b244d1c-2c78-4fd7-88ce-8aee2dca7f4e,VT-6B244D1C,TrainingCandidate/GoldLabel contain no patient or tenant linkage fields,B,
+verification-test,6d3789a9-a6b8-40db-97a9-61f9042f242b,VT-6D3789A9,Atlas DO-31410049 bucket VT - Analytics API and ODS sync workers,B,
+verification-test,6ea527e5-a5c4-41f4-bf6c-6a3a98892802,VT-6EA527E5,Authentication and RBAC Verification,B,
+verification-test,6f821045-bd4a-4a76-9713-d2fe8df4ca00,VT-6F821045,Verification of FHIR-based agent configuration registry,B,
+verification-test,707960ff-5b4f-48a0-84b0-55946dbd845b,VT-707960FF,"Bitmap Store, Compiler, and Evaluator in Terminology API - acceptance verification",B,
+verification-test,71391783-6492-4b37-9fb5-98e97b4e16e5,VT-71391783,"UI Safety, Accessibility, and Usability Verification",B,
+verification-test,726b36ff-0174-444a-a94a-e3957d2c2fb2,VT-726B36FF,Cypher allowlist and rest_connector SSRF tests,B,
+verification-test,73a6917f-9006-40fc-8667-516de8a0ee14,VT-73A6917F,CodingDecision Audit Trail Verification,B,
+verification-test,7501a5e7-ae9e-41d6-b570-099777828018,VT-7501A5E7,VT-LEO-AI-045,,
+verification-test,765e2ea5-61c4-448f-9585-0c837ab71174,VT-765E2EA5,Review Service Verification,B,
+verification-test,77933358-6ca9-4bb7-a9b6-849186e68494,VT-77933358,"first_seen milestone: regex, classification, claiming, and d-0 referral",B,
+verification-test,791577fe-e63f-4ca4-a017-89934da568af,VT-791577FE,Appointment Header Filter and Resolver Input Normalisation,B,
+verification-test,7ae54cb8-f75a-447c-9af0-723e8f600969,VT-7AE54CB8,Data Quality Toolkit -- Service Layer and API Verification,B,
+verification-test,7bd4d56f-acd2-4681-9219-6eaa59bcb3af,VT-7BD4D56F,VT: Label-verification and training-export lossless writer,B,
+verification-test,7c3fe303-e2df-453d-9a5d-5fe1228a82e0,VT-7C3FE303,Auto-Scaling Worker Architecture,A,
+verification-test,7c4a1b8c-27b4-4f0d-92f3-c40a46021067,VT-7C4A1B8C,NER-first extraction routing and deterministic pre-filter verification,B,
+verification-test,7cb74e77-7bfc-468d-bf30-de12f5b6a5cc,VT-7CB74E77,"Phase 6 cleanup verification (flag, duplicates, fonts, lint)",A,
+verification-test,7cf407f0-2057-4d18-8dee-7a6c859f2138,VT-7CF407F0,Atlas DO-2C03CA0E bucket VT - Tenant admin portal UI,B,
+verification-test,7dbd5ae5-e6a5-4cca-8b23-b37910ec0221,VT-7DBD5AE5,"Knowledge hub consolidation, legacy redirects and URL audit",A,
+verification-test,7f7cd67b-9d6b-4680-a6e0-07f5d95a5532,VT-7F7CD67B,Lab Value Diagnostic Inference Prevention Verification,B,
+verification-test,80389d89-a58b-49c7-b06c-a7d20df0a1e8,VT-80389D89,VT-LEO-AI-524: Server-side search term expansion for the dry-run review queue,B,
+verification-test,80625a99-03ee-4a39-9822-9f9ff2aeb3a9,VT-80625A99,Polarity-encoded finding guard corrects assertion inversion after SNOMED resolution,B,
+verification-test,80c4e947-8dc6-4f13-94d5-2434956535c2,VT-80C4E947,Staging specialty scoping and post-diagnosis window,B,
+verification-test,8105bb54-d990-4f0f-902c-b4facf033129,VT-8105BB54,VT-LEO-AI-525: Similar-candidates batch dialog highlighter + match rationale chips,B,
+verification-test,81bc41b8-4173-43bc-9826-357b16b7b2da,VT-81BC41B8,Atlas DO-EC41233C bucket VT - FastAPI router surface,B,
+verification-test,8352cbf9-5f6a-4fde-b1bf-3f0c57c0bfb6,VT-8352CBF9,Verification of Neo4j MCP server for analyst and reviewer workflows,B,
+verification-test,83d80af1-0467-49f2-8f97-47918947ceed,VT-83D80AF1,"Practitioner role model, session payload, and RoleSwitch audit",B,
+verification-test,84d9db0b-8f10-4aba-9e7d-2b9e22b8e896,VT-84D9DB0B,Analytics assertion filter - CCI and cohort queries,B,
+verification-test,84dae8a0-2765-446d-880a-b8bce768de6a,VT-84DAE8A0,NCDA ground-truth regression harness,B,
+verification-test,8737671d-fe7c-4b7d-b605-070a5444a774,VT-8737671D,Guideline Compliance and Safety Net Verification,B,
+verification-test,87679b15-b081-4c80-8aa6-23c8185e7034,VT-87679B15,Verification of ODS sync worker entry point,B,
+verification-test,87b42d9b-ee92-442d-8200-e0d99d84fd92,VT-87B42D9B,API authorization and tenant scoping tests,B,
+verification-test,88712658-e7e1-4793-9823-132ef0bd6171,VT-88712658,Audit Domain and Subdomain Configuration Verification,B,
+verification-test,8a375ceb-3094-4599-8c77-82e9c0acb0a8,VT-8A375CEB,Resolved coding review items can be purged,B,
+verification-test,8b3159a8-926a-4d8c-8e0c-c3eb2379e8ed,VT-8B3159A8,Role-first area intro copy + feature flag default,A,
+verification-test,8c96cbc0-6df6-4e36-be54-029472d2bd17,VT-8C96CBC0,"Pathway naming - editor UI, round-trip, and API validation",B,
+verification-test,8ce12923-3d69-4155-a1b2-3a73e36a5c93,VT-8CE12923,CodingMode Pipeline Routing Verification,B,
+verification-test,8d116319-027d-4174-b9ef-9e9befd5957e,VT-8D116319,Staging specialty scoping and post-diagnosis window,B,
+verification-test,8dc57205-8fc9-42a7-bf7b-bbbaee9f8b45,VT-8DC57205,Verification of Model registry (Neo4j-backed) with manifest and training adapter,B,
+verification-test,8ec2ec88-4926-4cc8-b7f0-8f0720e3d34b,VT-8EC2EC88,VT: Audit-quality API and drift analytics,B,
+verification-test,8f79618c-1111-4184-8fe5-e27ef104d191,VT-8F79618C,Surface Forms Management API Verification,B,
+verification-test,8f8eaab6-b706-4ad6-8069-59b5dc623c55,VT-8F8EAAB6,NLP Entity Extraction Verification,B,
+verification-test,8fa86b8b-fb7e-4105-9fca-8d8a51b9ec79,VT-8FA86B8B,"CompletenessReport persistence, SBAR contract, completion-event payload, FHIR Provenance",B,
+verification-test,90da2f3b-824d-4c5a-b6ff-81fc4f091472,VT-90DA2F3B,Atlas DO-92F92EFB bucket VT - API service tier,B,
+verification-test,915be2ba-5acf-4c68-b08e-3edeb52b0b24,VT-915BE2BA,"Multi-label NER - spancat export, inference multi-label, layer 5 nesting, prompt rules",B,
+verification-test,937f840a-9252-457a-baef-ac0acfdf38df,VT-937F840A,Loop 3 Holdout Set Integrity and Export Exclusion Verification,B,
+verification-test,94c886ca-beb1-4a07-86d3-33e22bc46f49,VT-94C886CA,"Guidance admin page renders correctly, gates destructive actions with ConfirmDialog, surfaces errors via Alert",B,
+verification-test,94fb1a33-e5b0-45fb-b702-d2d55a117efd,VT-94FB1A33,Data Governance Verification,B,
+verification-test,95ac6642-f18a-4207-a6cc-4337a6b120b2,VT-95AC6642,Verify guideline update review surface,,
+verification-test,96455bc1-8316-4a5a-a324-ebe1f78642b1,VT-96455BC1,VerificationLock primitive lock_service contract,B,
+verification-test,96bf21b7-f895-47a0-bf79-57076a130bb6,VT-96BF21B7,Internal service authentication and CORS tests,B,
+verification-test,9a17e3d7-0d57-4490-bd5d-471a9b2fbf50,VT-9A17E3D7,"LLM rule generator applies INJECTION_GUARD, conservative fail, and HITL gate",B,
+verification-test,9a9daa2c-c262-4408-915e-eae955d887a3,VT-9A9DAA2C,Atlas DO-30A82196 bucket VT - Editor and gold-label UI,B,
+verification-test,9aac75b5-ea23-4378-bbf4-09d3529d4ead,VT-9AAC75B5,"Verification of Audit-quality, escalation, and security event logging",B,
+verification-test,9abfeede-f0a7-4780-9b5a-b0a17de9429b,VT-9ABFEEDE,Verification of Azure managed-identity credential resolver,B,
+verification-test,9ac8aea7-b337-40b7-b74b-cd559adc9299,VT-9AC8AEA7,SpanResolver resolves absolute character offsets for LLM-extracted terms,B,
+verification-test,9d2f09bf-b60c-41cb-bfd9-9c4f041c97a3,VT-9D2F09BF,next/font DM Sans applied and subtitles not monospaced,A,
+verification-test,9d89c850-ea2a-4893-b4ab-1db5ede3aa22,VT-9D89C850,Open-episode diagnosis rescue + first_seen_date persistence,B,
+verification-test,9e3a3e6e-2622-4831-a9ef-b7367de9b31f,VT-9E3A3E6E,Pathways admin list redesigned on @leo/design-system,B,
+verification-test,a0faf859-0600-42b9-8cfa-83eca544f36d,VT-A0FAF859,Value Set and Concept Map Management,B,
+verification-test,a2593c19-77e6-458d-929b-f1655afd9a67,VT-A2593C19,"Design tokens expose typography, spacing, motion, focus, and contrast pairs that meet WCAG AA",B,
+verification-test,a295af03-5123-490f-ab23-571768a796e9,VT-A295AF03,SpanResolver unit verification (tests/test_span_resolver.py),B,
+verification-test,a2b51a45-dcd1-4157-8220-f8c7baea69d0,VT-A2B51A45,Atlas DO-5312F884 bucket VT - Mission Control UI,B,
+verification-test,a33a0b55-ed76-421a-8e77-73d53ced3cb0,VT-A33A0B55,Post-specialist outcome inference engine unit tests,B,
+verification-test,a44a1838-5cc6-4592-a912-fe6689394347,VT-A44A1838,LLM extractor v2 output verification (assertion + confidence + qualifiers),B,
+verification-test,a595b075-3d0a-4225-ba66-06c65ba20f34,VT-A595B075,Terminology Search and Resolution,A,
+verification-test,a5d08a6d-8f94-4fae-b173-7a4410899256,VT-A5D08A6D,Atlas DO-CBE90D5D bucket VT - Operations and tenant integration UI,B,
+verification-test,a6893653-4bdc-4dac-9f61-1c310150e698,VT-A6893653,AppShell + ConfirmDialog + StatusDot + TermSearch meet the WCAG 2.1 AA baseline and a representative patient-reachable route passes axe-core,B,
+verification-test,a8a47f0a-7d59-4747-8e8d-b05d5e5b960f,VT-A8A47F0A,"VT: Auth, role-state and tenant-scope middleware",B,
+verification-test,a8c4acbf-f483-4480-98e4-badcf9e9c897,VT-A8C4ACBF,Declined/Cancelled Assertion Lifecycle,B,
+verification-test,a9411132-5bce-4a8c-b767-e32d9412e88f,VT-A9411132,LLM Interpretation Service Verification,B,
+verification-test,ac7b3c7f-c550-456b-a068-2e78f1140c96,VT-AC7B3C7F,"Verification of NER post-processing, lab-triple recovery, and seed ingestion",B,
+verification-test,acc73bfb-75a3-4f11-8589-2cd2d7087696,VT-ACC73BFB,Encounter Mission Control Hybrid Search and Batch Recode Verification,B,
+verification-test,add83ed1-7446-4650-9770-0cbf128b3441,VT-ADD83ED1,Terminology Search and Resolution,A,
+verification-test,aeb596d8-fc76-426c-ab14-fd2a654bb066,VT-AEB596D8,"Ambiguous Abbreviation Disambiguation - Extraction, Escalation, and Resolver",B,
+verification-test,af3c8a3f-1a30-4471-b0dd-dace13a9b514,VT-AF3C8A3F,CodingMode Pipeline Routing Verification,B,
+verification-test,b01cb05b-542b-4d37-94a3-825df30a6c4a,VT-B01CB05B,Verify developer integration surface,,
+verification-test,b2476494-0093-4db4-94c9-eef067cb4ee1,VT-B2476494,Declined/Cancelled Assertion Lifecycle,B,
+verification-test,b366113b-219e-4349-846c-d4af09d11284,VT-B366113B,SpanResolver resolves absolute character offsets for LLM-extracted terms,B,
+verification-test,b3bb3dac-29f9-4ec1-a98c-2d6beec4bebc,VT-B3BB3DAC,VT: De-identification library and deid validator guard,B,
+verification-test,b4589fcb-4882-41a5-b302-a2ae09456484,VT-B4589FCB,Rule editor sandbox-only test surface and saved-not-live banner -- acceptance verification,B,
+verification-test,b45f69c0-59cf-4b42-be6b-939e82388c47,VT-B45F69C0,SNOMED CT Resolution Verification,B,
+verification-test,b668d256-cc78-400a-acb2-00f724d7d8a3,VT-B668D256,"Sandbox-on-commit -- debounced auto-run, Run now, sandbox-only scope, inline impact badges, empty-state CTA",B,
+verification-test,b71f48e7-d040-4124-973b-3b50e4231c02,VT-B71F48E7,LLM extractor does not assign assertion; post-processing is sole assertion authority,B,
+verification-test,b764f925-93d1-4653-8c81-a1a8c06a6b1a,VT-B764F925,Verify patient shortlisting and recall,,
+verification-test,b7c7c5ad-2546-4951-9601-404929f1a0b3,VT-B7C7C5AD,Terminology Service Verification,B,
+verification-test,b8dfcd49-bb6d-483b-bc2f-118cf14c4c34,VT-B8DFCD49,Lock-aware episode_builder and recode rebuild guard,B,
+verification-test,b8f82218-0295-4413-bbcb-bbae72818932,VT-B8F82218,LLM extractor does not assign assertion; post-processing is sole assertion authority,B,
+verification-test,b8fce1ac-4801-4aac-9896-552e7d5b6687,VT-B8FCE1AC,Terminology vector-skip threshold verification (tests/test_coding_resolver.py),B,
+verification-test,bb98eec7-aaeb-4ad4-8fee-9a32a075244b,VT-BB98EEC7,SNOMED CT Resolution Verification,B,
+verification-test,bbee8aca-7420-465c-98ac-bf903da7766d,VT-BBEE8ACA,Multi-corpus gold promotion isolation and DE-ID gating,B,
+verification-test,bcba2dec-636a-4c16-b32f-d47d848ff753,VT-BCBA2DEC,Verification of OpenTelemetry tracing setup,A,
+verification-test,be103c78-6a4c-483b-bbe2-225353e9a520,VT-BE103C78,"UI Safety, Accessibility, and Usability Verification",B,
+verification-test,bedebeea-8155-4a39-b975-a83059f6d4e4,VT-BEDEBEEA,Verification of Assertion inference helper,B,
+verification-test,befc400e-8c49-4b9d-aeff-a6554e5119da,VT-BEFC400E,Consensus runner v2 verification (tests/test_consensus.py),B,
+verification-test,bf1c6463-ceb0-467e-90a2-798ef9f03791,VT-BF1C6463,Clinical Encounter Classification and Anchor Detection Verification,B,
+verification-test,bf47202d-705d-4481-bd0f-1cb9318da1d0,VT-BF47202D,Verification of Encounter classifier (NER + spaCy textcat),B,
+verification-test,c119ba1f-7133-4c25-99c8-1a1ede3c417c,VT-C119BA1F,Admin portal Entra extension - acceptance verification,B,
+verification-test,c23af9a2-fbba-41a0-905d-97318e19c2a9,VT-C23AF9A2,Performance and Scaling Verification,A,
+verification-test,c26e6d31-7af6-48b1-be50-cbfd44c14660,VT-C26E6D31,Terminology Writeback,B,
+verification-test,c2f240a6-c007-4f79-a748-11689fc90e64,VT-C2F240A6,Lab Value Diagnostic Inference Prevention Verification,B,
+verification-test,c3250ca6-666c-4c5e-9892-9ab447b466c2,VT-C3250CA6,"Completeness checker subgraph determinism, case grid, position validator, latency",B,
+verification-test,c3a50386-5f0a-492e-a28e-e33c48a61f49,VT-C3A50386,LLM-Based AppropriatenessRule Authoring with HITL Gate - acceptance verification,B,
+verification-test,c3c88de3-5e89-4a8c-ac3f-330e5fd548ce,VT-C3C88DE3,Verification of Model artefact blob store,B,
+verification-test,c4404d57-a04a-41d5-a66b-0b08f0b78aa3,VT-C4404D57,Encryption and Security Verification,B,
+verification-test,c45c6ac7-08d0-4661-b7f6-493b32fe6b29,VT-C45C6AC7,Canonical EpisodeOfCare status vocabulary contract,B,
+verification-test,c666bead-c560-48f5-8516-7db5913bfbc0,VT-C666BEAD,Coding quality LLM check verification,B,
+verification-test,c89682a3-965d-4eca-af18-402fdd1e9ccc,VT-C89682A3,Two-pass referral matching + honest referral_date semantics,B,
+verification-test,c93a9821-ab44-4c93-a381-0cad8e469759,VT-C93A9821,Histology vocabulary expansion for confirmed-cancer and benign-closure detection - acceptance verification,B,
+verification-test,c9406752-a05c-439b-825e-ab89374f6922,VT-C9406752,Verification of Episode-engine state and writer rollups for the analysis worker,B,
+verification-test,ca9dc186-243f-41d5-bcd4-6473b82e9c8f,VT-CA9DC186,Avoidable Delay Assessment Service Verification,B,
+verification-test,cb189a98-2adc-48a6-b06d-c908521c510f,VT-CB189A98,Agentic Training Label Auditor with Terminology Tool-Use Verification,B,
+verification-test,cb4f84ce-71bc-4c32-b6fe-08890adb378e,VT-CB4F84CE,"Bitmap store round-trips, compiler groups criteria correctly, evaluator applies reqAll/forbid logic",B,
+verification-test,ccea1554-89f5-4c0b-9d17-86987221cfec,VT-CCEA1554,Verification of De-identification of clinical text before LLM submission,B,
+verification-test,ce4e3c57-51a2-48dc-bd7c-0ce1830a607f,VT-CE4E3C57,"Conditional integration-fetch edge: no-op, retry-bound, parity, idempotency, fallback",B,
+verification-test,cef1a059-f904-475c-85e2-97d9aa540f08,VT-CEF1A059,Spinal vertebral notation suppressed; valid TNM staging preserved,B,
+verification-test,d05aefd5-c5f8-4723-bed5-0821969a8dff,VT-D05AEFD5,Role-first area intro copy + feature flag default,A,
+verification-test,d11c0619-e679-415b-b162-d9dae3f665f6,VT-D11C0619,"Phase 6 cleanup verification (flag, duplicates, fonts, lint)",A,
+verification-test,d1a6fde7-0ccc-45e8-ad99-e989480d9e78,VT-D1A6FDE7,Verification of LLM provider cache and Bedrock retry plumbing,B,
+verification-test,d1aa8404-f5fe-4283-b799-75fefd66f502,VT-D1AA8404,Avoidable Delay Assessment Service Verification,B,
+verification-test,d217f550-2ed5-4417-9bc3-ae901c18a0a7,VT-D217F550,Coding Verification Consensus Verification,B,
+verification-test,d2255676-fd1c-4c66-945d-08469b5df76d,VT-D2255676,Verification of Algorithm runner and audit-helper routers in analytics API,B,
+verification-test,d261857c-9e0a-4892-856d-ff5d8fdd670b,VT-D261857C,Manual review-time editing of AI-generated guidance rules - acceptance verification,B,
+verification-test,d32a687b-309b-4dbd-b6b0-a5776ee1c4e9,VT-D32A687B,Verify operations admin and DQ surface,,
+verification-test,d4090a6b-5b53-4393-b253-5abc7199b912,VT-D4090A6B,Care Overview inclusive redesign verification,B,
+verification-test,d4629ca4-f653-4a7a-b21f-c21c139b3c86,VT-D4629CA4,Loop 3 Holdout Set Integrity and Export Exclusion Verification,B,
+verification-test,d4af7cbd-6f33-48ae-9b84-a8c486c5585e,VT-D4AF7CBD,Episode Consolidation - acceptance verification,B,
+verification-test,d4b7608e-5410-416c-8ac0-7c810d0d83b7,VT-D4B7608E,Specialist outcome letter milestone and inferred benign completion,B,
+verification-test,d52be77a-a653-4aa2-9984-14297846cd34,VT-D52BE77A,CodingDecision Audit Trail Verification,B,
+verification-test,d58736dc-c323-4d40-82e4-9ec571c36088,VT-D58736DC,"Mission Control Frontend UI -- Labels, Filters, Timeline, Review Actions",B,
+verification-test,d9893728-3064-453b-b1d0-cb46a5202944,VT-D9893728,Coding Verification Consensus Verification,B,
+verification-test,d9fd504c-0405-49d8-8ad3-19282b950baf,VT-D9FD504C,"Verification of Cypher query helper library (read-side, multi-tenant)",B,
+verification-test,da4eed56-e321-4a26-b1d6-47e4e3d5b025,VT-DA4EED56,Loop 3 Training Export PII Gate and Safety Block Verification,B,
+verification-test,db062291-3e62-48ae-921c-2ce900c84900,VT-DB062291,"Prompt runtime applies cache marker, core/dynamic split, and maxFewShot controls",B,
+verification-test,db796727-af40-479f-9768-9f32fab05f45,VT-DB796727,Verify hero card drill-through cohort parity and all-cohort denominator,B,
+verification-test,dcee5332-b589-406b-b8bb-606d6764d297,VT-DCEE5332,"Atlas DO-21936FDD bucket VT - Settings, auth and onboarding UI",B,
+verification-test,dcf5daca-55c9-4492-aecc-fbb6c25cc8af,VT-DCF5DACA,Stage-at-diagnosis parser and rules engine verification,B,
+verification-test,dd614e27-2d8d-42f0-aea1-606531c0fb6c,VT-DD614E27,"Verification of Terminology API: text embedder, ValueSet and ConceptMap queries",B,
+verification-test,dee352b2-9094-422e-9ed3-3fb01327fa3c,VT-DEE352B2,Automated Encounter Remediation - LLM Gate and Audit Trail,B,
+verification-test,df5e3c17-2f0b-48ac-8ab7-f0493de094c3,VT-DF5E3C17,Evidence-wins merge with IS_PART_OF edge migration,B,
+verification-test,e12d7aa8-6e23-4465-b3ab-ef5ac9de9d94,VT-E12D7AA8,Benign Cancer Pathway Closure Episode Builder Verification,B,
+verification-test,e171b148-bb36-401e-aa9e-b1649ed98c29,VT-E171B148,Encryption and TLS Configuration,B,
+verification-test,e265da74-8fb7-4703-b018-1b23b9c5cc4f,VT-E265DA74,Verify knowledge base authoring and staging surface,,
+verification-test,e275d232-bcb3-4ea4-a265-235c4ff8295f,VT-E275D232,Text-based cancer-site classification from gold-mined surface forms - acceptance verification,B,
+verification-test,e420a423-d7a8-47a3-b321-bfa4c305b06d,VT-E420A423,Intended-Use Scope Guard Verification,B,
+verification-test,e4b1abdd-71c4-44bb-922f-e2af554eeca7,VT-E4B1ABDD,"Practitioner role model, session payload, and RoleSwitch audit",B,
+verification-test,e4b3ba66-1fcd-49c8-a832-86e134c173ff,VT-E4B3BA66,Care Overview inclusive redesign verification,B,
+verification-test,e554c3a8-5e1c-4941-96af-439ecd8db947,VT-E554C3A8,Encryption and Security Verification,B,
+verification-test,e612fb94-936d-42e1-81ed-f065186bd3d0,VT-E612FB94,VT: Guideline conformance evaluator,B,
+verification-test,e8c88378-10cd-44b6-96b6-4047eb67f2ff,VT-E8C88378,Verify coding correction review and dependency display,,
+verification-test,ecf5335a-2a54-4609-a289-e0497d0041b5,VT-ECF5335A,Encryption and TLS Configuration,B,
+verification-test,ede2bfd0-c4d5-4a61-8b95-ba83c7b73cbd,VT-EDE2BFD0,Loop 3 Training Export PII Gate and Safety Block Verification,B,
+verification-test,ee9e6b3b-02d2-40b4-a813-cab64f91db30,VT-EE9E6B3B,"Training pipeline quality - span realign, assertion filter, golden gate, warm-start, active learning",B,
+verification-test,efaf9349-79cc-4e48-a6ae-0c89738cae01,VT-EFAF9349,Domain-Driven Episode Detector verification,B,
+verification-test,f2b81e3f-6dc0-45dd-bf48-05b7f35af340,VT-F2B81E3F,"Multi-label NER - spancat export, inference multi-label, layer 5 nesting, prompt rules",B,
+verification-test,f3dc724a-757f-4e5e-bc06-8e9ffc636a41,VT-F3DC724A,Atlas DO-D7005C41 bucket VT - AI first-pass candidate generation,B,
+verification-test,f4179439-ce4a-45f0-97b6-1e760b8ccdb8,VT-F4179439,Atlas DO-5F9A50D8 bucket VT - Care portal UI,B,
+verification-test,f50f9689-3041-4786-8fe2-412931098e22,VT-F50F9689,"Training pipeline quality - span realign, assertion filter, golden gate, warm-start, active learning",B,
+verification-test,f541ac97-f120-41a6-8293-1674a138a1be,VT-F541AC97,Verification of Shared utilities: device resolver and structured logging setup,A,
+verification-test,f5e18494-3007-42df-826d-c62ee7018e52,VT-F5E18494,Specialist outcome letter milestone and inferred benign completion,B,
+verification-test,f5f2d2a6-36e3-477b-aa21-6b68fe0e4a62,VT-F5F2D2A6,Data Governance Verification,B,
+verification-test,f6425f18-890b-4956-9a2f-770b948e76d0,VT-F6425F18,Episode Building Verification,B,
+verification-test,f767893d-7c09-49e2-956e-4a86cb14e118,VT-F767893D,VT: SBAR generation subgraph,B,
+verification-test,f8424282-48a0-4758-b7d9-929711fdbd15,VT-F8424282,Verify NER + SNOMED coding surface,,
+verification-test,f901e535-e58f-4f43-85d2-220af4e9df43,VT-F901E535,Review Service Verification,B,
+verification-test,fb7170fe-7fca-4492-91ed-bca652e97c0d,VT-FB7170FE,VT: Episode builder subgraph and DQ,B,
+verification-test,fc2f62ec-ea94-4256-8848-1f823e9c58de,VT-FC2F62EC,Authentication and RBAC Verification,B,
+verification-test,fd5fdf14-d77c-48c0-90ed-5e3f52e32a15,VT-FD5FDF14,Disorder verifier fail-closed verification (tests/test_disorder_verifier.py),B,
+verification-test,fe7fd1a3-25ca-49be-9c89-ad26e0054b3d,VT-FE7FD1A3,Domain-Driven Episode Detector verification,B,
+verification-test,ff4c9dd7-e0b1-4c2c-8121-cd2734364eaa,VT-FF4C9DD7,Safety-net alert persistence + canonical alert_id,B,
+verification-test,ff810ffa-0bab-4888-a909-348b9c175f5a,VT-FF810FFA,Bulk Reset and Reprocess - Runtime Guard Verification,B,
+verification-test,fff3909c-60b6-4886-86cd-2cb3ed4110b3,VT-FFF3909C,"Verify NLP training, audit agent, and FHIR exposure",,
+risk,01b1497c-2acf-4832-91cc-1b02ee599b54,R-01B1497C,A patient data message in the wrong format breaks a clinical system that relies on it,B,
+risk,01b42ce9-6a11-472f-ada2-0974e3cd5092,R-01B42CE9,The screen shows an out-of-date AI processing status to the clinician,B,
+risk,01e8c8f6-1530-4353-95d5-f32f60697118,R-01E8C8F6,Outdated treatment guideline shown to clinician,B,
+risk,036e176b-bf51-4705-8ec2-49a27e1554c2,R-036E176B,Hidden instructions in patient notes cause the AI tool to give wrong clinical codes,B,
+risk,0529ea28-983d-4589-a40b-7866c9144a4d,R-0529EA28,"A software update silently changes how the system works, breaking connected systems",A,
+risk,05a793bb-25f8-4aaa-8d67-54d4b3f255e7,R-05A793BB,"Undocumented NICE API schema changes could silently break taxonomy sync, leaving the taxonomy browser empty",,
+risk,09a3f013-1ebc-4342-923d-c607b785a9f2,R-09A3F013,Local-only group leaves a leaver with active LEO access after they have left the customer organisation,B,
+risk,0a10b361-af4f-43d8-ab68-5f53407c3f83,R-0A10B361,Real patient data copied into the test environment,B,
+risk,0b50de56-d747-4a5b-bdb3-01134bc64c0b,R-0B50DE56,"The AI tool misreads context in clinical notes (for example, treating a denied symptom as present)",B,
+risk,0d7a51f3-4071-4b29-840a-956d9d075521,R-0D7A51F3,Wrong VerificationLock corrupts a gold training corpus,B,
+risk,0f6b1b0e-35ab-461e-9a54-b946c2ef79e5,R-0F6B1B0E,AI quality check removes correct clinical findings or adds ones not supported by the notes,B,
+risk,112b76fc-35ad-45a4-96f9-4ec1758cd6f2,R-112B76FC,"Users of screen readers, keyboard-only navigation, or colour-blindness aids lose track of which page they are on, cannot activate the LEO logo from the keyboard, or cannot tell status dots apart",,
+risk,15d406e5-1ce7-4f00-ac84-daea2a9aa4d4,R-15D406E5,A condition recorded as absent is wrongly counted as present in a patient's risk score or care group,B,
+risk,162890ad-5e0e-47a7-8a5c-359bcfa468e3,R-162890AD,A patient visit is not classified and is left out of all care programmes,B,
+risk,198c645a-1891-4733-b7ae-8b45d5711f64,R-198C645A,SNOMED CT terminology update introduces new concepts or changed relationships that break resolution,,
+risk,1b52e2d8-736d-4b21-879e-11457e4053b5,R-1B52E2D8,"AI reading service unavailable, stopping patient record processing",B,
+risk,1b976409-4953-4f90-8ec4-bdd0c46654c6,R-1B976409,The tool does not show all the knock-on effects of a change to a clinical pathway,B,
+risk,1c482566-7566-4905-9718-86e107be08a1,R-1C482566,AI tool wrongly marks a cancer pathway as benign after a specialist appointment,B,
+risk,1d1b8170-c7fc-4e79-9b39-03826aeea77f,R-1D1B8170,A silent change to the NICE guidelines list could leave clinicians unable to browse guidelines by clinical area,B,
+risk,1e67a4a9-ea22-4820-8808-453dde31992f,R-1E67A4A9,Non-admin users accessing private pricing and discount information,B,
+risk,20a81b4b-524a-462e-91cb-1bf3dd6a7b10,R-20A81B4B,"Safety-net alerts are generated but not shown on the worklist, or marking an alert as actioned appears to work but saves nothing",B,
+risk,2183b9dc-81b6-4f9a-a889-7041d6dc7b44,R-2183B9DC,Pipeline emits clinical output to clinician despite missing upstream completeness check,B,
+risk,21e608c8-81a2-4258-8a22-7ba914a7b1aa,R-21E608C8,A clinical decision is made but no record of it is saved,B,
+risk,24c3aaed-2588-4e25-a657-ab48c36668f5,R-24C3AAED,Care Overview hero cards mis-classify cancer pathway lifecycle and mislead clinical reviewers,B,
+risk,2566df55-9ec8-460b-a203-2032ba472df8,R-2566DF55,Wrong pathway eligibility rules shown to the clinician,B,
+risk,259ebfd9-9cd8-4302-adba-66a4ce663a1f,R-259EBFD9,Cypher helper library returns cross-tenant data when caller omits org_id,B,
+risk,25d42c4d-7e02-4678-a607-5acd128db147,R-25D42C4D,Wrong clinical code assigned by the AI tool that reads notes,B,
+risk,2d68a774-be73-4951-8315-5f051d6edd26,R-2D68A774,The AI tool takes staging information from the wrong cancer pathway on the same patient,B,
+risk,2dfca488-25dc-492a-be2d-9d0ed9f74503,R-2DFCA488,"A combined task list could hide a backlog of safety-net alerts, delaying action",B,
+risk,2e962b58-b32a-42bb-98b3-1fa402d28be2,R-2E962B58,Bitmap may become stale after approved rules are added or changed in Neo4j,,
+risk,32cb414f-b92d-4de8-ac0f-ed5ba30c4a76,R-32CB414F,Users lose access to admin reference pages because bookmarked links break when /admin/clinical is removed,,
+risk,33c1d245-47e8-4a71-b187-07088daafca8,R-33C1D245,Wrong clinical codes from AI tool could spread errors across multiple care pathway checks,B,
+risk,35e85225-e928-46f5-8aaa-926502aa8e84,R-35E85225,Research results shown without warning about incomplete data,B,
+risk,3677f93a-fbc9-40c4-997a-898e78f1c2da,R-3677F93A,Patient details accidentally saved into the clinical codes database,B,
+risk,3732a3a6-729f-4ae8-a66a-93067b69ec17,R-3732A3A6,"Defensive hardening gaps allow path traversal, info leak, or local-network exposure",B,
+risk,37e9279b-f337-475e-9399-8079ee265d2e,R-37E9279B,Clinicians or patients with visual or vestibular conditions cannot safely read clinical information shown by the system,B,
+risk,38f1bacc-61ad-41d8-a7a6-e522c62ba1fc,R-38F1BACC,The system removes too much clinical detail when hiding patient identifiers,B,
+risk,39591899-6aaf-45ec-8c36-83a9279ce0ef,R-39591899,The system shows the wrong stage of a patient's care pathway,B,
+risk,39ddbed3-583f-48d2-a243-a56cf9e85757,R-39DDBED3,AI audit tool enters a runaway loop and generates unexpected cloud computing costs,B,
+risk,3e3e2c1e-24cd-48c8-a5a7-a640b7065e67,R-3E3E2C1E,Recovery markers missed from the patient's coded record,B,
+risk,3fc83df7-2392-4cdc-af35-5ef657006708,R-3FC83DF7,A false diagnosis code stays in a patient record and leads to wrong clinical decisions or unnecessary follow-up.,B,
+risk,402309f7-32da-41ab-a21d-9fc811560d18,R-402309F7,A routine clinical coding update breaks how the AI tool matches terms to clinical codes,B,
+risk,40a44ba0-8028-482e-9228-cb2527d9b6a9,R-40A44BA0,A patient or clinician on a touch screen taps the wrong button because touch targets are too small,B,
+risk,436a5c6b-d2d4-490f-98d1-3119f5930f6f,R-436A5C6B,Saved links to the clinical admin page stop working after the page is moved,B,
+risk,43911af2-10df-4d25-abde-1fe767e71704,R-43911AF2,An unauthorised person views private patient records,B,
+risk,4428c98a-40da-4654-b506-4bd699db8de5,R-4428C98A,Reviewer-approved incorrect SurfaceForm mapping propagates to future encounters,,
+risk,471fde69-b876-49eb-8374-82b52306bf7e,R-471FDE69,A reviewer picks the wrong clinical code when correcting a patient record,B,
+risk,4732d911-7908-420f-b082-071704722877,R-4732D911,A user from one organisation can see patient records belonging to another organisation,B,
+risk,479839ac-a262-4d31-92ad-88465859050d,R-479839AC,"A single reviewer approves a wrong clinical code for a common phrase, causing every future patient record with that phrase to be coded incorrectly.",B,
+risk,48544281-a49e-46dc-88a7-0524887596e3,R-48544281,Reviewers stop checking AI suggestions carefully over time,B,
+risk,4965bcd2-5a71-4a09-80ed-912eb3b94f43,R-4965BCD2,AI-generated handover summary used without a clinician checking it first,B,
+risk,49d9d850-9dae-4c5d-9363-131e89ef1c24,R-49D9D850,AI-generated clinical rule criteria may be wrong or incomplete,B,
+risk,4aea4681-1e3d-4cc6-90ff-a0385a25b62d,R-4AEA4681,Knowledge author saves a logically incorrect rule because the editor showed pass results for the OLD rule,B,
+risk,4ba7a5b6-ae37-45f1-8aef-20db47ed6e01,R-4BA7A5B6,Clinical decision submitted without a recorded reason,B,
+risk,4bbb0780-0e9f-4b88-b15a-601fc1457d32,R-4BBB0780,Safety-net system fails to flag patients who may have cancer and need follow-up,B,
+risk,4e31d45a-c185-426b-ad1f-d14622e1632d,R-4E31D45A,Patient identifier appears in INFO and WARNING log lines,B,
+risk,4e72292c-5f7e-4a4c-a81b-23901ab78a0f,R-4E72292C,Clinicians using assistive technology cannot tell where they are in the system or read status alerts correctly,B,
+risk,4f5347c7-a6f1-414d-a7f5-fcf5c4666e91,R-4F5347C7,"A whole clinical area is coded wrongly, hiding problems in patient care pathways",B,
+risk,5264dfd2-9b6c-4215-8cab-a8f2b0374de7,R-5264DFD2,"A patient, carer, or junior staff member acts on a screen they do not fully understand because no plain-English explanation is shown, leading to a wrong or missed action",B,
+risk,52821f7f-9569-40e4-92cb-7fb6b7d317f1,R-52821F7F,The AI tool that merges duplicate episodes could wrongly combine two separate primary cancers into one record,B,
+risk,548fb4a5-a8c3-499c-bac4-0c27a746b945,R-548FB4A5,A changed version of the AI tool is used without proper approval,B,
+risk,555c8691-af83-45a6-8168-5cf0e15008de,R-555C8691,OBSERVATION leaf could mis-fire or miss-fire on misinterpreted lab values,B,
+risk,55b47935-a40d-487a-9245-a367e80c6d61,R-55B47935,AI tool misreads 'No suicidal thoughts' and records the opposite meaning,B,
+risk,575eb05e-231d-4898-bac8-0e80d3249a80,R-575EB05E,Errors in the examples used to teach the AI cause it to suggest wrong clinical codes,B,
+risk,581ab638-c6a1-439d-ab3b-b996656b4250,R-581AB638,AI coding tool assigns a wrong clinical code without a clinician checking it first,B,
+risk,592462a2-6f59-45e4-afb3-7404e6a7c234,R-592462A2,"Too many false alerts cause staff to ignore them, so a real coding failure goes unnoticed.",B,
+risk,596ac97f-7529-4f95-9dea-d14ec110c513,R-596AC97F,Reference range out of date because a clinical guideline has changed,B,
+risk,5a708fd3-b69a-426b-b52d-6fe200c360ca,R-5A708FD3,Role-scoped navigation hides a task the user needs to act on,,
+risk,5bd95ad3-c185-42e1-871e-f4a25afd54cb,R-5BD95AD3,A clinical guideline is approved for use without a valid source reference,B,
+risk,5c264154-8571-4fc5-b485-3a6d6a5763c7,R-5C264154,"AI tool suggests wrong clinical code, which could enter the teaching examples used to train the system",B,
+risk,5c8d895a-9591-4974-b101-c45a58a54c0b,R-5C8D895A,A clinician reviews or approves their own work without this being detected,B,
+risk,5ce46392-8cf4-407d-b6e8-87212e6f5d21,R-5CE46392,Stolen admin session token writes Entra security groups outside the consented tenant,B,
+risk,5dfb0b8f-bb79-482d-a804-8171218a6750,R-5DFB0B8F,SurfaceForm knowledge graph stores user identifiers,,
+risk,5f11517c-8f7e-4eeb-ab2b-172be94fc222,R-5F11517C,Sentence canvas could mask a tree shape it cannot fully represent,B,
+risk,61d2d9d4-03f2-49ed-9a5c-2250f3ed04b6,R-61D2D9D4,The AI tool wrongly codes treatment plans or safety-netting advice as confirmed clinical findings,B,
+risk,61f5f634-356e-4e32-94e3-9f7ad8e53e3a,R-61F5F634,Corrupt or non-present clinical entities in training data cause NER model to produce clinically incorrect outputs,,
+risk,62d1a0e7-db3b-4ace-aab3-d3d0aca3e014,R-62D1A0E7,The AI tool does not show the clinician how complete the patient data is,B,
+risk,647ade9c-f54b-4581-9486-1ef367337358,R-647ADE9C,Updated clinical rules may not take effect after an administrator approves them,B,
+risk,64e80574-5287-4b53-84b5-e54bce4eae69,R-64E80574,Wrong setup of an audit programme causes the AI workflow to process patient data incorrectly,B,
+risk,6524c433-33cf-4cd0-99c0-aa00cc44adb4,R-6524C433,spaCy or MedSpaCy SOUP update introduces NER regression,,
+risk,6632bb66-f15e-46c5-b7aa-4ce0bee4aa1e,R-6632BB66,AI tool gives an inaccurate or misleading interpretation of a clinical finding,B,
+risk,69a62fc7-52b7-4097-8eed-3d5118062ac4,R-69A62FC7,A common GP abbreviation is matched to the wrong clinical code,B,
+risk,6cc2d846-0c2e-4b5e-a8f9-49e0ecbd2cf6,R-6CC2D846,An out-of-date clinical guideline is still being used to guide patient care,B,
+risk,6fef2a2f-50a2-46da-98e3-df9721b2a973,R-6FEF2A2F,The AI tool that reads notes misses a clinically important finding,B,
+risk,70e373d6-3c5c-416f-80f4-2985aca8abf5,R-70E373D6,Committed credential bundle and CI workflow injection grant attacker code execution,B,
+risk,727cb85d-dbe5-4e8a-b0d6-dc5cb60c172e,R-727CB85D,The AI tool picks the wrong clinical code when several codes could match,B,
+risk,72c9b609-bdfa-45b2-a5c1-41df2105abfa,R-72C9B609,Incorrect SNOMED CT coding from NLP extraction,B,
+risk,732325cf-3a1c-4ff5-b28b-24092f01d633,R-732325CF,"The episode builder's strict same-site referral matching and tight breast specialty marker cause the NCDA 2WW-route metric to undercount genuine 2WW-originated cancer diagnoses by 3-4x, misleading cli",,
+risk,7345c0da-adec-4803-9820-5ad7bfa4007f,R-7345C0DA,Treatment comparisons based on an unrepresentative group of patients,B,
+risk,7529fdaa-5aef-4fe8-a537-7e6c002a4a2d,R-7529FDAA,"A staff member misunderstands on-screen guidance and approves the wrong AI rule, causing incorrect quality reporting figures",B,
+risk,75321f09-5c90-43fd-827f-536cd96cf281,R-75321F09,A software update causes the AI tool to miss or misread clinical terms in notes,B,
+risk,7627110b-1592-4eea-ab22-f745f47d5d51,R-7627110B,ConText double-negation inverts assertion on polarity-encoding SNOMED finding concepts,,
+risk,783ec1ac-a337-4bc1-92d9-e2478f1c7a66,R-783EC1AC,System fails to show the clinician the escalation threshold when reviewing a test result,B,
+risk,7a310bd5-9db1-41bc-b6a7-0fe7913d5beb,R-7A310BD5,Information is lost when the AI workflow passes data between steps,B,
+risk,7a94507d-b4b8-4155-aff9-5b0a284e8ae7,R-7A94507D,"An auditor approves a cancer episode containing wrong AI-generated data, leading to flawed clinical decisions",B,
+risk,7ea57c76-e757-43cc-924f-f1ebdf079cb5,R-7EA57C76,A wrongly written clinical guideline is approved and used in patient care,B,
+risk,7ed4958f-6330-449d-9077-bfa00764775e,R-7ED4958F,Rebuild path overwrites a locked milestone or coded link,B,
+risk,7fca47af-9248-49bf-b76b-17b1936a8155,R-7FCA47AF,"An old specialist visit is wrongly linked to a new referral, making an active pathway look finished",B,
+risk,83070e32-9944-4704-8033-bbd16784e33d,R-83070E32,"Technical score labels shown in the system are misread by staff, leading to wrong service decisions",B,
+risk,856f4ea7-77c4-4ae0-bd90-391c790f4b68,R-856F4EA7,A reference range is changed without proper approval,B,
+risk,86188cc4-5181-4225-b6df-dd5ede5af623,R-86188CC4,Software component record not kept up to date,A,
+risk,867bc40c-e663-411f-a9f5-a2c7236b1044,R-867BC40C,"AI tool usage costs calculated incorrectly, leading to unexpected charges",B,
+risk,86be969d-7157-4a9d-89d4-72feff10890a,R-86BE969D,Wrong patients included in or excluded from a care cohort,B,
+risk,86fee31e-7978-4c64-af6d-115088f60f7d,R-86FEE31E,"The AI codes clinical information automatically, with no clinician check before saving",B,
+risk,8703472a-8960-43ce-a908-7391ea21c19f,R-8703472A,AI tool produces an incomplete or wrong summary for a multidisciplinary team meeting,B,
+risk,882e243c-498c-4e83-b909-bfc544c4e628,R-882E243C,Promoter writes a corpus row that crosses tenant or patient boundary,B,
+risk,888ecc00-42cf-473f-a983-ad43452b8485,R-888ECC00,The AI tool infers a diagnosis from a lab result instead of recording the test value,B,
+risk,88afa6c2-a3fb-4536-80b7-2f245f543059,R-88AFA6C2,"Patient database becomes unavailable, stopping the audit tool from working",B,
+risk,88d97971-f633-428d-9483-f7ede8b39494,R-88D97971,A rule set too broadly stops a clinical term from being coded at all,B,
+risk,88f5c67f-8729-4435-a8de-e93283b8a554,R-88F5C67F,"Clinician makes an accidental or missed action in the coding review screen due to unclear warnings, hidden errors, or access barriers",B,
+risk,88f804f2-102a-45bc-955f-e2b75feeb664,R-88F804F2,AI quality check wrongly removes correct clinical codes or sends too many for manual review,B,
+risk,89324919-b632-4308-b6a4-2113da174d84,R-89324919,"Users miss required information or take the wrong action because role-aware Knowledge intro copy is unclear, too long, or missing for their role",,
+risk,8a226e26-562f-468e-a623-aaf37d55213c,R-8A226E26,Spurious benign closure of active cancer episode due to unrelated 395100000 coding,,
+risk,8a23fcc0-35f0-4b41-8694-7b0b408cc842,R-8A23FCC0,A patient visit is assigned to the wrong audit programme,B,
+risk,8b052fb8-aa3d-492d-98e1-472f245d9366,R-8B052FB8,Debounced sandbox auto-run could be misread as a live-production check,B,
+risk,8b17bafa-1414-41bc-a67a-2264cbeea7a2,R-8B17BAFA,Cross-graph copy from a real patient leaks identifying details into the knowledge database,B,
+risk,8bbcec23-91b3-4b94-a3b5-58ab22da1ade,R-8BBCEC23,Clinical code saved without a link to its source in the notes,B,
+risk,8c0cc94b-30e5-4e53-ae38-4152ff57fe99,R-8C0CC94B,A test patient is mistaken for a real patient and shows up in a clinician worklist or an audit report,B,
+risk,8ce8cbbe-21a2-4d24-b388-d5bc2199d399,R-8CE8CBBE,Patient information sent to external AI services without confirmed data agreements,B,
+risk,8dadbf4c-71ce-4016-962e-963f1d5a1a3b,R-8DADBF4C,A task needing urgent action is hidden from the clinician's view,B,
+risk,8e192777-90b4-4bc3-89c4-6c852251652e,R-8E192777,Browser session redirected to attacker host or rendered attacker HTML after login,B,
+risk,903b0daf-a3c8-4f8f-9a58-9b5c44468407,R-903B0DAF,Autonomous coding mode operates without human review gate,,
+risk,907cc7cb-7843-40c2-aa66-16383a4da8c2,R-907CC7CB,Guideline compliance checker gives wrong alerts about care quality,B,
+risk,909444d5-254c-4117-9b89-57a4d3fb5290,R-909444D5,The system shows a clinician an incorrect benchmark comparison,B,
+risk,9326bc7b-d3cb-4fbe-878b-53650307fe8d,R-9326BC7B,A NICE obligation with a deadline is not flagged as time-sensitive,B,
+risk,93e5f984-8399-4a14-9e4d-0aafbe2ca1d9,R-93E5F984,The evidence-wins duplicate-merge rule (DI-LEO-AI-137) could incorrectly collapse a genuine second primary cancer into an unrelated primary episode if both diagnoses happen to fall in the same SAME_EP,,
+risk,94801d17-ec75-48dd-a7ff-c782c4c6852e,R-94801D17,Automated quality checks miss incorrectly coded clinical entries,B,
+risk,97b916ae-4040-4c2f-9128-4f8977fdf1d0,R-97B916AE,"A drop in coding accuracy goes unnoticed for several weeks, letting incorrect patient records build up.",B,
+risk,97c9151c-ac5d-49f0-949c-418931f6da9f,R-97C9151C,A junior trainee misunderstands unclear review screen labels and suppresses a real clinical finding,B,
+risk,9c57d05a-8f27-4887-a3ab-217e5b407df1,R-9C57D05A,ConText classifier regresses below rule-engine baseline,B,
+risk,9d66f41d-1055-4c97-a53f-93e5b7731b10,R-9D66F41D,The AI workflow applies a wrong clinical code change to a patient record,B,
+risk,9ebf6914-55ae-49b2-a07f-0493533b732d,R-9EBF6914,"An update to the AI reading tool changes how it searches past encounters, making results less accurate",B,
+risk,a143f5ab-106d-46ea-8d6f-9da1b7a1e541,R-A143F5AB,Missing or wrong links between clinical findings lead to incorrect coding suggestions,B,
+risk,a4473229-a8eb-4f04-8c29-a8af49a09a24,R-A4473229,Stale Entra group binding leaves a removed user with active LEO roles,B,
+risk,a5204efb-d4e9-4e27-8f9f-e541996876b4,R-A5204EFB,Incorrect episode stage assignment from explicit stage or TNM evidence,,
+risk,a5e2da61-49b3-45d8-a8e7-298fed86f73b,R-A5E2DA61,Admin appointment details are saved as clinical findings in the patient record,B,
+risk,a8d26bd4-0e29-4d6e-b4c9-08969c0b86a8,R-A8D26BD4,Programme starts before all required setup steps are complete,A,
+risk,a987b5fd-a713-4d9a-9527-965f87b51355,R-A987B5FD,Override reason recorded in the wrong category,B,
+risk,a9ebfa7f-45c1-4092-9fff-e257fd3a06c1,R-A9EBFA7F,AI tool matches clinical text to the wrong type of clinical code — error not flagged,B,
+risk,aa3ae70f-558a-4f5a-9677-8d697c3488f4,R-AA3AE70F,Active cancer investigation wrongly closed because an unrelated test result is misread by the AI tool,B,
+risk,aac53d56-d346-42e6-b19a-98b7a32c7325,R-AAC53D56,Switching role mid-task loses unsaved safety-critical information,B,
+risk,ac248a00-e4ef-45f0-930f-22019cee722d,R-AC248A00,A new system component is added without a safety check,B,
+risk,ae074085-f2de-469c-8e51-ff65b28085de,R-AE074085,Wrong reference threshold shown for a test result,B,
+risk,aec97089-bb49-4df5-a452-847acc8b13c4,R-AEC97089,Teaching examples stored with patient-identifying details,B,
+risk,b31f7486-185a-4128-aea4-bf71e24194f8,R-B31F7486,Audit trail records altered or deleted after they are created,B,
+risk,b3f1a1ed-6676-4e6d-b9fb-41b100588529,R-B3F1A1ED,A change to how the AI reads clinical notes goes live without safety testing,B,
+risk,b510ba53-449e-4795-8e77-7b67b4d5a48d,R-B510BA53,Alert incorrectly suppressed because a clinical response code was recorded in error,B,
+risk,b52e08bd-867a-4c65-82a5-72735287ea2e,R-B52E08BD,Clinical guidelines shown to clinicians may be out of date,B,
+risk,bc2b7154-d904-4ddd-b6c3-01b38f14e7a6,R-BC2B7154,Wrong reference range applied to a test result,B,
+risk,bc32a4ed-3ebd-48c1-a5f3-64838932c6ba,R-BC32A4ED,"The dashboard undercounts cancer diagnoses that came through the two-week-wait (2WW) referral route, making the figure look far lower than it should be",B,
+risk,bc8b783a-50ab-4682-8554-f9d7d3a64e5c,R-BC8B783A,A known security weakness in a third-party software component could be exploited,B,
+risk,bea339f7-80ca-4e5a-ba3a-87349dbb9f76,R-BEA339F7,Patient missed by the system and not invited to the programme,B,
+risk,becf373e-7dfa-456b-9ff5-fac938fa018f,R-BECF373E,Wrong milestone dates cause incorrect waiting time calculations,B,
+risk,becfb159-5313-4bc7-ba40-97b8b6c51746,R-BECFB159,Patient list version not recorded when the AI runs,B,
+risk,c0f6e549-55a6-4428-a58e-fe478ce65497,R-C0F6E549,Quality check not run on some patient episodes,B,
+risk,c1460e02-2c9b-4d4d-a387-d7897a49a7b3,R-C1460E02,A patient record shows an active care pathway when the condition is absent or historical,B,
+risk,c19956fc-f53d-4017-9006-d336affbdbb7,R-C19956FC,An admin user creates harmful clinical rules that cause the AI tool to wrongly mark conditions as absent or suppress them entirely,B,
+risk,c2603583-3342-4e3a-af44-95934211d6c2,R-C2603583,"AI tool wrongly labels a diagnosis appointment as a referral, making the wait time look near-zero",B,
+risk,c27b33fa-aa04-4c21-bda5-05928419829e,R-C27B33FA,Authenticated user reads or writes another tenant's patient data via missing scope checks,B,
+risk,c2bc9ff2-3edc-49bd-a626-2d1a7db50897,R-C2BC9FF2,A clinical rule goes live before a clinician has reviewed and approved it,B,
+risk,c4e66d69-d6de-43cc-ad40-02b4826e1788,R-C4E66D69,The system fails to create a care episode when it should,B,
+risk,c97e8264-1dbe-4770-a89d-81134b055236,R-C97E8264,An unapproved change goes live in the AI workflow,B,
+risk,c9895a36-7708-4e07-b42b-6c44ae01c86c,R-C9895A36,Screen animations cause dizziness or nausea in clinicians with balance disorders,B,
+risk,ca4c7579-ea83-4a01-9f32-98e6653e19f1,R-CA4C7579,"Patient details leak into AI teaching files, causing a data breach.",B,
+risk,cc18e919-7b19-4a2d-8e5e-926de75f297a,R-CC18E919,"A test result given as a word rather than a number is not recognised by the AI tool, so abnormal findings are not flagged on the dashboard",B,
+risk,ceb4789a-1e01-424f-b9ef-0cc6ccffb6c8,R-CEB4789A,AI tool produces wrong clinical information from patient notes,B,
+risk,cf456a47-29af-4cfc-914b-1d714fe6b387,R-CF456A47,Terminology resolver selects wrong SNOMED concept from multiple candidates,,
+risk,d0226a06-cb84-429a-bb0f-46d6740e7fbe,R-D0226A06,NICE-sourced AuditDomain misclassification could propagate incorrect SNOMED concepts to audit pipelines,,
+risk,d0b86271-c3aa-49ba-bedf-5575c3e9471c,R-D0B86271,A quality problem in a patient episode is not caught by the checking rules,B,
+risk,d0fc4793-56a6-4f56-9c20-dcdd426f2f84,R-D0FC4793,Free-text cancer-type values fragment dashboard charts and break NCDA benchmark comparisons,B,
+risk,d13aa151-cc83-4268-a649-356d4e4e7a54,R-D13AA151,Safety check wrongly stops a good AI model update,B,
+risk,d28fb644-693e-45cb-b4cf-5996b71b799d,R-D28FB644,A reviewer approves a wrong clinical code that then influences future coding suggestions,B,
+risk,d32a2ac2-5fe5-4df0-8822-dc7e7faa607c,R-D32A2AC2,"Hero card drill-through opens a different cohort than the headline number, leading clinicians to act on the wrong patient set",,
+risk,d41ca9b8-455d-4991-b161-a7b79efdd41d,R-D41CA9B8,A retired clinical code is not replaced before the update goes live,B,
+risk,d67356d9-5088-4f65-ac7e-4bc2937ffc12,R-D67356D9,Failed patient encounters not shown to clinical staff,B,
+risk,d7acaae3-e74e-48da-805a-7354ffcef065,R-D7ACAAE3,Fixing a wrong clinical code link stops future errors but leaves past patient records with the wrong code.,B,
+risk,d8230a9a-57d8-46fc-b8c1-a147e129297e,R-D8230A9A,Organisation data becomes out of date when the nightly update fails without raising an alert,B,
+risk,d835a836-6d77-49bc-a227-90594bf01cb1,R-D835A836,Malicious or unexpected content in encounter text causes LLM misbehaviour,,
+risk,da52ee85-55b9-43d2-8686-94440b9471b9,R-DA52EE85,New AI model version not stopped when accuracy drops,B,
+risk,da987796-2b5f-4a2d-80b9-2d9995bf8bdd,R-DA987796,Worker process executes attacker-chosen Cypher label or fetches attacker-chosen URL,B,
+risk,dbfb823d-7dea-47d0-8d74-9a26889621e9,R-DBFB823D,Auto-correction picks the wrong clinical code for a term,B,
+risk,dd08e168-cb16-4731-8799-53c99c28a8ba,R-DD08E168,Hidden instructions in patient notes cause the AI to produce wrong clinical codes,B,
+risk,dd70aeb7-2123-4794-bee7-c307ee869eec,R-DD70AEB7,Different dashboards show different waiting-time figures for the same patient episode,B,
+risk,dd9b8f9b-b743-43e9-898b-83cfe387a0d1,R-DD9B8F9B,"Episode-status vocabulary drift between the engine writer and the audit dashboard makes closed pathways appear open (or vice versa), misleading clinicians on the cohort headline",B,
+risk,ddbb8d01-5908-4df4-8998-d5049a523d28,R-DDBB8D01,SBAR summary misses safety netting alerts,B,
+risk,ddbd4cff-a30b-4692-906d-7f9a4f9af4d5,R-DDBD4CFF,Analysis of too few patients produces misleading results that a clinician acts on,B,
+risk,dfed2899-4de1-4003-9117-a3df4a845e5d,R-DFED2899,DE-ID failure leaks patient text into a training corpus,B,
+risk,e06de50d-2bb7-4ed4-9a6d-58d9d111e43d,R-E06DE50D,Patient record corrupted by an admin using the data-correction tool,B,
+risk,e1546339-8925-4b5a-bd70-40b29747d8c8,R-E1546339,Patient-identifying details not removed from clinical notes before the AI tool reads them,B,
+risk,e19092f5-9863-4b5a-9092-ebedf9b3af89,R-E19092F5,Bucket-flip reconciliation silently swings reported KPI numerator,B,
+risk,e6a69c00-3920-46d6-b6ce-353d28b99b1a,R-E6A69C00,System error message reveals internal technical detail to the user,A,
+risk,e814698e-590f-49cc-b029-6072319bb0b8,R-E814698E,Unauthenticated caller mutates terminology or FHIR state via missing service-token check,B,
+risk,ec5cff45-e8b8-449d-bdd7-06eecc3cc862,R-EC5CFF45,Dashboard shows out-of-date information — an overdue item is not flagged to the clinician,B,
+risk,ed794623-65fd-42dc-be00-b959104d1ca9,R-ED794623,Wrong cancer stage recorded at diagnosis,B,
+risk,ef36d546-9ed9-407d-b0da-42ed0af9d7e2,R-EF36D546,An AI-suggested text alias causes the system to wrongly flag a clinical term in patient notes,B,
+risk,f441a3a1-c0e4-4c47-b4b7-857cdb7ab1c4,R-F441A3A1,Patient record saved without a source label,B,
+risk,f82d9296-6bff-40f0-b4c2-0c67aaf3305d,R-F82D9296,Patient record exports may include staff email addresses,B,
+risk,f858b9e2-31f9-4f2e-997e-191a54599855,R-F858B9E2,Spinal level labels mistaken for cancer staging codes,B,
+risk,f9f9410b-d5d0-4109-b0ac-2579cea3350f,R-F9F9410B,A patient is wrongly added to a care pathway (false positive),B,
+risk,fbd46c97-eb26-49ae-b463-c3a5e3aa3e57,R-FBD46C97,"Test patient records used during AI training, making accuracy results misleading and hiding true performance.",B,
+risk,fef6caaa-eb72-48a1-85a1-187d28bc43ca,R-FEF6CAAA,A clinician or trainee misreads the operations screen and either misses a quality alert or starts a live deployment too early.,B,
+risk,ffdb88bf-5a53-47d7-a4af-89672de3b95e,R-FFDB88BF,"The AI tool incorrectly labels clinical information, adding a wrong clinical code to the patient record",B,
+validation-test,cd564313-6693-4e05-824e-c4eadf143895,VAL-CD564313,Safety Layer Calibration via HITL Reviewer Override Rates,B,

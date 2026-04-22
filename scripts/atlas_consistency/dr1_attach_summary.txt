@@ -1,0 +1,29 @@
+DR-1 review ID: 2a5e98df-96b0-4a37-8c80-4cbaf8b80cb1
+
+MVP UNs identified by classifier: 79
+MVP UNs present in server candidates: 79
+MVP UNs NOT in server candidates: 0
+
+MVP Risks identified by matrix walk: 202
+MVP Risks present in server candidates: 157
+MVP Risks NOT in server candidates: 45
+
+UNs by wave (attachable):
+  R1: 8
+  R3: 39
+  R4: 16
+  R5: 15
+  R7: 1
+
+Risk UUIDs classified as MVP but absent from server candidates:
+  05a793bb-25f8-4aaa-8d67-54d4b3f255e7  R-05A793BB  Undocumented NICE API schema changes could silently break taxonomy syn
+  09a3f013-1ebc-4342-923d-c607b785a9f2  R-09A3F013  Local-only group leaves a leaver with active LEO access after they hav
+  0d7a51f3-4071-4b29-840a-956d9d075521  R-0D7A51F3  Wrong VerificationLock corrupts a gold training corpus
+  112b76fc-35ad-45a4-96f9-4ec1758cd6f2  R-112B76FC  Users of screen readers, keyboard-only navigation, or colour-blindness
+  198c645a-1891-4733-b7ae-8b45d5711f64  R-198C645A  SNOMED CT terminology update introduces new concepts or changed relati
+  24c3aaed-2588-4e25-a657-ab48c36668f5  R-24C3AAED  Care Overview hero cards mis-classify cancer pathway lifecycle and mis
+  259ebfd9-9cd8-4302-adba-66a4ce663a1f  R-259EBFD9  Cypher helper library returns cross-tenant data when caller omits org_
+  2e962b58-b32a-42bb-98b3-1fa402d28be2  R-2E962B58  Bitmap may become stale after approved rules are added or changed in N
+  32cb414f-b92d-4de8-ac0f-ed5ba30c4a76  R-32CB414F  Users lose access to admin reference pages because bookmarked links br
+  3732a3a6-729f-4ae8-a66a-93067b69ec17  R-3732A3A6  Defensive hardening gaps allow path traversal, info leak, or local-net
+  ... and 35 more

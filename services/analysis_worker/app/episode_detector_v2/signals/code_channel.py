@@ -12,6 +12,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from .._rulebook_adapter import (
+    anchor_confirmed_snomed,
+    anchor_suspected_snomed,
+    cross_site_guard_for,
+)
 from ..site_keys import (
     BREAST_SNOMED_BENIGN_CLOSURE,
     BREAST_SNOMED_CONFIRMED,
@@ -22,22 +27,50 @@ from ..site_keys import (
 from ..types import Signal, TimelineEvent
 
 
+def _breast_rulebook_benign_closure() -> frozenset[str]:
+    """Benign-closure SNOMEDs for breast from the champion rulebook,
+    with the Python constant as fallback. Keeps the ruled_out path
+    behaviourally identical to v0 when no rulebook is installed.
+    """
+    try:
+        from libs.episode_detector.loader import current_bundle
+
+        rb = current_bundle().get(SITE_BREAST)
+        if rb is not None:
+            return frozenset(rb.signals.code_channel.benign_closure_snomed)
+    except Exception:
+        pass
+    return BREAST_SNOMED_BENIGN_CLOSURE
+
+
 def _classify_breast(concept_id: str) -> tuple[str, str, float] | None:
     """Return (site_key, intent, confidence) or None if not a breast code."""
     cid = concept_id.strip()
     if not cid:
         return None
-    if cid in BREAST_SNOMED_CONFIRMED:
+    # cross_site_guard takes priority -- a code the rulebook says must
+    # not count for breast (e.g. a urinary-only confirmed code that
+    # collided in the legacy set) is skipped here too.
+    if cid in cross_site_guard_for(SITE_BREAST):
+        return None
+    rulebook_confirmed = anchor_confirmed_snomed(SITE_BREAST)
+    rulebook_suspected = anchor_suspected_snomed(SITE_BREAST)
+    if cid in rulebook_confirmed or cid in BREAST_SNOMED_CONFIRMED:
         return SITE_BREAST, "confirmed", 0.95
-    if cid in BREAST_SNOMED_SUSPECTED:
+    if cid in rulebook_suspected or cid in BREAST_SNOMED_SUSPECTED:
         return SITE_BREAST, "suspected", 0.80
-    if cid in BREAST_SNOMED_BENIGN_CLOSURE:
+    if cid in _breast_rulebook_benign_closure():
         return SITE_BREAST, "ruled_out", 0.70
     return None
 
 
 def _classify_other_sites(concept_id: str) -> tuple[str, str, float] | None:
-    """Return (site_key, intent, confidence) from the cross-site registry."""
+    """Return (site_key, intent, confidence) from the cross-site registry.
+
+    The site lookup (``site_intent_for_suspected_concept``) is already
+    rulebook-first and enforces ``cross_site_guard``; this wrapper
+    only picks a confidence appropriate to the classified intent.
+    """
     match = site_intent_for_suspected_concept(concept_id)
     if match is None:
         return None

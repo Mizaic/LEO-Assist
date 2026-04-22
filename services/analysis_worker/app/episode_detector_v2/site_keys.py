@@ -78,17 +78,35 @@ ACTIVATION: dict[str, SiteActivation] = {
 
 
 def is_auto_eligible(site_key: str) -> bool:
-    """Return True if the site can be auto-published."""
+    """Return True if the site can be auto-published.
+
+    Reads the champion rulebook from the installed bundle (see
+    libs/episode_detector/loader.py). Falls back to the Python-constant
+    ``ACTIVATION`` table when no rulebook is installed for the site --
+    this happens in tests that don't initialise the bundle and in the
+    bootstrap path before the registry has loaded.
+    """
+    from ._rulebook_adapter import auto_publish_for  # local to avoid cycle
+
     record = ACTIVATION.get(site_key.lower())
-    return bool(record and record.auto_publish)
+    return auto_publish_for(
+        site_key.lower(),
+        fallback=bool(record and record.auto_publish),
+    )
 
 
 def is_suggest_eligible(site_key: str) -> bool:
     """Return True if candidates for this site should be surfaced
-    (even if only as a review-only suggestion).
+    (even if only as a review-only suggestion). Reads the champion
+    rulebook; see ``is_auto_eligible`` for the fallback contract.
     """
+    from ._rulebook_adapter import suggest_for  # local to avoid cycle
+
     record = ACTIVATION.get(site_key.lower())
-    return bool(record and record.suggest)
+    return suggest_for(
+        site_key.lower(),
+        fallback=bool(record and record.suggest),
+    )
 
 
 # Breast-specific SNOMED concept ids used by the real extractors.
@@ -161,13 +179,47 @@ CLINIC_SEEN_SNOMED_TO_SITE: dict[str, str] = {
 
 
 def site_for_referral_concept(concept_id: str) -> str | None:
-    """Return the canonical site key for a 2WW referral concept, or None."""
-    return REFERRAL_SNOMED_TO_SITE.get((concept_id or "").strip())
+    """Return the canonical site key for a 2WW referral concept, or None.
+
+    Checks the champion rulebooks first -- any site whose
+    ``anchors.referral_snomed`` lists this concept id wins -- and falls
+    back to the baked-in Python registry for sites without a rulebook
+    or running in tests that bypass the bundle.
+    """
+    from ._rulebook_adapter import anchor_referral_snomed
+
+    cid = (concept_id or "").strip()
+    if not cid:
+        return None
+    for site in ALL_SITES:
+        if cid in anchor_referral_snomed(site):
+            return site
+    return REFERRAL_SNOMED_TO_SITE.get(cid)
 
 
 def site_for_clinic_seen_concept(concept_id: str) -> str | None:
-    """Return the canonical site key for a 'seen in fast track clinic' code."""
-    return CLINIC_SEEN_SNOMED_TO_SITE.get((concept_id or "").strip())
+    """Return the canonical site key for a 'seen in fast track clinic' code.
+
+    See ``site_for_referral_concept`` for the rulebook-first fallback
+    contract. Clinic-seen codes live on
+    ``anchors.clinic_seen_snomed`` in the v1 rulebooks.
+    """
+    from libs.episode_detector.loader import current_bundle
+
+    cid = (concept_id or "").strip()
+    if not cid:
+        return None
+    try:
+        bundle = current_bundle()
+        for site in ALL_SITES:
+            rb = bundle.get(site)
+            if rb is None:
+                continue
+            if cid in rb.anchors.clinic_seen_snomed:
+                return site
+    except Exception:
+        pass
+    return CLINIC_SEEN_SNOMED_TO_SITE.get(cid)
 
 
 # -- Cross-site "suspected cancer" SNOMED registry -------------------------
@@ -223,5 +275,37 @@ SUSPECTED_SITE_SNOMED: dict[str, tuple[str, str]] = {
 def site_intent_for_suspected_concept(
     concept_id: str,
 ) -> tuple[str, str] | None:
-    """Return (site_key, intent) for a known suspected/confirmed cancer SNOMED."""
-    return SUSPECTED_SITE_SNOMED.get((concept_id or "").strip())
+    """Return (site_key, intent) for a known suspected/confirmed cancer SNOMED.
+
+    Rulebook-first: walks every installed champion rulebook and returns
+    the first match on ``anchors.confirmed_snomed`` (intent
+    ``"confirmed"``) or ``anchors.suspected_snomed`` (intent
+    ``"suspected"``). Falls back to the Python registry for sites
+    without a rulebook. Breast keeps the first-match semantics the
+    legacy code already had: the breast classify path in
+    ``code_channel`` is called before this lookup, so breast-specific
+    tuning is unchanged.
+
+    A SNOMED listed on a site's ``cross_site_guard`` never wins for
+    that site -- prevents cross-site leakage (R-5FA0C950).
+    """
+    from libs.episode_detector.loader import current_bundle
+
+    cid = (concept_id or "").strip()
+    if not cid:
+        return None
+    try:
+        bundle = current_bundle()
+        for site in ALL_SITES:
+            rb = bundle.get(site)
+            if rb is None:
+                continue
+            if cid in rb.cross_site_guard:
+                continue
+            if cid in rb.anchors.confirmed_snomed:
+                return site, "confirmed"
+            if cid in rb.anchors.suspected_snomed:
+                return site, "suspected"
+    except Exception:
+        pass
+    return SUSPECTED_SITE_SNOMED.get(cid)

@@ -1,0 +1,101 @@
+{
+  "activation": {
+    "auto_publish": false,
+    "min_precision": 0.95,
+    "suggest": false
+  },
+  "anchors": {
+    "clinic_seen_snomed": [],
+    "confirmed_snomed": [
+      "118600007",
+      "93143009"
+    ],
+    "referral_snomed": [
+      "276361000000104"
+    ],
+    "suspected_snomed": [
+      "162576003"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [],
+  "dependencies": {
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v0-2026.04.0",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.8,
+    "result": 0.9,
+    "text": 0.4,
+    "treatment": 0.6
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [],
+      "confirmed_confidence": 0.85,
+      "confirmed_snomed": [
+        "118600007",
+        "93143009"
+      ],
+      "suspected_confidence": 0.7,
+      "suspected_snomed": [
+        "162576003"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_haematology"
+      ],
+      "reason_regex": [
+        "\\b(leuk|lymph|myeloma)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [],
+      "negative_terms": [],
+      "observation_snomed": [],
+      "positive_terms": []
+    },
+    "text_channel": {
+      "regex_catalogue": [
+        "\\b(lymphoma|leukaem\\w+|myeloma|myelodysplas\\w+|mds)\\b",
+        "\\b(lymph node|lymphadenopathy)\\b",
+        "\\b(spleen|splenomegal\\w*|hepatosplenomegal\\w*)\\b",
+        "\\b(night sweats|weight loss).{0,40}\\b(fever|pyrexia)\\b",
+        "\\b(b[- ]?symptoms)\\b",
+        "\\b(pancytopen\\w*|thrombocytopen\\w*|neutropen\\w*)\\b",
+        "\\b(full blood count|fbc).{0,40}(abnormal|low|high)\\b",
+        "\\b(haematolog\\w+)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "haematology",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 730,
+    "lookback_days": 365
+  }
+}

@@ -50,6 +50,29 @@ class ShadowComparison:
     dropped_in_v2: tuple[str, ...]
 
 
+def compare_episode_lists_by_site(
+    v1_episodes_by_site: dict[str, Iterable[str]],
+    v2_episodes_by_site: dict[str, Iterable[str]],
+) -> dict[str, dict[str, Any]]:
+    """Compare episode ids per site_key.
+
+    Each site is scored independently so a per-site champion rulebook
+    can be judged on its own slice without noise from other sites.
+    Site keys missing on one side default to an empty list on that
+    side. Returned shape mirrors :func:`compare_episode_lists` keyed
+    by site.
+    """
+
+    all_sites = set(v1_episodes_by_site) | set(v2_episodes_by_site)
+    return {
+        site: compare_episode_lists(
+            v1_episodes_by_site.get(site, ()),
+            v2_episodes_by_site.get(site, ()),
+        )
+        for site in sorted(all_sites)
+    }
+
+
 def compare_episode_lists(
     v1_episode_ids: Iterable[str],
     v2_episode_ids: Iterable[str],

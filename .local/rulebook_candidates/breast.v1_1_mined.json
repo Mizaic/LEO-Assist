@@ -1,0 +1,172 @@
+{
+  "activation": {
+    "auto_publish": true,
+    "min_precision": 0.95,
+    "suggest": true
+  },
+  "anchors": {
+    "clinic_seen_snomed": [
+      "382431000000103"
+    ],
+    "confirmed_snomed": [
+      "109888004",
+      "109889007",
+      "1701000119104",
+      "1711000119102",
+      "254837009"
+    ],
+    "referral_snomed": [
+      "276341000000100"
+    ],
+    "suspected_snomed": [
+      "126926006",
+      "134405005",
+      "188153005",
+      "395557000",
+      "156381000000108",
+      "162572001",
+      "162573006",
+      "199251000000107",
+      "241615005",
+      "2611861000000106",
+      "276551000000108",
+      "397657005",
+      "399307001",
+      "399710006",
+      "426827002",
+      "429405004",
+      "429740004",
+      "46662001",
+      "71651007",
+      "80248007",
+      "89164003"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": 90,
+      "requires_any_of": [
+        "snomed:169254007",
+        "snomed:266569009",
+        "snomed:260385009",
+        "snomed:162467007",
+        "snomed:281900007",
+        "result.negative_terms",
+        "repeat_anchor_clinic_seen"
+      ]
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": [
+        "snomed:277022003"
+      ]
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [
+    "397657005",
+    "109889007",
+    "134405005",
+    "276341000000100"
+  ],
+  "dependencies": {
+    "derived_from": "breast-gold-cohort",
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v1-2026.04.0+mined.gold3",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.9,
+    "result": 0.95,
+    "text": 0.4,
+    "treatment": 0.6
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [
+        "162467007",
+        "169254007",
+        "260385009",
+        "266569009",
+        "281900007"
+      ],
+      "confirmed_confidence": 0.95,
+      "confirmed_snomed": [
+        "109888004",
+        "109889007",
+        "1701000119104",
+        "1711000119102",
+        "254837009"
+      ],
+      "suspected_confidence": 0.8,
+      "suspected_snomed": [
+        "126926006",
+        "134405005",
+        "188153005",
+        "395557000"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_breast",
+        "breast_2ww"
+      ],
+      "reason_regex": [
+        "\\bbreast\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [
+        "breast biopsy",
+        "breast mri",
+        "breast ultrasound",
+        "core biopsy of breast",
+        "fine needle aspiration of breast",
+        "mammogra"
+      ],
+      "negative_terms": [
+        "benign",
+        "negative",
+        "no abnormality",
+        "no malignancy",
+        "normal",
+        "ultrasound scan normal",
+        "reported as normal"
+      ],
+      "observation_snomed": [
+        "169068008",
+        "439470001",
+        "47079000",
+        "722164000"
+      ],
+      "positive_terms": [
+        "carcinoma",
+        "dcis",
+        "invasive",
+        "malignant",
+        "positive for malignancy"
+      ]
+    },
+    "text_channel": {
+      "regex_catalogue": []
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "breast",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 540,
+    "lookback_days": 180
+  }
+}

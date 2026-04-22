@@ -1,0 +1,102 @@
+{
+  "activation": {
+    "auto_publish": false,
+    "min_precision": 0.95,
+    "suggest": false
+  },
+  "anchors": {
+    "clinic_seen_snomed": [],
+    "confirmed_snomed": [
+      "363354007",
+      "363443007"
+    ],
+    "referral_snomed": [
+      "276411000000105"
+    ],
+    "suspected_snomed": [
+      "315267003"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [],
+  "dependencies": {
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v0-2026.04.0",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.8,
+    "result": 0.9,
+    "text": 0.4,
+    "treatment": 0.6
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [],
+      "confirmed_confidence": 0.85,
+      "confirmed_snomed": [
+        "363354007",
+        "363443007"
+      ],
+      "suspected_confidence": 0.7,
+      "suspected_snomed": [
+        "315267003"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_gynae"
+      ],
+      "reason_regex": [
+        "\\b(ovarian|cervical|endometrial|gynae)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [],
+      "negative_terms": [],
+      "observation_snomed": [],
+      "positive_terms": []
+    },
+    "text_channel": {
+      "regex_catalogue": [
+        "\\b(ovar\\w+|uterine|uterus|endometri\\w+|cervical|cervix|vulva|vagin\\w+)\\b",
+        "\\b(post[- ]?menopausal bleed\\w*|pmb)\\b",
+        "\\b(inter[- ]?menstrual bleed\\w*|imb)\\b",
+        "\\b(post[- ]?coital bleed\\w*|pcb)\\b",
+        "\\b(ca[- ]?125|risk of malignancy index|rmi)\\b",
+        "\\b(ovarian (mass|cyst|cancer))\\b",
+        "\\b(endometrial (thickness|cancer|hyperplasia))\\b",
+        "\\b(hysteroscop\\w*|colposcop\\w*)\\b",
+        "\\b(gynae\\w*|gynaecolog\\w*)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "gynae",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 730,
+    "lookback_days": 365
+  }
+}

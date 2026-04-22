@@ -28,8 +28,14 @@ for each candidate based on:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
+from typing import Iterable
 
+from ._rulebook_adapter import (
+    benign_closure_no_confirmed_days,
+    completed_closure_tokens,
+    completed_quiet_window_days,
+)
 from .aggregator import AggregatedCandidate
 from .types import Signal, TimelineEvent
 
@@ -56,6 +62,48 @@ def _is_explicit_closure(sig: Signal) -> bool:
     return False
 
 
+def _completed_snomed_for(site_key: str) -> frozenset[str]:
+    """Extract the SNOMED concept ids referenced by the site's
+    ``closure.completed.requires_any_of`` rule. Tokens shaped as
+    ``snomed:<id>`` are promoted to the id set; non-SNOMED tokens are
+    dropped (they'd only fire via other branches of the boundary).
+    """
+    ids: set[str] = set()
+    for token in completed_closure_tokens(site_key):
+        if not isinstance(token, str):
+            continue
+        t = token.strip()
+        if t.startswith("snomed:"):
+            ids.add(t[len("snomed:"):])
+    return frozenset(ids)
+
+
+def _dates_with_completed_snomed(
+    site_key: str,
+    events: Iterable[TimelineEvent],
+    target_events: set[str],
+) -> list[date]:
+    """Return the dates of the encounters in ``target_events`` that
+    carry at least one SNOMED listed in the site's completed-closure
+    rule. Used to detect explicit completion (e.g. "discharged from
+    oncology with remission") that does not flow through a ruled_out
+    signal.
+    """
+    completed_codes = _completed_snomed_for(site_key)
+    if not completed_codes:
+        return []
+    found: list[date] = []
+    for evt in events:
+        if evt.encounter_id not in target_events:
+            continue
+        for code in evt.coded_entities:
+            cid = str(code.get("concept_id") or "").strip()
+            if cid and cid in completed_codes:
+                found.append(evt.occurred_on)
+                break
+    return found
+
+
 def detect_boundary(
     aggregated: AggregatedCandidate,
     events: list[TimelineEvent],
@@ -80,6 +128,26 @@ def detect_boundary(
             if _is_explicit_closure(sig):
                 explicit_closure_dates.append(evt.occurred_on)
 
+    # Augment explicit-closure dates with completed-closure SNOMEDs
+    # from the site's rulebook (e.g. "in remission", "discharged from
+    # oncology"). These do not always flow through a ruled_out signal
+    # because they are not benign investigation results.
+    scoped_events = {
+        sig.encounter_id
+        for sig_list in aggregated.signals_by_channel.values()
+        for sig in sig_list
+    }
+    completed_dates = _dates_with_completed_snomed(
+        cand.site_key, events, scoped_events
+    )
+    explicit_closure_dates.extend(completed_dates)
+    # A completed-closure code is also an "intent=ruled_out-equivalent"
+    # outcome for boundary purposes when no confirmed signal survives
+    # it. We count those dates as ruled_out so suspected-only episodes
+    # without any confirmation flip to benign_closure correctly.
+    if completed_dates:
+        ruled_out_dates.extend(completed_dates)
+
     start = min(relevant_dates) if relevant_dates else cand.anchor_date
 
     intent = cand.intent_hint or "suspected"
@@ -89,19 +157,50 @@ def detect_boundary(
         intent = "ruled_out"
 
     if intent == "ruled_out":
-        # benign closure: episode terminates at the ruled_out date.
+        # Benign closure -- but the rulebook can require a quiet
+        # window after the benign signal during which no confirmed
+        # signal may appear. If a confirmed arrives inside that
+        # window the closure is invalidated (fail-safe: the episode
+        # reopens).
         status = "benign_closure"
         end = max(ruled_out_dates) if ruled_out_dates else None
+        quiet_days = benign_closure_no_confirmed_days(
+            cand.site_key, fallback=0
+        )
+        if end is not None and quiet_days > 0 and confirmed_dates:
+            horizon = end + timedelta(days=quiet_days)
+            if any(end < c <= horizon for c in confirmed_dates):
+                # A confirmed signal arrived inside the quiet window --
+                # revert to an open confirmed episode so a curator can
+                # re-triage. The coverage check will pick this up.
+                intent = "confirmed"
+                status = "open"
+                end = None
     elif confirmed_dates:
-        # confirmed cancer episode -- only close if we observed an
-        # explicit closure signal AFTER the latest confirmed signal.
+        # Confirmed cancer episode -- close only if an explicit
+        # closure signal arrived after the latest confirmed signal
+        # AND the rulebook's quiet window has elapsed (or is zero,
+        # which is the v0 behaviour).
         last_confirmed = max(confirmed_dates)
         post_closure = [
             d for d in explicit_closure_dates if d >= last_confirmed
         ]
+        quiet_days = completed_quiet_window_days(cand.site_key, fallback=0)
         if post_closure:
-            status = "closed"
-            end = max(post_closure)
+            closure_date = max(post_closure)
+            horizon = closure_date + timedelta(days=quiet_days)
+            # If another confirmed signal lands inside the quiet
+            # window after the closure event, keep the episode open --
+            # a clinician would.
+            reopened = any(
+                closure_date < c <= horizon for c in confirmed_dates
+            )
+            if reopened:
+                status = "open"
+                end = None
+            else:
+                status = "closed"
+                end = closure_date
         else:
             status = "open"
             end = None

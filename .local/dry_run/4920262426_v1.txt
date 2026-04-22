@@ -1,0 +1,49 @@
+[dry-run] v1 rulebooks installed for: breast, lung, prostate_urological, upper_gi
+==============================================================================
+Episode Detector v2 dry-run for patient 4920262426
+==============================================================================
+Timeline events loaded:          316
+Auto-published episodes:         2
+Review-required candidates:      1
+Encounters linked (auto):        12
+Suppressed write Cypher count:   2
+Errors:                          ['coverage_incomplete:1_unaccounted']
+
+Proposed AUTO episodes (would persist):
+  [1] site=breast               tier=auto    status=active         start=2025-08-12 end=None
+       episode_id=ep-v2-922f9e34288fd737
+       encounters=6
+  [2] site=upper_gi             tier=auto    status=active         start=2025-07-14 end=None
+       episode_id=ep-v2-5fbe97cea2b8ebfe
+       encounters=6
+
+Proposed REVIEW / SUGGEST episodes (would NOT persist):
+  [1] site=lung                 tier=review  status=open           intent=suspected  start=2025-07-16 end=None
+       episode_id=ep-v2-bba0ef0028bb876d
+       encounters=1
+       review_reasons=['insufficient_consensus', 'single_channel_evidence', 'single_generator_vote']
+       encounter_ids=['a477b955-e6b6-449d-a9c2-3e4d9ba04843']
+
+AUTO episode encounter IDs:
+  ep-v2-922f9e34288fd737 -> ['397c57db-c9ab-48ac-a233-cdafc6f61d0b', '73f77444-9343-428d-b4ce-13c37121a2c0', '5f5d0a42-db18-41f2-b88e-e99f9218d3b6', '8a739bf0-0795-4ffa-a1c1-91907705d487', '33b3f3cf-5fcf-4f26-8336-4a3808aa56b6', '6daf697b-7d4b-4f57-b7e6-89a8cb117e24']
+  ep-v2-5fbe97cea2b8ebfe -> ['fd65dd88-7a94-4b35-9f73-bf3788640778', '2071f1f8-21e8-4fbe-81d9-1395216cba1c', 'da47863c-cd5f-4f5d-a869-44724e383ba4', 'e9457855-54f1-4906-bc9d-761f7f1099c4', 'e6eac76c-8e39-4a35-b703-4074ba5b64a1', 'da4a5ed1-d74f-4bf2-bc44-213cf8ece2a1']
+
+Coverage report:
+  total encounters:               316
+  in_episodes:                    12
+  adjacent_to_active_episode:     101
+  no_signal:                      202
+  unaccounted (review needed):    1
+  unaccounted ids (first 10):
+    - a477b955-e6b6-449d-a9c2-3e4d9ba04843
+  adjacent ids (first 10):
+    - 0c15aa16-adf1-4080-bbae-0444aa187ab0
+    - 446bf98e-32c3-4e0a-8b34-ec373f8fbedb
+    - bdd1be0b-4608-42d7-86e4-3a581b815daf
+    - 0d267a1e-3e12-46d3-a331-60967683fe32
+    - ebb75ac6-4fb5-4652-a049-1fcc5ae8274d
+    - 28bd971e-0f13-4f34-8663-65c5bcd3bf7e
+    - 76a720ab-d91b-4d87-add6-49b6cc0ea801
+    - b1b1577a-0dbd-4115-a761-4088c2aa644f
+    - 079b8db4-f035-4d59-9aae-b0a7b1a6a8d8
+    - 0d8b3ce4-1f3f-4520-a9cd-95176b8da2f6

@@ -1,0 +1,106 @@
+{
+  "activation": {
+    "auto_publish": false,
+    "min_precision": 0.95,
+    "suggest": false
+  },
+  "anchors": {
+    "clinic_seen_snomed": [],
+    "confirmed_snomed": [
+      "254632001",
+      "254637007",
+      "363358000",
+      "363504009"
+    ],
+    "referral_snomed": [
+      "276401000000108"
+    ],
+    "suspected_snomed": [
+      "162573006"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [],
+  "dependencies": {
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v0-2026.04.0",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.8,
+    "result": 0.9,
+    "text": 0.4,
+    "treatment": 0.6
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [],
+      "confirmed_confidence": 0.85,
+      "confirmed_snomed": [
+        "254632001",
+        "254637007",
+        "363358000",
+        "363504009"
+      ],
+      "suspected_confidence": 0.7,
+      "suspected_snomed": [
+        "162573006"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_lung",
+        "lung_2ww"
+      ],
+      "reason_regex": [
+        "\\b(lung|chest|haemoptysis)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [],
+      "negative_terms": [],
+      "observation_snomed": [],
+      "positive_terms": []
+    },
+    "text_channel": {
+      "regex_catalogue": [
+        "\\b(lung|pulmonary|pleur)\\w*",
+        "\\b(bronchoscop|thoracoscop|mediastinoscop)\\w*",
+        "\\b(ct chest|cxr|chest x[- ]?ray|hrct)\\b",
+        "\\b(haemoptysis|spiculat\\w*|pulmonary nodule)\\b",
+        "\\b(smoker|ex[- ]smoker|pack year|pack-year)\\b",
+        "\\b(persistent cough|chronic cough|breathless\\w*)\\b",
+        "\\b(lung cancer|nsclc|sclc|mesothelioma)\\b",
+        "\\b(chest pain on inspiration|pleuritic)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "lung",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 730,
+    "lookback_days": 365
+  }
+}
