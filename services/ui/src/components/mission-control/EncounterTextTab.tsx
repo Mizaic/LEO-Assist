@@ -3,8 +3,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
+import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -51,7 +53,8 @@ export default function EncounterTextTab({
 }: Props) {
   const { encounters, loading, error, refresh } = useEncounterLoad(patientId);
   const [codedOnly, setCodedOnly] = useState(false);
-  const [search, setSearch] = useState("");
+  const [searchTerms, setSearchTerms] = useState<string[]>([]);
+  const [inputDraft, setInputDraft] = useState("");
   const codedLinks = useEncounterCodedLinks(patientId);
   const {
     codedByEncounter,
@@ -191,25 +194,25 @@ export default function EncounterTextTab({
   const visibleEncounters = useMemo(() => {
     const filtered = applyCommonFilters(encounters, {
       codedOnly,
-      search,
+      searchTerms,
       timelineRange,
     });
     return sortByIsoDateAsc(filtered, (e) => e.date ?? null);
-  }, [encounters, codedOnly, search, timelineRange]);
+  }, [encounters, codedOnly, searchTerms, timelineRange]);
 
   // Search match overlay for the histogram (DI-15E0094F). Only the
   // free-text search affects which bars are highlighted; coded-only
   // and brush window stay independent. undefined = no search,
   // empty Set = search active with zero matches.
   const searchMatchEncounterIds = useMemo<Set<string> | undefined>(() => {
-    if (!search.trim()) return undefined;
+    if (searchTerms.length === 0) return undefined;
     const matched = applyCommonFilters(encounters, {
       codedOnly: false,
-      search,
+      searchTerms,
       timelineRange: null,
     });
     return new Set(matched.map((e) => String(e.encounter_id)));
-  }, [encounters, search]);
+  }, [encounters, searchTerms]);
 
   useEffect(() => {
     if (loading) return;
@@ -237,7 +240,8 @@ export default function EncounterTextTab({
 
   const jumpToEncounter = useCallback((encounterId: string) => {
     setCodedOnly(false);
-    setSearch("");
+    setSearchTerms([]);
+    setInputDraft("");
     setTimelineRange(null);
     setCollapsedEncounters((prev) => ({ ...prev, [encounterId]: false }));
     setFocusedEncounterId(encounterId);
@@ -262,7 +266,7 @@ export default function EncounterTextTab({
     }
     const timer = window.setTimeout(() => setFocusedEncounterId(null), 2200);
     return () => window.clearTimeout(timer);
-  }, [focusedEncounterId, codedOnly, search, visibleEncounters.length]);
+  }, [focusedEncounterId, codedOnly, searchTerms, visibleEncounters.length]);
 
   const allVisibleIds = useMemo(
     () => visibleEncounters.map((e) => String(e.encounter_id)),
@@ -332,7 +336,7 @@ export default function EncounterTextTab({
         }}
         enc={enc}
         patientId={patientId}
-        search={search}
+        search={searchTerms.join(" ")}
         isExpanded={isExpanded}
         isFocused={focusedEncounterId === encounterKey}
         isLinkedToEpisode={isLinked}
@@ -448,11 +452,27 @@ export default function EncounterTextTab({
           </Button>
         )}
       </Box>
-      <TextField
-        size="small"
-        label="Search text in shown encounters"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+      <Autocomplete
+        multiple freeSolo options={[]}
+        value={searchTerms} inputValue={inputDraft}
+        onChange={(_, v) => setSearchTerms(v as string[])}
+        onInputChange={(_, v, r) => {
+          if (r !== "input") { setInputDraft(v); return; }
+          if (v.endsWith(",")) {
+            const t = v.slice(0, -1).trim();
+            if (t) setSearchTerms((p) => [...p, t]);
+            setInputDraft("");
+          } else setInputDraft(v);
+        }}
+        renderTags={(v, gtp) =>
+          v.map((o, i) => {
+            const { key, ...tagProps } = gtp({ index: i });
+            return <Chip key={key} label={o} size="small" {...tagProps} />;
+          })
+        }
+        renderInput={(p) => (
+          <TextField {...p} size="small" label="Search text in shown encounters" />
+        )}
       />
 
       {visibleEncounters.length === 0 && (

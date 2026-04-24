@@ -120,9 +120,11 @@ def test_write_gold_training_writes_sentence_level_candidates() -> None:
         if "candidate_id" in kwargs and "text" in kwargs:
             candidate_texts.append(kwargs["text"])
 
-    assert "First sentence." in candidate_texts
-    assert "Second sentence." in candidate_texts
-    assert "First sentence. Second sentence." not in candidate_texts
+    # Both source sentences are short (<50 chars) so context windowing widens
+    # each to include its neighbour.  Assert the target surface appears in
+    # each stored text (not exact equality since context is injected).
+    assert any("First sentence." in t for t in candidate_texts)
+    assert any("Second sentence." in t for t in candidate_texts)
 
 
 def test_write_gold_training_splits_multiline_lab_sentence_into_line_candidates() -> (
@@ -242,3 +244,94 @@ def test_write_gold_training_sets_hitl_fields() -> None:
         )
     assert out["training_labels_written"] == 1
     assert session.run.call_args.kwargs["hitl_reason"] == "pipeline_feedback"
+
+
+def test_write_gold_training_widens_short_sentence_with_context() -> None:
+    """Candidates shorter than NER_SHORT_CONTEXT_THRESHOLD should include
+    neighbouring sentence text so the model trains on the same richer context
+    it sees at inference time."""
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = False
+    client = MagicMock()
+    client.session.return_value = session
+
+    sentences = [
+        {"sentence_id": "s0", "text": "No cough.", "start": 0, "end": 9},
+        {"sentence_id": "s1", "text": "SOB", "start": 10, "end": 13},
+        {"sentence_id": "s2", "text": "O2 sats 96%.", "start": 14, "end": 26},
+    ]
+
+    with patch(
+        "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+        return_value=client,
+    ), patch.dict("os.environ", {"NER_SHORT_CONTEXT_THRESHOLD": "50"}):
+        out = write_gold_training(
+            {
+                "encounter_text": "No cough. SOB O2 sats 96%.",
+                "sentences": sentences,
+                "entities": [
+                    {
+                        "text": "SOB",
+                        "label": "finding",
+                        "__sentence_id": "s1",
+                        "start": 10,
+                        "end": 13,
+                        "_llm_check_source": "llm_added",
+                    }
+                ],
+                "verification_result": {"confidence": 0.9},
+                "errors": [],
+            }
+        )
+
+    assert out["training_labels_written"] == 1
+    # The text stored in Neo4j should include the neighbouring sentences
+    stored_text: str = session.run.call_args.kwargs["text"]
+    assert "No cough." in stored_text
+    assert "SOB" in stored_text
+    assert "O2 sats 96%." in stored_text
+
+
+def test_write_gold_training_leaves_long_sentence_unchanged() -> None:
+    """Candidates at or above the threshold must not have context injected."""
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = False
+    client = MagicMock()
+    client.session.return_value = session
+
+    long_text = "Patient presents with severe shortness of breath for three days."
+
+    sentences = [
+        {"sentence_id": "s0", "text": "Prev.", "start": 0, "end": 5},
+        {"sentence_id": "s1", "text": long_text, "start": 6, "end": 6 + len(long_text)},
+    ]
+
+    with patch(
+        "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+        return_value=client,
+    ), patch.dict("os.environ", {"NER_SHORT_CONTEXT_THRESHOLD": "50"}):
+        out = write_gold_training(
+            {
+                "encounter_text": f"Prev. {long_text}",
+                "sentences": sentences,
+                "entities": [
+                    {
+                        "text": "shortness of breath",
+                        "label": "finding",
+                        "__sentence_id": "s1",
+                        "start": 6 + long_text.index("shortness"),
+                        "end": 6 + long_text.index("shortness") + len("shortness of breath"),
+                        "_llm_check_source": "llm_added",
+                    }
+                ],
+                "verification_result": {"confidence": 0.9},
+                "errors": [],
+            }
+        )
+
+    assert out["training_labels_written"] == 1
+    stored_text: str = session.run.call_args.kwargs["text"]
+    # Neighbouring "Prev." must NOT have been injected
+    assert "Prev." not in stored_text

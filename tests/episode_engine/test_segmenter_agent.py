@@ -125,3 +125,30 @@ def test_build_tool_config_forces_tool_choice():
     assert cfg["toolChoice"] == {"tool": {"name": "submit_windows"}}
     assert cfg["tools"][0]["toolSpec"]["name"] == "submit_windows"
     assert cfg["tools"][0]["toolSpec"]["inputSchema"] == {"json": {"type": "object"}}
+
+
+def test_segmenter_prompt_multisite_heuristics_present():
+    """VT-501-TC-007: SYSTEM prompt has multi-site and GP-investigation heuristics.
+
+    Regression guard: ensures the three new boundary clauses added in W-018
+    remediation are not accidentally dropped from the prompt. A missing clause
+    causes the LLM to merge GP-only investigation windows or same-day multi-site
+    2WW referrals into a single window.
+    """
+    from libs.prompts.episode_engine import segmenter_v1
+
+    assert "GP-ONLY INVESTIGATION WINDOWS" in segmenter_v1.SYSTEM, (
+        "Missing GP-only investigation heuristic -- Lung benign window will be dropped"
+    )
+    assert "SHARED FIRST PRESENTATION" in segmenter_v1.SYSTEM, (
+        "Missing shared-first-presentation heuristic -- multi-site presentations "
+        "will be collapsed into a single window"
+    )
+    assert "SAME-DAY MULTI-SITE 2WW REFERRALS" in segmenter_v1.SYSTEM, (
+        "Missing same-day multi-site 2WW heuristic -- Breast and Upper GI "
+        "windows will be merged when both 2WW forms are submitted on the same day"
+    )
+    assert "SYN-EE-002" in segmenter_v1.SYSTEM, (
+        "Missing multi-site reference case (SYN-EE-002) -- LLM will fuse "
+        "a GP-only Lung window into an Oesophageal window"
+    )

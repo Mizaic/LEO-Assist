@@ -19,6 +19,7 @@ from libs.oncology.cancer_types import CANONICAL_CANCER_TYPES
 from libs.prompts.episode_engine._shared import (
     BREAST_REFERENCE_CASE,
     CANCER_TYPE_PICKER,
+    MULTI_SITE_REFERENCE_CASE,
     RULES_OF_THE_ROAD,
 )
 
@@ -46,12 +47,39 @@ SYSTEM = INJECTION_GUARD + (
     "    later if they prove to be the same primary.\n"
     "  - When in doubt, prefer MORE windows over fewer; reconciler will\n"
     "    merge.\n\n"
+    "ADDITIONAL HEURISTICS FOR COMPLEX MULTI-SITE CASES:\n\n"
+    "  GP-ONLY INVESTIGATION WINDOWS (no 2WW required):\n"
+    "    A cluster of GP-ordered investigations (blood tests, plain X-ray,\n"
+    "    spirometry, stool tests, lung function) targeting a specific\n"
+    "    symptom opens a candidate window even WITHOUT a 2WW referral.\n"
+    "    Set window_start to the first GP consultation for that symptom.\n"
+    "    Set window_end to the date the result/outcome is recorded. If the\n"
+    "    outcome is normal or benign and the patient is not referred onwards,\n"
+    "    the window closes at that result date.\n"
+    "    Example: cough + chest X-ray ordered by GP + 'X-ray clear' result\n"
+    "    -> Lung window from first cough consultation to X-ray result date.\n\n"
+    "  SHARED FIRST PRESENTATION, MULTIPLE PATHWAYS:\n"
+    "    A single GP consultation that presents symptoms pointing to\n"
+    "    MULTIPLE possible sites (e.g. 'cough + weight loss + abdominal\n"
+    "    pain', or 'PR bleeding + shortness of breath') must produce ONE\n"
+    "    window per suspected site, each sharing the SAME window_start.\n"
+    "    One window may close early (benign result for that site) while\n"
+    "    the others stay open. DO NOT collapse multi-symptom presentations\n"
+    "    into a single window -- the reconciler cannot split a window but\n"
+    "    CAN merge two windows.\n\n"
+    "  SAME-DAY MULTI-SITE 2WW REFERRALS:\n"
+    "    When two 2WW forms are submitted on the same day for different\n"
+    "    body sites (e.g. breast 2WW and upper-GI 2WW both on 12 Aug),\n"
+    "    emit one window per site with the same window_start. Do not\n"
+    "    assume one is the 'real' referral and drop the other.\n\n"
     + RULES_OF_THE_ROAD
     + "\n\n"
     + CANCER_TYPE_PICKER
     + "\n\n"
     + BREAST_REFERENCE_CASE
-    + "\n\nRespond by calling the submit_windows tool with the JSON below.\n"
+    + "\n\n"
+    + MULTI_SITE_REFERENCE_CASE
+    + "\nRespond by calling the submit_windows tool with the JSON below.\n"
 )
 
 

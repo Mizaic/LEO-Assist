@@ -393,58 +393,62 @@ fully cleared and removed from the open list:
 
 ---
 
-## W-017 -- Gold-patient VT: Colorectal benign false-episode (DI-2C015ADE)
+## W-017 -- Gold-patient VT: Colorectal benign slot_recall (DI-2C015ADE)
 
-- **Added**: 2026-04-24
+- **Added**: 2026-04-24. **Updated**: 2026-04-24 (post-segmenter fix).
 - **Scope**: `tests/episode_engine/test_gold_patient_vt.py`,
   patient `4246428337` (Colorectal closed_benign).
-- **Gap**: The engine creates 2 episodes for this patient; the best-match
-  episode emits `diagnosis_confirmed`, `first_seen`, `outcome_letter` (all
-  incorrect for a benign pathway that ends in `benign_closure`), and misses
-  `benign_closure` itself. type_precision 0.44 < 0.50 floor and
-  slot_recall 0.12 < 0.30 floor.
-- **Root cause**: The reconciler is classifying this patient as a cancer
-  episode (episode_type=cancer) instead of benign. This is a classifier-level
-  issue, not a milestone-extractor prompt issue. Prompt rules 10 and 11
-  (benign-outcome mutual exclusivity) were added but the LLM is still
-  emitting cancer-pathway milestones because the upstream classifier
-  presents the window as a suspected cancer case.
-- **Risk**: Low. The episode would be placed in human-review tier
-  (confidence_tier=review) due to context-tier milestones, so a curator
-  would see the false `diagnosis_confirmed` before it is accepted.
-- **Owner**: Engineering Lead (reconciler/classifier team).
-- **Clear by**: 2026-06-30 -- fix the benign-episode classifier gate in
-  the reconciler so it does not present a confirmed-benign window to
-  the milestone extractor as a suspected cancer pathway.
+- **Gap**: type_recall is now 1.00 (all five gold types found, including
+  `benign_closure`). However slot_recall is 0.25 < 0.30 floor because the gold
+  fixture has multi-slot types (primary_care_investigations x3, related_gp_visit
+  x2) and the engine emits only one occurrence per type, picking encounter IDs
+  that differ from the gold curator's selections. type_precision is 0.50 (at
+  floor) due to extra context types.
+- **Root cause**: Multi-slot milestone types in the gold fixture create a
+  theoretical maximum slot_recall of ~0.63 under single-emission behaviour.
+  Getting 0.25 reflects ~40% encounter-ID accuracy, which is acceptable for
+  Phase 1. A separate issue (extra context types from the milestone extractor)
+  is covered by prompt rules 10/11 but LLM variance persists.
+- **Risk**: Low. All milestone types are found; encounter-ID mismatches mean
+  the curator sees the milestone on a slightly different encounter (e.g. a
+  related blood test rather than the exact one the curator chose). The episode
+  is in human-review tier so the curator can correct any misattribution.
+- **Owner**: Engineering Lead.
+- **Clear by**: 2026-06-30 -- implement multi-slot emission from vector hints
+  (retrieve all matching encounters per type, not just top-1) and reduce
+  extra context types by improving closed-window contamination filtering.
 
 ---
 
-## W-018 -- Gold-patient VT: Multi-site Lung + Upper GI episodes missing (DI-2C015ADE)
+## W-018 -- Gold-patient VT: Multi-site Lung closed-window contamination (DI-2C015ADE)
 
-- **Added**: 2026-04-24
+- **Added**: 2026-04-24. **Updated**: 2026-04-24 (segmenter fix shipped).
 - **Scope**: `tests/episode_engine/test_gold_patient_vt.py`,
-  patient `4920262426` (Multi-site Breast/Lung/UpperGI) episodes
-  Lung/closed_benign and Upper GI/active.
-- **Gap**: The segmenter creates only 2 windows for this 3-pathway patient.
-  The Lung investigation (June-July 2025, benign chest X-ray) and the Upper
-  GI pathway (August 2025 onwards, active) are not detected as separate
-  windows; their milestones therefore score near 0 for both recall and
-  slot_recall against the gold.
-- **Root cause**: The window-segmentation stage identifies 2WW referral
-  signals but does not currently differentiate between a same-day multi-site
-  referral (Breast) and a temporally separate earlier investigation (Lung).
-  This is a segmenter architecture issue outside the scope of the milestone
-  extractor or its prompts.
-- **Risk**: Medium. Missed Lung and Upper GI windows mean the curator is not
-  presented with a separate episode card for each pathway. The patient still
-  receives a Breast episode card which the curator can review. The Lung
-  benign result and the Upper GI active pathway would be visible in the
-  encounter timeline but not surfaced as structured episodes.
-- **Owner**: Engineering Lead (segmenter team).
-- **Clear by**: 2026-06-30 -- extend the segmenter to detect temporally
-  distinct multi-site investigation windows by keying on separate 2WW
-  referral dates and body-site codes rather than collapsing same-week
-  referrals into a single window.
+  patient `4920262426` (Multi-site Breast/Lung/UpperGI),
+  episode Lung/closed_benign.
+- **Gap**: The segmenter now correctly creates 3 windows (Lung, Breast, Upper
+  GI) and the engine produces 3 episodes. Upper GI now passes all three
+  thresholds (type_recall 0.75, slot_recall 0.62, type_precision 0.86).
+  However the Lung episode has type_precision 0.43 < 0.50 floor: the
+  July-16 CXR result encounter contains text "referred for upper GI
+  investigation" (forward context) and the LLM emits `referral`,
+  `referral_sent`, and `first_seen` for the closed Lung window despite
+  prompt rule 12 (closed-window scope). `benign_closure` is also missed.
+- **Root cause**: The July-16 encounter text documents the CXR result AND
+  plans the next steps (upper GI referral) in a single record. The LLM
+  treats the mention of the planned referral as an emittable milestone
+  rather than forward context. This is a closed-window contamination issue:
+  the milestone extractor cannot distinguish "event completed in this window"
+  from "event mentioned but happening later".
+- **Risk**: Low. The Lung episode correctly surfaces as a separate card with
+  a benign investigation pathway. The extra milestone types (`referral`) are
+  false positives that a curator reviewing the Lung episode would quickly
+  dismiss; `confidence_tier=review` is set so no automatic acceptance occurs.
+- **Owner**: Engineering Lead.
+- **Clear by**: 2026-06-30 -- add deterministic post-filtering in `writer.py`
+  that strips milestones whose encounter dates fall outside the episode window
+  date range, and enforce `benign_closure` emission for windows that the
+  classifier marks as benign.
 
 ---
 

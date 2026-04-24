@@ -240,6 +240,170 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
 
 
 # ------------------------------------------------------------------
+# Orphaned-subprocess recovery
+# ------------------------------------------------------------------
+
+
+def recover_orphaned_jobs(store: TrainingJobStore) -> list[str]:
+    """Scan for running spaCy training subprocesses that survived a worker restart.
+
+    For each orphaned process found, a synthetic ``TrainingJob`` is created in
+    the store with status ``running``.  A background thread waits for the
+    subprocess to exit and then runs the calibrate → evaluate → bundle →
+    upload → register post-training phases automatically.
+
+    Returns a list of recovered job IDs (empty when nothing was found).
+    """
+    import re
+    import subprocess as _sp
+
+    try:
+        ps = _sp.run(["ps", "aux"], capture_output=True, text=True, timeout=5)
+    except Exception as exc:
+        logger.warning("[recovery] ps aux failed: %s", exc)
+        return []
+
+    recovered: list[str] = []
+    for line in ps.stdout.splitlines():
+        if "run_spacy_train_cli" not in line or "grep" in line:
+            continue
+        try:
+            parts = line.split(None, 10)
+            pid = int(parts[1])
+            cmdline = parts[10] if len(parts) > 10 else ""
+        except (ValueError, IndexError):
+            continue
+
+        # Verify the process still exists (ps can be slightly stale).
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            continue
+
+        # Extract output dir from --output <path>
+        m = re.search(r"--output\s+(\S+)", cmdline)
+        if not m:
+            logger.warning("[recovery] Could not parse --output from PID %d cmdline", pid)
+            continue
+        output_dir = Path(m.group(1))
+        work_dir = output_dir.parent
+        if not work_dir.exists():
+            logger.warning("[recovery] Work dir missing for PID %d: %s", pid, work_dir)
+            continue
+
+        # Grab the semaphore so new jobs are blocked while we recover this one.
+        _semaphore.acquire(blocking=False)
+
+        job = store.create(triggered_by="recovery")
+        store.update(job, status="running", phase="train", started_at=time.time())
+        store.append_log(
+            job,
+            f"[recovery] Re-attached orphaned spaCy training subprocess "
+            f"PID {pid}. Waiting for it to finish before running "
+            f"calibrate / evaluate / upload / register.",
+        )
+        store.append_log(job, f"[recovery] Work dir: {work_dir}")
+        logger.info(
+            "[recovery] Re-attached PID %d -> job %s (work_dir=%s)",
+            pid,
+            job.job_id,
+            work_dir,
+        )
+
+        t = threading.Thread(
+            target=_watch_orphaned,
+            args=(job, store, pid, work_dir, output_dir),
+            daemon=True,
+            name=f"recovery-{job.job_id[:8]}",
+        )
+        t.start()
+        recovered.append(job.job_id)
+
+    return recovered
+
+
+def _watch_orphaned(
+    job: TrainingJob,
+    store: TrainingJobStore,
+    pid: int,
+    work_dir: Path,
+    output_dir: Path,
+) -> None:
+    """Wait for an orphaned spaCy subprocess to finish, then run post-training phases."""
+    try:
+        # Poll until process exits — gentle 10-second heartbeat.
+        while True:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(10)
+
+        store.append_log(
+            job,
+            f"[recovery] Subprocess PID {pid} exited. "
+            "Running calibrate → evaluate → bundle → upload → register…",
+        )
+
+        model_best = output_dir / "model-best"
+        model_last = output_dir / "model-last"
+        model_dir = model_best if (model_best / "meta.json").exists() else model_last
+        if not (model_dir / "meta.json").exists():
+            raise FileNotFoundError(
+                f"No trained model found in {output_dir}. "
+                "Training may have crashed before saving any checkpoint."
+            )
+
+        val_path = work_dir / "val.spacy"
+        dev_path = work_dir / "dev.spacy"
+        if not val_path.exists():
+            val_path = dev_path
+
+        job_started_at = job.started_at or time.time()
+
+        calibration = _phase_calibrate(job, store, model_dir, val_path)
+
+        metrics = _phase_evaluate(job, store, model_dir, dev_path)
+        if calibration:
+            metrics = {**metrics, "calibration": calibration}
+        store.update(job, metrics={**job.metrics, "ner": metrics})
+
+        export_meta: dict = {}
+        _phase_bundle(job, store, work_dir, model_dir, export_meta)
+
+        artifact_uri, version = _phase_upload(job, store, model_dir, export_meta)
+
+        _phase_register(
+            job, store, version, artifact_uri, metrics, export_meta, job_started_at
+        )
+
+        store.update(
+            job,
+            status="done",
+            phase="",
+            artifact_uri=artifact_uri,
+            model_version=version,
+            error="" if metrics.get("passed_gates") else "Gate warning — check Evaluate tab.",
+            finished_at=time.time(),
+        )
+        store.append_log(
+            job,
+            f"[recovery] Complete — version {version} registered and ready for promotion.",
+        )
+    except Exception as exc:
+        logger.exception("[recovery] Post-training phases failed for job %s: %s", job.job_id, exc)
+        store.update(
+            job,
+            status="failed",
+            phase="",
+            error=str(exc),
+            finished_at=time.time(),
+        )
+    finally:
+        _semaphore.release()
+
+
+# ------------------------------------------------------------------
 # Phase implementations
 # ------------------------------------------------------------------
 

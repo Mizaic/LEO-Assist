@@ -231,3 +231,71 @@ class TestReferralProcedurePhrase:
         from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 
         assert not is_referral_procedure_phrase("Possible breast cancer")
+
+
+class TestBuildContextWindow:
+    """Tests for build_context_window -- short-sentence context enrichment."""
+
+    def _chunks(self, texts: list[str]) -> list:
+        from libs.nlp.sentence_splitter import SentenceChunk
+
+        offset = 0
+        result = []
+        for i, t in enumerate(texts):
+            result.append(SentenceChunk(sentence_id=f"s{i}", text=t, start=offset, end=offset + len(t)))
+            offset += len(t) + 1
+        return result
+
+    def test_long_sentence_unchanged(self):
+        from libs.nlp.sentence_splitter import build_context_window
+
+        chunks = self._chunks(["No cough.", "Dyspnea on exertion for the past two weeks.", "Afebrile."])
+        text, offset = build_context_window(chunks, 1, threshold=10)
+        assert text == chunks[1].text
+        assert offset == 0
+
+    def test_short_sentence_middle_gets_neighbours(self):
+        from libs.nlp.sentence_splitter import build_context_window
+
+        chunks = self._chunks(["No cough.", "SOB", "O2 sats 96%."])
+        text, offset = build_context_window(chunks, 1, threshold=50)
+        assert "SOB" in text
+        assert "No cough." in text
+        assert "O2 sats 96%." in text
+        # anchor_offset must point to "SOB" inside the context string
+        assert text[offset:offset + len("SOB")] == "SOB"
+
+    def test_short_sentence_at_start_only_appends(self):
+        from libs.nlp.sentence_splitter import build_context_window
+
+        chunks = self._chunks(["SOB", "No fever.", "Cough."])
+        text, offset = build_context_window(chunks, 0, threshold=50)
+        assert text.startswith("SOB")
+        assert offset == 0
+        assert "No fever." in text
+
+    def test_short_sentence_at_end_only_prepends(self):
+        from libs.nlp.sentence_splitter import build_context_window
+
+        chunks = self._chunks(["Chest clear.", "No wheeze.", "SOB"])
+        text, offset = build_context_window(chunks, 2, threshold=50)
+        assert text.endswith("SOB")
+        assert offset > 0
+        assert text[offset:] == "SOB"
+
+    def test_context_sents_limits_window(self):
+        from libs.nlp.sentence_splitter import build_context_window
+
+        chunks = self._chunks(["A.", "B.", "SOB", "D.", "E."])
+        text, _ = build_context_window(chunks, 2, threshold=50, context_sents=1)
+        assert "A." not in text
+        assert "E." not in text
+        assert "B." in text and "D." in text
+
+    def test_anchor_offset_within_context(self):
+        from libs.nlp.sentence_splitter import build_context_window
+
+        chunks = self._chunks(["Prev sentence here.", "HTN", "Next one."])
+        text, offset = build_context_window(chunks, 1, threshold=50)
+        # The character at anchor_offset should be the start of the target
+        assert text[offset : offset + len("HTN")] == "HTN"

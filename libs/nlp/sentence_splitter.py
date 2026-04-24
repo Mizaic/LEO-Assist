@@ -133,6 +133,17 @@ def is_referral_procedure_phrase(text: str) -> bool:
     return bool(_REFERRAL_PROCEDURE_RE.search(stripped))
 
 
+SHORT_SENTENCE_THRESHOLD: int = 50
+"""Sentences shorter than this (chars, stripped) are considered context-starved.
+
+Both the inference service and the training candidate creation path use this
+constant to decide when to widen the context window to include neighbouring
+sentences, giving the transformer enough surrounding text to build useful
+embeddings for very short clinical abbreviations (e.g. "SOB", "HTN").
+Override via NER_SHORT_CONTEXT_THRESHOLD env-var at runtime.
+"""
+
+
 @dataclass(frozen=True)
 class SentenceChunk:
     sentence_id: str
@@ -198,6 +209,53 @@ def _rejoin_soft_wraps(
             current = nxt
     merged.append(current)
     return merged
+
+
+def build_context_window(
+    chunks: list[SentenceChunk],
+    index: int,
+    *,
+    threshold: int = SHORT_SENTENCE_THRESHOLD,
+    context_sents: int = 2,
+) -> tuple[str, int]:
+    """Return a context-enriched string for a potentially short sentence.
+
+    When ``chunks[index].text`` is shorter than *threshold* characters, the
+    function attaches up to *context_sents* neighbouring sentences on each
+    side so the transformer has sufficient surrounding text.
+
+    Returns ``(context_text, anchor_offset)`` where *anchor_offset* is the
+    character position of the target sentence within *context_text*.  When no
+    expansion is needed, *anchor_offset* is 0 and *context_text* equals the
+    original sentence text.
+
+    Each neighbour is deidentified separately before joining so that the
+    per-piece offsets remain stable and predictable (deidentification can
+    change string lengths).  Callers that need entity positions relative to the
+    original encounter text should subtract *anchor_offset* from model-reported
+    char positions after filtering to ``[anchor_offset, anchor_offset +
+    len(target_text)]``.
+    """
+    target = chunks[index]
+    if len(target.text.strip()) >= threshold:
+        return target.text, 0
+
+    parts: list[str] = []
+
+    for j in range(max(0, index - context_sents), index):
+        prev = chunks[j].text.strip()
+        if prev:
+            parts.append(prev)
+
+    anchor_offset = sum(len(p) + 1 for p in parts)  # +1 per joining space
+    parts.append(target.text.strip())
+
+    for j in range(index + 1, min(len(chunks), index + context_sents + 1)):
+        nxt = chunks[j].text.strip()
+        if nxt:
+            parts.append(nxt)
+
+    return " ".join(parts), anchor_offset
 
 
 class SentenceSplitter:

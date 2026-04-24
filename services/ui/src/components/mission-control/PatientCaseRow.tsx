@@ -142,9 +142,23 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
           )}
         </TableCell>
 
-        {/* Cancer type */}
+        {/* Cancer type -- show all episodes when there are multiple pathways */}
         <TableCell>
-          {ep?.cancer_type ? (
+          {multiEpisode ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+              {uniqueEpisodes.map((episode) =>
+                episode.cancer_type ? (
+                  <Typography key={episode.episode_id} variant="body2">
+                    {getCancerTypeLabel(episode.cancer_type)}
+                  </Typography>
+                ) : (
+                  <Typography key={episode.episode_id} variant="body2" color="text.secondary">
+                    {getStatusLabel(episode.status)}
+                  </Typography>
+                )
+              )}
+            </Box>
+          ) : ep?.cancer_type ? (
             <Typography variant="body2">{getCancerTypeLabel(ep.cancer_type)}</Typography>
           ) : (
             <Typography variant="body2" color="text.secondary">

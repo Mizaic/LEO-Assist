@@ -389,13 +389,62 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
         )
         from libs.utils.deidentify import deidentify_text
 
+        from libs.nlp.sentence_splitter import (
+            SentenceChunk as _SentenceChunk,
+            build_context_window as _build_context_window,
+        )
+
+        _short_threshold = int(
+            os.getenv("NER_SHORT_CONTEXT_THRESHOLD", "50")
+        )
+
         quality_score = float(verification.get("confidence", 1.0))
 
         sentence_lookup = _build_sentence_lookup(raw_sentences)
+
+        # Ordered list used for neighbour lookup when widening short sentences.
+        _ordered_chunks: list[_SentenceChunk] = sorted(
+            [
+                _SentenceChunk(
+                    sentence_id=str(s.get("sentence_id") or ""),
+                    text=str(s.get("text") or ""),
+                    start=int(s.get("start") or 0),
+                    end=int(s.get("end") or 0),
+                )
+                for s in sentence_lookup.values()
+            ],
+            key=lambda c: c.start,
+        )
+        _chunk_by_sid: dict[str, int] = {
+            c.sentence_id: i for i, c in enumerate(_ordered_chunks)
+        }
+
         sentence_groups: dict[str, dict[str, Any]] = {}
         for entity in entities:
             sid, sentence_text = _resolve_entity_sentence(entity, sentence_lookup)
             candidate_line = _pick_best_line_for_entity(entity, sentence_text)
+
+            # For very short candidate lines, attach neighbouring sentences so
+            # the model trains on richer context -- matching what _extract_sync
+            # now provides at inference time.
+            # Guard: only widen when the *source sentence* is also short.  If
+            # the sentence itself is long (e.g. a multiline lab block) and
+            # _pick_best_line_for_entity already extracted a focused sub-line,
+            # leave that sub-line intact -- widening would merge the separately
+            # keyed groups back into one and lose the per-line split.
+            if (
+                len(candidate_line.strip()) < _short_threshold
+                and len(sentence_text.strip()) < _short_threshold
+            ):
+                chunk_index = _chunk_by_sid.get(sid)
+                if chunk_index is not None:
+                    wider, _ = _build_context_window(
+                        _ordered_chunks,
+                        chunk_index,
+                        threshold=_short_threshold,
+                    )
+                    candidate_line = wider
+
             group_key = f"{sid}|{candidate_line.lower()}"
             group = sentence_groups.setdefault(
                 group_key,

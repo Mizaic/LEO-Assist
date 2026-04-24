@@ -251,6 +251,7 @@ def _extract_sync(req: ExtractRequest) -> ExtractResponse:
         )
 
     from libs.deid import deidentify
+    from libs.nlp.sentence_splitter import SentenceChunk, build_context_window
     from libs.training_ext.drift_monitor import get_sink, summarise_predictions
     from libs.training_ext.inference_calibration import (
         InferenceCalibration,
@@ -259,13 +260,38 @@ def _extract_sync(req: ExtractRequest) -> ExtractResponse:
 
     calibration = _loader.calibration or InferenceCalibration()
 
+    _short_threshold = int(os.getenv("NER_SHORT_CONTEXT_THRESHOLD", "50"))
+
+    # Build SentenceChunk list once so build_context_window can look up
+    # neighbours.  We deidentify each chunk independently to keep per-piece
+    # offsets stable (deidentify may change string lengths).
+    deid_chunks: list[SentenceChunk] = []
+    for sent in req.sentences:
+        deid = deidentify(sent.text)
+        deid_chunks.append(
+            SentenceChunk(
+                sentence_id=sent.sentence_id,
+                text=deid.text,
+                start=sent.start,
+                end=sent.end,
+            )
+        )
+
     entities: list[EntityOut] = []
     below_threshold_total = 0
     all_filtered = []
 
-    for sent in req.sentences:
-        deid = deidentify(sent.text)
-        doc = nlp(deid.text)
+    for i, sent in enumerate(req.sentences):
+        deid_chunk = deid_chunks[i]
+
+        context_text, anchor_offset = build_context_window(
+            deid_chunks,
+            i,
+            threshold=_short_threshold,
+        )
+        anchor_end = anchor_offset + len(deid_chunk.text.strip())
+
+        doc = nlp(context_text)
         spans = doc.spans.get("sc")
         if spans is None:
             logger.warning(
@@ -277,20 +303,30 @@ def _extract_sync(req: ExtractRequest) -> ExtractResponse:
         below_threshold_total += max(0, len(list(spans)) - len(filtered))
         all_filtered.extend(filtered)
         for ent in filtered:
+            # When context was prepended, skip entities that fall outside the
+            # target sentence's range in the wider context string.
+            if anchor_offset > 0:
+                if ent.end_char <= anchor_offset or ent.start_char >= anchor_end:
+                    continue
+
+            local_start = ent.start_char - anchor_offset
+            local_end = ent.end_char - anchor_offset
+
             entities.append(
                 EntityOut(
                     sentence_id=sent.sentence_id,
                     text=ent.text,
                     label=ent.label,
                     semantic_tag=ent.label.lower(),
-                    span_start=sent.start + ent.start_char,
-                    span_end=sent.start + ent.end_char,
+                    span_start=sent.start + local_start,
+                    span_end=sent.start + local_end,
                     confidence=ent.calibrated_score,
                     normalized=ent.text,
                     source_meta={
                         "model_label": ent.label,
                         "raw_score": ent.raw_score,
                         "threshold": calibration.threshold_for(ent.label),
+                        "context_window": anchor_offset > 0,
                     },
                 )
             )

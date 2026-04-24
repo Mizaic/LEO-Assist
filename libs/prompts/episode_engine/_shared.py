@@ -137,6 +137,16 @@ Rules of the road -- learnt from real GP records:
     reported to GP) that occur without a preceding outpatient clinic visit.
     Open-access investigations belong to specialist_diagnostics, not
     first_seen.
+
+12. CLOSED WINDOW SCOPE
+    If a window has a window_end date set, it represents a COMPLETED
+    investigation pathway. Only emit milestones for events that actually
+    COMPLETED within window_start to window_end. If an encounter within
+    the window MENTIONS a future referral, appointment, or specialist visit
+    planned for after window_end (e.g. "referred for upper GI investigation
+    next week"), do NOT emit that as a milestone -- it is forward context,
+    not a completed event in this window. The referral or appointment will
+    belong to a different window that covers the later date.
 """
 )
 
@@ -232,6 +242,52 @@ CONTEXT MILESTONE DEFINITIONS:
 IMPORTANT: context milestones DO NOT replace pathway milestones. Both can
 fire for the same encounter (e.g. a biopsy result letter that confirms the
 diagnosis fires BOTH "diagnosis_confirmed" AND "related_correspondence").
+"""
+
+
+MULTI_SITE_REFERENCE_CASE = """\
+Reference case (synthetic patient SYN-EE-002, cough + upper-GI symptoms):
+
+This illustrates the most common multi-site segmentation failure: merging a
+GP-investigation-only "rule-out" window (Lung) into a continuing investigation
+window (Upper GI) and using the wrong window_start date for both.
+
+Timeline summary:
+  2025-06-17  GP face-to-face: patient presents with persistent cough (4 weeks),
+              weight loss, and occasional dysphagia. BOTH respiratory AND upper
+              GI symptoms present at the SAME appointment.
+              -> Open TWO windows at this date: one Lung, one Oesophageal.
+              Both share window_start = 2025-06-17.
+
+  2025-07-14  GP follow-up: CXR requested to exclude lung lesion. Upper GI
+              investigations (stool test, bloods) also requested at same visit.
+              Both windows are still open.
+
+  2025-07-16  CXR result: normal, no lung lesion. GP records "CXR clear -- lung
+              cancer excluded."
+              -> Close the Lung window: window_end = 2025-07-16.
+              The Oesophageal window remains open.
+
+  2025-08-12  GP issues 2WW fast-track referral for suspected oesophageal
+              cancer (dysphagia + weight loss). Oesophageal window continues.
+
+  2025-08-27  Patient seen in upper GI fast-track clinic.
+
+Correct output: TWO windows.
+  Window 1 (Lung):        window_start=2025-06-17, window_end=2025-07-16
+    GP-investigation-only pathway to exclude lung cancer. Closed by benign
+    CXR result. No 2WW referral needed.
+  Window 2 (Oesophageal): window_start=2025-06-17, window_end=null
+    Upper GI pathway from first presentation, continuing through 2WW referral
+    and clinic.
+
+Incorrect output (the failure to avoid):
+  A SINGLE "Oesophageal" window starting 2025-07-14, treating the CXR as a
+  primary_care_investigation within the upper GI workup. This is wrong because:
+  (a) It drops the Lung window entirely -- the rule-out pathway is invisible.
+  (b) window_start 2025-07-14 misses the real first presentation (2025-06-17).
+  Whenever a GP orders a CXR to "exclude lung lesion" alongside a GI workup,
+  create a separate Lung window even if the CXR turns out to be normal.
 """
 
 

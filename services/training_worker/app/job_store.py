@@ -132,10 +132,21 @@ class TrainingJobStore:
         with self._lock:
             return self._jobs.get(job_id)
 
-    def list_all(self, *, log_tail: int = 25) -> list[dict[str, Any]]:
+    def list_all(
+        self, *, log_tail: int = 25, running_log_tail: int = 300
+    ) -> list[dict[str, Any]]:
+        """Return all jobs sorted newest-first.
+
+        Running jobs get a larger ``running_log_tail`` so the UI training-curve
+        chart can see the full step history without a separate per-job fetch.
+        """
         with self._lock:
             return [
-                j.to_dict(log_tail=log_tail)
+                j.to_dict(
+                    log_tail=running_log_tail
+                    if j.status in {"running", "evaluating", "uploading"}
+                    else log_tail
+                )
                 for j in sorted(
                     self._jobs.values(), key=lambda j: j.created_at, reverse=True
                 )

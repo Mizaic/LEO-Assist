@@ -478,6 +478,22 @@ WITH e, count(r) AS coded_count
 RETURN toString(e.id) AS encounter_id, coded_count
 """
 
+GET_ENCOUNTERS_PAGE = """
+MATCH (e:Encounter)
+WHERE e.text IS NOT NULL
+  AND NOT (e)-[:DOCUMENTS {source: 'lab_coder_v1'}]->(:SnomedConcept)
+RETURN toString(e.id) AS encounter_id, e.text AS text
+ORDER BY e.id
+SKIP $skip LIMIT $limit
+"""
+
+GET_ENCOUNTERS_PAGE_TOTAL = """
+MATCH (e:Encounter)
+WHERE e.text IS NOT NULL
+  AND NOT (e)-[:DOCUMENTS {source: 'lab_coder_v1'}]->(:SnomedConcept)
+RETURN count(e) AS total
+"""
+
 GET_PATIENT_CODING_TIMELINE = """
 MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->(s)
 WHERE toString(p.id) = $patient_id AND e.date IS NOT NULL
