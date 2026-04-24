@@ -58,6 +58,7 @@ from services.analytics_api.app.routers.patient_finder import (
     router as patient_finder_router,
 )
 from services.analytics_api.app.routers.research import router as research_router
+from services.analytics_api.app.routers.variation import router as variation_router
 
 configure_logging(service_name="analytics-api")
 logger = logging.getLogger("analytics-api")
@@ -166,6 +167,7 @@ app.include_router(research_router, prefix="/analytics", tags=["pathway-explorer
 app.include_router(
     patient_finder_router, prefix="/analytics", tags=["patient-finder"]
 )
+app.include_router(variation_router, prefix="/analytics", tags=["variation"])
 
 
 @app.get("/health")

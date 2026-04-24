@@ -308,12 +308,11 @@ def normalize_observable_entities(
                 if after_clean:
                     stripped = after_clean
 
-        if stripped:
-            ent["text"] = stripped
-            new_start = _find_nearest_start(encounter_text, stripped, around=around)
-            if new_start is not None:
-                ent["start"] = new_start
-                ent["end"] = new_start + len(stripped)
+        # Do NOT overwrite ent["text"]: the full surface form (including
+        # Read code and numeric value) is used by the terminology subgraph to
+        # resolve the correct SNOMED concept.  Value/unit extraction into
+        # structured fields above is all that is needed here.
+        # `stripped` (the test name alone) is kept for child-entity linking.
 
         if add_qualifier_value and value_span:
             value_start = _find_nearest_start(

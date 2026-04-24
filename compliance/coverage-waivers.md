@@ -391,10 +391,67 @@ fully cleared and removed from the open list:
   follow-up captured in the MVP backlog and the next per-release
   Engineering review.
 
+---
+
+## W-017 -- Gold-patient VT: Colorectal benign false-episode (DI-2C015ADE)
+
+- **Added**: 2026-04-24
+- **Scope**: `tests/episode_engine/test_gold_patient_vt.py`,
+  patient `4246428337` (Colorectal closed_benign).
+- **Gap**: The engine creates 2 episodes for this patient; the best-match
+  episode emits `diagnosis_confirmed`, `first_seen`, `outcome_letter` (all
+  incorrect for a benign pathway that ends in `benign_closure`), and misses
+  `benign_closure` itself. type_precision 0.44 < 0.50 floor and
+  slot_recall 0.12 < 0.30 floor.
+- **Root cause**: The reconciler is classifying this patient as a cancer
+  episode (episode_type=cancer) instead of benign. This is a classifier-level
+  issue, not a milestone-extractor prompt issue. Prompt rules 10 and 11
+  (benign-outcome mutual exclusivity) were added but the LLM is still
+  emitting cancer-pathway milestones because the upstream classifier
+  presents the window as a suspected cancer case.
+- **Risk**: Low. The episode would be placed in human-review tier
+  (confidence_tier=review) due to context-tier milestones, so a curator
+  would see the false `diagnosis_confirmed` before it is accepted.
+- **Owner**: Engineering Lead (reconciler/classifier team).
+- **Clear by**: 2026-06-30 -- fix the benign-episode classifier gate in
+  the reconciler so it does not present a confirmed-benign window to
+  the milestone extractor as a suspected cancer pathway.
+
+---
+
+## W-018 -- Gold-patient VT: Multi-site Lung + Upper GI episodes missing (DI-2C015ADE)
+
+- **Added**: 2026-04-24
+- **Scope**: `tests/episode_engine/test_gold_patient_vt.py`,
+  patient `4920262426` (Multi-site Breast/Lung/UpperGI) episodes
+  Lung/closed_benign and Upper GI/active.
+- **Gap**: The segmenter creates only 2 windows for this 3-pathway patient.
+  The Lung investigation (June-July 2025, benign chest X-ray) and the Upper
+  GI pathway (August 2025 onwards, active) are not detected as separate
+  windows; their milestones therefore score near 0 for both recall and
+  slot_recall against the gold.
+- **Root cause**: The window-segmentation stage identifies 2WW referral
+  signals but does not currently differentiate between a same-day multi-site
+  referral (Breast) and a temporally separate earlier investigation (Lung).
+  This is a segmenter architecture issue outside the scope of the milestone
+  extractor or its prompts.
+- **Risk**: Medium. Missed Lung and Upper GI windows mean the curator is not
+  presented with a separate episode card for each pathway. The patient still
+  receives a Breast episode card which the curator can review. The Lung
+  benign result and the Upper GI active pathway would be visible in the
+  encounter timeline but not surfaced as structured episodes.
+- **Owner**: Engineering Lead (segmenter team).
+- **Clear by**: 2026-06-30 -- extend the segmenter to detect temporally
+  distinct multi-site investigation windows by keying on separate 2WW
+  referral dates and body-site codes rather than collapsing same-week
+  referrals into a single window.
+
+---
+
 ## Review cadence
 
 - **Per-release**: Engineering Lead inspects W-004 / W-007 /
-  W-013 / W-015 / W-016 via the CSO queue.
+  W-013 / W-015 / W-016 / W-017 / W-018 via the CSO queue.
 - **Quarterly**: QA/RA Lead clears W-001 / W-003 / W-005 / W-006 /
   W-009 / W-014 in the design review meeting; CSO signs off any
   residual.

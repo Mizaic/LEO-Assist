@@ -115,6 +115,72 @@
       ]
     },
     "text_channel": {
+      "context_role_catalogue": {
+        "primary_care_investigations": [
+          "\\b(full blood count|fbc)\\b",
+          "\\b(u\\s?&\\s?e|u and e|urea and electrolytes)\\b",
+          "\\b(lft|liver function tests?)\\b",
+          "\\b(tft|thyroid function tests?)\\b",
+          "\\b(crp|c[- ]reactive protein|esr|inflammatory markers)\\b",
+          "\\b(urinalysis|dipstick|msu|mid[- ]?stream urine)\\b",
+          "\\b(bloods|blood tests|venepuncture|phlebotomy)\\b",
+          "\\bplain (film|x[- ]?ray)\\b",
+          "\\b(ecg|electrocardiogram)\\b",
+          "\\bgp[- ]requested (imaging|scan|ultrasound)\\b"
+        ],
+        "referral_admin": [
+          "\\breferral letter (sent|dictated|typed|drafted)\\b",
+          "\\breferral (received|accepted|rejected|returned|lost)\\b",
+          "\\b2[- ]?week[- ]?wait (form|letter|proforma)\\b",
+          "\\b(did not attend|dna|dnas)\\b",
+          "\\b(rebook\\w+|re[- ]?appointment|reschedul\\w+)\\b",
+          "\\b(waiting list|appointment (confirmed|booked|sent))\\b",
+          "\\bchoose and book\\b",
+          "\\b(e[- ]?rs|ebrs|electronic referral)\\b",
+          "\\bappointment (cancelled|rescheduled)\\b"
+        ],
+        "referral_sent": [
+          "\\b(2[- ]?week[- ]?wait|2ww|two[- ]week[- ]?wait)[ \\-]?(referral|pathway)\\b",
+          "\\burgent (suspected cancer )?referral\\b",
+          "\\bsuspected cancer (pathway|referral|form)\\b",
+          "\\bfast[- ]?track referral\\b",
+          "\\breferral (sent|submitted|made|raised|actioned)\\b",
+          "\\b(usc|urgent suspected cancer)\\b",
+          "\\b(refer(red)? (to|for)) (2ww|urgent|fast[- ]?track)\\b"
+        ],
+        "related_correspondence": [
+          "\\b(clinic letter|discharge summary|discharge letter)\\b",
+          "\\bmdt (letter|outcome letter|summary|report)\\b",
+          "\\bconsultant letter (received|sent|copied)\\b",
+          "\\bletter (received|copied|forwarded) (to|from)\\b",
+          "\\b(specialist|hospital) correspondence\\b",
+          "\\b(results (received|back|returned)|report received)\\b"
+        ],
+        "related_gp_visit": [
+          "\\bgp (consultation|appointment|review|visit|surgery)\\b",
+          "\\bprimary[- ]care (consultation|review|appointment)\\b",
+          "\\btelephone (consultation|triage|appointment)\\b",
+          "\\bhome visit\\b",
+          "\\bsurgery consultation\\b",
+          "\\b(seen by|reviewed by) gp\\b",
+          "\\b(locum|duty) gp\\b"
+        ],
+        "related_specialist_visit": [
+          "\\bconsultant (review|clinic|follow[- ]?up|appointment)\\b",
+          "\\b(mdt|multi[- ]?disciplinary)[ ]?(meeting|discussion|review|outcome)\\b",
+          "\\boutpatient (review|appointment|clinic|follow[- ]?up)\\b",
+          "\\b(oncology|haematology) (clinic|review|follow[- ]?up)\\b",
+          "\\b(clinic review|review in clinic|clinic follow[- ]?up)\\b",
+          "\\b(seen|reviewed) in (the )?(clinic|outpatients?)\\b"
+        ],
+        "specialist_diagnostics": [
+          "\\b(mammogra|mammo)\\w*",
+          "\\bbreast (ultrasound|us|biopsy|mri|imaging)\\b",
+          "\\b(core biopsy|fine needle aspirat|fna)\\b",
+          "\\b(one[- ]stop (breast )?clinic|triple assessment)\\b",
+          "\\b(sentinel (lymph )?node|wire[- ]?localisation)\\b"
+        ]
+      },
       "regex_catalogue": [
         "\\bbreast\\b",
         "\\b(mammogra|mammo)\\w*",

@@ -1,0 +1,2322 @@
+[
+  {
+    "patient_id": "4246428337",
+    "label": "Colorectal closed_benign",
+    "episodes": [
+      {
+        "episode_id": "ep-5fb6a6355397520c",
+        "cancer_type": "Colorectal",
+        "date_window": "2025-03-21 -> 2025-09-10",
+        "milestones": {
+          "primary_care_investigations__unwindowed": {
+            "milestone_type": "primary_care_investigations",
+            "mode": "unwindowed",
+            "pool_size": 147,
+            "gold_encounter_id": "c8e9e36b-9d11-48fc-9da2-b7bff31b534a",
+            "found_at_rank": 17,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "4224e913-62bf-4b91-b7c5-02b768492b76",
+                "score": 0.8551,
+                "is_gold": false,
+                "preview": "13:00 - Surgery: EDWARDS, Thomas (Health Professional Access Role) \nProblem - whole event: Knee pain"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "6200e393-649d-4f9b-b5bf-6e372d8354a2",
+                "score": 0.8483,
+                "is_gold": false,
+                "preview": "11:33 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role) \nProblem: Suspected "
+              },
+              {
+                "rank": 3,
+                "encounter_id": "85e63922-6273-44b4-8cf8-bffc96bbb7a4",
+                "score": 0.8369,
+                "is_gold": false,
+                "preview": "17:13 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) \nPatient telephone number (9159.) - +4"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "aba79204-b4e9-4d62-b862-e22fac58084b",
+                "score": 0.8369,
+                "is_gold": false,
+                "preview": "09:11 - Surgery: Auto-filed  \nSerum folate level (42U5.) 4.3 ng/ml\nDeficient: 0.35 - 3.37 ug/L\nIndet"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "2bf9860e-a798-46ae-8224-72b955268467",
+                "score": 0.8361,
+                "is_gold": false,
+                "preview": "16:38 - Surgery: EDWARDS, Thomas (Health Professional Access Role) \n Consultation.\n   MSK\n      H:  "
+              }
+            ]
+          },
+          "primary_care_investigations__windowed": {
+            "milestone_type": "primary_care_investigations",
+            "mode": "windowed",
+            "pool_size": 73,
+            "gold_encounter_id": "c8e9e36b-9d11-48fc-9da2-b7bff31b534a",
+            "found_at_rank": 11,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "6200e393-649d-4f9b-b5bf-6e372d8354a2",
+                "score": 0.8483,
+                "is_gold": false,
+                "preview": "11:33 - Surgery: KETHEESWARAN, Arthika (Dr) (Clinical Practitioner Access Role) \nProblem: Suspected "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "85e63922-6273-44b4-8cf8-bffc96bbb7a4",
+                "score": 0.8369,
+                "is_gold": false,
+                "preview": "17:13 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) \nPatient telephone number (9159.) - +4"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "aba79204-b4e9-4d62-b862-e22fac58084b",
+                "score": 0.8369,
+                "is_gold": false,
+                "preview": "09:11 - Surgery: Auto-filed  \nSerum folate level (42U5.) 4.3 ng/ml\nDeficient: 0.35 - 3.37 ug/L\nIndet"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "8916c3e4-9a0c-4c56-808c-60ba3346bbc9",
+                "score": 0.8359,
+                "is_gold": false,
+                "preview": "09:11 - Surgery: Auto-filed  \nSerum bilirubin level (44E..) 10 umol/L [< 21]\nLiver function tests (X"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "7f34db9d-1732-4117-a581-3455b678caf8",
+                "score": 0.8358,
+                "is_gold": false,
+                "preview": "08:40 - Surgery: Auto-filed  \nQuantitative faecal immunochemical test (Xaf0H) > 400 ug/g\nPOSITIVE FI"
+              }
+            ]
+          },
+          "related_gp_visit__unwindowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "unwindowed",
+            "pool_size": 147,
+            "gold_encounter_id": "bf97228e-05cc-44bd-9a86-118d5f1dc8d5",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "4224e913-62bf-4b91-b7c5-02b768492b76",
+                "score": 0.8838,
+                "is_gold": false,
+                "preview": "13:00 - Surgery: EDWARDS, Thomas (Health Professional Access Role) \nProblem - whole event: Knee pain"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "8427e384-1b65-45ed-af19-da2067925e9d",
+                "score": 0.8815,
+                "is_gold": false,
+                "preview": "13:41 - Surgery: MILNER, Jordan (Miss)  \nEnhanced review not indicated before granting access to own"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "e0dfac24-b9cf-45fe-b5ad-d20854dc05d9",
+                "score": 0.8783,
+                "is_gold": false,
+                "preview": "10:50 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role) \n\nDear Denise,\nStopping smoking "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "85e63922-6273-44b4-8cf8-bffc96bbb7a4",
+                "score": 0.872,
+                "is_gold": false,
+                "preview": "17:13 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) \nPatient telephone number (9159.) - +4"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "de153d91-d8d8-4de3-aaa1-9df015ead0bf",
+                "score": 0.8705,
+                "is_gold": false,
+                "preview": "10:50 - Surgery: EDWARDS, Thomas  \nDid not attend for First Contact Physio appointment with Thomas E"
+              }
+            ]
+          },
+          "related_gp_visit__windowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "windowed",
+            "pool_size": 73,
+            "gold_encounter_id": "bf97228e-05cc-44bd-9a86-118d5f1dc8d5",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "85e63922-6273-44b4-8cf8-bffc96bbb7a4",
+                "score": 0.872,
+                "is_gold": false,
+                "preview": "17:13 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) \nPatient telephone number (9159.) - +4"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "d23e475c-84f1-4b6a-aebd-0f096c840685",
+                "score": 0.867,
+                "is_gold": false,
+                "preview": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nNHS 111 report received (Xaafq)"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "b8b27680-1120-4697-8511-3f6df0e1469c",
+                "score": 0.8654,
+                "is_gold": false,
+                "preview": "14:59 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Se"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "31711a28-1bb6-43e0-9e2e-c07f08c7f797",
+                "score": 0.8637,
+                "is_gold": false,
+                "preview": "10:00 - Surgery: WILCOCK, Kathryn (Mrs) (Nurse Access Role) \nPatient telephone number (9159.) - +447"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "b0661e05-0fd9-4ea1-a625-ebd3ed9b4800",
+                "score": 0.863,
+                "is_gold": false,
+                "preview": "14:52 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected lowe"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "patient_id": "4246897485",
+    "label": "Breast closed_benign",
+    "episodes": [
+      {
+        "episode_id": "ep-3b16d19e1a2a1615",
+        "cancer_type": "Breast",
+        "date_window": "2025-03-13 -> 2025-10-16",
+        "milestones": {
+          "related_gp_visit__unwindowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "unwindowed",
+            "pool_size": 429,
+            "gold_encounter_id": "fab36c79-935f-4920-8980-578656ae0cca",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "a7bbbad5-0834-45de-ad22-75c54c6de2ec",
+                "score": 0.8861,
+                "is_gold": false,
+                "preview": "16:17 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) \nHistory: Telephone triage "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "65dbcd87-55c4-4fd8-9f5d-c1a61fd485a1",
+                "score": 0.8837,
+                "is_gold": false,
+                "preview": "13:09 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \nHistory: duty admin - task"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "5153b54c-afd9-434c-b39c-6c3b2fe8b785",
+                "score": 0.881,
+                "is_gold": false,
+                "preview": "15:32 - Surgery: DRING, Tracy (Mrs) (Midwife Access Role) \nHistory: Tel call as did not attend clini"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "9663c443-a81b-49da-a9da-cec8608b5d04",
+                "score": 0.8803,
+                "is_gold": false,
+                "preview": "11:06 - Surgery: DRING, Tracy (Mrs) (Midwife Access Role) \nHistory: Tel call as has not attended pla"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "6e61d19c-538b-4aaa-9f0d-ef495df6ee29",
+                "score": 0.8794,
+                "is_gold": false,
+                "preview": "17:09 - GP Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) \nProblem: Patient curren"
+              }
+            ]
+          },
+          "related_gp_visit__windowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "windowed",
+            "pool_size": 243,
+            "gold_encounter_id": "fab36c79-935f-4920-8980-578656ae0cca",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "a7bbbad5-0834-45de-ad22-75c54c6de2ec",
+                "score": 0.8861,
+                "is_gold": false,
+                "preview": "16:17 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) \nHistory: Telephone triage "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "65dbcd87-55c4-4fd8-9f5d-c1a61fd485a1",
+                "score": 0.8837,
+                "is_gold": false,
+                "preview": "13:09 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \nHistory: duty admin - task"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "5153b54c-afd9-434c-b39c-6c3b2fe8b785",
+                "score": 0.881,
+                "is_gold": false,
+                "preview": "15:32 - Surgery: DRING, Tracy (Mrs) (Midwife Access Role) \nHistory: Tel call as did not attend clini"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "6e61d19c-538b-4aaa-9f0d-ef495df6ee29",
+                "score": 0.8794,
+                "is_gold": false,
+                "preview": "17:09 - GP Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) \nProblem: Patient curren"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "14a181af-1440-4d87-9215-6db07e3a1030",
+                "score": 0.8735,
+                "is_gold": false,
+                "preview": "16:36 - Surgery: HARBY, Katherine (Mrs) (Midwife Access Role) \nHistory: Turning point have recieved "
+              }
+            ]
+          },
+          "referral_sent__unwindowed": {
+            "milestone_type": "referral_sent",
+            "mode": "unwindowed",
+            "pool_size": 429,
+            "gold_encounter_id": "d6293621-d9e0-40ef-b27f-2f3c0c1e239c",
+            "found_at_rank": 5,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": true,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "65dbcd87-55c4-4fd8-9f5d-c1a61fd485a1",
+                "score": 0.9257,
+                "is_gold": false,
+                "preview": "13:09 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \nHistory: duty admin - task"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "186fcd1a-851a-4f39-9721-19fc66b00260",
+                "score": 0.9205,
+                "is_gold": false,
+                "preview": "09:58 - Surgery: INGLE, Kirsty (Receptionist Access Role) \nPatient telephone number (9159.) - 07385 "
+              },
+              {
+                "rank": 3,
+                "encounter_id": "a7c2076c-6fb7-45c5-9fca-42ffede0b69a",
+                "score": 0.9197,
+                "is_gold": false,
+                "preview": "16:32 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \nPatient telephone number ("
+              },
+              {
+                "rank": 4,
+                "encounter_id": "14a181af-1440-4d87-9215-6db07e3a1030",
+                "score": 0.9193,
+                "is_gold": false,
+                "preview": "16:36 - Surgery: HARBY, Katherine (Mrs) (Midwife Access Role) \nHistory: Turning point have recieved "
+              },
+              {
+                "rank": 5,
+                "encounter_id": "d6293621-d9e0-40ef-b27f-2f3c0c1e239c",
+                "score": 0.9171,
+                "is_gold": true,
+                "preview": "15:30 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brea"
+              }
+            ]
+          },
+          "referral_sent__windowed": {
+            "milestone_type": "referral_sent",
+            "mode": "windowed",
+            "pool_size": 243,
+            "gold_encounter_id": "d6293621-d9e0-40ef-b27f-2f3c0c1e239c",
+            "found_at_rank": 3,
+            "hit_at_top1": false,
+            "hit_at_top3": true,
+            "hit_at_top5": true,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "65dbcd87-55c4-4fd8-9f5d-c1a61fd485a1",
+                "score": 0.9257,
+                "is_gold": false,
+                "preview": "13:09 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \nHistory: duty admin - task"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "14a181af-1440-4d87-9215-6db07e3a1030",
+                "score": 0.9193,
+                "is_gold": false,
+                "preview": "16:36 - Surgery: HARBY, Katherine (Mrs) (Midwife Access Role) \nHistory: Turning point have recieved "
+              },
+              {
+                "rank": 3,
+                "encounter_id": "d6293621-d9e0-40ef-b27f-2f3c0c1e239c",
+                "score": 0.9171,
+                "is_gold": true,
+                "preview": "15:30 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brea"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "15f8308a-57e8-45b5-9db3-bc8eb0a7f303",
+                "score": 0.9138,
+                "is_gold": false,
+                "preview": "17:18 - Surgery: SALEEM, Mariam (Dr) (Clinical Practitioner Access Role) \nPatient telephone number ("
+              },
+              {
+                "rank": 5,
+                "encounter_id": "3646763d-aee2-4007-9708-e0beb29593e8",
+                "score": 0.9135,
+                "is_gold": false,
+                "preview": "13:30 - Surgery: ASHTON, Claire  Entered at: LLR Health Visitor & School Nurse Charnwood\nNo access v"
+              }
+            ]
+          },
+          "related_specialist_visit__unwindowed": {
+            "milestone_type": "related_specialist_visit",
+            "mode": "unwindowed",
+            "pool_size": 429,
+            "gold_encounter_id": "aed8defa-40fb-4b43-9d1b-3f08a61baea7",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "3646763d-aee2-4007-9708-e0beb29593e8",
+                "score": 0.886,
+                "is_gold": false,
+                "preview": "13:30 - Surgery: ASHTON, Claire  Entered at: LLR Health Visitor & School Nurse Charnwood\nNo access v"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "b07f2432-fb4d-408e-b2c2-c98d8a6a44f1",
+                "score": 0.8857,
+                "is_gold": false,
+                "preview": "10:00 - Surgery: ASHTON, Claire  Entered at: LLR Health Visitor & School Nurse Charnwood\nNo access v"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "c84a4de7-fef8-4dd6-953b-5927995938e0",
+                "score": 0.8856,
+                "is_gold": false,
+                "preview": "10:30 - Surgery: ASHTON, Claire  Entered at: LLR Health Visitor & School Nurse Charnwood\nNo access v"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "d8597ae7-c0cf-461f-8419-e395a583b3e0",
+                "score": 0.8836,
+                "is_gold": false,
+                "preview": "09:00 - Surgery: ASHTON, Claire  Entered at: LLR Health Visitor & School Nurse Charnwood\nNo access v"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "823d78cd-ad8e-486c-9990-338e65c844f1",
+                "score": 0.8806,
+                "is_gold": false,
+                "preview": "14:32 - Surgery, accuRx Consultation: SHARPE, Paula  Entered at: The County Practice\nComment: Smokin"
+              }
+            ]
+          },
+          "related_specialist_visit__windowed": {
+            "milestone_type": "related_specialist_visit",
+            "mode": "windowed",
+            "pool_size": 243,
+            "gold_encounter_id": "aed8defa-40fb-4b43-9d1b-3f08a61baea7",
+            "found_at_rank": 16,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "3646763d-aee2-4007-9708-e0beb29593e8",
+                "score": 0.886,
+                "is_gold": false,
+                "preview": "13:30 - Surgery: ASHTON, Claire  Entered at: LLR Health Visitor & School Nurse Charnwood\nNo access v"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "b07f2432-fb4d-408e-b2c2-c98d8a6a44f1",
+                "score": 0.8857,
+                "is_gold": false,
+                "preview": "10:00 - Surgery: ASHTON, Claire  Entered at: LLR Health Visitor & School Nurse Charnwood\nNo access v"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "c84a4de7-fef8-4dd6-953b-5927995938e0",
+                "score": 0.8856,
+                "is_gold": false,
+                "preview": "10:30 - Surgery: ASHTON, Claire  Entered at: LLR Health Visitor & School Nurse Charnwood\nNo access v"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "d8597ae7-c0cf-461f-8419-e395a583b3e0",
+                "score": 0.8836,
+                "is_gold": false,
+                "preview": "09:00 - Surgery: ASHTON, Claire  Entered at: LLR Health Visitor & School Nurse Charnwood\nNo access v"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "7adbb3c7-8d00-4223-ae29-c2bedbc5523f",
+                "score": 0.8802,
+                "is_gold": false,
+                "preview": "14:40 - Surgery: KALLA, Netra (Dr) (Clinical Practitioner Access Role) \nHistory: 35 week pregnant. H"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "patient_id": "4920262426",
+    "label": "Multi-site Breast/Lung/UpperGI",
+    "episodes": [
+      {
+        "episode_id": "ep-a7b277076470141f",
+        "cancer_type": "Breast",
+        "date_window": "2025-08-12 -> 2025-12-13",
+        "milestones": {
+          "referral_admin__unwindowed": {
+            "milestone_type": "referral_admin",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "f026dbaa-8cfd-4603-8f28-4b0239598bb7",
+                "score": 0.9056,
+                "is_gold": false,
+                "preview": "11:50 - Surgery: DODDS, Portia  \nLong term condition care planning invitation second letter (XabEh) "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.9041,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "4121177d-6d67-4dbd-81dd-eaf7fa0f6224",
+                "score": 0.9019,
+                "is_gold": false,
+                "preview": "09:31 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role) \nPatient telephone number (9159."
+              },
+              {
+                "rank": 4,
+                "encounter_id": "5fb8d0f9-bddf-4bbe-bf44-d2d0c556abd2",
+                "score": 0.8991,
+                "is_gold": false,
+                "preview": "15:47 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) \nPatient telephone number (9159."
+              },
+              {
+                "rank": 5,
+                "encounter_id": "94ac8b0a-0a83-46e7-b59f-556e3c205aec",
+                "score": 0.8988,
+                "is_gold": false,
+                "preview": "09:15 - Surgery: DODDS, Portia  \nLong term condition care planning invitation first letter (XabEf) -"
+              }
+            ]
+          },
+          "referral_admin__windowed": {
+            "milestone_type": "referral_admin",
+            "mode": "windowed",
+            "pool_size": 72,
+            "gold_encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.9041,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "198e1132-f674-4b36-8ba3-d5f4e72c4ac3",
+                "score": 0.8948,
+                "is_gold": false,
+                "preview": "11:11 - Surgery: MILNER, Jordan (Miss) (Admin/Clinical Support Access Role) \nPatient telephone numbe"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "b565bd68-b6d6-42f0-9d8d-a9e4eb8a479a",
+                "score": 0.8911,
+                "is_gold": false,
+                "preview": "10:17 - Surgery: ATKIN, Sharon (Admin/Clinical Support Access Role) \nHealth education - smoking (679"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "9d2f08cc-6692-479e-acbf-933b3e9683ee",
+                "score": 0.8886,
+                "is_gold": false,
+                "preview": "12:11 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nShort message service text messag"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+                "score": 0.8871,
+                "is_gold": false,
+                "preview": "13:36 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brea"
+              }
+            ]
+          },
+          "referral_sent__unwindowed": {
+            "milestone_type": "referral_sent",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+            "found_at_rank": 4,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": true,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.9307,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "fbf1a0d0-fb2c-4dcf-9c1c-68bfacec77ae",
+                "score": 0.9225,
+                "is_gold": false,
+                "preview": "08:00 - Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) \nPatient asked to make an appointment ("
+              },
+              {
+                "rank": 3,
+                "encounter_id": "67948f35-3b67-4eb1-be98-d20e43eb606c",
+                "score": 0.9202,
+                "is_gold": false,
+                "preview": "09:58 - Surgery: DODDS, Portia  \nInfluenza vaccination invitation first short message service text m"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+                "score": 0.92,
+                "is_gold": true,
+                "preview": "13:36 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brea"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "1c264d4a-9185-43dd-ad7a-50a740c615aa",
+                "score": 0.9191,
+                "is_gold": false,
+                "preview": "14:05 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              }
+            ]
+          },
+          "referral_sent__windowed": {
+            "milestone_type": "referral_sent",
+            "mode": "windowed",
+            "pool_size": 72,
+            "gold_encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+            "found_at_rank": 2,
+            "hit_at_top1": false,
+            "hit_at_top3": true,
+            "hit_at_top5": true,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.9307,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+                "score": 0.92,
+                "is_gold": true,
+                "preview": "13:36 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brea"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "9d2f08cc-6692-479e-acbf-933b3e9683ee",
+                "score": 0.9146,
+                "is_gold": false,
+                "preview": "12:11 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nShort message service text messag"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "198e1132-f674-4b36-8ba3-d5f4e72c4ac3",
+                "score": 0.9138,
+                "is_gold": false,
+                "preview": "11:11 - Surgery: MILNER, Jordan (Miss) (Admin/Clinical Support Access Role) \nPatient telephone numbe"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "b565bd68-b6d6-42f0-9d8d-a9e4eb8a479a",
+                "score": 0.9116,
+                "is_gold": false,
+                "preview": "10:17 - Surgery: ATKIN, Sharon (Admin/Clinical Support Access Role) \nHealth education - smoking (679"
+              }
+            ]
+          },
+          "specialist_diagnostics__unwindowed": {
+            "milestone_type": "specialist_diagnostics",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "45d0f039-e1a4-410c-92d4-3397b0567780",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "a1e28fbe-3c4a-469f-af08-c85408d2e673",
+                "score": 0.8789,
+                "is_gold": false,
+                "preview": "15:50 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nProblem: Menopausal sym"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "9adc0dd9-e365-4b1b-8337-a61892c39529",
+                "score": 0.8789,
+                "is_gold": false,
+                "preview": "15:22 - Surgery: AZIZ, Rao (Mr) (Pharmacist) \nHistory: teleconsult: spoke to pt confirmed dob verifi"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "e86479ee-08f5-4916-a186-f72b418d4f37",
+                "score": 0.8701,
+                "is_gold": false,
+                "preview": "19:37 - Primary Care Network (PCN): WORTH, Caroline (Nurse Access Role) Entered at: Carillon PCN\n Co"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8699,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+                "score": 0.8682,
+                "is_gold": false,
+                "preview": "17:44 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \nHistory: On call Duty  \nid c"
+              }
+            ]
+          },
+          "specialist_diagnostics__windowed": {
+            "milestone_type": "specialist_diagnostics",
+            "mode": "windowed",
+            "pool_size": 72,
+            "gold_encounter_id": "45d0f039-e1a4-410c-92d4-3397b0567780",
+            "found_at_rank": 9,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8699,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+                "score": 0.8682,
+                "is_gold": false,
+                "preview": "17:44 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \nHistory: On call Duty  \nid c"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "2071f1f8-21e8-4fbe-81d9-1395216cba1c",
+                "score": 0.8545,
+                "is_gold": false,
+                "preview": "08:45 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) \nHistory: F2F review. Refl"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "3d2bf903-eea6-4699-8ed8-d9a518a582b5",
+                "score": 0.8501,
+                "is_gold": false,
+                "preview": "Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) \nStereotactically guided core needle bio"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "05bb3ca7-a204-4959-9c00-2ab3af89035c",
+                "score": 0.8482,
+                "is_gold": false,
+                "preview": "Surgery: O'NEILL, Anna-Louise (Admin/Clinical Support Access Role) , Entered By: AMIN, Kunal (Dr)\nFi"
+              }
+            ]
+          },
+          "related_specialist_visit__unwindowed": {
+            "milestone_type": "related_specialist_visit",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "6daf697b-7d4b-4f57-b7e6-89a8cb117e24",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+                "score": 0.8804,
+                "is_gold": false,
+                "preview": "17:44 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \nHistory: On call Duty  \nid c"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "fbf1a0d0-fb2c-4dcf-9c1c-68bfacec77ae",
+                "score": 0.8793,
+                "is_gold": false,
+                "preview": "08:00 - Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) \nPatient asked to make an appointment ("
+              },
+              {
+                "rank": 3,
+                "encounter_id": "908ea9b7-49c7-4de5-86dc-7dea1b34e325",
+                "score": 0.8769,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 14 Aug 2024 at 10:30 with  Georgia King. P"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "ec38f859-c7eb-419b-a57f-ce1e6ab21eb3",
+                "score": 0.8767,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 26 Jun 2024 at 15:30 with Dr Nikki Brockhu"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "3fbb02d4-83d2-43f8-92c3-26ba23ce8e1b",
+                "score": 0.8764,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 15 Aug 2024 at 15:00 with Mrs Suzanne Rath"
+              }
+            ]
+          },
+          "related_specialist_visit__windowed": {
+            "milestone_type": "related_specialist_visit",
+            "mode": "windowed",
+            "pool_size": 72,
+            "gold_encounter_id": "6daf697b-7d4b-4f57-b7e6-89a8cb117e24",
+            "found_at_rank": 5,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": true,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+                "score": 0.8804,
+                "is_gold": false,
+                "preview": "17:44 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \nHistory: On call Duty  \nid c"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "b565bd68-b6d6-42f0-9d8d-a9e4eb8a479a",
+                "score": 0.876,
+                "is_gold": false,
+                "preview": "10:17 - Surgery: ATKIN, Sharon (Admin/Clinical Support Access Role) \nHealth education - smoking (679"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+                "score": 0.8738,
+                "is_gold": false,
+                "preview": "13:36 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brea"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8733,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "6daf697b-7d4b-4f57-b7e6-89a8cb117e24",
+                "score": 0.8653,
+                "is_gold": true,
+                "preview": "14:34 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Se"
+              }
+            ]
+          },
+          "related_correspondence__unwindowed": {
+            "milestone_type": "related_correspondence",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "8b23b25a-6b47-494b-8333-6c514e959235",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "d4f78abd-bb39-40c9-904c-659e806a7886",
+                "score": 0.9052,
+                "is_gold": false,
+                "preview": "10:50 - Surgery: INGLE, Kirsty (Receptionist Access Role) \nPatient telephone number (9159.) - 07736 "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "f026dbaa-8cfd-4603-8f28-4b0239598bb7",
+                "score": 0.9044,
+                "is_gold": false,
+                "preview": "11:50 - Surgery: DODDS, Portia  \nLong term condition care planning invitation second letter (XabEh) "
+              },
+              {
+                "rank": 3,
+                "encounter_id": "94a8e95b-e347-4a5c-b36f-af3d9a0dd0eb",
+                "score": 0.9041,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 10 Jul 2024 at 12:10 with  Anita Rumming. "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "908ea9b7-49c7-4de5-86dc-7dea1b34e325",
+                "score": 0.9041,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 14 Aug 2024 at 10:30 with  Georgia King. P"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "5fb8d0f9-bddf-4bbe-bf44-d2d0c556abd2",
+                "score": 0.9041,
+                "is_gold": false,
+                "preview": "15:47 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) \nPatient telephone number (9159."
+              }
+            ]
+          },
+          "related_correspondence__windowed": {
+            "milestone_type": "related_correspondence",
+            "mode": "windowed",
+            "pool_size": 72,
+            "gold_encounter_id": "8b23b25a-6b47-494b-8333-6c514e959235",
+            "found_at_rank": 17,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "005c901d-d57e-48f2-a5c8-b75bdc112e6e",
+                "score": 0.8937,
+                "is_gold": false,
+                "preview": "12:07 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "198e1132-f674-4b36-8ba3-d5f4e72c4ac3",
+                "score": 0.8895,
+                "is_gold": false,
+                "preview": "11:11 - Surgery: MILNER, Jordan (Miss) (Admin/Clinical Support Access Role) \nPatient telephone numbe"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "9d2f08cc-6692-479e-acbf-933b3e9683ee",
+                "score": 0.8877,
+                "is_gold": false,
+                "preview": "12:11 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nShort message service text messag"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8856,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "b565bd68-b6d6-42f0-9d8d-a9e4eb8a479a",
+                "score": 0.8821,
+                "is_gold": false,
+                "preview": "10:17 - Surgery: ATKIN, Sharon (Admin/Clinical Support Access Role) \nHealth education - smoking (679"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "episode_id": "ep-manual-8e2668e962ec",
+        "cancer_type": "Lung",
+        "date_window": "2025-06-17 -> 2025-08-15",
+        "milestones": {
+          "related_gp_visit__unwindowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8859,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "0d8b3ce4-1f3f-4520-a9cd-95176b8da2f6",
+                "score": 0.8808,
+                "is_gold": false,
+                "preview": "16:39 - Surgery: KAKAIYA, Vishnu (Mr) (Pharmacist) \nPlan: Medication changes completed during in-per"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "90226c15-d181-43a2-9a1e-56b16ff1377e",
+                "score": 0.8802,
+                "is_gold": false,
+                "preview": "13:37 - Surgery: MILNER, Jordan (Miss)  \nEnhanced review not indicated before granting access to own"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "877c7ca2-23e8-4949-b13c-cec38d168a6f",
+                "score": 0.879,
+                "is_gold": false,
+                "preview": "09:30 - Surgery: MANDHARKAR, Apexa (Mrs)  \nHas steroid emergency card (Y2f2f) - Added in bulk"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "db2cfffc-3135-47ef-b79d-4b5ce3b4d68b",
+                "score": 0.8772,
+                "is_gold": false,
+                "preview": "17:33 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \ncalled - 07736662458 - ring "
+              }
+            ]
+          },
+          "related_gp_visit__windowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "windowed",
+            "pool_size": 50,
+            "gold_encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778",
+            "found_at_rank": 13,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "db2cfffc-3135-47ef-b79d-4b5ce3b4d68b",
+                "score": 0.8772,
+                "is_gold": false,
+                "preview": "17:33 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \ncalled - 07736662458 - ring "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+                "score": 0.8741,
+                "is_gold": false,
+                "preview": "17:44 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \nHistory: On call Duty  \nid c"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "1c264d4a-9185-43dd-ad7a-50a740c615aa",
+                "score": 0.8728,
+                "is_gold": false,
+                "preview": "14:05 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "b565bd68-b6d6-42f0-9d8d-a9e4eb8a479a",
+                "score": 0.8719,
+                "is_gold": false,
+                "preview": "10:17 - Surgery: ATKIN, Sharon (Admin/Clinical Support Access Role) \nHealth education - smoking (679"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "13b48fda-5dbc-4e9c-bce0-ae18df14e48d",
+                "score": 0.8715,
+                "is_gold": false,
+                "preview": "16:24 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) \nPatient telephone number "
+              }
+            ]
+          },
+          "primary_care_investigations__unwindowed": {
+            "milestone_type": "primary_care_investigations",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "373d4799-f9a1-4e14-9a38-c2762b1ea7cb",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8624,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "a1e28fbe-3c4a-469f-af08-c85408d2e673",
+                "score": 0.8508,
+                "is_gold": false,
+                "preview": "15:50 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nProblem: Menopausal sym"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "e86479ee-08f5-4916-a186-f72b418d4f37",
+                "score": 0.8482,
+                "is_gold": false,
+                "preview": "19:37 - Primary Care Network (PCN): WORTH, Caroline (Nurse Access Role) Entered at: Carillon PCN\n Co"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "9adc0dd9-e365-4b1b-8337-a61892c39529",
+                "score": 0.8464,
+                "is_gold": false,
+                "preview": "15:22 - Surgery: AZIZ, Rao (Mr) (Pharmacist) \nHistory: teleconsult: spoke to pt confirmed dob verifi"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "a72f42ce-23ec-4db7-936f-27677810d24f",
+                "score": 0.8388,
+                "is_gold": false,
+                "preview": "Your DIABETES annual review is due. Please follow the link to book a 30 minute appointment. \nPlease "
+              }
+            ]
+          },
+          "primary_care_investigations__windowed": {
+            "milestone_type": "primary_care_investigations",
+            "mode": "windowed",
+            "pool_size": 50,
+            "gold_encounter_id": "373d4799-f9a1-4e14-9a38-c2762b1ea7cb",
+            "found_at_rank": 14,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "a72f42ce-23ec-4db7-936f-27677810d24f",
+                "score": 0.8388,
+                "is_gold": false,
+                "preview": "Your DIABETES annual review is due. Please follow the link to book a 30 minute appointment. \nPlease "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "1c264d4a-9185-43dd-ad7a-50a740c615aa",
+                "score": 0.8346,
+                "is_gold": false,
+                "preview": "14:05 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              },
+              {
+                "rank": 3,
+                "encounter_id": "13b48fda-5dbc-4e9c-bce0-ae18df14e48d",
+                "score": 0.8344,
+                "is_gold": false,
+                "preview": "16:24 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) \nPatient telephone number "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "8fe124ff-8eb6-4fe2-a447-d45300dad69a",
+                "score": 0.8312,
+                "is_gold": false,
+                "preview": "09:53 - Surgery: Auto-filed  \nThyroid function test (X77Wg)\nSerum free T4 level (XaERr) 15.7 pmol/L "
+              },
+              {
+                "rank": 5,
+                "encounter_id": "364e1483-1d1e-41ce-adb9-6de38fd37d10",
+                "score": 0.8274,
+                "is_gold": false,
+                "preview": "09:53 - Surgery: Auto-filed  \nSerum sodium level (XE2q0) 140 mmol/L [133 - 146]\nSerum potassium leve"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "episode_id": "ep-manual-fc18d829f33f",
+        "cancer_type": "Upper GI",
+        "date_window": "2025-06-17 -> 2025-11-12",
+        "milestones": {
+          "related_gp_visit__unwindowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8859,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "0d8b3ce4-1f3f-4520-a9cd-95176b8da2f6",
+                "score": 0.8808,
+                "is_gold": false,
+                "preview": "16:39 - Surgery: KAKAIYA, Vishnu (Mr) (Pharmacist) \nPlan: Medication changes completed during in-per"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "90226c15-d181-43a2-9a1e-56b16ff1377e",
+                "score": 0.8802,
+                "is_gold": false,
+                "preview": "13:37 - Surgery: MILNER, Jordan (Miss)  \nEnhanced review not indicated before granting access to own"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "877c7ca2-23e8-4949-b13c-cec38d168a6f",
+                "score": 0.879,
+                "is_gold": false,
+                "preview": "09:30 - Surgery: MANDHARKAR, Apexa (Mrs)  \nHas steroid emergency card (Y2f2f) - Added in bulk"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "db2cfffc-3135-47ef-b79d-4b5ce3b4d68b",
+                "score": 0.8772,
+                "is_gold": false,
+                "preview": "17:33 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \ncalled - 07736662458 - ring "
+              }
+            ]
+          },
+          "related_gp_visit__windowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "windowed",
+            "pool_size": 86,
+            "gold_encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8859,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "db2cfffc-3135-47ef-b79d-4b5ce3b4d68b",
+                "score": 0.8772,
+                "is_gold": false,
+                "preview": "17:33 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \ncalled - 07736662458 - ring "
+              },
+              {
+                "rank": 3,
+                "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+                "score": 0.8741,
+                "is_gold": false,
+                "preview": "17:44 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \nHistory: On call Duty  \nid c"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "1c264d4a-9185-43dd-ad7a-50a740c615aa",
+                "score": 0.8728,
+                "is_gold": false,
+                "preview": "14:05 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              },
+              {
+                "rank": 5,
+                "encounter_id": "b565bd68-b6d6-42f0-9d8d-a9e4eb8a479a",
+                "score": 0.8719,
+                "is_gold": false,
+                "preview": "10:17 - Surgery: ATKIN, Sharon (Admin/Clinical Support Access Role) \nHealth education - smoking (679"
+              }
+            ]
+          },
+          "primary_care_investigations__unwindowed": {
+            "milestone_type": "primary_care_investigations",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "373d4799-f9a1-4e14-9a38-c2762b1ea7cb",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8624,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "a1e28fbe-3c4a-469f-af08-c85408d2e673",
+                "score": 0.8508,
+                "is_gold": false,
+                "preview": "15:50 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nProblem: Menopausal sym"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "e86479ee-08f5-4916-a186-f72b418d4f37",
+                "score": 0.8482,
+                "is_gold": false,
+                "preview": "19:37 - Primary Care Network (PCN): WORTH, Caroline (Nurse Access Role) Entered at: Carillon PCN\n Co"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "9adc0dd9-e365-4b1b-8337-a61892c39529",
+                "score": 0.8464,
+                "is_gold": false,
+                "preview": "15:22 - Surgery: AZIZ, Rao (Mr) (Pharmacist) \nHistory: teleconsult: spoke to pt confirmed dob verifi"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "a72f42ce-23ec-4db7-936f-27677810d24f",
+                "score": 0.8388,
+                "is_gold": false,
+                "preview": "Your DIABETES annual review is due. Please follow the link to book a 30 minute appointment. \nPlease "
+              }
+            ]
+          },
+          "primary_care_investigations__windowed": {
+            "milestone_type": "primary_care_investigations",
+            "mode": "windowed",
+            "pool_size": 86,
+            "gold_encounter_id": "373d4799-f9a1-4e14-9a38-c2762b1ea7cb",
+            "found_at_rank": 20,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8624,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "a72f42ce-23ec-4db7-936f-27677810d24f",
+                "score": 0.8388,
+                "is_gold": false,
+                "preview": "Your DIABETES annual review is due. Please follow the link to book a 30 minute appointment. \nPlease "
+              },
+              {
+                "rank": 3,
+                "encounter_id": "1c264d4a-9185-43dd-ad7a-50a740c615aa",
+                "score": 0.8346,
+                "is_gold": false,
+                "preview": "14:05 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "9d2f08cc-6692-479e-acbf-933b3e9683ee",
+                "score": 0.8344,
+                "is_gold": false,
+                "preview": "12:11 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nShort message service text messag"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "13b48fda-5dbc-4e9c-bce0-ae18df14e48d",
+                "score": 0.8344,
+                "is_gold": false,
+                "preview": "16:24 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) \nPatient telephone number "
+              }
+            ]
+          },
+          "referral_admin__unwindowed": {
+            "milestone_type": "referral_admin",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "e9457855-54f1-4906-bc9d-761f7f1099c4",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "f026dbaa-8cfd-4603-8f28-4b0239598bb7",
+                "score": 0.9056,
+                "is_gold": false,
+                "preview": "11:50 - Surgery: DODDS, Portia  \nLong term condition care planning invitation second letter (XabEh) "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.9041,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "4121177d-6d67-4dbd-81dd-eaf7fa0f6224",
+                "score": 0.9019,
+                "is_gold": false,
+                "preview": "09:31 - Surgery: DODDS, Portia (Admin/Clinical Support Access Role) \nPatient telephone number (9159."
+              },
+              {
+                "rank": 4,
+                "encounter_id": "5fb8d0f9-bddf-4bbe-bf44-d2d0c556abd2",
+                "score": 0.8991,
+                "is_gold": false,
+                "preview": "15:47 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) \nPatient telephone number (9159."
+              },
+              {
+                "rank": 5,
+                "encounter_id": "94ac8b0a-0a83-46e7-b59f-556e3c205aec",
+                "score": 0.8988,
+                "is_gold": false,
+                "preview": "09:15 - Surgery: DODDS, Portia  \nLong term condition care planning invitation first letter (XabEf) -"
+              }
+            ]
+          },
+          "referral_admin__windowed": {
+            "milestone_type": "referral_admin",
+            "mode": "windowed",
+            "pool_size": 86,
+            "gold_encounter_id": "e9457855-54f1-4906-bc9d-761f7f1099c4",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.9041,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "1c264d4a-9185-43dd-ad7a-50a740c615aa",
+                "score": 0.8963,
+                "is_gold": false,
+                "preview": "14:05 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              },
+              {
+                "rank": 3,
+                "encounter_id": "8c216f5c-770d-4184-956e-aa138b55a9eb",
+                "score": 0.8956,
+                "is_gold": false,
+                "preview": "09:06 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "b565bd68-b6d6-42f0-9d8d-a9e4eb8a479a",
+                "score": 0.8911,
+                "is_gold": false,
+                "preview": "10:17 - Surgery: ATKIN, Sharon (Admin/Clinical Support Access Role) \nHealth education - smoking (679"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "9d2f08cc-6692-479e-acbf-933b3e9683ee",
+                "score": 0.8886,
+                "is_gold": false,
+                "preview": "12:11 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nShort message service text messag"
+              }
+            ]
+          },
+          "referral_sent__unwindowed": {
+            "milestone_type": "referral_sent",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "da47863c-cd5f-4f5d-a869-44724e383ba4",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.9307,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "fbf1a0d0-fb2c-4dcf-9c1c-68bfacec77ae",
+                "score": 0.9225,
+                "is_gold": false,
+                "preview": "08:00 - Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) \nPatient asked to make an appointment ("
+              },
+              {
+                "rank": 3,
+                "encounter_id": "67948f35-3b67-4eb1-be98-d20e43eb606c",
+                "score": 0.9202,
+                "is_gold": false,
+                "preview": "09:58 - Surgery: DODDS, Portia  \nInfluenza vaccination invitation first short message service text m"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+                "score": 0.92,
+                "is_gold": false,
+                "preview": "13:36 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brea"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "1c264d4a-9185-43dd-ad7a-50a740c615aa",
+                "score": 0.9191,
+                "is_gold": false,
+                "preview": "14:05 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              }
+            ]
+          },
+          "referral_sent__windowed": {
+            "milestone_type": "referral_sent",
+            "mode": "windowed",
+            "pool_size": 86,
+            "gold_encounter_id": "da47863c-cd5f-4f5d-a869-44724e383ba4",
+            "found_at_rank": 9,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.9307,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+                "score": 0.92,
+                "is_gold": false,
+                "preview": "13:36 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brea"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "1c264d4a-9185-43dd-ad7a-50a740c615aa",
+                "score": 0.9191,
+                "is_gold": false,
+                "preview": "14:05 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "9d2f08cc-6692-479e-acbf-933b3e9683ee",
+                "score": 0.9146,
+                "is_gold": false,
+                "preview": "12:11 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nShort message service text messag"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "8c216f5c-770d-4184-956e-aa138b55a9eb",
+                "score": 0.9136,
+                "is_gold": false,
+                "preview": "09:06 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nPatient telephone number (9159.) "
+              }
+            ]
+          },
+          "related_specialist_visit__unwindowed": {
+            "milestone_type": "related_specialist_visit",
+            "mode": "unwindowed",
+            "pool_size": 316,
+            "gold_encounter_id": "da4a5ed1-d74f-4bf2-bc44-213cf8ece2a1",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+                "score": 0.8804,
+                "is_gold": false,
+                "preview": "17:44 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \nHistory: On call Duty  \nid c"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "fbf1a0d0-fb2c-4dcf-9c1c-68bfacec77ae",
+                "score": 0.8793,
+                "is_gold": false,
+                "preview": "08:00 - Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) \nPatient asked to make an appointment ("
+              },
+              {
+                "rank": 3,
+                "encounter_id": "908ea9b7-49c7-4de5-86dc-7dea1b34e325",
+                "score": 0.8769,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 14 Aug 2024 at 10:30 with  Georgia King. P"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "ec38f859-c7eb-419b-a57f-ce1e6ab21eb3",
+                "score": 0.8767,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 26 Jun 2024 at 15:30 with Dr Nikki Brockhu"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "3fbb02d4-83d2-43f8-92c3-26ba23ce8e1b",
+                "score": 0.8764,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 15 Aug 2024 at 15:00 with Mrs Suzanne Rath"
+              }
+            ]
+          },
+          "related_specialist_visit__windowed": {
+            "milestone_type": "related_specialist_visit",
+            "mode": "windowed",
+            "pool_size": 86,
+            "gold_encounter_id": "da4a5ed1-d74f-4bf2-bc44-213cf8ece2a1",
+            "found_at_rank": 18,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+                "score": 0.8804,
+                "is_gold": false,
+                "preview": "17:44 - Surgery: GHAYATH, Aly (Dr) (Clinical Practitioner Access Role) \nHistory: On call Duty  \nid c"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "b565bd68-b6d6-42f0-9d8d-a9e4eb8a479a",
+                "score": 0.876,
+                "is_gold": false,
+                "preview": "10:17 - Surgery: ATKIN, Sharon (Admin/Clinical Support Access Role) \nHealth education - smoking (679"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+                "score": 0.8738,
+                "is_gold": false,
+                "preview": "13:36 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brea"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "13b48fda-5dbc-4e9c-bce0-ae18df14e48d",
+                "score": 0.8736,
+                "is_gold": false,
+                "preview": "16:24 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) \nPatient telephone number "
+              },
+              {
+                "rank": 5,
+                "encounter_id": "ca19754f-0500-4fec-91cd-567aebc01347",
+                "score": 0.8733,
+                "is_gold": false,
+                "preview": "00:00 - Pharmacy First: rizvana kausar  \nSeasonal influenza vaccination given by pharmacist (XaZfY)\n"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "patient_id": "6282779235",
+    "label": "Prostate completed",
+    "episodes": [
+      {
+        "episode_id": "ep-9abc2565f1e8711f",
+        "cancer_type": "Prostate",
+        "date_window": "2025-07-02 -> 2025-11-12",
+        "milestones": {
+          "primary_care_investigations__unwindowed": {
+            "milestone_type": "primary_care_investigations",
+            "mode": "unwindowed",
+            "pool_size": 298,
+            "gold_encounter_id": "c5dcc6a9-e1d1-4789-bdce-05f6be233a98",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "c70efddc-b494-484d-8e50-65cb76b15d81",
+                "score": 0.8527,
+                "is_gold": false,
+                "preview": "16:46 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nHistory: cqc safety sea"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "18fe20e6-ccd6-4728-ad66-8615a18af0dd",
+                "score": 0.8507,
+                "is_gold": false,
+                "preview": "08:23 - Surgery: Auto-filed  \nBowel cancer screening programme: faecal occult blood result (XaPVj) -"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "7e1a7d16-3266-4f47-b6a3-9aafab4940ab",
+                "score": 0.8461,
+                "is_gold": false,
+                "preview": "10:42 - Surgery: DAWSON, Claire (Nurse) (Nurse Access Role) \nHistory: Attended for blood test but no"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "fc669097-df89-4561-8c70-8df2ecdafdcc",
+                "score": 0.845,
+                "is_gold": false,
+                "preview": "11:40 - Surgery: INGLE, Kirsty (Receptionist Access Role) \nBlood test due (41B1.)\nPatient telephone "
+              },
+              {
+                "rank": 5,
+                "encounter_id": "c7e48d00-467a-46b6-adb4-b37df4cba545",
+                "score": 0.8436,
+                "is_gold": false,
+                "preview": "10:06 - Surgery: Auto-filed  \nUrine protein/creatinine ratio (XaEMS) 11 mg/mmol [< 30]\nIf urine PCR "
+              }
+            ]
+          },
+          "primary_care_investigations__windowed": {
+            "milestone_type": "primary_care_investigations",
+            "mode": "windowed",
+            "pool_size": 114,
+            "gold_encounter_id": "c5dcc6a9-e1d1-4789-bdce-05f6be233a98",
+            "found_at_rank": 11,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "c70efddc-b494-484d-8e50-65cb76b15d81",
+                "score": 0.8527,
+                "is_gold": false,
+                "preview": "16:46 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nHistory: cqc safety sea"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "18fe20e6-ccd6-4728-ad66-8615a18af0dd",
+                "score": 0.8507,
+                "is_gold": false,
+                "preview": "08:23 - Surgery: Auto-filed  \nBowel cancer screening programme: faecal occult blood result (XaPVj) -"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "fc669097-df89-4561-8c70-8df2ecdafdcc",
+                "score": 0.845,
+                "is_gold": false,
+                "preview": "11:40 - Surgery: INGLE, Kirsty (Receptionist Access Role) \nBlood test due (41B1.)\nPatient telephone "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "28e8c7e5-1405-450e-865d-99e72070042e",
+                "score": 0.8396,
+                "is_gold": false,
+                "preview": "00:00 - Oakwood Pharmacy: Samantha.Petterson (Samantha Petterson)  \nImmunisation course to maintain "
+              },
+              {
+                "rank": 5,
+                "encounter_id": "c5e5d89e-48da-4ad7-9591-63981a4c5ce8",
+                "score": 0.8392,
+                "is_gold": false,
+                "preview": "14:11 - Surgery: MCDOWELL, Giselle (Receptionist Access Role) \n Reception & Administration\n   Entrie"
+              }
+            ]
+          },
+          "related_gp_visit__unwindowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "unwindowed",
+            "pool_size": 298,
+            "gold_encounter_id": "3cea5df7-d037-4826-aa80-f3af348e8038",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "c70efddc-b494-484d-8e50-65cb76b15d81",
+                "score": 0.8821,
+                "is_gold": false,
+                "preview": "16:46 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nHistory: cqc safety sea"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "61b743d3-71c1-4390-ab83-dccac1df39bd",
+                "score": 0.8818,
+                "is_gold": false,
+                "preview": "13:40 - Surgery: MILNER, Jordan (Miss)  \nEnhanced review not indicated before granting access to own"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "ae0d84a3-a37c-4eca-9f43-db6b5b9d68e1",
+                "score": 0.8804,
+                "is_gold": false,
+                "preview": "15:00 - Surgery: DODDS, Portia  \nQuality and Outcomes Framework hypertension quality indicator-relat"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "8b3f20da-3e3e-450d-bdf1-14883e565ef6",
+                "score": 0.8798,
+                "is_gold": false,
+                "preview": "14:07 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nDear Mr Jethwa,\nWe are reaching o"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "87713f51-f57b-4fdd-aefb-eb2dd1d99693",
+                "score": 0.8791,
+                "is_gold": false,
+                "preview": "Repeat stopped - see entry on 15 Apr 2024 11:57\nLansoprazole 30mg gastro-resistant capsules - 56 cap"
+              }
+            ]
+          },
+          "related_gp_visit__windowed": {
+            "milestone_type": "related_gp_visit",
+            "mode": "windowed",
+            "pool_size": 114,
+            "gold_encounter_id": "3cea5df7-d037-4826-aa80-f3af348e8038",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "c70efddc-b494-484d-8e50-65cb76b15d81",
+                "score": 0.8821,
+                "is_gold": false,
+                "preview": "16:46 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nHistory: cqc safety sea"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "28e8c7e5-1405-450e-865d-99e72070042e",
+                "score": 0.8735,
+                "is_gold": false,
+                "preview": "00:00 - Oakwood Pharmacy: Samantha.Petterson (Samantha Petterson)  \nImmunisation course to maintain "
+              },
+              {
+                "rank": 3,
+                "encounter_id": "fc669097-df89-4561-8c70-8df2ecdafdcc",
+                "score": 0.8718,
+                "is_gold": false,
+                "preview": "11:40 - Surgery: INGLE, Kirsty (Receptionist Access Role) \nBlood test due (41B1.)\nPatient telephone "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "b23ceaa6-de86-4835-bd33-4175f1205210",
+                "score": 0.8692,
+                "is_gold": false,
+                "preview": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nUrology to Woodbrook Medical Centre"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "c6a2ed2c-d81a-4d03-b4ec-b25cff624fa8",
+                "score": 0.8692,
+                "is_gold": false,
+                "preview": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nUrology to Woodbrook Medical Centre"
+              }
+            ]
+          },
+          "referral_sent__unwindowed": {
+            "milestone_type": "referral_sent",
+            "mode": "unwindowed",
+            "pool_size": 298,
+            "gold_encounter_id": "137327c3-b403-4049-87f4-f020bdbb5ace",
+            "found_at_rank": 7,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "fc669097-df89-4561-8c70-8df2ecdafdcc",
+                "score": 0.9199,
+                "is_gold": false,
+                "preview": "11:40 - Surgery: INGLE, Kirsty (Receptionist Access Role) \nBlood test due (41B1.)\nPatient telephone "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "8cdcccc2-1d80-4aca-b6e9-94590cdc8cc8",
+                "score": 0.9197,
+                "is_gold": false,
+                "preview": "13:53 - Surgery: DODDS, Portia  \nInfluenza vaccination invitation first short message service text m"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "d9fcdfbb-04e5-4128-895e-526059c7a404",
+                "score": 0.9178,
+                "is_gold": false,
+                "preview": "10:31 - Surgery: DODDS, Portia  \nInfluenza vaccination invitation second short message service text "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "2608ef93-0b1d-44dd-9c45-075969ef0c57",
+                "score": 0.9149,
+                "is_gold": false,
+                "preview": "14:04 - Surgery: DODDS, Portia  \nLong term condition care planning invitation first letter (XabEf) -"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "8b3f20da-3e3e-450d-bdf1-14883e565ef6",
+                "score": 0.914,
+                "is_gold": false,
+                "preview": "14:07 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nDear Mr Jethwa,\nWe are reaching o"
+              }
+            ]
+          },
+          "referral_sent__windowed": {
+            "milestone_type": "referral_sent",
+            "mode": "windowed",
+            "pool_size": 114,
+            "gold_encounter_id": "137327c3-b403-4049-87f4-f020bdbb5ace",
+            "found_at_rank": 2,
+            "hit_at_top1": false,
+            "hit_at_top3": true,
+            "hit_at_top5": true,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "fc669097-df89-4561-8c70-8df2ecdafdcc",
+                "score": 0.9199,
+                "is_gold": false,
+                "preview": "11:40 - Surgery: INGLE, Kirsty (Receptionist Access Role) \nBlood test due (41B1.)\nPatient telephone "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "137327c3-b403-4049-87f4-f020bdbb5ace",
+                "score": 0.9134,
+                "is_gold": true,
+                "preview": "12:43 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected urol"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "8ffcc513-714d-4ea0-a280-ea49e123faa4",
+                "score": 0.9088,
+                "is_gold": false,
+                "preview": "13:37 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nDear Ashok,\nOur records show you "
+              },
+              {
+                "rank": 4,
+                "encounter_id": "09343eb4-2f0b-475c-90a2-6485b901402d",
+                "score": 0.9048,
+                "is_gold": false,
+                "preview": "10:05 - Sent online by Mr Ashok Kumar Jethwa  \nRequest for 'Dapagliflozin 10mg tablets' by patient"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "5c358bbf-0450-4e35-bfdb-dc400609d089",
+                "score": 0.9036,
+                "is_gold": false,
+                "preview": "17:11 - Surgery: OLADELE, Okikiola (Dr) (Clinical Practitioner Access Role) \n- PRISM Rapid Access Ch"
+              }
+            ]
+          },
+          "related_correspondence__unwindowed": {
+            "milestone_type": "related_correspondence",
+            "mode": "unwindowed",
+            "pool_size": 298,
+            "gold_encounter_id": "4cdd2802-1c16-47b0-bd0d-97cb3ea9e17e",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "d7da86ec-2640-4d11-9dac-1c350e5ebe82",
+                "score": 0.9065,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 10 Apr 2024 at 11:20 with Miss Emily Sumne"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "b53e0b83-37db-4e25-bd48-000872d512f8",
+                "score": 0.9018,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 12 Apr 2024 at 11:50 with Nurse Claire Daw"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "b7bb0fc8-c069-4373-a853-584e0a8e645a",
+                "score": 0.9008,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 24 Apr 2024 at 09:50 with  Sharon Atkin. P"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "fdd73d2c-bb6f-4180-9f6a-f70841fc6bd0",
+                "score": 0.9005,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 23 May 2024 at 11:50 with Nurse Claire Daw"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "04d8f675-3b6a-4b9c-bd9d-aa6aadc02b22",
+                "score": 0.8992,
+                "is_gold": false,
+                "preview": "10:10 - Surgery: DODDS, Portia  \nLong term condition care planning invitation third letter (XabEj) -"
+              }
+            ]
+          },
+          "related_correspondence__windowed": {
+            "milestone_type": "related_correspondence",
+            "mode": "windowed",
+            "pool_size": 114,
+            "gold_encounter_id": "4cdd2802-1c16-47b0-bd0d-97cb3ea9e17e",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "fc669097-df89-4561-8c70-8df2ecdafdcc",
+                "score": 0.895,
+                "is_gold": false,
+                "preview": "11:40 - Surgery: INGLE, Kirsty (Receptionist Access Role) \nBlood test due (41B1.)\nPatient telephone "
+              },
+              {
+                "rank": 2,
+                "encounter_id": "5c358bbf-0450-4e35-bfdb-dc400609d089",
+                "score": 0.8819,
+                "is_gold": false,
+                "preview": "17:11 - Surgery: OLADELE, Okikiola (Dr) (Clinical Practitioner Access Role) \n- PRISM Rapid Access Ch"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "09343eb4-2f0b-475c-90a2-6485b901402d",
+                "score": 0.88,
+                "is_gold": false,
+                "preview": "10:05 - Sent online by Mr Ashok Kumar Jethwa  \nRequest for 'Dapagliflozin 10mg tablets' by patient"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "72cdfcfb-3b2e-4b4b-90df-dff938e622a5",
+                "score": 0.8779,
+                "is_gold": false,
+                "preview": "12:57 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nDear Mr Jethwa,\nPlease be advised"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "8ffcc513-714d-4ea0-a280-ea49e123faa4",
+                "score": 0.8767,
+                "is_gold": false,
+                "preview": "13:37 - Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nDear Ashok,\nOur records show you "
+              }
+            ]
+          },
+          "specialist_diagnostics__unwindowed": {
+            "milestone_type": "specialist_diagnostics",
+            "mode": "unwindowed",
+            "pool_size": 298,
+            "gold_encounter_id": "bd395a69-46a8-4346-9cf6-7a5ada9a335c",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "c70efddc-b494-484d-8e50-65cb76b15d81",
+                "score": 0.8788,
+                "is_gold": false,
+                "preview": "16:46 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nHistory: cqc safety sea"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "af8b7dbf-b243-4991-bd90-6ddf35b49d13",
+                "score": 0.8738,
+                "is_gold": false,
+                "preview": "13:30 - GP Surgery: OLADELE, Okikiola (Dr) (Clinical Practitioner Access Role) \nProblem: Malignant t"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "f08ce33d-4ffe-4687-9bfd-f5ea88def0d4",
+                "score": 0.861,
+                "is_gold": false,
+                "preview": "09:23 - Surgery: OKOYE, Clifford (Dr) (Clinical Practitioner Access Role) \nHistory: See Task by Dr N"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "87713f51-f57b-4fdd-aefb-eb2dd1d99693",
+                "score": 0.8603,
+                "is_gold": false,
+                "preview": "Repeat stopped - see entry on 15 Apr 2024 11:57\nLansoprazole 30mg gastro-resistant capsules - 56 cap"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "c322c648-a19f-4864-a46f-b46df25ff982",
+                "score": 0.8573,
+                "is_gold": false,
+                "preview": "10:39 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) \nHistory: Telephone triage "
+              }
+            ]
+          },
+          "specialist_diagnostics__windowed": {
+            "milestone_type": "specialist_diagnostics",
+            "mode": "windowed",
+            "pool_size": 114,
+            "gold_encounter_id": "bd395a69-46a8-4346-9cf6-7a5ada9a335c",
+            "found_at_rank": null,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": false,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "c70efddc-b494-484d-8e50-65cb76b15d81",
+                "score": 0.8788,
+                "is_gold": false,
+                "preview": "16:46 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nHistory: cqc safety sea"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "af8b7dbf-b243-4991-bd90-6ddf35b49d13",
+                "score": 0.8738,
+                "is_gold": false,
+                "preview": "13:30 - GP Surgery: OLADELE, Okikiola (Dr) (Clinical Practitioner Access Role) \nProblem: Malignant t"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "f08ce33d-4ffe-4687-9bfd-f5ea88def0d4",
+                "score": 0.861,
+                "is_gold": false,
+                "preview": "09:23 - Surgery: OKOYE, Clifford (Dr) (Clinical Practitioner Access Role) \nHistory: See Task by Dr N"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "c322c648-a19f-4864-a46f-b46df25ff982",
+                "score": 0.8573,
+                "is_gold": false,
+                "preview": "10:39 - Surgery: DENGA, Takunda (Dr) (Clinical Practitioner Access Role) \nHistory: Telephone triage "
+              },
+              {
+                "rank": 5,
+                "encounter_id": "28e8c7e5-1405-450e-865d-99e72070042e",
+                "score": 0.8519,
+                "is_gold": false,
+                "preview": "00:00 - Oakwood Pharmacy: Samantha.Petterson (Samantha Petterson)  \nImmunisation course to maintain "
+              }
+            ]
+          },
+          "related_specialist_visit__unwindowed": {
+            "milestone_type": "related_specialist_visit",
+            "mode": "unwindowed",
+            "pool_size": 298,
+            "gold_encounter_id": "44a4cbd9-5993-4d25-bd9d-355982dfdb9e",
+            "found_at_rank": 12,
+            "hit_at_top1": false,
+            "hit_at_top3": false,
+            "hit_at_top5": false,
+            "hit_at_top10": false,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "87713f51-f57b-4fdd-aefb-eb2dd1d99693",
+                "score": 0.8788,
+                "is_gold": false,
+                "preview": "Repeat stopped - see entry on 15 Apr 2024 11:57\nLansoprazole 30mg gastro-resistant capsules - 56 cap"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "b7bb0fc8-c069-4373-a853-584e0a8e645a",
+                "score": 0.8767,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 24 Apr 2024 at 09:50 with  Sharon Atkin. P"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "19599ce5-49f2-4b82-a95c-42704ca75a1f",
+                "score": 0.8742,
+                "is_gold": false,
+                "preview": "15:00 - Surgery: KING, Georgia (Admin/Clinical Support Access Role) \n LTC Review\n   Follow-up Review"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "3c58c740-5d62-41d9-8e01-b71ab0136ad8",
+                "score": 0.8741,
+                "is_gold": false,
+                "preview": "08:45 - Surgery: JONES, Emma (Medical Secretary Access Role) \nReferral to rapid access chest pain cl"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "d7da86ec-2640-4d11-9dac-1c350e5ebe82",
+                "score": 0.8735,
+                "is_gold": false,
+                "preview": "Confirmation of appointment at Woodbrook Medical Centre - 10 Apr 2024 at 11:20 with Miss Emily Sumne"
+              }
+            ]
+          },
+          "related_specialist_visit__windowed": {
+            "milestone_type": "related_specialist_visit",
+            "mode": "windowed",
+            "pool_size": 114,
+            "gold_encounter_id": "44a4cbd9-5993-4d25-bd9d-355982dfdb9e",
+            "found_at_rank": 3,
+            "hit_at_top1": false,
+            "hit_at_top3": true,
+            "hit_at_top5": true,
+            "hit_at_top10": true,
+            "hit_at_top20": true,
+            "top5": [
+              {
+                "rank": 1,
+                "encounter_id": "3c58c740-5d62-41d9-8e01-b71ab0136ad8",
+                "score": 0.8741,
+                "is_gold": false,
+                "preview": "08:45 - Surgery: JONES, Emma (Medical Secretary Access Role) \nReferral to rapid access chest pain cl"
+              },
+              {
+                "rank": 2,
+                "encounter_id": "137327c3-b403-4049-87f4-f020bdbb5ace",
+                "score": 0.8718,
+                "is_gold": false,
+                "preview": "12:43 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected urol"
+              },
+              {
+                "rank": 3,
+                "encounter_id": "44a4cbd9-5993-4d25-bd9d-355982dfdb9e",
+                "score": 0.8681,
+                "is_gold": true,
+                "preview": "10:06 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Se"
+              },
+              {
+                "rank": 4,
+                "encounter_id": "f08ce33d-4ffe-4687-9bfd-f5ea88def0d4",
+                "score": 0.8676,
+                "is_gold": false,
+                "preview": "09:23 - Surgery: OKOYE, Clifford (Dr) (Clinical Practitioner Access Role) \nHistory: See Task by Dr N"
+              },
+              {
+                "rank": 5,
+                "encounter_id": "09343eb4-2f0b-475c-90a2-6485b901402d",
+                "score": 0.8672,
+                "is_gold": false,
+                "preview": "10:05 - Sent online by Mr Ashok Kumar Jethwa  \nRequest for 'Dapagliflozin 10mg tablets' by patient"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+]

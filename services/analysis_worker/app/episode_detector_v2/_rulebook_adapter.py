@@ -178,6 +178,33 @@ def text_channel_regex(site_key: str) -> tuple[str, ...]:
     return tuple(rb.signals.text_channel.regex_catalogue)
 
 
+def text_channel_context_catalogue(
+    site_key: str,
+) -> dict[str, tuple[str, ...]]:
+    """Return the site's per-context-tag regex catalogue.
+
+    Keys are canonical context-tier milestone tags (see
+    libs.episode_detector.rulebook.CONTEXT_MILESTONE_TAGS); values
+    are tuples of case-insensitive regex strings. Used by the
+    text_channel extractor to emit role="context_milestone"
+    signals (DI-2C015ADE).
+
+    Returns an empty dict when no rulebook is installed for the
+    site or the catalogue is empty. An empty catalogue means the
+    text channel contributes no context signals for that site --
+    the episode_engine LLM is still free to propose context
+    milestones from the raw encounter text.
+    """
+    rb = _site(site_key)
+    if rb is None:
+        return {}
+    return {
+        tag: tuple(patterns)
+        for tag, patterns in (rb.signals.text_channel.context_role_catalogue.items())
+        if patterns
+    }
+
+
 @lru_cache(maxsize=1)
 def _all_sites_cached() -> tuple[str, ...]:
     """Convenience: list of sites the current bundle ships. Cached to

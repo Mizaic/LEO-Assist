@@ -78,6 +78,12 @@ export interface EpisodeMilestone {
   milestone_type: string;
   encounter_id: string;
   date: string;
+  /** Who linked this encounter to the episode. "episode_engine" means the AI
+   *  wrote it; anything else (or absent) is a manual curator action. */
+  linked_by?: string | null;
+  /** Literal text snippet from the source encounter that justifies this
+   *  milestone. Populated by the AI engine; may be empty for manual links. */
+  evidence_quote?: string | null;
 }
 
 export interface MissionEpisode {
@@ -98,6 +104,12 @@ export interface MissionEpisode {
   review_verdict?: string | null;
   audit_notes: string | null;
   audit_flag: boolean;
+  variation_flag?: boolean;
+  variation_score?: number | null;
+  variation_first_divergence?: string | null;
+  variation_attributed_node_type?: string | null;
+  variation_attributed_node_name?: string | null;
+  variation_community_id?: number | null;
   linked_encounter_ids?: string[];
   milestones?: EpisodeMilestone[];
 }
@@ -409,6 +421,9 @@ export async function fetchEncounterConcepts(patientId: string): Promise<
     assertion: string;
     confidence: number | null;
     source: string | null;
+    value: number | null;
+    unit: string | null;
+    reference_range: string | null;
   }>
 > {
   // NOTE: /patients/{id}/coding-summary returns high-level counters, not an iterable
@@ -436,6 +451,9 @@ export async function fetchEncounterConcepts(patientId: string): Promise<
           assertion?: string;
           confidence?: number;
           source?: string;
+          value?: number | null;
+          unit?: string | null;
+          reference_range?: string | null;
         }>
       >(linksUrl);
       return { enc, links };
@@ -451,6 +469,9 @@ export async function fetchEncounterConcepts(patientId: string): Promise<
     assertion: string;
     confidence: number | null;
     source: string | null;
+    value: number | null;
+    unit: string | null;
+    reference_range: string | null;
   }> = [];
 
   for (const { enc, links } of linkResponses) {
@@ -464,6 +485,9 @@ export async function fetchEncounterConcepts(patientId: string): Promise<
         assertion: link.assertion ?? "present",
         confidence: typeof link.confidence === "number" ? link.confidence : null,
         source: link.source ?? null,
+        value: link.value ?? null,
+        unit: link.unit ?? null,
+        reference_range: link.reference_range ?? null,
       });
     }
   }
@@ -652,6 +676,9 @@ export interface EncounterCodedLink {
   contract_version?: string | null;
   run_id?: string | null;
   coded_at?: string | null;
+  value?: number | string | null;
+  unit?: string | null;
+  reference_range?: string | null;
 }
 
 export interface BatchResetResponse {
@@ -1237,6 +1264,78 @@ export interface MilestoneMultiSlotResult {
   failed: number;
   // Convenience: true iff every slot reported success.
   allSucceeded: boolean;
+}
+
+export interface CohortPercentile {
+  from_step: string;
+  to_step: string;
+  p25: number;
+  p50: number;
+  p75: number;
+  sample_size: number;
+}
+
+export interface EpisodeVariationDetail {
+  episode_id: string;
+  variation_flag: boolean | null;
+  variation_score: number | null;
+  variation_first_divergence: string | null;
+  variation_outlier_steps: string[];
+  variation_community_id: number | null;
+  variation_compared_pairs: number | null;
+  variation_observed_pairs: number | null;
+  variation_attributed_node_type: string | null;
+  variation_attributed_node_id: string | null;
+  variation_attributed_node_name: string | null;
+  variation_updated: string | null;
+  cohort_percentiles: CohortPercentile[];
+  cohort_size: number;
+}
+
+export async function fetchEpisodeVariation(
+  episodeId: string
+): Promise<EpisodeVariationDetail> {
+  return fetchJson<EpisodeVariationDetail>(
+    `${PROXY}/variation/episodes/${encodeURIComponent(episodeId)}`
+  );
+}
+
+export interface VariationSiteSummary {
+  total_episodes: number;
+  flagged_episodes: number;
+  by_first_divergence: { step: string; flagged_episodes: number }[];
+  by_attributed_node: {
+    node_type: string;
+    node_id: string;
+    node_name: string;
+    flagged_episodes: number;
+  }[];
+}
+
+export async function fetchVariationSummary(): Promise<VariationSiteSummary> {
+  return fetchJson<VariationSiteSummary>(`${PROXY}/variation/summary`);
+}
+
+export interface VariationRunRequest {
+  months?: number;
+  min_sample_size?: number;
+}
+
+export interface VariationRunResult {
+  episodes_considered: number;
+  episodes_scored: number;
+  episodes_flagged: number;
+  episodes_attributed: number;
+}
+
+export async function runVariationForSite(
+  body: VariationRunRequest = {}
+): Promise<VariationRunResult> {
+  return fetchJson<VariationRunResult>(`${PROXY}/variation/run-site`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 export async function attachEncounterDayToMultipleMilestones(

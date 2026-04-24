@@ -96,7 +96,7 @@ export const MILESTONE_OPTIONS: MilestoneOption[] = [
 
 export const MILESTONE_GROUP_LABEL: Record<MilestoneGroup, string> = {
   pathway: "Pathway events (AI also fills these)",
-  context: "Supporting context (manual only)",
+  context: "Supporting context (AI suggests, curator confirms)",
 };
 
 export function milestoneLabel(value: string): string {

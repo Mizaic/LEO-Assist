@@ -53,6 +53,9 @@ from services.analysis_worker.app.episode_engine.schemas import (
     ReconciledEpisode,
     StageTrace,
 )
+from services.analysis_worker.app.episode_engine.context_retriever import (
+    build_context_hints,
+)
 from services.analysis_worker.app.episode_engine.state import EngineState
 from services.analysis_worker.app.episode_engine.timeline_loader import load_timeline
 from services.analysis_worker.app.episode_engine.tracing import (
@@ -180,9 +183,9 @@ def _node_classifier(state: EngineState) -> dict[str, Any]:
     new_traces: list[StageTrace] = []
     errors: list[str] = list(state.get("errors") or [])
 
-    def _classify_one(window: dict[str, Any]) -> tuple[
-        dict[str, Any] | None, StageTrace | None, str | None
-    ]:
+    def _classify_one(
+        window: dict[str, Any],
+    ) -> tuple[dict[str, Any] | None, StageTrace | None, str | None]:
         window_text = _slice_window_trunk(state, window)
         try:
             result, trace = classifier_agent.run(
@@ -196,8 +199,10 @@ def _node_classifier(state: EngineState) -> dict[str, Any]:
             )
             return result.model_dump(mode="json"), trace, None
         except StageError as exc:
-            return None, _failed_trace("classifier", str(exc)), (
-                f"classifier[{window.get('window_id')}]: {exc}"
+            return (
+                None,
+                _failed_trace("classifier", str(exc)),
+                (f"classifier[{window.get('window_id')}]: {exc}"),
             )
 
     classified: list[dict[str, Any]] = []
@@ -259,9 +264,9 @@ def _node_audit_relevance_filter(state: EngineState) -> dict[str, Any]:
             }
         )
 
-    def _filter_one(item: dict[str, Any]) -> tuple[
-        str, dict[str, Any] | None, list[StageTrace], str | None
-    ]:
+    def _filter_one(
+        item: dict[str, Any],
+    ) -> tuple[str, dict[str, Any] | None, list[StageTrace], str | None]:
         window_id = item["window_id"]
         window = item["window"]
         try:
@@ -272,9 +277,7 @@ def _node_audit_relevance_filter(state: EngineState) -> dict[str, Any]:
                 suspected_site=window.get("suspected_site", "unknown"),
                 encounters=item["in_window"],
                 segmenter_anchors=window.get("anchors") or {},
-                cancer_coded_encounter_ids=window.get(
-                    "cancer_coded_encounter_ids"
-                )
+                cancer_coded_encounter_ids=window.get("cancer_coded_encounter_ids")
                 or [],
                 hint_flagged_encounter_ids=item["hint_ids"],
             )
@@ -320,6 +323,9 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
     new_traces: list[StageTrace] = []
     errors: list[str] = list(state.get("errors") or [])
 
+    # Single shared client for context-hint vector queries across all windows.
+    ctx_client = PatientGraphClient()
+
     def _extract_one(cls: dict[str, Any]) -> dict[str, Any] | None:
         """Process a single classifier window and return per-window output.
 
@@ -351,9 +357,7 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
             }
             for fe in focused.encounters
         ]
-        focused_encounters = [
-            e for e in focused_encounters if e.get("encounter_id")
-        ]
+        focused_encounters = [e for e in focused_encounters if e.get("encounter_id")]
         if not focused_encounters:
             return None
 
@@ -391,6 +395,16 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
                 "errors": local_errors,
             }
 
+        w_start = str(window.get("window_start", ""))
+        w_end = str(window.get("window_end") or "")
+        context_hints = build_context_hints(
+            patient_id=str(state.get("patient_id") or ""),
+            window_start=w_start,
+            window_end=w_end,
+            encounter_index=encounter_index,
+            client=ctx_client,
+        )
+
         per_part_results: list[MilestoneExtractorResult] = []
         part_traces: list[PartTrace] = []
         for part in partitions:
@@ -404,9 +418,10 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
                     patient_id=str(state.get("patient_id") or ""),
                     window_id=window_id,
                     suspected_site=window.get("suspected_site", "unknown"),
-                    window_start=str(window.get("window_start", "")),
-                    window_end=str(window.get("window_end") or ""),
+                    window_start=w_start,
+                    window_end=w_end,
                     window_full_text=part_full_text,
+                    context_hints=context_hints,
                 )
                 per_part_results.append(result)
                 local_traces.append(trace)
@@ -421,9 +436,7 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
                 local_errors.append(
                     f"milestone[{window_id} part {part.index}/{part.total}]: {exc}"
                 )
-                local_traces.append(
-                    _failed_trace("milestone_extractor", str(exc))
-                )
+                local_traces.append(_failed_trace("milestone_extractor", str(exc)))
                 per_part_results.append(
                     MilestoneExtractorResult(
                         window_id=window_id,
@@ -444,9 +457,7 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
                     )
                 )
 
-        merged = merge_milestones_deterministic(
-            per_part_results, window_id=window_id
-        )
+        merged = merge_milestones_deterministic(per_part_results, window_id=window_id)
         return {
             "extracted": merged.model_dump(mode="json"),
             "eoc_trace": _build_eoc_trace(
@@ -460,18 +471,21 @@ def _node_milestone_extractor(state: EngineState) -> dict[str, Any]:
             "errors": local_errors,
         }
 
-    if classified:
-        max_workers = min(_candidate_parallelism(), len(classified))
-        with ThreadPoolExecutor(max_workers=max_workers) as pool:
-            for result in pool.map(_extract_one, classified):
-                if result is None:
-                    continue
-                if result.get("extracted"):
-                    extracted.append(result["extracted"])
-                if result.get("eoc_trace"):
-                    eoc_traces.append(result["eoc_trace"])
-                new_traces.extend(result.get("traces") or [])
-                errors.extend(result.get("errors") or [])
+    try:
+        if classified:
+            max_workers = min(_candidate_parallelism(), len(classified))
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                for result in pool.map(_extract_one, classified):
+                    if result is None:
+                        continue
+                    if result.get("extracted"):
+                        extracted.append(result["extracted"])
+                    if result.get("eoc_trace"):
+                        eoc_traces.append(result["eoc_trace"])
+                    new_traces.extend(result.get("traces") or [])
+                    errors.extend(result.get("errors") or [])
+    finally:
+        ctx_client.close()
 
     return {
         "extracted": extracted,
@@ -489,9 +503,7 @@ def _node_reconciler(state: EngineState) -> dict[str, Any]:
     candidates_by_id = {
         w.get("window_id"): w for w in (state.get("candidate_windows") or [])
     }
-    extracted_by_id = {
-        e.get("window_id"): e for e in (state.get("extracted") or [])
-    }
+    extracted_by_id = {e.get("window_id"): e for e in (state.get("extracted") or [])}
 
     payload: list[dict[str, Any]] = []
     for window_id, cls in classified_by_id.items():
@@ -631,9 +643,7 @@ def _failed_trace(stage: str, error: str) -> StageTrace:
 _DATE_HEADER_RX = re.compile(r"^== (\d{4}-\d{2}-\d{2}) \((\d+) record")
 
 
-def _slice_window_trunk(
-    state: EngineState, window: dict[str, Any]
-) -> str:
+def _slice_window_trunk(state: EngineState, window: dict[str, Any]) -> str:
     """Return the trunk-view text for dates within the candidate window."""
     timeline_text = state.get("timeline_text") or ""
     start = str(window.get("window_start", "0000-00-00"))
@@ -705,11 +715,10 @@ def _hint_flagged_ids(in_window: list[dict[str, Any]]) -> list[str]:
     """
     flagged: list[str] = []
     for rec in in_window:
-        text = (rec.get("full_snippet") or rec.get("text") or "")
+        text = rec.get("full_snippet") or rec.get("text") or ""
         cleaned = _ADMIN_NOISE_RX.sub(" ", str(text))
-        if (
-            _SAFETY_NETTING_HINT_RX.search(cleaned)
-            or _DISRUPTION_HINT_RX.search(cleaned)
+        if _SAFETY_NETTING_HINT_RX.search(cleaned) or _DISRUPTION_HINT_RX.search(
+            cleaned
         ):
             eid = str(rec.get("encounter_id") or "")
             if eid:
@@ -733,9 +742,7 @@ def _focused_from_window(
             "encounters": [
                 {
                     "encounter_id": str(r.get("encounter_id") or ""),
-                    "encounter_date": (
-                        r.get("date") if r.get("date") else None
-                    ),
+                    "encounter_date": (r.get("date") if r.get("date") else None),
                     "kept_by_guard": False,
                     "kept_by_fallback": True,
                 }
@@ -875,9 +882,7 @@ def _signal_hints(window_full: str) -> str:
             "  Possible safety_netting in encounters: " + ", ".join(sn_ids[:10])
         )
     if dis_ids:
-        lines.append(
-            "  Possible disruptions in encounters: " + ", ".join(dis_ids[:20])
-        )
+        lines.append("  Possible disruptions in encounters: " + ", ".join(dis_ids[:20]))
     return "\n".join(lines)
 
 
@@ -934,9 +939,7 @@ def run_episode_engine(
         except Exception as exc:
             logger.warning("Could not validate written episode: %s", exc)
 
-    stages = [
-        StageTrace.model_validate(d) for d in (final.get("stage_traces") or [])
-    ]
+    stages = [StageTrace.model_validate(d) for d in (final.get("stage_traces") or [])]
     return EpisodeEngineResult(
         patient_id=str(patient_id),
         episodes=episodes,

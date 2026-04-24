@@ -36,46 +36,91 @@ from services.analytics_api.app.services.headline_generator import (
 logger = logging.getLogger(__name__)
 
 
-def _run_groups(
-    client, scope, area, period, detail, limit, scope_label, patient_id=None,
-    confidence_min=0.5, context_filter="current",
-) -> AlgorithmResult:
-    """Leiden community detection -> natural patient groups."""
-    _ensure_projection(client, scope, PROJ_PATIENT_CONDITION)
-    gds = _gds_client_from_env()
-    coverage = _get_coverage(client, scope, area, period)
-    method = generate_method_text("groups", scope_label)
+_PERSIST_COMMUNITY_CYPHER = """
+UNWIND $rows AS row
+MATCH (p:Patient) WHERE id(p) = row.node_id
+SET p.variation_community_id = row.community_id,
+    p.variation_community_updated = datetime()
+RETURN count(p) AS n
+"""
 
-    # Leiden requires UNDIRECTED projection -- patient-condition is created
-    # via native gds.graph.project() with orientation: UNDIRECTED.
+
+def persist_patient_communities(
+    client: PatientGraphClient,
+    communities: List[Dict[str, Any]],
+) -> int:
+    """Write variation_community_id onto Patient nodes from a Leiden stream.
+
+    Idempotent: re-running overwrites the prior community assignment with
+    the latest Leiden result and bumps variation_community_updated.
+    """
+    if not communities:
+        return 0
+    rows = [
+        {"node_id": int(row["nodeId"]), "community_id": int(row["communityId"])}
+        for row in communities
+    ]
+    result = client.run(_PERSIST_COMMUNITY_CYPHER, rows=rows)
+    return int(result[0]["n"]) if result else 0
+
+
+def _stream_leiden_communities(gds) -> List[Dict[str, Any]]:
+    """Stream Leiden results and close the GDS client."""
     try:
         g = gds.graph.get(PROJ_PATIENT_CONDITION)
-        communities_df = gds.leiden.stream(g)
-        communities = communities_df.to_dict("records")
+        return gds.leiden.stream(g).to_dict("records")
     finally:
         gds.close()
 
+
+def _build_group_items(
+    client,
+    communities: List[Dict[str, Any]],
+    limit: int,
+) -> tuple[List[Dict[str, Any]], int]:
     community_sizes: Counter = Counter()
     community_members: Dict[int, List[int]] = {}
     for row in communities:
         cid = row["communityId"]
         community_sizes[cid] += 1
         community_members.setdefault(cid, []).append(int(row["nodeId"]))
-
     top_cids = [cid for cid, _ in community_sizes.most_common(limit)]
     top_map = {cid: community_members[cid] for cid in top_cids}
     enriched = _enrich_leiden_communities(client, top_map)
-
     items: List[Dict[str, Any]] = []
     for i, cid in enumerate(top_cids):
-        extra = enriched.get(cid, {})
-        items.append({"community_id": cid, "size": community_sizes[cid],
-                      "rank": i + 1, **extra})
+        items.append({
+            "community_id": cid,
+            "size": community_sizes[cid],
+            "rank": i + 1,
+            **enriched.get(cid, {}),
+        })
+    return items, len(community_sizes)
 
+
+def _run_groups(
+    client, scope, area, period, detail, limit, scope_label, patient_id=None,
+    confidence_min=0.5, context_filter="current", persist: bool = False,
+) -> AlgorithmResult:
+    """Leiden community detection -> natural patient groups.
+
+    When persist=True, writes variation_community_id to every Patient node
+    in the projection (not just the top `limit` communities) so downstream
+    variation queries can filter by community without a second Leiden run.
+    """
+    _ensure_projection(client, scope, PROJ_PATIENT_CONDITION)
+    gds = _gds_client_from_env()
+    coverage = _get_coverage(client, scope, area, period)
+    method = generate_method_text("groups", scope_label)
+    communities = _stream_leiden_communities(gds)
+    if persist:
+        written = persist_patient_communities(client, communities)
+        logger.info("Persisted community_id to %d Patient nodes", written)
+    items, total = _build_group_items(client, communities, limit)
     headline = generate_headline("groups", items, scope_label, detail)
     return AlgorithmResult(
         mission_id="groups", headline=headline, items=items,
-        total_count=len(community_sizes), coverage=coverage,
+        total_count=total, coverage=coverage,
         method_plain=method["plain"], method_technical=method["technical"],
         next_steps=NEXT_STEPS["groups"], detail_level=detail, data_available=True,
     )

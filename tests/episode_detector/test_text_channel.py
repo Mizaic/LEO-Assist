@@ -221,3 +221,111 @@ def test_every_auto_eligible_site_has_at_least_one_regex():
         assert (
             rb.signals.text_channel.regex_catalogue
         ), f"{site} default rulebook has empty text_channel.regex_catalogue"
+
+
+# ----------------------------------------------------------------------
+# Context-milestone signals (DI-2C015ADE)
+# ----------------------------------------------------------------------
+
+
+def test_context_signal_emitted_for_primary_care_investigations():
+    """A GP letter mentioning 'FBC' should fire a context_milestone
+    signal tagged primary_care_investigations for every installed
+    site (the context catalogue is site-scoped but generic primary-
+    care language intentionally fires across sites)."""
+    events = [_event("enc-1", "FBC and LFTs arranged, awaiting results.")]
+    signals = extract_text_signals(events)
+    context = [s for s in signals if s.role == "context_milestone"]
+    assert context, "expected context_milestone signals on FBC/LFT text"
+    pc = [s for s in context if s.context_tag == "primary_care_investigations"]
+    assert pc, "expected primary_care_investigations context tag"
+    # Every context signal carries the right intent + confidence.
+    for s in pc:
+        assert s.channel == "text"
+        assert s.intent == "suggested"
+        assert s.confidence == pytest.approx(0.55)
+        assert s.citation.startswith("Context mention: '")
+
+
+def test_specialist_diagnostics_is_site_specific():
+    """'colonoscopy' is site-specific. Only lower_gi should fire the
+    specialist_diagnostics context tag on this text; other sites must
+    not emit a specialist_diagnostics signal for the same snippet."""
+    events = [_event("enc-1", "Flexible sigmoidoscopy scheduled next week.")]
+    signals = extract_text_signals(events)
+    diag = [
+        s
+        for s in signals
+        if s.role == "context_milestone" and s.context_tag == "specialist_diagnostics"
+    ]
+    assert diag, "expected a specialist_diagnostics context signal"
+    sites = {s.site_key for s in diag}
+    assert sites == {"lower_gi"}, f"expected only lower_gi to fire, got {sites}"
+
+
+def test_referral_sent_fires_for_2ww_language():
+    events = [
+        _event(
+            "enc-1",
+            "2WW referral sent under suspected cancer pathway.",
+        )
+    ]
+    signals = extract_text_signals(events)
+    ref = [
+        s
+        for s in signals
+        if s.role == "context_milestone" and s.context_tag == "referral_sent"
+    ]
+    assert ref, "2WW referral language should raise referral_sent signals"
+    # The generic referral_sent pattern is shared across sites so
+    # multiple sites are expected to fire (dedup happens later, in
+    # the episode_engine consumer and voting layers).
+    assert len({s.site_key for s in ref}) >= 1
+
+
+def test_context_catalogue_promotion_gate_all_sites_all_tags():
+    """Every installed site must carry a non-empty catalogue for
+    each of the seven canonical context-tier milestone tags. The
+    gate guards against a site shipping without one of the seven
+    context surfaces wired, which would silently drop that class of
+    reviewer evidence."""
+    from libs.episode_detector.loader import DEFAULTS_DIR, load_rulebook
+    from libs.episode_detector.rulebook import CONTEXT_MILESTONE_TAGS
+    from pathlib import Path
+    from services.analysis_worker.app.episode_detector_v2 import (
+        site_keys as sk,
+    )
+
+    assert len(CONTEXT_MILESTONE_TAGS) == 7
+    for site in sk.ALL_SITES:
+        paths = sorted(Path(DEFAULTS_DIR).glob(f"{site}.v*.json"))
+        assert paths, f"no rulebook files for {site}"
+        # Every rulebook for the site (v0 and, where shipped, v1)
+        # must carry the seven-tag context catalogue in full.
+        for path in paths:
+            rb = load_rulebook(path)
+            cat = rb.signals.text_channel.context_role_catalogue
+            for tag in CONTEXT_MILESTONE_TAGS:
+                patterns = cat.get(tag) or ()
+                assert patterns, f"{path.name} missing context_role_catalogue[{tag!r}]"
+
+
+def test_diagnosis_and_context_signals_coexist_without_collision():
+    """An encounter mentioning both site-specific language and a
+    generic primary-care investigation must emit BOTH a diagnosis
+    signal (for the site) and a context_milestone signal -- they do
+    not clobber each other."""
+    events = [
+        _event(
+            "enc-1",
+            "GP appointment for suspected breast lump; bloods taken.",
+        )
+    ]
+    signals = extract_text_signals(events)
+    diag = [s for s in signals if s.role == "diagnosis" and s.site_key == "breast"]
+    ctx = [s for s in signals if s.role == "context_milestone"]
+    assert diag, "expected a breast diagnosis text signal"
+    assert ctx, "expected at least one context_milestone signal"
+    # context_tag is populated on context signals only.
+    assert all(s.context_tag for s in ctx)
+    assert all(not s.context_tag for s in diag)

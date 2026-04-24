@@ -22,6 +22,7 @@ import ListSubheader from "@mui/material/ListSubheader";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import type { MissionEpisode } from "@/lib/missionControlApi";
 import { getCancerTypeLabel } from "@/lib/pathwayLabels";
@@ -48,7 +49,14 @@ export { DialogActionsRow } from "./MilestoneCurationActions";
 // DI-50C7E89C, DI-F5E030ED.
 export type Stage = "pick" | "conflict" | "notice" | "confirm" | "result";
 export type Busy = "attach" | "detach" | "replace" | null;
-export type ExistingLink = { episodeId: string; milestoneType: string };
+export type ExistingLink = {
+  episodeId: string;
+  milestoneType: string;
+  /** "episode_engine" when AI-written; absent or other value for manual. */
+  linkedBy?: string | null;
+  /** Literal quote from the source encounter (populated by AI engine). */
+  evidenceQuote?: string | null;
+};
 
 // Slot-level conflict carried out of detectConflicts() so the
 // reviewer sees one entry per milestone slot they picked, even
@@ -213,11 +221,31 @@ export function PickStage({
             {existingLinks.map((link) => {
               const key = `${link.episodeId}:${link.milestoneType}`;
               const busy = busyLinkKey === key;
-              return (
+              const isAi = link.linkedBy === "episode_engine";
+              const chip = (
                 <Chip
                   key={key}
-                  label={milestoneLabel(link.milestoneType)}
-                  color="primary"
+                  label={
+                    isAi ? (
+                      <Box component="span" sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                        {milestoneLabel(link.milestoneType)}
+                        <Box
+                          component="span"
+                          sx={{
+                            fontSize: "0.65rem",
+                            fontWeight: 700,
+                            letterSpacing: "0.03em",
+                            opacity: 0.8,
+                          }}
+                        >
+                          AI
+                        </Box>
+                      </Box>
+                    ) : (
+                      milestoneLabel(link.milestoneType)
+                    )
+                  }
+                  color={isAi ? "secondary" : "primary"}
                   size="small"
                   onDelete={
                     busy ? undefined : () => onRemoveExistingLink(link)
@@ -228,8 +256,30 @@ export function PickStage({
                     ) : undefined
                   }
                   data-testid={`milestone-dialog-existing-chip-${link.milestoneType}`}
+                  data-ai-written={isAi ? "true" : undefined}
                 />
               );
+              if (isAi && link.evidenceQuote) {
+                return (
+                  <Tooltip
+                    key={key}
+                    title={
+                      <Box>
+                        <Typography variant="caption" fontWeight={700} display="block">
+                          AI evidence
+                        </Typography>
+                        <Typography variant="caption">
+                          &ldquo;{link.evidenceQuote}&rdquo;
+                        </Typography>
+                      </Box>
+                    }
+                    arrow
+                  >
+                    <span>{chip}</span>
+                  </Tooltip>
+                );
+              }
+              return chip;
             })}
           </Box>
         </Box>

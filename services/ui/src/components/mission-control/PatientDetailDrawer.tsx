@@ -13,7 +13,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import Drawer from "@mui/material/Drawer";
+import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
 import Snackbar from "@mui/material/Snackbar";
 import Tab from "@mui/material/Tab";
@@ -46,8 +46,6 @@ const EPISODE_CURATOR_ROLES = new Set([
   "qa_ra_lead",
   "platform_admin",
 ]);
-
-const DRAWER_WIDTH = "62vw";
 
 type DrawerTab = "overview" | "coded" | "encounters" | "audit";
 
@@ -313,12 +311,20 @@ export default function PatientDetailDrawer({
   };
 
   return (
-    <Drawer
-      anchor="right"
+    <Dialog
       open
       onClose={onClose}
+      maxWidth="xl"
+      fullWidth
       PaperProps={{
-        sx: { width: DRAWER_WIDTH, maxWidth: "95vw" },
+        sx: {
+          height: "92vh",
+          maxHeight: "92vh",
+          borderRadius: 2,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        },
       }}
     >
       {/* Header */}
@@ -608,6 +614,6 @@ export default function PatientDetailDrawer({
           review&quot; or &quot;All pathways&quot; to see it in the list.
         </Alert>
       </Snackbar>
-    </Drawer>
+    </Dialog>
   );
 }

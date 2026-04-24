@@ -4231,7 +4231,14 @@ export default function GoldDatasetPanel() {
           value={tab}
           onChange={(id) => handleTabChange({} as React.SyntheticEvent, id as typeof tab)}
           tabs={[
-            { id: "candidates", label: "Candidates", count: candidateStats?.total },
+            {
+              id: "candidates",
+              label: "Candidates",
+              count:
+                candidateStats != null
+                  ? candidateStats.total - candidateStats.completed
+                  : undefined,
+            },
             { id: "gold", label: "Verified gold", count: goldStats?.total },
             { id: "synthetic", label: "Synthetic", count: syntheticStats?.synthetic_gold_labels },
           ]}

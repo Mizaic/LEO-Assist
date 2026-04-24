@@ -198,7 +198,13 @@ describe("VT-900E2453 - milestone vocabulary parity", () => {
     expect(src).not.toMatch(/"referral_sent"/);
   });
 
-  it("VT-900E2453-TC-006: engine schema Milestone.type Literal is the pathway 8 only (no context-tier drift)", () => {
+  it("VT-900E2453-TC-006: engine schema Milestone.type Literal covers the full 15 values (8 pathway + 7 context)", () => {
+    // Policy change: DI-2C015ADE supersedes DI-50C7E89C. The AI
+    // engine now emits context-tier milestones; presence forces
+    // the episode's confidence_tier off "auto" so every emission
+    // is human-reviewed (see voting.assign_confidence_tier).
+    // care_obstruction is still emitted by the anchor detector,
+    // not the LLM, so it stays out of Milestone.type.
     const schemaSrc = fs.readFileSync(
       path.join(
         ROOT,
@@ -212,14 +218,43 @@ describe("VT-900E2453 - milestone vocabulary parity", () => {
     expect(milestoneClass).not.toBeNull();
     const literalBody = milestoneClass![1];
     const values = [...literalBody.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
-    const expected = PATHWAY_VALUES.filter((v) => v !== "care_obstruction");
+    const pathwayLLM = PATHWAY_VALUES.filter((v) => v !== "care_obstruction");
+    const expected = [...pathwayLLM, ...CONTEXT_VALUES];
     expect(new Set(values)).toEqual(new Set(expected));
     expect(values.length).toBe(expected.length);
-    // Drift guard: the AI engine MUST NOT learn the context tier --
-    // those slots are curator-only.
-    for (const ctx of CONTEXT_VALUES) {
-      expect(literalBody).not.toMatch(new RegExp(`"${ctx}"`));
-    }
+    // Reverse drift guard: care_obstruction still must NOT appear
+    // in the LLM schema -- it is an anchor-detector output.
+    expect(literalBody).not.toMatch(/"care_obstruction"/);
+  });
+
+  it("VT-900E2453-TC-006a: engine schema declares PATHWAY_MILESTONE_TYPES and CONTEXT_MILESTONE_TYPES tuples that match the UI vocabulary", () => {
+    // The two tuples are imported by prompts and the writer so they
+    // cannot drift from the Literal.
+    const schemaSrc = fs.readFileSync(
+      path.join(
+        ROOT,
+        "services/analysis_worker/app/episode_engine/schemas.py"
+      ),
+      "utf-8"
+    );
+    const pathwayTuple = schemaSrc.match(
+      /PATHWAY_MILESTONE_TYPES:\s*tuple\[str,\s*\.\.\.\]\s*=\s*\(([\s\S]*?)\)/
+    );
+    expect(pathwayTuple).not.toBeNull();
+    const pathwayValues = [
+      ...pathwayTuple![1].matchAll(/"([a-z_]+)"/g),
+    ].map((m) => m[1]);
+    const pathwayLLM = PATHWAY_VALUES.filter((v) => v !== "care_obstruction");
+    expect(new Set(pathwayValues)).toEqual(new Set(pathwayLLM));
+
+    const contextTuple = schemaSrc.match(
+      /CONTEXT_MILESTONE_TYPES:\s*tuple\[str,\s*\.\.\.\]\s*=\s*\(([\s\S]*?)\)/
+    );
+    expect(contextTuple).not.toBeNull();
+    const contextValues = [
+      ...contextTuple![1].matchAll(/"([a-z_]+)"/g),
+    ].map((m) => m[1]);
+    expect(new Set(contextValues)).toEqual(new Set(CONTEXT_VALUES));
   });
 
   it("VT-900E2453-TC-007: _TREATMENT_MILESTONES roll-up set includes treatment_completed", () => {
@@ -267,6 +302,8 @@ describe("VT-900E2453 - milestone vocabulary parity", () => {
     // Must distinguish AI-populated from manual-only so reviewers
     // immediately see which tier they are picking from.
     expect(src).toMatch(/pathway:\s*"Pathway events \(AI also fills these\)"/);
-    expect(src).toMatch(/context:\s*"Supporting context \(manual only\)"/);
+    expect(src).toMatch(
+      /context:\s*"Supporting context \(AI suggests, curator confirms\)"/
+    );
   });
 });

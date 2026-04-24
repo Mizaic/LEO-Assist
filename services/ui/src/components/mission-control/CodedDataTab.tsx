@@ -37,6 +37,9 @@ interface ConceptRow {
   assertion: string;
   confidence: number | null;
   source: string | null;
+  value: number | null;
+  unit: string | null;
+  reference_range: string | null;
 }
 
 function AssertionChip({ assertion }: { assertion: string }) {
@@ -55,6 +58,37 @@ function AssertionChip({ assertion }: { assertion: string }) {
       variant="outlined"
       sx={{ fontSize: "0.65rem" }}
     />
+  );
+}
+
+function ObsValueCell({
+  value,
+  unit,
+  referenceRange,
+  semanticTag,
+}: {
+  value: number | null;
+  unit: string | null;
+  referenceRange: string | null;
+  semanticTag: string;
+}) {
+  const isObs =
+    semanticTag.toLowerCase().replace(/\s/g, "") === "observableentity";
+  if (!isObs) return <TableCell />;
+  if (value == null && !unit) return <TableCell sx={{ color: "text.disabled", fontSize: "0.7rem" }}>--</TableCell>;
+  const label = [
+    value != null ? String(value) : "",
+    unit ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const tooltip = referenceRange ? `Ref: ${referenceRange}` : undefined;
+  return (
+    <Tooltip title={tooltip ?? ""} arrow disableHoverListener={!tooltip}>
+      <TableCell sx={{ fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+        {label}
+      </TableCell>
+    </Tooltip>
   );
 }
 
@@ -164,36 +198,43 @@ export default function CodedDataTab({ patientId, episode, refreshKey = 0 }: Pro
         />
       </Box>
       <Table size="small" stickyHeader>
-        <TableHead>
-          <TableRow>
-            <TableCell>Date</TableCell>
-            <TableCell>Concept</TableCell>
-            <TableCell>SNOMED code</TableCell>
-            <TableCell>Type</TableCell>
-            <TableCell>Assertion</TableCell>
-            <TableCell>Confidence</TableCell>
-            <TableCell>Source</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {keyedVisibleRows.map(({ row, key }) => (
-            <TableRow key={key} hover>
-              <TableCell sx={{ whiteSpace: "nowrap" }}>
-                {row.encounter_date?.slice(0, 10) ?? "--"}
-              </TableCell>
-              <TableCell>{row.concept_name}</TableCell>
-              <TableCell sx={{ fontFamily: "monospace", fontSize: "0.7rem" }}>
-                {row.concept_id}
-              </TableCell>
-              <TableCell sx={{ fontSize: "0.7rem" }}>{row.semantic_tag}</TableCell>
-              <TableCell>
-                <AssertionChip assertion={row.assertion} />
-              </TableCell>
-              <ConfidenceCell confidence={row.confidence} />
-              <TableCell sx={{ fontSize: "0.7rem" }}>{row.source ?? "model"}</TableCell>
+          <TableHead>
+            <TableRow>
+              <TableCell>Date</TableCell>
+              <TableCell>Concept</TableCell>
+              <TableCell>SNOMED code</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Value / unit</TableCell>
+              <TableCell>Assertion</TableCell>
+              <TableCell>Confidence</TableCell>
+              <TableCell>Source</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
+          </TableHead>
+          <TableBody>
+            {keyedVisibleRows.map(({ row, key }) => (
+              <TableRow key={key} hover>
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  {row.encounter_date?.slice(0, 10) ?? "--"}
+                </TableCell>
+                <TableCell>{row.concept_name}</TableCell>
+                <TableCell sx={{ fontFamily: "monospace", fontSize: "0.7rem" }}>
+                  {row.concept_id}
+                </TableCell>
+                <TableCell sx={{ fontSize: "0.7rem" }}>{row.semantic_tag}</TableCell>
+                <ObsValueCell
+                  value={row.value}
+                  unit={row.unit}
+                  referenceRange={row.reference_range}
+                  semanticTag={row.semantic_tag}
+                />
+                <TableCell>
+                  <AssertionChip assertion={row.assertion} />
+                </TableCell>
+                <ConfidenceCell confidence={row.confidence} />
+                <TableCell sx={{ fontSize: "0.7rem" }}>{row.source ?? "model"}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
       </Table>
       {scope === "linked" && !hasExplicitLinks && (
         <Alert severity="warning" sx={{ mt: 2 }}>

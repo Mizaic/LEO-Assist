@@ -136,6 +136,36 @@ def _merge_resolution(
     return merged
 
 
+def _dedup_by_concept_id(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Remove duplicate resolved entities that share a concept_id.
+
+    Multi-classification produces distinct (surface_form, entity_type) pairs
+    that should resolve to different concepts.  Any that collide -- same
+    concept_id returned for different entity types -- are deduplicated by
+    keeping the highest-scoring candidate so the graph MERGE produces one
+    :DOCUMENTS link rather than a phantom duplicate.
+
+    Unresolved entities (terminology_unresolved=True or no concept_id) are
+    always kept regardless.
+    """
+    seen: dict[str, dict[str, Any]] = {}
+    kept: list[dict[str, Any]] = []
+    for ent in entities:
+        concept_id = str(ent.get("concept_id") or "").strip()
+        if not concept_id or ent.get("terminology_unresolved"):
+            kept.append(ent)
+            continue
+        existing = seen.get(concept_id)
+        if existing is None:
+            seen[concept_id] = ent
+            kept.append(ent)
+        elif float(ent.get("score") or 0) > float(existing.get("score") or 0):
+            kept.remove(existing)
+            seen[concept_id] = ent
+            kept.append(ent)
+    return kept
+
+
 def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
     entities = state.get("entities") or []
     expected_tags = state.get("expected_tags") or {}
@@ -177,6 +207,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             )
         fix_double_negated_situations(resolved)
         fix_polarity_encoded_findings(resolved)
+        resolved = _dedup_by_concept_id(resolved)
         return {"entities": resolved, "resolved_entities": resolved, "errors": errors}
     except Exception as exc:
         logger.exception("Terminology resolution failed")

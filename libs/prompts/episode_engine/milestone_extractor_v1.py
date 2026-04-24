@@ -24,8 +24,10 @@ from __future__ import annotations
 from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.prompts.episode_engine._shared import (
     BREAST_REFERENCE_CASE,
+    CONTEXT_MILESTONE_RULES,
+    CONTEXT_MILESTONE_TYPE_LIST,
     DISRUPTION_CATEGORY_LIST,
-    MILESTONE_TYPE_LIST,
+    PATHWAY_MILESTONE_TYPE_LIST,
     PRESENTATION_PLACE_LIST,
     RULES_OF_THE_ROAD,
     TREATMENT_TYPE_LIST,
@@ -37,9 +39,16 @@ TOOL_NAME = "submit_milestones"
 SYSTEM = INJECTION_GUARD + (
     "You are a UK primary care cancer pathway analyst. You are given the\n"
     "full text of every encounter within ONE candidate episode window.\n"
-    "Extract the canonical milestones from the window:\n"
-    f"  {MILESTONE_TYPE_LIST}\n\n"
-    "Rules for milestones:\n"
+    "Extract milestones from the window. There are TWO tiers:\n\n"
+    "  PATHWAY tier (anchor the episode timeline, feed date roll-ups):\n"
+    f"    {PATHWAY_MILESTONE_TYPE_LIST}\n\n"
+    "  CONTEXT tier (supporting evidence for the reviewer narrative,\n"
+    "    NEVER feed date roll-ups):\n"
+    f"    {CONTEXT_MILESTONE_TYPE_LIST}\n\n"
+    "You MAY emit both pathway and context milestones for the same\n"
+    "encounter when both apply (e.g. a biopsy-result letter can be\n"
+    "both 'diagnosis_confirmed' and 'related_correspondence').\n\n"
+    "Rules for PATHWAY milestones:\n"
     "  - first_presentation    : the FIRST encounter on this pathway where\n"
     "                            the patient presented in PRIMARY CARE\n"
     "                            with the symptom(s) that ultimately led\n"
@@ -184,6 +193,8 @@ SYSTEM = INJECTION_GUARD + (
     "    the disruption (not an admin echo).\n"
     "  - If no disruptions are evident in the window, return an\n"
     "    empty disruptions list. Do not invent.\n\n"
+    + CONTEXT_MILESTONE_RULES
+    + "\n"
     + RULES_OF_THE_ROAD
     + "\n\n"
     + BREAST_REFERENCE_CASE
@@ -202,13 +213,15 @@ USER_TEMPLATE = (
     "<encounters>\n"
     "{window_full_text}\n"
     "</encounters>\n"
+    "{context_hints_block}\n"
     "\n"
-    "Extract THREE things from these encounters. ALL THREE are\n"
+    "Extract FOUR things from these encounters. ALL FOUR are\n"
     "REQUIRED in your response (the schema rejects payloads that\n"
     "omit any of them):\n"
     "\n"
-    "  1. milestones -- the canonical pathway events. Each milestone\n"
-    "     needs encounter_id and a literal evidence_quote. If no\n"
+    "  1. milestones -- the canonical pathway events AND context\n"
+    "     milestones (see step 4 below). Each milestone needs\n"
+    "     encounter_id and a literal evidence_quote. If no\n"
     "     milestones are present, return milestones=[].\n"
     "\n"
     "  2. safety_netting -- BEFORE you decide, you MUST scan EVERY\n"
@@ -256,7 +269,8 @@ USER_TEMPLATE = (
     "       'staff sickness ... cancelled'        -> appointment_cancelled_by_trust\n"
     "       'awaiting result' / 'result not back' /\n"
     "       'no result yet' / 'chasing histology' /\n"
-    "       'awaiting biopsy'                     -> result_not_received_in_primary_care\n"
+    "       'awaiting biopsy'         "
+    "            -> result_not_received_in_primary_care\n"
     "       'letter dated ... received' /\n"
     "       'late letter'                         -> letter_received_late\n"
     "       'unable to contact' / 'no answer' /\n"
@@ -275,6 +289,32 @@ USER_TEMPLATE = (
     "     at UK reading age 9-11), encounter_id, evidence_quote\n"
     "     (literal substring), and confidence. If after a deliberate\n"
     "     scan you find no matches, return disruptions=[].\n"
+    "\n"
+    "  4. context milestones -- YOU MUST do this step. If a\n"
+    "     CONTEXT MILESTONE HINTS block appears above, work through\n"
+    "     EVERY line. For each listed encounter ID, apply this\n"
+    "     three-gate test before emitting:\n"
+    "       GATE A -- date: the encounter date must fall within\n"
+    "         window_start to window_end. Skip out-of-window hints.\n"
+    "       GATE B -- literal evidence: find the exact encounter text\n"
+    "         in the <encounters> block above. You MUST be able to\n"
+    "         quote a literal substring that clearly matches the\n"
+    "         named context type (e.g. 'Fast track referral' for\n"
+    "         referral_sent, '(New Episode)' biopsy code for\n"
+    "         specialist_diagnostics, 'Clinic Letter to' for\n"
+    "         related_correspondence). If no such substring exists\n"
+    "         in that encounter's text, SKIP -- do not force it.\n"
+    "       GATE C -- episode relevance (advisory, err toward\n"
+    "         recall): only skip if the encounter is OBVIOUSLY about\n"
+    "         a completely different, unrelated condition (e.g. a\n"
+    "         diabetes annual review hinted as specialist_diagnostics\n"
+    "         on a breast cancer pathway). If it is plausible that\n"
+    "         the encounter relates to this episode, include it.\n"
+    "         When in doubt, include rather than skip.\n"
+    "     Only gate A and gate B are hard gates. Gate C is advisory.\n"
+    "     Failed gate A or B = skip. Uncertain gate C = include.\n"
+    "     If no CONTEXT MILESTONE HINTS block is present, scan the\n"
+    "     encounters yourself for any context-tier milestones.\n"
     "\n"
     "Respond by calling the submit_milestones tool ONCE with a single\n"
     "JSON object. Array fields ('milestones', 'disruptions') MUST be\n"
@@ -375,6 +415,7 @@ SCHEMA: dict = {
                     "type": {
                         "type": "string",
                         "enum": [
+                            # Pathway tier -- feed date roll-ups
                             "first_presentation",
                             "referral",
                             "first_seen",
@@ -383,6 +424,15 @@ SCHEMA: dict = {
                             "treatment_started",
                             "treatment_completed",
                             "benign_closure",
+                            # Context tier -- reviewer narrative
+                            # (DI-2C015ADE, never feed date roll-ups)
+                            "related_gp_visit",
+                            "primary_care_investigations",
+                            "referral_admin",
+                            "referral_sent",
+                            "related_specialist_visit",
+                            "specialist_diagnostics",
+                            "related_correspondence",
                         ],
                     },
                     "date": {"type": "string", "description": "YYYY-MM-DD"},

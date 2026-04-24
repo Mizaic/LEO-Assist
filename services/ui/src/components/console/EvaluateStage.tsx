@@ -47,7 +47,7 @@ import EditNoteIcon from "@mui/icons-material/EditNote";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import {
   BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
-  Tooltip as RTooltip, ResponsiveContainer,
+  Tooltip as RTooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import { TrainingJob } from "./useConsoleState";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -1118,7 +1118,7 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
           <ScoreCard label="Precision" value={doneJob.precision} pass={(doneJob.precision ?? 0) >= 0.8} />
           <ScoreCard label="Recall" value={doneJob.recall} pass={(doneJob.recall ?? 0) >= 0.75} />
-          <ScoreCard label="F1" value={doneJob.f1} pass={(doneJob.f1 ?? 0) >= 0.77} />
+          <ScoreCard label="F1" value={doneJob.f1} pass={(doneJob.f1 ?? 0) >= 0.85} />
           {doneJob.golden_f1 != null && (
             <ScoreCard
               label="Golden F1"
@@ -1132,6 +1132,19 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       {!doneJob && (
         <Alert severity="info">
           Finish a training run first. Then this page will show learning scores and next steps.
+        </Alert>
+      )}
+
+      {doneJob?.label_gate_failures && doneJob.label_gate_failures.length > 0 && (
+        <Alert severity="error" sx={{ fontSize: "0.8rem" }}>
+          <strong>Per-label F1 gate failed.</strong> The following entity types
+          did not meet their minimum F1 threshold. This model cannot be promoted
+          until these are resolved.
+          <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 2 }}>
+            {doneJob.label_gate_failures.map((msg) => (
+              <li key={msg}>{msg}</li>
+            ))}
+          </Box>
         </Alert>
       )}
 
@@ -1163,6 +1176,11 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
       )}
       {!doneJob && (
         <Alert severity="info">No training result yet to test.</Alert>
+      )}
+      {doneJob?.passed_gates === false && doneJob.label_gate_failures && doneJob.label_gate_failures.length > 0 && (
+        <Alert severity="warning" sx={{ fontSize: "0.8rem" }}>
+          <strong>This model has training gate warnings.</strong> It has been uploaded so you can inspect it, but {doneJob.label_gate_failures.length} label{doneJob.label_gate_failures.length > 1 ? "s" : ""} did not reach their minimum F1. Review the scores in step 1 before running a safety test.
+        </Alert>
       )}
       {selectedNeedsTrainingGate && (
         <Alert severity="warning">
@@ -2035,6 +2053,17 @@ export function EvaluateStage({ jobs, latestJob, promotedVersion }: EvaluateStag
               </Alert>
             )}
 
+            {canaryPass && doneJob?.passed_gates === false && doneJob.label_gate_failures && doneJob.label_gate_failures.length > 0 && (
+              <Alert severity="warning" sx={{ mb: 1.5, fontSize: "0.8rem" }}>
+                <strong>Training gate warnings remain.</strong> The safety test passed, but {doneJob.label_gate_failures.length} entity type{doneJob.label_gate_failures.length > 1 ? "s" : ""} did not meet their minimum F1 during training. Check the scores above before promoting.
+                <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 2 }}>
+                  {doneJob.label_gate_failures.map((msg) => (
+                    <li key={msg}>{msg}</li>
+                  ))}
+                </Box>
+              </Alert>
+            )}
+
             {goldJob?.status === "completed" && canaryPerLabelRows.length ? (
               <Accordion disableGutters>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -2314,9 +2343,10 @@ function PerLabelChart({ perLabel }: { perLabel: Record<string, { f1: number }> 
           <RTooltip
             formatter={(v) => `${((typeof v === "number" ? v : 0) * 100).toFixed(1)}%`}
           />
+          <ReferenceLine x={0.85} stroke="#1565c0" strokeDasharray="4 3" strokeWidth={1.5} label={{ value: "AC 85%", position: "insideTopRight", fontSize: 10, fill: "#1565c0" }} />
           <Bar dataKey="f1" maxBarSize={16} radius={[0, 3, 3, 0]}>
             {data.map((d) => (
-              <Cell key={d.label} fill={d.f1 >= 0.8 ? "#2e7d32" : d.f1 >= 0.6 ? "#ed6c02" : "#d32f2f"} />
+              <Cell key={d.label} fill={d.f1 >= 0.85 ? "#2e7d32" : d.f1 >= 0.6 ? "#ed6c02" : "#d32f2f"} />
             ))}
           </Bar>
         </BarChart>

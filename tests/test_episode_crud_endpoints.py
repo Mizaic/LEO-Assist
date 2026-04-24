@@ -65,10 +65,7 @@ def _non_curator_role_state() -> RoleState:
 class TestCreateEpisode:
     """VT-EFA1A6E2 - happy-path create + audit + initial encounter links."""
 
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_admin_creates_with_initial_encounter(self, MockPG):
         from services.analytics_api.app.routers.episode_crud import (
             EpisodeCreateRequest,
@@ -106,10 +103,7 @@ class TestCreateEpisode:
         assert result["patient_id"] == "P-1"
         assert result["episode_id"].startswith("ep-manual-")
 
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_invalid_milestone_type_rejected(self, MockPG):
         from services.analytics_api.app.routers.episode_crud import (
             EpisodeCreateRequest,
@@ -139,17 +133,10 @@ class TestCreateEpisode:
 class TestUpdateEpisode:
     @patch(
         "libs.auth.role_state.fetch_role_state",
-        return_value=RoleState(
-            selected_role="clinician", allowed_roles=["clinician"]
-        ),
+        return_value=RoleState(selected_role="clinician", allowed_roles=["clinician"]),
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
-    def test_sparse_patch_writes_only_supplied_fields(
-        self, MockPG, _mock_role
-    ):
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
+    def test_sparse_patch_writes_only_supplied_fields(self, MockPG, _mock_role):
         from services.analytics_api.app.routers.episode_crud import (
             EpisodeUpdateRequest,
             update_episode,
@@ -166,19 +153,14 @@ class TestUpdateEpisode:
         ]
 
         body = EpisodeUpdateRequest(cancer_type="lung")
-        result = update_episode(
-            episode_id="ep-1", body=body, scope=_gp_scope()
-        )
+        result = update_episode(episode_id="ep-1", body=body, scope=_gp_scope())
         assert result["updated_fields"] == ["cancer_type"]
         # The SET clause must mention the updated field and only that field.
         set_call = client.run.call_args_list[2]
         assert "cancer_type" in set_call.args[0]
         assert "audit_notes" not in set_call.args[0]
 
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_empty_patch_rejected(self, MockPG):
         from services.analytics_api.app.routers.episode_crud import (
             EpisodeUpdateRequest,
@@ -203,10 +185,7 @@ class TestUpdateEpisode:
 class TestDeleteEpisode:
     """VT-7C0B6121 - the type-the-id gate must reject mismatches."""
 
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_confirm_id_mismatch_rejected_before_graph_write(self, MockPG):
         from services.analytics_api.app.routers.episode_crud import (
             EpisodeDeleteRequest,
@@ -215,9 +194,7 @@ class TestDeleteEpisode:
 
         body = EpisodeDeleteRequest(confirm_episode_id="WRONG-ID")
         with pytest.raises(HTTPException) as exc:
-            delete_episode(
-                episode_id="ep-1", body=body, scope=_admin_scope()
-            )
+            delete_episode(episode_id="ep-1", body=body, scope=_admin_scope())
         assert exc.value.status_code == 400
         assert "confirm_episode_id" in exc.value.detail
         # Critically: no PatientGraphClient was instantiated, so no
@@ -226,17 +203,10 @@ class TestDeleteEpisode:
 
     @patch(
         "libs.auth.role_state.fetch_role_state",
-        return_value=RoleState(
-            selected_role="clinician", allowed_roles=["clinician"]
-        ),
+        return_value=RoleState(selected_role="clinician", allowed_roles=["clinician"]),
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
-    def test_confirm_id_match_proceeds_to_detach_delete(
-        self, MockPG, _mock_role
-    ):
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
+    def test_confirm_id_match_proceeds_to_detach_delete(self, MockPG, _mock_role):
         from services.analytics_api.app.routers.episode_crud import (
             EpisodeDeleteRequest,
             delete_episode,
@@ -252,9 +222,7 @@ class TestDeleteEpisode:
         ]
 
         body = EpisodeDeleteRequest(confirm_episode_id="ep-1")
-        result = delete_episode(
-            episode_id="ep-1", body=body, scope=_gp_scope()
-        )
+        result = delete_episode(episode_id="ep-1", body=body, scope=_gp_scope())
         assert result["success"] is True
         delete_call = client.run.call_args_list[2]
         assert "DETACH DELETE" in delete_call.args[0]
@@ -270,9 +238,7 @@ class TestRoleGating:
 
     @patch(
         "libs.auth.role_state.fetch_role_state",
-        return_value=RoleState(
-            selected_role="developer", allowed_roles=["developer"]
-        ),
+        return_value=RoleState(selected_role="developer", allowed_roles=["developer"]),
     )
     def test_developer_role_cannot_create_episode(self, _mock_role):
         from services.analytics_api.app.routers.episode_crud import (
@@ -292,10 +258,7 @@ class TestRoleGating:
             selected_role="qa_ra_lead", allowed_roles=["qa_ra_lead"]
         ),
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_qa_ra_lead_can_update_episode(self, MockPG, _mock_role):
         from services.analytics_api.app.routers.episode_crud import (
             EpisodeUpdateRequest,
@@ -330,17 +293,10 @@ class TestOrgScopeDenial:
 
     @patch(
         "libs.auth.role_state.fetch_role_state",
-        return_value=RoleState(
-            selected_role="clinician", allowed_roles=["clinician"]
-        ),
+        return_value=RoleState(selected_role="clinician", allowed_roles=["clinician"]),
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
-    def test_update_returns_404_when_gp_id_not_in_scope(
-        self, MockPG, _mock_role
-    ):
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
+    def test_update_returns_404_when_gp_id_not_in_scope(self, MockPG, _mock_role):
         from services.analytics_api.app.routers.episode_crud import (
             EpisodeUpdateRequest,
             update_episode,
@@ -374,17 +330,10 @@ class TestDateRederivation:
     """VT-19BB6F1F - attach / detach must call recompute_episode_dates."""
 
     @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_status"
+        "services.analytics_api.app.routers." "episode_crud.recompute_episode_status"
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_dates"
-    )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.recompute_episode_dates")
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_attach_invokes_recompute(
         self, MockPG, mock_recompute, mock_recompute_status
     ):
@@ -424,17 +373,10 @@ class TestDateRederivation:
         assert result["status_change"]["changed"] is False
 
     @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_status"
+        "services.analytics_api.app.routers." "episode_crud.recompute_episode_status"
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_dates"
-    )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.recompute_episode_dates")
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_detach_invokes_recompute(
         self, MockPG, mock_recompute, mock_recompute_status
     ):
@@ -469,10 +411,7 @@ class TestDateRederivation:
         assert result["status_change"]["changed"] is True
         assert result["status_change"]["status"] == "active"
 
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_detach_returns_404_when_no_edge(self, MockPG):
         from services.analytics_api.app.routers.episode_crud import (
             detach_encounter_from_episode,
@@ -505,18 +444,11 @@ class TestMultiSlotEncounter:
     idempotent re-MERGE short-circuit, and the per-slot detach path."""
 
     @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_status",
+        "services.analytics_api.app.routers." "episode_crud.recompute_episode_status",
         return_value={"status": None, "previous_status": None, "changed": False},
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_dates"
-    )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.recompute_episode_dates")
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_attach_merge_cypher_keys_on_milestone_type(
         self, MockPG, mock_recompute, _mock_status
     ):
@@ -555,16 +487,10 @@ class TestMultiSlotEncounter:
         assert merge_call.kwargs["mt"] == "referral"
 
     @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.write_episode_audit_event"
+        "services.analytics_api.app.routers." "episode_crud.write_episode_audit_event"
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
-    def test_attach_same_slot_is_idempotent_no_op(
-        self, MockPG, mock_audit
-    ):
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
+    def test_attach_same_slot_is_idempotent_no_op(self, MockPG, mock_audit):
         """TC-002: re-attaching the same (encounter, episode, slot)
         triple returns already_linked=true and skips the audit write."""
         from services.analytics_api.app.routers.episode_crud import (
@@ -592,18 +518,11 @@ class TestMultiSlotEncounter:
         assert client.run.call_count == 2
 
     @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_status",
+        "services.analytics_api.app.routers." "episode_crud.recompute_episode_status",
         return_value={"status": None, "previous_status": None, "changed": False},
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_dates"
-    )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.recompute_episode_dates")
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_detach_with_milestone_type_filters_by_slot(
         self, MockPG, mock_recompute, _mock_status
     ):
@@ -639,18 +558,11 @@ class TestMultiSlotEncounter:
         assert result["milestone_type"] == "referral"
 
     @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_status",
+        "services.analytics_api.app.routers." "episode_crud.recompute_episode_status",
         return_value={"status": None, "previous_status": None, "changed": False},
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_dates"
-    )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.recompute_episode_dates")
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_detach_without_milestone_type_deletes_all_edges(
         self, MockPG, mock_recompute, _mock_status
     ):
@@ -686,18 +598,11 @@ class TestMultiSlotEncounter:
         assert result["milestone_type"] is None
 
     @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_status",
+        "services.analytics_api.app.routers." "episode_crud.recompute_episode_status",
         return_value={"status": None, "previous_status": None, "changed": False},
     )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.recompute_episode_dates"
-    )
-    @patch(
-        "services.analytics_api.app.routers."
-        "episode_crud.PatientGraphClient"
-    )
+    @patch("services.analytics_api.app.routers." "episode_crud.recompute_episode_dates")
+    @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_detach_accepts_legacy_milestone_type(
         self, MockPG, mock_recompute, _mock_status
     ):
@@ -743,16 +648,12 @@ class TestMultiSlotEncounter:
 
         client = MagicMock()
         client.run.return_value = [{"n": 2}]
-        assert encounter_slot_edge_exists(
-            client, "E-1", "ep-1", "referral"
-        ) is True
+        assert encounter_slot_edge_exists(client, "E-1", "ep-1", "referral") is True
         cypher = client.run.call_args[0][0]
         assert "[r:IS_PART_OF {milestone_type: $mt}]" in cypher
 
         client.run.return_value = [{"n": 0}]
-        assert encounter_slot_edge_exists(
-            client, "E-1", "ep-1", "referral"
-        ) is False
+        assert encounter_slot_edge_exists(client, "E-1", "ep-1", "referral") is False
 
 
 # ---------------------------------------------------------------------------
@@ -850,9 +751,9 @@ class TestRecomputeEpisodeStatus:
         ):
             client = self._client_with(protected, ["diagnosis_confirmed"])
             result = recompute_episode_status(client, "ep-1")
-            assert result["changed"] is False, (
-                f"protected status {protected} must not be overwritten"
-            )
+            assert (
+                result["changed"] is False
+            ), f"protected status {protected} must not be overwritten"
             assert client.run.call_count == 1
 
     def test_review_status_is_left_alone_until_evidence_present(self):
@@ -978,9 +879,7 @@ class TestManualCreateLifecycleDefaults:
             is_admin=True,
             org_ids=[],
         )
-        body = EpisodeCreateRequest(
-            patient_id="pat-1", cancer_type="breast"
-        )
+        body = EpisodeCreateRequest(patient_id="pat-1", cancer_type="breast")
 
         _create_episode_node(client, body, scope, "ep-test")
 
@@ -1003,9 +902,9 @@ def test_patch_episode_review_clears_both_review_flags():
     import re
     from pathlib import Path
 
-    src = Path(
-        "services/analytics_api/app/routers/mission_control.py"
-    ).read_text(encoding="utf-8")
+    src = Path("services/analytics_api/app/routers/mission_control.py").read_text(
+        encoding="utf-8"
+    )
     # Find the patch_episode_review function body and assert the
     # Cypher clears both flags.
     body = src.split("def patch_episode_review", 1)[1].split("\n\n@", 1)[0]
@@ -1022,9 +921,9 @@ def test_close_episode_clears_both_review_flags():
     import re
     from pathlib import Path
 
-    src = Path(
-        "services/analytics_api/app/routers/dashboards.py"
-    ).read_text(encoding="utf-8")
+    src = Path("services/analytics_api/app/routers/dashboards.py").read_text(
+        encoding="utf-8"
+    )
     body = src.split("def close_episode", 1)[1].split("\n\n@", 1)[0]
     assert re.search(r"ep\.needs_review\s*=\s*false", body)
     assert re.search(r"ep\.needs_human_review\s*=\s*false", body)
@@ -1035,9 +934,9 @@ def test_merge_endpoint_clears_both_review_flags():
     import re
     from pathlib import Path
 
-    src = Path(
-        "services/analytics_api/app/routers/dashboards.py"
-    ).read_text(encoding="utf-8")
+    src = Path("services/analytics_api/app/routers/dashboards.py").read_text(
+        encoding="utf-8"
+    )
     body = src.split("def merge_episodes_endpoint", 1)[1].split("\n\n@", 1)[0]
     assert re.search(r"ep\.needs_review\s*=\s*false", body)
     assert re.search(r"ep\.needs_human_review\s*=\s*false", body)
@@ -1067,9 +966,11 @@ _PATHWAY_MILESTONE_TYPES = frozenset(
     }
 )
 
-# Context tier -- supporting evidence the curator can attach but the
-# AI engine does NOT emit. They never feed date roll-ups; they exist
-# so the timeline carries the full reviewer narrative. DI-50C7E89C.
+# Context tier -- supporting evidence. Authorised for AI emission
+# by DI-2C015ADE (supersedes DI-50C7E89C; CR f3c7886c; R-76D26C56).
+# Never feed date roll-ups; their presence on an episode forces the
+# episode's confidence_tier off "auto" so every emission is
+# human-reviewed (see voting.assign_confidence_tier).
 _CONTEXT_MILESTONE_TYPES = frozenset(
     {
         "related_gp_visit",
@@ -1131,9 +1032,7 @@ class TestMilestoneVocabularyParity:
             PATHWAY_MILESTONE_TYPES,
         )
 
-        assert MILESTONE_TYPES == (
-            PATHWAY_MILESTONE_TYPES | CONTEXT_MILESTONE_TYPES
-        )
+        assert MILESTONE_TYPES == (PATHWAY_MILESTONE_TYPES | CONTEXT_MILESTONE_TYPES)
 
     def test_helpers_milestone_types_excludes_legacy_values(self):
         from services.analytics_api.app.routers._episode_crud_helpers import (
@@ -1146,34 +1045,46 @@ class TestMilestoneVocabularyParity:
             f"{sorted(leaked)}"
         )
 
-    def test_engine_schema_literal_matches_pathway_eight(self):
-        # The AI engine's Milestone.type Literal is the upstream
-        # source of truth. care_obstruction is added by the anchor
-        # detector and is not in this Literal. The context tier must
-        # NOT leak into the engine schema -- those are manual-only.
+    def test_engine_schema_literal_covers_pathway_plus_context(self):
+        # Policy change: DI-2C015ADE (supersedes DI-50C7E89C). The
+        # engine's Milestone.type Literal is the upstream source of
+        # truth and now covers BOTH tiers so the LLM can emit
+        # context-tier milestones with full temporal context.
+        #
+        # care_obstruction is still emitted by the anchor detector,
+        # not the LLM, so it stays out of the Literal.
+        #
+        # Reviewer safety: every AI-written context-tier milestone
+        # forces the owning EpisodeOfCare off confidence_tier="auto"
+        # via voting.assign_confidence_tier.
         from typing import get_args
 
         from services.analysis_worker.app.episode_engine.schemas import (
+            CONTEXT_MILESTONE_TYPES as SCHEMA_CONTEXT,
+            PATHWAY_MILESTONE_TYPES as SCHEMA_PATHWAY,
             Milestone,
         )
 
-        engine_values = frozenset(
-            get_args(Milestone.model_fields["type"].annotation)
-        )
-        expected = _PATHWAY_MILESTONE_TYPES - {"care_obstruction"}
+        engine_values = frozenset(get_args(Milestone.model_fields["type"].annotation))
+        pathway_llm = _PATHWAY_MILESTONE_TYPES - {"care_obstruction"}
+        expected = pathway_llm | _CONTEXT_MILESTONE_TYPES
         assert engine_values == expected
-        # Drift guard: the engine MUST NOT learn the context tier.
-        assert engine_values & _CONTEXT_MILESTONE_TYPES == frozenset()
+
+        # Reverse drift guard: care_obstruction MUST NOT appear in
+        # the LLM schema -- it is an anchor-detector output.
+        assert "care_obstruction" not in engine_values
+
+        # The two tuples exported alongside the schema must match
+        # the canonical sets so prompts and the writer cannot drift.
+        assert frozenset(SCHEMA_PATHWAY) == pathway_llm
+        assert frozenset(SCHEMA_CONTEXT) == _CONTEXT_MILESTONE_TYPES
 
     def test_treatment_completed_in_treatment_rollup_set(self):
         # The new canonical end-of-treatment marker must participate
         # in the episode end_date roll-up.
         from services.analytics_api.app.routers import _episode_crud_helpers
 
-        assert (
-            "treatment_completed"
-            in _episode_crud_helpers._TREATMENT_MILESTONES
-        )
+        assert "treatment_completed" in _episode_crud_helpers._TREATMENT_MILESTONES
 
     def test_dashboards_edit_milestone_imports_shared_allow_list(self):
         # dashboards.py edit_milestone validates against the shared
@@ -1216,15 +1127,11 @@ class TestMilestoneVocabularyParity:
             "services.analytics_api.app.routers.dashboards.PatientGraphClient"
         ) as MockPG:
             client = MockPG.return_value
-            client.run.return_value = [
-                {"encounter_id": "E-1", "episode_id": "ep-1"}
-            ]
+            client.run.return_value = [{"encounter_id": "E-1", "episode_id": "ep-1"}]
             result = edit_milestone(
                 episode_id="ep-1",
                 encounter_id="E-1",
-                body=MilestoneUpdateRequest(
-                    milestone_type="first_seen"
-                ),
+                body=MilestoneUpdateRequest(milestone_type="first_seen"),
                 scope=_admin_scope(),
             )
         assert result["success"] is True

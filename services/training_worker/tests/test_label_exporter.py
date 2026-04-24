@@ -87,22 +87,30 @@ class TestFilterAndRealign(unittest.TestCase):
             "assertion": "negated",
         }
 
-    def test_negated_entity_excluded(self):
+    def test_negated_entity_excluded_when_explicit_set_passed(self):
+        # DEFAULT_EXCLUDED_ASSERTIONS is intentionally empty (assertions are
+        # handled by the ConText engine post-extraction, not the training filter).
+        # Callers must pass an explicit set to exclude assertions.
         text = "Patient has diabetes but no hypertension"
         entities = [self._present("diabetes"), self._negated("hypertension")]
         filtered, assertion_filtered, span_misaligned = _filter_and_realign(
-            text, entities, _DEFAULT_EXCLUDED_ASSERTIONS
+            text, entities, {"negated"}
         )
         self.assertEqual(assertion_filtered, 1)
         self.assertEqual(len(filtered), 1)
         self.assertEqual(filtered[0]["text"], "diabetes")
 
-    def test_all_assertions_excluded_by_default(self):
-        exclusions = _get_excluded_assertions()
-        for expected in ("negated", "hypothetical", "family_history", "possible"):
-            self.assertIn(
-                expected, exclusions, f"Expected {expected} in default exclusions"
-            )
+    def test_default_excluded_assertions_is_empty(self):
+        # By design: no assertions are excluded unless TRAINING_EXCLUDE_ASSERTIONS
+        # is set. The ConText engine handles assertion post-extraction.
+        from libs.pipeline.label_filter import DEFAULT_EXCLUDED_ASSERTIONS
+        self.assertEqual(DEFAULT_EXCLUDED_ASSERTIONS, frozenset())
+
+    def test_default_excluded_assertions_env_unset_returns_empty(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("TRAINING_EXCLUDE_ASSERTIONS", None)
+            exclusions = _get_excluded_assertions()
+        self.assertEqual(exclusions, set())
 
     def test_custom_exclusions_from_env(self):
         with patch.dict(
@@ -213,23 +221,26 @@ class TestFilterAndRealignDiagnostics(unittest.TestCase):
             "assertion": "negated",
         }
 
-    def test_no_diagnostics_without_list(self):
+    def test_no_assertion_filtered_when_default_empty(self):
+        # DEFAULT_EXCLUDED_ASSERTIONS is empty by design; passing it should
+        # not filter any entities — that is the contract.
         text = "Patient has diabetes but no hypertension"
         entities = [self._present("diabetes"), self._negated("hypertension")]
         result, n_assert, _ = filter_and_realign(
             text, entities, set(DEFAULT_EXCLUDED_ASSERTIONS)
         )
-        self.assertEqual(n_assert, 1)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(n_assert, 0)
+        self.assertEqual(len(result), 2)
 
     def test_assertion_filtered_appended_to_diagnostics(self):
+        # Pass an explicit exclusion set to exercise the diagnostic path.
         text = "Patient has diabetes but no hypertension"
         entities = [self._present("diabetes"), self._negated("hypertension")]
         diagnostics: list = []
         filter_and_realign(
             text,
             entities,
-            set(DEFAULT_EXCLUDED_ASSERTIONS),
+            {"negated"},
             diagnostics=diagnostics,
             label_id="GL-001",
             source="test_source",
@@ -241,9 +252,12 @@ class TestFilterAndRealignDiagnostics(unittest.TestCase):
         self.assertEqual(dropped["entity_text"], "hypertension")
         self.assertEqual(dropped["assertion"], "negated")
         self.assertEqual(dropped["reason"], "assertion_filtered")
+        # The drop-entry uses key "text" (the sentence), not "sentence".
         self.assertNotIn("sentence", dropped)
+        self.assertIn("text", dropped)
 
-    def test_span_misaligned_appended_with_sentence(self):
+    def test_span_misaligned_appended_with_text(self):
+        # The drop-entry dict uses key "text" for the sentence, not "sentence".
         text = "Patient has diabetes"
         entities = [
             {
@@ -266,7 +280,7 @@ class TestFilterAndRealignDiagnostics(unittest.TestCase):
         self.assertEqual(len(diagnostics), 1)
         dropped = diagnostics[0]
         self.assertEqual(dropped["reason"], "span_misaligned")
-        self.assertEqual(dropped["sentence"], text)
+        self.assertEqual(dropped["text"], text)
         self.assertEqual(dropped["label_id"], "GL-002")
 
     def test_multiple_drops_all_captured(self):
@@ -283,10 +297,11 @@ class TestFilterAndRealignDiagnostics(unittest.TestCase):
             self._present("diabetes"),
         ]
         diagnostics: list = []
+        # Use an explicit exclusion set so negated is actually filtered.
         kept, n_assert, n_span = filter_and_realign(
             text,
             entities,
-            set(DEFAULT_EXCLUDED_ASSERTIONS),
+            {"negated"},
             diagnostics=diagnostics,
         )
         self.assertEqual(len(kept), 1)
@@ -297,12 +312,13 @@ class TestFilterAndRealignDiagnostics(unittest.TestCase):
         self.assertIn("assertion_filtered", reasons)
         self.assertIn("span_misaligned", reasons)
 
-    def test_legacy_alias_still_works(self):
-        """Backward compat: _filter_and_realign alias from label_exporter."""
+    def test_legacy_alias_passes_through_with_empty_exclusions(self):
+        # _filter_and_realign is the alias imported from label_exporter.
+        # With empty default exclusions, nothing is assertion-filtered.
         text = "Patient has diabetes but no hypertension"
         entities = [self._present("diabetes"), self._negated("hypertension")]
         result, n_assert, n_span = _filter_and_realign(
             text, entities, set(_DEFAULT_EXCLUDED_ASSERTIONS)
         )
-        self.assertEqual(n_assert, 1)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(n_assert, 0)
+        self.assertEqual(len(result), 2)

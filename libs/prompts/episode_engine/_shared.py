@@ -14,11 +14,25 @@ prompt diffs are easy to read.
 from __future__ import annotations
 
 # -- Vocabularies (must match services/analysis_worker/app/episode_engine/schemas.py) --
-MILESTONE_TYPE_LIST = (
+# Pathway tier: canonical nine (eight from the LLM + care_obstruction from
+# the anchor detector). These feed episode date roll-ups.
+PATHWAY_MILESTONE_TYPE_LIST = (
     "first_presentation, referral, first_seen, outcome_letter, "
     "diagnosis_confirmed, treatment_started, treatment_completed, "
     "benign_closure"
 )
+
+# Context tier: supporting evidence that gives the reviewer the full
+# narrative of the pathway. Authorised for AI emission by DI-2C015ADE.
+# NEVER feed episode date roll-ups.
+CONTEXT_MILESTONE_TYPE_LIST = (
+    "related_gp_visit, primary_care_investigations, referral_admin, "
+    "referral_sent, related_specialist_visit, specialist_diagnostics, "
+    "related_correspondence"
+)
+
+# Combined list exposed to prompts that need both tiers.
+MILESTONE_TYPE_LIST = PATHWAY_MILESTONE_TYPE_LIST + ", " + CONTEXT_MILESTONE_TYPE_LIST
 EPISODE_TYPE_LIST = "cancer, multi_site, benign, non_cancer, uncertain"
 TREATMENT_TYPE_LIST = (
     "surgery, endocrine, chemotherapy, radiotherapy, immunotherapy, other"
@@ -39,7 +53,8 @@ DISRUPTION_CATEGORY_LIST = (
 )
 
 # -- Common rules ----------------------------------------------------------
-RULES_OF_THE_ROAD = """\
+RULES_OF_THE_ROAD = (
+    """\
 Rules of the road -- learnt from real GP records:
 
 1. SAME-DAY ADMIN ECHOES
@@ -90,7 +105,9 @@ Rules of the road -- learnt from real GP records:
    endocrine therapy (e.g. letrozole started before mastectomy) and the
    definitive surgery are BOTH real treatment_started milestones with
    different treatment_type values. Do NOT collapse them. Treatment type
-   vocabulary: """ + TREATMENT_TYPE_LIST + """.
+   vocabulary: """
+    + TREATMENT_TYPE_LIST
+    + """.
 
 8. EVIDENCE QUOTES
    Every milestone must include an evidence_quote that is a literal
@@ -99,6 +116,122 @@ Rules of the road -- learnt from real GP records:
 9. WHEN UNSURE
    Set a low confidence and a frank reasoning. If you cannot find a
    defensible source encounter, set needs_human_review=true and explain.
+
+10. BENIGN OUTCOMES
+    If an episode ends in benign_closure (investigation confirmed no cancer
+    or cancer is ruled out), you MUST NOT emit "diagnosis_confirmed".
+    benign_closure and diagnosis_confirmed are mutually exclusive terminals.
+    Also MUST NOT emit "treatment_started" or "treatment_completed" for a
+    purely benign episode (no cancer found, no pre-malignant treatment).
+    The sequence for a benign investigation pathway is:
+      first_presentation -> referral -> [first_seen] -> benign_closure
+    Intermediate context milestones (primary_care_investigations,
+    related_gp_visit, specialist_diagnostics) are fine IF there is a
+    literal source encounter for them.
+
+11. FIRST_SEEN REQUIRES A CLINIC VISIT
+    Only emit first_seen when there is an explicit outpatient or fast-track
+    clinic attendance record (e.g. "2WW clinic", "outpatient letter",
+    "Consultant review", hospital appointment). Do NOT emit first_seen for
+    open-access investigations (colonoscopy booked directly, CT/MRI
+    reported to GP) that occur without a preceding outpatient clinic visit.
+    Open-access investigations belong to specialist_diagnostics, not
+    first_seen.
+"""
+)
+
+
+CONTEXT_MILESTONE_RULES = """\
+Context-tier milestones -- supporting evidence for the reviewer narrative:
+
+These seven types exist so the reviewer can see the FULL pathway, not just
+the canonical anchor events. They NEVER feed date roll-ups. Every context
+milestone MUST have a literal evidence_quote and a clear reasoning.
+
+KEY TEMPORAL DISAMBIGUATION RULE -- READ CAREFULLY:
+  Regex patterns and text mentions of "referral", "GP visit", "bloods",
+  "appointment letter" appear BOTH before and after diagnosis_confirmed.
+  The milestone type is determined by WHEN it occurs AND its clinical
+  purpose:
+  - Before diagnosis_confirmed -> usually a PATHWAY milestone
+    (e.g. the 2WW form is a pathway "referral", the first GP appointment
+    about the symptom is "first_presentation")
+  - After diagnosis_confirmed -> usually a CONTEXT milestone
+    (e.g. a GP follow-up after treatment is "related_gp_visit",
+    admin chasing of a clinic letter is "referral_admin")
+  When you see a regex match that fires after the confirmed diagnosis on
+  the same pathway, default to the matching CONTEXT type -- do NOT emit
+  a duplicate pathway milestone for the same kind of event.
+
+CONTEXT MILESTONE DEFINITIONS:
+
+  - related_gp_visit          : a GP / primary-care consultation directly
+                                related to this pathway but not the canonical
+                                first_presentation. Includes telephone/video
+                                GP calls to discuss ongoing care, GP reviews
+                                during treatment, and carer calls.
+
+  - primary_care_investigations: blood tests, urine tests, ECG, plain X-ray,
+                                or any other investigation REQUESTED BY GP
+                                (not ordered by the hospital specialist).
+                                Hospital-requested tests are specialist_diagnostics.
+
+  - referral_admin             : administrative handling of the referral that
+                                is NOT the referral itself. Includes: choose-and-
+                                book admin, receptionist follow-up, chasing an
+                                appointment letter, re-booking after DNA, e-RS
+                                tasks. A 2WW form being SENT is "referral_sent";
+                                chasing it up afterwards is "referral_admin".
+
+  - referral_sent              : the Medical Secretary / admin encounter that
+                                CONFIRMS the 2WW form was sent and processed.
+                                Text hallmarks: "Fast track referral for
+                                suspected X cancer (XaMeC)", "Choice and booking
+                                enhanced services administration (XaMJa)",
+                                "Patient awaiting OPD appt.: Yes 2ww". This is
+                                ALWAYS a DIFFERENT encounter_id from the pathway
+                                "referral" milestone (which captures the GP's
+                                clinical decision). On the same day you will see
+                                TWO records: the GP's consultation firing
+                                "referral" AND the Medical Secretary's admin entry
+                                firing "referral_sent". HARD RULE: if you have
+                                already emitted a pathway "referral" for encounter
+                                X, you may still emit "referral_sent" for a
+                                DIFFERENT encounter Y on the same day -- they are
+                                genuinely separate records. Only skip
+                                "referral_sent" if the SAME encounter_id already
+                                carries the pathway "referral" milestone.
+                                Exception to the temporal rule: referral_sent
+                                fires pre-diagnosis (alongside the pathway
+                                referral), NOT post-diagnosis.
+
+  - related_specialist_visit   : a hospital / specialist outpatient visit related
+                                to the pathway but NOT the canonical first_seen.
+                                Includes: follow-up clinic visits, MDT outcomes,
+                                nurse specialist consultations, oncology review
+                                appointments AFTER first_seen.
+
+  - specialist_diagnostics     : investigations ORDERED BY THE SPECIALIST:
+                                biopsy, CT, MRI, PET-CT, mammography,
+                                colonoscopy, bronchoscopy, bone marrow biopsy,
+                                and similar secondary-care investigations.
+                                GP-requested blood tests are
+                                primary_care_investigations,
+                                not specialist_diagnostics.
+
+  - related_correspondence     : clinic letters, discharge summaries, MDT
+                                outcome letters, or other written correspondence
+                                received in primary care from the hospital team.
+                                These are documents ABOUT the pathway, not the
+                                clinical event itself. A single encounter may
+                                carry both a pathway milestone (e.g.
+                                outcome_letter, diagnosis_confirmed) AND a
+                                related_correspondence tag if the document also
+                                happens to be the letter-received record.
+
+IMPORTANT: context milestones DO NOT replace pathway milestones. Both can
+fire for the same encounter (e.g. a biopsy result letter that confirms the
+diagnosis fires BOTH "diagnosis_confirmed" AND "related_correspondence").
 """
 
 

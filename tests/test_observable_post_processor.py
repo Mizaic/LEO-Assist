@@ -36,9 +36,10 @@ def test_normalize_observable_entity_splits_span_and_adds_qualifier() -> None:
     qv = normalized[1]
 
     assert obs["label"] == "observable_entity"
-    assert obs["text"] == "Neutrophil count"
+    # Text is preserved for terminology lookup; value/unit go into structured fields.
+    assert obs["text"] == "Neutrophil count (42J..) 2.41 10^9/L [1.5 - 7.5]"
     assert obs["start"] == 0
-    assert obs["end"] == len("Neutrophil count")
+    assert obs["end"] == len(encounter)
     assert obs["value"] == "2.41"
     assert obs["unit"] == "10^9/L"
     assert obs["reference_range"] == "1.5 - 7.5"
@@ -191,7 +192,8 @@ def test_normalize_handles_label_with_space() -> None:
     assert len(normalized) == 3
     obs = [e for e in normalized if "observable" in str(e.get("label", ""))]
     assert len(obs) == 1
-    assert obs[0]["text"] == "Serum HDL cholesterol level"
+    # Text preserved for terminology; value/unit extracted into structured fields.
+    assert obs[0]["text"] == encounter
     assert obs[0]["value"] == "2.39"
     assert obs[0]["unit"] == "mmol/L"
     assert obs[0]["reference_range"] == "0.9 - 2.2"
@@ -280,7 +282,8 @@ def test_normalize_observable_now_marker_overrides_existing_llm_value() -> None:
     obs = next(e for e in normalized if e["label"] == "observable_entity")
     assert obs["value"] == "79"
     assert obs["unit"].lower() == "kg"
-    assert obs["text"] == "weight loss 10kg"
+    # Text preserved for terminology; "now" value override applies to structured fields.
+    assert obs["text"] == encounter
     qualifiers = [e for e in normalized if e["label"] == "qualifier_value"]
     assert any(q["text"].lower() == "79kg" for q in qualifiers)
     assert not any(q["text"].lower() == "10kg" for q in qualifiers)
@@ -303,7 +306,7 @@ def test_normalize_observable_now_marker_no_existing_value() -> None:
     obs = next(e for e in normalized if e["label"] == "observable_entity")
     assert obs["value"] == "79"
     assert obs["unit"].lower() == "kg"
-    assert obs["text"] == "Body weight"
+    assert obs["text"] == encounter
 
 
 def test_normalize_observable_no_now_marker_keeps_legacy_behaviour() -> None:

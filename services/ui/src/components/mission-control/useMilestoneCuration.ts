@@ -22,6 +22,11 @@ import type { Encounter } from "./useEncounterLoad";
 export interface MilestoneLookupEntry {
   episodeId: string;
   milestoneType: string;
+  /** "episode_engine" when AI-written; absent or other value for manual. */
+  linkedBy?: string | null;
+  /** Literal quote from the source encounter that justifies the milestone.
+   *  Populated by the AI engine; may be empty for manual links. */
+  evidenceQuote?: string | null;
 }
 
 /** Per-episode roll-up used by EncounterCard's episode chips
@@ -53,6 +58,8 @@ export function buildMilestoneLookup(
       const entry: MilestoneLookupEntry = {
         episodeId: ep.episode_id,
         milestoneType: m.milestone_type,
+        linkedBy: m.linked_by ?? null,
+        evidenceQuote: m.evidence_quote ?? null,
       };
       const bucket = map.get(key);
       if (!bucket) {

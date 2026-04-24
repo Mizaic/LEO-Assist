@@ -337,4 +337,33 @@ describe("VT-DEF041C5 - inline milestone curation chrome", () => {
     expect(src).toMatch(/data-testid="edit-episode-attach-hint"/);
     expect(src).toMatch(/Add to milestone/);
   });
+
+  it("VT-DEF041C5-TC-014: AI-written milestone chips carry an AI badge and an evidence Tooltip (DI-2C015ADE)", () => {
+    // The ExistingLink type carries linkedBy + evidenceQuote so
+    // the chip renderer can distinguish AI-written slots from
+    // manual curator slots at a glance.
+    const parts = readComponent("MilestoneCurationParts.tsx");
+    const lookup = readComponent("useMilestoneCuration.ts");
+
+    // ExistingLink declares the two provenance fields.
+    expect(parts).toMatch(/linkedBy\?:\s*string\s*\|\s*null/);
+    expect(parts).toMatch(/evidenceQuote\?:\s*string\s*\|\s*null/);
+
+    // Chip turns secondary colour and carries data-ai-written
+    // when linkedBy == "episode_engine".
+    expect(parts).toMatch(/linkedBy.*episode_engine/);
+    expect(parts).toMatch(/data-ai-written=\{isAi/);
+    expect(parts).toMatch(/color=\{isAi \? "secondary"/);
+
+    // Tooltip wraps the chip and exposes the evidence quote.
+    expect(parts).toMatch(/AI evidence/);
+    expect(parts).toMatch(/link\.evidenceQuote/);
+
+    // MilestoneLookupEntry also carries the provenance fields so
+    // the lookup builder propagates them from the API response.
+    expect(lookup).toMatch(/linkedBy\?:/);
+    expect(lookup).toMatch(/evidenceQuote\?:/);
+    expect(lookup).toMatch(/linkedBy:\s*m\.linked_by/);
+    expect(lookup).toMatch(/evidenceQuote:\s*m\.evidence_quote/);
+  });
 });

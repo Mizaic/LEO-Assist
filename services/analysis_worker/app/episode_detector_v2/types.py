@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-
 # -- 1. Normalised event ----------------------------------------------------
 
 
@@ -49,10 +48,16 @@ class Signal:
     channel: str  # "code" | "text" | "pathway" | "result" | "treatment"
     encounter_id: str
     site_key: str  # canonical site like "breast", "upper_gi", "lung"
-    role: str  # "referral" | "diagnosis" | "investigation" | "treatment" | "outcome"
+    role: str
+    # "referral" | "diagnosis" | "investigation" | "treatment"
+    # | "outcome" | "context_milestone"  (DI-2C015ADE)
     intent: str  # "suspected" | "confirmed" | "ruled_out" | "unspecified"
     confidence: float  # 0.0-1.0
     citation: str = ""  # short human-readable provenance
+    # Populated only when role == "context_milestone": names the
+    # canonical context-tier milestone tag (one of
+    # CONTEXT_MILESTONE_TAGS). Empty string otherwise.
+    context_tag: str = ""
 
 
 # -- 3. Candidate episode ---------------------------------------------------
@@ -136,9 +141,7 @@ class CoverageReport:
     encounter_ids_in_episodes: list[str]
     encounter_ids_no_signal: list[str]
     encounter_ids_unaccounted: list[str]
-    encounter_ids_adjacent_to_active_episode: list[str] = field(
-        default_factory=list
-    )
+    encounter_ids_adjacent_to_active_episode: list[str] = field(default_factory=list)
 
     # Backwards-compatible alias for the old field name. Kept so a
     # downstream consumer that still reads

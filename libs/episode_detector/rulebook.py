@@ -26,7 +26,6 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Mapping
 
-
 SCHEMA_VERSION = "1.0.0"
 SUPPORTED_SCHEMA_RANGE: tuple[str, str] = ("1.0.0", "1.0.0")
 
@@ -95,9 +94,38 @@ class ResultChannel:
     negative_terms: tuple[str, ...] = ()
 
 
+# Canonical context-tier milestone tags that rulebooks may enumerate
+# regex patterns for. Mirrors CONTEXT_MILESTONE_TYPES on the
+# analysis_worker side (services/analysis_worker/app/episode_engine/
+# schemas.py) and on the analytics API side
+# (services/analytics_api/app/routers/_episode_crud_helpers.py).
+# DI-2C015ADE (supersedes DI-50C7E89C).
+CONTEXT_MILESTONE_TAGS: tuple[str, ...] = (
+    "related_gp_visit",
+    "primary_care_investigations",
+    "referral_admin",
+    "referral_sent",
+    "related_specialist_visit",
+    "specialist_diagnostics",
+    "related_correspondence",
+)
+
+
 @dataclass(frozen=True)
 class TextChannel:
     regex_catalogue: tuple[str, ...] = ()
+    # Per-context-tag regex catalogue. Keys are from
+    # CONTEXT_MILESTONE_TAGS; values are tuples of case-insensitive
+    # regex strings. Used by the text_channel extractor to emit
+    # role="context_milestone" signals that the episode_engine fuses
+    # with its LLM-emitted context milestones before writing to
+    # Neo4j.
+    #
+    # Empty by default so rulebooks that have not been authored yet
+    # simply contribute no context signals (fail-safe).
+    context_role_catalogue: Mapping[str, tuple[str, ...]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
 
 @dataclass(frozen=True)
@@ -274,6 +302,20 @@ def _iter_free_text(rb: SiteRulebook) -> list[tuple[str, str]]:
         (f"signals.text_channel.regex_catalogue[{i}]", v)
         for i, v in enumerate(rb.signals.text_channel.regex_catalogue)
     )
+    for tag, patterns in rb.signals.text_channel.context_role_catalogue.items():
+        out.append(
+            (
+                f"signals.text_channel.context_role_catalogue.{tag}.key",
+                str(tag),
+            )
+        )
+        for i, v in enumerate(patterns):
+            out.append(
+                (
+                    "signals.text_channel.context_role_catalogue." f"{tag}[{i}]",
+                    v,
+                )
+            )
     out.extend(
         (f"signals.treatment_channel.regex_catalogue[{i}]", v)
         for i, v in enumerate(rb.signals.treatment_channel.regex_catalogue)
@@ -295,16 +337,18 @@ def _iter_free_text(rb: SiteRulebook) -> list[tuple[str, str]]:
 
 def _iter_snomed_fields(rb: SiteRulebook) -> list[tuple[str, str]]:
     out: list[tuple[str, str]] = []
-    for fld in ("referral_snomed", "clinic_seen_snomed",
-                "suspected_snomed", "confirmed_snomed"):
+    for fld in (
+        "referral_snomed",
+        "clinic_seen_snomed",
+        "suspected_snomed",
+        "confirmed_snomed",
+    ):
         values = getattr(rb.anchors, fld)
         out.extend((f"anchors.{fld}[{i}]", v) for i, v in enumerate(values))
-    for fld in ("suspected_snomed", "confirmed_snomed",
-                "benign_closure_snomed"):
+    for fld in ("suspected_snomed", "confirmed_snomed", "benign_closure_snomed"):
         values = getattr(rb.signals.code_channel, fld)
         out.extend(
-            (f"signals.code_channel.{fld}[{i}]", v)
-            for i, v in enumerate(values)
+            (f"signals.code_channel.{fld}[{i}]", v) for i, v in enumerate(values)
         )
     values = rb.signals.result_channel.observation_snomed
     out.extend(
@@ -313,12 +357,9 @@ def _iter_snomed_fields(rb: SiteRulebook) -> list[tuple[str, str]]:
     )
     values = rb.signals.treatment_channel.snomed
     out.extend(
-        (f"signals.treatment_channel.snomed[{i}]", v)
-        for i, v in enumerate(values)
+        (f"signals.treatment_channel.snomed[{i}]", v) for i, v in enumerate(values)
     )
-    out.extend(
-        (f"cross_site_guard[{i}]", v) for i, v in enumerate(rb.cross_site_guard)
-    )
+    out.extend((f"cross_site_guard[{i}]", v) for i, v in enumerate(rb.cross_site_guard))
     for rule_name in ("benign", "completed"):
         rule: ClosureRule = getattr(rb.closure, rule_name)
         for i, v in enumerate(rule.requires_any_of):
@@ -335,9 +376,7 @@ def _check_no_pii(path: str, value: str) -> None:
             f"(possible copied clinical text)"
         )
     if _DIGIT_RUN.search(value):
-        raise RulebookPiiError(
-            f"{path}: contains a 7+ digit run (possible identifier)"
-        )
+        raise RulebookPiiError(f"{path}: contains a 7+ digit run (possible identifier)")
     if _DATE_LIKE.search(value):
         raise RulebookPiiError(
             f"{path}: contains a YYYY-MM-DD date (possible real encounter date)"
@@ -356,7 +395,7 @@ def _check_snomed_shape(path: str, value: str) -> None:
     # Prefix strings like 'snomed:' are also acceptable and common in
     # closure rules that cite a concept id.
     if stripped.startswith("snomed:"):
-        stripped = stripped[len("snomed:"):]
+        stripped = stripped[len("snomed:") :]
     if not stripped.isdigit():
         # String references like 'result.negative_terms' are allowed in
         # closure.requires_any_of; only reject if it contains free text
@@ -365,8 +404,7 @@ def _check_snomed_shape(path: str, value: str) -> None:
         return
     if len(stripped) < 6 or len(stripped) > 18:
         raise RulebookPiiError(
-            f"{path}: SNOMED-shaped digits outside 6-18 range "
-            f"(possible identifier)"
+            f"{path}: SNOMED-shaped digits outside 6-18 range " f"(possible identifier)"
         )
 
 
@@ -418,18 +456,20 @@ def _to_plain(rb: SiteRulebook) -> dict[str, Any]:
                 "benign_closure_snomed": list(
                     rb.signals.code_channel.benign_closure_snomed
                 ),
-                "suspected_confidence": (
-                    rb.signals.code_channel.suspected_confidence
-                ),
-                "confirmed_confidence": (
-                    rb.signals.code_channel.confirmed_confidence
-                ),
+                "suspected_confidence": (rb.signals.code_channel.suspected_confidence),
+                "confirmed_confidence": (rb.signals.code_channel.confirmed_confidence),
                 "benign_closure_confidence": (
                     rb.signals.code_channel.benign_closure_confidence
                 ),
             },
             "text_channel": {
                 "regex_catalogue": list(rb.signals.text_channel.regex_catalogue),
+                "context_role_catalogue": {
+                    tag: list(patterns)
+                    for tag, patterns in (
+                        rb.signals.text_channel.context_role_catalogue.items()
+                    )
+                },
             },
             "pathway_channel": {
                 "form_types": list(rb.signals.pathway_channel.form_types),
@@ -447,9 +487,7 @@ def _to_plain(rb: SiteRulebook) -> dict[str, Any]:
             },
             "treatment_channel": {
                 "snomed": list(rb.signals.treatment_channel.snomed),
-                "regex_catalogue": list(
-                    rb.signals.treatment_channel.regex_catalogue
-                ),
+                "regex_catalogue": list(rb.signals.treatment_channel.regex_catalogue),
             },
         },
         "closure": {
@@ -477,6 +515,28 @@ def _tuple_of_str(value: Any) -> tuple[str, ...]:
     return tuple(str(v) for v in value)
 
 
+def _build_context_role_catalogue(
+    raw: Any,
+) -> Mapping[str, tuple[str, ...]]:
+    """Return an immutable {context_tag: tuple[regex, ...]} mapping.
+
+    Unknown keys are silently dropped so an older rulebook that
+    carries experimental tags cannot sneak a non-canonical tag into
+    the runtime. Canonical tags that are absent map to ``()``.
+    """
+    if not raw or not isinstance(raw, Mapping):
+        return MappingProxyType({})
+    out: dict[str, tuple[str, ...]] = {}
+    for tag in CONTEXT_MILESTONE_TAGS:
+        entries = raw.get(tag)
+        if not entries:
+            continue
+        patterns = _tuple_of_str(entries)
+        if patterns:
+            out[tag] = patterns
+    return MappingProxyType(out)
+
+
 def _build_activation(data: Mapping[str, Any]) -> Activation:
     return Activation(
         auto_publish=bool(data.get("auto_publish", False)),
@@ -496,9 +556,7 @@ def _build_tier(data: Mapping[str, Any]) -> TierThresholds:
     return TierThresholds(
         auto_votes=int(data.get("auto_votes", 2)),
         suggest_votes=int(data.get("suggest_votes", 2)),
-        diversity_required_for_auto=int(
-            data.get("diversity_required_for_auto", 2)
-        ),
+        diversity_required_for_auto=int(data.get("diversity_required_for_auto", 2)),
     )
 
 
@@ -528,9 +586,7 @@ def _build_signals(data: Mapping[str, Any]) -> Signals:
         code_channel=CodeChannel(
             suspected_snomed=_tuple_of_str(code.get("suspected_snomed")),
             confirmed_snomed=_tuple_of_str(code.get("confirmed_snomed")),
-            benign_closure_snomed=_tuple_of_str(
-                code.get("benign_closure_snomed")
-            ),
+            benign_closure_snomed=_tuple_of_str(code.get("benign_closure_snomed")),
             suspected_confidence=float(code.get("suspected_confidence", 0.70)),
             confirmed_confidence=float(code.get("confirmed_confidence", 0.85)),
             benign_closure_confidence=float(
@@ -540,6 +596,9 @@ def _build_signals(data: Mapping[str, Any]) -> Signals:
         text_channel=TextChannel(
             regex_catalogue=_tuple_of_str(
                 (data.get("text_channel") or {}).get("regex_catalogue")
+            ),
+            context_role_catalogue=_build_context_role_catalogue(
+                (data.get("text_channel") or {}).get("context_role_catalogue")
             ),
         ),
         pathway_channel=PathwayChannel(
@@ -565,9 +624,7 @@ def _build_signals(data: Mapping[str, Any]) -> Signals:
             ),
         ),
         treatment_channel=TreatmentChannel(
-            snomed=_tuple_of_str(
-                (data.get("treatment_channel") or {}).get("snomed")
-            ),
+            snomed=_tuple_of_str((data.get("treatment_channel") or {}).get("snomed")),
             regex_catalogue=_tuple_of_str(
                 (data.get("treatment_channel") or {}).get("regex_catalogue")
             ),

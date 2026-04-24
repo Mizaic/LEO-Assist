@@ -22,6 +22,7 @@ export interface TrainingJob {
   recall?: number | null;
   per_label_f1?: Record<string, { precision: number; recall: number; f1: number }>;
   passed_gates?: boolean | null;
+  label_gate_failures?: string[];
   golden_f1?: number | null;
   golden_passed?: boolean | null;
   model_version?: string;
@@ -35,6 +36,7 @@ export interface TrainingJob {
   export_total?: number | null;
   export_assertion_filtered?: number | null;
   export_span_misaligned?: number | null;
+  export_per_label_counts?: Record<string, { train: number; dev: number }>;
 }
 
 export interface ConsoleState {

@@ -251,8 +251,17 @@ def _extract_sync(req: ExtractRequest) -> ExtractResponse:
         )
 
     from libs.deid import deidentify
+    from libs.training_ext.drift_monitor import get_sink, summarise_predictions
+    from libs.training_ext.inference_calibration import (
+        InferenceCalibration,
+        filter_and_rescore,
+    )
+
+    calibration = _loader.calibration or InferenceCalibration()
 
     entities: list[EntityOut] = []
+    below_threshold_total = 0
+    all_filtered = []
 
     for sent in req.sentences:
         deid = deidentify(sent.text)
@@ -264,22 +273,40 @@ def _extract_sync(req: ExtractRequest) -> ExtractResponse:
                 "falling back to doc.ents. Retrain with spancat config."
             )
             spans = doc.ents
-        for ent in spans:
-            label = ent.label_
-            confidence = float(getattr(ent, "kb_id_", 0.0) or 0.0)
+        filtered = filter_and_rescore(spans, calibration)
+        below_threshold_total += max(0, len(list(spans)) - len(filtered))
+        all_filtered.extend(filtered)
+        for ent in filtered:
             entities.append(
                 EntityOut(
                     sentence_id=sent.sentence_id,
                     text=ent.text,
-                    label=label,
-                    semantic_tag=label.lower(),
+                    label=ent.label,
+                    semantic_tag=ent.label.lower(),
                     span_start=sent.start + ent.start_char,
                     span_end=sent.start + ent.end_char,
-                    confidence=round(confidence, 4),
+                    confidence=ent.calibrated_score,
                     normalized=ent.text,
-                    source_meta={"model_label": label},
+                    source_meta={
+                        "model_label": ent.label,
+                        "raw_score": ent.raw_score,
+                        "threshold": calibration.threshold_for(ent.label),
+                    },
                 )
             )
+
+    try:
+        sink = get_sink()
+        if sink.enabled():
+            sink.write(
+                summarise_predictions(
+                    _loader.active_version or "unknown",
+                    all_filtered,
+                    below_threshold_spans=below_threshold_total,
+                )
+            )
+    except Exception as exc:
+        logger.debug("Drift sink failed silently: %s", exc)
 
     return ExtractResponse(
         model_name=_loader.model_name,

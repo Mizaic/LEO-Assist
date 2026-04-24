@@ -45,6 +45,12 @@ export interface CodedLink {
   assertion?: string;
   /** DOCUMENTS relationship: value, unit, reference_range, interpretation */
   modifiers?: Record<string, unknown>;
+  /** Structured measurement value for observable entity links (from r.value in Neo4j) */
+  value?: number | string | null;
+  /** Measurement unit for observable entity links (from r.unit in Neo4j) */
+  unit?: string | null;
+  /** Reference range string for observable entity links (from r.referenceRange in Neo4j) */
+  reference_range?: string | null;
   /** DOCUMENTS relationship: when the link was coded */
   coded_at?: string;
 }

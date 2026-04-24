@@ -58,7 +58,11 @@ interface EpochRow {
   ents_r: number;
 }
 
-const EPOCH_RE = /^\s*\d+\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/;
+// spaCy spancat logger format (7 columns):
+//   E    #    LOSS SPANCAT  SPANS_SC_F  SPANS_SC_P  SPANS_SC_R  SCORE
+// F/P/R are emitted as percentages (0-100); we normalise to fractions (0-1)
+// for the chart whose Y-axis domain is [0, 1].
+const EPOCH_RE = /^\s*\d+\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/;
 
 function parseEpochLog(lines: string[]): EpochRow[] {
   return lines.reduce<EpochRow[]>((acc, line) => {
@@ -66,10 +70,10 @@ function parseEpochLog(lines: string[]): EpochRow[] {
     if (!m) return acc;
     acc.push({
       step: parseInt(m[1], 10),
-      loss_ner: parseFloat(m[3]),
-      ents_f: parseFloat(m[4]),
-      ents_p: parseFloat(m[5]),
-      ents_r: parseFloat(m[6]),
+      loss_ner: parseFloat(m[2]),
+      ents_f: parseFloat(m[3]) / 100,
+      ents_p: parseFloat(m[4]) / 100,
+      ents_r: parseFloat(m[5]) / 100,
     });
     return acc;
   }, []);
@@ -193,6 +197,11 @@ export function TrainStage({
       )}
 
       {/* Epoch training chart */}
+      {/* Per-label data health */}
+      {displayJob?.export_per_label_counts && Object.keys(displayJob.export_per_label_counts).length > 0 && (
+        <ExportLabelCounts counts={displayJob.export_per_label_counts} />
+      )}
+
       {epochData.length > 1 && (
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}>
@@ -202,16 +211,36 @@ export function TrainStage({
             <TrainingCurveInfoButton />
           </Box>
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={epochData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+            <LineChart data={epochData} margin={{ top: 4, right: 48, bottom: 4, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
               <XAxis dataKey="step" tick={{ fontSize: 11 }} label={{ value: "step", position: "insideBottom", offset: -2, fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <RTooltip />
+              <YAxis
+                yAxisId="loss"
+                orientation="left"
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}
+              />
+              <YAxis
+                yAxisId="metrics"
+                orientation="right"
+                domain={[0, 1]}
+                tickFormatter={(v: number) => `${Math.round(v * 100)}%`}
+                tick={{ fontSize: 11 }}
+              />
+              <RTooltip
+                formatter={(value: number, name: string) => {
+                  if (name === "Loss NER") {
+                    return [value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toFixed(2), name];
+                  }
+                  return [`${(value * 100).toFixed(1)}%`, name];
+                }}
+              />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="loss_ner" stroke="#e65100" dot={false} strokeWidth={1.5} name="Loss NER" />
-              <Line type="monotone" dataKey="ents_f" stroke="#1565c0" dot={false} strokeWidth={2} name="F1" />
-              <Line type="monotone" dataKey="ents_p" stroke="#2e7d32" dot={false} strokeWidth={1.5} name="Precision" />
-              <Line type="monotone" dataKey="ents_r" stroke="#7b1fa2" dot={false} strokeWidth={1.5} name="Recall" />
+              <ReferenceLine yAxisId="metrics" y={F1_AC} stroke="#1565c0" strokeDasharray="4 3" strokeWidth={1.5} label={{ value: "F1 target (85%)", position: "insideTopRight", fontSize: 10, fill: "#1565c0" }} />
+              <Line yAxisId="loss" type="monotone" dataKey="loss_ner" stroke="#e65100" dot={false} strokeWidth={1.5} name="Loss NER" />
+              <Line yAxisId="metrics" type="monotone" dataKey="ents_f" stroke="#1565c0" dot={false} strokeWidth={2} name="F1" />
+              <Line yAxisId="metrics" type="monotone" dataKey="ents_p" stroke="#2e7d32" dot={false} strokeWidth={1.5} name="Precision" />
+              <Line yAxisId="metrics" type="monotone" dataKey="ents_r" stroke="#7b1fa2" dot={false} strokeWidth={1.5} name="Recall" />
             </LineChart>
           </ResponsiveContainer>
         </Box>
@@ -225,6 +254,72 @@ export function TrainStage({
       {/* Job history */}
       {jobs.length > 0 && (
         <JobHistoryTable jobs={jobs} selectedJobId={selectedJobId ?? displayJob?.job_id ?? null} onSelect={setSelectedJobId} />
+      )}
+    </Box>
+  );
+}
+
+// -- Export label counts health panel ----------------------------------------
+
+const DEV_LOW_THRESHOLD = 5;
+
+function ExportLabelCounts({
+  counts,
+}: {
+  counts: Record<string, { train: number; dev: number }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const rows = Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0]));
+  const lowDevLabels = rows.filter(([, c]) => c.dev < DEV_LOW_THRESHOLD);
+
+  return (
+    <Box>
+      {lowDevLabels.length > 0 && (
+        <Alert severity="warning" sx={{ fontSize: FONT_SIZES.body, mb: 1 }}>
+          <strong>{lowDevLabels.length} label{lowDevLabels.length > 1 ? "s" : ""} have fewer than {DEV_LOW_THRESHOLD} dev examples</strong>
+          {" "}— F1 scores for these will be unreliable and gates are likely to fail.
+          Add more verified gold labels for: {lowDevLabels.map(([l]) => l).join(", ")}.
+        </Alert>
+      )}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+        <Typography sx={{ fontWeight: 600, fontSize: FONT_SIZES.subtitle }}>
+          Training data coverage
+        </Typography>
+        <Button
+          size="small"
+          variant="text"
+          onClick={() => setOpen((v) => !v)}
+          sx={{ fontSize: 11, textTransform: "none", py: 0, px: 0.75, minWidth: 0 }}
+        >
+          {open ? "Hide" : "Show per-label counts"}
+        </Button>
+      </Box>
+      {open && (
+        <Box sx={{ overflowX: "auto", mt: 0.5 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontSize: 11, fontWeight: 600 }}>Label</TableCell>
+                <TableCell align="right" sx={{ fontSize: 11, fontWeight: 600 }}>Train</TableCell>
+                <TableCell align="right" sx={{ fontSize: 11, fontWeight: 600 }}>Dev</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map(([label, c]) => (
+                <TableRow key={label} sx={c.dev < DEV_LOW_THRESHOLD ? { bgcolor: "warning.50" } : undefined}>
+                  <TableCell sx={{ fontSize: 11 }}>{label}</TableCell>
+                  <TableCell align="right" sx={{ fontSize: 11 }}>{c.train}</TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{ fontSize: 11, fontWeight: c.dev < DEV_LOW_THRESHOLD ? 700 : 400, color: c.dev < DEV_LOW_THRESHOLD ? "warning.dark" : "inherit" }}
+                  >
+                    {c.dev}{c.dev < DEV_LOW_THRESHOLD ? " !" : ""}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
       )}
     </Box>
   );
@@ -411,7 +506,8 @@ function TrainingCurveInfoDialog({
 
 // -- Per-label accuracy chart ------------------------------------------------
 
-const F1_GOOD = 0.8;
+const F1_AC = 0.85;
+const F1_GOOD = 0.85;
 const F1_WARN = 0.5;
 
 function f1Colour(f1: number): string {
@@ -423,7 +519,7 @@ function f1Colour(f1: number): string {
 const ENTITY_METRIC_DESCRIPTIONS: Record<string, { what: string; good: string; bad: string }> = {
   F1: {
     what: "Overall accuracy for this entity type. Balances finding codes (recall) and avoiding wrong ones (precision).",
-    good: ">=80% (green zone). The model reliably finds and codes this entity.",
+    good: ">=85% (green zone, acceptance criterion). The model reliably finds and codes this entity.",
     bad: "<50% (red zone). The model is struggling with this entity -- check training data volume and label quality.",
   },
   Precision: {

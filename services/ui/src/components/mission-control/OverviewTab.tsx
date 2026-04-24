@@ -18,6 +18,7 @@ import ArrowForward from "@mui/icons-material/ArrowForward";
 import EpisodeTimeline from "./EpisodeTimeline";
 import ReviewActionsPanel from "./ReviewActionsPanel";
 import StatusBadge from "./StatusBadge";
+import VariationPanel from "./VariationPanel";
 import { getStatusLabel, getCancerTypeLabel, getDiagnosticIntervalColour } from "@/lib/pathwayLabels";
 import type { MissionEpisode, MissionPatient } from "@/lib/missionControlApi";
 import {
@@ -282,6 +283,8 @@ export default function OverviewTab({
           <Box sx={{ mb: 2 }}>
             <EpisodeTimeline episode={episode} />
           </Box>
+
+          <VariationPanel episode={episode} />
 
           <Divider sx={{ mb: 2 }} />
 

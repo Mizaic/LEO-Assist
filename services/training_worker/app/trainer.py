@@ -38,6 +38,81 @@ _HF_MODEL = os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT
 _FROZEN = os.getenv("TRAINING_FROZEN_COMPONENTS", "transformer")
 _BASE_MODEL_VERSION = os.getenv("TRAINING_BASE_MODEL_VERSION", "").strip()
 
+_VALID_LR_SCHEDULES = {"warmup_linear", "cosine"}
+
+
+def _parse_seeds() -> list[int]:
+    """Return the list of seeds to iterate over for multi-seed training.
+
+    Controlled by ``TRAINING_SEEDS`` (comma-separated ints). Empty / unset
+    means a single run at the config's default seed.
+    """
+    raw = os.getenv("TRAINING_SEEDS", "").strip()
+    if not raw:
+        return []
+    seeds: list[int] = []
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        try:
+            seeds.append(int(token))
+        except ValueError:
+            logger.warning(
+                "[trainer] Ignoring non-integer seed %r in TRAINING_SEEDS", token
+            )
+    return seeds
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning(
+            "[trainer] Ignoring invalid %s=%r (expected int); using %d",
+            name,
+            raw,
+            default,
+        )
+        return default
+
+
+def _is_cosine_available() -> bool:
+    """Return True only when warmup_cosine.v1 is registered in the training venv.
+
+    thinc >= 8.4 ships warmup_cosine.v1; older versions do not.  We probe
+    at runtime so a cosine request on an old thinc degrades gracefully
+    instead of failing inside the spaCy subprocess with a RegistryError.
+    """
+    try:
+        from thinc.api import registry as _thinc_registry  # type: ignore[import]
+        return "warmup_cosine.v1" in _thinc_registry.schedules.get_all()
+    except Exception:
+        return False
+
+
+def _resolve_lr_schedule() -> str:
+    raw = os.getenv("TRAINING_LR_SCHEDULE", "warmup_linear").strip().lower()
+    if raw not in _VALID_LR_SCHEDULES:
+        logger.warning(
+            "[trainer] Ignoring invalid TRAINING_LR_SCHEDULE=%r "
+            "(expected one of %s); defaulting to warmup_linear",
+            raw,
+            sorted(_VALID_LR_SCHEDULES),
+        )
+        return "warmup_linear"
+    if raw == "cosine" and not _is_cosine_available():
+        logger.warning(
+            "[trainer] TRAINING_LR_SCHEDULE=cosine requested but "
+            "warmup_cosine.v1 is not registered in the training environment "
+            "(thinc >= 8.4 required). Falling back to warmup_linear."
+        )
+        return "warmup_linear"
+    return raw
+
 
 def _register_nvidia_dll_dirs() -> None:
     """Register nvidia pip-wheel DLL directories with the Windows DLL loader.
@@ -168,12 +243,86 @@ def _fetch_warm_start_model(version: str, log: Callable[[str], None]) -> Optiona
         return None
 
 
+def run_training_with_seeds(
+    work_dir: Path,
+    *,
+    train_path: Path,
+    dev_path: Path,
+    log_fn: Optional[Callable[[str], None]] = None,
+) -> tuple[Path, dict]:
+    """Run training across seeds (if ``TRAINING_SEEDS`` is set) and pick best.
+
+    Falls back to :func:`run_training` when only a single seed is configured.
+    Reads ``model-best/meta.json`` after each run and keeps the model with the
+    highest ``performance.spans_sc_f`` (spancat F1) or ``performance.ents_f``
+    as a legacy fallback.
+    """
+    import json as _json
+
+    seeds = _parse_seeds()
+
+    def _log(msg: str) -> None:
+        logger.info("[trainer] %s", msg)
+        if log_fn:
+            log_fn(msg)
+
+    if len(seeds) <= 1:
+        single_seed = seeds[0] if seeds else None
+        return run_training(
+            work_dir,
+            train_path=train_path,
+            dev_path=dev_path,
+            log_fn=log_fn,
+            seed=single_seed,
+        )
+
+    _log(f"Multi-seed training with {len(seeds)} seeds: {seeds}")
+    best: tuple[Path, dict, float, int] | None = None
+    all_runs: list[dict] = []
+    for seed in seeds:
+        seed_dir = work_dir / f"seed_{seed}"
+        seed_dir.mkdir(parents=True, exist_ok=True)
+        _log(f"Seed {seed}: training into {seed_dir}")
+        model_path, accel_meta = run_training(
+            seed_dir,
+            train_path=train_path,
+            dev_path=dev_path,
+            log_fn=log_fn,
+            seed=seed,
+        )
+        meta_file = model_path / "meta.json"
+        f1 = 0.0
+        if meta_file.exists():
+            try:
+                performance = _json.loads(meta_file.read_text()).get("performance", {})
+                f1 = float(
+                    performance.get("spans_sc_f")
+                    or performance.get("ents_f")
+                    or 0.0
+                )
+            except Exception as exc:
+                _log(f"Seed {seed}: could not parse meta.json ({exc}) — treating F1=0")
+        _log(f"Seed {seed}: dev F1={f1:.4f}")
+        all_runs.append({"seed": seed, "f1": round(f1, 4), "model_path": str(model_path)})
+        if best is None or f1 > best[2]:
+            best = (model_path, accel_meta, f1, seed)
+
+    assert best is not None
+    model_path, accel_meta, f1, winning_seed = best
+    _log(f"Multi-seed winner: seed={winning_seed} F1={f1:.4f}")
+    accel_meta = dict(accel_meta)
+    accel_meta["multi_seed_runs"] = all_runs
+    accel_meta["multi_seed_winner"] = winning_seed
+    return model_path, accel_meta
+
+
 def run_training(
     work_dir: Path,
     *,
     train_path: Path,
     dev_path: Path,
     log_fn: Optional[Callable[[str], None]] = None,
+    seed: Optional[int] = None,
 ) -> tuple[Path, dict]:
     """Run spaCy training and return the path to the best model.
 
@@ -207,15 +356,13 @@ def run_training(
     mps_fail_fast = accelerator.resolved == "mps" and os.getenv(
         "TRAINING_MPS_FAIL_FAST", "true"
     ).lower() in ("1", "true", "yes")
+    # Honour the configured frozen_components list as-is.  The
+    # leo_training.TransformerListener.v1 architecture (see
+    # services/training_worker/app/spacy_listener_width.py) explicitly sets the
+    # listener's nO dimension so frozen-transformer init no longer requires the
+    # transformer to run initialize(). The retry fallback below (attempt 2) still
+    # unfreezes on listener-dim error as a belt-and-braces guard.
     frozen_components = [c.strip() for c in _FROZEN.split(",") if c.strip()]
-    if "transformer" in frozen_components:
-        frozen_components = [c for c in frozen_components if c != "transformer"]
-        _log(
-            "Transformer freeze disabled. This training path starts from the "
-            "Bio_ClinicalBERT HF checkpoint, so the transformer must initialize "
-            "its tokenizer/model before training. Freezing it here leaves the "
-            "tokenizer unset and causes spaCy to fail at runtime."
-        )
     _log(
         "Starting spaCy training "
         f"(frozen: {','.join(frozen_components) or 'none'}, base: {_HF_MODEL}, gpu: {use_gpu})"
@@ -251,6 +398,8 @@ def run_training(
         frozen_components=frozen_components,
         config_name="train.cfg",
         init_tok2vec_path=init_tok2vec_path,
+        accelerator_resolved=accelerator.resolved,
+        seed=seed,
     )
 
     # --- Attempt 2: unfreeze transformer if listener dim error (before MPS fail-fast)
@@ -276,6 +425,8 @@ def run_training(
             frozen_components=retry_frozen,
             config_name="train_retry_unfrozen.cfg",
             init_tok2vec_path=init_tok2vec_path,
+            accelerator_resolved=accelerator.resolved,
+            seed=seed,
         )
 
     # --- Attempt 3: GPU -> CPU fallback --------------------------------------
@@ -314,6 +465,8 @@ def run_training(
             frozen_components=frozen_components,
             config_name="train_retry_cpu.cfg",
             init_tok2vec_path=init_tok2vec_path,
+            accelerator_resolved="cpu",
+            seed=seed,
         )
 
     recovered_model = _recover_saved_model(output_dir, lines, _log)
@@ -356,11 +509,21 @@ def _write_filled_config(
     dev_path: Path,
     frozen_components: list[str],
     use_gpu: bool,
+    accelerator_resolved: str = "cpu",
+    orth_variants_path: Optional[Path] = None,
 ) -> None:
     """Write a resolved spaCy config with paths and overrides filled in.
 
     Parameters are always required — callers must resolve them before calling
     so this function never needs to re-derive GPU state or frozen lists.
+
+    Wave 1 additions:
+      * TRAINING_WINDOW_TOKENS / TRAINING_STRIDE_TOKENS override the strided
+        span getter (F2) without editing base.cfg.
+      * mixed_precision is flipped on only when CUDA is the resolved
+        accelerator (F5) — MPS and CPU runs do not support PyTorch AMP.
+      * TRAINING_LR_SCHEDULE=cosine swaps ``warmup_linear.v1`` for
+        ``warmup_cosine.v1`` with matching warmup/total steps (F14).
     """
     config_text = _CONFIG_PATH.read_text(encoding="utf-8")
 
@@ -386,6 +549,24 @@ def _write_filled_config(
         config_text,
     )
 
+    # F2: window/stride overrides.
+    window = _env_int("TRAINING_WINDOW_TOKENS", 0)
+    if window > 0:
+        config_text = re.sub(
+            r"(?m)^window\s*=\s*\d+",
+            f"window = {window}",
+            config_text,
+            count=1,
+        )
+    stride = _env_int("TRAINING_STRIDE_TOKENS", 0)
+    if stride > 0:
+        config_text = re.sub(
+            r"(?m)^stride\s*=\s*\d+",
+            f"stride = {stride}",
+            config_text,
+            count=1,
+        )
+
     if use_gpu:
         config_text = re.sub(
             r"gpu_allocator\s*=\s*null",
@@ -393,7 +574,69 @@ def _write_filled_config(
             config_text,
         )
 
+    # F5: AMP only on CUDA.  PyTorch MPS has partial AMP support and tends to
+    # produce NaNs on the spancat head; CPU gains nothing.
+    if accelerator_resolved == "cuda":
+        config_text = re.sub(
+            r"(?m)^mixed_precision\s*=\s*false",
+            "mixed_precision = true",
+            config_text,
+            count=1,
+        )
+
+    # F14: cosine schedule opt-in.
+    if _resolve_lr_schedule() == "cosine":
+        config_text = re.sub(
+            r'(?m)^@schedules\s*=\s*"warmup_linear\.v1"',
+            '@schedules = "warmup_cosine.v1"',
+            config_text,
+            count=1,
+        )
+
+    # Wave 2 (F8): if no orth_variants table is available, strip the
+    # [corpora.train.augmenter] block so spaCy does not fail resolving the
+    # null path reference.
+    if orth_variants_path is None or not orth_variants_path.exists():
+        config_text = _strip_augmenter_section(config_text)
+
     out_path.write_text(config_text, encoding="utf-8")
+
+
+def _strip_augmenter_section(config_text: str) -> str:
+    """Remove ``[corpora.train.augmenter...]`` blocks; re-set augmenter to null.
+
+    Works in multiline (not single-line) mode so ``.*`` stays within a line and
+    the section end is anchored by the next top-level ``[section]`` header.
+    """
+    lines = config_text.splitlines(keepends=True)
+    out: list[str] = []
+    skip = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[corpora.train.augmenter"):
+            skip = True
+            continue
+        if skip:
+            if stripped.startswith("[") and stripped.endswith("]"):
+                skip = False
+                # Fall through to append this header line.
+            else:
+                continue
+        out.append(line)
+    cleaned = "".join(out)
+
+    # Ensure [corpora.train] has an `augmenter = null` line so spaCy does not
+    # try to resolve the (now removed) ${paths.orth_variants}.
+    train_header = "[corpora.train]"
+    dev_header = "[corpora.dev]"
+    train_idx = cleaned.find(train_header)
+    dev_idx = cleaned.find(dev_header)
+    if train_idx != -1 and dev_idx != -1 and dev_idx > train_idx:
+        section = cleaned[train_idx:dev_idx]
+        if not re.search(r"(?m)^augmenter\s*=", section):
+            section = section.rstrip() + "\naugmenter = null\n\n"
+            cleaned = cleaned[:train_idx] + section + cleaned[dev_idx:]
+    return cleaned
 
 
 def json_list(items: list[str]) -> str:
@@ -466,14 +709,21 @@ def _run_spacy_train(
     frozen_components: list[str],
     config_name: str,
     init_tok2vec_path: Optional[Path] = None,
+    accelerator_resolved: str = "cpu",
+    seed: Optional[int] = None,
 ) -> tuple[int, list[str]]:
     filled_config = work_dir / config_name
+    orth_variants_candidate = train_path.parent / "orth_variants.json"
     _write_filled_config(
         filled_config,
         train_path=train_path,
         dev_path=dev_path,
         frozen_components=frozen_components,
         use_gpu=use_gpu,
+        accelerator_resolved=accelerator_resolved,
+        orth_variants_path=(
+            orth_variants_candidate if orth_variants_candidate.exists() else None
+        ),
     )
     cmd = [
         sys.executable,
@@ -489,10 +739,15 @@ def _run_spacy_train(
         "--paths.dev",
         str(dev_path),
     ]
+    orth_variants_path = train_path.parent / "orth_variants.json"
+    if orth_variants_path.exists():
+        cmd.extend(["--paths.orth_variants", str(orth_variants_path)])
     if use_gpu:
         cmd.extend(["--gpu-id", "0"])
     if init_tok2vec_path is not None and init_tok2vec_path.exists():
         cmd.extend(["--initialize.init_tok2vec", str(init_tok2vec_path)])
+    if seed is not None:
+        cmd.extend(["--system.seed", str(seed)])
 
     proc = subprocess.Popen(
         cmd,

@@ -172,3 +172,138 @@ class TestGoldenGate(unittest.TestCase):
         self.assertEqual(result["recall"], 0.79)
         self.assertEqual(result["f1"], 0.8)
         self.assertEqual(result["per_label"]["problem"]["precision"], 0.0)
+
+
+class TestCheckLabelGates(unittest.TestCase):
+    """Unit tests for _check_label_gates() and _load_label_min_f1().
+
+    Covers DO-A35D2D57 ACs:
+      - _check_label_gates() returns failure for every label below its floor
+      - _check_label_gates() returns empty list when all labels pass
+      - Labels absent from per_label are silently skipped
+      - passed_gates=False and label_gate_failures non-empty on breach
+      - LABEL_MIN_F1_JSON env var overrides individual floors
+    """
+
+    def _gates(self) -> dict[str, float]:
+        from app.evaluator import _LABEL_MIN_F1_DEFAULTS
+        return dict(_LABEL_MIN_F1_DEFAULTS)
+
+    def test_returns_failure_for_label_below_floor(self):
+        from app.evaluator import _check_label_gates
+        per_label = {"DISORDER": {"f1": 0.70, "precision": 0.70, "recall": 0.70}}
+        gates = {"DISORDER": 0.82}
+        failures = _check_label_gates(per_label, gates)
+        self.assertEqual(len(failures), 1)
+        self.assertIn("DISORDER", failures[0])
+        self.assertIn("0.700", failures[0])
+
+    def test_returns_empty_when_all_pass(self):
+        from app.evaluator import _check_label_gates
+        per_label = {"DISORDER": {"f1": 0.90, "precision": 0.91, "recall": 0.89}}
+        gates = {"DISORDER": 0.82}
+        self.assertEqual(_check_label_gates(per_label, gates), [])
+
+    def test_absent_label_is_skipped(self):
+        from app.evaluator import _check_label_gates
+        # DISORDER is in gates but not in per_label (not seen in dev split)
+        failures = _check_label_gates({}, {"DISORDER": 0.82})
+        self.assertEqual(failures, [])
+
+    def test_multiple_failures_all_returned(self):
+        from app.evaluator import _check_label_gates
+        per_label = {
+            "DISORDER": {"f1": 0.50},
+            "PROCEDURE": {"f1": 0.60},
+            "FINDING": {"f1": 0.90},
+        }
+        gates = {"DISORDER": 0.82, "PROCEDURE": 0.80, "FINDING": 0.78}
+        failures = _check_label_gates(per_label, gates)
+        self.assertEqual(len(failures), 2)
+        labels_failed = {f.split(":")[0] for f in failures}
+        self.assertEqual(labels_failed, {"DISORDER", "PROCEDURE"})
+
+    def test_label_min_f1_json_env_var_overrides_floor(self):
+        import json
+        from app.evaluator import _load_label_min_f1
+        override = json.dumps({"DISORDER": 0.50})
+        with patch.dict(os.environ, {"LABEL_MIN_F1_JSON": override}):
+            merged = _load_label_min_f1()
+        self.assertAlmostEqual(merged["DISORDER"], 0.50)
+        # Unspecified labels keep their defaults
+        self.assertAlmostEqual(merged["PROCEDURE"], 0.80)
+
+    def test_label_min_f1_json_invalid_falls_back_to_defaults(self):
+        from app.evaluator import _load_label_min_f1
+        with patch.dict(os.environ, {"LABEL_MIN_F1_JSON": "not-json"}):
+            merged = _load_label_min_f1()
+        self.assertAlmostEqual(merged["DISORDER"], 0.82)
+
+    def test_evaluate_model_fails_gates_on_label_breach(self):
+        from app import evaluator
+
+        logs: list[str] = []
+        dev_docs = [_make_mock_doc() for _ in range(5)]
+        dev_scores = {
+            "ents_p": 0.92,
+            "ents_r": 0.88,
+            "ents_f": 0.90,
+            "ents_per_type": {
+                "DISORDER": {"p": 0.65, "r": 0.65, "f": 0.65},
+            },
+        }
+
+        with (
+            patch.object(evaluator, "_register_training_architectures"),
+            patch("spacy.load", return_value=MagicMock()),
+            patch("spacy.tokens.DocBin") as mock_docbin_cls,
+            patch.object(evaluator, "_score_examples", return_value=dev_scores),
+            patch.object(evaluator, "_fetch_golden_set_docs", return_value=[]),
+        ):
+            instance = MagicMock()
+            instance.get_docs.return_value = iter(dev_docs)
+            mock_docbin_cls.return_value = instance
+            instance.from_disk.return_value = instance
+            result = evaluator.evaluate_model(
+                Path("/tmp/model-best"),
+                Path("/tmp/dev.spacy"),
+                log_fn=logs.append,
+            )
+
+        self.assertFalse(result["passed_gates"])
+        self.assertGreater(len(result["label_gate_failures"]), 0)
+        self.assertTrue(any("DISORDER" in m for m in logs if "LABEL GATE FAILED" in m))
+
+    def test_evaluate_model_passes_when_all_labels_above_floor(self):
+        from app import evaluator
+
+        dev_docs = [_make_mock_doc() for _ in range(5)]
+        # All gated labels well above their floors
+        per_type = {
+            lbl: {"p": 0.95, "r": 0.95, "f": 0.95}
+            for lbl in evaluator._LABEL_MIN_F1_DEFAULTS
+        }
+        dev_scores = {
+            "ents_p": 0.92,
+            "ents_r": 0.88,
+            "ents_f": 0.90,
+            "ents_per_type": per_type,
+        }
+
+        with (
+            patch.object(evaluator, "_register_training_architectures"),
+            patch("spacy.load", return_value=MagicMock()),
+            patch("spacy.tokens.DocBin") as mock_docbin_cls,
+            patch.object(evaluator, "_score_examples", return_value=dev_scores),
+            patch.object(evaluator, "_fetch_golden_set_docs", return_value=[]),
+        ):
+            instance = MagicMock()
+            instance.get_docs.return_value = iter(dev_docs)
+            mock_docbin_cls.return_value = instance
+            instance.from_disk.return_value = instance
+            result = evaluator.evaluate_model(
+                Path("/tmp/model-best"), Path("/tmp/dev.spacy")
+            )
+
+        self.assertTrue(result["passed_gates"])
+        self.assertEqual(result["label_gate_failures"], [])

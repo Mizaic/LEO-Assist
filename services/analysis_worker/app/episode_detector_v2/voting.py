@@ -2,15 +2,23 @@
 
 Atlas trace:
   DI: DI-8A5FCF4F
-  Mitigates: R-1276F86C (silent-drop), R-451E161F (over-confident auto)
+  DI: DI-2C015ADE (context-tier milestone enforcement)
+  Mitigates: R-1276F86C (silent-drop), R-451E161F (over-confident auto),
+             R-76D26C56 (AI-written context milestones require human review)
 
 Counts how many independent generators (or channels) backed each
 candidate. Assigns publishing tier:
 
 - ``auto``    -- 2+ generator votes, channel diversity >= 2,
-                 site is auto_publish-eligible (see site_keys.py).
-- ``suggest`` -- 2+ generator votes OR (1 vote AND channel diversity >= 2).
-- ``review``  -- everything else: needs human review before persistence.
+                 site is auto_publish-eligible (see site_keys.py),
+                 AND no supporting signal carries role="context_milestone".
+- ``suggest`` -- 2+ generator votes OR (1 vote AND channel diversity >= 2),
+                 AND no context_milestone signal present.
+- ``review``  -- everything else, OR any context_milestone signal is present.
+
+The context_milestone guard is belt-and-suspenders for the v2 detector
+path: the episode_engine writer enforces the same rule via
+_has_context_tier_milestone -> status=REVIEW. Both gates must agree.
 """
 
 from __future__ import annotations
@@ -33,6 +41,19 @@ def vote_for_candidates(
     return {k: sorted(set(v)) for k, v in votes.items()}
 
 
+def _has_context_milestone_signal(aggregated: AggregatedCandidate) -> bool:
+    """Return True when any supporting signal is role='context_milestone'.
+
+    DI-2C015ADE: the presence of an AI-proposed context-tier milestone
+    signal forces the tier to at most 'suggest', never 'auto'. The
+    episode_engine writer has an independent enforcement path.
+    """
+    return any(
+        getattr(s, "role", "") == "context_milestone"
+        for s in aggregated.candidate.supporting_signals
+    )
+
+
 def assign_confidence_tier(
     aggregated: AggregatedCandidate,
     consensus: list[str],
@@ -42,14 +63,18 @@ def assign_confidence_tier(
     diversity = aggregated.channel_diversity
     vote_count = len(consensus)
     site_auto = is_auto_eligible(cand.site_key)
+    has_ctx = _has_context_milestone_signal(aggregated)
     reasons: list[str] = []
 
-    if vote_count >= 2 and diversity >= 2 and site_auto:
+    if vote_count >= 2 and diversity >= 2 and site_auto and not has_ctx:
         return "auto", reasons
 
     if vote_count >= 2 or diversity >= 2:
         if not site_auto:
             reasons.append("site_not_auto_eligible_in_v1")
+        if has_ctx:
+            reasons.append("context_milestone_requires_review")
+            return "suggest", reasons
         return "suggest", reasons
 
     reasons.append("insufficient_consensus")
@@ -59,4 +84,6 @@ def assign_confidence_tier(
         reasons.append("single_generator_vote")
     if not site_auto:
         reasons.append("site_not_auto_eligible_in_v1")
+    if has_ctx:
+        reasons.append("context_milestone_requires_review")
     return "review", reasons
