@@ -59,6 +59,9 @@ CONTEXT_MILESTONE_TYPES: tuple[str, ...] = (
     "related_specialist_visit",
     "specialist_diagnostics",
     "related_correspondence",
+    "treatment_planned",
+    "treatment_monitoring",
+    "treatment_toxicity",
 )
 
 MILESTONE_TYPES: tuple[str, ...] = PATHWAY_MILESTONE_TYPES + CONTEXT_MILESTONE_TYPES
@@ -179,6 +182,9 @@ class Milestone(BaseModel):
         "related_specialist_visit",
         "specialist_diagnostics",
         "related_correspondence",
+        "treatment_planned",
+        "treatment_monitoring",
+        "treatment_toxicity",
     ]
     date: _date_t
     encounter_id: str = Field(..., min_length=1)

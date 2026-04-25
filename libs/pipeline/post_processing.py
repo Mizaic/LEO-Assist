@@ -20,7 +20,11 @@ Layer order
                              recommendation / hedged-diagnosis text
 3b. Lab Triple Recovery   -- add missing procedure / observable / finding
                              spans on lab-shaped lines the model missed
-3c. Cross-Line Lab Finding Merge -- DI-D3391745 / DO-1DB93C8E. Extend an
+3c. Request Reason Recovery -- add clinically meaningful findings embedded in
+                             lab request reason text.
+we h3c2. Breast Screening Outcome Recovery -- NHS breast programme + abnormal
+                             (68621) as a finding (SNOMED 171176006).
+3d. Cross-Line Lab Finding Merge -- DI-D3391745 / DO-1DB93C8E. Extend an
                              observable_entity span forward across at most
                              one blank line when the next non-blank line
                              starts with a recognised result-interpretation
@@ -49,6 +53,10 @@ from libs.ner.lab_triple_recovery import recover_lab_triples
 from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import PostProcessorRule, apply_rules_to_entities
+from libs.ner.breast_screening_outcome_recovery import (
+    recover_breast_screening_outcome_finding,
+)
+from libs.ner.request_reason_recovery import recover_request_reason_entities
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
 logger = logging.getLogger(__name__)
@@ -493,9 +501,11 @@ def _next_line_descriptor(
     descriptor_end = descriptor_start + len(matched)
     if descriptor_end - search_start > _CROSS_LINE_MAX_EXTENSION:
         return None
-    return descriptor_start, descriptor_end, encounter_text[
-        descriptor_start:descriptor_end
-    ]
+    return (
+        descriptor_start,
+        descriptor_end,
+        encounter_text[descriptor_start:descriptor_end],
+    )
 
 
 def merge_cross_line_lab_findings(
@@ -1268,7 +1278,25 @@ def run_post_processing_with_trace(
         lambda current: recover_lab_triples(encounter_text, current),
     )
 
-    # Layer 3c: Cross-Line Lab Finding Merge (DI-D3391745, DO-1DB93C8E,
+    # Layer 3c: Request Reason Recovery
+    # Some lab request records carry clinically meaningful reasons after
+    # "Reasons for Request:" which are not part of the lab result itself.
+    _run_layer(
+        "layer_3c",
+        "Request Reason Recovery",
+        lambda current: recover_request_reason_entities(encounter_text, current),
+    )
+
+    # Layer 3c2: Breast screening programme abnormal (Read 68621 / SNOMED 171176006)
+    _run_layer(
+        "layer_3c2",
+        "Breast Screening Outcome Recovery",
+        lambda current: recover_breast_screening_outcome_finding(
+            encounter_text, current
+        ),
+    )
+
+    # Layer 3d: Cross-Line Lab Finding Merge (DI-D3391745, DO-1DB93C8E,
     # VT-835D4BBC). Extend an observable_entity span forward across at
     # most one blank line when the next non-blank line begins with a
     # recognised result-interpretation phrase. This lets Layer 4 emit the
@@ -1276,7 +1304,7 @@ def run_post_processing_with_trace(
     # the interpretation phrase orphaned in a separate sentence (e.g. PSA
     # value line followed by a blank line and "Outside reference range").
     _run_layer(
-        "layer_3c",
+        "layer_3d",
         "Cross-Line Lab Finding Merge",
         lambda current: merge_cross_line_lab_findings(encounter_text, current),
     )

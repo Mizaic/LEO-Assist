@@ -19,7 +19,7 @@ BASE = "http://localhost:8001"
 
 # (surface_form, our_id, resolver_id, clinical_note)
 MISMATCHES = [
-    ("NAFLD", "1231824009", "161535005", "Metabolic steatotic liver disease"),
+    ("NAFLD", "9990010007", "161535005", "Metabolic steatotic liver disease"),
     ("type 2 diabetes", "44054006", "410657003", "Diabetes mellitus type 2"),
     ("essential hypertension", "38341003", "59621000", "Hypertensive disorder"),
     ("dementia", "52448006", "161465002", "Dementia"),
@@ -100,7 +100,7 @@ print()
 verdicts = [
     (
         "NAFLD",
-        "1231824009",
+        "9990010007",
         "161535005",
         "NEEDS FIX",
         "Our mapping (MASLD/steatotic liver) is correct; resolver ignoring our MAPS_TO - re-upsert",

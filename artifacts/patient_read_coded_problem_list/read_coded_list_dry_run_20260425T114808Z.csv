@@ -1,0 +1,326 @@
+patient_id,source_line,key,lookup,read_code,expected_tag,encounter_id,encounter_date,evidence,status,concept_id,snomed_term,resolved_tag,score,had_exact_match,already_linked,write_eligible
+4742236882,Ultrasound scan (X70lf) - axilla - malignant looking LNs (New Episode),Ultrasound scan (X70lf) - axilla - malignant looking LNs,Ultrasound scan (X70lf) - axilla - malignant looking LNs,,finding,4d64bea6-d651-4838-a087-411313f0758e,2025-03-24,"Ultrasound scan (X70lf) - axilla - malignant looking LNs (New Episode)
+Biopsy of breast (7135.) - core biopsy (New Episode)
+Major: Infiltrating duct carcinoma (BB91.) (New Episode)
+CT (computed tomogr",unresolved,,,finding,0.0,False,False,False
+4742236882,Biopsy of breast (7135.) - core biopsy (New Episode),Biopsy of breast (7135.) - core biopsy,Biopsy of breast (7135.) - core biopsy,,procedure,4d64bea6-d651-4838-a087-411313f0758e,2025-03-24,"Biopsy of breast (7135.) - core biopsy (New Episode)
+Major: Infiltrating duct carcinoma (BB91.) (New Episode)
+CT (computed tomography) of abdomen and pelvis (XaW9C) (New Episode)
+Mammogram (537..) (Ne",unresolved,,,procedure,0.0,False,False,False
+4742236882,Major: Infiltrating duct carcinoma (BB91.) (New Episode),Infiltrating duct carcinoma (BB91.),Infiltrating duct carcinoma of breast (BB91.),BB91.,disorder,4d64bea6-d651-4838-a087-411313f0758e,2025-03-24,"Infiltrating duct carcinoma (BB91.) (New Episode)
+CT (computed tomography) of abdomen and pelvis (XaW9C) (New Episode)
+Mammogram (537..) (New Episode)
+Infiltrating duct carcinoma (BB91.)",override,408643008,Infiltrating duct carcinoma of breast (disorder),disorder,1.0,True,False,True
+4742236882,Major: Infiltrating duct carcinoma (BB91.) (New Episode),Infiltrating duct carcinoma (BB91.),Infiltrating duct carcinoma of breast (BB91.),BB91.,disorder,5bb24a83-6252-44ec-9bd9-ba0050ae78a6,2025-06-10,"Infiltrating duct carcinoma (BB91.)
+Plan: Denosumab added to repeats.
+SCA signed.
+Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a mo",override,408643008,Infiltrating duct carcinoma of breast (disorder),disorder,1.0,True,False,True
+4742236882,Major: Infiltrating duct carcinoma (BB91.) (New Episode),Infiltrating duct carcinoma (BB91.),Infiltrating duct carcinoma of breast (BB91.),BB91.,disorder,3debd78a-ce7c-4ad6-bd72-a0056beb1074,2025-07-24,"Infiltrating duct carcinoma (BB91.)
+135 / 93
+(R) Bisoprolol 5mg tablets - 28 tablet - take one tablet daily
+Stopped 30 Jul 2025 Change to medication treatment regime by PATEL, Krishan (Dr)
+ Consultati",override,408643008,Infiltrating duct carcinoma of breast (disorder),disorder,1.0,True,False,True
+4742236882,CT (computed tomography) of abdomen and pelvis (XaW9C) (New Episode),CT (computed tomography) of abdomen and pelvis (XaW9C),CT (computed tomography) of abdomen and pelvis (XaW9C),XaW9C,procedure,4d64bea6-d651-4838-a087-411313f0758e,2025-03-24,"CT (computed tomography) of abdomen and pelvis (XaW9C) (New Episode)
+Mammogram (537..) (New Episode)
+Infiltrating duct carcinoma (BB91.)",unresolved,,,procedure,0.0,False,False,False
+4742236882,Mammogram (537..) (New Episode),Mammogram (537..),Mammogram (537..),537..,procedure,f2351bf7-001f-4262-9d88-d0ff4aa68a55,2025-03-14,"Mammogram (537..) (New Episode)
+US scan of breast (585C.) - and axilla - left (New Episode)
+Biopsy of axillary lymph node (X20AR) - left (New Episode)",safe,71651007,Mammography (procedure),procedure,0.9841,False,False,True
+4742236882,Mammogram (537..) (New Episode),Mammogram (537..),Mammogram (537..),537..,procedure,4d64bea6-d651-4838-a087-411313f0758e,2025-03-24,"Mammogram (537..) (New Episode)
+Infiltrating duct carcinoma (BB91.)",safe,71651007,Mammography (procedure),procedure,0.9841,False,False,True
+4742236882,Infiltrating duct carcinoma (BB91.),Infiltrating duct carcinoma (BB91.),Infiltrating duct carcinoma of breast (BB91.),BB91.,disorder,4d64bea6-d651-4838-a087-411313f0758e,2025-03-24,"Infiltrating duct carcinoma (BB91.) (New Episode)
+CT (computed tomography) of abdomen and pelvis (XaW9C) (New Episode)
+Mammogram (537..) (New Episode)
+Infiltrating duct carcinoma (BB91.)",deduped,408643008,Infiltrating duct carcinoma of breast (disorder),disorder,1.0,True,False,False
+4742236882,Infiltrating duct carcinoma (BB91.),Infiltrating duct carcinoma (BB91.),Infiltrating duct carcinoma of breast (BB91.),BB91.,disorder,5bb24a83-6252-44ec-9bd9-ba0050ae78a6,2025-06-10,"Infiltrating duct carcinoma (BB91.)
+Plan: Denosumab added to repeats.
+SCA signed.
+Xgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a mo",deduped,408643008,Infiltrating duct carcinoma of breast (disorder),disorder,1.0,True,False,False
+4742236882,Infiltrating duct carcinoma (BB91.),Infiltrating duct carcinoma (BB91.),Infiltrating duct carcinoma of breast (BB91.),BB91.,disorder,3debd78a-ce7c-4ad6-bd72-a0056beb1074,2025-07-24,"Infiltrating duct carcinoma (BB91.)
+135 / 93
+(R) Bisoprolol 5mg tablets - 28 tablet - take one tablet daily
+Stopped 30 Jul 2025 Change to medication treatment regime by PATEL, Krishan (Dr)
+ Consultati",deduped,408643008,Infiltrating duct carcinoma of breast (disorder),disorder,1.0,True,False,False
+4742236882,Ultrasound scan (X70lf) - axillary (New Episode),Ultrasound scan (X70lf) - axillary,Ultrasound scan (X70lf) - axillary,,procedure,ec95c6fe-2c11-44b5-a7c3-a03fea4a516f,2025-03-24,"Ultrasound scan (X70lf) - axillary (New Episode)
+Major: Metastasis to lymph node (Xa980) (New Episode)
+Metastasis to lymph node (Xa980)",safe,2611641000000106,Doppler ultrasonography of axillary artery (procedure),procedure,0.9941,False,False,True
+4742236882,Major: Metastasis to lymph node (Xa980) (New Episode),Metastasis to lymph node (Xa980),Metastasis to lymph node (Xa980),Xa980,disorder,ec95c6fe-2c11-44b5-a7c3-a03fea4a516f,2025-03-24,"Metastasis to lymph node (Xa980) (New Episode)
+Metastasis to lymph node (Xa980)",safe,1681000119102,Metastatic adenocarcinoma to lymph node (disorder),disorder,1.0,False,False,True
+4742236882,Metastasis to lymph node (Xa980),Metastasis to lymph node (Xa980),Metastasis to lymph node (Xa980),Xa980,disorder,ec95c6fe-2c11-44b5-a7c3-a03fea4a516f,2025-03-24,"Metastasis to lymph node (Xa980) (New Episode)
+Metastasis to lymph node (Xa980)",deduped,1681000119102,Metastatic adenocarcinoma to lymph node (disorder),disorder,1.0,False,False,False
+4742236882,Biopsy of breast (7135.) - left (New Episode),Biopsy of breast (7135.) - left,Biopsy of breast (7135.) - left,,procedure,f2351bf7-001f-4262-9d88-d0ff4aa68a55,2025-03-14,"Biopsy of breast (7135.) - left (New Episode)
+Mammogram (537..) (New Episode)
+US scan of breast (585C.) - and axilla - left (New Episode)
+Biopsy of axillary lymph node (X20AR) - left (New Episode)",safe,122548005,Biopsy of breast (procedure),procedure,1.0,False,False,True
+4742236882,Mammogram (537..) (New Episode),Mammogram (537..),Mammogram (537..),537..,procedure,f2351bf7-001f-4262-9d88-d0ff4aa68a55,2025-03-14,"Mammogram (537..) (New Episode)
+US scan of breast (585C.) - and axilla - left (New Episode)
+Biopsy of axillary lymph node (X20AR) - left (New Episode)",deduped,71651007,Mammography (procedure),procedure,0.9841,False,False,False
+4742236882,Mammogram (537..) (New Episode),Mammogram (537..),Mammogram (537..),537..,procedure,4d64bea6-d651-4838-a087-411313f0758e,2025-03-24,"Mammogram (537..) (New Episode)
+Infiltrating duct carcinoma (BB91.)",deduped,71651007,Mammography (procedure),procedure,0.9841,False,False,False
+4742236882,US scan of breast (585C.) - and axilla - left (New Episode),US scan of breast (585C.) - and axilla - left,US scan of breast (585C.) - and axilla - left,,procedure,f2351bf7-001f-4262-9d88-d0ff4aa68a55,2025-03-14,"US scan of breast (585C.) - and axilla - left (New Episode)
+Biopsy of axillary lymph node (X20AR) - left (New Episode)",wrong_semantic_tag,80248007,Left breast structure (body structure),body_structure,0.4709,False,False,False
+4742236882,Biopsy of axillary lymph node (X20AR) - left (New Episode),Biopsy of axillary lymph node (X20AR) - left,Biopsy of axillary lymph node (X20AR) - left,,procedure,f2351bf7-001f-4262-9d88-d0ff4aa68a55,2025-03-14,Biopsy of axillary lymph node (X20AR) - left (New Episode),unresolved,,,procedure,0.0,False,False,False
+4742236882,Major: Metastasis to bone of unknown primary (Xa3AJ) (New Episode),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Metastasis to bone of unknown primary (Xa3AJ) (New Episode)
+Magnetic resonance cholangiopancreatography (XaFC7) (New Episode)
+Minor: Dilation of biliary tract (XaAzZ) - intra and extra hepatic (New Ep",safe,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,True,False
+4742236882,Major: Metastasis to bone of unknown primary (Xa3AJ) (New Episode),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,b37e01f1-c914-4280-9bcf-6d457b63ca38,2025-06-26,"Metastasis to bone of unknown primary (Xa3AJ)
+Examination: Attended for Denosumab injection with daughter
+Has had the previous 2 injections administered at the hospital
+PSD added by Dr Amin
+Blood resu",safe,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,True
+4742236882,Major: Metastasis to bone of unknown primary (Xa3AJ) (New Episode),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,3debd78a-ce7c-4ad6-bd72-a0056beb1074,2025-07-24,"Metastasis to bone of unknown primary (Xa3AJ)
+Problem - whole event: Infiltrating duct carcinoma (BB91.)
+135 / 93
+(R) Bisoprolol 5mg tablets - 28 tablet - take one tablet daily
+Stopped 30 Jul 2025 Cha",safe,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,True
+4742236882,Major: Metastasis to bone of unknown primary (Xa3AJ) (New Episode),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,447e48be-9ed0-43df-84a9-a4a94bbb98ca,2025-07-24,"Metastasis to bone of unknown primary (Xa3AJ)
+Examination: Attended with daughter for Denosumab injection.
+Recent bloods satisfactory for injection administration.
+Plan: Apts made for next injection i",safe,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,True
+4742236882,Major: Metastasis to bone of unknown primary (Xa3AJ) (New Episode),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,4811f997-c2bf-4a78-8ea4-e06bb4b763a2,2025-08-21,"Metastasis to bone of unknown primary (Xa3AJ)
+Examination: Attended for XGEVA 120mg injection.
+Recent bloods satisfactory.
+Plan: Blood form on ice dated 24.7.25.
+Appointment booked for bt in 3 weeks a",safe,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,True
+4742236882,Major: Metastasis to bone of unknown primary (Xa3AJ) (New Episode),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,330c79c6-3fea-48ed-a039-42ba33afd545,2025-11-06,"Metastasis to bone of unknown primary (Xa3AJ)
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+ ",safe,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,True
+4742236882,Major: Metastasis to bone of unknown primary (Xa3AJ) (New Episode),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,ced0e4d2-f6a4-46dd-b0e4-40ccce6f733d,2025-11-14,"Metastasis to bone of unknown primary (Xa3AJ)
+History: Attended with daughter for Denosumab injection. 
+Bloods checked and okay to proceed.
+Near patient testing enhanced services administration (XaKA3",safe,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,True
+4742236882,Magnetic resonance cholangiopancreatography (XaFC7) (New Episode),Magnetic resonance cholangiopancreatography (XaFC7),Magnetic resonance cholangiopancreatography (XaFC7),XaFC7,procedure,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Magnetic resonance cholangiopancreatography (XaFC7) (New Episode)
+Minor: Dilation of biliary tract (XaAzZ) - intra and extra hepatic (New Episode)
+Major: Atrial fibrillation (G5730) (New Episode)
+Mino",safe,314635004,Magnetic resonance cholangiopancreatography (procedure),procedure,1.0,False,False,True
+4742236882,Minor: Dilation of biliary tract (XaAzZ) - intra and extra hepatic (New Episode),Dilation of biliary tract (XaAzZ) - intra and extra hepatic,Dilation of biliary tract (XaAzZ) - intra and extra hepatic,,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Dilation of biliary tract (XaAzZ) - intra and extra hepatic (New Episode)
+Major: Atrial fibrillation (G5730) (New Episode)
+Minor: Hypercalcaemia (X40Qa) (New Episode)
+Minor: Gallstone (X79cS) (New Epi",unresolved,,,disorder,0.0,False,False,False
+4742236882,Major: Atrial fibrillation (G5730) (New Episode),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Atrial fibrillation (G5730) (New Episode)
+Minor: Hypercalcaemia (X40Qa) (New Episode)
+Minor: Gallstone (X79cS) (New Episode)
+Dilation of biliary tract (XaAzZ) - intra and extra hepatic
+Atrial fibrilla",safe,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,True
+4742236882,Major: Atrial fibrillation (G5730) (New Episode),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,4a7e169f-53ec-47d1-8197-24ad1740c12c,2025-03-11,"Atrial fibrillation (G5730)
+Atrial fibrillation (G5730)
+(R) Bisoprolol 1.25mg tablets - 28 tablet - take one tablet daily
+(R) Edoxaban 30mg tablets - 28 tablet - Take ONE daily
+ Drug Review
+   Reconci",safe,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,True
+4742236882,Major: Atrial fibrillation (G5730) (New Episode),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,3debd78a-ce7c-4ad6-bd72-a0056beb1074,2025-07-24,"Atrial fibrillation (G5730)
+Problem - whole event: Metastasis to bone of unknown primary (Xa3AJ)
+Problem - whole event: Infiltrating duct carcinoma (BB91.)
+135 / 93
+(R) Bisoprolol 5mg tablets - 28 tab",safe,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,True
+4742236882,Major: Atrial fibrillation (G5730) (New Episode),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,c2b681b2-a795-49ae-bd38-cda512d02afa,2025-07-30,"Atrial fibrillation (G5730)
+(R) Bisoprolol 10mg tablets - 28 tablet - take one tablet daily
+ Consultation.
+   General
+      Encounter: Consultation (Xa1qL)
+      H:  fu on HR. on bisoprol 5mg this wee",safe,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,True
+4742236882,Major: Atrial fibrillation (G5730) (New Episode),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,1f1f0f1e-d6c1-438b-b4bd-24119113c1b1,2025-08-04,"Atrial fibrillation (G5730)
+History: duty docttor
+asked to review ecg- nl acute noted, Af which is known- I note plan in place as per KP's last NJ
+Discussed with KA who agrees nil acute on ECG
+Diagnos",safe,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,True
+4742236882,Major: Atrial fibrillation (G5730) (New Episode),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,c187e269-8929-4697-957f-65da1c5486af,2025-08-04,"Atrial fibrillation (G5730)
+Naseptin nasal cream (Alliance Pharmaceuticals Ltd) - 15 gram - Apply four times daily for 10 days
+(R) Epimax original cream (Aspire Pharma Ltd) - 500 gram - use 3-4 times ",safe,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,True
+4742236882,Major: Atrial fibrillation (G5730) (New Episode),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,a26afc3e-e92e-4cec-bd90-e6543f256211,2025-08-06,"Atrial fibrillation (G5730)
+Problem - whole event: Atrial flutter (G5731)
+- PRISM Rapid Access Atrial Fibrillation -  questionnaire started - (finalised: 06 Aug 2025 13:40)
+Major: Atrial flutter (G573",safe,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,True
+4742236882,Major: Atrial fibrillation (G5730) (New Episode),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,462a5bc0-907f-43b9-90ed-f2a0ab775afe,2025-08-21,"Atrial fibrillation (G5730)
+Problem - whole event: Atrial flutter (G5731)
+ Consultation.
+   General
+      Encounter: Consultation (Xa1qL)
+      H:   Reports a new onset of increased urinary frequency,",safe,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,True
+4742236882,Minor: Hypercalcaemia (X40Qa) (New Episode),Hypercalcaemia (X40Qa),Hypercalcaemia (X40Qa),X40Qa,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Hypercalcaemia (X40Qa) (New Episode)
+Minor: Gallstone (X79cS) (New Episode)
+Dilation of biliary tract (XaAzZ) - intra and extra hepatic
+Atrial fibrillation (G5730)
+Gallstone (X79cS)
+Metastasis to bone",safe,66931009,Hypercalcemia (disorder),disorder,1.0,False,False,True
+4742236882,Minor: Gallstone (X79cS) (New Episode),Gallstone (X79cS),Gallstone (X79cS),X79cS,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Gallstone (X79cS) (New Episode)
+Dilation of biliary tract (XaAzZ) - intra and extra hepatic
+Atrial fibrillation (G5730)
+Gallstone (X79cS)
+Metastasis to bone of unknown primary (Xa3AJ)
+Hypercalcaemia (",safe,235919008,Gallbladder calculus (disorder),disorder,1.0,False,False,True
+4742236882,Dilation of biliary tract (XaAzZ) - intra and extra hepatic,Dilation of biliary tract (XaAzZ) - intra and extra hepatic,Dilation of biliary tract (XaAzZ) - intra and extra hepatic,,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Dilation of biliary tract (XaAzZ) - intra and extra hepatic (New Episode)
+Major: Atrial fibrillation (G5730) (New Episode)
+Minor: Hypercalcaemia (X40Qa) (New Episode)
+Minor: Gallstone (X79cS) (New Epi",unresolved,,,disorder,0.0,False,False,False
+4742236882,Atrial fibrillation (G5730),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Atrial fibrillation (G5730) (New Episode)
+Minor: Hypercalcaemia (X40Qa) (New Episode)
+Minor: Gallstone (X79cS) (New Episode)
+Dilation of biliary tract (XaAzZ) - intra and extra hepatic
+Atrial fibrilla",deduped,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,False
+4742236882,Atrial fibrillation (G5730),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,4a7e169f-53ec-47d1-8197-24ad1740c12c,2025-03-11,"Atrial fibrillation (G5730)
+Atrial fibrillation (G5730)
+(R) Bisoprolol 1.25mg tablets - 28 tablet - take one tablet daily
+(R) Edoxaban 30mg tablets - 28 tablet - Take ONE daily
+ Drug Review
+   Reconci",deduped,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,False
+4742236882,Atrial fibrillation (G5730),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,3debd78a-ce7c-4ad6-bd72-a0056beb1074,2025-07-24,"Atrial fibrillation (G5730)
+Problem - whole event: Metastasis to bone of unknown primary (Xa3AJ)
+Problem - whole event: Infiltrating duct carcinoma (BB91.)
+135 / 93
+(R) Bisoprolol 5mg tablets - 28 tab",deduped,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,False
+4742236882,Atrial fibrillation (G5730),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,c2b681b2-a795-49ae-bd38-cda512d02afa,2025-07-30,"Atrial fibrillation (G5730)
+(R) Bisoprolol 10mg tablets - 28 tablet - take one tablet daily
+ Consultation.
+   General
+      Encounter: Consultation (Xa1qL)
+      H:  fu on HR. on bisoprol 5mg this wee",deduped,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,False
+4742236882,Atrial fibrillation (G5730),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,1f1f0f1e-d6c1-438b-b4bd-24119113c1b1,2025-08-04,"Atrial fibrillation (G5730)
+History: duty docttor
+asked to review ecg- nl acute noted, Af which is known- I note plan in place as per KP's last NJ
+Discussed with KA who agrees nil acute on ECG
+Diagnos",deduped,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,False
+4742236882,Atrial fibrillation (G5730),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,c187e269-8929-4697-957f-65da1c5486af,2025-08-04,"Atrial fibrillation (G5730)
+Naseptin nasal cream (Alliance Pharmaceuticals Ltd) - 15 gram - Apply four times daily for 10 days
+(R) Epimax original cream (Aspire Pharma Ltd) - 500 gram - use 3-4 times ",deduped,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,False
+4742236882,Atrial fibrillation (G5730),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,a26afc3e-e92e-4cec-bd90-e6543f256211,2025-08-06,"Atrial fibrillation (G5730)
+Problem - whole event: Atrial flutter (G5731)
+- PRISM Rapid Access Atrial Fibrillation -  questionnaire started - (finalised: 06 Aug 2025 13:40)
+Major: Atrial flutter (G573",deduped,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,False
+4742236882,Atrial fibrillation (G5730),Atrial fibrillation (G5730),Atrial fibrillation (G5730),G5730,disorder,462a5bc0-907f-43b9-90ed-f2a0ab775afe,2025-08-21,"Atrial fibrillation (G5730)
+Problem - whole event: Atrial flutter (G5731)
+ Consultation.
+   General
+      Encounter: Consultation (Xa1qL)
+      H:   Reports a new onset of increased urinary frequency,",deduped,49436004,Atrial fibrillation (disorder),disorder,1.0,False,False,False
+4742236882,Gallstone (X79cS),Gallstone (X79cS),Gallstone (X79cS),X79cS,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Gallstone (X79cS) (New Episode)
+Dilation of biliary tract (XaAzZ) - intra and extra hepatic
+Atrial fibrillation (G5730)
+Gallstone (X79cS)
+Metastasis to bone of unknown primary (Xa3AJ)
+Hypercalcaemia (",deduped,235919008,Gallbladder calculus (disorder),disorder,1.0,False,False,False
+4742236882,Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Metastasis to bone of unknown primary (Xa3AJ) (New Episode)
+Magnetic resonance cholangiopancreatography (XaFC7) (New Episode)
+Minor: Dilation of biliary tract (XaAzZ) - intra and extra hepatic (New Ep",safe,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,True,False
+4742236882,Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,b37e01f1-c914-4280-9bcf-6d457b63ca38,2025-06-26,"Metastasis to bone of unknown primary (Xa3AJ)
+Examination: Attended for Denosumab injection with daughter
+Has had the previous 2 injections administered at the hospital
+PSD added by Dr Amin
+Blood resu",deduped,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,False
+4742236882,Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,3debd78a-ce7c-4ad6-bd72-a0056beb1074,2025-07-24,"Metastasis to bone of unknown primary (Xa3AJ)
+Problem - whole event: Infiltrating duct carcinoma (BB91.)
+135 / 93
+(R) Bisoprolol 5mg tablets - 28 tablet - take one tablet daily
+Stopped 30 Jul 2025 Cha",deduped,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,False
+4742236882,Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,447e48be-9ed0-43df-84a9-a4a94bbb98ca,2025-07-24,"Metastasis to bone of unknown primary (Xa3AJ)
+Examination: Attended with daughter for Denosumab injection.
+Recent bloods satisfactory for injection administration.
+Plan: Apts made for next injection i",deduped,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,False
+4742236882,Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,4811f997-c2bf-4a78-8ea4-e06bb4b763a2,2025-08-21,"Metastasis to bone of unknown primary (Xa3AJ)
+Examination: Attended for XGEVA 120mg injection.
+Recent bloods satisfactory.
+Plan: Blood form on ice dated 24.7.25.
+Appointment booked for bt in 3 weeks a",deduped,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,False
+4742236882,Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,330c79c6-3fea-48ed-a039-42ba33afd545,2025-11-06,"Metastasis to bone of unknown primary (Xa3AJ)
+ Phlebotomy Service
+   0214 006 Phlebotomy Service
+      ^Referral source (CBS claim): Referral by GP (XaAZQ)
+      ^Blood sample taken (CBS claim): Yes
+ ",deduped,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,False
+4742236882,Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Metastasis to bone of unknown primary (Xa3AJ),Xa3AJ,disorder,ced0e4d2-f6a4-46dd-b0e4-40ccce6f733d,2025-11-14,"Metastasis to bone of unknown primary (Xa3AJ)
+History: Attended with daughter for Denosumab injection. 
+Bloods checked and okay to proceed.
+Near patient testing enhanced services administration (XaKA3",deduped,94222008,Metastatic malignant neoplasm to bone (disorder),disorder,1.0,False,False,False
+4742236882,Hypercalcaemia (X40Qa),Hypercalcaemia (X40Qa),Hypercalcaemia (X40Qa),X40Qa,disorder,75b881a5-1c20-4f5e-aba3-8cfa68974172,2025-02-27,"Hypercalcaemia (X40Qa) (New Episode)
+Minor: Gallstone (X79cS) (New Episode)
+Dilation of biliary tract (XaAzZ) - intra and extra hepatic
+Atrial fibrillation (G5730)
+Gallstone (X79cS)
+Metastasis to bone",deduped,66931009,Hypercalcemia (disorder),disorder,1.0,False,False,False
+4742236882,MRI of spine (X70pC) (New Episode),MRI of spine (X70pC),MRI of spine (X70pC),X70pC,procedure,2d855c1f-f2eb-4781-86e3-9b981fb1602f,2025-04-03,"MRI of spine (X70pC) (New Episode)
+Major: Metastatic spinal cord compression (Y2bfc) (New Episode)
+Major: Palliative course of radiotherapy (5149.) (New Episode)
+Metastatic spinal cord compression (Y2",safe,241645008,Magnetic resonance imaging of spine (procedure),procedure,1.0,False,False,True
+4742236882,MRI of spine (X70pC) (New Episode),MRI of spine (X70pC),MRI of spine (X70pC),X70pC,procedure,9c41db87-f846-4a45-acec-531dc7273af6,2025-04-03,"MRI of spine (X70pC) (New Episode)
+Major: Metastatic spinal cord compression (Y2bfc) (New Episode)
+Major: Palliative course of radiotherapy (5149.) (New Episode)",safe,241645008,Magnetic resonance imaging of spine (procedure),procedure,1.0,False,False,True
+4742236882,Major: Metastatic spinal cord compression (Y2bfc) (New Episode),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,2d855c1f-f2eb-4781-86e3-9b981fb1602f,2025-04-03,"Metastatic spinal cord compression (Y2bfc) (New Episode)
+Major: Palliative course of radiotherapy (5149.) (New Episode)
+Metastatic spinal cord compression (Y2bfc)
+Palliative course of radiotherapy (51",safe,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,False,True
+4742236882,Major: Metastatic spinal cord compression (Y2bfc) (New Episode),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,9c41db87-f846-4a45-acec-531dc7273af6,2025-04-03,"Metastatic spinal cord compression (Y2bfc) (New Episode)
+Major: Palliative course of radiotherapy (5149.) (New Episode)",safe,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,True,False
+4742236882,Major: Metastatic spinal cord compression (Y2bfc) (New Episode),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,a68cfc60-da61-4489-a742-beaae574bd4f,2025-09-18,"Metastatic spinal cord compression (Y2bfc)
+Plan: Blood form added.
+Apts made for b/t in 3 weeks and inj in 4 wks.
+ Drug Injections
+   Denosumab
+      ES admin: Yes
+      Denosumab therapy: Yes
+      M",safe,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,False,True
+4742236882,Major: Metastatic spinal cord compression (Y2bfc) (New Episode),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,892cdd10-ae40-4029-8d8d-e96c97b83ac8,2025-09-30,"Metastatic spinal cord compression (Y2bfc),  - 03 Apr 2025
+Problem Item Marked in Error: Merging Problem
+6 Diagnosis(s) added to problem Metastatic spinal cord compression (Y2bfc),  - 16 Apr 2025
+Prob",safe,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,False,True
+4742236882,Major: Metastatic spinal cord compression (Y2bfc) (New Episode),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,f2ab2f8b-ad8b-4954-912d-f292ca8de247,2025-12-11,"Metastatic spinal cord compression (Y2bfc)
+ Drug Injections
+   Denosumab
+      ES admin: Yes
+      Denosumab therapy: Yes
+      Monitoring done: Yes
+      Informed consent given: Yes
+      Given under",safe,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,False,True
+4742236882,Major: Palliative course of radiotherapy (5149.) (New Episode),Palliative course of radiotherapy (5149.),Palliative course of radiotherapy (5149.),5149.,procedure,2d855c1f-f2eb-4781-86e3-9b981fb1602f,2025-04-03,"Palliative course of radiotherapy (5149.) (New Episode)
+Metastatic spinal cord compression (Y2bfc)
+Palliative course of radiotherapy (5149.)",safe,168528006,Palliative course of radiotherapy (procedure),procedure,1.0,False,False,True
+4742236882,Major: Palliative course of radiotherapy (5149.) (New Episode),Palliative course of radiotherapy (5149.),Palliative course of radiotherapy (5149.),5149.,procedure,9c41db87-f846-4a45-acec-531dc7273af6,2025-04-03,Palliative course of radiotherapy (5149.) (New Episode),safe,168528006,Palliative course of radiotherapy (procedure),procedure,1.0,False,False,True
+4742236882,Major: Palliative course of radiotherapy (5149.) (New Episode),Palliative course of radiotherapy (5149.),Palliative course of radiotherapy (5149.),5149.,procedure,892cdd10-ae40-4029-8d8d-e96c97b83ac8,2025-09-30,"Palliative course of radiotherapy (5149.),  - 07 Aug 2025
+Problem Item Marked in Error: Merging Problem
+1 Letter(s) added to problem Metastatic spinal cord compression (Y2bfc),  - 03 Apr 2025
+Problem ",safe,168528006,Palliative course of radiotherapy (procedure),procedure,1.0,False,False,True
+4742236882,Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,2d855c1f-f2eb-4781-86e3-9b981fb1602f,2025-04-03,"Metastatic spinal cord compression (Y2bfc) (New Episode)
+Major: Palliative course of radiotherapy (5149.) (New Episode)
+Metastatic spinal cord compression (Y2bfc)
+Palliative course of radiotherapy (51",deduped,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,False,False
+4742236882,Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,9c41db87-f846-4a45-acec-531dc7273af6,2025-04-03,"Metastatic spinal cord compression (Y2bfc) (New Episode)
+Major: Palliative course of radiotherapy (5149.) (New Episode)",safe,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,True,False
+4742236882,Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,a68cfc60-da61-4489-a742-beaae574bd4f,2025-09-18,"Metastatic spinal cord compression (Y2bfc)
+Plan: Blood form added.
+Apts made for b/t in 3 weeks and inj in 4 wks.
+ Drug Injections
+   Denosumab
+      ES admin: Yes
+      Denosumab therapy: Yes
+      M",deduped,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,False,False
+4742236882,Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,892cdd10-ae40-4029-8d8d-e96c97b83ac8,2025-09-30,"Metastatic spinal cord compression (Y2bfc),  - 03 Apr 2025
+Problem Item Marked in Error: Merging Problem
+6 Diagnosis(s) added to problem Metastatic spinal cord compression (Y2bfc),  - 16 Apr 2025
+Prob",deduped,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,False,False
+4742236882,Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Metastatic spinal cord compression (Y2bfc),Y2bfc,disorder,f2ab2f8b-ad8b-4954-912d-f292ca8de247,2025-12-11,"Metastatic spinal cord compression (Y2bfc)
+ Drug Injections
+   Denosumab
+      ES admin: Yes
+      Denosumab therapy: Yes
+      Monitoring done: Yes
+      Informed consent given: Yes
+      Given under",deduped,713425003,Spinal cord compression due to metastasis to spine (disorder),disorder,1.0,False,False,False
+4742236882,Palliative course of radiotherapy (5149.),Palliative course of radiotherapy (5149.),Palliative course of radiotherapy (5149.),5149.,procedure,2d855c1f-f2eb-4781-86e3-9b981fb1602f,2025-04-03,"Palliative course of radiotherapy (5149.) (New Episode)
+Metastatic spinal cord compression (Y2bfc)
+Palliative course of radiotherapy (5149.)",deduped,168528006,Palliative course of radiotherapy (procedure),procedure,1.0,False,False,False
+4742236882,Palliative course of radiotherapy (5149.),Palliative course of radiotherapy (5149.),Palliative course of radiotherapy (5149.),5149.,procedure,9c41db87-f846-4a45-acec-531dc7273af6,2025-04-03,Palliative course of radiotherapy (5149.) (New Episode),deduped,168528006,Palliative course of radiotherapy (procedure),procedure,1.0,False,False,False
+4742236882,Palliative course of radiotherapy (5149.),Palliative course of radiotherapy (5149.),Palliative course of radiotherapy (5149.),5149.,procedure,892cdd10-ae40-4029-8d8d-e96c97b83ac8,2025-09-30,"Palliative course of radiotherapy (5149.),  - 07 Aug 2025
+Problem Item Marked in Error: Merging Problem
+1 Letter(s) added to problem Metastatic spinal cord compression (Y2bfc),  - 03 Apr 2025
+Problem ",deduped,168528006,Palliative course of radiotherapy (procedure),procedure,1.0,False,False,False
+4742236882,Biopsy of breast (7135.) (Ongoing Episode),Biopsy of breast (7135.),Biopsy of breast (7135.),7135.,procedure,f2351bf7-001f-4262-9d88-d0ff4aa68a55,2025-03-14,"Biopsy of breast (7135.) - left (New Episode)
+Mammogram (537..) (New Episode)
+US scan of breast (585C.) - and axilla - left (New Episode)
+Biopsy of axillary lymph node (X20AR) - left (New Episode)",deduped,122548005,Biopsy of breast (procedure),procedure,1.0,False,False,False
+4742236882,Biopsy of breast (7135.) (Ongoing Episode),Biopsy of breast (7135.),Biopsy of breast (7135.),7135.,procedure,4d64bea6-d651-4838-a087-411313f0758e,2025-03-24,"Biopsy of breast (7135.) - core biopsy (New Episode)
+Major: Infiltrating duct carcinoma (BB91.) (New Episode)
+CT (computed tomography) of abdomen and pelvis (XaW9C) (New Episode)
+Mammogram (537..) (Ne",safe,122548005,Biopsy of breast (procedure),procedure,1.0,False,False,True
+4742236882,Biopsy of breast (7135.) (Ongoing Episode),Biopsy of breast (7135.),Biopsy of breast (7135.),7135.,procedure,46afa0a6-5a93-4858-bcb8-f4bb319ce26e,2025-04-03,Biopsy of breast (7135.) (Ongoing Episode),safe,122548005,Biopsy of breast (procedure),procedure,1.0,False,False,True

@@ -26,9 +26,7 @@ def generate_diagnosis_anchored(
     events_list = list(events)
     event_by_id = {evt.encounter_id: evt for evt in events_list}
     confirmed_codes = [
-        s
-        for s in signals
-        if s.channel == "code" and s.intent in {"confirmed", "suspected"}
+        s for s in signals if s.channel == "code" and s.intent == "confirmed"
     ]
     seen: set[tuple[str, str]] = set()
     for signal in confirmed_codes:
@@ -51,8 +49,7 @@ def generate_diagnosis_anchored(
             encounter_ids=encounters_in_window(
                 events_list,
                 anchor_date=anchor.occurred_on,
-                lookback_days=540,
-                lookahead_days=730,
+                site_key=signal.site_key,
             ),
             anchor_event_id=anchor.encounter_id,
             anchor_date=anchor.occurred_on,

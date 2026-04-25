@@ -166,12 +166,17 @@ def extract_pathway_signals(events: Iterable[TimelineEvent]) -> list[Signal]:
         if site == SITE_UNKNOWN or site not in ALL_SITES:
             continue
         intent, confidence = _intent_from_urgency(form.get("urgency"))
+        role = (
+            "first_seen"
+            if form.get("source") == "clinic_seen_finding"
+            else "referral"
+        )
         out.append(
             Signal(
                 channel="pathway",
                 encounter_id=event.encounter_id,
                 site_key=site,
-                role="referral",
+                role=role,
                 intent=intent,
                 confidence=confidence,
                 citation=(

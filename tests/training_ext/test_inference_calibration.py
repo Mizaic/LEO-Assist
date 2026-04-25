@@ -90,3 +90,22 @@ def test_filter_includes_below_threshold_when_asked():
     spans = [_FakeSpan("FINDING", 0, 4, "abcd", "0.1")]
     out = filter_and_rescore(spans, cal, include_below_threshold=True)
     assert len(out) == 1
+
+
+def test_filter_reads_spancat_span_group_scores():
+    class _FakeSpanGroup(list):
+        attrs = {"scores": [0.88, 0.2]}
+
+    cal = InferenceCalibration(default_threshold=0.5)
+    spans = _FakeSpanGroup(
+        [
+            _FakeSpan("PROCEDURE", 0, 16, "Eosinophil count", ""),
+            _FakeSpan("PROCEDURE", 20, 30, "low score", ""),
+        ]
+    )
+
+    out = filter_and_rescore(spans, cal)
+
+    assert len(out) == 1
+    assert out[0].text == "Eosinophil count"
+    assert out[0].raw_score == 0.88

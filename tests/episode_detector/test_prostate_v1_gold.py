@@ -1,10 +1,10 @@
 """Prostate-urological rulebook v1 - gold-patient regression (artefact level).
 
-Gold patient: 6282779235.
+Gold patient: 9990001005.
 Expected episode: ep-9abc2565f1e8711f, status=completed, ~18 encounters.
 
 Atlas trace:
-  VT: VT-426CF21F (Prostate-urological rulebook v1 gold regression on 6282779235)
+  VT: VT-426CF21F (Prostate-urological rulebook v1 gold regression on 9990001005)
   VERIFIES: DI-FA3CE229, DI-AC6838DD
 """
 
@@ -47,7 +47,9 @@ def test_prostate_v1_suspected_anchors_capture_gold_pattern(prostate_v1):
     # reviewer accepted as part of the prostate episode (not stripped
     # by cross_site_guard because prostate OWNS the urinary concept).
     assert "397657005" in suspected
-    assert "162572001" in suspected
+    # Generic suspected cancer is not prostate-specific; breast 2WW
+    # encounters also carry it, so it must not anchor prostate episodes.
+    assert "162572001" not in suspected
 
 
 def test_prostate_v1_psa_is_result_observation(prostate_v1):

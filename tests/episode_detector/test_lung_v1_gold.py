@@ -1,10 +1,10 @@
 """Lung rulebook v1 - gold-patient regression (artefact level).
 
-Gold patient: 4920262426 (lung arm; concurrent UGI arm in upper_gi.v1).
+Gold patient: 9990001004 (lung arm; concurrent UGI arm in upper_gi.v1).
 Expected: lung slice of the patient's episodes.
 
 Atlas trace:
-  VT: VT-04407859 (Lung rulebook v1 gold regression on 4920262426)
+  VT: VT-04407859 (Lung rulebook v1 gold regression on 9990001004)
   VERIFIES: DI-FA3CE229, DI-AC6838DD
 
 P4 (upper_gi.v1) + P5 (lung.v1) together prove the multi-site split
@@ -65,7 +65,7 @@ def test_lung_v1_pathway_reason_regex_catches_gold_terms(lung_v1):
 
 
 def test_lung_v1_cross_site_guard_blocks_concurrent_ugi_suspected(lung_v1):
-    # Patient 4920262426 has a concurrent UGI episode. Lung rulebook
+    # Patient 9990001004 has a concurrent UGI episode. Lung rulebook
     # must NOT pull UGI suspected codes into the lung candidate window.
     guard = set(lung_v1.cross_site_guard)
     assert "162574000" in guard   # Upper GI suspected

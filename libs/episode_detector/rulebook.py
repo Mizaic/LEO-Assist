@@ -126,6 +126,13 @@ class TextChannel:
     context_role_catalogue: Mapping[str, tuple[str, ...]] = field(
         default_factory=lambda: MappingProxyType({})
     )
+    # Exclusion patterns: if an encounter's text_snippet matches ANY of
+    # these patterns the text-channel diagnosis signal is suppressed for
+    # that (encounter, site) pair. Use for definitive negative findings
+    # that share surface tokens with positive patterns -- e.g. NHS
+    # Breast Screening Programme normal result contains "breast" which
+    # would otherwise fire the diagnosis channel.
+    exclusion_catalogue: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -257,7 +264,7 @@ class RulebookBundle:
 # ----------------------------------------------------------------------
 
 # 7+ consecutive digits catches NHS numbers (10), MRNs (7-9), encounter
-# ids like 4920262426, and any raw identifier-shaped run. We allow the
+# ids like 9990001004, and any raw identifier-shaped run. We allow the
 # SNOMED concept-id fields to contain digit runs but enforce per-field
 # category checks in _iter_text_fields.
 _DIGIT_RUN = re.compile(r"\d{7,}")
@@ -301,6 +308,10 @@ def _iter_free_text(rb: SiteRulebook) -> list[tuple[str, str]]:
     out.extend(
         (f"signals.text_channel.regex_catalogue[{i}]", v)
         for i, v in enumerate(rb.signals.text_channel.regex_catalogue)
+    )
+    out.extend(
+        (f"signals.text_channel.exclusion_catalogue[{i}]", v)
+        for i, v in enumerate(rb.signals.text_channel.exclusion_catalogue)
     )
     for tag, patterns in rb.signals.text_channel.context_role_catalogue.items():
         out.append(
@@ -470,6 +481,9 @@ def _to_plain(rb: SiteRulebook) -> dict[str, Any]:
                         rb.signals.text_channel.context_role_catalogue.items()
                     )
                 },
+                "exclusion_catalogue": list(
+                    rb.signals.text_channel.exclusion_catalogue
+                ),
             },
             "pathway_channel": {
                 "form_types": list(rb.signals.pathway_channel.form_types),
@@ -599,6 +613,9 @@ def _build_signals(data: Mapping[str, Any]) -> Signals:
             ),
             context_role_catalogue=_build_context_role_catalogue(
                 (data.get("text_channel") or {}).get("context_role_catalogue")
+            ),
+            exclusion_catalogue=_tuple_of_str(
+                (data.get("text_channel") or {}).get("exclusion_catalogue")
             ),
         ),
         pathway_channel=PathwayChannel(

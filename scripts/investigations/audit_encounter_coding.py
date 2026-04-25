@@ -8,7 +8,7 @@ Usage
 -----
     python scripts/investigations/audit_encounter_coding.py --preflight-only
     python scripts/investigations/audit_encounter_coding.py --yes
-    python scripts/investigations/audit_encounter_coding.py --patient 4587069337
+    python scripts/investigations/audit_encounter_coding.py --patient 9990002006
     python scripts/investigations/audit_encounter_coding.py --cancer-only
     python scripts/investigations/audit_encounter_coding.py --resume
     python scripts/investigations/audit_encounter_coding.py --yes --since-days 14

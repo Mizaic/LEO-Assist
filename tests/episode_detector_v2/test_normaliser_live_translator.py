@@ -4,7 +4,7 @@ Atlas trace:
   DI: DI-8A5FCF4F (Defence-in-depth episode detector)
 
 Covers the schema-binding layer added on 2026-04-22 after the dry-run
-against patient 4920262426 surfaced that the original normaliser
+against patient 9990001004 surfaced that the original normaliser
 queried a fictional schema. These tests exercise the translator
 without touching Neo4j -- the integration test in
 ``tests/episode_detector_v2/test_normaliser_live_neo4j.py`` covers

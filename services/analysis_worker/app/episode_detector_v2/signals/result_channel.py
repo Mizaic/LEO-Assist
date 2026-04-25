@@ -149,6 +149,9 @@ def extract_result_signals(events: Iterable[TimelineEvent]) -> list[Signal]:
     }
     out: list[Signal] = []
     for event in events:
+        text_signal = _breast_benign_text_result(event)
+        if text_signal is not None:
+            out.append(text_signal)
         for observation in event.observation_results:
             for site_key, (inv_re, obs_codes, pos_re, neg_re) in site_vocab.items():
                 if inv_re is None and not obs_codes:
@@ -174,3 +177,33 @@ def extract_result_signals(events: Iterable[TimelineEvent]) -> list[Signal]:
                     )
                 )
     return out
+
+
+def _breast_benign_text_result(event: TimelineEvent) -> Signal | None:
+    text = " ".join((event.text_snippet or "").lower().split())
+    if not text:
+        return None
+    has_benign_breast_finding = any(
+        phrase in text for phrase in ("lipoma of breast", "cyst of breast")
+    )
+    has_breast_investigation = any(
+        phrase in text
+        for phrase in (
+            "us scan of breast",
+            "ultrasound scan of breast",
+            "mammogram",
+            "aspiration of breast",
+            "breast ultrasound",
+        )
+    )
+    if not (has_benign_breast_finding and has_breast_investigation):
+        return None
+    return Signal(
+        channel="result",
+        encounter_id=event.encounter_id,
+        site_key=SITE_BREAST,
+        role="investigation",
+        intent="ruled_out",
+        confidence=0.80,
+        citation="Benign breast investigation text",
+    )

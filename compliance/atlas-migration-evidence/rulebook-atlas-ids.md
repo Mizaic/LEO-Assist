@@ -50,10 +50,10 @@ Gold regression gates (one per gold patient slice):
 
 | dcId          | Title                                                   | Gold patient            |
 |---------------|---------------------------------------------------------|-------------------------|
-| `VT-7F9A700C` | Breast rulebook v1 gold regression on patient 4246897485 | 4246897485 (breast)     |
-| `VT-426CF21F` | Prostate-urological rulebook v1 gold regression on 6282779235 | 6282779235 (prostate) |
-| `VT-31B7A37B` | Upper GI rulebook v1 gold regression on 4920262426      | 4920262426 (upper_gi)   |
-| `VT-04407859` | Lung rulebook v1 gold regression on 4920262426          | 4920262426 (lung)       |
+| `VT-7F9A700C` | Breast rulebook v1 gold regression on patient 9990001002 | 9990001002 (breast)     |
+| `VT-426CF21F` | Prostate-urological rulebook v1 gold regression on 9990001005 | 9990001005 (prostate) |
+| `VT-31B7A37B` | Upper GI rulebook v1 gold regression on 9990001004      | 9990001004 (upper_gi)   |
+| `VT-04407859` | Lung rulebook v1 gold regression on 9990001004          | 9990001004 (lung)       |
 
 All gold VTs VERIFY both `DI-AC6838DD` (the gate) and `DI-FA3CE229` (the
 loader that executes the rulebook against real data).
@@ -91,10 +91,10 @@ Design Outputs are created in their respective implementation phases
 |---------------|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `VT-9D9DDA68` | pass   | 2026-04-22 local. 34 tests pass. Schema round-trip, PII validator, schema_version rejection, SNOMED-shape check.                                        |
 | `VT-FA062CE5` | pass   | 2026-04-22 local. 34 tests pass. Loader defaults ship every canonical site; v0 parity byte-matches REFERRAL/CLINIC_SEEN/SUSPECTED_SITE SNOMED registries and ACTIVATION. |
-| `VT-7F9A700C` | pass   | 2026-04-22 local. Breast v1 gold regression tests on 4246897485 pass: 2WW + ultrasound-normal anchors, benign closure with 90-day no-confirmed window, cross_site_guard strips urinary SNOMED. |
-| `VT-426CF21F` | pass   | 2026-04-22 local. Prostate-urological v1 gold regression on 6282779235 pass: auto-eligible, 2WW + legacy urological anchors, PSA observation, GP letter completed closure with 180-day quiet window, cross_site_guard on other sites. |
-| `VT-31B7A37B` | pass   | 2026-04-22 local. Upper GI v1 gold regression on 4920262426 pass: UGI 2WW + dysphagia anchors, PPI treatment signal, text patterns for dysphagia/indigestion, cross_site_guard blocks lung suspected. |
-| `VT-04407859` | pass   | 2026-04-22 local. Lung v1 gold regression on 4920262426 pass: suspected lung cancer + smoker anchors, CXR normal benign closure, text patterns for cough/smoker, cross_site_guard blocks UGI. Reciprocal test with upper_gi.v1 proves multi-site split. |
+| `VT-7F9A700C` | pass   | 2026-04-22 local. Breast v1 gold regression tests on 9990001002 pass: 2WW + ultrasound-normal anchors, benign closure with 90-day no-confirmed window, cross_site_guard strips urinary SNOMED. |
+| `VT-426CF21F` | pass   | 2026-04-22 local. Prostate-urological v1 gold regression on 9990001005 pass: auto-eligible, 2WW + legacy urological anchors, PSA observation, GP letter completed closure with 180-day quiet window, cross_site_guard on other sites. |
+| `VT-31B7A37B` | pass   | 2026-04-22 local. Upper GI v1 gold regression on 9990001004 pass: UGI 2WW + dysphagia anchors, PPI treatment signal, text patterns for dysphagia/indigestion, cross_site_guard blocks lung suspected. |
+| `VT-04407859` | pass   | 2026-04-22 local. Lung v1 gold regression on 9990001004 pass: suspected lung cancer + smoker anchors, CXR normal benign closure, text patterns for cough/smoker, cross_site_guard blocks UGI. Reciprocal test with upper_gi.v1 proves multi-site split. |
 | `VT-D00D74AC` | pass   | 2026-04-22 local. Registry PII-refusal on registration, duplicate guard, champion uniqueness, rollback_target_version recording, rollback restores prior champion (10 tests). |
 | `VT-4DB20182` | pass   | 2026-04-22 local. Gold-gate blocks when no pass / stale pass / unknown version; promotes when pass is fresh; force-flag bypasses with [forced] audit tag. CLI emits PromotionDecision as JSON; compare_episode_lists_by_site scores per site. |
 | `VT-68463BA7` | pass   | 2026-04-22 local. 13 pattern-miner tests pass: attach-/detach-mining over CorrectionEvent, per-site scope, code_kind routing into suspected/referral/confirmed buckets, cross_site_guard extension on detach, dedupe + baseline-order preservation, PII refusal, CANDIDATE-only contract (registry state REGISTERED, promotion blocked without fresh gold pass). |

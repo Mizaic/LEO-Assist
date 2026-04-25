@@ -7,7 +7,7 @@ Problems found:
 - Hilar/mediastinal lymphadenopathy had wrong IDs
 
 Correct SNOMED IDs (verified in graph):
-- 1217294009 = Ground glass lung opacity (finding)
+- 9990010005 = Ground glass lung opacity (finding)
 - 46621007   = Atelectasis (disorder)
 - 308174005  = Collapse of lung (disorder)
 - 87500009   = Hilar lymphadenopathy (disorder)
@@ -50,11 +50,11 @@ def normalize(text: str) -> str:
 # Forms to ADD / correct
 NEW_FORMS = [
     # -- Ground glass opacity (correct concept) --
-    ("ground glass lung opacity", "1217294009"),
-    ("ground glass opacity", "1217294009"),
-    ("ground glass opacity lung", "1217294009"),
-    ("GGO lung", "1217294009"),
-    ("pulmonary ground glass opacity", "1217294009"),
+    ("ground glass lung opacity", "9990010005"),
+    ("ground glass opacity", "9990010005"),
+    ("ground glass opacity lung", "9990010005"),
+    ("GGO lung", "9990010005"),
+    ("pulmonary ground glass opacity", "9990010005"),
     # -- Atelectasis / lung collapse --
     ("atelectasis", "46621007"),
     ("pulmonary atelectasis", "46621007"),

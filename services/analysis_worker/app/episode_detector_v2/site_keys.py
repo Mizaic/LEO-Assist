@@ -127,6 +127,8 @@ BREAST_SNOMED_CONFIRMED = frozenset(
         "1711000119102",  # Carcinoma of right breast
         "109888004",  # DCIS
         "109889007",  # Lobular carcinoma in situ
+        "408643008",  # Infiltrating duct carcinoma of breast
+        "713609000",  # Invasive carcinoma of breast
     }
 )
 BREAST_SNOMED_BENIGN_CLOSURE = frozenset(
@@ -150,16 +152,17 @@ BREAST_SNOMED_BENIGN_CLOSURE = frozenset(
 # more specific 2WW SNOMED is added, append it here -- the registry is
 # the single source of truth for "what counts as a 2WW referral".
 REFERRAL_SNOMED_TO_SITE: dict[str, str] = {
-    "276341000000100": SITE_BREAST,           # Fast track ref breast
-    "276551000000108": SITE_UPPER_GI,         # Fast track ref upper GI
-    "276391000000105": SITE_LOWER_GI,         # Fast track ref lower GI
-    "276401000000108": SITE_LUNG,             # Fast track ref lung
+    "276341000000100": SITE_BREAST,  # Fast track ref breast
+    "276551000000108": SITE_UPPER_GI,  # Fast track ref upper GI
+    "276391000000105": SITE_LOWER_GI,  # Fast track ref lower GI
+    "276401000000108": SITE_LUNG,  # Fast track ref lung
     "276431000000102": SITE_PROSTATE_UROLOGICAL,  # Fast track ref urological
-    "276411000000105": SITE_GYNAE,            # Fast track ref gynae
-    "276421000000104": SITE_HEAD_NECK,        # Fast track ref head/neck
-    "276441000000106": SITE_SKIN,             # Fast track ref skin
-    "276361000000104": SITE_HAEMATOLOGY,      # Fast track ref haematology
-    "276371000000106": SITE_BRAIN_CNS,        # Fast track ref brain/CNS
+    "276411000000105": SITE_GYNAE,  # Fast track ref gynae
+    "276421000000104": SITE_HEAD_NECK,  # Fast track ref head/neck
+    "280521000000108": SITE_HEAD_NECK,  # Fast track ref suspected head/neck
+    "276441000000106": SITE_SKIN,  # Fast track ref skin
+    "276361000000104": SITE_HAEMATOLOGY,  # Fast track ref haematology
+    "276371000000106": SITE_BRAIN_CNS,  # Fast track ref brain/CNS
 }
 
 
@@ -172,6 +175,7 @@ CLINIC_SEEN_SNOMED_TO_SITE: dict[str, str] = {
     "382431000000103": SITE_BREAST,
     "382811000000108": SITE_UPPER_GI,
     "382841000000109": SITE_PROSTATE_UROLOGICAL,
+    "382621000000103": SITE_HEAD_NECK,
     # Lower-GI / lung / gynae / etc clinic-seen codes are added as we
     # encounter them in the live graph; until then the corresponding
     # encounters fall back to the code/text channels for evidence.
@@ -232,40 +236,64 @@ def site_for_clinic_seen_concept(concept_id: str) -> str | None:
 SUSPECTED_SITE_SNOMED: dict[str, tuple[str, str]] = {
     # (concept_id) -> (site_key, intent)
     # Lung
-    "162573006": (SITE_LUNG, "suspected"),       # Suspected lung cancer
-    "254637007": (SITE_LUNG, "confirmed"),       # Non-small cell lung cancer
-    "254632001": (SITE_LUNG, "confirmed"),       # Small cell lung cancer
-    "363358000": (SITE_LUNG, "confirmed"),       # Malignant neoplasm of lung
-    "363504009": (SITE_LUNG, "confirmed"),       # Carcinoma of lung
+    "162573006": (SITE_LUNG, "suspected"),  # Suspected lung cancer
+    "254637007": (SITE_LUNG, "confirmed"),  # Non-small cell lung cancer
+    "254632001": (SITE_LUNG, "confirmed"),  # Small cell lung cancer
+    "363358000": (SITE_LUNG, "confirmed"),  # Malignant neoplasm of lung
+    "363504009": (SITE_LUNG, "confirmed"),  # Carcinoma of lung
     # Upper GI (oesophagus / stomach)
-    "162574000": (SITE_UPPER_GI, "suspected"),   # Suspected upper GI cancer (situation)
-    "315266007": (SITE_UPPER_GI, "suspected"),   # Suspected stomach cancer
-    "363402007": (SITE_UPPER_GI, "confirmed"),   # Malignant neoplasm of stomach
-    "363349007": (SITE_UPPER_GI, "confirmed"),   # Malignant neoplasm of oesophagus
-    "16013000":  (SITE_UPPER_GI, "confirmed"),   # Carcinoma of oesophagus
+    "162574000": (SITE_UPPER_GI, "suspected"),  # Suspected upper GI cancer (situation)
+    "315266007": (SITE_UPPER_GI, "suspected"),  # Suspected stomach cancer
+    "363402007": (SITE_UPPER_GI, "confirmed"),  # Malignant neoplasm of stomach
+    "363349007": (SITE_UPPER_GI, "confirmed"),  # Malignant neoplasm of oesophagus
+    "16013000": (SITE_UPPER_GI, "confirmed"),  # Carcinoma of oesophagus
     # Lower GI (colon / rectum)
-    "162575004": (SITE_LOWER_GI, "suspected"),   # Suspected lower GI cancer
-    "363406005": (SITE_LOWER_GI, "confirmed"),   # Malignant neoplasm of colon
-    "363351006": (SITE_LOWER_GI, "confirmed"),   # Malignant neoplasm of rectum
+    "162575004": (SITE_LOWER_GI, "suspected"),  # Suspected lower GI cancer
+    "363406005": (SITE_LOWER_GI, "confirmed"),  # Malignant neoplasm of colon
+    "363351006": (SITE_LOWER_GI, "confirmed"),  # Malignant neoplasm of rectum
+    "254582000": (SITE_LOWER_GI, "confirmed"),  # Adenocarcinoma of rectum
+    "255081007": (SITE_LOWER_GI, "confirmed"),  # Carcinoma of cecum
+    "255084004": (SITE_LOWER_GI, "confirmed"),  # SCC anal margin
     # Prostate / urological
     "315268008": (SITE_PROSTATE_UROLOGICAL, "suspected"),  # Suspected prostate cancer
     "399068003": (SITE_PROSTATE_UROLOGICAL, "confirmed"),  # Mal neo of prostate
     "254900004": (SITE_PROSTATE_UROLOGICAL, "confirmed"),  # Carcinoma prostate
-    "254915003": (SITE_PROSTATE_UROLOGICAL, "confirmed"),  # Mal neo of bladder
+    "363448003": (SITE_PROSTATE_UROLOGICAL, "confirmed"),  # Malignant tumor prostate
+    "254915003": (SITE_PROSTATE_UROLOGICAL, "confirmed"),  # Clear cell kidney ca
+    "126885006": (SITE_PROSTATE_UROLOGICAL, "confirmed"),  # Bladder neoplasm
+    "363455001": (SITE_PROSTATE_UROLOGICAL, "confirmed"),  # Malignant bladder tumor
+    "255109008": (
+        SITE_PROSTATE_UROLOGICAL,
+        "confirmed",
+    ),  # Transitional cell bladder ca
     # Gynae
-    "315267003": (SITE_GYNAE, "suspected"),      # Suspected gynaecological cancer
-    "363354007": (SITE_GYNAE, "confirmed"),      # Malignant neoplasm of cervix
-    "363443007": (SITE_GYNAE, "confirmed"),      # Malignant neoplasm of ovary
+    "315267003": (SITE_GYNAE, "suspected"),  # Suspected gynaecological cancer
+    "363354007": (SITE_GYNAE, "confirmed"),  # Malignant neoplasm of cervix
+    "363443007": (SITE_GYNAE, "confirmed"),  # Malignant neoplasm of ovary
+    "254878006": (SITE_GYNAE, "confirmed"),  # Endometrial carcinoma
+    "188192002": (SITE_GYNAE, "confirmed"),  # Malignant neoplasm endometrium
+    "1260086007": (SITE_GYNAE, "confirmed"),  # Endometrioid carcinoma endometrium
+    "254887002": (SITE_GYNAE, "confirmed"),  # Adenocarcinoma cervix
+    "254863004": (SITE_GYNAE, "confirmed"),  # Malignant granulosa cell tumor ovary
     # Head and neck
     "315264005": (SITE_HEAD_NECK, "suspected"),  # Suspected head/neck cancer
     "363375008": (SITE_HEAD_NECK, "confirmed"),  # Malignant neoplasm of larynx
+    "254437001": (SITE_HEAD_NECK, "confirmed"),  # SCC buccal mucosa
+    "363478007": (SITE_HEAD_NECK, "confirmed"),  # Malignant thyroid neoplasm
+    "255029007": (SITE_HEAD_NECK, "confirmed"),  # Papillary thyroid carcinoma
     # Skin
-    "276751004": (SITE_SKIN, "suspected"),       # Suspected skin cancer (melanoma)
-    "372244006": (SITE_SKIN, "confirmed"),       # Malignant melanoma
+    "276751004": (SITE_SKIN, "suspected"),  # Suspected skin cancer (melanoma)
+    "372244006": (SITE_SKIN, "confirmed"),  # Malignant melanoma
+    "310498001": (SITE_SKIN, "confirmed"),  # Malignant melanoma of back
+    "302837001": (SITE_SKIN, "confirmed"),  # Lentigo maligna melanoma
+    "402815007": (SITE_SKIN, "confirmed"),  # Squamous cell carcinoma
+    "254651007": (SITE_SKIN, "confirmed"),  # Squamous cell carcinoma of skin
     # Haematology
     "162576003": (SITE_HAEMATOLOGY, "suspected"),  # Suspected haematological cancer
-    "93143009":  (SITE_HAEMATOLOGY, "confirmed"),  # Leukaemia
+    "93143009": (SITE_HAEMATOLOGY, "confirmed"),  # Leukaemia
     "118600007": (SITE_HAEMATOLOGY, "confirmed"),  # Lymphoma
+    "92814006": (SITE_HAEMATOLOGY, "confirmed"),  # Chronic lymphoid leukaemia
+    "302841002": (SITE_HAEMATOLOGY, "confirmed"),  # Small lymphocytic lymphoma
     # Brain / CNS
     "315278009": (SITE_BRAIN_CNS, "suspected"),  # Suspected brain tumour
     "428061005": (SITE_BRAIN_CNS, "confirmed"),  # Malignant neoplasm of brain

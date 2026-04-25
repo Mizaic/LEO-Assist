@@ -19,7 +19,7 @@ for each candidate based on:
   This mirrors how a clinician keeps a cancer episode active through
   routine follow-up. Earlier behaviour clipped end_date to the last
   same-site signal, which silently dropped follow-up encounters from
-  the manually-reviewed breast episode for patient 4920262426.
+  the manually-reviewed breast episode for patient 9990001004.
 
 - benign_closure: True iff a result-channel signal with intent
   ``ruled_out`` is present and there is no later confirmed signal.
@@ -37,6 +37,7 @@ from ._rulebook_adapter import (
     completed_quiet_window_days,
 )
 from .aggregator import AggregatedCandidate
+from .site_keys import BREAST_SNOMED_CONFIRMED, SITE_BREAST
 from .types import Signal, TimelineEvent
 
 
@@ -54,6 +55,13 @@ class EpisodeBoundary:
 # clinic, remission, death) can be added here without touching the
 # runner.
 _EXPLICIT_CLOSURE_INTENTS = {"ruled_out"}
+
+
+def _is_boundary_signal(sig: Signal) -> bool:
+    """Return True for signals allowed to define episode boundaries."""
+    if sig.role == "context_milestone":
+        return False
+    return sig.channel in {"code", "pathway", "result", "treatment"}
 
 
 def _is_explicit_closure(sig: Signal) -> bool:
@@ -104,6 +112,60 @@ def _dates_with_completed_snomed(
     return found
 
 
+def _has_post_benign_cancer_mention(
+    *,
+    site_key: str,
+    events: Iterable[TimelineEvent],
+    after: date,
+) -> bool:
+    """Return True if the later record contradicts a benign closure."""
+    if site_key != SITE_BREAST:
+        return False
+    for evt in events:
+        if evt.occurred_on <= after:
+            continue
+        if _has_confirmed_breast_code(evt) or _has_breast_cancer_history_text(evt):
+            return True
+    return False
+
+
+def _has_confirmed_breast_code(event: TimelineEvent) -> bool:
+    for code in event.coded_entities:
+        concept_id = str(code.get("concept_id") or "").strip()
+        if concept_id in BREAST_SNOMED_CONFIRMED:
+            return True
+    return False
+
+
+def _has_breast_cancer_history_text(event: TimelineEvent) -> bool:
+    text = " ".join((event.text_snippet or "").lower().split())
+    if not text:
+        return False
+    if "family history" in text or "fhx" in text or "no history of breast cancer" in text:
+        return False
+    cancer_terms = (
+        "breast cancer",
+        "breast ca",
+        "carcinoma of breast",
+        "invasive carcinoma of breast",
+        "infiltrating duct carcinoma",
+        "malignant neoplasm of breast",
+        "malignant tumour of breast",
+    )
+    context_terms = (
+        "problem:",
+        "major:",
+        "history of",
+        "past medical history",
+        "pmh",
+        "following treatment for",
+        "diagnosed with",
+    )
+    return any(term in text for term in cancer_terms) and any(
+        term in text for term in context_terms
+    )
+
+
 def detect_boundary(
     aggregated: AggregatedCandidate,
     events: list[TimelineEvent],
@@ -117,6 +179,8 @@ def detect_boundary(
 
     for sig_list in aggregated.signals_by_channel.values():
         for sig in sig_list:
+            if not _is_boundary_signal(sig):
+                continue
             evt = event_by_id.get(sig.encounter_id)
             if evt is None:
                 continue
@@ -136,6 +200,7 @@ def detect_boundary(
         sig.encounter_id
         for sig_list in aggregated.signals_by_channel.values()
         for sig in sig_list
+        if _is_boundary_signal(sig)
     }
     completed_dates = _dates_with_completed_snomed(
         cand.site_key, events, scoped_events
@@ -176,6 +241,14 @@ def detect_boundary(
                 intent = "confirmed"
                 status = "open"
                 end = None
+        if end is not None and _has_post_benign_cancer_mention(
+            site_key=cand.site_key,
+            events=events,
+            after=end,
+        ):
+            intent = "confirmed"
+            status = "open"
+            end = None
     elif confirmed_dates:
         # Confirmed cancer episode -- close only if an explicit
         # closure signal arrived after the latest confirmed signal

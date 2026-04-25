@@ -1,10 +1,10 @@
 """Upper GI rulebook v1 - gold-patient regression (artefact level).
 
-Gold patient: 4920262426 (upper-GI arm; concurrent lung arm in lung.v1).
+Gold patient: 9990001004 (upper-GI arm; concurrent lung arm in lung.v1).
 Expected: partial match of the patient's ep-manual-* upper-GI rows.
 
 Atlas trace:
-  VT: VT-31B7A37B (Upper GI rulebook v1 gold regression on 4920262426)
+  VT: VT-31B7A37B (Upper GI rulebook v1 gold regression on 9990001004)
   VERIFIES: DI-FA3CE229, DI-AC6838DD
 """
 
@@ -62,7 +62,7 @@ def test_upper_gi_v1_pathway_reason_regex_covers_gold_terms(upper_gi_v1):
 def test_upper_gi_v1_cross_site_guard_blocks_concurrent_lung_suspected(
     upper_gi_v1,
 ):
-    # Patient 4920262426 has a concurrent lung episode. The UGI rulebook
+    # Patient 9990001004 has a concurrent lung episode. The UGI rulebook
     # must NOT pull the lung suspected code 162573006 into the UGI
     # candidate window.
     guard = set(upper_gi_v1.cross_site_guard)

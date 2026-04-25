@@ -16,6 +16,7 @@ import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import ArrowForward from "@mui/icons-material/ArrowForward";
 import EpisodeTimeline from "./EpisodeTimeline";
+import { getEpisodeDisplayInterval, getEpisodeReferralDate } from "./PatientCaseRow";
 import ReviewActionsPanel from "./ReviewActionsPanel";
 import StatusBadge from "./StatusBadge";
 import VariationPanel from "./VariationPanel";
@@ -203,7 +204,9 @@ export default function OverviewTab({
       <Divider />
 
       {/* Episodes */}
-      {episodeList.map((episode) => (
+      {episodeList.map((episode) => {
+        const interval = getEpisodeDisplayInterval(episode);
+        return (
         <Box key={episode.episode_id}>
           {/* Episode header */}
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1, flexWrap: "wrap" }}>
@@ -216,7 +219,7 @@ export default function OverviewTab({
             {episode.cancer_stage && (
               <Chip label={`Stage ${episode.cancer_stage}`} size="small" variant="outlined" />
             )}
-            <IntervalChip days={episode.diagnostic_interval_days} label="Time to diagnosis" />
+            {interval && <IntervalChip days={interval.days} label={interval.label} />}
             <IntervalChip
               days={episode.primary_care_interval_days}
               label="Primary care interval"
@@ -254,7 +257,7 @@ export default function OverviewTab({
                 {referredForText(episode)}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Referral date: {formatShortDate(episode.referral_date)}
+                Referral date: {formatShortDate(getEpisodeReferralDate(episode))}
               </Typography>
             </Box>
             <Box>
@@ -295,7 +298,8 @@ export default function OverviewTab({
             onReviewed={(patch) => onEpisodeUpdated(episode.episode_id, patch)}
           />
         </Box>
-      ))}
+        );
+      })}
     </Box>
   );
 }

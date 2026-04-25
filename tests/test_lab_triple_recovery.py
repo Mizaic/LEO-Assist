@@ -16,13 +16,10 @@ import pytest
 
 from libs.ner.lab_triple_recovery import recover_lab_triples
 
-
 # -- helpers ------------------------------------------------------------------
 
 
-def _by_label(
-    entities: list[dict], label: str
-) -> list[dict]:
+def _by_label(entities: list[dict], label: str) -> list[dict]:
     return [e for e in entities if e.get("label") == label]
 
 
@@ -66,7 +63,7 @@ def test_recovers_full_triple_for_reticulocyte_observation_line() -> None:
     for ent in (procedures[0], observables[0], findings[0]):
         assert _is_recovered(ent)
         assert ent["assertion"] == "present"
-        assert text[ent["start"]:ent["end"]] == ent["text"]
+        assert text[ent["start"] : ent["end"]] == ent["text"]
 
 
 # -- existing entities are preserved and not duplicated ----------------------
@@ -146,6 +143,93 @@ def test_recovers_triples_on_every_line_of_multi_line_block() -> None:
     assert any("Outside reference range" in f for f in findings)
 
 
+def test_recovers_adjacent_vitals_on_single_line() -> None:
+    text = (
+        "Pulse regular (XM02J) "
+        "Oxygen saturation at periphery (X770D) 97 % "
+        "O/E - weight (22A..) 83 Kg (? 13 st 1 lb) "
+        "Body mass index - observation (22K..) 27.73 Kg/m\u00b2"
+    )
+    out = recover_lab_triples(text, [])
+
+    procs = _texts(_by_label(out, "procedure"))
+    observables = _texts(_by_label(out, "observable_entity"))
+
+    assert "Oxygen saturation at periphery" in procs
+    assert "O/E - weight" in procs
+    assert "Body mass index - observation" in procs
+    assert "Pulse regular" not in procs
+    assert "Oxygen saturation at periphery (X770D) 97 %" in observables
+    assert "O/E - weight (22A..) 83 Kg" in observables
+    assert "Body mass index - observation (22K..) 27.73 Kg/m\u00b2" in observables
+
+
+def test_recovers_lab_name_after_auto_filed_prefix() -> None:
+    text = (
+        "09:15 - Surgery: Auto-filed   "
+        "Prostate-specific antigen level (XE25C) 0.57 ng/ml [0 - 4.5]"
+    )
+    out = recover_lab_triples(text, [])
+
+    assert _by_label(out, "procedure")[0]["text"] == "Prostate-specific antigen level"
+    assert _by_label(out, "observable_entity")[0]["text"] == (
+        "Prostate-specific antigen level (XE25C) 0.57 ng/ml [0 - 4.5]"
+    )
+
+
+def test_recovers_mojibake_bmi_unit() -> None:
+    text = "Body mass index - observation (22K..) 27.73 Kg/m\u00ef\u00bf\u00bd"
+    out = recover_lab_triples(text, [])
+
+    assert _by_label(out, "observable_entity")[0]["text"] == text
+
+
+def test_recovers_digitless_x_prefixed_egfr_code() -> None:
+    text = "eGFR using creatinine (CKD-EPI) per 1.73 square metres " "(XacUK) 71 mL/min"
+    out = recover_lab_triples(text, [])
+
+    assert _by_label(out, "procedure")[0]["text"] == (
+        "eGFR using creatinine (CKD-EPI) per 1.73 square metres"
+    )
+    assert _by_label(out, "observable_entity")[0]["text"] == text
+
+
+def test_recovers_digitless_x_prefixed_adjusted_calcium_code() -> None:
+    text = "Serum adjusted calcium concentration (Xabpk) 2.36 mmol/L [2.12 - 2.51]"
+    out = recover_lab_triples(text, [])
+
+    assert _by_label(out, "procedure")[0]["text"] == (
+        "Serum adjusted calcium concentration"
+    )
+    assert _by_label(out, "observable_entity")[0]["text"] == text
+
+
+def test_recovers_name_only_lab_profile_as_procedure_only() -> None:
+    text = "Bone profile (44Z2.)"
+    out = recover_lab_triples(text, [])
+
+    assert _by_label(out, "procedure")[0]["text"] == "Bone profile"
+    assert _by_label(out, "observable_entity") == []
+    assert _by_label(out, "finding") == []
+
+
+def test_recovers_name_only_function_tests_as_procedure_only() -> None:
+    text = "Liver function tests (X77WP)"
+    out = recover_lab_triples(text, [])
+
+    assert _by_label(out, "procedure")[0]["text"] == "Liver function tests"
+    assert _by_label(out, "observable_entity") == []
+    assert _by_label(out, "finding") == []
+
+
+def test_does_not_recover_non_profile_name_only_code() -> None:
+    text = "Pulse regular (XM02J)"
+    out = recover_lab_triples(text, [])
+
+    assert _by_label(out, "procedure") == []
+    assert _by_label(out, "observable_entity") == []
+
+
 # -- false-positive guards ---------------------------------------------------
 
 
@@ -183,9 +267,9 @@ def test_non_medical_unit_does_not_trigger() -> None:
 
 def test_empty_text_returns_unchanged_list() -> None:
     assert recover_lab_triples("", []) == []
-    assert recover_lab_triples("", [{"text": "x", "label": "finding", "start": 0, "end": 1}]) == [
-        {"text": "x", "label": "finding", "start": 0, "end": 1}
-    ]
+    assert recover_lab_triples(
+        "", [{"text": "x", "label": "finding", "start": 0, "end": 1}]
+    ) == [{"text": "x", "label": "finding", "start": 0, "end": 1}]
 
 
 # -- offsets and idempotency -------------------------------------------------
@@ -201,7 +285,7 @@ def test_recovered_offsets_index_correctly_in_encounter_text() -> None:
     for ent in out:
         if not _is_recovered(ent):
             continue
-        assert text[ent["start"]:ent["end"]] == ent["text"]
+        assert text[ent["start"] : ent["end"]] == ent["text"]
 
 
 def test_running_recovery_twice_is_idempotent() -> None:

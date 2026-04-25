@@ -11,6 +11,9 @@ Centralised from services/api/app/models/neo4j_schema.py.
 write_documents_from_sentences_payload() is the shared helper used by both
 the coding worker (provisional write immediately after extraction) and the
 review service (authoritative write when a reviewer approves/edits).
+
+upsert_encounter_documents_link() is the same write path for batch/deterministic
+scripts that already have a patient and encounter id (toString-matched).
 """
 
 from __future__ import annotations
@@ -163,6 +166,137 @@ FOREACH (_ IN CASE WHEN p IS NOT NULL AND $assertion IN ['present', 'historical'
   MERGE (p)-[:{rel_type}]->(s)
 )
 """
+
+
+def _build_upsert_query_patient_encounter(
+    label: str,
+    rel_type: str,
+) -> str:
+    """Like _build_upsert_query for :Encounter, but match via patient + encounter ids.
+
+    Uses the same toString() equality as deterministic batch scripts so
+    :Encounter id storage (string vs int) does not break the MATCH.
+    """
+    return f"""
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
+MERGE (s:{label} {{conceptId: $concept_id}})
+SET s.semanticTag  = $semantic_tag,
+    s.name         = $name,
+    s.readCode     = $read_code,
+    s.source       = $source,
+    s.updated_at   = datetime(),
+    s.created_at   = coalesce(s.created_at, datetime())
+MERGE (e)-[r:DOCUMENTS {{conceptId: $concept_id}}]->(s)
+SET r.coded_at         = datetime(),
+    r.evidence         = $evidence,
+    r.confidence       = $confidence,
+    r.domain           = $domain,
+    r.context          = $context,
+    r.modifiers        = $modifiers,
+    r.body_site        = $body_site,
+    r.body_site_concept_id = $body_site_concept_id,
+    r.body_site_term   = $body_site_term,
+    r.value            = $numeric_value,
+    r.unit             = $unit,
+    r.referenceRange   = $reference_range,
+    r.source           = $source,
+    r.model_name       = $model_name,
+    r.model_version    = $model_version,
+    r.contract_version = $contract_version,
+    r.run_id           = $run_id,
+    r.audit_flag       = $audit_flag,
+    r.decision_tier    = $decision_tier,
+    r.evidence_sentence = $evidence_sentence,
+    r.evidence_start   = $evidence_start,
+    r.evidence_end     = $evidence_end,
+    r.sentence_index   = $sentence_index,
+    r.holdout          = $holdout
+FOREACH (_ IN CASE WHEN p IS NOT NULL AND $assertion IN ['present', 'historical'] THEN [1] ELSE [] END |
+  MERGE (p)-[:{rel_type}]->(s)
+)
+"""
+
+
+def upsert_encounter_documents_link(
+    session: Any,
+    patient_id: str,
+    encounter_id: str,
+    concept_id: str,
+    semantic_tag: str,
+    name: str,
+    evidence: str,
+    *,
+    read_code: str | None = None,
+    evidence_sentence: str | None = None,
+    assertion: str = "present",
+    modifiers: dict[str, Any] | None = None,
+    source: str = "provisional",
+    model_name: str = "",
+    model_version: str = "",
+    contract_version: str = "",
+    run_id: str = "",
+    domain: str = "clinical",
+    confidence: float = 0.0,
+) -> bool:
+    """One encounter-level DOCUMENTS write plus patient HAS_* when assertion allows.
+
+    Matches ``write_documents_from_sentences_payload`` (typed SNOMED node, full
+    relationship provenance, FOREACH for present/historical). Returns False if
+    ``semantic_tag`` is blocked and nothing was written.
+    """
+    st = (semantic_tag or "").strip()
+    norm_tag = "".join(
+        ch for ch in st.lower() if ch.isalnum() or ch == " "
+    ).strip()
+    if norm_tag in _BLOCKED_SEMANTIC_TAGS or st.lower().replace(" ", "") in {
+        t.replace(" ", "") for t in _BLOCKED_SEMANTIC_TAGS
+    }:
+        logger.debug(
+            "upsert_encounter_documents_link: blocked semantic tag %r", semantic_tag
+        )
+        return False
+    label = _label_for_tag(semantic_tag)
+    rel_type = _REL_BY_LABEL.get(label, "HAS_CONCEPT")
+    query = _build_upsert_query_patient_encounter(label, rel_type)
+    span = evidence or ""
+    ev_sentence = evidence_sentence if evidence_sentence is not None else span
+    term_assertion = assertion or "present"
+    conf = float(confidence) if confidence else 0.0
+    session.run(
+        query,
+        patient_id=patient_id,
+        encounter_id=encounter_id,
+        concept_id=str(concept_id),
+        semantic_tag=semantic_tag,
+        name=name,
+        read_code=read_code,
+        evidence=span,
+        confidence=conf,
+        domain=domain,
+        context=json.dumps(_assertion_context(term_assertion)),
+        modifiers=json.dumps(modifiers or {}),
+        body_site=None,
+        body_site_concept_id=None,
+        body_site_term=None,
+        numeric_value=None,
+        unit=None,
+        reference_range=None,
+        source=source,
+        model_name=model_name,
+        model_version=model_version,
+        contract_version=contract_version,
+        run_id=run_id,
+        audit_flag=False,
+        decision_tier="auto",
+        assertion=term_assertion,
+        evidence_sentence=ev_sentence,
+        evidence_start=0,
+        evidence_end=len(span) if span else 0,
+        sentence_index=0,
+        holdout=False,
+    )
+    return True
 
 
 _NON_PRESENT = {
@@ -441,7 +575,7 @@ OPTIONAL MATCH (e)-[r:DOCUMENTS]->(s)
 RETURN toString(e.id) AS encounter_id,
        labels(s) AS node_labels,
        toString(s.conceptId) AS concept_id,
-       s.name AS term,
+       coalesce(s.name, s.term) AS term,
        s.readCode AS read_code,
        s.semanticTag AS semantic_tag,
        r.evidence AS evidence,
@@ -481,7 +615,7 @@ RETURN toString(e.id) AS encounter_id, coded_count
 GET_ENCOUNTERS_PAGE = """
 MATCH (e:Encounter)
 WHERE e.text IS NOT NULL
-  AND NOT (e)-[:DOCUMENTS {source: 'lab_coder_v1'}]->(:SnomedConcept)
+  AND NOT (e)-[:DOCUMENTS {source: 'lab_coder_v1'}]->()
 RETURN toString(e.id) AS encounter_id, e.text AS text
 ORDER BY e.id
 SKIP $skip LIMIT $limit
@@ -490,7 +624,7 @@ SKIP $skip LIMIT $limit
 GET_ENCOUNTERS_PAGE_TOTAL = """
 MATCH (e:Encounter)
 WHERE e.text IS NOT NULL
-  AND NOT (e)-[:DOCUMENTS {source: 'lab_coder_v1'}]->(:SnomedConcept)
+  AND NOT (e)-[:DOCUMENTS {source: 'lab_coder_v1'}]->()
 RETURN count(e) AS total
 """
 

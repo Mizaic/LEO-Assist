@@ -132,7 +132,7 @@ def test_validate_no_pii_rejects_10_digit_nhs_number_in_term():
         rulebook_version="v0-test",
         signals=Signals(
             result_channel=ResultChannel(
-                investigation_terms=("patient 4920262426 seen",),
+                investigation_terms=("patient 9990001004 seen",),
             ),
         ),
     )
@@ -261,7 +261,7 @@ def test_build_bundle_from_rulebooks_rejects_pii():
         rulebook_version="v0-test",
         signals=Signals(
             result_channel=ResultChannel(
-                investigation_terms=("patient 4920262426",),
+                investigation_terms=("patient 9990001004",),
             ),
         ),
     )

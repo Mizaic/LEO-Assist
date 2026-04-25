@@ -2,10 +2,10 @@
 
 Atlas trace:
   DI: DI-8A5FCF4F
-  Mitigates R-1276F86C (silent-drop on patient 4920262426).
+  Mitigates R-1276F86C (silent-drop on patient 9990001004).
 
 This test runs the full v2 pipeline against a synthetic timeline that
-mirrors the three-pathway shape of patient 4920262426 in the
+mirrors the three-pathway shape of patient 9990001004 in the
 **live-graph row format** the production normaliser consumes:
 
   - breast: 2WW referral SNOMED + confirmed malignant biopsy code
@@ -32,8 +32,7 @@ from typing import Any
 
 from services.analysis_worker.app.episode_detector_v2.runner import build_episodes
 
-
-PATIENT_ID = "4920262426"
+PATIENT_ID = "9990001004"
 
 
 def _doc(
@@ -50,9 +49,7 @@ def _doc(
         "concept_id": concept_id,
         "display_name": display_name,
         "semantic_tag": semantic_tag,
-        "assertion_json": json.dumps(
-            {"assertion": assertion, "negated": negated}
-        ),
+        "assertion_json": json.dumps({"assertion": assertion, "negated": negated}),
         "modifiers_json": "{}",
         "evidence_sentence": display_name,
         "value": value,
@@ -116,8 +113,7 @@ def _three_pathway_rows() -> list[dict[str, Any]]:
                 _doc(
                     concept_id="276401000000108",
                     display_name=(
-                        "Fast track referral for suspected lung cancer "
-                        "(procedure)"
+                        "Fast track referral for suspected lung cancer " "(procedure)"
                     ),
                     semantic_tag="Procedure",
                 )
@@ -130,8 +126,7 @@ def _three_pathway_rows() -> list[dict[str, Any]]:
                 _doc(
                     concept_id="276341000000100",
                     display_name=(
-                        "Fast track referral for suspected breast cancer "
-                        "(procedure)"
+                        "Fast track referral for suspected breast cancer " "(procedure)"
                     ),
                     semantic_tag="Procedure",
                 )
@@ -184,9 +179,7 @@ def _three_pathway_rows() -> list[dict[str, Any]]:
 def test_breast_episode_auto_publishes_other_pathways_flagged():
     rows = _three_pathway_rows()
     client = FakePatientClient(rows)
-    result = asyncio.run(
-        build_episodes(patient_id=PATIENT_ID, patient_client=client)
-    )
+    result = asyncio.run(build_episodes(patient_id=PATIENT_ID, patient_client=client))
 
     # At least one breast auto-episode is created
     assert result.episodes_created >= 1, result
@@ -202,25 +195,32 @@ def test_breast_episode_auto_publishes_other_pathways_flagged():
 
     # The merge for auto-episodes must have been called for breast.
     # Live-graph schema: EpisodeOfCare label, HAS_EPISODE_OF_CARE edge,
-    # IS_PART_OF from Encounter to EpisodeOfCare.
+    # typed IS_PART_OF milestone edges from Encounter to EpisodeOfCare.
     merges = [c for c in client.merge_calls if "MERGE (e:EpisodeOfCare" in c[0]]
     assert merges, "Expected at least one EpisodeOfCare MERGE for breast"
     merge_query = merges[0][0]
     assert "MATCH (p:Patient {id: $patient_id})" in merge_query
     assert "MERGE (p)-[:HAS_EPISODE_OF_CARE]->(e)" in merge_query
-    assert "MATCH (enc:Encounter {id: enc_id})" in merge_query
-    assert "MERGE (enc)-[:IS_PART_OF]->(e)" in merge_query
+    assert "MATCH (enc:Encounter {id: link.encounter_id})" in merge_query
+    assert (
+        "MERGE (enc)-[r:IS_PART_OF {milestone_type: link.milestone_type}]->(e)"
+        in merge_query
+    )
     breast_merge_payload = merges[0][1]["episodes"]
-    breast_eps = [
-        ep for ep in breast_merge_payload if ep["site_key"] == "breast"
-    ]
+    breast_eps = [ep for ep in breast_merge_payload if ep["site_key"] == "breast"]
     assert breast_eps, "Expected the merge payload to contain a breast episode"
     # No duplicate breast episode_ids in the persist payload (Fix #1).
     breast_ids = [ep["episode_id"] for ep in breast_eps]
-    assert len(breast_ids) == len(set(breast_ids)), (
-        f"Duplicate breast episode_ids in payload: {breast_ids}"
-    )
+    assert len(breast_ids) == len(
+        set(breast_ids)
+    ), f"Duplicate breast episode_ids in payload: {breast_ids}"
     assert any(ep["confidence_tier"] == "auto" for ep in breast_eps)
+    assert all(ep["milestone_links"] for ep in breast_eps)
+    assert any(
+        link["milestone_type"] == "diagnosis_confirmed"
+        for ep in breast_eps
+        for link in ep["milestone_links"]
+    )
     # Confirmed breast episode stays open (no closure SNOMED) -- Fix #3.
     confirmed_breast = [
         ep
@@ -234,6 +234,5 @@ def test_breast_episode_auto_publishes_other_pathways_flagged():
     # null end_date. The boundary detector still uses "open" as its
     # internal label; the persist layer translates it.
     assert all(
-        ep["status"] == "active" and ep["end_date"] is None
-        for ep in confirmed_breast
+        ep["status"] == "active" and ep["end_date"] is None for ep in confirmed_breast
     ), confirmed_breast

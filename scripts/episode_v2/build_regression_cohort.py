@@ -4,7 +4,7 @@ Atlas trace:
   DI: DI-8A5FCF4F (Defence-in-depth episode detector with coverage fail-safe)
   Look up via: get_design_control(dc_type="design-input", dc_id="DI-8A5FCF4F")
 
-Picks patient 4920262426 as the seeded gold case (concurrent UGI 2WW,
+Picks patient 9990001004 as the seeded gold case (concurrent UGI 2WW,
 confirmed breast cancer, benign-closed lung pathway -- the case that
 exposed every failure mode of the v1 detectors). Then queries the graph
 for additional patients with the most :AuditEvent rows of type
@@ -20,7 +20,7 @@ schema:
     {
       "version": 1,
       "generated_at": "2026-04-22T...",
-      "seed_case": "4920262426",
+      "seed_case": "9990001004",
       "cohort": [
         {
           "patient_id": "...",
@@ -48,7 +48,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-SEED_PATIENT = "4920262426"
+SEED_PATIENT = "9990001004"
 DEFAULT_OUTPUT = (
     Path(__file__).resolve().parents[2]
     / "compliance"

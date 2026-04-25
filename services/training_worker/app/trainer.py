@@ -13,6 +13,12 @@ If TRAINING_BASE_MODEL_VERSION is set, the promoted blob model is downloaded
 first and used as the NER component's initial weights (warm start).
 The Bio_ClinicalBERT transformer backbone is always loaded from HuggingFace
 Hub (cached in HF_HOME) — it is never packed into the blob artifact.
+
+``TRAINING_JOB_TIMEOUT_S`` caps **wall-clock** time for a single ``spacy train``
+subprocess. The previous implementation only passed ``timeout=`` to ``wait()``
+after log streaming finished, so it did not end long runs. A watchdog thread
+enforces the limit. Set to ``0`` to disable. ``TRAINING_SEEDS`` runs one
+subprocess per seed; the cap applies to **each** run.
 """
 
 from __future__ import annotations
@@ -24,6 +30,8 @@ import re
 import subprocess
 import sys
 import sysconfig
+import threading
+import time
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -33,12 +41,34 @@ logger = logging.getLogger(__name__)
 
 _CONFIG_PATH = Path(__file__).parent / "config" / "base.cfg"
 _TRAINING_APP_ROOT = Path(__file__).resolve().parents[1]
-_TIMEOUT_S = int(os.getenv("TRAINING_JOB_TIMEOUT_S", "3600"))
 _HF_MODEL = os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT")
 _FROZEN = os.getenv("TRAINING_FROZEN_COMPONENTS", "transformer")
 _BASE_MODEL_VERSION = os.getenv("TRAINING_BASE_MODEL_VERSION", "").strip()
 
 _VALID_LR_SCHEDULES = {"warmup_linear", "cosine"}
+
+
+def _parse_training_wall_timeout_s() -> int:
+    """Return wall-clock cap in seconds for one ``spacy train`` subprocess.
+
+    Reads ``TRAINING_JOB_TIMEOUT_S`` at call time. ``0`` or empty disables the
+    cap. When the variable is unset, defaults to 3600 (1 hour) for local use;
+    deploy environments often set a higher value (e.g. 12h in AKS).
+    """
+    raw = os.environ.get("TRAINING_JOB_TIMEOUT_S")
+    if raw is None:
+        return 3600
+    raw = raw.strip()
+    if not raw or raw == "0":
+        return 0
+    try:
+        return max(0, int(raw, 10))
+    except ValueError:
+        logger.warning(
+            "Invalid TRAINING_JOB_TIMEOUT_S=%r; using no wall cap",
+            os.environ.get("TRAINING_JOB_TIMEOUT_S"),
+        )
+        return 0
 
 
 def _parse_seeds() -> list[int]:
@@ -757,6 +787,32 @@ def _run_spacy_train(
         env=env,
         cwd=_TRAINING_APP_ROOT,
     )
+    wall_s = _parse_training_wall_timeout_s()
+    wall_timeout = threading.Event()
+
+    def _wall_clock_watchdog() -> None:
+        if wall_s <= 0:
+            return
+        time.sleep(wall_s)
+        if proc.poll() is not None:
+            return
+        wall_timeout.set()
+        log(
+            f"Wall-clock training timeout after {wall_s}s (TRAINING_JOB_TIMEOUT_S) "
+            f"— terminating subprocess. Set to 0 to disable."
+        )
+        try:
+            proc.kill()
+        except OSError as exc:  # pragma: no cover
+            logger.warning("Could not kill training subprocess: %s", exc)
+
+    if wall_s > 0:
+        threading.Thread(
+            target=_wall_clock_watchdog,
+            name="training-wall-timeout",
+            daemon=True,
+        ).start()
+
     lines: list[str] = []
     try:
         assert proc.stdout is not None
@@ -765,8 +821,23 @@ def _run_spacy_train(
             if line:
                 lines.append(line)
                 log(line)
-        proc.wait(timeout=_TIMEOUT_S)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        raise RuntimeError(f"Training timed out after {_TIMEOUT_S}s")
+    finally:
+        try:
+            if proc.poll() is None:
+                proc.wait(timeout=120.0)
+        except subprocess.TimeoutExpired:
+            try:
+                proc.kill()
+            except OSError as exc:  # pragma: no cover
+                logger.warning("Could not kill stuck training subprocess: %s", exc)
+            try:
+                proc.wait(timeout=30.0)
+            except subprocess.TimeoutExpired:  # pragma: no cover
+                logger.warning("Training subprocess did not exit after kill")
+
+    if wall_timeout.is_set():
+        raise RuntimeError(
+            f"Training exceeded wall-clock limit of {wall_s}s (TRAINING_JOB_TIMEOUT_S). "
+            f"Increase the variable or set it to 0 to disable the cap."
+        )
     return proc.returncode or 0, lines

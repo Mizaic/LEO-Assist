@@ -35,6 +35,7 @@ from collections.abc import Iterable
 
 from .._rulebook_adapter import (
     text_channel_context_catalogue,
+    text_channel_exclusion_catalogue,
     text_channel_regex,
 )
 from ..site_keys import ALL_SITES
@@ -84,6 +85,25 @@ def _compile_site_catalogues() -> dict[str, tuple[re.Pattern[str], ...]]:
             text_channel_regex(site),
             site=site,
             label="diagnosis",
+        )
+        if patterns:
+            out[site] = patterns
+    return out
+
+
+def _compile_site_exclusion_catalogues() -> dict[str, tuple[re.Pattern[str], ...]]:
+    """Compile every installed site's text-channel exclusion catalogue.
+
+    An exclusion pattern suppresses the diagnosis signal for the
+    matching (encounter, site) pair. Sites with no exclusion entries
+    are omitted so the inner loop stays cheap.
+    """
+    out: dict[str, tuple[re.Pattern[str], ...]] = {}
+    for site in ALL_SITES:
+        patterns = _compile_patterns(
+            text_channel_exclusion_catalogue(site),
+            site=site,
+            label="exclusion",
         )
         if patterns:
             out[site] = patterns
@@ -149,6 +169,13 @@ def extract_text_signals(events: Iterable[TimelineEvent]) -> list[Signal]:
        encounter's ``text_snippet`` matches any of the site's
        ``regex_catalogue`` patterns. Intent ``suspected``; free text
        alone cannot distinguish confirmed from ruled-out.
+       If the text matches the site's ``exclusion_catalogue``, **no**
+       text-channel breast signals of any role are emitted for that
+       encounter (diagnosis and context) -- a routine "breast neoplasm
+       screening normal" letter must not seed referral_sent context
+       from the same "NHS Breast Screening Programme" line that a true
+       recall uses. A later encounter with recall/malignant codes is
+       unaffected.
 
     2. ``role="context_milestone"`` -- one per (encounter, site,
        context_tag) when the text matches any of the site's
@@ -167,6 +194,7 @@ def extract_text_signals(events: Iterable[TimelineEvent]) -> list[Signal]:
     """
 
     diagnosis_patterns = _compile_site_catalogues()
+    exclusion_patterns = _compile_site_exclusion_catalogues()
     context_patterns = _compile_site_context_catalogues()
     if not diagnosis_patterns and not context_patterns:
         return []
@@ -177,6 +205,9 @@ def extract_text_signals(events: Iterable[TimelineEvent]) -> list[Signal]:
         if not text:
             continue
         for site_key, patterns in diagnosis_patterns.items():
+            excl = exclusion_patterns.get(site_key, ())
+            if excl and _first_match_citation(text, excl) is not None:
+                continue
             citation = _first_match_citation(text, patterns)
             if citation is None:
                 continue
@@ -192,6 +223,9 @@ def extract_text_signals(events: Iterable[TimelineEvent]) -> list[Signal]:
                 )
             )
         for site_key, per_tag in context_patterns.items():
+            excl = exclusion_patterns.get(site_key, ())
+            if excl and _first_match_citation(text, excl) is not None:
+                continue
             for tag, patterns in per_tag.items():
                 citation = _context_citation(text, patterns)
                 if citation is None:

@@ -23,6 +23,7 @@ function ep(overrides: Partial<MissionEpisode> = {}): MissionEpisode {
     referral_date: overrides.referral_date ?? null,
     end_date: null,
     diagnostic_interval_days: null,
+    benign_interval_days: null,
     primary_care_interval_days: null,
     inferred_outcome: null,
     auto_close_reason: null,

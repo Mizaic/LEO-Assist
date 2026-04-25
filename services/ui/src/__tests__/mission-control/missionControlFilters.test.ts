@@ -14,7 +14,7 @@ const FULL_FILTERS: MissionControlFilters = {
   dateFrom: "2024-04-06",
   dateTo: "2025-04-05",
   orgId: "org-123",
-  patientId: "4181221113",
+  patientId: "9990001006",
   pathwayFilter: "closures",
   lifecycleBucket: "confirmed_cancer",
   cancerTypes: ["colorectal", "lung"],
@@ -91,8 +91,8 @@ describe("toApiParams", () => {
   });
 
   test("includes patient_id when non-empty", () => {
-    const params = toApiParams({ ...DEFAULT_FILTERS, patientId: "  4181221113  " });
-    expect(params.get("patient_id")).toBe("4181221113");
+    const params = toApiParams({ ...DEFAULT_FILTERS, patientId: "  9990001006  " });
+    expect(params.get("patient_id")).toBe("9990001006");
   });
 
   test("omits patient_id when blank", () => {

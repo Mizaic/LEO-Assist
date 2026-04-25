@@ -37,7 +37,7 @@ interface ConceptRow {
   assertion: string;
   confidence: number | null;
   source: string | null;
-  value: number | null;
+  value: number | string | null;
   unit: string | null;
   reference_range: string | null;
 }
@@ -67,13 +67,12 @@ function ObsValueCell({
   referenceRange,
   semanticTag,
 }: {
-  value: number | null;
+  value: number | string | null;
   unit: string | null;
   referenceRange: string | null;
   semanticTag: string;
 }) {
-  const isObs =
-    semanticTag.toLowerCase().replace(/\s/g, "") === "observableentity";
+  const isObs = isObservableSemanticTag(semanticTag);
   if (!isObs) return <TableCell />;
   if (value == null && !unit) return <TableCell sx={{ color: "text.disabled", fontSize: "0.7rem" }}>--</TableCell>;
   const label = [
@@ -90,6 +89,11 @@ function ObsValueCell({
       </TableCell>
     </Tooltip>
   );
+}
+
+function isObservableSemanticTag(semanticTag: string): boolean {
+  const normalized = semanticTag.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return normalized === "observableentity" || normalized === "observable";
 }
 
 function ConfidenceCell({ confidence }: { confidence: number | null }) {

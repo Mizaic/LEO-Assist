@@ -24,14 +24,14 @@ describe("fetchMissionPatientEpisodes", () => {
 
   it("calls the patient-scoped episodes endpoint with the patient id in the path", async () => {
     const fetchMock = mockFetchOk({
-      patient_id: "4181221113",
+      patient_id: "9990001006",
       episodes: [],
     });
-    await fetchMissionPatientEpisodes("4181221113");
+    await fetchMissionPatientEpisodes("9990001006");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const calledUrl = String(fetchMock.mock.calls[0][0]);
     expect(calledUrl).toMatch(
-      /\/api\/proxy\/analytics\/mission-control\/patients\/4181221113\/episodes$/,
+      /\/api\/proxy\/analytics\/mission-control\/patients\/9990001006\/episodes$/,
     );
   });
 

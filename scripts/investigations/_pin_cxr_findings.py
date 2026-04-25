@@ -59,22 +59,22 @@ FORMS = [
     ("lung consolidation", "95436008", "Lung consolidation (disorder)"),
     ("pulmonary consolidation", "95436008", "Lung consolidation (disorder)"),
     ("lobar consolidation", "95436008", "Lung consolidation (disorder)"),
-    # Ground glass opacity (1217294009 = Ground glass lung opacity (finding))
-    ("ground glass opacity", "1217294009", "Ground glass lung opacity (finding)"),
-    ("ground glass lung opacity", "1217294009", "Ground glass lung opacity (finding)"),
+    # Ground glass opacity (9990010005 = Ground glass lung opacity (finding))
+    ("ground glass opacity", "9990010005", "Ground glass lung opacity (finding)"),
+    ("ground glass lung opacity", "9990010005", "Ground glass lung opacity (finding)"),
     # Collapse / atelectasis (46621007 = Atelectasis (disorder))
     ("lung collapse", "46621007", "Atelectasis (disorder)"),
     ("lobar collapse", "46621007", "Atelectasis (disorder)"),
     ("atelectasis", "46621007", "Atelectasis (disorder)"),
-    # CXR abnormal finding (1290960005 = Plain X-ray of chest abnormal (finding))
+    # CXR abnormal finding (9990010014 = Plain X-ray of chest abnormal (finding))
     (
         "chest x ray abnormal finding",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
     ),
     (
         "abnormal chest x ray",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
     ),
     # Specific compound phrases -> lung mass as primary finding

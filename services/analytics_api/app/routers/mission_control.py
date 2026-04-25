@@ -47,6 +47,7 @@ from libs.redis_client.rebuild_status import get_rebuild_status
 from services.analytics_api.app.routers._audit_helpers import (
     _add_date_filters,
     _episode_base,
+    _patient_base,
 )
 from services.analytics_api.app.services.reconcile_pathway import (
     BucketFlipNotConfirmedError,
@@ -394,6 +395,82 @@ def _build_filtered_base(
     return base, params
 
 
+def _has_episode_bound_filters(
+    date_from: Optional[str],
+    date_to: Optional[str],
+    pathway_filter: str,
+    cancer_types: list[str],
+    closure_reasons: list[str],
+    review_status: str,
+    lifecycle_bucket: str,
+) -> bool:
+    """Return True when patient rows should require a matching episode."""
+    return any(
+        [
+            bool(date_from),
+            bool(date_to),
+            pathway_filter != "all",
+            bool(cancer_types),
+            bool(closure_reasons),
+            review_status != "all",
+            lifecycle_bucket in HERO_BUCKETS,
+        ]
+    )
+
+
+def _episode_list_predicate(
+    *,
+    date_from: Optional[str],
+    date_to: Optional[str],
+    pathway_filter: str,
+    cancer_types: list[str],
+    closure_reasons: list[str],
+    review_status: str,
+    lifecycle_bucket: str,
+    params: dict,
+    alias: str = "episode",
+) -> tuple[str, dict]:
+    """Build the per-episode predicate for rows attached to patient results."""
+    predicates = [f"{alias} IS NOT NULL"]
+    if pathway_filter == "confirmed":
+        predicates.append(confirmed_cancer_where(alias))
+    elif pathway_filter == "closures":
+        predicates.append(f"{alias}.status IN {_CLOSURE_STATUSES!r}")
+    else:
+        predicates.append(f"NOT {alias}.status IN {_ALWAYS_EXCLUDE!r}")
+
+    if date_from:
+        predicates.append(f"{alias}.referral_date >= $date_from")
+        params = {**params, "date_from": date_from}
+    if date_to:
+        predicates.append(f"{alias}.referral_date <= $date_to")
+        params = {**params, "date_to": date_to}
+    if lifecycle_bucket in HERO_BUCKETS:
+        predicates.append(f"{build_hero_bucket_case(alias)} = $lifecycle_bucket")
+        params = {**params, "lifecycle_bucket": lifecycle_bucket}
+    if cancer_types:
+        predicates.append(f"{alias}.cancer_type IN $cancer_types")
+        params = {**params, "cancer_types": cancer_types}
+    if closure_reasons:
+        predicates.append(f"{alias}.status IN $closure_reasons")
+        params = {**params, "closure_reasons": closure_reasons}
+    if review_status == "unreviewed":
+        predicates.append(f"{alias}.reviewed_at IS NULL")
+    elif review_status == "reviewed":
+        predicates.append(f"{alias}.reviewed_at IS NOT NULL")
+    return " AND ".join(predicates), params
+
+
+def _build_patient_list_base(
+    org_id: Optional[str],
+    scope: CallerScope,
+    patient_id: Optional[str] = None,
+) -> tuple[str, dict]:
+    """Build the patient-scoped base used by the all-patients list."""
+    base, params = _patient_base(org_id, scope)
+    return _apply_patient_id_filter(base, params, patient_id)
+
+
 def _sort_clause(sort_by: str, sort_dir: str) -> str:
     """Return ORDER BY clause for supported sort fields."""
     allowed = {
@@ -429,6 +506,7 @@ _EPISODE_PROJECTION = (
     "  end_date: toString(ep.end_date), "
     "  specialist_visit_date: toString(ep.specialist_visit_date), "
     "  diagnostic_interval_days: ep.diagnostic_interval_days, "
+    "  benign_interval_days: ep.benign_interval_days, "
     "  primary_care_interval_days: ep.primary_care_interval_days, "
     "  inferred_outcome: ep.inferred_outcome, "
     "  auto_close_reason: ep.auto_close_reason, "
@@ -476,6 +554,51 @@ def _patients_cypher(
         "WITH p, episodes, "
         "CASE WHEN (episodes[0]).reviewed_at IS NULL THEN 0 ELSE 1 END AS review_rank "
         "ORDER BY review_rank ASC "
+        "SKIP $skip LIMIT $limit "
+        "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
+        "RETURN "
+        "  p.id AS patient_id, "
+        "  p.gender AS gender, "
+        "  p.birthDate AS birth_date, "
+        "  gp.name AS practice_name, "
+        f"  [ep IN episodes | {_EPISODE_PROJECTION}] AS episodes "
+    )
+    params = {**params, "skip": skip, "limit": limit}
+    return count_q, data_q, params
+
+
+def _all_patients_cypher(
+    base: str,
+    params: dict,
+    episode_predicate: str,
+    require_episode_match: bool,
+    sort_by: str,
+    sort_dir: str,
+    skip: int,
+    limit: int,
+) -> tuple[str, str, dict]:
+    """Return patient-list queries that do not require EpisodeOfCare rows."""
+    filtered_episodes = (
+        f"[episode IN collect(DISTINCT ep) WHERE {episode_predicate}] AS episodes "
+    )
+    episode_match = "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    require_match = "WHERE size(episodes) > 0 " if require_episode_match else ""
+    count_q = (
+        f"{base}"
+        f"{episode_match}"
+        f"WITH p, {filtered_episodes}"
+        f"{require_match}"
+        "RETURN count(DISTINCT p) AS total"
+    )
+    sort = _sort_clause(sort_by, sort_dir)
+    data_q = (
+        f"{base}"
+        f"{episode_match}"
+        f"WITH p, {filtered_episodes}"
+        f"{require_match}"
+        "WITH p, episodes, episodes[0] AS ep "
+        f"{sort} "
+        "WITH p, episodes "
         "SKIP $skip LIMIT $limit "
         "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
         "RETURN "
@@ -569,6 +692,7 @@ def _kpis_cypher(base: str, params: dict) -> tuple[str, dict]:
         "  count(DISTINCT CASE WHEN ep.status IN "
         f"    {_CLOSURE_STATUSES!r} THEN p END) AS pathway_closure_patients, "
         "  percentileCont(toFloat(ep.diagnostic_interval_days), 0.5) AS median_diagnostic_interval_days, "
+        "  percentileCont(toFloat(ep.benign_interval_days), 0.5) AS median_benign_interval_days, "
         "  toFloat(count(DISTINCT CASE WHEN ep.safety_netting_milestone IS NOT NULL "
         "    AND ep.safety_netting_milestone <> '' THEN ep END)) / "
         "  CASE WHEN count(ep) > 0 THEN toFloat(count(ep)) ELSE 1.0 END AS safety_netting_rate, "
@@ -720,20 +844,34 @@ def get_mission_control_patients(
             np_base, np_params, skip, page_size
         )
     else:
-        base, params = _build_filtered_base(
-            org_id,
-            scope,
-            date_from,
-            date_to,
-            pathway_filter,
-            cancer_type_list,
-            closure_reason_list,
-            review_status,
-            patient_id,
+        base, params = _build_patient_list_base(org_id, scope, patient_id)
+        episode_predicate, params = _episode_list_predicate(
+            date_from=date_from,
+            date_to=date_to,
+            pathway_filter=pathway_filter,
+            cancer_types=cancer_type_list,
+            closure_reasons=closure_reason_list,
+            review_status=review_status,
             lifecycle_bucket=lifecycle_bucket,
+            params=params,
         )
-        count_q, data_q, qparams = _patients_cypher(
-            base, params, sort_by, sort_dir, skip, page_size
+        count_q, data_q, qparams = _all_patients_cypher(
+            base,
+            params,
+            episode_predicate,
+            _has_episode_bound_filters(
+                date_from,
+                date_to,
+                pathway_filter,
+                cancer_type_list,
+                closure_reason_list,
+                review_status,
+                lifecycle_bucket,
+            ),
+            sort_by,
+            sort_dir,
+            skip,
+            page_size,
         )
 
     client = PatientGraphClient()
@@ -824,6 +962,7 @@ def get_mission_control_kpis(
                 "pathway_closures": 0,
                 "pathway_closure_patients": 0,
                 "median_diagnostic_interval_days": None,
+                "median_benign_interval_days": None,
                 "safety_netting_rate": 0.0,
                 "needs_review_count": 0,
             }
@@ -868,6 +1007,7 @@ def get_mission_control_kpis(
             "pathway_closures": 0,
             "pathway_closure_patients": 0,
             "median_diagnostic_interval_days": None,
+            "median_benign_interval_days": None,
             "safety_netting_rate": 0.0,
             "needs_review_count": 0,
             "cohort": cohort_block,
@@ -881,6 +1021,7 @@ def get_mission_control_kpis(
         "pathway_closures": row.get("pathway_closures", 0),
         "pathway_closure_patients": row.get("pathway_closure_patients", 0),
         "median_diagnostic_interval_days": row.get("median_diagnostic_interval_days"),
+        "median_benign_interval_days": row.get("median_benign_interval_days"),
         "safety_netting_rate": float(row.get("safety_netting_rate") or 0.0),
         "needs_review_count": row.get("needs_review_count", 0),
         "cohort": cohort_block,

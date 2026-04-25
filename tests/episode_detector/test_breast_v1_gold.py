@@ -1,10 +1,10 @@
 """Breast rulebook v1 - gold-patient regression (artefact level).
 
-Gold patient: 4246897485.
+Gold patient: 9990001002.
 Expected episode: ep-3b16d19e1a2a1615, status=closed_benign, 6 encounters.
 
 Atlas trace:
-  VT: VT-7F9A700C (Breast rulebook v1 gold regression on 4246897485)
+  VT: VT-7F9A700C (Breast rulebook v1 gold regression on 9990001002)
   VERIFIES: DI-FA3CE229, DI-AC6838DD
 
 This VT asserts that the rulebook artefact captures the clinical
@@ -52,7 +52,7 @@ def test_breast_v1_includes_2ww_referral_anchor(breast_v1):
 
 
 def test_breast_v1_includes_repeat_clinic_seen_anchor(breast_v1):
-    # Gold: patient 4246897485 had a second fast-track clinic attendance
+    # Gold: patient 9990001002 had a second fast-track clinic attendance
     # 2025-09-16. The clinic-seen SNOMED has to be in anchors so the
     # evidence aggregator counts the repeat attendance as a signal.
     assert "382431000000103" in breast_v1.anchors.clinic_seen_snomed
@@ -78,7 +78,7 @@ def test_breast_v1_benign_closure_requires_ultrasound_normal(breast_v1):
 
 
 def test_breast_v1_urinary_snomed_is_cross_site_guarded(breast_v1):
-    # Patient 4246897485 has a stray 397657005 (urinary system suspected)
+    # Patient 9990001002 has a stray 397657005 (urinary system suspected)
     # code. It must NOT enter the breast episode -- the cross_site_guard
     # list is the declarative switch that blocks it.
     assert "397657005" in breast_v1.cross_site_guard
@@ -102,6 +102,57 @@ def test_breast_v1_version_advances_on_v0(breast_v1):
     v0 = load_rulebook(DEFAULTS_DIR / "breast.v0.json")
     assert breast_v1.rulebook_version != v0.rulebook_version
     assert breast_v1.rulebook_version.startswith("v1")
+
+
+def test_breast_v1_screening_pattern_in_catalogue(breast_v1):
+    # NHS Breast Screening Programme abnormal recall is a distinct
+    # first-presentation pathway: the patient never presents to the GP
+    # with symptoms -- the screening programme triggers the episode.
+    # The regex_catalogue must recognise this encounter type so the
+    # text channel fires even when no symptomatic SNOMED codes are
+    # present.
+    catalogue = breast_v1.signals.text_channel.regex_catalogue
+    screening_patterns = [p for p in catalogue if "Screening Programme" in p]
+    assert screening_patterns, (
+        "breast.v1 text_channel.regex_catalogue must include an NHS Breast "
+        "Screening Programme pattern to detect screening-detected episodes"
+    )
+    neoplasm_patterns = [p for p in catalogue if "neoplasm screening" in p]
+    assert neoplasm_patterns, (
+        "breast.v1 text_channel.regex_catalogue must include a 'breast "
+        "neoplasm screening abnormal' pattern to match the Read-coded text"
+    )
+
+
+def test_breast_v1_normal_screening_in_exclusion_catalogue(breast_v1):
+    # A routine NHS Breast Screening Programme letter reporting a normal
+    # result contains "breast" and would fire a diagnosis signal unless
+    # explicitly excluded. The exclusion_catalogue suppresses that signal
+    # so a normal screening encounter never seeds a breast cancer episode.
+    excl = breast_v1.signals.text_channel.exclusion_catalogue
+    normal_patterns = [p for p in excl if "normal" in p.lower()]
+    assert normal_patterns, (
+        "breast.v1 exclusion_catalogue must contain a pattern matching "
+        "'breast neoplasm screening normal' to suppress false-positive "
+        "episodes from routine NHS Breast Screening Programme normal results"
+    )
+
+
+def test_breast_v1_screening_pattern_in_referral_sent_catalogue(breast_v1):
+    # The screening programme notification is the referral trigger for
+    # a screening-detected episode. It must fire as referral_sent so
+    # the episode_engine LLM receives a context hint for that milestone.
+    referral_sent = (
+        breast_v1.signals.text_channel.context_role_catalogue.get(
+            "referral_sent", ()
+        )
+    )
+    programme_patterns = [p for p in referral_sent if "Screening Programme" in p]
+    assert programme_patterns, (
+        "breast.v1 referral_sent context catalogue must include an NHS Breast "
+        "Screening Programme pattern to surface the screening recall as a "
+        "referral_sent context milestone"
+    )
 
 
 def test_breast_v1_passes_validate_no_pii(breast_v1):

@@ -60,15 +60,7 @@ async def lifespan(_app: FastAPI):
         logger.info("anyio threadpool ceiling set to %d", _tokens)
     except Exception as exc:
         logger.warning("Failed to lift anyio threadpool ceiling: %s", exc)
-    # Pre-load the embedding model in a thread so each worker is warm before
-    # it accepts its first real request.  Without this, the first request to
-    # each worker blocks for 20-60s while the SentenceTransformer loads on CPU,
-    # causing connection resets for concurrent callers.
-    import asyncio
-    from services.terminology_api.app.routers.resolve import _embedder
-
-    await asyncio.get_event_loop().run_in_executor(None, _embedder._ensure_model)
-    logger.info("Terminology API ready (embedder pre-loaded)")
+    logger.info("Terminology API ready")
     yield
     logger.info("Terminology API shutting down")
 

@@ -3,7 +3,7 @@
 Atlas trace:
   DI: DI-CC0BD732 (Per-episode SBAR with cross-section coherence)
 
-Detects two failure modes that broke patient 4920262426:
+Detects two failure modes that broke patient 9990001004:
 
 1. ``narrative_contradiction`` -- the Assessment (narrative) says one
    thing but the Recommendation says the opposite. Example: assessment

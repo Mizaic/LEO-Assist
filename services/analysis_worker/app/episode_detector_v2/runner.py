@@ -40,8 +40,18 @@ from .generators import (
     generate_symptom_cluster_anchored,
     generate_treatment_anchored,
 )
+from .milestone_inference import (
+    add_same_day_referral_sent_encounter_ids,
+    infer_benign_presentation_encounter_ids,
+    infer_contextual_encounter_ids,
+    infer_milestone_links,
+    infer_walkback_encounter_ids,
+    prune_duplicate_same_day_referral_encounter_ids,
+    prune_weak_breast_context_encounter_ids,
+)
 from .normaliser import load_timeline
 from .provenance import persist_provenance
+from .reviewed_replay import load_reviewed_episode_replay
 from .resolver import resolve_conflicts
 from .signals import (
     extract_code_signals,
@@ -153,9 +163,7 @@ class _EpisodeAccumulator:
             self.status = boundary_status
         # Per-encounter provenance is appended for every contributing
         # generator -- the persister deduplicates downstream.
-        self.provenance_rows.append(
-            (generator, "", evidence_weight, signals)
-        )
+        self.provenance_rows.append((generator, "", evidence_weight, signals))
 
     def to_resolved_episode(self) -> ResolvedEpisode:
         return ResolvedEpisode(
@@ -181,12 +189,8 @@ class _EpisodeAccumulator:
         records: list[EpisodeProvenance] = []
         for enc_id in self.encounter_ids:
             enc_signals = [s for s in self.signals if s.encounter_id == enc_id]
-            generators = sorted(
-                {row[0] for row in self.provenance_rows}
-            )
-            score = max(
-                (row[2] for row in self.provenance_rows), default=0.0
-            )
+            generators = sorted({row[0] for row in self.provenance_rows})
+            score = max((row[2] for row in self.provenance_rows), default=0.0)
             records.append(
                 EpisodeProvenance(
                     episode_id=self.episode_id,
@@ -206,6 +210,39 @@ class _EpisodeAccumulator:
                 )
             )
         return records
+
+
+def _encounter_dates(timeline: list[Any]) -> dict[str, date]:
+    return {event.encounter_id: event.occurred_on for event in timeline}
+
+
+def _filter_to_boundary(
+    encounter_ids: list[str],
+    *,
+    event_dates: dict[str, date],
+    start: date | None,
+    end: date | None,
+) -> list[str]:
+    out: list[str] = []
+    for enc_id in encounter_ids:
+        occurred_on = event_dates.get(enc_id)
+        if occurred_on is None:
+            continue
+        if start is not None and occurred_on < start:
+            continue
+        if end is not None and occurred_on > end:
+            continue
+        out.append(enc_id)
+    return out
+
+
+def _earliest_encounter_date(
+    encounter_ids: list[str],
+    *,
+    event_dates: dict[str, date],
+) -> date | None:
+    dates = [event_dates[enc_id] for enc_id in encounter_ids if enc_id in event_dates]
+    return min(dates) if dates else None
 
 
 # Persist Cypher (DI-C4CEFA32, R-2AA626E7).
@@ -246,9 +283,73 @@ FOREACH (_ IN CASE WHEN e.reviewed_at IS NULL THEN [1] ELSE [] END |
 )
 MERGE (p)-[:HAS_EPISODE_OF_CARE]->(e)
 WITH e, ep
-UNWIND ep.encounter_ids AS enc_id
-MATCH (enc:Encounter {id: enc_id})
-MERGE (enc)-[:IS_PART_OF]->(e)
+UNWIND ep.milestone_links AS link
+MATCH (enc:Encounter {id: link.encounter_id})
+MERGE (enc)-[r:IS_PART_OF {milestone_type: link.milestone_type}]->(e)
+SET r.linked_by = 'episode_detector_v2',
+    r.linked_at = datetime(),
+    r.evidence_quote = link.evidence_quote,
+    r.confidence = link.confidence,
+    r.treatment_type = link.treatment_type
+WITH e
+OPTIONAL MATCH (slot_enc:Encounter)-[slot_rel:IS_PART_OF]->(e)
+WHERE slot_rel.milestone_type IS NOT NULL
+  AND slot_enc.date IS NOT NULL
+WITH e, collect({
+    mt: slot_rel.milestone_type,
+    d: toString(slot_enc.date)
+}) AS slots
+WITH e,
+     [s IN slots WHERE s.mt IN [
+        'referral', 'referral_sent', 'first_presentation'
+     ] | s.d] AS referral_dates,
+     [s IN slots WHERE s.mt IN [
+        'first_presentation', 'presentation'
+     ] | s.d] AS presentation_dates,
+     [s IN slots WHERE s.mt IN [
+        'diagnosis', 'diagnosis_confirmed'
+     ] | s.d] AS diagnosis_dates,
+     [s IN slots WHERE s.mt = 'benign_closure' | s.d] AS benign_dates,
+     [s IN slots WHERE s.mt IN [
+        'treatment', 'treatment_started', 'treatment_completed',
+        'first_treatment', 'treatment_decision'
+     ] | s.d] AS treatment_dates
+WITH e,
+     CASE WHEN size(referral_dates) > 0
+          THEN reduce(best = referral_dates[0], d IN referral_dates |
+              CASE WHEN d < best THEN d ELSE best END)
+          ELSE null END AS referral_date,
+     CASE WHEN size(presentation_dates) > 0
+          THEN reduce(best = presentation_dates[0], d IN presentation_dates |
+              CASE WHEN d < best THEN d ELSE best END)
+          ELSE null END AS presentation_date,
+     CASE WHEN size(diagnosis_dates) > 0
+          THEN reduce(best = diagnosis_dates[0], d IN diagnosis_dates |
+              CASE WHEN d < best THEN d ELSE best END)
+          ELSE null END AS diagnosis_date,
+     CASE WHEN size(benign_dates) > 0
+          THEN reduce(best = benign_dates[0], d IN benign_dates |
+              CASE WHEN d < best THEN d ELSE best END)
+          ELSE null END AS benign_closure_date,
+     CASE WHEN size(treatment_dates) > 0
+          THEN reduce(best = treatment_dates[0], d IN treatment_dates |
+              CASE WHEN d > best THEN d ELSE best END)
+          ELSE null END AS treatment_end_date
+SET e.referral_date = referral_date,
+    e.end_date = coalesce(benign_closure_date, treatment_end_date),
+    e.diagnostic_interval_days =
+        CASE WHEN referral_date IS NOT NULL AND diagnosis_date IS NOT NULL
+             THEN duration.inDays(date(referral_date), date(diagnosis_date)).days
+             ELSE null END,
+    e.benign_interval_days =
+        CASE WHEN referral_date IS NOT NULL AND benign_closure_date IS NOT NULL
+             THEN duration.inDays(date(referral_date), date(benign_closure_date)).days
+             ELSE null END,
+    e.primary_care_interval_days =
+        CASE WHEN presentation_date IS NOT NULL AND referral_date IS NOT NULL
+             THEN duration.inDays(date(presentation_date), date(referral_date)).days
+             ELSE null END,
+    e.dates_updated_at = datetime()
 """
 
 
@@ -271,6 +372,19 @@ async def build_episodes(
     if not timeline:
         logger.info("v2 detector: no timeline events for patient %s", patient_id)
         return EpisodeBuildResultV2(patient_id=patient_id)
+
+    reviewed_episodes = load_reviewed_episode_replay(
+        patient_client, patient_id=patient_id
+    )
+    if reviewed_episodes:
+        return EpisodeBuildResultV2(
+            patient_id=patient_id,
+            episodes_created=0,
+            episodes_completed=0,
+            encounters_linked=sum(len(ep.encounter_ids) for ep in reviewed_episodes),
+            coverage_report=check_coverage(timeline, [], reviewed_episodes),
+            resolved_episodes=reviewed_episodes,
+        )
 
     signals = (
         extract_code_signals(timeline)
@@ -307,6 +421,7 @@ async def build_episodes(
     # groups by (site_key, anchor); _episode_id collapses by start_date,
     # so we de-duplicate here before persistence).
     by_episode_id: dict[str, _EpisodeAccumulator] = {}
+    event_dates = _encounter_dates(timeline)
     for agg in resolved_aggs:
         cand = agg.candidate
         boundary = detect_boundary(agg, timeline)
@@ -314,14 +429,12 @@ async def build_episodes(
             f"{cand.site_key}|{cand.anchor_event_id}", [cand.generator]
         )
         tier, reasons = assign_confidence_tier(agg, consensus)
-        anchor_iso = (
-            boundary.start_date.isoformat()
-            if boundary.start_date is not None
-            else "unknown"
-        )
-        episode_id = _episode_id(patient_id, cand.site_key, anchor_iso)
         all_signals = [s for sl in agg.signals_by_channel.values() for s in sl]
-        signal_encounter_ids = {s.encounter_id for s in all_signals}
+        signal_encounter_ids = {
+            s.encounter_id
+            for s in all_signals
+            if getattr(s, "role", "") != "context_milestone"
+        }
         # Restrict encounter membership to those with at least one
         # supporting signal for this candidate's site. The window in
         # the generator was for *search*; final membership is signal-
@@ -329,6 +442,67 @@ async def build_episodes(
         scoped_encounters = [
             enc_id for enc_id in cand.encounter_ids if enc_id in signal_encounter_ids
         ]
+        contextual_encounters = infer_contextual_encounter_ids(
+            site_key=cand.site_key,
+            candidate_encounter_ids=cand.encounter_ids,
+            timeline=timeline,
+        )
+        walkback_encounters = infer_walkback_encounter_ids(
+            site_key=cand.site_key,
+            anchor_event_id=cand.anchor_event_id,
+            generator=cand.generator,
+            intent=boundary.intent,
+            timeline=timeline,
+        )
+        benign_presentation_encounters = infer_benign_presentation_encounter_ids(
+            site_key=cand.site_key,
+            candidate_encounter_ids=cand.encounter_ids,
+            intent=boundary.intent,
+            boundary_end=boundary.end_date,
+            timeline=timeline,
+        )
+        contextual_encounters = _filter_to_boundary(
+            contextual_encounters,
+            event_dates=event_dates,
+            start=boundary.start_date,
+            end=boundary.end_date,
+        )
+        effective_start = boundary.start_date
+        walkback_start = _earliest_encounter_date(
+            walkback_encounters + benign_presentation_encounters,
+            event_dates=event_dates,
+        )
+        if walkback_start is not None and (
+            effective_start is None or walkback_start < effective_start
+        ):
+            effective_start = walkback_start
+        anchor_iso = (
+            effective_start.isoformat() if effective_start is not None else "unknown"
+        )
+        episode_id = _episode_id(patient_id, cand.site_key, anchor_iso)
+        scoped_encounters = list(
+            dict.fromkeys(
+                scoped_encounters
+                + contextual_encounters
+                + walkback_encounters
+                + benign_presentation_encounters
+            )
+        )
+        scoped_encounters = add_same_day_referral_sent_encounter_ids(
+            site_key=cand.site_key,
+            candidate_encounter_ids=scoped_encounters,
+            timeline=timeline,
+        )
+        scoped_encounters = prune_duplicate_same_day_referral_encounter_ids(
+            site_key=cand.site_key,
+            candidate_encounter_ids=scoped_encounters,
+            timeline=timeline,
+        )
+        scoped_encounters = prune_weak_breast_context_encounter_ids(
+            site_key=cand.site_key,
+            candidate_encounter_ids=scoped_encounters,
+            timeline=timeline,
+        )
         if not scoped_encounters and cand.anchor_event_id:
             scoped_encounters = [cand.anchor_event_id]
         alternatives = [
@@ -345,7 +519,7 @@ async def build_episodes(
                 role_hint=cand.role_hint or "diagnosis",
                 tier=tier,
                 reasons=list(reasons),
-                start_date=boundary.start_date,
+                start_date=effective_start,
                 end_date=boundary.end_date,
                 intent=boundary.intent,
                 status=boundary.status,
@@ -386,6 +560,9 @@ async def build_episodes(
     auto_episodes = auto_only
     persisted_ids: list[str] = []
     if auto_episodes and patient_client is not None:
+        milestone_links_by_episode = {
+            ep.episode_id: infer_milestone_links(ep, timeline) for ep in auto_episodes
+        }
         rows = [
             {
                 "episode_id": ep.episode_id,
@@ -405,13 +582,21 @@ async def build_episodes(
                 "needs_human_review": ep.needs_human_review,
                 "review_reasons": ep.review_reasons,
                 "encounter_ids": ep.encounter_ids,
+                "milestone_links": [
+                    {
+                        "encounter_id": link.encounter_id,
+                        "milestone_type": link.milestone_type,
+                        "evidence_quote": link.evidence_quote,
+                        "confidence": link.confidence,
+                        "treatment_type": link.treatment_type,
+                    }
+                    for link in milestone_links_by_episode[ep.episode_id]
+                ],
             }
             for ep in auto_episodes
         ]
         try:
-            patient_client.run(
-                _EPISODE_MERGE, patient_id=patient_id, episodes=rows
-            )
+            patient_client.run(_EPISODE_MERGE, patient_id=patient_id, episodes=rows)
             persisted_ids = [ep.episode_id for ep in auto_episodes]
         except Exception:
             logger.exception(

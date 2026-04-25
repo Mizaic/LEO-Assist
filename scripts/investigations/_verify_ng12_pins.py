@@ -1,7 +1,7 @@
 """Verify that key pinned SNOMED concepts are returned by the terminology resolver.
 
 Checks:
-  1. Mesothelioma CXR findings -> 1290960005
+  1. Mesothelioma CXR findings -> 9990010014
   2. Pleural disease chest signs -> 272016000
   3. New-onset diabetes -> 405749004
   4. Ascites (finding) -> look for it
@@ -31,7 +31,7 @@ CHECKS = [
             "pleural mesothelioma radiological finding",
             "CXR mesothelioma",
         ],
-        "want_id": "1290960005",
+        "want_id": "9990010014",
     },
     {
         "label": "Chest signs compatible with pleural disease",

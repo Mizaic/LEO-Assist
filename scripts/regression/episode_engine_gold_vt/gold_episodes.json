@@ -1,7 +1,7 @@
 {
-  "description": "Manually curated gold episodes for episode-engine precision/recall harness. Each episode's milestones are the ground-truth the engine is expected to reproduce. Generated 2026-04-22 from live Neo4j IS_PART_OF edges (linked_by=manual_attach or episode_engine-confirmed). Safe to commit -- no PII, encounter IDs only.",
+  "description": "Manually curated gold episodes for episode-engine precision/recall harness. Each episode's milestones are the ground-truth the engine is expected to reproduce. Patient keys use the non-production 9990001xxx synthetic id range (see libs/testing/synthetic_patient_ids.py). Encounter ids are development graph references only.",
   "patients": {
-    "4246428337": {
+    "9990001001": {
       "label": "Colorectal closed_benign",
       "episodes": [
         {
@@ -9,19 +9,51 @@
           "cancer_type": "Colorectal",
           "status": "closed_benign",
           "milestones": [
-            {"milestone_type": "first_presentation", "encounter_id": "04e5cf2e-2283-4557-9f54-14911b0e9445", "date": "2025-03-21"},
-            {"milestone_type": "primary_care_investigations", "encounter_id": "b644a34c-4299-4afb-b309-36ea959ed82a", "date": "2025-03-21"},
-            {"milestone_type": "related_gp_visit", "encounter_id": "6200e393-649d-4f9b-b5bf-6e372d8354a2", "date": "2025-03-26"},
-            {"milestone_type": "primary_care_investigations", "encounter_id": "6200e393-649d-4f9b-b5bf-6e372d8354a2", "date": "2025-03-26"},
-            {"milestone_type": "primary_care_investigations", "encounter_id": "c8e9e36b-9d11-48fc-9da2-b7bff31b534a", "date": "2025-03-26"},
-            {"milestone_type": "related_gp_visit", "encounter_id": "bf97228e-05cc-44bd-9a86-118d5f1dc8d5", "date": "2025-06-27"},
-            {"milestone_type": "referral", "encounter_id": "54c13716-900a-4746-9465-9f4b9d3eea41", "date": "2025-07-30"},
-            {"milestone_type": "benign_closure", "encounter_id": "e2a7efad-340d-46b4-9e34-ea06e232a0eb", "date": "2025-08-11"}
+            {
+              "milestone_type": "first_presentation",
+              "encounter_id": "04e5cf2e-2283-4557-9f54-14911b0e9445",
+              "date": "2025-03-21"
+            },
+            {
+              "milestone_type": "primary_care_investigations",
+              "encounter_id": "b644a34c-4299-4afb-b309-36ea959ed82a",
+              "date": "2025-03-21"
+            },
+            {
+              "milestone_type": "related_gp_visit",
+              "encounter_id": "6200e393-649d-4f9b-b5bf-6e372d8354a2",
+              "date": "2025-03-26"
+            },
+            {
+              "milestone_type": "primary_care_investigations",
+              "encounter_id": "6200e393-649d-4f9b-b5bf-6e372d8354a2",
+              "date": "2025-03-26"
+            },
+            {
+              "milestone_type": "primary_care_investigations",
+              "encounter_id": "c8e9e36b-9d11-48fc-9da2-b7bff31b534a",
+              "date": "2025-03-26"
+            },
+            {
+              "milestone_type": "related_gp_visit",
+              "encounter_id": "bf97228e-05cc-44bd-9a86-118d5f1dc8d5",
+              "date": "2025-06-27"
+            },
+            {
+              "milestone_type": "referral",
+              "encounter_id": "54c13716-900a-4746-9465-9f4b9d3eea41",
+              "date": "2025-07-30"
+            },
+            {
+              "milestone_type": "benign_closure",
+              "encounter_id": "e2a7efad-340d-46b4-9e34-ea06e232a0eb",
+              "date": "2025-08-11"
+            }
           ]
         }
       ]
     },
-    "4246897485": {
+    "9990001002": {
       "label": "Breast closed_benign",
       "episodes": [
         {
@@ -29,18 +61,46 @@
           "cancer_type": "Breast",
           "status": "closed_benign",
           "milestones": [
-            {"milestone_type": "first_presentation", "encounter_id": "fd17f9bb-07a3-4112-a480-6426c82cbf94", "date": "2025-03-13"},
-            {"milestone_type": "referral", "encounter_id": "fab36c79-935f-4920-8980-578656ae0cca", "date": "2025-07-24"},
-            {"milestone_type": "related_gp_visit", "encounter_id": "fab36c79-935f-4920-8980-578656ae0cca", "date": "2025-07-24"},
-            {"milestone_type": "referral_sent", "encounter_id": "d6293621-d9e0-40ef-b27f-2f3c0c1e239c", "date": "2025-07-24"},
-            {"milestone_type": "first_seen", "encounter_id": "61aceb67-3dcc-4f30-91d6-0a1712da43e4", "date": "2025-09-01"},
-            {"milestone_type": "benign_closure", "encounter_id": "a2eb9753-ae00-474f-adb3-43e69723854f", "date": "2025-09-01"},
-            {"milestone_type": "related_specialist_visit", "encounter_id": "aed8defa-40fb-4b43-9d1b-3f08a61baea7", "date": "2025-09-16"}
+            {
+              "milestone_type": "first_presentation",
+              "encounter_id": "fd17f9bb-07a3-4112-a480-6426c82cbf94",
+              "date": "2025-03-13"
+            },
+            {
+              "milestone_type": "referral",
+              "encounter_id": "fab36c79-935f-4920-8980-578656ae0cca",
+              "date": "2025-07-24"
+            },
+            {
+              "milestone_type": "related_gp_visit",
+              "encounter_id": "fab36c79-935f-4920-8980-578656ae0cca",
+              "date": "2025-07-24"
+            },
+            {
+              "milestone_type": "referral_sent",
+              "encounter_id": "d6293621-d9e0-40ef-b27f-2f3c0c1e239c",
+              "date": "2025-07-24"
+            },
+            {
+              "milestone_type": "first_seen",
+              "encounter_id": "61aceb67-3dcc-4f30-91d6-0a1712da43e4",
+              "date": "2025-09-01"
+            },
+            {
+              "milestone_type": "benign_closure",
+              "encounter_id": "a2eb9753-ae00-474f-adb3-43e69723854f",
+              "date": "2025-09-01"
+            },
+            {
+              "milestone_type": "related_specialist_visit",
+              "encounter_id": "aed8defa-40fb-4b43-9d1b-3f08a61baea7",
+              "date": "2025-09-16"
+            }
           ]
         }
       ]
     },
-    "4920262426": {
+    "9990001004": {
       "label": "Multi-site Breast/Lung/UpperGI",
       "episodes": [
         {
@@ -48,22 +108,86 @@
           "cancer_type": "Breast",
           "status": "completed",
           "milestones": [
-            {"milestone_type": "referral", "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b", "date": "2025-08-12"},
-            {"milestone_type": "first_presentation", "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b", "date": "2025-08-12"},
-            {"milestone_type": "first_presentation", "encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0", "date": "2025-08-12"},
-            {"milestone_type": "referral_admin", "encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0", "date": "2025-08-12"},
-            {"milestone_type": "first_presentation", "encounter_id": "91529d76-1906-47f7-99ba-cd4436ac5056", "date": "2025-08-12"},
-            {"milestone_type": "referral_sent", "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6", "date": "2025-08-13"},
-            {"milestone_type": "first_seen", "encounter_id": "8a739bf0-0795-4ffa-a1c1-91907705d487", "date": "2025-09-11"},
-            {"milestone_type": "specialist_diagnostics", "encounter_id": "05bb3ca7-a204-4959-9c00-2ab3af89035c", "date": "2025-09-11"},
-            {"milestone_type": "outcome_letter", "encounter_id": "206684ee-b7c7-4c39-ab00-1469d6a8965d", "date": "2025-09-18"},
-            {"milestone_type": "diagnosis_confirmed", "encounter_id": "33b3f3cf-5fcf-4f26-8336-4a3808aa56b6", "date": "2025-09-18"},
-            {"milestone_type": "specialist_diagnostics", "encounter_id": "5a1c9ba6-c64e-4602-ae62-c56b8ce8f5e8", "date": "2025-09-20"},
-            {"milestone_type": "related_specialist_visit", "encounter_id": "6daf697b-7d4b-4f57-b7e6-89a8cb117e24", "date": "2025-10-13"},
-            {"milestone_type": "specialist_diagnostics", "encounter_id": "3d2bf903-eea6-4699-8ed8-d9a518a582b5", "date": "2025-10-27"},
-            {"milestone_type": "related_correspondence", "encounter_id": "c2c8db34-a312-45a5-869e-f7a6545dd312", "date": "2025-11-04"},
-            {"milestone_type": "specialist_diagnostics", "encounter_id": "45d0f039-e1a4-410c-92d4-3397b0567780", "date": "2025-11-04"},
-            {"milestone_type": "related_correspondence", "encounter_id": "8b23b25a-6b47-494b-8333-6c514e959235", "date": "2025-11-13"}
+            {
+              "milestone_type": "referral",
+              "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+              "date": "2025-08-12"
+            },
+            {
+              "milestone_type": "first_presentation",
+              "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+              "date": "2025-08-12"
+            },
+            {
+              "milestone_type": "first_presentation",
+              "encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0",
+              "date": "2025-08-12"
+            },
+            {
+              "milestone_type": "referral_admin",
+              "encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0",
+              "date": "2025-08-12"
+            },
+            {
+              "milestone_type": "first_presentation",
+              "encounter_id": "91529d76-1906-47f7-99ba-cd4436ac5056",
+              "date": "2025-08-12"
+            },
+            {
+              "milestone_type": "referral_sent",
+              "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+              "date": "2025-08-13"
+            },
+            {
+              "milestone_type": "first_seen",
+              "encounter_id": "8a739bf0-0795-4ffa-a1c1-91907705d487",
+              "date": "2025-09-11"
+            },
+            {
+              "milestone_type": "specialist_diagnostics",
+              "encounter_id": "05bb3ca7-a204-4959-9c00-2ab3af89035c",
+              "date": "2025-09-11"
+            },
+            {
+              "milestone_type": "outcome_letter",
+              "encounter_id": "206684ee-b7c7-4c39-ab00-1469d6a8965d",
+              "date": "2025-09-18"
+            },
+            {
+              "milestone_type": "diagnosis_confirmed",
+              "encounter_id": "33b3f3cf-5fcf-4f26-8336-4a3808aa56b6",
+              "date": "2025-09-18"
+            },
+            {
+              "milestone_type": "specialist_diagnostics",
+              "encounter_id": "5a1c9ba6-c64e-4602-ae62-c56b8ce8f5e8",
+              "date": "2025-09-20"
+            },
+            {
+              "milestone_type": "related_specialist_visit",
+              "encounter_id": "6daf697b-7d4b-4f57-b7e6-89a8cb117e24",
+              "date": "2025-10-13"
+            },
+            {
+              "milestone_type": "specialist_diagnostics",
+              "encounter_id": "3d2bf903-eea6-4699-8ed8-d9a518a582b5",
+              "date": "2025-10-27"
+            },
+            {
+              "milestone_type": "related_correspondence",
+              "encounter_id": "c2c8db34-a312-45a5-869e-f7a6545dd312",
+              "date": "2025-11-04"
+            },
+            {
+              "milestone_type": "specialist_diagnostics",
+              "encounter_id": "45d0f039-e1a4-410c-92d4-3397b0567780",
+              "date": "2025-11-04"
+            },
+            {
+              "milestone_type": "related_correspondence",
+              "encounter_id": "8b23b25a-6b47-494b-8333-6c514e959235",
+              "date": "2025-11-13"
+            }
           ]
         },
         {
@@ -71,10 +195,26 @@
           "cancer_type": "Lung",
           "status": "closed_benign",
           "milestones": [
-            {"milestone_type": "first_presentation", "encounter_id": "3faea031-c1c6-4cee-8931-cf787e5ede6f", "date": "2025-06-17"},
-            {"milestone_type": "related_gp_visit", "encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778", "date": "2025-07-14"},
-            {"milestone_type": "primary_care_investigations", "encounter_id": "373d4799-f9a1-4e14-9a38-c2762b1ea7cb", "date": "2025-07-14"},
-            {"milestone_type": "benign_closure", "encounter_id": "a477b955-e6b6-449d-a9c2-3e4d9ba04843", "date": "2025-07-16"}
+            {
+              "milestone_type": "first_presentation",
+              "encounter_id": "3faea031-c1c6-4cee-8931-cf787e5ede6f",
+              "date": "2025-06-17"
+            },
+            {
+              "milestone_type": "related_gp_visit",
+              "encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778",
+              "date": "2025-07-14"
+            },
+            {
+              "milestone_type": "primary_care_investigations",
+              "encounter_id": "373d4799-f9a1-4e14-9a38-c2762b1ea7cb",
+              "date": "2025-07-14"
+            },
+            {
+              "milestone_type": "benign_closure",
+              "encounter_id": "a477b955-e6b6-449d-a9c2-3e4d9ba04843",
+              "date": "2025-07-16"
+            }
           ]
         },
         {
@@ -82,19 +222,51 @@
           "cancer_type": "Upper GI",
           "status": "active",
           "milestones": [
-            {"milestone_type": "first_presentation", "encounter_id": "3faea031-c1c6-4cee-8931-cf787e5ede6f", "date": "2025-06-17"},
-            {"milestone_type": "related_gp_visit", "encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778", "date": "2025-07-14"},
-            {"milestone_type": "primary_care_investigations", "encounter_id": "373d4799-f9a1-4e14-9a38-c2762b1ea7cb", "date": "2025-07-14"},
-            {"milestone_type": "referral", "encounter_id": "2071f1f8-21e8-4fbe-81d9-1395216cba1c", "date": "2025-08-12"},
-            {"milestone_type": "referral_admin", "encounter_id": "e9457855-54f1-4906-bc9d-761f7f1099c4", "date": "2025-08-12"},
-            {"milestone_type": "referral_sent", "encounter_id": "da47863c-cd5f-4f5d-a869-44724e383ba4", "date": "2025-08-12"},
-            {"milestone_type": "first_seen", "encounter_id": "e6eac76c-8e39-4a35-b703-4074ba5b64a1", "date": "2025-08-27"},
-            {"milestone_type": "related_specialist_visit", "encounter_id": "da4a5ed1-d74f-4bf2-bc44-213cf8ece2a1", "date": "2025-10-13"}
+            {
+              "milestone_type": "first_presentation",
+              "encounter_id": "3faea031-c1c6-4cee-8931-cf787e5ede6f",
+              "date": "2025-06-17"
+            },
+            {
+              "milestone_type": "related_gp_visit",
+              "encounter_id": "fd65dd88-7a94-4b35-9f73-bf3788640778",
+              "date": "2025-07-14"
+            },
+            {
+              "milestone_type": "primary_care_investigations",
+              "encounter_id": "373d4799-f9a1-4e14-9a38-c2762b1ea7cb",
+              "date": "2025-07-14"
+            },
+            {
+              "milestone_type": "referral",
+              "encounter_id": "2071f1f8-21e8-4fbe-81d9-1395216cba1c",
+              "date": "2025-08-12"
+            },
+            {
+              "milestone_type": "referral_admin",
+              "encounter_id": "e9457855-54f1-4906-bc9d-761f7f1099c4",
+              "date": "2025-08-12"
+            },
+            {
+              "milestone_type": "referral_sent",
+              "encounter_id": "da47863c-cd5f-4f5d-a869-44724e383ba4",
+              "date": "2025-08-12"
+            },
+            {
+              "milestone_type": "first_seen",
+              "encounter_id": "e6eac76c-8e39-4a35-b703-4074ba5b64a1",
+              "date": "2025-08-27"
+            },
+            {
+              "milestone_type": "related_specialist_visit",
+              "encounter_id": "da4a5ed1-d74f-4bf2-bc44-213cf8ece2a1",
+              "date": "2025-10-13"
+            }
           ]
         }
       ]
     },
-    "6282779235": {
+    "9990001005": {
       "label": "Prostate completed",
       "episodes": [
         {
@@ -102,25 +274,138 @@
           "cancer_type": "Prostate",
           "status": "completed",
           "milestones": [
-            {"milestone_type": "first_presentation", "encounter_id": "4bcf0e06-2a2b-4b09-a670-04101e502fba", "date": "2025-07-02"},
-            {"milestone_type": "primary_care_investigations", "encounter_id": "4bcf0e06-2a2b-4b09-a670-04101e502fba", "date": "2025-07-02"},
-            {"milestone_type": "referral", "encounter_id": "c322c648-a19f-4864-a46f-b46df25ff982", "date": "2025-07-04"},
-            {"milestone_type": "primary_care_investigations", "encounter_id": "98bde2e8-2139-4134-8b9a-1dec56bfa570", "date": "2025-08-01"},
-            {"milestone_type": "related_gp_visit", "encounter_id": "72e8095f-5ff0-439b-90c3-dc524da6babd", "date": "2025-08-04"},
-            {"milestone_type": "primary_care_investigations", "encounter_id": "05b850e7-1b36-4664-92a7-fb8364d1f27f", "date": "2025-08-04"},
-            {"milestone_type": "primary_care_investigations", "encounter_id": "c5dcc6a9-e1d1-4789-bdce-05f6be233a98", "date": "2025-08-06"},
-            {"milestone_type": "referral_sent", "encounter_id": "137327c3-b403-4049-87f4-f020bdbb5ace", "date": "2025-08-06"},
-            {"milestone_type": "related_correspondence", "encounter_id": "d9e781d3-3a36-4e22-8469-47086fffc5b0", "date": "2025-08-22"},
-            {"milestone_type": "first_seen", "encounter_id": "727f1407-a5d1-464f-8017-f1b692644c62", "date": "2025-08-22"},
-            {"milestone_type": "outcome_letter", "encounter_id": "b23ceaa6-de86-4835-bd33-4175f1205210", "date": "2025-08-30"},
-            {"milestone_type": "specialist_diagnostics", "encounter_id": "bd395a69-46a8-4346-9cf6-7a5ada9a335c", "date": "2025-08-30"},
-            {"milestone_type": "related_gp_visit", "encounter_id": "3cea5df7-d037-4826-aa80-f3af348e8038", "date": "2025-09-01"},
-            {"milestone_type": "diagnosis_confirmed", "encounter_id": "af8b7dbf-b243-4991-bd90-6ddf35b49d13", "date": "2025-09-01"},
-            {"milestone_type": "related_specialist_visit", "encounter_id": "44a4cbd9-5993-4d25-bd9d-355982dfdb9e", "date": "2025-09-16"},
-            {"milestone_type": "related_correspondence", "encounter_id": "c7847c1c-83bd-4cdb-a622-40c1b8cb13a2", "date": "2025-10-07"},
-            {"milestone_type": "related_correspondence", "encounter_id": "c6a2ed2c-d81a-4d03-b4ec-b25cff624fa8", "date": "2025-10-07"},
-            {"milestone_type": "related_correspondence", "encounter_id": "4cdd2802-1c16-47b0-bd0d-97cb3ea9e17e", "date": "2025-10-07"},
-            {"milestone_type": "treatment_started", "encounter_id": "c1160954-e8f7-4d66-bb19-b54205c9f84c", "date": "2025-10-13"}
+            {
+              "milestone_type": "first_presentation",
+              "encounter_id": "4bcf0e06-2a2b-4b09-a670-04101e502fba",
+              "date": "2025-07-02"
+            },
+            {
+              "milestone_type": "primary_care_investigations",
+              "encounter_id": "4bcf0e06-2a2b-4b09-a670-04101e502fba",
+              "date": "2025-07-02"
+            },
+            {
+              "milestone_type": "referral",
+              "encounter_id": "c322c648-a19f-4864-a46f-b46df25ff982",
+              "date": "2025-07-04"
+            },
+            {
+              "milestone_type": "primary_care_investigations",
+              "encounter_id": "98bde2e8-2139-4134-8b9a-1dec56bfa570",
+              "date": "2025-08-01"
+            },
+            {
+              "milestone_type": "related_gp_visit",
+              "encounter_id": "72e8095f-5ff0-439b-90c3-dc524da6babd",
+              "date": "2025-08-04"
+            },
+            {
+              "milestone_type": "primary_care_investigations",
+              "encounter_id": "05b850e7-1b36-4664-92a7-fb8364d1f27f",
+              "date": "2025-08-04"
+            },
+            {
+              "milestone_type": "primary_care_investigations",
+              "encounter_id": "c5dcc6a9-e1d1-4789-bdce-05f6be233a98",
+              "date": "2025-08-06"
+            },
+            {
+              "milestone_type": "referral_sent",
+              "encounter_id": "137327c3-b403-4049-87f4-f020bdbb5ace",
+              "date": "2025-08-06"
+            },
+            {
+              "milestone_type": "related_correspondence",
+              "encounter_id": "d9e781d3-3a36-4e22-8469-47086fffc5b0",
+              "date": "2025-08-22"
+            },
+            {
+              "milestone_type": "first_seen",
+              "encounter_id": "727f1407-a5d1-464f-8017-f1b692644c62",
+              "date": "2025-08-22"
+            },
+            {
+              "milestone_type": "outcome_letter",
+              "encounter_id": "b23ceaa6-de86-4835-bd33-4175f1205210",
+              "date": "2025-08-30"
+            },
+            {
+              "milestone_type": "specialist_diagnostics",
+              "encounter_id": "bd395a69-46a8-4346-9cf6-7a5ada9a335c",
+              "date": "2025-08-30"
+            },
+            {
+              "milestone_type": "related_gp_visit",
+              "encounter_id": "3cea5df7-d037-4826-aa80-f3af348e8038",
+              "date": "2025-09-01"
+            },
+            {
+              "milestone_type": "diagnosis_confirmed",
+              "encounter_id": "af8b7dbf-b243-4991-bd90-6ddf35b49d13",
+              "date": "2025-09-01"
+            },
+            {
+              "milestone_type": "related_specialist_visit",
+              "encounter_id": "44a4cbd9-5993-4d25-bd9d-355982dfdb9e",
+              "date": "2025-09-16"
+            },
+            {
+              "milestone_type": "related_correspondence",
+              "encounter_id": "c7847c1c-83bd-4cdb-a622-40c1b8cb13a2",
+              "date": "2025-10-07"
+            },
+            {
+              "milestone_type": "related_correspondence",
+              "encounter_id": "c6a2ed2c-d81a-4d03-b4ec-b25cff624fa8",
+              "date": "2025-10-07"
+            },
+            {
+              "milestone_type": "related_correspondence",
+              "encounter_id": "4cdd2802-1c16-47b0-bd0d-97cb3ea9e17e",
+              "date": "2025-10-07"
+            },
+            {
+              "milestone_type": "treatment_started",
+              "encounter_id": "c1160954-e8f7-4d66-bb19-b54205c9f84c",
+              "date": "2025-10-13"
+            }
+          ]
+        }
+      ]
+    },
+    "9990001003": {
+      "label": "Colorectal screen-detected (FIT)",
+      "episodes": [
+        {
+          "episode_id": "ep-9990001003-colorectal-001",
+          "cancer_type": "Colorectal",
+          "status": "active",
+          "milestones": [
+            {
+              "milestone_type": "first_presentation",
+              "encounter_id": "c23e206b-123c-4c8f-9501-a10cf1dc0e38",
+              "date": "2024-03-20"
+            },
+            {
+              "milestone_type": "diagnosis_confirmed",
+              "encounter_id": "c23e206b-123c-4c8f-9501-a10cf1dc0e38",
+              "date": "2024-03-20"
+            },
+            {
+              "milestone_type": "related_gp_visit",
+              "encounter_id": "744c2033-9963-414f-b5e9-7e6fc95aa00c",
+              "date": "2024-05-16"
+            },
+            {
+              "milestone_type": "treatment_started",
+              "encounter_id": "62501f2e-d4b4-4cab-84fc-dbaeee7b9c5a",
+              "date": "2024-06-08"
+            },
+            {
+              "milestone_type": "related_specialist_visit",
+              "encounter_id": "0a2e0b65-0181-4314-9356-6f7e3f5bcf32",
+              "date": "2024-10-14"
+            }
           ]
         }
       ]

@@ -5,7 +5,7 @@ Atlas trace:
 
 Replaces the patient-level SBAR for clinical use. Instead of producing
 ONE summary for the whole patient (which mixed unrelated pathways for
-patient 4920262426), we produce ONE SBAR per detected episode of care.
+patient 9990001004), we produce ONE SBAR per detected episode of care.
 Each per-episode SBAR is scoped to the encounters that belong to that
 episode and is linked back to the EpisodeOfCare via HAS_ASSESSMENT.
 

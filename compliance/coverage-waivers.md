@@ -397,7 +397,7 @@ fully cleared and removed from the open list:
 
 - **Added**: 2026-04-24. **Updated**: 2026-04-24 (post-segmenter fix).
 - **Scope**: `tests/episode_engine/test_gold_patient_vt.py`,
-  patient `4246428337` (Colorectal closed_benign).
+  patient `9990001001` (Colorectal closed_benign).
 - **Gap**: type_recall is now 1.00 (all five gold types found, including
   `benign_closure`). However slot_recall is 0.25 < 0.30 floor because the gold
   fixture has multi-slot types (primary_care_investigations x3, related_gp_visit
@@ -424,7 +424,7 @@ fully cleared and removed from the open list:
 
 - **Added**: 2026-04-24. **Updated**: 2026-04-24 (segmenter fix shipped).
 - **Scope**: `tests/episode_engine/test_gold_patient_vt.py`,
-  patient `4920262426` (Multi-site Breast/Lung/UpperGI),
+  patient `9990001004` (Multi-site Breast/Lung/UpperGI),
   episode Lung/closed_benign.
 - **Gap**: The segmenter now correctly creates 3 windows (Lung, Breast, Upper
   GI) and the engine produces 3 episodes. Upper GI now passes all three

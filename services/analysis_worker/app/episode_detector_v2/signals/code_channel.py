@@ -11,6 +11,7 @@ this is the day-one stub behaviour confirmed in the plan.
 from __future__ import annotations
 
 from collections.abc import Iterable
+import re
 
 from .._rulebook_adapter import (
     anchor_confirmed_snomed,
@@ -22,6 +23,8 @@ from ..site_keys import (
     BREAST_SNOMED_CONFIRMED,
     BREAST_SNOMED_SUSPECTED,
     SITE_BREAST,
+    SITE_HEAD_NECK,
+    site_for_referral_concept,
     site_intent_for_suspected_concept,
 )
 from ..types import Signal, TimelineEvent
@@ -86,6 +89,107 @@ def _classify(concept_id: str) -> tuple[str, str, float] | None:
     return _classify_breast(concept_id) or _classify_other_sites(concept_id)
 
 
+def _classify_contextual_metastasis(
+    event: TimelineEvent, code: dict
+) -> tuple[str, str, float] | None:
+    concept_id = str(code.get("concept_id") or "").strip()
+    if concept_id != "94392001":
+        return None
+    haystack = " ".join(
+        [
+            event.text_snippet or "",
+            str(code.get("evidence") or ""),
+            str(code.get("display_name") or ""),
+        ]
+    ).lower()
+    if "axillary" not in haystack:
+        return None
+    return SITE_BREAST, "confirmed", 0.85
+
+
+def _classify_contextual_breast_diagnosis(
+    event: TimelineEvent, code: dict
+) -> tuple[str, str, float] | None:
+    haystack = " ".join(
+        [
+            event.text_snippet or "",
+            str(code.get("evidence") or ""),
+            str(code.get("display_name") or ""),
+        ]
+    ).lower()
+    if "infiltrating duct carcinoma" not in haystack:
+        return None
+    return SITE_BREAST, "confirmed", 0.90
+
+
+def _evidence_site_override(code: dict) -> tuple[str, str, float] | None:
+    """Use local evidence text when it contradicts a generic/wrong code.
+
+    The deterministic 2WW coder can occasionally attach a breast-suspected
+    situation because the phrase "has breast cancer" appears in the same
+    sentence as a different active referral. In that case the referral target
+    in the evidence text is more reliable than the coded concept.
+    """
+
+    evidence = " ".join(
+        str(code.get(key) or "")
+        for key in ("evidence", "evidence_sentence")
+    ).lower()
+    if not evidence:
+        return None
+    if re.search(
+        r"\b(?:refer(?:ral)?\s+re\s+neck|2\s*ww\s+neck|neck\s+2\s*ww|"
+        r"head\s+and\s+neck)\b",
+        evidence,
+    ):
+        return SITE_HEAD_NECK, "suspected", 0.85
+    return None
+
+
+def _is_backdated_or_review_restatement(
+    event: TimelineEvent,
+    code: dict,
+    *,
+    site_key: str,
+    intent: str,
+) -> bool:
+    if site_key != SITE_BREAST or intent != "confirmed":
+        return False
+    text = (event.text_snippet or "").lower()
+    flags = str(event.raw.get("encounter_flags") or "").lower()
+    source = str(code.get("source") or "").lower()
+    evidence = str(code.get("evidence") or "").lower()
+    is_problem_list_source = source in {
+        "major_text_cancer_backfill",
+        "deterministic_cancer_diagnosis_coder",
+    } or evidence.startswith("major:")
+    if (
+        is_problem_list_source
+        and "back-dated and entered on:" in flags
+        and not _has_same_encounter_diagnostic_context(text, evidence)
+    ):
+        return True
+    if is_problem_list_source and "cancer care review" in text:
+        return True
+    return False
+
+
+def _has_same_encounter_diagnostic_context(text: str, evidence: str) -> bool:
+    haystack = f"{text} {evidence}"
+    return any(
+        phrase in haystack
+        for phrase in (
+            "ultrasound guided biopsy",
+            "biopsy of sentinel lymph node",
+            "metastasis to lymph node",
+            "axillary lymph node",
+            "axillary lymph nodes",
+            "histology",
+            "pathology",
+        )
+    )
+
+
 def _role_from_assertion(assertion: str | None) -> str:
     norm = (assertion or "").lower()
     if "fam" in norm:
@@ -109,10 +213,53 @@ def extract_code_signals(events: Iterable[TimelineEvent]) -> list[Signal]:
     for event in events:
         for code in event.coded_entities:
             concept_id = str(code.get("concept_id") or "")
+            evidence_override = _evidence_site_override(code)
+            if evidence_override is not None:
+                site_key, intent, confidence = evidence_override
+                out.append(
+                    Signal(
+                        channel="code",
+                        encounter_id=event.encounter_id,
+                        site_key=site_key,
+                        role="referral",
+                        intent=intent,
+                        confidence=confidence,
+                        citation=(
+                            f"Evidence-routed SNOMED {concept_id} "
+                            f"({code.get('display_name') or 'unknown term'})"
+                        ),
+                    )
+                )
+                continue
+            referral_site = site_for_referral_concept(concept_id)
+            if referral_site is not None:
+                out.append(
+                    Signal(
+                        channel="code",
+                        encounter_id=event.encounter_id,
+                        site_key=referral_site,
+                        role="referral",
+                        intent="suspected",
+                        confidence=0.90,
+                        citation=(
+                            f"SNOMED {concept_id} "
+                            f"({code.get('display_name') or 'unknown term'})"
+                        ),
+                    )
+                )
+                continue
             classification = _classify(concept_id)
+            if classification is None:
+                classification = _classify_contextual_metastasis(event, code)
+            if classification is None:
+                classification = _classify_contextual_breast_diagnosis(event, code)
             if classification is None:
                 continue
             site_key, intent, confidence = classification
+            if _is_backdated_or_review_restatement(
+                event, code, site_key=site_key, intent=intent
+            ):
+                continue
             assertion = code.get("assertion")
             if (
                 isinstance(assertion, str)

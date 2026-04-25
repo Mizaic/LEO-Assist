@@ -12,8 +12,8 @@ would be persisted), and the coverage report.
 
 Usage::
 
-    python -m scripts.episode_v2.dry_run_patient --patient-id 4920262426
-    python -m scripts.episode_v2.dry_run_patient --patient-id 6282779235
+    python -m scripts.episode_v2.dry_run_patient --patient-id 9990001004
+    python -m scripts.episode_v2.dry_run_patient --patient-id 9990001005
 """
 
 from __future__ import annotations

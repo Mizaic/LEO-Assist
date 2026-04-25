@@ -43,7 +43,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-GOLD_PATIENTS: tuple[str, ...] = ("4246897485", "4920262426", "6282779235")
+GOLD_PATIENTS: tuple[str, ...] = ("9990001002", "9990001004", "9990001005")
 
 
 def _install_v1_bundle() -> None:

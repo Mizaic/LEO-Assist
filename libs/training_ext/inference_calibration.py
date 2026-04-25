@@ -128,9 +128,14 @@ def filter_and_rescore(
     out: list[FilteredSpan] = []
     if calibration is None or not calibration.is_verified and not calibration.per_label:
         calibration = calibration or InferenceCalibration()
-    for span in spans:
+    span_items = list(spans)
+    group_scores = _span_group_scores(spans)
+    for index, span in enumerate(span_items):
         label = str(span.label_).upper()
-        raw = _raw_score(span)
+        raw = _raw_score(
+            span,
+            fallback_score=group_scores[index] if index < len(group_scores) else None,
+        )
         threshold = calibration.threshold_for(label)
         if raw < threshold and not include_below_threshold:
             continue
@@ -148,9 +153,26 @@ def filter_and_rescore(
     return out
 
 
-def _raw_score(span) -> float:
+def _span_group_scores(spans: Iterable) -> list[float]:
+    """Return spaCy SpanGroup scores when present.
+
+    SpanCategorizer stores probabilities on ``doc.spans["sc"].attrs["scores"]``
+    rather than on each Span. Older NER-style paths may still place confidence
+    on ``span.kb_id_``, so these scores are only used as a fallback.
+    """
+    attrs = getattr(spans, "attrs", {}) or {}
+    raw_scores = attrs.get("scores")
+    if raw_scores is None:
+        return []
+    try:
+        return [float(score) for score in raw_scores]
+    except TypeError:
+        return []
+
+
+def _raw_score(span, *, fallback_score: float | None = None) -> float:
     raw = getattr(span, "kb_id_", "") or ""
     try:
         return float(raw)
     except ValueError:
-        return 0.0
+        return float(fallback_score) if fallback_score is not None else 0.0

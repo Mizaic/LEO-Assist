@@ -82,14 +82,14 @@ _TREATMENT_PATTERNS = re.compile(
 
 # Stale episodes: patient + referral date
 STALE_EPISODES = [
-    ("4203796334", "2024-08-05", "skin SCC"),
-    ("4921442355", "2024-11-01", "skin melanoma"),
-    ("4940120139", "2024-03-01", "skin SCC"),
-    ("4200797127", "2024-05-23", "lymphoma head/neck"),
-    ("4926916703", "2024-01-22", "lung stale-spec"),
-    ("4643293950", "2024-01-18", "lower GI stale-spec"),
-    ("6519337463", "2024-04-09", "breast stale-spec"),
-    ("6261656266", "2025-01-17", "lower GI stale-nodiag"),
+    ("9990002010", "2024-08-05", "skin SCC"),
+    ("9990003002", "2024-11-01", "skin melanoma"),
+    ("9990002011", "2024-03-01", "skin SCC"),
+    ("9990010023", "2024-05-23", "lymphoma head/neck"),
+    ("9990010049", "2024-01-22", "lung stale-spec"),
+    ("9990010037", "2024-01-18", "lower GI stale-spec"),
+    ("9990010063", "2024-04-09", "breast stale-spec"),
+    ("9990002012", "2025-01-17", "lower GI stale-nodiag"),
 ]
 
 # All cohort pids

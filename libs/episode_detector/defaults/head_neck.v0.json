@@ -5,12 +5,15 @@
     "suggest": false
   },
   "anchors": {
-    "clinic_seen_snomed": [],
+    "clinic_seen_snomed": [
+      "382621000000103"
+    ],
     "confirmed_snomed": [
       "363375008"
     ],
     "referral_snomed": [
-      "276421000000104"
+      "276421000000104",
+      "280521000000108"
     ],
     "suspected_snomed": [
       "315264005"
@@ -70,6 +73,10 @@
       "positive_terms": []
     },
     "text_channel": {
+      "exclusion_catalogue": [
+        "\\bthroat not sore\\b",
+        "\\bno (cough or cold symptoms|sore throat|throat pain)\\b"
+      ],
       "context_role_catalogue": {
         "primary_care_investigations": [
           "\\b(full blood count|fbc)\\b",
@@ -142,6 +149,8 @@
         "\\b(neck (lump|mass|swelling))\\b",
         "\\b(thyroid (lump|nodule|cancer))\\b",
         "\\b(oral ulcer|mouth ulcer|white patch|red patch|leukoplakia)\\b",
+        "\\b(?:2\\s*ww|tww|two[-\\s]+week[-\\s]+wait)\\s+neck\\b",
+        "\\bneck\\s+(?:2\\s*ww|tww|two[-\\s]+week[-\\s]+wait)\\b",
         "\\b(head and neck|head[- ]?and[- ]?neck)\\b",
         "\\b(ent referral|ent clinic)\\b",
         "\\b(salivary gland|parotid)\\b"

@@ -71,6 +71,7 @@ _LAB_LABELS = frozenset({"procedure", "observable_entity", "finding"})
 # Hashing helpers (match seed_manual_gold_records.py convention)
 # ---------------------------------------------------------------------------
 
+
 def _candidate_id(text: str) -> str:
     return hashlib.sha256((text or "").encode()).hexdigest()
 
@@ -86,6 +87,7 @@ def _label_id(text: str, entities: list[dict[str, Any]]) -> str:
 # Quality score per entity based on SNOMED validation branch
 # ---------------------------------------------------------------------------
 
+
 def _quality_score(result: Any, haiku_called: bool) -> float:
     if haiku_called:
         return 0.80
@@ -97,9 +99,45 @@ def _quality_score(result: Any, haiku_called: bool) -> float:
     return 0.85
 
 
+def _align_entity_for_gold(
+    sentence_text: str,
+    entity: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Return an entity whose text/start/end match the sentence exactly."""
+
+    from libs.pipeline.label_filter import repair_entity_spans
+
+    repair = repair_entity_spans(sentence_text, [entity])
+    if repair["repaired"] or repair["unchanged"]:
+        return repair["entities"][0]
+
+    status = "ambiguous" if repair["ambiguous"] else "unrepairable"
+    logger.warning(
+        "process_sentence: dropping %s auto-gold entity %r",
+        status,
+        entity.get("text", ""),
+    )
+    return None
+
+
+def _validated_gold_entities(
+    sentence_text: str,
+    entities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Keep only entities that can be made span-consistent."""
+
+    aligned: list[dict[str, Any]] = []
+    for entity in entities:
+        repaired = _align_entity_for_gold(sentence_text, entity)
+        if repaired is not None:
+            aligned.append(repaired)
+    return aligned
+
+
 # ---------------------------------------------------------------------------
 # Surface form write-back (Loop 1 feedback)
 # ---------------------------------------------------------------------------
+
 
 def _upsert_surface_forms(
     kg_session: Any,
@@ -120,15 +158,17 @@ def _upsert_surface_forms(
         normalized = normalize_surface(text)
         if not normalized:
             continue
-        rows.append({
-            "normalized": normalized,
-            "form": text,
-            "concept_id": concept_id,
-            "source": _SOURCE,
-            "status": "approved",
-            "confidence": 0.80 if haiku_called else 0.95,
-            "provenance": "haiku_arbitrated" if haiku_called else "lab_auto_coded",
-        })
+        rows.append(
+            {
+                "normalized": normalized,
+                "form": text,
+                "concept_id": concept_id,
+                "source": _SOURCE,
+                "status": "approved",
+                "confidence": 0.80 if haiku_called else 0.95,
+                "provenance": "haiku_arbitrated" if haiku_called else "lab_auto_coded",
+            }
+        )
     if not rows:
         return
     try:
@@ -140,6 +180,7 @@ def _upsert_surface_forms(
 # ---------------------------------------------------------------------------
 # Entity extraction and SNOMED validation for one sentence
 # ---------------------------------------------------------------------------
+
 
 def _resolve_candidates(entity: Any) -> list[dict[str, Any]]:
     """Flatten ResolvedTerm into a plain dict for the arbitrator prompt."""
@@ -155,6 +196,16 @@ def _resolve_candidates(entity: Any) -> list[dict[str, Any]]:
     ]
 
 
+def _observable_measurement_fields(pattern: Any, label: str) -> dict[str, str | None]:
+    if label != "observable_entity":
+        return {}
+    return {
+        "numeric_value": getattr(pattern, "numeric_value", None),
+        "unit": getattr(pattern, "unit", None),
+        "reference_range": getattr(pattern, "reference_range", None),
+    }
+
+
 def process_sentence(
     sentence_text: str,
     *,
@@ -168,6 +219,7 @@ def process_sentence(
     Returns a dict ready for writing, or None if the sentence should be skipped.
     """
     from libs.training.lab_span_detector import detect_lab_pattern
+    from libs.training.lab_concept_lookup import lab_lookup_texts
     from scripts.lib.gold_label_extractors import extract_deterministic
     from scripts.lib.gold_label_snomed_check import validate_proposals_batch
 
@@ -177,7 +229,8 @@ def process_sentence(
 
     raw_entities = extract_deterministic(sentence_text)
     lab_entities = [
-        e for e in raw_entities
+        e
+        for e in raw_entities
         if str(e.get("label") or e.get("semantic_tag", "")).strip().lower()
         in _LAB_LABELS
     ]
@@ -185,43 +238,68 @@ def process_sentence(
         return None
 
     proposals = [
-        (str(e.get("text") or "").strip(), str(e.get("label") or "").strip().lower())
+        (lookup_text, str(e.get("label") or "").strip().lower())
         for e in lab_entities
         if e.get("text") and e.get("label")
+        for lookup_text in lab_lookup_texts(e)
     ]
     validation_map = validate_proposals_batch(proposals, terminology_client)
 
     haiku_called = False
     coded_entities: list[dict[str, Any]] = []
+    quality_results: list[Any] = []
 
     for entity in lab_entities:
-        text = str(entity.get("text") or "").strip()
+        original_text = str(entity.get("text") or "").strip()
         label = str(entity.get("label") or "").strip().lower()
-        if not text or not label:
+        if not original_text or not label:
             continue
 
-        vr = validation_map.get((text, label))
+        lookup_keys = lab_lookup_texts(entity)
+        lookup_key = lookup_keys[0] if lookup_keys else ""
+        vr = None
+        for candidate_lookup in lookup_keys:
+            candidate_vr = validation_map.get((candidate_lookup, label))
+            if candidate_vr is None:
+                continue
+            if vr is None:
+                vr = candidate_vr
+                lookup_key = candidate_lookup
+            if candidate_vr.accepted:
+                vr = candidate_vr
+                lookup_key = candidate_lookup
+                break
         if vr is None:
             continue
 
+        # Always write back the original (full) span text to the patient graph,
+        # not the canonicalized lookup form.
         if vr.accepted:
-            coded_entities.append({
-                "text": text,
-                "label": label,
-                "semantic_tag": label,
-                "snomed_concept_id": str(vr.concept_id or ""),
-                "snomed_term": str(vr.snomed_term or ""),
-                "start": entity.get("start", 0),
-                "end": entity.get("end", 0),
-                "assertion": "present",
-            })
+            aligned = _align_entity_for_gold(
+                sentence_text,
+                {
+                    "text": original_text,
+                    "label": label,
+                    "semantic_tag": label,
+                    "snomed_concept_id": str(vr.concept_id or ""),
+                    "snomed_term": str(vr.snomed_term or ""),
+                    "start": entity.get("start", 0),
+                    "end": entity.get("end", 0),
+                    "assertion": "present",
+                    **_observable_measurement_fields(pattern, label),
+                },
+            )
+            if aligned is None:
+                continue
+            coded_entities.append(aligned)
+            quality_results.append(vr)
             continue
 
         # Failed validation -- try Haiku if available.
         if not with_haiku or arbitrator is None:
             logger.debug(
                 "process_sentence: skipping entity %r (validation failed, no Haiku)",
-                text,
+                original_text,
             )
             continue
 
@@ -233,36 +311,49 @@ def process_sentence(
             reference_range=str(getattr(parsed, "reference_range", "") or ""),
             interpretation=str(getattr(parsed, "interpretation", "") or ""),
             entity_label=label,
-            entity_text=text,
+            entity_text=original_text,
             candidates=_resolve_candidates(
-                terminology_client.resolve([text], expected_tags={text: label}).get(text, [])
+                terminology_client.resolve(
+                    [lookup_key], expected_tags={lookup_key: label}
+                ).get(lookup_key, [])
             ),
         )
         haiku_called = True
 
         if result.is_drop:
-            logger.debug("process_sentence: Haiku dropped entity %r: %s", text, result.reason)
+            logger.debug(
+                "process_sentence: Haiku dropped entity %r: %s",
+                original_text,
+                result.reason,
+            )
             continue
 
-        final_text = result.text if result.decision == "fix_span" else text
-        coded_entities.append({
-            "text": final_text,
-            "label": label,
-            "semantic_tag": label,
-            "snomed_concept_id": result.concept_id,
-            "snomed_term": result.snomed_term,
-            "start": entity.get("start", 0),
-            "end": entity.get("end", 0),
-            "assertion": "present",
-        })
+        final_text = result.text if result.decision == "fix_span" else original_text
+        aligned = _align_entity_for_gold(
+            sentence_text,
+            {
+                "text": final_text,
+                "label": label,
+                "semantic_tag": label,
+                "snomed_concept_id": result.concept_id,
+                "snomed_term": result.snomed_term,
+                "start": entity.get("start", 0),
+                "end": entity.get("end", 0),
+                "assertion": "present",
+                **_observable_measurement_fields(pattern, label),
+            },
+        )
+        if aligned is None:
+            continue
+        coded_entities.append(aligned)
+        quality_results.append(vr)
 
     if not coded_entities:
         return None
 
     q_score = sum(
-        _quality_score(validation_map.get((e["text"], e["label"])), haiku_called)
-        for e in coded_entities
-    ) / len(coded_entities)
+        _quality_score(result, haiku_called) for result in quality_results
+    ) / len(quality_results)
 
     return {
         "sentence_text": sentence_text,
@@ -275,6 +366,7 @@ def process_sentence(
 # ---------------------------------------------------------------------------
 # Neo4j writes
 # ---------------------------------------------------------------------------
+
 
 def write_sentence_result(
     encounter_id: str,
@@ -292,7 +384,10 @@ def write_sentence_result(
     )
 
     sentence_text = result["sentence_text"]
-    entities = result["entities"]
+    entities = _validated_gold_entities(sentence_text, result["entities"])
+    if not entities:
+        logger.warning("write_sentence_result: no span-consistent entities to write")
+        return
     haiku_called = result["haiku_called"]
     q_score = result["quality_score"]
     tier = "haiku" if haiku_called else "surface_form"
@@ -314,6 +409,9 @@ def write_sentence_result(
                         "source": _SOURCE,
                     },
                     "modifiers": {},
+                    "numeric_value": e.get("numeric_value"),
+                    "unit": e.get("unit"),
+                    "reference_range": e.get("reference_range"),
                     "decision_tier": tier,
                 }
                 for e in entities
@@ -376,12 +474,14 @@ def write_sentence_result(
 # Encounter paging
 # ---------------------------------------------------------------------------
 
+
 def _fetch_encounters(
     patient_client: Any,
     skip: int,
     limit: int,
 ) -> list[dict[str, Any]]:
     from libs.cypher.documents_queries import GET_ENCOUNTERS_PAGE
+
     with patient_client.session() as session:
         rows = session.run(GET_ENCOUNTERS_PAGE, skip=skip, limit=limit)
         return [dict(r) for r in rows]
@@ -389,6 +489,7 @@ def _fetch_encounters(
 
 def _fetch_encounters_total(patient_client: Any) -> int:
     from libs.cypher.documents_queries import GET_ENCOUNTERS_PAGE_TOTAL
+
     with patient_client.session() as session:
         rows = list(session.run(GET_ENCOUNTERS_PAGE_TOTAL))
         return int(rows[0]["total"]) if rows else 0
@@ -397,6 +498,7 @@ def _fetch_encounters_total(patient_client: Any) -> int:
 # ---------------------------------------------------------------------------
 # Process one encounter (used by thread pool)
 # ---------------------------------------------------------------------------
+
 
 def process_encounter(
     enc: dict[str, Any],
@@ -450,7 +552,8 @@ def process_encounter(
                 written += 1
             except Exception:
                 logger.warning(
-                    "process_encounter: write failed for encounter=%s", encounter_id,
+                    "process_encounter: write failed for encounter=%s",
+                    encounter_id,
                     exc_info=True,
                 )
         else:
@@ -466,6 +569,7 @@ def process_encounter(
 # ---------------------------------------------------------------------------
 # validate-seeds mode
 # ---------------------------------------------------------------------------
+
 
 def run_validate_seeds(
     *,
@@ -515,13 +619,23 @@ def run_validate_seeds(
         expected_map[eid] = {r["concept_id"] for r in rows if r["concept_id"]}
     patient_client.close()
 
-    hits = misses = 0
+    # Recall-based metric: of the concepts in the manually coded gold set that
+    # are lab-related, what fraction does the loop produce?
+    # We use recall rather than precision because the manual gold set is
+    # intentionally selective -- human coders annotated the concepts they cared
+    # about, not every concept the loop would produce.
+    from libs.nlp.sentence_splitter import SentenceSplitter
+
+    lab_concept_ids: set[str] = set()
+    for expected in expected_map.values():
+        lab_concept_ids |= expected
+
+    if not lab_concept_ids:
+        logger.warning("validate-seeds: no expected concept IDs found; skipping")
+        return True
+
+    found: set[str] = set()
     for enc in seed_encounters:
-        eid = enc["encounter_id"]
-        expected = expected_map.get(eid, set())
-        if not expected:
-            continue
-        from libs.nlp.sentence_splitter import SentenceSplitter
         splitter = SentenceSplitter()
         sentences = splitter.split(enc["text"])
         for chunk in sentences:
@@ -541,25 +655,22 @@ def run_validate_seeds(
                 continue
             for ent in result["entities"]:
                 cid = str(ent.get("snomed_concept_id") or "")
-                if cid in expected:
-                    hits += 1
-                else:
-                    misses += 1
+                if cid in lab_concept_ids:
+                    found.add(cid)
 
-    total = hits + misses
-    if total == 0:
-        logger.warning("validate-seeds: no lab entities found in seed encounters")
-        return True
-
-    precision = hits / total
+    recall = len(found) / len(lab_concept_ids)
     logger.info(
-        "validate-seeds: precision=%.3f (%d/%d) min_required=%.3f",
-        precision, hits, total, min_precision,
+        "validate-seeds: recall=%.3f (%d/%d expected concepts found) min_required=%.3f",
+        recall,
+        len(found),
+        len(lab_concept_ids),
+        min_precision,
     )
-    if precision < min_precision:
+    if recall < min_precision:
         logger.error(
-            "validate-seeds: FAILED precision %.3f < %.3f -- aborting run",
-            precision, min_precision,
+            "validate-seeds: FAILED recall %.3f < %.3f -- aborting run",
+            recall,
+            min_precision,
         )
         return False
     return True
@@ -569,22 +680,28 @@ def run_validate_seeds(
 # Main run loop
 # ---------------------------------------------------------------------------
 
+
 def run_main(args: argparse.Namespace) -> int:
     from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
     from libs.terminology.client import TerminologyClient
 
     terminology_client = TerminologyClient(
-        base_url=__import__("os").environ.get("TERMINOLOGY_API_URL", "http://localhost:8001")
+        base_url=__import__("os").environ.get(
+            "TERMINOLOGY_API_URL", "http://localhost:8001"
+        )
     )
 
     arbitrator = None
     if args.with_haiku:
         try:
             from libs.coding.haiku_arbitrator import HaikuArbitrator
+
             arbitrator = HaikuArbitrator()
             logger.info("Haiku arbitrator initialised")
         except Exception:
-            logger.warning("Haiku arbitrator unavailable; --with-haiku ignored", exc_info=True)
+            logger.warning(
+                "Haiku arbitrator unavailable; --with-haiku ignored", exc_info=True
+            )
 
     patient_client = PatientGraphClient()
     kg_client = KnowledgeGraphClient()
@@ -662,6 +779,7 @@ def run_main(args: argparse.Namespace) -> int:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Lab encounter SNOMED coding loop.",
@@ -670,7 +788,9 @@ def _parse_args() -> argparse.Namespace:
     sub = p.add_subparsers(dest="command", required=True)
 
     # validate-seeds subcommand
-    vs = sub.add_parser("validate-seeds", help="Check precision on hand-coded encounters.")
+    vs = sub.add_parser(
+        "validate-seeds", help="Check precision on hand-coded encounters."
+    )
     vs.add_argument("--min-precision", type=float, default=0.90)
     vs.add_argument("--with-haiku", action="store_true")
     vs.add_argument("-v", "--verbose", action="store_true")
@@ -678,10 +798,17 @@ def _parse_args() -> argparse.Namespace:
     # run subcommand
     rn = sub.add_parser("run", help="Code encounters and write to Neo4j.")
     rn.add_argument("--apply", action="store_true", help="Write to Neo4j.")
-    rn.add_argument("--confirm-apply", action="store_true", help="Required with --apply.")
-    rn.add_argument("--with-haiku", action="store_true", help="Enable Haiku for failed entities.")
-    rn.add_argument("--skip-seed-validation", action="store_true",
-                    help="Skip validate-seeds check (dangerous).")
+    rn.add_argument(
+        "--confirm-apply", action="store_true", help="Required with --apply."
+    )
+    rn.add_argument(
+        "--with-haiku", action="store_true", help="Enable Haiku for failed entities."
+    )
+    rn.add_argument(
+        "--skip-seed-validation",
+        action="store_true",
+        help="Skip validate-seeds check (dangerous).",
+    )
     rn.add_argument("--min-precision", type=float, default=0.90)
     rn.add_argument("--limit", type=int, default=0, help="Max encounters (0=all).")
     rn.add_argument("--batch-size", type=int, default=50)
@@ -697,10 +824,23 @@ def main() -> int:
         level=logging.DEBUG if getattr(args, "verbose", False) else logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
+    # PyRuSH uses loguru; suppress its DEBUG output at runtime.
+    try:
+        from loguru import logger as _loguru_logger
+
+        _loguru_logger.remove()
+        _loguru_logger.add(
+            __import__("sys").stderr,
+            level="WARNING",
+            format="{time} {level} {name} {message}",
+        )
+    except Exception:
+        pass
 
     if args.command == "validate-seeds":
         from libs.terminology.client import TerminologyClient
         import os
+
         tc = TerminologyClient(
             base_url=os.environ.get("TERMINOLOGY_API_URL", "http://localhost:8001")
         )
@@ -708,6 +848,7 @@ def main() -> int:
         if args.with_haiku:
             try:
                 from libs.coding.haiku_arbitrator import HaikuArbitrator
+
                 arbitrator = HaikuArbitrator()
             except Exception:
                 logger.warning("Haiku unavailable for validate-seeds")
@@ -726,6 +867,7 @@ def main() -> int:
         if not args.skip_seed_validation:
             from libs.terminology.client import TerminologyClient
             import os
+
             tc = TerminologyClient(
                 base_url=os.environ.get("TERMINOLOGY_API_URL", "http://localhost:8001")
             )
@@ -733,6 +875,7 @@ def main() -> int:
             if args.with_haiku:
                 try:
                     from libs.coding.haiku_arbitrator import HaikuArbitrator
+
                     arbitrator = HaikuArbitrator()
                 except Exception:
                     pass

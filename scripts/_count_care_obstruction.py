@@ -8,11 +8,13 @@ Reports:
   - distinct EpisodeOfCare nodes that carry at least one such edge
   - distinct Patient nodes that own one of those episodes
   - per-patient breakdown for the top 10 patients (by edge count)
-  - inspection of patient 4802892365's care_obstruction milestones
+  - optional deep-dive for one patient id (``CARE_OBSTRUCTION_DEBUG_PATIENT_ID``;
+    default: synthetic pattern-guard exemplar)
 """
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -24,6 +26,9 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv(ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(ROOT / "secrets" / ".env.secrets", override=True)
 
+from libs.testing.synthetic_patient_ids import (  # noqa: E402
+    PATTERN_GUARD_CARE_OBSTRUCTION_EXEMPLAR,
+)
 
 _Q_TOTAL = """
 MATCH (e:Encounter)-[r:IS_PART_OF]->(ep:EpisodeOfCare)
@@ -67,14 +72,15 @@ ORDER BY e.date, e.id
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
 
+    detail_pid = os.environ.get(
+        "CARE_OBSTRUCTION_DEBUG_PATIENT_ID", PATTERN_GUARD_CARE_OBSTRUCTION_EXEMPLAR
+    )
     client = PatientGraphClient()
     try:
         total = client.run(_Q_TOTAL) or [{}]
         patients = client.run(_Q_PATIENTS) or [{}]
         top = client.run(_Q_TOP) or []
-        detail = (
-            client.run(_Q_PATIENT_DETAIL, pid="4802892365") or []
-        )
+        detail = client.run(_Q_PATIENT_DETAIL, pid=detail_pid) or []
     finally:
         client.close()
 
@@ -83,9 +89,15 @@ def main() -> None:
     print("CARE_OBSTRUCTION COHORT SNAPSHOT")
     print("-" * 80)
     print(f"Total IS_PART_OF edges (milestone=care_obstruction): {t.get('edges', 0)}")
-    print(f"Distinct EpisodeOfCare with obstruction:             {t.get('episodes', 0)}")
-    print(f"Distinct Encounter nodes implicated:                 {t.get('encounters', 0)}")
-    print(f"Distinct Patients implicated:                        {patients[0].get('patients', 0)}")
+    print(
+        f"Distinct EpisodeOfCare with obstruction:             {t.get('episodes', 0)}"
+    )
+    print(
+        f"Distinct Encounter nodes implicated:                 {t.get('encounters', 0)}"
+    )
+    print(
+        f"Distinct Patients implicated:                        {patients[0].get('patients', 0)}"
+    )
     print()
     print("Top 10 patients by care_obstruction edge count:")
     print("-" * 80)
@@ -96,7 +108,10 @@ def main() -> None:
     else:
         print("  (none)")
     print()
-    print("Patient 4802892365 -- care_obstruction encounters:")
+    print(
+        f"Patient {detail_pid} (set CARE_OBSTRUCTION_DEBUG_PATIENT_ID to override) --"
+    )
+    print("care_obstruction encounters:")
     print("-" * 80)
     if detail:
         for row in detail:

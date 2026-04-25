@@ -19,7 +19,7 @@ load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
 # Test on the worst offender
-PATIENT_ID = "4808735946"
+PATIENT_ID = "9990010040"
 
 client = PatientGraphClient()
 try:

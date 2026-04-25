@@ -3,14 +3,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
-import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { MissionEpisode } from "@/lib/missionControlApi";
 import { useEpisodeEncounterLocks } from "./useEpisodeEncounterLocks";
@@ -19,6 +14,7 @@ import { padRange } from "./encounterTextRange";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { sortByIsoDateAsc } from "@/lib/dateSort";
 import EncounterCard from "./EncounterCard";
+import EncounterFilterControls from "./EncounterFilterControls";
 import EncounterTimelineScrubber from "./EncounterTimelineScrubber";
 import MilestoneJumpChips from "./MilestoneJumpChips";
 import MilestoneCurationDialog from "./MilestoneCurationDialog";
@@ -53,6 +49,7 @@ export default function EncounterTextTab({
 }: Props) {
   const { encounters, loading, error, refresh } = useEncounterLoad(patientId);
   const [codedOnly, setCodedOnly] = useState(false);
+  const [linkedOnly, setLinkedOnly] = useState(false);
   const [searchTerms, setSearchTerms] = useState<string[]>([]);
   const [inputDraft, setInputDraft] = useState("");
   const codedLinks = useEncounterCodedLinks(patientId);
@@ -194,11 +191,13 @@ export default function EncounterTextTab({
   const visibleEncounters = useMemo(() => {
     const filtered = applyCommonFilters(encounters, {
       codedOnly,
+      linkedOnly,
+      linkedEncounterIds,
       searchTerms,
       timelineRange,
     });
     return sortByIsoDateAsc(filtered, (e) => e.date ?? null);
-  }, [encounters, codedOnly, searchTerms, timelineRange]);
+  }, [encounters, codedOnly, linkedOnly, linkedEncounterIds, searchTerms, timelineRange]);
 
   // Search match overlay for the histogram (DI-15E0094F). Only the
   // free-text search affects which bars are highlighted; coded-only
@@ -208,6 +207,7 @@ export default function EncounterTextTab({
     if (searchTerms.length === 0) return undefined;
     const matched = applyCommonFilters(encounters, {
       codedOnly: false,
+      linkedOnly: false,
       searchTerms,
       timelineRange: null,
     });
@@ -222,17 +222,7 @@ export default function EncounterTextTab({
     });
   }, [visibleEncounters, loading, fetchCodesForEncounter]);
 
-  const handleRecodeCleared = useCallback(
-    (encounterId: string) => {
-      clearCodedFor(encounterId);
-    },
-    [clearCodedFor]
-  );
-  const recode = useEncounterRecode({
-    patientId,
-    refresh,
-    onCleared: handleRecodeCleared,
-  });
+  const recode = useEncounterRecode({ patientId, refresh, onCleared: clearCodedFor });
   const handleResetAndRecode = (encounterId: string) => {
     setConfirmResetEncounterId(null);
     void recode.start(encounterId);
@@ -240,6 +230,7 @@ export default function EncounterTextTab({
 
   const jumpToEncounter = useCallback((encounterId: string) => {
     setCodedOnly(false);
+    setLinkedOnly(false);
     setSearchTerms([]);
     setInputDraft("");
     setTimelineRange(null);
@@ -257,6 +248,30 @@ export default function EncounterTextTab({
     []
   );
 
+  const timelineLabel = timelineRange
+    ? `${shortDate(new Date(timelineRange.fromMs).toISOString())} - ${shortDate(new Date(timelineRange.toMs).toISOString())}`
+    : null;
+
+  const retainVisibleEncounterFocus = useCallback(() => {
+    if (!visibleEncounterId) return;
+    setCollapsedEncounters((prev) => ({ ...prev, [visibleEncounterId]: false }));
+    setFocusedEncounterId(visibleEncounterId);
+  }, [visibleEncounterId]);
+
+  const clearTimelineRange = useCallback(() => {
+    retainVisibleEncounterFocus();
+    setTimelineRange(null);
+  }, [retainVisibleEncounterFocus]);
+
+  const clearVisibleFilters = useCallback(() => {
+    retainVisibleEncounterFocus();
+    setCodedOnly(false);
+    setLinkedOnly(false);
+    setSearchTerms([]);
+    setInputDraft("");
+    setTimelineRange(null);
+  }, [retainVisibleEncounterFocus]);
+
   useEffect(() => {
     if (!focusedEncounterId) return;
     const target = encounterRefs.current[focusedEncounterId];
@@ -266,7 +281,14 @@ export default function EncounterTextTab({
     }
     const timer = window.setTimeout(() => setFocusedEncounterId(null), 2200);
     return () => window.clearTimeout(timer);
-  }, [focusedEncounterId, codedOnly, searchTerms, visibleEncounters.length]);
+  }, [
+    focusedEncounterId,
+    codedOnly,
+    linkedOnly,
+    searchTerms,
+    timelineRange,
+    visibleEncounters.length,
+  ]);
 
   const allVisibleIds = useMemo(
     () => visibleEncounters.map((e) => String(e.encounter_id)),
@@ -417,67 +439,45 @@ export default function EncounterTextTab({
           data-testid="timeline-filter-banner"
           sx={{ py: 0.25 }}
           action={
-            <Button
-              size="small"
-              color="inherit"
-              onClick={() => setTimelineRange(null)}
-            >
+            <Button size="small" color="inherit" onClick={clearTimelineRange}>
               Clear
             </Button>
           }
         >
-          Encounters filtered to timeline window {shortDate(new Date(timelineRange.fromMs).toISOString())} - {shortDate(new Date(timelineRange.toMs).toISOString())}
+          Encounters filtered to timeline window {timelineLabel}
         </Alert>
       )}
 
-      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={codedOnly}
-              onChange={(_, v) => setCodedOnly(v)}
-            />
-          }
-          label={<Typography variant="caption">Coded only</Typography>}
-        />
-        {anyExpanded && (
-          <Button size="small" variant="text" sx={{ ml: "auto" }} onClick={collapseAll}>
-            Collapse all
-          </Button>
-        )}
-        {anyCollapsed && (
-          <Button size="small" variant="text" sx={{ ml: anyExpanded ? 0 : "auto" }} onClick={expandAll}>
-            Expand all
-          </Button>
-        )}
-      </Box>
-      <Autocomplete
-        multiple freeSolo options={[]}
-        value={searchTerms} inputValue={inputDraft}
-        onChange={(_, v) => setSearchTerms(v as string[])}
-        onInputChange={(_, v, r) => {
-          if (r !== "input") { setInputDraft(v); return; }
-          if (v.endsWith(",")) {
-            const t = v.slice(0, -1).trim();
-            if (t) setSearchTerms((p) => [...p, t]);
-            setInputDraft("");
-          } else setInputDraft(v);
+      <EncounterFilterControls
+        codedOnly={codedOnly}
+        linkedOnly={linkedOnly}
+        timelineLabel={timelineLabel}
+        searchTerms={searchTerms}
+        inputDraft={inputDraft}
+        anyExpanded={anyExpanded}
+        anyCollapsed={anyCollapsed}
+        onCodedOnlyChange={(value) => {
+          retainVisibleEncounterFocus();
+          setCodedOnly(value);
         }}
-        renderTags={(v, gtp) =>
-          v.map((o, i) => {
-            const { key, ...tagProps } = gtp({ index: i });
-            return <Chip key={key} label={o} size="small" {...tagProps} />;
-          })
-        }
-        renderInput={(p) => (
-          <TextField {...p} size="small" label="Search text in shown encounters" />
-        )}
+        onLinkedOnlyChange={(value) => {
+          retainVisibleEncounterFocus();
+          setLinkedOnly(value);
+        }}
+        onClearTimeline={clearTimelineRange}
+        onSearchTermsChange={(value) => {
+          retainVisibleEncounterFocus();
+          setSearchTerms(value);
+        }}
+        onInputDraftChange={setInputDraft}
+        onClearFilters={clearVisibleFilters}
+        onCollapseAll={collapseAll}
+        onExpandAll={expandAll}
       />
 
       {visibleEncounters.length === 0 && (
         <Alert severity="info">
-          No encounters match this filter. Drag the focus band wider or clear Coded only / Search to see more.
+          No encounters match this filter. Clear Coded only, Linked only, Timeline, or Search to see more.
         </Alert>
       )}
       {visibleEncounters.map((enc) => renderCard(enc))}

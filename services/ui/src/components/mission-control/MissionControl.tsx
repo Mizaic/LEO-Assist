@@ -96,8 +96,8 @@ export default function MissionControl() {
   const [sortDir, setSortDir] = useState<"ASC" | "DESC">("DESC");
 
   const [kpis, setKpis] = useState<MissionKPIs | null>(null);
-  const [kpisLoading, setKpisLoading] = useState(false);
-  const [tableLoading, setTableLoading] = useState(false);
+  const [kpisLoading, setKpisLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(true);
   const [tableError, setTableError] = useState<string | null>(null);
 
   const [selectedPatient, setSelectedPatient] = useState<MissionPatient | null>(null);
@@ -127,13 +127,44 @@ export default function MissionControl() {
     [orgId, appliedFrom, appliedTo]
   );
 
-  // Abort controller reference to cancel stale requests
-  const abortRef = useRef<AbortController | null>(null);
+  const requestSeqRef = useRef(0);
+
+  const hydrateRebuildStatuses = useCallback(
+    async (
+      awaiting: MissionPatient[],
+      scopedOrgId: string | undefined,
+      requestSeq: number
+    ) => {
+      if (awaiting.length === 0) return;
+      const statuses = await Promise.all(
+        awaiting.map(async (pt) => {
+          try {
+            const status = await fetchPatientRebuildStatus(pt.patient_id, {
+              orgId: scopedOrgId,
+            });
+            return [pt.patient_id, status] as const;
+          } catch {
+            return [pt.patient_id, null] as const;
+          }
+        })
+      );
+      if (requestSeqRef.current !== requestSeq) return;
+      const rebuildMap = Object.fromEntries(statuses);
+      setPatients((prev) =>
+        prev.map((pt) =>
+          Object.prototype.hasOwnProperty.call(rebuildMap, pt.patient_id)
+            ? { ...pt, rebuild_status: rebuildMap[pt.patient_id] ?? null }
+            : pt
+        )
+      );
+    },
+    []
+  );
 
   const loadData = useCallback(
     async (filters: MissionControlFilters, p: number, ps: number, sb: string, sd: string) => {
-      if (abortRef.current) abortRef.current.abort();
-      abortRef.current = new AbortController();
+      const requestSeq = requestSeqRef.current + 1;
+      requestSeqRef.current = requestSeq;
 
       setTableLoading(true);
       setTableError(null);
@@ -141,46 +172,44 @@ export default function MissionControl() {
 
       try {
         const scopedFilters = withSharedScope(filters);
-        const [kpiResult, patientResult] = await Promise.all([
-          fetchMissionKPIs(scopedFilters),
-          fetchMissionPatients(scopedFilters, p, ps),
-        ]);
+        void fetchMissionKPIs(scopedFilters)
+          .then((kpiResult) => {
+            if (requestSeqRef.current === requestSeq) setKpis(kpiResult);
+          })
+          .catch(() => {
+            if (requestSeqRef.current === requestSeq) setKpis(null);
+          })
+          .finally(() => {
+            if (requestSeqRef.current === requestSeq) setKpisLoading(false);
+          });
+
+        const patientResult = await fetchMissionPatients(scopedFilters, p, ps);
         const awaiting = patientResult.patients.filter(
           (pt) => (pt.episodes?.length ?? 0) === 0
         );
-        let rebuildMap: Record<string, Awaited<ReturnType<typeof fetchPatientRebuildStatus>> | null> = {};
-        if (awaiting.length > 0) {
-          const statuses = await Promise.all(
-            awaiting.map(async (pt) => {
-              try {
-                const status = await fetchPatientRebuildStatus(pt.patient_id, {
-                  orgId: scopedFilters.orgId || undefined,
-                });
-                return [pt.patient_id, status] as const;
-              } catch {
-                return [pt.patient_id, null] as const;
-              }
-            })
-          );
-          rebuildMap = Object.fromEntries(statuses);
-        }
+        if (requestSeqRef.current !== requestSeq) return;
         const enrichedPatients = patientResult.patients.map((pt) => ({
           ...pt,
-          rebuild_status: rebuildMap[pt.patient_id] ?? null,
+          rebuild_status: pt.rebuild_status ?? null,
         }));
-        setKpis(kpiResult);
         setPatients(enrichedPatients);
         setTotal(patientResult.total);
+        void hydrateRebuildStatuses(
+          awaiting,
+          scopedFilters.orgId || undefined,
+          requestSeq
+        );
       } catch (e) {
-        if ((e as Error).name !== "AbortError") {
+        if (requestSeqRef.current === requestSeq && (e as Error).name !== "AbortError") {
           setTableError(e instanceof Error ? e.message : "Could not load patient data.");
         }
       } finally {
-        setTableLoading(false);
-        setKpisLoading(false);
+        if (requestSeqRef.current === requestSeq) {
+          setTableLoading(false);
+        }
       }
     },
-    [withSharedScope]
+    [hydrateRebuildStatuses, withSharedScope]
   );
 
   // Load on mount (applies URL param filters) and when applied/pagination changes

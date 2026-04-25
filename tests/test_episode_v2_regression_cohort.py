@@ -28,7 +28,7 @@ def _candidate(
     }
 
 
-def test_seed_case_is_first_and_4920262426():
+def test_seed_case_is_first_and_9990001004():
     cohort = brc.build_cohort([], limit=10)
     assert cohort["cohort"][0]["patient_id"] == brc.SEED_PATIENT
     assert cohort["cohort"][0]["selection_reason"] == "seed"

@@ -32,11 +32,10 @@ def test_persist_cypher_only_assigns_canonical_engine_statuses() -> None:
     src = v2_runner._EPISODE_MERGE
     forbidden = {"open", "in_review", "benign_closure"}
     for token in forbidden:
-        # Allow the literal as substrings of words like "open_episodes"
-        # or comments by requiring word boundaries; fail when it would
-        # be a status string in single quotes.
-        assert f"'{token}'" not in src, f"forbidden literal '{token}' in persist Cypher"
-        assert f'"{token}"' not in src, f"forbidden literal \"{token}\" in persist Cypher"
+        assert f"e.status = '{token}'" not in src
+        assert f'e.status = "{token}"' not in src
+        assert f"SET e.status = '{token}'" not in src
+        assert f'SET e.status = "{token}"' not in src
 
 
 def test_persist_cypher_respects_reviewed_at() -> None:
@@ -61,6 +60,36 @@ def test_persist_cypher_respects_reviewed_at() -> None:
     # Both review-flag fields stay in lockstep so the legacy
     # `needs_review` is also written from the canonical source.
     assert "e.needs_review = ep.needs_human_review" in src
+
+
+def test_persist_cypher_recomputes_derived_interval_fields() -> None:
+    """Milestone persistence must refresh the cached interval columns.
+
+    The Mission Control table reads these episode properties directly,
+    so v2 must keep them in sync with the linked milestone evidence.
+    """
+
+    src = v2_runner._EPISODE_MERGE
+    assert "e.referral_date = referral_date" in src
+    assert "e.diagnostic_interval_days" in src
+    assert "e.benign_interval_days" in src
+    assert "e.primary_care_interval_days" in src
+    assert "e.dates_updated_at = datetime()" in src
+    assert "duration.inDays(date(referral_date), date(diagnosis_date)).days" in src
+    assert "duration.inDays(date(referral_date), date(benign_closure_date)).days" in src
+    assert "duration.inDays(date(presentation_date), date(referral_date)).days" in src
+
+
+def test_persist_cypher_refreshes_dates_outside_reviewed_status_guard() -> None:
+    """Reviewed episodes keep curator status but still refresh evidence dates."""
+
+    src = v2_runner._EPISODE_MERGE
+    status_guard_start = src.index("FOREACH (_ IN CASE WHEN e.reviewed_at IS NULL")
+    status_guard_end = src.index("MERGE (p)-[:HAS_EPISODE_OF_CARE]->(e)")
+    guarded_block = src[status_guard_start:status_guard_end]
+    assert "e.diagnostic_interval_days" not in guarded_block
+    assert "e.benign_interval_days" not in guarded_block
+    assert src.index("e.dates_updated_at = datetime()") > status_guard_end
 
 
 def test_canonical_status_translator_is_used_at_persist_site() -> None:

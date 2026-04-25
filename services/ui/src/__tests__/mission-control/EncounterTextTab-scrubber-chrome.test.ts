@@ -27,6 +27,10 @@ const TAB_PATH = resolve(
   __dirname,
   "../../components/mission-control/EncounterTextTab.tsx"
 );
+const FILTER_CONTROLS_PATH = resolve(
+  __dirname,
+  "../../components/mission-control/EncounterFilterControls.tsx"
+);
 
 function readSource(path: string): string {
   return readFileSync(path, "utf8");
@@ -202,6 +206,7 @@ describe("EncounterTextTab scrubber wiring - VT-LEO-AI-173", () => {
 
 describe("EncounterTextTab overlay-first chrome - VT-LEO-AI-205", () => {
   const src = readSource(TAB_PATH);
+  const controlsSrc = readSource(FILTER_CONTROLS_PATH);
 
   test("VT-205-TC-CHROME-001: scope chips and accordions are gone", () => {
     expect(src).not.toMatch(/Episode linked \(/);
@@ -212,9 +217,13 @@ describe("EncounterTextTab overlay-first chrome - VT-LEO-AI-205", () => {
     expect(src).not.toMatch(/splitEncounters/);
   });
 
-  test("VT-205-TC-CHROME-002: Coded only switch and Search field are kept", () => {
-    expect(src).toMatch(/label=\{<Typography variant="caption">Coded only<\/Typography>\}/);
-    expect(src).toMatch(/Search text in shown encounters/);
+  test("VT-205-TC-CHROME-002: filter chips and Search field are kept", () => {
+    expect(src).toMatch(/<EncounterFilterControls/);
+    expect(src).toMatch(/linkedOnly=\{linkedOnly\}/);
+    expect(controlsSrc).toMatch(/Coded only/);
+    expect(controlsSrc).toMatch(/Linked only/);
+    expect(controlsSrc).toMatch(/Search text in shown encounters/);
+    expect(controlsSrc).toMatch(/Clear filters/);
   });
 
   test("VT-205-TC-CHROME-003: brush state defaults to padded episode-linked window", () => {
@@ -230,6 +239,7 @@ describe("EncounterTextTab overlay-first chrome - VT-LEO-AI-205", () => {
 
   test("VT-205-TC-CHROME-004: visible encounters use applyCommonFilters with the brush range", () => {
     expect(src).toMatch(/applyCommonFilters\(encounters,\s*\{[\s\S]*timelineRange[\s\S]*\}\)/);
+    expect(src).toMatch(/linkedEncounterIds/);
   });
 
   test("VT-205-TC-CHROME-005: episode-linked encounters render an In episode chip", () => {

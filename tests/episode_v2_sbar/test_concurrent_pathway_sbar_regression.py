@@ -1,4 +1,4 @@
-"""Patient 4920262426 concurrent-pathway regression test.
+"""Patient 9990001004 concurrent-pathway regression test.
 
 Atlas trace:
   DI: DI-CC0BD732 (Per-episode SBAR with cross-section coherence)
@@ -46,7 +46,7 @@ from services.pipeline_worker.app.services.patient_rollup_sbar_orchestrator impo
 from services.pipeline_worker.app.services.sbar_orchestrator import SBARResult
 
 
-PATIENT_ID = "4920262426"
+PATIENT_ID = "9990001004"
 
 EPISODE_DEFINITIONS = {
     "ep-breast-1": {

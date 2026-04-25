@@ -70,6 +70,7 @@ const EPISODE: MissionEpisode = {
   referral_date: "2024-06-15",
   end_date: null,
   diagnostic_interval_days: 35,
+  benign_interval_days: null,
   primary_care_interval_days: null,
   inferred_outcome: null,
   auto_close_reason: null,

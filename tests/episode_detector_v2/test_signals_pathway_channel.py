@@ -35,6 +35,7 @@ def test_2ww_breast_form_yields_breast_suspected_signal():
     signals = extract_pathway_signals([evt])
     assert len(signals) == 1
     assert signals[0].site_key == "breast"
+    assert signals[0].role == "referral"
     assert signals[0].intent == "suspected"
     assert signals[0].confidence > 0.8
 
@@ -71,3 +72,21 @@ def test_no_referral_form_yields_no_signals():
 def test_unknown_site_form_yields_no_signals():
     evt = _evt({"form_type": "podiatry_referral", "urgency": "routine"})
     assert extract_pathway_signals([evt]) == []
+
+
+def test_clinic_seen_finding_is_first_seen_not_referral_anchor():
+    evt = _evt(
+        {
+            "form_type": "2ww_breast",
+            "urgency": "2ww",
+            "source": "clinic_seen_finding",
+            "reason": "Seen in fast track suspected breast cancer clinic",
+        }
+    )
+
+    signals = extract_pathway_signals([evt])
+
+    assert len(signals) == 1
+    assert signals[0].site_key == "breast"
+    assert signals[0].role == "first_seen"
+    assert signals[0].intent == "suspected"

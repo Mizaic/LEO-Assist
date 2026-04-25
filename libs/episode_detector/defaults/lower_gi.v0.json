@@ -33,7 +33,7 @@
     "detector_binary": "v2",
     "snomed_edition": "uk-202511"
   },
-  "rulebook_version": "v0-2026.04.0",
+  "rulebook_version": "v0-2026.04.1",
   "schema_version": "1.0.0",
   "scorer_weights": {
     "bias": -0.2,
@@ -104,7 +104,9 @@
           "\\bfast[- ]?track referral\\b",
           "\\breferral (sent|submitted|made|raised|actioned)\\b",
           "\\b(usc|urgent suspected cancer)\\b",
-          "\\b(refer(red)? (to|for)) (2ww|urgent|fast[- ]?track)\\b"
+          "\\b(refer(red)? (to|for)) (2ww|urgent|fast[- ]?track)\\b",
+          "\\b(bowel cancer screening programme|bcsp)\\b",
+          "\\b(screening colonoscop|invited for.*colonoscop)\\b"
         ],
         "related_correspondence": [
           "\\b(clinic letter|discharge summary|discharge letter)\\b",
@@ -142,6 +144,8 @@
       "regex_catalogue": [
         "\\b(bowel|colorectal|colon|rectal|rectum|anal)\\b",
         "\\b(colonoscop\\w*|sigmoidoscop\\w*|flexi sig)\\b",
+        "\\b(bowel cancer screening programme|bcsp)\\b",
+        "\\b(fobt|faecal occult)\\b",
         "\\b(fit test|faecal immunochemical|fob test)\\b",
         "\\b(rectal bleed\\w*|pr bleed\\w*|haematochezia)\\b",
         "\\b(change in bowel habit|cibh|cbh)\\b",

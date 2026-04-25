@@ -35,7 +35,7 @@ def normalize(text: str) -> str:
 
 
 # 272016000 = On examination - chest finding (finding)
-# 1290960005 = Plain X-ray of chest abnormal (finding)
+# 9990010014 = Plain X-ray of chest abnormal (finding)
 # 309529002 = Lung mass (finding)  [already pinned]
 FORMS = [
     # -- Chest examination signs (lung cancer context) --
@@ -48,14 +48,14 @@ FORMS = [
     ("chest examination abnormality", "272016000"),
     ("on examination chest finding", "272016000"),
     # -- Abnormal chest X-ray (for CXR findings criterion) --
-    ("abnormal chest X-ray finding", "1290960005"),
-    ("abnormal chest radiograph", "1290960005"),
-    ("chest X-ray abnormality", "1290960005"),
-    ("plain X-ray of chest abnormal", "1290960005"),
-    ("abnormal findings on chest radiograph", "1290960005"),
-    ("suspicious chest X-ray finding", "1290960005"),
-    ("chest radiograph abnormality", "1290960005"),
-    ("chest radiograph with abnormal findings", "1290960005"),
+    ("abnormal chest X-ray finding", "9990010014"),
+    ("abnormal chest radiograph", "9990010014"),
+    ("chest X-ray abnormality", "9990010014"),
+    ("plain X-ray of chest abnormal", "9990010014"),
+    ("abnormal findings on chest radiograph", "9990010014"),
+    ("suspicious chest X-ray finding", "9990010014"),
+    ("chest radiograph abnormality", "9990010014"),
+    ("chest radiograph with abnormal findings", "9990010014"),
 ]
 
 _UPSERT = """

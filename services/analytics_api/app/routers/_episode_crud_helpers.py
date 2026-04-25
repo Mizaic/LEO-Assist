@@ -98,12 +98,13 @@ CONTEXT_MILESTONE_TYPES: frozenset[str] = frozenset(
         "related_specialist_visit",
         "specialist_diagnostics",
         "related_correspondence",
+        "treatment_planned",
+        "treatment_monitoring",
+        "treatment_toxicity",
     }
 )
 
-MILESTONE_TYPES: frozenset[str] = (
-    PATHWAY_MILESTONE_TYPES | CONTEXT_MILESTONE_TYPES
-)
+MILESTONE_TYPES: frozenset[str] = PATHWAY_MILESTONE_TYPES | CONTEXT_MILESTONE_TYPES
 
 # Read-side date-bucket sets carry legacy values (presentation,
 # referral_sent, diagnosis, treatment, first_treatment,
@@ -116,6 +117,7 @@ _PRESENTATION_MILESTONES = {
     "presentation",
 }
 _DIAGNOSIS_MILESTONES = {"diagnosis", "diagnosis_confirmed"}
+_BENIGN_CLOSURE_MILESTONES = {"benign_closure"}
 _TREATMENT_MILESTONES = {
     "treatment",
     "treatment_started",
@@ -223,9 +225,12 @@ def recompute_episode_dates(
 
     - ``referral_date`` = min(date of attached referral / first-presentation
       milestones) when present, otherwise null.
-    - ``end_date`` = max(date of attached treatment-class milestones) when
-      present, otherwise null.
+    - ``end_date`` = max(date of attached benign-closure milestones when
+      present, otherwise max treatment-class milestone date when present,
+      otherwise null.
     - ``diagnostic_interval_days`` = days(min diagnosis date - referral_date)
+      when both anchors exist, otherwise null.
+    - ``benign_interval_days`` = days(min benign-closure date - referral_date)
       when both anchors exist, otherwise null.
     - ``primary_care_interval_days`` = days(referral_date - min presentation
       date) when both anchors exist, otherwise null.
@@ -248,32 +253,31 @@ def recompute_episode_dates(
             "referral_date": None,
             "end_date": None,
             "diagnostic_interval_days": None,
+            "benign_interval_days": None,
             "primary_care_interval_days": None,
         }
     slots = rows[0].get("slots") or []
 
     def _min_date(types: Iterable[str]) -> Optional[str]:
         candidates = [
-            s["d"]
-            for s in slots
-            if s and s.get("mt") in types and s.get("d")
+            s["d"] for s in slots if s and s.get("mt") in types and s.get("d")
         ]
         return min(candidates) if candidates else None
 
     def _max_date(types: Iterable[str]) -> Optional[str]:
         candidates = [
-            s["d"]
-            for s in slots
-            if s and s.get("mt") in types and s.get("d")
+            s["d"] for s in slots if s and s.get("mt") in types and s.get("d")
         ]
         return max(candidates) if candidates else None
 
     referral_date = _min_date(_REFERRAL_MILESTONES)
     presentation_date = _min_date(_PRESENTATION_MILESTONES)
     diagnosis_date = _min_date(_DIAGNOSIS_MILESTONES)
-    end_date = _max_date(_TREATMENT_MILESTONES)
+    benign_closure_date = _min_date(_BENIGN_CLOSURE_MILESTONES)
+    end_date = benign_closure_date or _max_date(_TREATMENT_MILESTONES)
 
     diagnostic_interval = _date_diff_days(referral_date, diagnosis_date)
+    benign_interval = _date_diff_days(referral_date, benign_closure_date)
     primary_care_interval = _date_diff_days(presentation_date, referral_date)
 
     client.run(
@@ -281,18 +285,21 @@ def recompute_episode_dates(
         "SET ep.referral_date = $referral_date, "
         "    ep.end_date = $end_date, "
         "    ep.diagnostic_interval_days = $diagnostic_interval_days, "
+        "    ep.benign_interval_days = $benign_interval_days, "
         "    ep.primary_care_interval_days = $primary_care_interval_days, "
         "    ep.dates_updated_at = datetime()",
         eid=episode_id,
         referral_date=referral_date,
         end_date=end_date,
         diagnostic_interval_days=diagnostic_interval,
+        benign_interval_days=benign_interval,
         primary_care_interval_days=primary_care_interval,
     )
     return {
         "referral_date": referral_date,
         "end_date": end_date,
         "diagnostic_interval_days": diagnostic_interval,
+        "benign_interval_days": benign_interval,
         "primary_care_interval_days": primary_care_interval,
     }
 
@@ -379,9 +386,7 @@ def recompute_episode_status(
             target, current or None, "manual_milestone_recompute"
         )
         appended = (
-            f"{existing_notes}\n{new_line}".strip()
-            if existing_notes
-            else new_line
+            f"{existing_notes}\n{new_line}".strip() if existing_notes else new_line
         )
         client.run(
             "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
@@ -516,8 +521,7 @@ def episode_property_snapshot(
     Returns None when the episode does not exist.
     """
     rows = client.run(
-        "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
-        "RETURN properties(ep) AS props",
+        "MATCH (ep:EpisodeOfCare {episode_id: $eid}) " "RETURN properties(ep) AS props",
         eid=episode_id,
     )
     if not rows:

@@ -74,7 +74,7 @@ LIMIT 3
 """
 
 
-SAMPLE_PIDS = ["4203796334", "4921442355", "4940120139"]
+SAMPLE_PIDS = ["9990002010", "9990003002", "9990002011"]
 
 
 def main():
@@ -143,9 +143,9 @@ def main():
                 print(f"  Patient {pid} - no text-bearing nodes linked to encounters")
 
         print()
-        print("=== Full encounter node on referral date (4203796334 / 2024-08-05) ===")
+        print("=== Full encounter node on referral date (9990002010 / 2024-08-05) ===")
         with pg.session() as s:
-            rows = s.run(_Q_FULL_ENC, pid="4203796334", date="2024-08-05").data()
+            rows = s.run(_Q_FULL_ENC, pid="9990002010", date="2024-08-05").data()
         for r in rows:
             enc = dict(r["enc"])
             for k, v in sorted(enc.items()):

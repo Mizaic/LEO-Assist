@@ -60,11 +60,13 @@ _TIMELINE_QUERY = """
              value: r.value,
              unit: r.unit,
              decision_tier: r.decision_tier,
-             model_version: r.model_version
+             model_version: r.model_version,
+             source: r.source
          }) AS raw_codes
     RETURN e.id AS encounter_id,
            e.date AS occurred_on,
            e.text AS encounter_text,
+           e.flags AS encounter_flags,
            raw_codes
     ORDER BY e.date ASC, e.id ASC
 """
@@ -166,6 +168,7 @@ def _coded_entity_from_doc(doc: dict[str, Any]) -> dict[str, Any] | None:
         "evidence": doc.get("evidence_sentence") or "",
         "decision_tier": doc.get("decision_tier") or "",
         "model_version": doc.get("model_version") or "",
+        "source": doc.get("source") or "",
     }
 
 
@@ -250,6 +253,7 @@ def _row_from_live(row: dict[str, Any]) -> dict[str, Any]:
         "codes": coded,
         "observations": observations,
         "referral": referral,
+        "encounter_flags": row.get("encounter_flags") or "",
     }
 
 

@@ -19,6 +19,8 @@ from libs.oncology.cancer_types import CANONICAL_CANCER_TYPES
 from libs.prompts.episode_engine._shared import (
     BREAST_REFERENCE_CASE,
     CANCER_TYPE_PICKER,
+    COLORECTAL_FOBT_BCSP_FIRST_REFERENCE,
+    COLORECTAL_SCREENING_SAME_DAY_REFERENCE,
     MULTI_SITE_REFERENCE_CASE,
     RULES_OF_THE_ROAD,
 )
@@ -37,6 +39,10 @@ SYSTEM = INJECTION_GUARD + (
     "rough segmentation.\n\n"
     "Heuristics for window boundaries:\n"
     "  - A 2WW or fast-track referral typically opens a window.\n"
+    "  - A&E / walk-in / out-of-hours first attendance for a\n"
+    "    site-consistent symptom, OR a hospital-issued handoff to a cancer\n"
+    "    / urgent-suspected pathway, opens a window even if no GP 2WW\n"
+    "    has happened yet. Do not require a prior surgery referral.\n"
     "  - A confirmed diagnosis with no prior referral in scope opens a\n"
     "    window.\n"
     "  - A treatment-completed milestone or 12+ months of silence on the\n"
@@ -72,6 +78,13 @@ SYSTEM = INJECTION_GUARD + (
     "    body sites (e.g. breast 2WW and upper-GI 2WW both on 12 Aug),\n"
     "    emit one window per site with the same window_start. Do not\n"
     "    assume one is the 'real' referral and drop the other.\n\n"
+    "  A&E / HOSPITAL-FIRST ENTRY (no preceding GP 2WW in the record):\n"
+    "    If the first dated, site-relevant text is A&E, AMU, MAU, or a\n"
+    "    same-day care centre with onward referral, open the window on\n"
+    "    the date of that attendance. A patient may have bypassed the GP\n"
+    "    entirely. Example: 'Attended A&E with visible haematuria,\n"
+    "    accepted under urology' -> open the urology window at that\n"
+    "    encounter date, not a later admin entry.\n\n"
     + RULES_OF_THE_ROAD
     + "\n\n"
     + CANCER_TYPE_PICKER
@@ -79,6 +92,10 @@ SYSTEM = INJECTION_GUARD + (
     + BREAST_REFERENCE_CASE
     + "\n\n"
     + MULTI_SITE_REFERENCE_CASE
+    + "\n\n"
+    + COLORECTAL_SCREENING_SAME_DAY_REFERENCE
+    + "\n\n"
+    + COLORECTAL_FOBT_BCSP_FIRST_REFERENCE
     + "\nRespond by calling the submit_windows tool with the JSON below.\n"
 )
 

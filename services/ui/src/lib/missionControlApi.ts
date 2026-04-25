@@ -96,6 +96,7 @@ export interface MissionEpisode {
   end_date: string | null;
   specialist_visit_date?: string | null;
   diagnostic_interval_days: number | null;
+  benign_interval_days: number | null;
   primary_care_interval_days: number | null;
   inferred_outcome: string | null;
   auto_close_reason: string | null;
@@ -421,7 +422,7 @@ export async function fetchEncounterConcepts(patientId: string): Promise<
     assertion: string;
     confidence: number | null;
     source: string | null;
-    value: number | null;
+    value: number | string | null;
     unit: string | null;
     reference_range: string | null;
   }>
@@ -451,7 +452,7 @@ export async function fetchEncounterConcepts(patientId: string): Promise<
           assertion?: string;
           confidence?: number;
           source?: string;
-          value?: number | null;
+          value?: number | string | null;
           unit?: string | null;
           reference_range?: string | null;
         }>
@@ -469,7 +470,7 @@ export async function fetchEncounterConcepts(patientId: string): Promise<
     assertion: string;
     confidence: number | null;
     source: string | null;
-    value: number | null;
+    value: number | string | null;
     unit: string | null;
     reference_range: string | null;
   }> = [];
@@ -954,6 +955,7 @@ export interface EpisodeDerivedDates {
   referral_date: string | null;
   end_date: string | null;
   diagnostic_interval_days: number | null;
+  benign_interval_days: number | null;
   primary_care_interval_days: number | null;
 }
 

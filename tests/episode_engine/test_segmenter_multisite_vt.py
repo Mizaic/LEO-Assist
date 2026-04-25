@@ -2,7 +2,7 @@
 
 Regression target for W-018 (compliance/coverage-waivers.md):
 
-  Patient 4920262426 has THREE distinct cancer investigation pathways:
+  Patient 9990001004 has THREE distinct cancer investigation pathways:
     - Lung     : June-July 2025, GP-initiated chest X-ray, benign result July 16
     - Breast   : August 2025+, 2WW referral August 12, treatment ongoing
     - Upper GI : August 2025+, 2WW referral August 12, first_seen August 27
@@ -28,7 +28,7 @@ from datetime import date
 
 import pytest
 
-_MULTI_SITE_PATIENT = "4920262426"
+_MULTI_SITE_PATIENT = "9990001004"
 
 _GATED = pytest.mark.skipif(
     os.getenv("RUN_EPISODE_ENGINE_GOLD_VT") != "1",

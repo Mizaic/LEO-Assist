@@ -50,7 +50,8 @@ def _has_context_milestone_signal(aggregated: AggregatedCandidate) -> bool:
     """
     return any(
         getattr(s, "role", "") == "context_milestone"
-        for s in aggregated.candidate.supporting_signals
+        for signals in aggregated.signals_by_channel.values()
+        for s in signals
     )
 
 

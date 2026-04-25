@@ -1,5 +1,5 @@
 import React from "react";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import MissionControl from "@/components/mission-control/MissionControl";
 import {
   fetchMissionKPIs,
@@ -33,8 +33,18 @@ jest.mock("@/components/mission-control/KPIStrip", () => () => <div>KPIStrip</di
 jest.mock(
   "@/components/mission-control/PatientCaseTable",
   () =>
-    function MockPatientCaseTable() {
-      return <div>PatientCaseTable</div>;
+    function MockPatientCaseTable({
+      patients,
+      loading,
+    }: {
+      patients: Array<{ patient_id: string }>;
+      loading: boolean;
+    }) {
+      return (
+        <div data-testid="patient-case-table">
+          {loading ? "loading" : `patients:${patients.length}`}
+        </div>
+      );
     }
 );
 jest.mock(
@@ -77,7 +87,7 @@ const ONE_AWAITING_PATIENT = {
   page_size: 25,
   patients: [
     {
-      patient_id: "4181221113",
+      patient_id: "9990001006",
       gender: "female",
       age: 65,
       practice_name: "Practice A",
@@ -101,7 +111,7 @@ describe("MissionControl rebuild polling", () => {
 
   test("does not keep polling when rebuild status is idle", async () => {
     mockFetchPatientRebuildStatus.mockResolvedValue({
-      patient_id: "4181221113",
+      patient_id: "9990001006",
       run_id: null,
       status: "idle",
       message: null,
@@ -129,10 +139,80 @@ describe("MissionControl rebuild polling", () => {
     expect(mockFetchPatientRebuildStatus.mock.calls.length).toBe(initialStatusCalls);
   });
 
+  test("renders the patient list before rebuild status hydration completes", async () => {
+    let resolveStatus: (
+      value: Awaited<ReturnType<typeof fetchPatientRebuildStatus>>
+    ) => void = () => undefined;
+    const pendingStatus = new Promise<
+      Awaited<ReturnType<typeof fetchPatientRebuildStatus>>
+    >((resolve) => {
+      resolveStatus = resolve;
+    });
+    mockFetchPatientRebuildStatus.mockReturnValue(pendingStatus);
+
+    render(<MissionControl />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("patient-case-table")).toHaveTextContent("patients:1");
+    });
+    expect(mockFetchPatientRebuildStatus).toHaveBeenCalledWith("9990001006", {
+      orgId: "org-1",
+    });
+
+    resolveStatus({
+      patient_id: "9990001006",
+      run_id: null,
+      status: "idle",
+      message: null,
+      updated_at: null,
+      queued_jobs: null,
+      queue_depth: null,
+      queue_position_estimate: null,
+      median_duration_seconds: null,
+      throughput_per_minute: null,
+      eta_seconds_estimate: null,
+    });
+    await act(async () => {
+      await pendingStatus;
+    });
+  });
+
+  test("renders the patient list before KPI aggregation completes", async () => {
+    let resolveKpis: (value: typeof BASE_KPIS) => void = () => undefined;
+    const pendingKpis = new Promise<typeof BASE_KPIS>((resolve) => {
+      resolveKpis = resolve;
+    });
+    mockFetchMissionKPIs.mockReturnValue(pendingKpis);
+    mockFetchPatientRebuildStatus.mockResolvedValue({
+      patient_id: "9990001006",
+      run_id: null,
+      status: "idle",
+      message: null,
+      updated_at: null,
+      queued_jobs: null,
+      queue_depth: null,
+      queue_position_estimate: null,
+      median_duration_seconds: null,
+      throughput_per_minute: null,
+      eta_seconds_estimate: null,
+    });
+
+    render(<MissionControl />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("patient-case-table")).toHaveTextContent("patients:1");
+    });
+
+    resolveKpis(BASE_KPIS);
+    await act(async () => {
+      await pendingKpis;
+    });
+  });
+
   test("refreshes table once queued rebuild completes", async () => {
     mockFetchPatientRebuildStatus
       .mockResolvedValueOnce({
-        patient_id: "4181221113",
+        patient_id: "9990001006",
         run_id: "run-1",
         status: "queued",
         message: "queued",
@@ -145,7 +225,7 @@ describe("MissionControl rebuild polling", () => {
         eta_seconds_estimate: 180,
       })
       .mockResolvedValueOnce({
-        patient_id: "4181221113",
+        patient_id: "9990001006",
         run_id: "run-1",
         status: "queued",
         message: "queued",
@@ -158,7 +238,7 @@ describe("MissionControl rebuild polling", () => {
         eta_seconds_estimate: 120,
       })
       .mockResolvedValue({
-        patient_id: "4181221113",
+        patient_id: "9990001006",
         run_id: "run-1",
         status: "completed",
         message: "done",
@@ -178,6 +258,14 @@ describe("MissionControl rebuild polling", () => {
       expect(mockFetchMissionPatients.mock.calls.length).toBeGreaterThanOrEqual(1);
       expect(mockFetchPatientRebuildStatus.mock.calls.length).toBeGreaterThanOrEqual(1);
       initialPatientCalls = mockFetchMissionPatients.mock.calls.length;
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(8000);
+    });
+
+    await waitFor(() => {
+      expect(mockFetchPatientRebuildStatus.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
 
     await act(async () => {

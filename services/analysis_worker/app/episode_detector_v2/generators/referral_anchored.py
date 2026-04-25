@@ -14,6 +14,9 @@ from collections.abc import Sequence
 from ..types import CandidateEpisode, Signal, TimelineEvent
 from ._window import candidate_id, encounters_in_window
 
+_REPEAT_REFERRAL_GAP_DAYS = 120
+_REPEAT_REFERRAL_LOOKBACK_DAYS = 30
+
 
 def generate_referral_anchored(
     *,
@@ -24,7 +27,17 @@ def generate_referral_anchored(
     candidates: list[CandidateEpisode] = []
     events_list = list(events)
     event_by_id = {evt.encounter_id: evt for evt in events_list}
-    pathway_signals = [s for s in signals if s.channel == "pathway"]
+    pathway_signals = [
+        s for s in signals if s.channel == "pathway" and s.role == "referral"
+    ]
+    pathway_events_by_site: dict[str, list[TimelineEvent]] = {}
+    for signal in pathway_signals:
+        event = event_by_id.get(signal.encounter_id)
+        if event is None:
+            continue
+        pathway_events_by_site.setdefault(signal.site_key, []).append(event)
+    for site_events in pathway_events_by_site.values():
+        site_events.sort(key=lambda evt: (evt.occurred_on, evt.encounter_id))
     seen: set[tuple[str, str, str]] = set()
     for signal in pathway_signals:
         anchor_event = event_by_id.get(signal.encounter_id)
@@ -34,6 +47,10 @@ def generate_referral_anchored(
         if key in seen:
             continue
         seen.add(key)
+        lookback_days, lookahead_days = _repeat_referral_window(
+            anchor_event=anchor_event,
+            site_events=pathway_events_by_site.get(signal.site_key, []),
+        )
         cand = CandidateEpisode(
             candidate_id=candidate_id(
                 patient_id=patient_id,
@@ -44,7 +61,11 @@ def generate_referral_anchored(
             site_key=signal.site_key,
             generator="referral_anchored",
             encounter_ids=encounters_in_window(
-                events_list, anchor_date=anchor_event.occurred_on
+                events_list,
+                anchor_date=anchor_event.occurred_on,
+                site_key=signal.site_key,
+                lookback_days=lookback_days,
+                lookahead_days=lookahead_days,
             ),
             anchor_event_id=anchor_event.encounter_id,
             anchor_date=anchor_event.occurred_on,
@@ -55,3 +76,31 @@ def generate_referral_anchored(
         )
         candidates.append(cand)
     return candidates
+
+
+def _repeat_referral_window(
+    *,
+    anchor_event: TimelineEvent,
+    site_events: list[TimelineEvent],
+) -> tuple[int | None, int | None]:
+    previous_dates = [
+        event.occurred_on
+        for event in site_events
+        if (anchor_event.occurred_on - event.occurred_on).days > 0
+    ]
+    next_dates = [
+        event.occurred_on
+        for event in site_events
+        if (event.occurred_on - anchor_event.occurred_on).days > 0
+    ]
+    lookback_days: int | None = None
+    lookahead_days: int | None = None
+    if previous_dates:
+        days_since_previous = (anchor_event.occurred_on - max(previous_dates)).days
+        if days_since_previous > _REPEAT_REFERRAL_GAP_DAYS:
+            lookback_days = _REPEAT_REFERRAL_LOOKBACK_DAYS
+    if next_dates:
+        days_until_next = (min(next_dates) - anchor_event.occurred_on).days
+        if days_until_next > _REPEAT_REFERRAL_GAP_DAYS:
+            lookahead_days = max(days_until_next - 1, 0)
+    return lookback_days, lookahead_days

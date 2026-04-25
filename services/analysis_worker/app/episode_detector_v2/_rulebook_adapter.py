@@ -106,7 +106,10 @@ def benign_closure_no_confirmed_days(site_key: str, *, fallback: int) -> int:
     rb = _site(site_key)
     if rb is None:
         return fallback
-    return int(rb.closure.benign.and_no_confirmed_within_days)
+    value = rb.closure.benign.and_no_confirmed_within_days
+    if value is None:
+        return fallback
+    return int(value)
 
 
 def completed_closure_tokens(site_key: str) -> tuple[str, ...]:
@@ -176,6 +179,25 @@ def text_channel_regex(site_key: str) -> tuple[str, ...]:
     if rb is None:
         return ()
     return tuple(rb.signals.text_channel.regex_catalogue)
+
+
+def text_channel_exclusion_catalogue(site_key: str) -> tuple[str, ...]:
+    """Return the site's text-channel exclusion catalogue.
+
+    If any of these patterns match the encounter free text the
+    diagnosis signal for that (encounter, site) pair is suppressed.
+    Use for definitive negative findings whose text overlaps with
+    positive patterns -- e.g. NHS Breast Screening Programme normal
+    result contains 'breast' which would otherwise fire a diagnosis
+    signal.
+
+    Returns ``()`` when no rulebook is installed or the catalogue is
+    empty (fail-safe: omitting an exclusion never blocks detection).
+    """
+    rb = _site(site_key)
+    if rb is None:
+        return ()
+    return tuple(rb.signals.text_channel.exclusion_catalogue)
 
 
 def text_channel_context_catalogue(

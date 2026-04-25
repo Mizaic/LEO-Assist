@@ -100,11 +100,11 @@ SURFACE_FORMS = [
     ("cholesterol HDL ratio", "104583003"),
     ("TC HDL ratio", "104583003"),
     # -- NAFLD / MASLD --
-    ("non-alcoholic fatty liver disease", "1231824009"),
-    ("NAFLD", "1231824009"),  # was wrongly -> "history of liver disease"
-    ("fatty liver", "1231824009"),
-    ("hepatic steatosis", "1231824009"),
-    ("MASLD", "1231824009"),
+    ("non-alcoholic fatty liver disease", "9990010007"),
+    ("NAFLD", "9990010007"),  # was wrongly -> "history of liver disease"
+    ("fatty liver", "9990010007"),
+    ("hepatic steatosis", "9990010007"),
+    ("MASLD", "9990010007"),
     # -- Sleep apnoea --
     ("sleep apnoea", "73430006"),
     ("sleep apnea", "73430006"),

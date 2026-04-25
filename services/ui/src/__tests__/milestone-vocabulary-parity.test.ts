@@ -55,6 +55,9 @@ const CONTEXT_VALUES = [
   "related_specialist_visit",
   "specialist_diagnostics",
   "related_correspondence",
+  "treatment_planned",
+  "treatment_monitoring",
+  "treatment_toxicity",
 ] as const;
 
 // Legacy values that MUST NOT appear in the picker, but whose edges
@@ -175,7 +178,7 @@ describe("VT-900E2453 - milestone vocabulary parity", () => {
     // MILESTONE_TYPES is computed from the union of the two tiers --
     // the source must say so explicitly so the union cannot drift.
     expect(src).toMatch(
-      /MILESTONE_TYPES:\s*frozenset\[str\]\s*=\s*\(\s*PATHWAY_MILESTONE_TYPES\s*\|\s*CONTEXT_MILESTONE_TYPES\s*\)/
+      /MILESTONE_TYPES:\s*frozenset\[str\]\s*=\s*\(?\s*PATHWAY_MILESTONE_TYPES\s*\|\s*CONTEXT_MILESTONE_TYPES\s*\)?/
     );
   });
 

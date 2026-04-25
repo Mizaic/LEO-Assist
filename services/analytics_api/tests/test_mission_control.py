@@ -17,6 +17,7 @@ import pytest
 
 from libs.auth.org_scope import CallerScope
 from services.analytics_api.app.routers.mission_control import (
+    _all_patients_cypher,
     LIFECYCLE_BUCKET_PATTERN,
     NO_PATHWAY_BUCKET,
     ReviewRequest,
@@ -27,6 +28,8 @@ from services.analytics_api.app.routers.mission_control import (
     _patient_only_query,
     _apply_pathway_filter,
     _apply_review_filter,
+    _episode_list_predicate,
+    _has_episode_bound_filters,
     _kpis_cypher,
     _no_pathway_patients_cypher,
     _no_pathway_scope_match,
@@ -194,9 +197,7 @@ def test_no_pathway_bucket_treated_as_no_op_by_episode_filter():
     The endpoint dispatches to _no_pathway_scope_match instead.
     """
     base_before = BASE
-    base, params = _apply_lifecycle_bucket_filter(
-        BASE, {}, NO_PATHWAY_BUCKET
-    )
+    base, params = _apply_lifecycle_bucket_filter(BASE, {}, NO_PATHWAY_BUCKET)
     assert base == base_before
     assert "lifecycle_bucket" not in params
 
@@ -278,14 +279,14 @@ def test_review_filter_all_no_change():
 
 def test_patient_id_filter_adds_to_string_clause():
     """Valid patient_id adds parameterised toString(p.id) predicate."""
-    base, params = _apply_patient_id_filter(BASE, {}, "4181221113")
+    base, params = _apply_patient_id_filter(BASE, {}, "9990001006")
     assert "toString(p.id) = $patient_id" in base
-    assert params["patient_id"] == "4181221113"
+    assert params["patient_id"] == "9990001006"
 
 
 def test_patient_id_filter_whitespace_trimmed():
-    base, params = _apply_patient_id_filter(BASE, {}, "  4181221113  ")
-    assert params["patient_id"] == "4181221113"
+    base, params = _apply_patient_id_filter(BASE, {}, "  9990001006  ")
+    assert params["patient_id"] == "9990001006"
 
 
 def test_patient_id_filter_empty_ignored():
@@ -309,10 +310,10 @@ def test_patient_only_query_scopes_exact_id():
         scope_type="gp",
         primary_org_id="org-1",
     )
-    q, params = _patient_only_query(scope, "org-1", "4181221113")
+    q, params = _patient_only_query(scope, "org-1", "9990001006")
     assert "toString(p.id) = $patient_id" in q
     assert "LIMIT 1" in q
-    assert params["patient_id"] == "4181221113"
+    assert params["patient_id"] == "9990001006"
 
 
 @pytest.mark.asyncio
@@ -331,7 +332,7 @@ async def test_patients_endpoint_falls_back_to_patient_without_episodes(monkeypa
             if "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]" in query:
                 return [
                     {
-                        "patient_id": "4181221113",
+                        "patient_id": "9990001006",
                         "gender": "female",
                         "birth_date": "1985-01-01",
                         "practice_name": "Woodbrook Medical Centre",
@@ -360,7 +361,7 @@ async def test_patients_endpoint_falls_back_to_patient_without_episodes(monkeypa
         cancer_types=None,
         closure_reasons=None,
         review_status="all",
-        patient_id="4181221113",
+        patient_id="9990001006",
         sort_by="referral_date",
         sort_dir="DESC",
         page=1,
@@ -369,7 +370,7 @@ async def test_patients_endpoint_falls_back_to_patient_without_episodes(monkeypa
     )
     assert result["total"] == 1
     assert len(result["patients"]) == 1
-    assert result["patients"][0]["patient_id"] == "4181221113"
+    assert result["patients"][0]["patient_id"] == "9990001006"
     assert result["patients"][0]["episodes"] == []
 
 
@@ -410,6 +411,48 @@ def test_patients_query_collects_distinct_episodes():
     """VT-091-TC-005: patient episode list de-duplicates repeated episode rows."""
     _, data_q, _ = _patients_cypher(BASE, {}, "referral_date", "DESC", 0, 25)
     assert "collect(DISTINCT ep) AS episodes" in data_q
+
+
+def test_default_patient_list_does_not_require_episode_match():
+    """Default /mission-control/patients must include patients with no pathway."""
+    predicate, params = _episode_list_predicate(
+        date_from=None,
+        date_to=None,
+        pathway_filter="all",
+        cancer_types=[],
+        closure_reasons=[],
+        review_status="all",
+        lifecycle_bucket="all",
+        params={},
+    )
+    count_q, data_q, qparams = _all_patients_cypher(
+        "MATCH (p:Patient) WHERE true ",
+        params,
+        predicate,
+        _has_episode_bound_filters(None, None, "all", [], [], "all", "all"),
+        "referral_date",
+        "DESC",
+        0,
+        25,
+    )
+    assert "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->" in count_q
+    assert "WHERE size(episodes) > 0" not in count_q
+    assert "WHERE size(episodes) > 0" not in data_q
+    assert qparams["skip"] == 0
+    assert qparams["limit"] == 25
+
+
+def test_episode_filters_still_require_matching_episode():
+    """Explicit episode filters should not return every patient in scope."""
+    assert _has_episode_bound_filters(
+        "2024-01-01",
+        None,
+        "all",
+        [],
+        [],
+        "all",
+        "all",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -672,7 +715,7 @@ async def test_patient_rebuild_status_returns_estimates(monkeypatch):
         scope_type="gp",
         primary_org_id="org-1",
     )
-    result = await get_patient_rebuild_status("4181221113", "org-1", scope)
+    result = await get_patient_rebuild_status("9990001006", "org-1", scope)
     assert result["status"] == "queued"
     assert result["queue_depth"] == 12
     assert result["queue_position_estimate"] == 11
@@ -785,7 +828,9 @@ async def test_signoff_unauthenticated_returns_401():
     )
     with pytest.raises(HTTPException) as exc_info:
         await patch_episode_sign_off(
-            "ep-1", body, scope=EmptyScope(),  # type: ignore[arg-type]
+            "ep-1",
+            body,
+            scope=EmptyScope(),  # type: ignore[arg-type]
         )
     assert exc_info.value.status_code == 401
 

@@ -10,9 +10,9 @@ run::
         tests/episode_detector_v2/test_normaliser_live_neo4j.py -v
 
 The test exercises the schema-binding layer that the synthetic-row
-tests deliberately bypass. It runs against the manually-reviewed seed
-patient 4920262426 (three pathways: Breast confirmed, Upper GI in-
-review, Lung benign-closure) and asserts:
+tests deliberately bypass. It runs against a manually-reviewed
+multi-pathway seed patient (set ``EPISODE_GOLD_SEED_PATIENT_ID`` to
+your **local** graph id; do not commit real practice ids) and asserts:
 
 1. ``load_timeline`` returns a non-empty deterministic timeline.
 2. The breast 2WW referral SNOMED is promoted to a referral_form.
@@ -35,14 +35,15 @@ import os
 import pytest
 
 LIVE = os.environ.get("LIVE_NEO4J") == "1"
+SEED_PATIENT_ID = os.environ.get("EPISODE_GOLD_SEED_PATIENT_ID", "").strip()
 
 pytestmark = pytest.mark.skipif(
-    not LIVE,
-    reason="LIVE_NEO4J=1 not set; skipping real-graph integration test",
+    not LIVE or not SEED_PATIENT_ID,
+    reason=(
+        "Set LIVE_NEO4J=1 and EPISODE_GOLD_SEED_PATIENT_ID to a local "
+        "seed patient (real-graph integration; never commit live ids)"
+    ),
 )
-
-
-SEED_PATIENT_ID = "4920262426"
 BREAST_REFERRAL_CONCEPT = "276341000000100"
 
 

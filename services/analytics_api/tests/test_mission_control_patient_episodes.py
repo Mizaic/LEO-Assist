@@ -75,6 +75,7 @@ def _episode_row(**overrides):
         "end_date": None,
         "specialist_visit_date": None,
         "diagnostic_interval_days": None,
+        "benign_interval_days": None,
         "primary_care_interval_days": None,
         "inferred_outcome": None,
         "auto_close_reason": None,
@@ -101,7 +102,7 @@ async def test_returns_full_projection_for_in_scope_patient(monkeypatch):
 
     rows = [
         {
-            "patient_id": "4181221113",
+            "patient_id": "9990001006",
             "episodes": [_episode_row(episode_id="ep-A")],
         }
     ]
@@ -109,10 +110,10 @@ async def test_returns_full_projection_for_in_scope_patient(monkeypatch):
     monkeypatch.setattr(mc, "PatientGraphClient", lambda: fake)
 
     result = await mc.get_patient_episodes(
-        patient_id="4181221113", org_id="org-1", scope=_scope()
+        patient_id="9990001006", org_id="org-1", scope=_scope()
     )
 
-    assert result["patient_id"] == "4181221113"
+    assert result["patient_id"] == "9990001006"
     assert len(result["episodes"]) == 1
     ep = result["episodes"][0]
     expected_keys = {
@@ -125,6 +126,7 @@ async def test_returns_full_projection_for_in_scope_patient(monkeypatch):
         "end_date",
         "specialist_visit_date",
         "diagnostic_interval_days",
+        "benign_interval_days",
         "primary_care_interval_days",
         "inferred_outcome",
         "auto_close_reason",
@@ -150,7 +152,7 @@ async def test_returns_episodes_of_every_status(monkeypatch):
 
     rows = [
         {
-            "patient_id": "4181221113",
+            "patient_id": "9990001006",
             "episodes": [
                 _episode_row(episode_id="ep-in-review", status="in_review"),
                 _episode_row(episode_id="ep-active", status="active"),
@@ -175,7 +177,7 @@ async def test_returns_episodes_of_every_status(monkeypatch):
     monkeypatch.setattr(mc, "PatientGraphClient", lambda: fake)
 
     result = await mc.get_patient_episodes(
-        patient_id="4181221113", org_id="org-1", scope=_scope()
+        patient_id="9990001006", org_id="org-1", scope=_scope()
     )
 
     statuses = {e["status"] for e in result["episodes"]}
@@ -222,7 +224,7 @@ async def test_out_of_scope_patient_returns_404(monkeypatch):
 
     with pytest.raises(HTTPException) as exc:
         await mc.get_patient_episodes(
-            patient_id="4181221113", org_id="org-1", scope=_scope()
+            patient_id="9990001006", org_id="org-1", scope=_scope()
         )
     assert exc.value.status_code == 404
 
@@ -237,14 +239,14 @@ async def test_known_patient_with_no_episodes_returns_empty_list(monkeypatch):
     """VT-DAEE0DFD-TC-005: patient with no EoCs -> 200, episodes=[]."""
     from services.analytics_api.app.routers import mission_control as mc
 
-    rows = [{"patient_id": "4181221113", "episodes": []}]
+    rows = [{"patient_id": "9990001006", "episodes": []}]
     fake = _FakeClient([rows])
     monkeypatch.setattr(mc, "PatientGraphClient", lambda: fake)
 
     result = await mc.get_patient_episodes(
-        patient_id="4181221113", org_id="org-1", scope=_scope()
+        patient_id="9990001006", org_id="org-1", scope=_scope()
     )
-    assert result == {"patient_id": "4181221113", "episodes": []}
+    assert result == {"patient_id": "9990001006", "episodes": []}
 
 
 # ---------------------------------------------------------------------------

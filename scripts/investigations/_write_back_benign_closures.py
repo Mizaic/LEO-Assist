@@ -40,139 +40,139 @@ load_keyvault_secrets()
 # The encounter with the earliest matching date in the window receives the tag.
 # ---------------------------------------------------------------------------
 _TARGETS: list[tuple[str, str, str, str]] = [
-    # Patient 4621680811 -- 2WW haematology (lymphoma pathway)
+    # Patient 9990010035 -- 2WW haematology (lymphoma pathway)
     # Evidence: "seen by haem- nil concerns raised about malig ... will likely be discharged"
     # GP note 2025-07-08
     (
-        "4621680811",
+        "9990010035",
         "2025-07-07",
         "2025-07-09",
         "seen by haem - nil concerns raised about malignancy, likely to be discharged",
     ),
-    # Patient 7343840665 -- 2WW children's tumour pathway
+    # Patient 9990010074 -- 2WW children's tumour pathway
     # Evidence: "Was seen on 2WW, nad so safe to administer live vaccine" 2024-11-20
     (
-        "7343840665",
+        "9990010074",
         "2024-11-19",
         "2024-11-21",
         "Was seen on 2WW, NAD -- safe to administer live vaccine",
     ),
-    # Patient 7330683205 -- 2WW upper GI
+    # Patient 9990010073 -- 2WW upper GI
     # Evidence: "has had OGD - shows small hiatus hernia only" GP note 2025-08-04
     (
-        "7330683205",
+        "9990010073",
         "2025-08-03",
         "2025-08-05",
         "OGD shows small hiatus hernia only - no upper GI malignancy",
     ),
-    # Patient 4883794091 -- 2WW upper GI
+    # Patient 9990010047 -- 2WW upper GI
     # Evidence: "Had endoscopy yearday which was normal. Paper report seen." GP 2025-07-17
     (
-        "4883794091",
+        "9990010047",
         "2025-07-16",
         "2025-07-18",
         "Endoscopy was normal - no upper GI malignancy on investigation",
     ),
-    # Patient 4866803525 -- 2WW head and neck
+    # Patient 9990010045 -- 2WW head and neck
     # Evidence: Presbycusis diagnosed, nasendoscopy/audiometry normal, ENT discharged
     # Seen in 2WW H&N clinic 2025-03-13; ENT discharged
     (
-        "4866803525",
+        "9990010045",
         "2025-03-12",
         "2025-03-14",
         "Seen in 2WW head and neck clinic - Presbycusis diagnosed, no malignancy found",
     ),
-    # Patient 4808735946 -- 2WW lower GI (colorectal)
+    # Patient 9990010040 -- 2WW lower GI (colorectal)
     # Evidence: "Tubular adenoma (Xa98X) - colonic - excised 01/05/25" 2025-05-27
     # Tubular adenoma is non-malignant; excised; colonoscopy otherwise NAD
     (
-        "4808735946",
+        "9990010040",
         "2025-05-26",
         "2025-05-28",
         "Tubular adenoma excised - no colorectal malignancy found on colonoscopy",
     ),
-    # Patient 6519712760 -- 2WW lower GI
+    # Patient 9990010064 -- 2WW lower GI
     # Evidence: Haemorrhoids confirmed on colonoscopy as cause of PR bleeding; FIT 12
     # Colonoscopy 2024-12-29
     (
-        "6519712760",
+        "9990010064",
         "2024-12-28",
         "2024-12-30",
         "Colonoscopy confirmed haemorrhoids as cause - no colorectal malignancy",
     ),
-    # Patient 7319972905 -- 2WW head and neck
+    # Patient 9990010069 -- 2WW head and neck
     # Evidence: "US scan of thyroid - mildly enlarged, otherwise NAD" + "US scan of neck - NAD"
     # Seen in 2WW H&N clinic 2025-06-25; USS on same day
     (
-        "7319972905",
+        "9990010069",
         "2025-06-24",
         "2025-06-26",
         "USS neck NAD, USS thyroid mildly enlarged otherwise NAD - no head and neck malignancy",
     ),
-    # Patient 4983118659 -- 2WW upper GI (mislabelled lower_gi in episode)
+    # Patient 9990010051 -- 2WW upper GI (mislabelled lower_gi in episode)
     # Evidence: "no dysplasia or malignancy" (ICE result) GP note 2025-03-06
     (
-        "4983118659",
+        "9990010051",
         "2025-03-05",
         "2025-03-07",
         "OGD biopsy result - no dysplasia or malignancy",
     ),
-    # Patient 7321643565 -- 2WW haematological episode
+    # Patient 9990010070 -- 2WW haematological episode
     # Evidence: "colonoscopy - polyp removed but no cancer" PCN note 2025-03-22
     (
-        "7321643565",
+        "9990010070",
         "2025-03-21",
         "2025-03-23",
         "colonoscopy - polyp removed but no cancer found",
     ),
-    # Patient 4246428337 -- 2WW lower GI
+    # Patient 9990001001 -- 2WW lower GI
     # Evidence: Ulcerative colitis diagnosed as cause of symptoms (alternative benign dx)
     # Colonoscopy 2025-08-11 coded UC, not cancer
     (
-        "4246428337",
+        "9990001001",
         "2025-08-10",
         "2025-08-12",
         "Colonoscopy - ulcerative colitis diagnosed, no colorectal malignancy",
     ),
-    # Patient 4185994966 -- 2WW head and neck (also breast 2WW -> fibroadenoma)
+    # Patient 9990010021 -- 2WW head and neck (also breast 2WW -> fibroadenoma)
     # Evidence H&N: globus sensation, normal nasendoscopy, no malignancy
     # Seen in 2WW H&N clinic 2025-01-24
     (
-        "4185994966",
+        "9990010021",
         "2025-01-23",
         "2025-01-25",
         "Seen in 2WW head and neck clinic - globus sensation, no malignancy found",
     ),
-    # Patient 4220526579 -- gynae 2WW (USS pelvis NAD 3mm endometrium, HPV neg)
+    # Patient 9990010026 -- gynae 2WW (USS pelvis NAD 3mm endometrium, HPV neg)
     # USS report received around 2024-07-19
     (
-        "4220526579",
+        "9990010026",
         "2024-07-18",
         "2024-07-20",
         "USS pelvis NAD, endometrium 3mm, HPV not detected - no gynaecological malignancy",
     ),
-    # Patient 6280880796 -- upper GI 2WW
+    # Patient 9990010059 -- upper GI 2WW
     # Evidence: "Biopsy shows iron pill gastritis" GP note 2025-04-02
     (
-        "6280880796",
+        "9990010059",
         "2025-04-01",
         "2025-04-03",
         "Gastric biopsy shows iron pill gastritis only - no upper GI malignancy",
     ),
-    # Patient 6264541699 -- urology 2WW (PSA raised)
+    # Patient 9990010057 -- urology 2WW (PSA raised)
     # Evidence: Seen in 2WW urology clinic 2025-08-11; annual PSA surveillance plan
     # GP note 2025-09-24: "Annual PSA check as per letter 11/08/2025"
     (
-        "6264541699",
+        "9990010057",
         "2025-09-23",
         "2025-09-25",
         "Annual PSA monitoring plan after 2WW - no urological cancer diagnosed",
     ),
-    # Patient 4822890058 -- head and neck 2WW
+    # Patient 9990010042 -- head and neck 2WW
     # Evidence: Endocrine follow-up (thyrotoxicosis) after H&N 2WW; no malignancy
     # ENT letter 2025-02-10
     (
-        "4822890058",
+        "9990010042",
         "2025-02-09",
         "2025-02-11",
         "ENT 2WW clinic - thyroid nodule and thyrotoxicosis, no malignancy found",

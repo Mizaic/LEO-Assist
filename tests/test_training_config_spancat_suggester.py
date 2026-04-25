@@ -1,9 +1,9 @@
 """Inspection tests for the spancat suggester capacity (VT-LEO-AI-156).
 
 Verifies that services/training_worker/app/config/base.cfg sets the
-spancat ngram_range_suggester max_size to a value large enough that the
-spancat model can natively propose, score, and learn the long observable
-spans seen on UK primary-care lab lines (typically 18-22 tokens).
+clinical spancat suggester sizes large enough that the spancat model can
+natively propose, score, and learn the nested observable_entity and finding
+spans seen on UK primary-care lab lines.
 
 These are pure file-inspection tests; no spaCy / training import is
 required, so they run in well under a second and do not depend on the
@@ -27,8 +27,8 @@ CONFIG_PATH = (
 )
 
 
-def _read_suggester_int(key: str) -> int:
-    """Return the integer value of [components.spancat.suggester].<key>.
+def _read_suggester_sizes() -> list[int]:
+    """Return [components.spancat.suggester].sizes from the training config.
 
     Parses the section manually so the test does not depend on configparser
     quirks with spaCy's TOML-ish syntax (string quoting, list literals).
@@ -47,25 +47,27 @@ def _read_suggester_int(key: str) -> int:
 
     section = section_match.group(1)
     value_match = re.search(
-        rf"^\s*{re.escape(key)}\s*=\s*(\d+)\s*$",
+        r"^\s*sizes\s*=\s*\[(.*?)\]\s*$",
         section,
         re.MULTILINE,
     )
     if value_match is None:
-        pytest.fail(f"Key {key!r} missing from spancat.suggester section")
-    return int(value_match.group(1))
+        pytest.fail("Key 'sizes' missing from spancat.suggester section")
+    return [int(raw.strip()) for raw in value_match.group(1).split(",")]
 
 
-def test_spancat_suggester_max_size_is_at_least_24() -> None:
-    """max_size must be >= 24 so 18-22 token observable spans can be suggested."""
-    assert _read_suggester_int("max_size") >= 24
+def test_spancat_suggester_covers_completed_gold_lab_lengths() -> None:
+    """The model must be able to suggest known positive lab span lengths."""
+    sizes = set(_read_suggester_sizes())
+    assert set(range(1, 25)) <= sizes
+    assert {15, 20, 21, 22, 24} <= sizes
 
 
 def test_spancat_suggester_min_size_is_one() -> None:
     """Single-token spans (acronyms, codes) must still be suggested."""
-    assert _read_suggester_int("min_size") == 1
+    assert min(_read_suggester_sizes()) == 1
 
 
 def test_spancat_suggester_max_size_is_capped_at_32() -> None:
-    """Per DI-LEO-AI-158, max_size > 32 requires a separate performance review."""
-    assert _read_suggester_int("max_size") <= 32
+    """Per DI-LEO-AI-158, sizes > 32 require a separate performance review."""
+    assert max(_read_suggester_sizes()) <= 32

@@ -38,7 +38,7 @@ RETURN c.conceptId AS cid, c.name AS name, c.semanticTag AS tag
 client = PatientGraphClient()
 with client.session() as s:
     print("=== Encounters with DOCUMENTS (2024+) for E14 and E20 patients ===")
-    rows = list(s.run(Q, pids=["4709023328", "6040304227"], after="2024-01-01"))
+    rows = list(s.run(Q, pids=["9990002008", "9990002009"], after="2024-01-01"))
     for r in rows:
         cname = (r["cname"] or "")[:50]
         print(

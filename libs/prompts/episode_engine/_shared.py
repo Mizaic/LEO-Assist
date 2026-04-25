@@ -147,6 +147,68 @@ Rules of the road -- learnt from real GP records:
     next week"), do NOT emit that as a milestone -- it is forward context,
     not a completed event in this window. The referral or appointment will
     belong to a different window that covers the later date.
+
+13. PRIOR SCREENING "NORMAL" IS NOT A BLOCKER
+    A past encounter with "breast neoplasm screening normal" (e.g. routine
+    NHS Breast Screening Programme all-clear) does NOT mean the patient
+    has no current breast cancer episode. Interval cancer, technical recall,
+    and subsequent clinical records with "(New Episode)" and malignant
+    or recall codes can start a genuine cancer pathway WEEKS LATER. Do NOT
+    let an earlier "normal" letter block milestones on later windows.
+    The cancer episode's first_presentation and referral are anchored to
+    the RECALL / ASSESSMENT / first malignant structured code -- not the
+    earlier routine clear, unless the clinical narrative explicitly
+    re-interprets that encounter as a false negative (rare; usually the
+    pathway begins at the new abnormal event).
+
+14. NON-GP, A&E, AND ALTERNATIVE PRIMARY CARE ENTRY
+    A pathway does not require a general-practice 2WW to exist.
+    - first_presentation may be A&E, walk-in, out-of-hours, NHS 111,
+      community nursing, or community pharmacy, with presentation_place
+      set to accident_and_emergency, walk_in_centre, out_of_hours,
+      other_primary_care, or community_care_nurse (etc.) as appropriate.
+    - referral (pathway) is any documented handoff into the cancer work-up,
+      including internal referral from ED/AMU, e-RS from hospital,
+      or screening assessment booking -- not only a GP PRISM form.
+    - Do not skip first_presentation because the only early record is
+      A&E. Do not require a "GP referral" quote if the first pathway
+      trigger is a hospital-issued or screening-issued handoff.
+
+15. SAME-DAY SCREENING PLUS STRUCTURED MALIGNANCY (TYP. COLORECTAL)
+    When TWO encounters on the SAME CALENDAR DATE are both part of one
+    pathway, do not collapse them into a single row or demote the first.
+    Common pattern: (1) a Bowel Cancer Screening routing / handoff to
+    primary care, and (2) a second entry with a Read-coded
+    "Malignant tumour of rectum" (or similar) with (New Episode). That
+    day is still the episode start. Emit first_presentation on the
+    encounter that records the screening pathway contact, with
+    presentation_place=from_screening when the text is clearly the
+    national bowel screening programme. Emit diagnosis_confirmed on the
+    encounter that contains the literal malignant-code line (separate
+    encounter_id, same date). If a handoff to the named practice is
+    the only referral-like text, you may also emit a pathway
+    "referral" on the encounter that best matches the handoff, or
+    support it with a context tier -- do not invent a GP 2WW. Never
+    shift window_start to a later day solely because the screening line
+    and the malignancy line are different encounter_ids.
+
+16. BCSP FOBT / FIT ABNORMAL AS FIRST PRESENTATION (NO GP YET)
+    A Bowel Cancer Screening Programme (BCSP) result is often the first
+    dated row: faecal occult blood (FOBT) or FIT "Abnormal", Read-coded
+    lines, invitation to screening colonoscopy, and programme text such as
+    "no need for GP action" (meaning the hub handles next steps, NOT that
+    there is no presentation). This encounter IS the first_presentation
+    for a screen-detected colorectal episode: set
+    presentation_place=from_screening and use a literal evidence_quote
+    from the result and programme lines. Do NOT require a later GP
+    face-to-face before you emit first_presentation. If the only author
+    line is "Receptionist Access Role" or similar, still use the record --
+    the structured result and BCSP text are the source. A phrase
+    "No Further Action" next to a receptionist-typed result may mean
+    "no GP task" in the programme sense; it is NOT automatically
+    benign_closure if the same or adjacent text records FOBT abnormal
+    and colonoscopy follow-up. Do not confuse with a routine all-clear
+    (compare rule 15 / breast screening "normal" patterns).
 """
 )
 
@@ -164,8 +226,9 @@ KEY TEMPORAL DISAMBIGUATION RULE -- READ CAREFULLY:
   The milestone type is determined by WHEN it occurs AND its clinical
   purpose:
   - Before diagnosis_confirmed -> usually a PATHWAY milestone
-    (e.g. the 2WW form is a pathway "referral", the first GP appointment
-    about the symptom is "first_presentation")
+    (e.g. the 2WW form is a pathway "referral", the first clinical
+    contact about the symptom is "first_presentation" -- GP, A&E, OOH,
+    walk-in, or other primary / community)
   - After diagnosis_confirmed -> usually a CONTEXT milestone
     (e.g. a GP follow-up after treatment is "related_gp_visit",
     admin chasing of a clinic letter is "referral_admin")
@@ -175,11 +238,20 @@ KEY TEMPORAL DISAMBIGUATION RULE -- READ CAREFULLY:
 
 CONTEXT MILESTONE DEFINITIONS:
 
-  - related_gp_visit          : a GP / primary-care consultation directly
+  - related_gp_visit          : a primary-care-SETTING consultation directly
                                 related to this pathway but not the canonical
-                                first_presentation. Includes telephone/video
-                                GP calls to discuss ongoing care, GP reviews
-                                during treatment, and carer calls.
+                                first_presentation. Includes: GP (F2F, telephone,
+                                video, home), practice nurse, also NON-GP
+                                primary and community (NHS 111 clinical call,
+                                community pharmacist consultation, health
+                                visitor, community / district nursing review
+                                in the home) when the encounter is a pathway
+                                follow-up, not the index A&E or specialist
+                                event. A&E/ED is NOT "related_gp_visit" --
+                                use it as first_presentation (index) or, for a
+                                later A&E re-attendance, consider
+                                related_specialist_visit for ED physician review
+                                if the narrative is clearly secondary care.
 
   - primary_care_investigations: blood tests, urine tests, ECG, plain X-ray,
                                 or any other investigation REQUESTED BY GP
@@ -215,11 +287,19 @@ CONTEXT MILESTONE DEFINITIONS:
                                 fires pre-diagnosis (alongside the pathway
                                 referral), NOT post-diagnosis.
 
-  - related_specialist_visit   : a hospital / specialist outpatient visit related
-                                to the pathway but NOT the canonical first_seen.
-                                Includes: follow-up clinic visits, MDT outcomes,
-                                nurse specialist consultations, oncology review
-                                appointments AFTER first_seen.
+  - related_specialist_visit   : a hospital / secondary-care or specialist
+                                clinical contact related to the pathway but NOT
+                                the canonical first_seen. Includes: follow-up
+                                clinic visits, MDT outcomes, CNS/SCN reviews,
+                                oncology appointments AFTER first_seen, and
+                                a SUBSEQUENT A&E/AMU attendance where an acute
+                                physician or ED specialist team documents further
+                                pathway action (if not being used as
+                                first_presentation for a new line of care).
+                                The INDEX emergency attendance that starts the
+                                episode is "first_presentation" with
+                                presentation_place=accident_and_emergency, not
+                                this context type.
 
   - specialist_diagnostics     : investigations ORDERED BY THE SPECIALIST:
                                 biopsy, CT, MRI, PET-CT, mammography,
@@ -288,6 +368,78 @@ Incorrect output (the failure to avoid):
   (b) window_start 2025-07-14 misses the real first presentation (2025-06-17).
   Whenever a GP orders a CXR to "exclude lung lesion" alongside a GI workup,
   create a separate Lung window even if the CXR turns out to be normal.
+"""
+
+
+# Synthetic: same-day screening + same-day code-bearing malignancy;
+# do not use real practice names, patient numbers, or dates from live charts.
+COLORECTAL_SCREENING_SAME_DAY_REFERENCE = """\
+Reference case (synthetic patient SYN-EE-003, colorectal, same day):
+
+Two separate encounters on the same calendar date (different
+encounter_ids) are common in bowel screening: one row records the
+screening programme / routing contact; another records the
+structured problem-list entry for the confirmed malignancy. BOTH are
+the start of ONE episode. Do not drop the first row or set
+window_start to the day after the screening line.
+
+Example timeline (dates invented):
+  2025-10-16 (morning) enc-a: "Bowel Cancer Screening to <named GP hub>"
+    or similar handoff from the national programme to primary care.
+    -> first_presentation on enc-a, presentation_place=from_screening
+    (the screening pathway is the index presentation for an interval /
+    screen-detected pathway; literal evidence from enc-a)
+
+  2025-10-16 (afternoon) enc-b: "Malignant tumour of rectum (XE1vW)
+    (New Episode)" and duplicate read line. -> diagnosis_confirmed on
+    enc-b with a literal evidence_quote; same calendar date, distinct
+    encounter_id from enc-a.
+
+Segmenter: window_start = 2025-10-16 for the Colorectal window, not
+2025-10-17, because the pathway evidence begins that day.
+
+Incorrect output: a single "merged" first_presentation on enc-b
+only, erasing the screening encounter; or omitting
+first_presentation=from_screening because a GP 2WW is missing; or
+anchoring the episode to enc-b as if enc-a were admin noise.
+"""
+
+
+# BCSP/FOBT positive: index row may have no GP; avoid inventing 2WW.
+COLORECTAL_FOBT_BCSP_FIRST_REFERENCE = """\
+Reference case (synthetic patient SYN-EE-004, colorectal, BCSP first):
+
+A single early encounter (or a tight same-day pair) may contain only
+the national Bowel Cancer Screening programme result -- no 2WW, no GP
+consultation yet. Example phrases (fictional layout):
+
+  "Bowel cancer screening programme: faecal occult blood result
+   (XaPVj)"
+  "FOBT Abnormal. Sent following a positive result. Participant will
+   be invited for a screening colonoscopy. No need for GP action"
+  "BCSP faecal occult blood test abnormal (XaPke)"
+  Plus a result report line: Abnormal, reviewed under Receptionist
+  Access Role.
+
+Correct milestone handling:
+  - first_presentation on this encounter (or the earliest of the same-day
+    cluster), presentation_place=from_screening, evidence_quote from
+    the abnormal / programme / colonoscopy invitation lines.
+  - Do NOT omit first_presentation because "No need for GP action"
+    appears, and do not wait for a PRISM 2WW from the practice.
+  - diagnosis_confirmed only when histology, MDT, or a structured
+    malignant-tumour code exists later; the FOBT row alone is
+    first_presentation, not a confirmed cancer diagnosis.
+  - If "No Further Action" appears in a receptionist note alongside
+    Abnormal FOBT, prefer interpreting as programme / admin phrasing
+    in context -- do not emit benign_closure for that snippet alone
+    if the FOBT cluster shows an active screening work-up.
+
+Segmenter: window_start on the first date of this BCSP-abnormal
+evidence, not on a later arbitrary GP or colonoscopy date.
+
+Incorrect output: no first_presentation until a GP is seen; or treating
+     the receptionist-review row as ineligible for evidence_quote.
 """
 
 

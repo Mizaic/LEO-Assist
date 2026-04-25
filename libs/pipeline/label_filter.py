@@ -53,7 +53,101 @@ def realign_entity(text: str, ent: dict[str, Any]) -> dict[str, Any] | None:
     if result is None:
         return None
     start, end = result
-    return {**ent, "start": start, "end": end}
+    return {**ent, "text": text[start:end], "start": start, "end": end}
+
+
+def repair_entity_spans(
+    text: str,
+    entities: list[dict[str, Any]],
+    *,
+    drop_unrepairable: bool = False,
+) -> dict[str, Any]:
+    """Repair entity spans without silently losing unresolved entities."""
+
+    repaired_entities: list[dict[str, Any]] = []
+    report: dict[str, Any] = {
+        "repaired": [],
+        "unchanged": [],
+        "unrepairable": [],
+        "ambiguous": [],
+        "entities": repaired_entities,
+    }
+    for index, ent in enumerate(entities):
+        decision = _repair_one_entity(text, ent, index)
+        report[decision["status"]].append(decision)
+        if decision["status"] == "repaired":
+            repaired_entities.append(decision["entity"])
+            continue
+        if decision["status"] == "unrepairable" and drop_unrepairable:
+            continue
+        repaired_entities.append(ent)
+    return report
+
+
+def _repair_one_entity(
+    text: str,
+    ent: dict[str, Any],
+    index: int,
+) -> dict[str, Any]:
+    from libs.ner.span_finder import find_span, find_span_candidates
+
+    surface = str(ent.get("text", "")).strip()
+    base = _repair_entry(index, ent)
+    if not surface:
+        return {**base, "status": "unrepairable", "reason": "empty_surface"}
+
+    if _current_span_matches(text, ent):
+        return {**base, "status": "unchanged", "reason": "current_span_valid"}
+
+    candidates = find_span_candidates(text, surface)
+    if len(candidates) > 1:
+        return {
+            **base,
+            "status": "ambiguous",
+            "reason": "multiple_candidates",
+            "candidate_count": len(candidates),
+            "candidates": [_span_entry(text, start, end) for start, end in candidates],
+        }
+
+    result = find_span(text, surface)
+    if result is None:
+        return {**base, "status": "unrepairable", "reason": "surface_not_found"}
+
+    start, end = result
+    repaired = {**ent, "text": text[start:end], "start": start, "end": end}
+    return {
+        **base,
+        "status": "repaired",
+        "reason": "realigned",
+        "new_start": start,
+        "new_end": end,
+        "new_text": repaired["text"],
+        "entity": repaired,
+    }
+
+
+def _repair_entry(index: int, ent: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "index": index,
+        "label": ent.get("label") or ent.get("semantic_tag") or "",
+        "entity_text": ent.get("text", ""),
+        "old_start": ent.get("start"),
+        "old_end": ent.get("end"),
+    }
+
+
+def _current_span_matches(text: str, ent: dict[str, Any]) -> bool:
+    try:
+        start = int(ent.get("start", 0))
+        end = int(ent.get("end", 0))
+    except (TypeError, ValueError):
+        return False
+    surface = str(ent.get("text", ""))
+    return 0 <= start < end <= len(text) and text[start:end] == surface
+
+
+def _span_entry(text: str, start: int, end: int) -> dict[str, Any]:
+    return {"start": start, "end": end, "text": text[start:end]}
 
 
 def filter_and_realign(
@@ -89,7 +183,11 @@ def filter_and_realign(
             if diagnostics is not None:
                 diagnostics.append(
                     _drop_entry(
-                        label_id, source, ent, assertion, "assertion_filtered",
+                        label_id,
+                        source,
+                        ent,
+                        assertion,
+                        "assertion_filtered",
                         text=text,
                     )
                 )
@@ -101,7 +199,11 @@ def filter_and_realign(
             if diagnostics is not None:
                 diagnostics.append(
                     _drop_entry(
-                        label_id, source, ent, assertion, "span_misaligned",
+                        label_id,
+                        source,
+                        ent,
+                        assertion,
+                        "span_misaligned",
                         text=text,
                     )
                 )

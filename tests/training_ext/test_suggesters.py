@@ -27,17 +27,17 @@ def test_only_configured_sizes_are_emitted():
     assert lengths == {1, 3}
 
 
-def test_default_sizes_exclude_middle_band():
-    """Ensures we avoid the quadratic 6..21 middle band that previously bloated
-    negative candidate volume."""
+def test_default_sizes_cover_completed_gold_lab_span_lengths():
+    """Default sizes cover nested lab spans found in completed GoldLabel data."""
     suggester = build_clinical_ngram_suggester()
     doc = _make_doc(30)
     output = suggester([doc])
     rows = output.dataXd.tolist()
     lengths = {end - start for start, end in rows}
-    assert lengths == set(_DEFAULT_CLINICAL_SIZES)
-    for forbidden in range(6, 22):
-        assert forbidden not in lengths
+    expected = set(range(1, 25))
+    assert set(_DEFAULT_CLINICAL_SIZES) == expected
+    assert lengths == expected
+    assert {15, 20, 21, 22, 24} <= lengths
 
 
 def test_registry_entry_returns_callable():

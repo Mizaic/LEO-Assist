@@ -329,6 +329,39 @@ class TestOrgScopeDenial:
 class TestDateRederivation:
     """VT-19BB6F1F - attach / detach must call recompute_episode_dates."""
 
+    def test_recompute_dates_sets_benign_interval(self):
+        from services.analytics_api.app.routers._episode_crud_helpers import (
+            recompute_episode_dates,
+        )
+
+        class _FakeClient:
+            def __init__(self):
+                self.params = None
+
+            def run(self, _query, **params):
+                if params.get("eid") == "ep-1" and self.params is None:
+                    self.params = params
+                    return [
+                        {
+                            "episode_id": "ep-1",
+                            "slots": [
+                                {"mt": "referral", "d": "2025-07-24"},
+                                {"mt": "benign_closure", "d": "2025-09-01"},
+                            ],
+                        }
+                    ]
+                self.params = params
+                return []
+
+        client = _FakeClient()
+
+        result = recompute_episode_dates(client, "ep-1")
+
+        assert result["referral_date"] == "2025-07-24"
+        assert result["end_date"] == "2025-09-01"
+        assert result["benign_interval_days"] == 39
+        assert client.params["benign_interval_days"] == 39
+
     @patch(
         "services.analytics_api.app.routers." "episode_crud.recompute_episode_status"
     )
@@ -980,6 +1013,9 @@ _CONTEXT_MILESTONE_TYPES = frozenset(
         "related_specialist_visit",
         "specialist_diagnostics",
         "related_correspondence",
+        "treatment_planned",
+        "treatment_monitoring",
+        "treatment_toxicity",
     }
 )
 
@@ -1016,7 +1052,7 @@ class TestMilestoneVocabularyParity:
 
         assert PATHWAY_MILESTONE_TYPES == _PATHWAY_MILESTONE_TYPES
 
-    def test_helpers_context_tier_equals_expected_seven(self):
+    def test_helpers_context_tier_equals_expected_ten(self):
         # DI-A30F36C7 -- supporting-context milestones are curator-only
         # and never fed by the AI engine.
         from services.analytics_api.app.routers._episode_crud_helpers import (

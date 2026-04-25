@@ -15,7 +15,7 @@ from libs.keyvault.loader import load_keyvault_secrets
 load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
-SAMPLE_PID = "4185994966"
+SAMPLE_PID = "9990010021"
 SAMPLE_DATE = "2025-03-12"
 
 client = PatientGraphClient()

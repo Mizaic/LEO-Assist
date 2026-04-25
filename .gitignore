@@ -8,6 +8,9 @@
 # services/ui/src/app/api/training/.
 /training/
 
+# Training run checkpoints (large binaries; not compatible with GitHub 100MB limit)
+/artifacts/model_checkpoints/
+
 # Byte-compiled / optimised / DLL files
 __pycache__/
 *.py[cod]

@@ -2,17 +2,11 @@
 
 Covers Wave 2 (F7) of the World-Class Clinical NER plan.
 
-The default `spacy.ngram_range_suggester.v1` enumerates every span from
-`min_size` to `max_size`.  With `max_size=24` (to cover the 22-24 token lab
-lines typical in UK primary care), that produces a quadratic blow-up of
-negative candidates that drowns the head in false-positive signal.
-
-This suggester emits spans of two disjoint buckets only:
-  * short spans (1..5 tokens) — capture the vast majority of entities
-  * long-line spans (22..24 tokens) — capture the lab-line tail
-
-Total candidate volume falls by ~60% vs a full 1..24 sweep, with no loss on
-the span sizes that actually carry clinical signal.
+The default `spacy.ngram_range_suggester.v1` accepts a contiguous range, but
+production needs an explicit span-size contract that tests can inspect.
+Completed GoldLabel lab spans include short procedures, mid-length
+observable_entity spans, and full abnormal finding lines across 1..24 spaCy
+tokens.
 
 The default size buckets can be overridden via the spaCy config ``sizes``
 list.
@@ -26,7 +20,7 @@ from spacy.pipeline.spancat import Suggester, build_ngram_suggester
 from spacy.util import registry
 
 
-_DEFAULT_CLINICAL_SIZES: tuple[int, ...] = (1, 2, 3, 4, 5, 22, 23, 24)
+_DEFAULT_CLINICAL_SIZES: tuple[int, ...] = tuple(range(1, 25))
 
 
 def build_clinical_ngram_suggester(

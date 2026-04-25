@@ -4,7 +4,7 @@ Atlas trace:
   DI: DI-2C015ADE (AI may propose context-tier milestones under human review)
   VT: (to be created -- see Phase 5 atlas closeout)
 
-Replays the episode engine (dry_run=True) against 4 manually curated gold
+Replays the episode engine (dry_run=True) against 5 manually curated gold
 patients and measures milestone recall and precision at two levels:
 
   type-level : does the engine emit the right milestone TYPES?
@@ -13,13 +13,14 @@ patients and measures milestone recall and precision at two levels:
 Gold fixture: scripts/regression/episode_engine_gold_vt/gold_episodes.json
 
 Gold patients and their curated episodes:
-  4246428337  Colorectal closed_benign  (1 episode)
-  4246897485  Breast closed_benign      (1 episode)
-  4920262426  Multi-site Breast/Lung/UGI (3 episodes)
-  6282779235  Prostate completed        (1 episode)
+  9990001001  Colorectal closed_benign  (1 episode)
+  9990001002  Breast closed_benign      (1 episode)
+  9990001003  Colorectal screen-detected (FIT) (1 episode)
+  9990001004  Multi-site Breast/Lung/UGI (3 episodes)
+  9990001005  Prostate completed        (1 episode)
 
 This test makes REAL Bedrock LLM calls (~$0.18/patient, ~3-5 min per patient,
-~$0.72 / ~15 min for all 4). It is gated:
+~$0.90 / ~20 min for all 5). It is gated:
 
   RUN_EPISODE_ENGINE_GOLD_VT=1 pytest tests/episode_engine/test_gold_patient_vt.py -v
 
@@ -83,12 +84,12 @@ _WAIVED_EPISODES: dict[tuple[str, str, str], str] = {
     # W-017: Colorectal slot_recall -- reconciler picks wrong encounter IDs
     # for multi-slot benign pathway (primary_care_investigations x3,
     # related_gp_visit x2). Slot max achievable ~0.63; getting 0.25.
-    ("4246428337", "Colorectal", "closed_benign"): "W-017",
+    ("9990001001", "Colorectal", "closed_benign"): "W-017",
     # W-018: Lung type_precision -- July-16 CXR encounter text mentions the
     # planned upper-GI referral ("referred for upper GI investigation");
     # LLM emits referral/referral_sent/first_seen for the closed Lung window
     # despite the closed-window scope rule. Belongs to the Upper GI window.
-    ("4920262426", "Lung", "closed_benign"): "W-018",
+    ("9990001004", "Lung", "closed_benign"): "W-018",
 }
 
 _CONTEXT_MILESTONE_TYPES = {
@@ -210,7 +211,13 @@ def test_gold_fixture_integrity():
     gold_data = _load_gold()
     patients = gold_data["patients"]
 
-    expected_ids = {"4246428337", "4246897485", "4920262426", "6282779235"}
+    expected_ids = {
+        "9990001001",
+        "9990001002",
+        "9990001003",
+        "9990001004",
+        "9990001005",
+    }
     assert (
         set(patients.keys()) == expected_ids
     ), f"Fixture patient set changed: {set(patients.keys())}"

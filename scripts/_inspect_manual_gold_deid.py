@@ -18,7 +18,7 @@ from libs.ner.deid_validator import DeIdValidator
 from libs.utils.deidentify import deidentify_text
 
 CASES: list[dict[str, str]] = [
-    # POS-01: 4300102074 / breast / mammogram tethered malignant L breast
+    # POS-01: 9990010033 / breast / mammogram tethered malignant L breast
     {
         "tag": "POS-01-breast-malignant-mammogram",
         "raw": (
@@ -26,7 +26,7 @@ CASES: list[dict[str, str]] = [
             "mass with associated microcalcifications"
         ),
     },
-    # POS-02: 4709023328 / breast / ca breast confirmed
+    # POS-02: 9990002008 / breast / ca breast confirmed
     # Note: Read code X78WM dropped from sentence because it collides with the
     # UK postcode regex in libs/utils/deidentify.py and would be replaced by
     # [POSTCODE]. The SNOMED concept id is preserved in the entity payload.
@@ -34,7 +34,7 @@ CASES: list[dict[str, str]] = [
         "tag": "POS-02-breast-ca-confirmed",
         "raw": "Malignant tumour of breast",
     },
-    # POS-03: 6220044894 / gynae / endometrioid carcinoma + TAH BSO
+    # POS-03: 9990010055 / gynae / endometrioid carcinoma + TAH BSO
     {
         "tag": "POS-03-gynae-endometrioid",
         "raw": (
@@ -42,7 +42,7 @@ CASES: list[dict[str, str]] = [
             "hysterect bilat salpingo-oophorectomy (XaJy8)"
         ),
     },
-    # POS-04: 7039607018 / gynae / granulosa cell ovarian tumour + TAH BSO
+    # POS-04: 9990010067 / gynae / granulosa cell ovarian tumour + TAH BSO
     {
         "tag": "POS-04-gynae-granulosa",
         "raw": (
@@ -55,7 +55,7 @@ CASES: list[dict[str, str]] = [
         "tag": "NEG-01-hn-nasendoscopy-normal",
         "raw": "Diagnostic nasendoscopy - normal larynx",
     },
-    # NEG-02: 4245896566 / brain / cancer excluded
+    # NEG-02: 9990010029 / brain / cancer excluded
     {
         "tag": "NEG-02-brain-cancer-excluded",
         "raw": (
@@ -63,7 +63,7 @@ CASES: list[dict[str, str]] = [
             "No structural cause for symptoms demonstrated."
         ),
     },
-    # NEG-03: 4246627143 / breast / cyst aspirated
+    # NEG-03: 9990010030 / breast / cyst aspirated
     {
         "tag": "NEG-03-breast-cyst-aspirated",
         "raw": (
@@ -71,7 +71,7 @@ CASES: list[dict[str, str]] = [
             "Mammogram (537..) - M2 - US scan of breast (585C.) - U2"
         ),
     },
-    # NEG-04: 4587360686 / colorectal / FOBT normal
+    # NEG-04: 9990002007 / colorectal / FOBT normal
     {
         "tag": "NEG-04-colorectal-fobt-normal",
         "raw": (
@@ -80,17 +80,17 @@ CASES: list[dict[str, str]] = [
             "FOBT Normal. Sent following an overall negative result."
         ),
     },
-    # NEG-05: 4621680811 / haematological / haem nil concerns
+    # NEG-05: 9990010035 / haematological / haem nil concerns
     {
         "tag": "NEG-05-haem-nil-concerns",
         "raw": "seen by haem - nil concerns raised about malignancy",
     },
-    # NEG-06: 4622879921 / bladder / flexible cystoscopy normal
+    # NEG-06: 9990010036 / bladder / flexible cystoscopy normal
     {
         "tag": "NEG-06-bladder-cystoscopy-normal",
         "raw": "Flexible cystoscopy (Xa7va) - normal",
     },
-    # NEG-07: 4644882798 / prostate / PSA 0.13 normal
+    # NEG-07: 9990010038 / prostate / PSA 0.13 normal
     {
         "tag": "NEG-07-prostate-psa-normal",
         "raw": (
@@ -98,17 +98,17 @@ CASES: list[dict[str, str]] = [
             "Normal. No Further Action."
         ),
     },
-    # NEG-08: 4644882798 / urological / balanitis xerotica
+    # NEG-08: 9990010038 / urological / balanitis xerotica
     {
         "tag": "NEG-08-urology-balanitis",
         "raw": "Balanitis xerotica obliterans (K276.)",
     },
-    # NEG-09: 4822020479 / colorectal / tubular adenoma
+    # NEG-09: 9990010041 / colorectal / tubular adenoma
     {
         "tag": "NEG-09-colorectal-tubular-adenoma",
         "raw": "Tubular adenoma (Xa98X)",
     },
-    # NEG-10: 4842019832 / head_and_neck / reflux + rhinitis
+    # NEG-10: 9990010043 / head_and_neck / reflux + rhinitis
     {
         "tag": "NEG-10-hn-reflux-rhinitis",
         "raw": "Laryngopharyngeal reflux (XaK99) - Chronic rhinitis (XE0Xx)",
@@ -123,12 +123,12 @@ CASES: list[dict[str, str]] = [
         "tag": "NEG-12-renal-cyst",
         "raw": "Computed tomography of kidneys - Single renal cyst (PD10.)",
     },
-    # NEG-13: 6012067550 / breast / USS R normal
+    # NEG-13: 9990010053 / breast / USS R normal
     {
         "tag": "NEG-13-breast-uss-normal",
         "raw": "US scan of breast (585C.) - R - normal",
     },
-    # NEG-14: 6268086643 / breast / mammo bl normal + USS L normal nodes
+    # NEG-14: 9990010058 / breast / mammo bl normal + USS L normal nodes
     {
         "tag": "NEG-14-breast-mammo-uss-normal",
         "raw": (
@@ -136,7 +136,7 @@ CASES: list[dict[str, str]] = [
             "US scan of breast (585C.) - L - normal nodes to L axilla"
         ),
     },
-    # NEG-15: 6519712760 / liver / haemorrhoid + colonoscopy plan
+    # NEG-15: 9990010064 / liver / haemorrhoid + colonoscopy plan
     {
         "tag": "NEG-15-liver-haemorrhoid",
         "raw": (
@@ -144,12 +144,12 @@ CASES: list[dict[str, str]] = [
             "Lower GI 2ww referral for colonoscopy."
         ),
     },
-    # NEG-16: 7322946243 / breast / viral wart R breast
+    # NEG-16: 9990010071 / breast / viral wart R breast
     {
         "tag": "NEG-16-breast-viral-wart",
         "raw": "Other viral warts (XE0Tg) - R breast",
     },
-    # NEG-17: 7343840665 / non_site_specific / 2WW NAD live vaccine
+    # NEG-17: 9990010074 / non_site_specific / 2WW NAD live vaccine
     {
         "tag": "NEG-17-paeds-2ww-nad",
         "raw": (

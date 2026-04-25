@@ -137,9 +137,9 @@ def test_segmenter_prompt_multisite_heuristics_present():
     """
     from libs.prompts.episode_engine import segmenter_v1
 
-    assert "GP-ONLY INVESTIGATION WINDOWS" in segmenter_v1.SYSTEM, (
-        "Missing GP-only investigation heuristic -- Lung benign window will be dropped"
-    )
+    assert (
+        "GP-ONLY INVESTIGATION WINDOWS" in segmenter_v1.SYSTEM
+    ), "Missing GP-only investigation heuristic -- Lung benign window will be dropped"
     assert "SHARED FIRST PRESENTATION" in segmenter_v1.SYSTEM, (
         "Missing shared-first-presentation heuristic -- multi-site presentations "
         "will be collapsed into a single window"
@@ -151,4 +151,16 @@ def test_segmenter_prompt_multisite_heuristics_present():
     assert "SYN-EE-002" in segmenter_v1.SYSTEM, (
         "Missing multi-site reference case (SYN-EE-002) -- LLM will fuse "
         "a GP-only Lung window into an Oesophageal window"
+    )
+    assert "A&E / HOSPITAL-FIRST ENTRY" in segmenter_v1.SYSTEM, (
+        "Missing A&E / hospital-first heuristic -- patients with no prior "
+        "GP 2WW will not get a window from ED or acute admission"
+    )
+    assert "SYN-EE-003" in segmenter_v1.SYSTEM, (
+        "Missing colorectal same-day screening + malignancy reference -- "
+        "segmenter may set window_start after the first screening contact"
+    )
+    assert "SYN-EE-004" in segmenter_v1.SYSTEM, (
+        "Missing BCSP/FOBT first-presentation reference (SYN-EE-004) -- "
+        "screen-detected rows without GP will not set window_start"
     )

@@ -22,8 +22,8 @@ same date inside a single EpisodeOfCare:
       cancer (XaMeC) ... Patient awaiting OPD appt."); subtype
       ``text_generic``
 
-Patient 4802892365 had three such referral anchors on 2025-03-26
-attached to the real breast-cancer episode 1ecfb55618c2a6d2 -- one
+One breast-cancer exemplar had three such referral anchors on the same
+day attached to a single episode -- one
 ``prism`` and two ``text_generic``. The episode timeline therefore
 showed three "referral" milestones on a single day, all describing
 the same single 2WW decision. This inflates referral-count

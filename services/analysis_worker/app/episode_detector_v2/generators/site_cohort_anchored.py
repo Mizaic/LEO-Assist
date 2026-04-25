@@ -45,7 +45,9 @@ def generate_site_cohort_anchored(
             site_key=signal.site_key,
             generator="site_cohort_anchored",
             encounter_ids=encounters_in_window(
-                events_list, anchor_date=anchor.occurred_on
+                events_list,
+                anchor_date=anchor.occurred_on,
+                site_key=signal.site_key,
             ),
             anchor_event_id=anchor.encounter_id,
             anchor_date=anchor.occurred_on,

@@ -23,7 +23,7 @@ kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
 CHECKS = [
     (
-        "1290960005",
+        "9990010014",
         "Mesothelioma CXR finding",
         [
             "chest X-ray findings suggestive of mesothelioma",

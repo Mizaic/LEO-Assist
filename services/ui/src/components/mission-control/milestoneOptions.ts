@@ -18,7 +18,8 @@
  *      and exist only so the timeline carries the full reviewer
  *      narrative (repeat GP visits, primary-care investigations,
  *      referral admin, repeat specialist visits, specialist
- *      diagnostics, related correspondence). DI-50C7E89C.
+ *      diagnostics, treatment context, related correspondence).
+ *      DI-50C7E89C.
  *
  * Manual curators can assign any value in either tier; the AI engine
  * will only ever fill the pathway nine, which protects cancer-pathway
@@ -90,6 +91,21 @@ export const MILESTONE_OPTIONS: MilestoneOption[] = [
   {
     value: "related_correspondence",
     label: "Related correspondence",
+    group: "context",
+  },
+  {
+    value: "treatment_planned",
+    label: "Treatment planned",
+    group: "context",
+  },
+  {
+    value: "treatment_monitoring",
+    label: "Treatment monitoring",
+    group: "context",
+  },
+  {
+    value: "treatment_toxicity",
+    label: "Treatment toxicity / side effects",
     group: "context",
   },
 ];

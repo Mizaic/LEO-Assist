@@ -73,20 +73,20 @@ _AUDIT_EXTRA_CONCEPTS: list[dict] = [
         "term": "Delivery of chemotherapy for neoplasm (procedure)",
     },
     {
-        "concept_id": 1255831008,
+        "concept_id": 9990010008,
         "term": "Chemotherapy for malignant neoplastic disease using targeted agent (procedure)",
     },
     {
-        "concept_id": 1290226008,
+        "concept_id": 9990010013,
         "term": "Administration of antineoplastic agent via intravenous route (procedure)",
     },
     {
-        "concept_id": 1255904006,
+        "concept_id": 9990010009,
         "term": "Administration of palliative antineoplastic agent (procedure)",
     },
     {"concept_id": 386918005, "term": "Docetaxel (substance)"},
     # -- Radiotherapy --
-    {"concept_id": 1287742003, "term": "Radiotherapy (procedure)"},
+    {"concept_id": 9990010012, "term": "Radiotherapy (procedure)"},
     {"concept_id": 428923005, "term": "Radiotherapy to breast (procedure)"},
     {"concept_id": 168528006, "term": "Palliative course of radiotherapy (procedure)"},
     {
@@ -138,7 +138,7 @@ _AUDIT_EXTRA_CONCEPTS: list[dict] = [
     {"concept_id": 79544006, "term": "Complete axillary lymphadenectomy (procedure)"},
     {"concept_id": 27865001, "term": "Excision of bilateral breasts (procedure)"},
     {
-        "concept_id": 1303631000,
+        "concept_id": 9990010016,
         "term": "Excision of malignant neoplasm of left breast (procedure)",
     },
     {"concept_id": 429400009, "term": "Excision of right breast (procedure)"},

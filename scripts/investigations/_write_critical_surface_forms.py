@@ -598,53 +598,53 @@ SURFACE_FORMS: list[tuple[str, str, str, float]] = [
     # =======================================================================
     # COVID-19 VACCINATION -- booster first-pass returned product concept
     # =======================================================================
-    # General COVID vaccination (1156257007)
+    # General COVID vaccination (9990010003)
     (
         "COVID-19 vaccination",
-        "1156257007",
+        "9990010003",
         "Administration of vaccine product against SARS-CoV-2 (procedure)",
         0.98,
     ),
     (
         "COVID-19 vaccine administered",
-        "1156257007",
+        "9990010003",
         "Administration of vaccine product against SARS-CoV-2 (procedure)",
         0.97,
     ),
     (
         "COVID vaccine",
-        "1156257007",
+        "9990010003",
         "Administration of vaccine product against SARS-CoV-2 (procedure)",
         0.95,
     ),
     (
         "COVID-19 immunisation",
-        "1156257007",
+        "9990010003",
         "Administration of vaccine product against SARS-CoV-2 (procedure)",
         0.95,
     ),
     # Booster (359953009) -- no specific COVID booster procedure concept
     (
         "COVID-19 booster vaccination",
-        "1156257007",
+        "9990010003",
         "Administration of vaccine product against SARS-CoV-2 (procedure)",
         0.95,
     ),
     (
         "COVID booster",
-        "1156257007",
+        "9990010003",
         "Administration of vaccine product against SARS-CoV-2 (procedure)",
         0.93,
     ),
     (
         "COVID-19 booster dose",
-        "1156257007",
+        "9990010003",
         "Administration of vaccine product against SARS-CoV-2 (procedure)",
         0.93,
     ),
     (
         "booster dose COVID vaccine",
-        "1156257007",
+        "9990010003",
         "Administration of vaccine product against SARS-CoV-2 (procedure)",
         0.92,
     ),
@@ -814,19 +814,19 @@ SURFACE_FORMS: list[tuple[str, str, str, float]] = [
     ),
     (
         "lithium monitoring",
-        "1285702007",
+        "9990010010",
         "Monitoring of lithium therapy (regime/therapy)",
         0.97,
     ),
     (
         "lithium drug monitoring",
-        "1285702007",
+        "9990010010",
         "Monitoring of lithium therapy (regime/therapy)",
         0.97,
     ),
     (
         "lithium blood level monitoring",
-        "1285702007",
+        "9990010010",
         "Monitoring of lithium therapy (regime/therapy)",
         0.93,
     ),
@@ -1339,10 +1339,10 @@ SURFACE_FORMS: list[tuple[str, str, str, float]] = [
     ("radiotherapy breast", "428923005", "Radiotherapy to breast (procedure)", 0.98),
     ("breast radiotherapy", "428923005", "Radiotherapy to breast (procedure)", 0.97),
     ("radiotherapy to breast", "428923005", "Radiotherapy to breast (procedure)", 0.98),
-    # Radiotherapy general (1287742003)
-    ("radiotherapy", "1287742003", "Radiotherapy (procedure)", 0.95),
-    ("radiation therapy", "1287742003", "Radiotherapy (procedure)", 0.95),
-    ("radiotherapy treatment", "1287742003", "Radiotherapy (procedure)", 0.93),
+    # Radiotherapy general (9990010012)
+    ("radiotherapy", "9990010012", "Radiotherapy (procedure)", 0.95),
+    ("radiation therapy", "9990010012", "Radiotherapy (procedure)", 0.95),
+    ("radiotherapy treatment", "9990010012", "Radiotherapy (procedure)", 0.93),
     (
         "external beam radiotherapy",
         "33195004",

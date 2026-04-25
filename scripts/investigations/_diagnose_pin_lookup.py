@@ -32,7 +32,7 @@ TERM_API = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8002")
 CHECKS = [
     {
         "label": "Mesothelioma CXR (1.1.4)",
-        "concept_id": "1290960005",
+        "concept_id": "9990010014",
         "resolve_terms": [
             "chest X-ray findings suggestive of mesothelioma",
             "pleural thickening on chest X-ray",

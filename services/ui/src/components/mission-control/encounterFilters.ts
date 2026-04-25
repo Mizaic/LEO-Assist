@@ -36,6 +36,8 @@ export interface FilterableEncounter {
 
 export interface CommonFilterArgs {
   codedOnly: boolean;
+  linkedOnly?: boolean;
+  linkedEncounterIds?: Set<string>;
   /** Legacy single-string search path (BackgroundSourcePicker). */
   search?: string;
   /**
@@ -63,6 +65,12 @@ export function applyCommonFilters<E extends FilterableEncounter>(
 
   return items.filter((e) => {
     if (args.codedOnly && (e.coded_count ?? 0) <= 0) return false;
+    if (
+      args.linkedOnly &&
+      !args.linkedEncounterIds?.has(String(e.encounter_id))
+    ) {
+      return false;
+    }
     for (const chip of chips) {
       const expandedTerms = expandSearchTerms(chip);
       if (expandedTerms.length && !hasAnyExpandedHit(e.text, expandedTerms)) {

@@ -4,8 +4,8 @@ Atlas trace:
   DI: DI-D983C6EE (correction-driven rulebook retrain loop)
 
 Reads ``EpisodeManualAttach`` / ``EpisodeManualDetach`` audit events
-for the three gold-sign-off patients (4246897485, 4920262426,
-6282779235), normalises them into ``CorrectionEvent`` rows, runs
+for the three gold-sign-off patients (9990001002, 9990001004,
+9990001005), normalises them into ``CorrectionEvent`` rows, runs
 the pattern miner per site, and writes a v1.1 candidate rulebook
 to ``.local/rulebook_candidates/`` for each site that yielded a
 signal. The candidates are REGISTERED only -- promotion to
@@ -46,10 +46,19 @@ from libs.episode_learning.correction_capture import (
     CorrectionEvent,
     capture_corrections_from_audit,
 )
+from libs.testing.synthetic_patient_ids import (
+    GOLD_BREAST_CLOSED_BENIGN,
+    GOLD_MULTI_PATHWAY,
+    GOLD_PROSTATE_COMPLETED,
+)
 
 logger = logging.getLogger(__name__)
 
-GOLD_PATIENTS: tuple[str, ...] = ("4246897485", "4920262426", "6282779235")
+GOLD_PATIENTS: tuple[str, ...] = (
+    GOLD_BREAST_CLOSED_BENIGN,
+    GOLD_MULTI_PATHWAY,
+    GOLD_PROSTATE_COMPLETED,
+)
 OUTPUT_DIR = Path(".local/rulebook_candidates")
 
 # Map the sign-off audit's free-text suspected_site to the canonical
@@ -154,9 +163,9 @@ def _load_baseline_bundle() -> dict[str, SiteRulebook]:
     return dict(bundle.sites)
 
 
-def _pull_audit_rows_and_codes() -> tuple[
-    list[dict[str, Any]], dict[str, set[str]], dict[str, str]
-]:
+def _pull_audit_rows_and_codes() -> (
+    tuple[list[dict[str, Any]], dict[str, set[str]], dict[str, str]]
+):
     """Fetch audit events plus two enrichment dictionaries.
 
     Returns ``(audit_rows, encounter_id -> snomed_codes,
@@ -247,9 +256,7 @@ def _enrich_audit_rows(
         # code-target gate lets the row through. Sign-off flows never
         # set the legacy correction_target field; we know by
         # construction these are coding-decision corrections.
-        patched["correction_target"] = (
-            row.get("correction_target") or "coding_decision"
-        )
+        patched["correction_target"] = row.get("correction_target") or "coding_decision"
         # Build after_json from the enriched codes so the miner sees
         # a concrete code snapshot. For attach: put codes in 'after'.
         # For detach: put codes in 'before' so the miner treats them
@@ -300,9 +307,7 @@ def _group_by_site(events: list[CorrectionEvent]) -> dict[str, list[CorrectionEv
     return grouped
 
 
-def _write_candidate(
-    candidate: SiteRulebook, *, output_dir: Path
-) -> Path:
+def _write_candidate(candidate: SiteRulebook, *, output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / f"{candidate.site_key}.v1_1_mined.json"
     path.write_text(candidate.to_json(indent=2) + "\n", encoding="utf-8")
@@ -320,9 +325,7 @@ def _print_result(result: MinerResult, output_path: Path | None) -> None:
     if result.added_referral:
         print(f"    + referral_snomed : {list(result.added_referral)}")
     if result.added_cross_site_guard:
-        print(
-            f"    + cross_site_guard: {list(result.added_cross_site_guard)}"
-        )
+        print(f"    + cross_site_guard: {list(result.added_cross_site_guard)}")
     if output_path is not None:
         print(f"    -> wrote candidate: {output_path}")
     if result.reason:
@@ -335,9 +338,7 @@ def _mine(apply_candidates: bool, output_dir: Path) -> dict[str, SiteRulebook]:
     print(f"Audit rows pulled: {len(audit_rows)}")
     print(f"Encounters with SNOMEDs: {len(encounter_codes)}")
     print(f"Episodes with site tag : {len(episode_sites)}")
-    enriched_rows = _enrich_audit_rows(
-        audit_rows, encounter_codes, episode_sites
-    )
+    enriched_rows = _enrich_audit_rows(audit_rows, encounter_codes, episode_sites)
     raw_events = capture_corrections_from_audit(enriched_rows)
     events = [_normalise_site(e) for e in raw_events]
     print(f"Normalised CorrectionEvents: {len(events)}")
@@ -381,9 +382,7 @@ def _mine(apply_candidates: bool, output_dir: Path) -> dict[str, SiteRulebook]:
         print()
         print(f"Installing {len(candidates)} mined candidate(s) into bundle...")
         set_current_bundle(
-            override_sites(
-                load_default_bundle(), {**baseline, **candidates}
-            )
+            override_sites(load_default_bundle(), {**baseline, **candidates})
         )
     return candidates
 
@@ -416,11 +415,10 @@ def _post_process_candidates(
     for site, rb in raw.items():
         res = results[site]
         base = baseline[site]
-        new_suspected = {
-            c for c in res.added_suspected if c not in common_codes
-        }
+        new_suspected = {c for c in res.added_suspected if c not in common_codes}
         new_guards = {
-            c for c in res.added_cross_site_guard
+            c
+            for c in res.added_cross_site_guard
             if c not in common_codes and c not in new_suspected
         }
         new_referral = set(res.added_referral)
@@ -431,15 +429,9 @@ def _post_process_candidates(
 
         anchors = replace(
             base.anchors,
-            suspected_snomed=_merge_codes(
-                base.anchors.suspected_snomed, new_suspected
-            ),
-            referral_snomed=_merge_codes(
-                base.anchors.referral_snomed, new_referral
-            ),
-            confirmed_snomed=_merge_codes(
-                base.anchors.confirmed_snomed, new_confirmed
-            ),
+            suspected_snomed=_merge_codes(base.anchors.suspected_snomed, new_suspected),
+            referral_snomed=_merge_codes(base.anchors.referral_snomed, new_referral),
+            confirmed_snomed=_merge_codes(base.anchors.confirmed_snomed, new_confirmed),
         )
         guards = _merge_codes(base.cross_site_guard, new_guards)
         cleaned[site] = replace(
@@ -455,9 +447,7 @@ def _post_process_candidates(
     return cleaned
 
 
-def _merge_codes(
-    existing: tuple[str, ...], additions: set[str]
-) -> tuple[str, ...]:
+def _merge_codes(existing: tuple[str, ...], additions: set[str]) -> tuple[str, ...]:
     """Order-preserving dedupe of a tuple-plus-additions."""
     seen = set(existing)
     out = list(existing)
@@ -508,13 +498,15 @@ def _cli_main(argv: list[str] | None = None) -> int:
     )
 
     print()
-    print(json.dumps(
-        {
-            "candidates_emitted": sorted(candidates.keys()),
-            "output_dir": str(Path(args.output_dir).resolve()),
-        },
-        indent=2,
-    ))
+    print(
+        json.dumps(
+            {
+                "candidates_emitted": sorted(candidates.keys()),
+                "output_dir": str(Path(args.output_dir).resolve()),
+            },
+            indent=2,
+        )
+    )
 
     if args.apply_to_dry_run and candidates:
         for pid in GOLD_PATIENTS:

@@ -97,7 +97,7 @@ CASES: list[tuple[str, str, str]] = [
     ("osteoporosis", "64859006", "Osteoporosis (not MSK history)"),
     ("osteopenia", "312894000", "Osteopenia (not MSK history)"),
     ("Chronic kidney disease", "709044004", "CKD disorder (not renal history)"),
-    ("Fatty liver", "1231824009", "Fatty liver disorder (not liver history)"),
+    ("Fatty liver", "9990010007", "Fatty liver disorder (not liver history)"),
     ("Dementia", "52448006", "Dementia disorder (not history)"),
     # --- Mental health (were on generic Mental disorder) ---
     ("depression", "35489007", "Depression disorder"),

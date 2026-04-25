@@ -54,7 +54,7 @@
     "detector_binary": "v2",
     "snomed_edition": "uk-202511"
   },
-  "rulebook_version": "v1-2026.04.0",
+  "rulebook_version": "v1-2026.04.2",
   "schema_version": "1.0.0",
   "scorer_weights": {
     "bias": -0.2,
@@ -132,6 +132,24 @@
       ]
     },
     "text_channel": {
+      "exclusion_catalogue": [
+        "\\bbreast neoplasm screening normal\\b",
+        "\\bscreening result (is )?normal\\b",
+        "\\bdid not attend breast screening clinic\\b",
+        "\\bmenopausal symptoms\\b",
+        "\\bhormone replacement therapy review\\b",
+        "\\bhrt questionnaire\\b",
+        "\\bworried about breast cancer\\b",
+        "\\brisk of breast cancer\\b",
+        "\\bhistory of breast cyst\\b",
+        "\\btried hrt patches\\b[^\\n\\r.]{0,160}\\bbreast lump\\b",
+        "\\bbreast cysts?\\b[^\\n\\r.]{0,120}\\brisk of breast cancer\\b",
+        "\\bbreat cysts?\\b[^\\n\\r.]{0,120}\\brisk of breast cancer\\b",
+        "\\bbreast screening up to date\\b",
+        "\\bfamily history of breast cancer:\\s*no\\b",
+        "\\b(?:2\\s*ww|tww|two[-\\s]+week[-\\s]+wait)\\s+neck\\b[^\\n\\r.]{0,120}\\bhas breast cancer\\b",
+        "\\bhas breast cancer\\b[^\\n\\r.]{0,120}\\b(?:2\\s*ww|tww|two[-\\s]+week[-\\s]+wait)\\s+neck\\b"
+      ],
       "context_role_catalogue": {
         "primary_care_investigations": [
           "\\b(full blood count|fbc)\\b",
@@ -163,7 +181,9 @@
           "\\bfast[- ]?track referral\\b",
           "\\breferral (sent|submitted|made|raised|actioned)\\b",
           "\\b(usc|urgent suspected cancer)\\b",
-          "\\b(refer(red)? (to|for)) (2ww|urgent|fast[- ]?track)\\b"
+          "\\b(refer(red)? (to|for)) (2ww|urgent|fast[- ]?track)\\b",
+          "\\bNHS Breast Screening Programme\\b",
+          "\\bbreast neoplasm screening (abnormal|recall)\\b"
         ],
         "related_correspondence": [
           "\\b(clinic letter|discharge summary|discharge letter)\\b",
@@ -208,7 +228,10 @@
         "\\b(lobular carcinoma|invasive ductal)\\b",
         "\\b(core biopsy|fine needle aspirat|fna)\\b",
         "\\b(one[- ]stop breast|triple assessment)\\b",
-        "\\b(oestrogen receptor|er[+-]|her2)\\b"
+        "\\b(oestrogen receptor|er[+-]|her2)\\b",
+        "\\bNHS Breast Screening Programme\\b",
+        "\\bbreast neoplasm screening (abnormal|recall)\\b",
+        "\\bscreening recall\\b"
       ]
     },
     "treatment_channel": {

@@ -11,6 +11,14 @@ from __future__ import annotations
 import json
 import logging
 import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+from libs.keyvault.loader import load_keyvault_secrets
+
+_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
+load_keyvault_secrets()
 
 from services.neo4j_mcp.tools.coded_links import TOOLS as CODED_LINK_TOOLS
 from services.neo4j_mcp.tools.cypher import TOOLS as CYPHER_TOOLS

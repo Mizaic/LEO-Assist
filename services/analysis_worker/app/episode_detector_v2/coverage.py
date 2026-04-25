@@ -23,7 +23,6 @@ from datetime import timedelta
 
 from .types import CoverageReport, ResolvedEpisode, Signal, TimelineEvent
 
-
 # How wide the "adjacent" window is around in-episode encounters.
 # 90 days picks up routine follow-up cycles for active cancer episodes
 # without spuriously claiming unrelated encounters six months away.
@@ -49,7 +48,11 @@ def check_coverage(
                 if evt is not None:
                     active_anchor_dates.append(evt.occurred_on)
 
-    encounters_with_signal = {sig.encounter_id for sig in signals}
+    encounters_with_signal = {
+        sig.encounter_id
+        for sig in signals
+        if getattr(sig, "role", "") != "context_milestone"
+    }
 
     adjacent: list[str] = []
     no_signal: list[str] = []
