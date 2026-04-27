@@ -8,8 +8,10 @@
 # services/ui/src/app/api/training/.
 /training/
 
-# Training run checkpoints (large binaries; not compatible with GitHub 100MB limit)
-/artifacts/model_checkpoints/
+# Training run checkpoints: large spaCy weights — never commit. README.txt in that
+# dir is tracked; everything else is ignored.
+/artifacts/model_checkpoints/*
+!/artifacts/model_checkpoints/README.txt
 
 # Byte-compiled / optimised / DLL files
 __pycache__/
