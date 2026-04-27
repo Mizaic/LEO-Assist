@@ -212,6 +212,168 @@ def _context_signal_eligible_for_membership(
     return False
 
 
+_PROSTATE_MEMBERSHIP_ANCHOR_TERMS: frozenset[str] = frozenset(
+    {
+        "prostate",
+        "urology",
+        "urological",
+        "psa",
+        "firmagon",
+        "degarelix",
+        "decapeptyl",
+        "triptorelin",
+        "gnrh",
+        "2ww",
+        "two week",
+        "biopsy",
+        "mdt",
+        "injection",
+        "recall",
+        "suspected cancer",
+        "fast track",
+        "usc",
+        "haematuria",
+        "luts",
+        "template biopsy",
+        "mri prostate",
+        "mp-mri",
+        "mp mri",
+        "trus",
+        "cystoscopy",
+        "prostatectomy",
+        "radiotherapy",
+        "hormone therapy",
+        "brachytherapy",
+        "adt",
+        "zoladex",
+        "eligard",
+    }
+)
+
+
+def _prostate_pathway_anchor_in_text(lower: str) -> bool:
+    return any(term in lower for term in _PROSTATE_MEMBERSHIP_ANCHOR_TERMS)
+
+
+def _prostate_encounter_is_membership_noise(lower: str) -> bool:
+    """True when free text suggests primary care / admin / other-pathway work."""
+    if not lower.strip():
+        return False
+    pathway = _prostate_pathway_anchor_in_text(lower)
+
+    if "minor injur" in lower:
+        return True
+    if "behind on accurx" in lower:
+        return True
+    if "nhs health check" in lower:
+        return True
+    # Drop weak case-management MDT rows (significant-event triage) but keep
+    # staging/diagnosis-led reviews that name prostate cancer in the note.
+    if (
+        "case management" in lower
+        and "mdt" in lower
+        and "significant event" in lower
+        and not any(
+            x in lower
+            for x in (
+                "t4",
+                "t3",
+                "t2",
+                "t1",
+                "n1",
+                "m1",
+                "metasta",
+                "ca prostate",
+                "prostate cancer",
+                "carcinoma of prostate",
+            )
+        )
+    ):
+        return True
+    if ("h pylori" in lower or "helicobacter" in lower) and not pathway:
+        return True
+    if "clinical supervision" in lower and "patient present: no" in lower:
+        return True
+    if "continence service" in lower or "llr continence" in lower:
+        if pathway:
+            return False
+        if any(
+            x in lower
+            for x in (
+                "bypassing catheter",
+                "bypassing urethral",
+                "urethral catheter",
+                "catheter",
+                "twoc",
+                "t.w.o.c",
+            )
+        ):
+            return False
+        return True
+    # Balanitis / SGLT2 foreskin bleed without urgent suspected-cancer context.
+    if "foreskin" in lower and ("dapaglif" in lower or "dapagli" in lower):
+        if not any(
+            x in lower
+            for x in (
+                "2ww",
+                "two week",
+                "suspected urological",
+                "fast track referral for suspected",
+            )
+        ):
+            return True
+    # Cardiac SPECT / coronary work triggered by chest pain -- keep out of
+    # prostate episode even when the note also lists prostate cancer history.
+    if "chest pain" in lower and "spect" in lower:
+        if "coronary" in lower or "calcified" in lower:
+            return True
+    if "chest pain" in lower and not pathway:
+        return True
+    if "foreskin" in lower and not pathway:
+        return True
+    # Auto-filed U&E tied to CKD monitoring: curators tag 2WW bloods explicitly;
+    # routine renal panels without that hook are usually not episode members.
+    if "auto-filed" in lower:
+        if "psa" not in lower and "prostate-specific antigen" not in lower:
+            if "serum urea level" in lower or "urea and electrolytes" in lower:
+                if "2ww" not in lower and "two week" not in lower:
+                    if not pathway:
+                        return True
+    if "phlebotomy" in lower and "routine" in lower and "psa" not in lower:
+        if not pathway:
+            return True
+    if "short message service" in lower and not pathway:
+        if "catheter" not in lower:
+            return True
+    return False
+
+
+def _drop_prostate_low_value_encounters(
+    encounter_ids: list[str],
+    timeline: list[TimelineEvent],
+    *,
+    anchor_event_id: str,
+) -> list[str]:
+    """Strip admin / other-service encounters curators usually omit.
+
+    Text-only heuristics: coded-only rows with an empty snippet are kept.
+    The referral anchor is never removed.
+    """
+    by_id = {e.encounter_id: e for e in timeline}
+    anchor = (anchor_event_id or "").strip()
+    out: list[str] = []
+    for eid in encounter_ids:
+        if eid == anchor:
+            out.append(eid)
+            continue
+        ev = by_id.get(eid)
+        lower = ((ev.text_snippet if ev else "") or "").lower()
+        if _prostate_encounter_is_membership_noise(lower):
+            continue
+        out.append(eid)
+    return out
+
+
 # Strict ordering of confidence tiers -- higher index wins when two
 # rows for the same episode_id disagree.
 _TIER_PRIORITY = {"review": 0, "suggest": 1, "auto": 2}
@@ -573,8 +735,12 @@ async def build_episodes(
     for agg in resolved_aggs:
         cand = agg.candidate
         boundary = detect_boundary(agg, timeline)
-        consensus = consensus_map.get(
-            f"{cand.site_key}|{cand.anchor_event_id}", [cand.generator]
+        consensus = (
+            list(agg.consensus_generators)
+            if agg.consensus_generators is not None
+            else consensus_map.get(
+                f"{cand.site_key}|{cand.anchor_event_id}", [cand.generator]
+            )
         )
         tier, reasons = assign_confidence_tier(agg, consensus)
         all_signals = [s for sl in agg.signals_by_channel.values() for s in sl]
@@ -674,6 +840,12 @@ async def build_episodes(
             candidate_encounter_ids=scoped_encounters,
             timeline=timeline,
         )
+        if cand.site_key == "prostate_urological":
+            scoped_encounters = _drop_prostate_low_value_encounters(
+                scoped_encounters,
+                timeline,
+                anchor_event_id=cand.anchor_event_id or "",
+            )
         if boundary.status == "benign_closure":
             scoped_encounters = _filter_to_boundary(
                 scoped_encounters,

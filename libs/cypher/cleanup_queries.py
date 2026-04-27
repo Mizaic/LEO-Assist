@@ -8,6 +8,25 @@ Atlas trace:
 Centralised from services/api/app/models/neo4j_schema.py.
 """
 
+# Patient -> SNOMED-ish shortcuts: current pipeline names (documents_queries._REL_BY_LABEL)
+# plus legacy types still seen in graphs (e.g. gds_projection_manager).
+PATIENT_SEMANTIC_SHORTCUT_REL_TYPES: tuple[str, ...] = (
+    "HAS_FINDING",
+    "HAS_DISORDER",
+    "HAS_DISEASE",
+    "HAS_CLINICAL_FINDING",
+    "HAS_SITUATION",
+    "HAS_OBSERVABLE",
+    "HAS_OBSERVABLE_ENTITY",
+    "HAS_PROCEDURE",
+    "HAS_CONCEPT",
+)
+
+_PATIENT_SEMANTIC_SHORTCUT_REL_UNION = "|".join(PATIENT_SEMANTIC_SHORTCUT_REL_TYPES)
+_PATIENT_SEMANTIC_SHORTCUT_REL_LIST = ",\n  ".join(
+    f"'{name}'" for name in PATIENT_SEMANTIC_SHORTCUT_REL_TYPES
+)
+
 RESET_PATIENT_REVIEW_QUEUE = """
 MATCH (c:EncounterCandidate)
 WHERE toString(c.patient_id) = $patient_id
@@ -41,17 +60,23 @@ FOREACH (n IN nodes | DETACH DELETE n)
 RETURN deleted
 """
 
+# Encounter-[:DOCUMENTS]-> and Chunk-[:DOCUMENTS]-> (sentence-level coding).
 RESET_PATIENT_DOCUMENTS = """
-MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)-[r:DOCUMENTS]->()
+MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
-WITH collect(r) AS rels
+OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(:Encounter)-[re:DOCUMENTS]->()
+WITH p, collect(re) AS enc_col
+OPTIONAL MATCH (p)-[:HAS_DOCUMENT_REFERENCE]->(:DocumentReference)
+      -[:HAS_CHUNK]->(:Chunk)-[rc:DOCUMENTS]->()
+WITH [r IN enc_col + collect(rc) WHERE r IS NOT NULL] AS rels
 WITH rels, size(rels) AS links_deleted
 FOREACH (rel IN rels | DELETE rel)
 RETURN links_deleted
 """
 
-RESET_PATIENT_DIRECT_SEMANTIC = """
-MATCH (p:Patient)-[r:HAS_FINDING|HAS_DISORDER|HAS_SITUATION|HAS_OBSERVABLE|HAS_PROCEDURE|HAS_CONCEPT]->()
+# Patient-level shortcuts parallel to DOCUMENTS (PATIENT_SEMANTIC_SHORTCUT_REL_TYPES).
+RESET_PATIENT_DIRECT_SEMANTIC = f"""
+MATCH (p:Patient)-[r:{_PATIENT_SEMANTIC_SHORTCUT_REL_UNION}]->()
 WHERE toString(p.id) = $patient_id
 WITH collect(r) AS rels
 WITH rels, size(rels) AS direct_deleted
@@ -90,58 +115,66 @@ RETURN count(e) AS deleted
 """
 
 RESET_PATIENT_ALERTS = """
-MATCH (p:Patient)-[:HAS_SAFETY_NET_ALERT]->(a:SafetyNetAlert)
+MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
-WITH collect(DISTINCT a) AS linked_alerts
-MATCH (a:SafetyNetAlert)
-WHERE toString(a.patient_id) = $patient_id
-WITH linked_alerts, collect(DISTINCT a) AS direct_alerts
-WITH linked_alerts + direct_alerts AS alerts
-WITH [x IN alerts WHERE x IS NOT NULL | x] AS nodes
-WITH nodes, size(nodes) AS deleted
-FOREACH (n IN nodes | DETACH DELETE n)
+OPTIONAL MATCH (p)-[:HAS_SAFETY_NET_ALERT]->(a1:SafetyNetAlert)
+WITH p, collect(DISTINCT a1) AS linked_alerts
+OPTIONAL MATCH (a2:SafetyNetAlert)
+WHERE toString(a2.patient_id) = toString(p.id)
+WITH linked_alerts, collect(DISTINCT a2) AS direct_alerts
+WITH linked_alerts + direct_alerts AS raw
+UNWIND raw AS n
+WITH collect(DISTINCT n) AS nodes
+WITH [x IN nodes WHERE x IS NOT NULL] AS clean, size([x IN nodes WHERE x IS NOT NULL]) AS deleted
+FOREACH (x IN clean | DETACH DELETE x)
 RETURN deleted
 """
 
 RESET_PATIENT_EPISODES = """
-MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare)
+MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
-WITH collect(DISTINCT ep) AS linked_episodes
-MATCH (ep:EpisodeOfCare)
-WHERE toString(ep.patient_id) = $patient_id
-WITH linked_episodes, collect(DISTINCT ep) AS direct_episodes
-WITH linked_episodes + direct_episodes AS episodes
-WITH [x IN episodes WHERE x IS NOT NULL | x] AS nodes
-WITH nodes, size(nodes) AS deleted
-FOREACH (n IN nodes | DETACH DELETE n)
+OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep1:EpisodeOfCare)
+WITH p, collect(DISTINCT ep1) AS linked_episodes
+OPTIONAL MATCH (ep2:EpisodeOfCare)
+WHERE toString(ep2.patient_id) = toString(p.id)
+WITH linked_episodes, collect(DISTINCT ep2) AS direct_episodes
+WITH linked_episodes + direct_episodes AS raw
+UNWIND raw AS n
+WITH collect(DISTINCT n) AS nodes
+WITH [x IN nodes WHERE x IS NOT NULL] AS clean, size([x IN nodes WHERE x IS NOT NULL]) AS deleted
+FOREACH (x IN clean | DETACH DELETE x)
 RETURN deleted
 """
 
 RESET_PATIENT_LEGACY_ALERTS = """
-MATCH (p:Patient)-[:HAS_CSS_ALERT]->(a:CSSAlert)
+MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
-WITH collect(DISTINCT a) AS linked_alerts
-MATCH (a:CSSAlert)
-WHERE toString(a.patient_id) = $patient_id
-WITH linked_alerts, collect(DISTINCT a) AS direct_alerts
-WITH linked_alerts + direct_alerts AS alerts
-WITH [x IN alerts WHERE x IS NOT NULL | x] AS nodes
-WITH nodes, size(nodes) AS deleted
-FOREACH (n IN nodes | DETACH DELETE n)
+OPTIONAL MATCH (p)-[:HAS_CSS_ALERT]->(a1:CSSAlert)
+WITH p, collect(DISTINCT a1) AS linked_alerts
+OPTIONAL MATCH (a2:CSSAlert)
+WHERE toString(a2.patient_id) = toString(p.id)
+WITH linked_alerts, collect(DISTINCT a2) AS direct_alerts
+WITH linked_alerts + direct_alerts AS raw
+UNWIND raw AS n
+WITH collect(DISTINCT n) AS nodes
+WITH [x IN nodes WHERE x IS NOT NULL] AS clean, size([x IN nodes WHERE x IS NOT NULL]) AS deleted
+FOREACH (x IN clean | DETACH DELETE x)
 RETURN deleted
 """
 
 RESET_PATIENT_LEGACY_EPISODES = """
-MATCH (p:Patient)-[:HAS_EPISODE]->(ep:CancerEpisode)
+MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
-WITH collect(DISTINCT ep) AS linked_episodes
-MATCH (ep:CancerEpisode)
-WHERE toString(ep.patient_id) = $patient_id
-WITH linked_episodes, collect(DISTINCT ep) AS direct_episodes
-WITH linked_episodes + direct_episodes AS episodes
-WITH [x IN episodes WHERE x IS NOT NULL | x] AS nodes
-WITH nodes, size(nodes) AS deleted
-FOREACH (n IN nodes | DETACH DELETE n)
+OPTIONAL MATCH (p)-[:HAS_EPISODE]->(ep1:CancerEpisode)
+WITH p, collect(DISTINCT ep1) AS linked_episodes
+OPTIONAL MATCH (ep2:CancerEpisode)
+WHERE toString(ep2.patient_id) = toString(p.id)
+WITH linked_episodes, collect(DISTINCT ep2) AS direct_episodes
+WITH linked_episodes + direct_episodes AS raw
+UNWIND raw AS n
+WITH collect(DISTINCT n) AS nodes
+WITH [x IN nodes WHERE x IS NOT NULL] AS clean, size([x IN nodes WHERE x IS NOT NULL]) AS deleted
+FOREACH (x IN clean | DETACH DELETE x)
 RETURN deleted
 """
 
@@ -169,7 +202,7 @@ WHERE toString(p.id) = $patient_id AND toString(e.id) = $encounter_id
 RETURN collect(DISTINCT toString(s.conceptId)) AS concept_ids
 """
 
-CLEANUP_PATIENT_SHORTCUTS_FOR_CONCEPTS = """
+CLEANUP_PATIENT_SHORTCUTS_FOR_CONCEPTS = f"""
 UNWIND $concept_ids AS cid
 MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
@@ -181,12 +214,7 @@ WITH p, s, cid, count(r2) AS remaining_docs
 WHERE remaining_docs = 0
 OPTIONAL MATCH (p)-[pr]->(s)
 WHERE type(pr) IN [
-  'HAS_FINDING',
-  'HAS_DISORDER',
-  'HAS_SITUATION',
-  'HAS_OBSERVABLE',
-  'HAS_PROCEDURE',
-  'HAS_CONCEPT'
+  {_PATIENT_SEMANTIC_SHORTCUT_REL_LIST}
 ]
 WITH cid, collect(pr) AS rels
 UNWIND rels AS rel

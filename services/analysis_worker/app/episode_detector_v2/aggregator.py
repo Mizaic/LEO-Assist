@@ -22,6 +22,8 @@ class AggregatedCandidate:
     evidence_weight: float
     channel_diversity: int
     signals_by_channel: dict[str, list[Signal]]
+    # When the resolver merges a cluster, generators from all members (for tiering).
+    consensus_generators: tuple[str, ...] | None = None
 
 
 def aggregate_evidence(

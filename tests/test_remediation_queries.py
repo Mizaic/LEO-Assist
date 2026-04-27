@@ -68,8 +68,17 @@ class TestCleanupPatientShortcut:
 
     def test_only_removes_known_shortcut_relationship_types(self):
         s = q.CLEANUP_PATIENT_SHORTCUT
-        for rel in ("HAS_FINDING", "HAS_DISORDER", "HAS_SITUATION",
-                    "HAS_OBSERVABLE", "HAS_PROCEDURE", "HAS_CONCEPT"):
+        for rel in (
+            "HAS_FINDING",
+            "HAS_DISORDER",
+            "HAS_DISEASE",
+            "HAS_CLINICAL_FINDING",
+            "HAS_SITUATION",
+            "HAS_OBSERVABLE",
+            "HAS_OBSERVABLE_ENTITY",
+            "HAS_PROCEDURE",
+            "HAS_CONCEPT",
+        ):
             assert rel in s
 
     def test_does_not_detach_delete_concept_nodes(self):

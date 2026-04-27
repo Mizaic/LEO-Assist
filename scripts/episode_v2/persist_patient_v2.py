@@ -33,11 +33,14 @@ def _parse_tiers(raw: str) -> FrozenSet[str]:
 
 
 async def _run(patient_id: str, tiers: FrozenSet[str]) -> int:
+    # Before PatientGraphClient: that module load_dotenv's .env.config with
+    # override=True, which sets AZURE_KEYVAULT_URL and would force the KV
+    # path in load_keyvault_secrets() even when azure-keyvault is not installed.
     from libs.keyvault.loader import load_keyvault_secrets
-    from libs.neo4j_client.client import PatientGraphClient
-    from services.analysis_worker.app.episode_detector_v2.runner import build_episodes
 
     load_keyvault_secrets()
+    from libs.neo4j_client.client import PatientGraphClient
+    from services.analysis_worker.app.episode_detector_v2.runner import build_episodes
     _install_v1_bundle()
     client = PatientGraphClient()
     try:

@@ -78,7 +78,7 @@ def test_returns_empty_for_empty_input():
     assert resolve_conflicts([]) == []
 
 
-def test_same_site_anchors_months_apart_do_not_merge_on_overlap():
+def test_same_site_distant_anchors_merge_when_encounter_windows_overlap():
     first = _agg(
         "c-first",
         anchor="referral-2024",
@@ -91,8 +91,8 @@ def test_same_site_anchors_months_apart_do_not_merge_on_overlap():
         anchor_date=date(2025, 4, 22),
         encounter_ids=["shared", "referral-2025"],
     )
-    # Simulate the broad search windows sharing historical signals; the
-    # explicit anchor gap still means these are separate referral episodes.
+    # Broad windows can share encounters while anchors sit far apart; one
+    # clinical episode should survive with merged encounter membership.
     first.signals_by_channel["code"] = [
         Signal(
             channel="code",
@@ -107,4 +107,29 @@ def test_same_site_anchors_months_apart_do_not_merge_on_overlap():
 
     survivors = resolve_conflicts([first, second])
 
-    assert [s.candidate.candidate_id for s in survivors] == ["c-first", "c-second"]
+    assert len(survivors) == 1
+    assert set(survivors[0].candidate.encounter_ids) == {
+        "shared",
+        "referral-2024",
+        "referral-2025",
+    }
+    assert survivors[0].consensus_generators == ("referral_anchored",)
+
+
+def test_same_site_distant_anchors_stay_separate_when_windows_disjoint():
+    first = _agg(
+        "c-first",
+        anchor="referral-2024",
+        anchor_date=date(2024, 6, 10),
+        encounter_ids=["a", "referral-2024"],
+    )
+    second = _agg(
+        "c-second",
+        anchor="referral-2025",
+        anchor_date=date(2025, 4, 22),
+        encounter_ids=["x", "referral-2025"],
+    )
+
+    survivors = resolve_conflicts([first, second])
+
+    assert {s.candidate.candidate_id for s in survivors} == {"c-first", "c-second"}

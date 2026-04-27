@@ -165,3 +165,7 @@ def test_resolver_collapses_overlapping_same_site_candidates():
     resolved = resolve_conflicts([early, diagnosis])
 
     assert [agg.candidate.candidate_id for agg in resolved] == ["cand-dx"]
+    assert resolved[0].consensus_generators == (
+        "diagnosis_anchored",
+        "site_cohort_anchored",
+    )

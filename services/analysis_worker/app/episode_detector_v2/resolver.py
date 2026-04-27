@@ -14,8 +14,11 @@ interface stays stable.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import replace
+from datetime import date
 
 from .aggregator import AggregatedCandidate
+from .types import Signal
 
 _CLUSTER_OVERLAP_THRESHOLD = 0.45
 _CLUSTER_ANCHOR_DAYS = 45
@@ -43,7 +46,7 @@ def resolve_conflicts(
                 break
         else:
             clusters.append([agg])
-    resolved = [_best_candidate(cluster) for cluster in clusters]
+    resolved = [_merge_cluster(cluster) for cluster in clusters]
     return sorted(resolved, key=lambda a: (a.candidate.site_key, a.candidate.candidate_id))
 
 
@@ -53,6 +56,9 @@ def _same_cluster(left: AggregatedCandidate, right: AggregatedCandidate) -> bool
     if l_cand.site_key != r_cand.site_key:
         return False
     if l_cand.anchor_event_id and l_cand.anchor_event_id == r_cand.anchor_event_id:
+        return True
+    win_overlap = _encounter_overlap(l_cand.encounter_ids, r_cand.encounter_ids)
+    if win_overlap >= _CLUSTER_OVERLAP_THRESHOLD:
         return True
     l_date = l_cand.anchor_date
     r_date = r_cand.anchor_date
@@ -99,3 +105,80 @@ def _best_candidate(cluster: list[AggregatedCandidate]) -> AggregatedCandidate:
             agg.candidate.candidate_id,
         ),
     )[0]
+
+
+def _ordered_encounter_union(cluster: list[AggregatedCandidate]) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for agg in sorted(
+        cluster,
+        key=lambda a: (
+            a.candidate.anchor_date or date.min,
+            a.candidate.anchor_event_id,
+        ),
+    ):
+        for eid in agg.candidate.encounter_ids:
+            if eid not in seen:
+                seen.add(eid)
+                ordered.append(eid)
+    return ordered
+
+
+def _merge_supporting_signals(cluster: list[AggregatedCandidate]) -> list[Signal]:
+    merged: list[Signal] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for agg in cluster:
+        for sig in agg.candidate.supporting_signals:
+            key = (sig.channel, sig.encounter_id, sig.site_key, sig.intent)
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(sig)
+    return merged
+
+
+def _merge_signals_by_channel(
+    cluster: list[AggregatedCandidate],
+) -> dict[str, list[Signal]]:
+    all_signals: list[Signal] = []
+    for agg in cluster:
+        for sigs in agg.signals_by_channel.values():
+            all_signals.extend(sigs)
+    seen: set[tuple[str, str, str, str]] = set()
+    deduped: list[Signal] = []
+    for sig in all_signals:
+        key = (sig.channel, sig.encounter_id, sig.site_key, sig.intent)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(sig)
+    by_channel: dict[str, list[Signal]] = {}
+    for sig in deduped:
+        by_channel.setdefault(sig.channel, []).append(sig)
+    return by_channel
+
+
+def _merge_cluster(cluster: list[AggregatedCandidate]) -> AggregatedCandidate:
+    if len(cluster) == 1:
+        return cluster[0]
+    best = _best_candidate(cluster)
+    by_channel = _merge_signals_by_channel(cluster)
+    diversity = len(by_channel)
+    flat = [s for sigs in by_channel.values() for s in sigs]
+    weight = round(
+        sum(s.confidence for s in flat) * (1.0 + 0.1 * (diversity - 1)),
+        4,
+    )
+    merged_cand = replace(
+        best.candidate,
+        encounter_ids=_ordered_encounter_union(cluster),
+        supporting_signals=_merge_supporting_signals(cluster),
+    )
+    gens = tuple(sorted({agg.candidate.generator for agg in cluster}))
+    return AggregatedCandidate(
+        candidate=merged_cand,
+        evidence_weight=weight,
+        channel_diversity=diversity,
+        signals_by_channel=by_channel,
+        consensus_generators=gens,
+    )
