@@ -95,13 +95,64 @@ def _context_signal_eligible_for_membership(
     event = event_by_id.get(signal.encounter_id)
     text = (event.text_snippet if event else "") or ""
     lower = text.lower()
-    if tag in {
-        "referral_sent",
-        "related_gp_visit",
-        "specialist_diagnostics",
-        "related_specialist_visit",
-    }:
+    if tag == "referral_sent":
+        # Rulebook referral_sent lines are already USC/2WW-heavy; keep them.
         return True
+    if tag == "related_gp_visit":
+        # The prostate rulebook also lists plain "GP consultation" lines; those
+        # must not pull every primary-care contact into a cancer episode.
+        return any(
+            x in lower
+            for x in (
+                "firmagon",
+                "degarelix",
+                "psd",
+                "patient specific direction",
+                "drug injection",
+            )
+        ) or (
+            "authori" in lower
+            and ("firmagon" in lower or "degarelix" in lower)
+        )
+    if tag == "specialist_diagnostics":
+        return any(
+            x in lower
+            for x in (
+                "prostate",
+                "urology",
+                "urological",
+                "psa",
+                "trus",
+                "mri prostate",
+                "mp-mri",
+                "mp mri",
+                "template biopsy",
+                "transperineal",
+                "bone scan",
+                "spect",
+                "transrectal",
+                "cystoscopy",
+            )
+        )
+    if tag == "related_specialist_visit":
+        return any(
+            x in lower
+            for x in (
+                "prostate",
+                "urology",
+                "urological",
+                "psa",
+                "oncology",
+                "biopsy",
+                "mdt",
+                "2ww",
+                "2 ww",
+                "suspected cancer",
+                "care navigation",
+                "follow-up after biopsy",
+                "follow up after biopsy",
+            )
+        )
     if tag == "related_correspondence":
         return any(
             x in lower
