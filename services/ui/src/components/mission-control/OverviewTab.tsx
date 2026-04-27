@@ -22,6 +22,8 @@ import StatusBadge from "./StatusBadge";
 import VariationPanel from "./VariationPanel";
 import { getStatusLabel, getCancerTypeLabel, getDiagnosticIntervalColour } from "@/lib/pathwayLabels";
 import type { MissionEpisode, MissionPatient } from "@/lib/missionControlApi";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskAge, maskGpName, maskPatientId } from "@/lib/demoMode";
 import {
   STATUS_COMPLETED,
   STATUS_CLOSED_BENIGN,
@@ -161,6 +163,7 @@ export default function OverviewTab({
   onFocusEpisode,
   episodes,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const episodeList = episodes ?? patient.episodes;
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -175,14 +178,16 @@ export default function OverviewTab({
               ID
             </Typography>
             <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
-              {patient.patient_id}
+              {isDemoMode ? maskPatientId(patient.patient_id) : patient.patient_id}
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" color="text.secondary">
               Age
             </Typography>
-            <Typography variant="body2">{patient.age ?? "--"}</Typography>
+            <Typography variant="body2">
+              {isDemoMode ? maskAge(patient.age) : patient.age ?? "--"}
+            </Typography>
           </Box>
           <Box>
             <Typography variant="caption" color="text.secondary">
@@ -196,7 +201,11 @@ export default function OverviewTab({
             <Typography variant="caption" color="text.secondary">
               Practice
             </Typography>
-            <Typography variant="body2">{patient.practice_name ?? "--"}</Typography>
+            <Typography variant="body2">
+              {isDemoMode
+                ? maskGpName(patient.practice_name)
+                : patient.practice_name ?? "--"}
+            </Typography>
           </Box>
         </Box>
       </Box>

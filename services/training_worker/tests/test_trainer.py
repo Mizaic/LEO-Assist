@@ -153,6 +153,14 @@ class TestConfigHygieneOverrides(unittest.TestCase):
             text = self._write()
         self.assertRegex(text, r"(?m)^window\s*=\s*256$")
 
+    def test_max_steps_override_updates_training_and_lr_schedule(self):
+        import os
+
+        with patch.dict(os.environ, {"TRAINING_MAX_STEPS": "4000"}):
+            text = self._write()
+        self.assertRegex(text, r"(?m)^max_steps\s*=\s*4000$")
+        self.assertRegex(text, r"(?m)^total_steps\s*=\s*4000$")
+
     def test_mixed_precision_only_flips_on_cuda(self):
         text_cpu = self._write(accelerator_resolved="cpu")
         self.assertRegex(text_cpu, r"(?m)^mixed_precision\s*=\s*false$")
@@ -211,3 +219,50 @@ class TestConfigHygieneOverrides(unittest.TestCase):
         # Window/stride match the plan's Wave 1 bundle.
         self.assertRegex(text, r"(?m)^window\s*=\s*256$")
         self.assertRegex(text, r"(?m)^stride\s*=\s*192$")
+
+
+class TestTrainingWallTimeout(unittest.TestCase):
+    """TRAINING_JOB_TIMEOUT_S parsing keeps local runs uncapped by default."""
+
+    def test_unset_timeout_disables_wall_cap(self):
+        import os
+
+        from app.trainer import _parse_training_wall_timeout_s
+
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("TRAINING_JOB_TIMEOUT_S", None)
+            self.assertEqual(_parse_training_wall_timeout_s(), 0)
+
+    def test_zero_timeout_disables_wall_cap(self):
+        import os
+
+        from app.trainer import _parse_training_wall_timeout_s
+
+        with patch.dict(os.environ, {"TRAINING_JOB_TIMEOUT_S": "0"}):
+            self.assertEqual(_parse_training_wall_timeout_s(), 0)
+
+    def test_positive_timeout_is_used(self):
+        import os
+
+        from app.trainer import _parse_training_wall_timeout_s
+
+        with patch.dict(os.environ, {"TRAINING_JOB_TIMEOUT_S": "43200"}):
+            self.assertEqual(_parse_training_wall_timeout_s(), 43200)
+
+    def test_timeout_recovery_accepts_saved_model_best(self):
+        from app.trainer import _recover_saved_model
+
+        logs = []
+        with tempfile.TemporaryDirectory() as tmp:
+            model_best = Path(tmp) / "model-best"
+            model_best.mkdir()
+            (model_best / "meta.json").write_text("{}", encoding="utf-8")
+
+            recovered = _recover_saved_model(
+                Path(tmp),
+                ["Training exceeded wall-clock training timeout"],
+                logs.append,
+            )
+
+        self.assertEqual(recovered, model_best)
+        self.assertTrue(any("recovering model-best" in line for line in logs))

@@ -171,7 +171,33 @@ def _is_backdated_or_review_restatement(
         return True
     if is_problem_list_source and "cancer care review" in text:
         return True
+    if is_problem_list_source and _is_historical_breast_diagnosis_reference(
+        text, evidence
+    ):
+        return True
     return False
+
+
+def _is_historical_breast_diagnosis_reference(text: str, evidence: str) -> bool:
+    haystack = f"{text} {evidence}"
+    return bool(
+        re.search(
+            r"\b(?:diagnosed|diagnosis)\s+with\s+(?:ca\s+)?breast\s+"
+            r"(?:cancer|ca)\b.{0,80}\b(?:ago|previous|past|history)\b",
+            haystack,
+        )
+        or re.search(
+            r"\b(?:ago|previous|past|history)\b.{0,80}"
+            r"\b(?:diagnosed|diagnosis)\s+with\s+(?:ca\s+)?breast\s+"
+            r"(?:cancer|ca)\b",
+            haystack,
+        )
+        or re.search(
+            r"\bstopped smoking\s+\d+\s+years?\s+ago\s+when diagnosed with "
+            r"breast cancer\b",
+            haystack,
+        )
+    )
 
 
 def _has_same_encounter_diagnostic_context(text: str, evidence: str) -> bool:

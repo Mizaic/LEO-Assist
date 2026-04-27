@@ -35,6 +35,8 @@ import {
   type GoldLabel,
   type DualSaveEncounterContext,
 } from "@/components/gold-editor";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskEncounterText } from "@/lib/demoMode";
 import { milestoneLabel } from "./milestoneOptions";
 import type { EncounterEpisodeLink } from "./useMilestoneCuration";
 
@@ -112,6 +114,7 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
       episodeLinks,
       onUnlinkFromEpisode,
     } = props;
+    const { isDemoMode } = useDemoMode();
     const linkedSlots = currentMilestoneTypes ?? [];
     const episodeChips = episodeLinks ?? [];
     const hasLinkedSlots = linkedSlots.length > 0;
@@ -135,6 +138,7 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
     );
     const showRationaleChips =
       expandedTerms.length > 0 && matchRationale.hitTerms.length > 0;
+    const displayText = isDemoMode ? maskEncounterText(enc.text) : enc.text;
 
     // Inline shared editor state (DI-LEO-AI-220/221) -- replaces the
     // legacy /care/patients/.../encounters/.../ deep-link page so the
@@ -271,7 +275,7 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
               />
             )
           )}
-          {showRationaleChips && (
+          {showRationaleChips && !isDemoMode && (
             <Box
               data-testid="encounter-card-match-rationale"
               sx={{
@@ -392,12 +396,15 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
                 lineHeight: 1.6,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
-                color: enc.text ? "text.primary" : "text.disabled",
-                fontStyle: enc.text ? "normal" : "italic",
+                color: displayText ? "text.primary" : "text.disabled",
+                fontStyle: displayText ? "normal" : "italic",
               }}
             >
-              {enc.text ? (
-                <HighlightedText text={enc.text} terms={highlightTerms} />
+              {displayText ? (
+                <HighlightedText
+                  text={displayText}
+                  terms={isDemoMode ? [] : highlightTerms}
+                />
               ) : (
                 "No text available for this encounter."
               )}

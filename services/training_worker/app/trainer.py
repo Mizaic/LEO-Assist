@@ -17,8 +17,8 @@ Hub (cached in HF_HOME) — it is never packed into the blob artifact.
 ``TRAINING_JOB_TIMEOUT_S`` caps **wall-clock** time for a single ``spacy train``
 subprocess. The previous implementation only passed ``timeout=`` to ``wait()``
 after log streaming finished, so it did not end long runs. A watchdog thread
-enforces the limit. Set to ``0`` to disable. ``TRAINING_SEEDS`` runs one
-subprocess per seed; the cap applies to **each** run.
+enforces the limit. Unset or ``0`` disables the cap. ``TRAINING_SEEDS`` runs
+one subprocess per seed; the cap applies to **each** run.
 """
 
 from __future__ import annotations
@@ -51,13 +51,12 @@ _VALID_LR_SCHEDULES = {"warmup_linear", "cosine"}
 def _parse_training_wall_timeout_s() -> int:
     """Return wall-clock cap in seconds for one ``spacy train`` subprocess.
 
-    Reads ``TRAINING_JOB_TIMEOUT_S`` at call time. ``0`` or empty disables the
-    cap. When the variable is unset, defaults to 3600 (1 hour) for local use;
-    deploy environments often set a higher value (e.g. 12h in AKS).
+    Reads ``TRAINING_JOB_TIMEOUT_S`` at call time. Unset, ``0``, or empty
+    disables the cap. Deploy environments may set a finite value.
     """
     raw = os.environ.get("TRAINING_JOB_TIMEOUT_S")
     if raw is None:
-        return 3600
+        return 0
     raw = raw.strip()
     if not raw or raw == "0":
         return 0
@@ -554,6 +553,9 @@ def _write_filled_config(
         accelerator (F5) — MPS and CPU runs do not support PyTorch AMP.
       * TRAINING_LR_SCHEDULE=cosine swaps ``warmup_linear.v1`` for
         ``warmup_cosine.v1`` with matching warmup/total steps (F14).
+      * TRAINING_MAX_STEPS overrides ``training.max_steps`` and the LR
+        schedule's ``total_steps`` so long local runs can stop at the observed
+        plateau without editing the controlled base config.
     """
     config_text = _CONFIG_PATH.read_text(encoding="utf-8")
 
@@ -610,6 +612,21 @@ def _write_filled_config(
         config_text = re.sub(
             r"(?m)^mixed_precision\s*=\s*false",
             "mixed_precision = true",
+            config_text,
+            count=1,
+        )
+
+    max_steps = _env_int("TRAINING_MAX_STEPS", 0)
+    if max_steps > 0:
+        config_text = re.sub(
+            r"(?m)^max_steps\s*=\s*\d+",
+            f"max_steps = {max_steps}",
+            config_text,
+            count=1,
+        )
+        config_text = re.sub(
+            r"(?m)^total_steps\s*=\s*\d+",
+            f"total_steps = {max_steps}",
             config_text,
             count=1,
         )
@@ -706,7 +723,11 @@ def _recover_saved_model(
 ) -> Optional[Path]:
     """Return a saved checkpoint if spaCy aborted after writing one."""
     joined = "\n".join(lines).lower()
-    if "aborting and saving the final best model" not in joined:
+    saved_after_abort = "aborting and saving the final best model" in joined
+    saved_after_timeout = (
+        "wall-clock training timeout" in joined or "wall-clock limit" in joined
+    )
+    if not saved_after_abort and not saved_after_timeout:
         return None
 
     model_best = output_dir / "model-best"
@@ -836,6 +857,15 @@ def _run_spacy_train(
                 logger.warning("Training subprocess did not exit after kill")
 
     if wall_timeout.is_set():
+        timeout_message = (
+            f"Training exceeded wall-clock limit of {wall_s}s (TRAINING_JOB_TIMEOUT_S). "
+            f"Recovering a saved checkpoint if one exists."
+        )
+        lines.append(timeout_message)
+        log(timeout_message)
+        recovered = _recover_saved_model(output_dir, lines, log)
+        if recovered is not None:
+            return 0, lines
         raise RuntimeError(
             f"Training exceeded wall-clock limit of {wall_s}s (TRAINING_JOB_TIMEOUT_S). "
             f"Increase the variable or set it to 0 to disable the cap."

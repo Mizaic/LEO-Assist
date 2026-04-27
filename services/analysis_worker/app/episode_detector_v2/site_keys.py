@@ -294,6 +294,7 @@ SUSPECTED_SITE_SNOMED: dict[str, tuple[str, str]] = {
     "118600007": (SITE_HAEMATOLOGY, "confirmed"),  # Lymphoma
     "92814006": (SITE_HAEMATOLOGY, "confirmed"),  # Chronic lymphoid leukaemia
     "302841002": (SITE_HAEMATOLOGY, "confirmed"),  # Small lymphocytic lymphoma
+    "425333006": (SITE_HAEMATOLOGY, "confirmed"),  # Myeloproliferative disorder
     # Brain / CNS
     "315278009": (SITE_BRAIN_CNS, "suspected"),  # Suspected brain tumour
     "428061005": (SITE_BRAIN_CNS, "confirmed"),  # Malignant neoplasm of brain

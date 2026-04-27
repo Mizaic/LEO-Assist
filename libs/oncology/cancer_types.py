@@ -135,12 +135,14 @@ _RAW_TO_CANONICAL: dict[str, str] = {
     # unless the more-specific rule below routes elsewhere.
     "head and neck": CancerType.OROPHARYNGEAL.value,
     "head & neck": CancerType.OROPHARYNGEAL.value,
+    "head_neck": CancerType.OROPHARYNGEAL.value,
     "thyroid/neck (non-site-specific pathway)": CancerType.THYROID.value,
     # Anal cancer sits under the lower-GI / colorectal MDT pathway.
     "anal": CancerType.COLORECTAL.value,
     # Upper-GI is a referral pathway, not a site. Surface as Other and
     # let the constrained LLM pick a specific site for new episodes.
     "upper gi": CancerType.OTHER.value,
+    "upper_gi": CancerType.OTHER.value,
     "upper gastrointestinal": CancerType.OTHER.value,
     # Gastric / oesophageal junction -- record under Oesophageal because
     # the dominant body of evidence in the audited records was the
@@ -152,15 +154,18 @@ _RAW_TO_CANONICAL: dict[str, str] = {
     # combos like "urinary bladder / prostate" go to Prostate (the
     # tumour confirmed for that patient in the audit data).
     "urological": CancerType.OTHER.value,
+    "prostate_urological": CancerType.OTHER.value,
     "urinary bladder / prostate": CancerType.PROSTATE.value,
     # Gynaecological pathway covers Cervical/Endometrial/Ovarian/Vulval.
     # Generic gynae goes to Other; site-specific subforms route to the
     # right canonical entry.
     "gynaecological": CancerType.OTHER.value,
+    "gynae": CancerType.OTHER.value,
     "gynaecological (cervix)": CancerType.CERVICAL.value,
     # Haematology -- best fit is Lymphoma for the existing cohort
     # entries; future episodes will go through the constrained enum.
     "haematology": CancerType.LYMPHOMA.value,
+    "hematology": CancerType.LYMPHOMA.value,
     "haematology (lymphoma)": CancerType.LYMPHOMA.value,
     "lymphoid": CancerType.LYMPHOMA.value,
     "lymph node / mediastinal mass (pediatric)": CancerType.LYMPHOMA.value,
@@ -170,6 +175,8 @@ _RAW_TO_CANONICAL: dict[str, str] = {
     # as Other so it shows up for clinical review rather than getting
     # silently dropped.
     "cardiac": CancerType.OTHER.value,
+    "brain_cns": CancerType.BRAIN.value,
+    "lower_gi": CancerType.COLORECTAL.value,
     # Catch-all sentinels.
     "unknown": CancerType.UNKNOWN_PRIMARY.value,
     "unknown primary": CancerType.UNKNOWN_PRIMARY.value,

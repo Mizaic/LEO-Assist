@@ -16,6 +16,7 @@ from services.analysis_worker.app.episode_detector_v2.milestone_inference import
     infer_milestone_links,
     infer_walkback_encounter_ids,
     prune_duplicate_same_day_referral_encounter_ids,
+    prune_weak_haematology_context_encounter_ids,
     prune_weak_breast_context_encounter_ids,
 )
 from services.analysis_worker.app.episode_detector_v2.types import (
@@ -86,6 +87,48 @@ def test_referral_admin_waiting_for_information_is_referral_sent():
     assert [link.milestone_type for link in links] == ["referral_sent"]
 
 
+def test_myeloproliferative_problem_list_is_confirmed_diagnosis():
+    event = _event(
+        "haem-dx",
+        date(2025, 7, 21),
+        "Problem: Myeloproliferative disorder (Xa0SP) - "
+        "JAK2-positive myeloproliferative neoplasm; "
+        "immunotherapy with ruxolitinib.",
+    )
+
+    links = infer_milestone_links(
+        _episode("haem-dx", site_key="haematology"), [event]
+    )
+
+    assert [link.milestone_type for link in links] == [
+        "diagnosis_confirmed",
+        "treatment_started",
+    ]
+
+
+def test_haematology_pruning_drops_lab_boilerplate_but_keeps_ruxolitinib():
+    events = [
+        _event(
+            "lab-boilerplate",
+            date(2025, 2, 21),
+            "Calculated Globulin: 21 g/L; Globulins may be raised in myeloma. "
+            "Minor abnormalities are unlikely to represent myeloma.",
+        ),
+        _event(
+            "treatment",
+            date(2024, 10, 28),
+            "Ruxolitinib 20mg tablets - supplied by hospital. "
+            "Medication reconciliation - Haematology letter.",
+        ),
+    ]
+
+    assert prune_weak_haematology_context_encounter_ids(
+        site_key="haematology",
+        candidate_encounter_ids=["lab-boilerplate", "treatment"],
+        timeline=events,
+    ) == ["treatment"]
+
+
 def test_head_neck_waiting_for_information_is_referral_sent():
     event = _event(
         "head-neck-admin",
@@ -118,6 +161,26 @@ def test_head_neck_prism_questionnaire_started_is_referral_admin():
 
     assert [link.milestone_type for link in links] == [
         "referral_sent",
+        "referral_admin",
+    ]
+
+
+def test_urology_prism_questionnaire_started_is_referral_admin():
+    event = _event(
+        "urology-prism",
+        date(2025, 5, 9),
+        "- PRISM 2WW Urology - questionnaire started. "
+        "Fast track referral for suspected urological cancer. "
+        "PRISM Pathway & Referral Impl SysteM V3. "
+        "Pathology Request (Request Sent): Urea & electrolytes.",
+    )
+
+    links = infer_milestone_links(
+        _episode("urology-prism", site_key="prostate_urological"), [event]
+    )
+
+    assert [link.milestone_type for link in links] == [
+        "primary_care_investigations",
         "referral_admin",
     ]
 
@@ -212,6 +275,153 @@ def test_add_same_day_referral_sent_adds_admin_row_for_pathway_day():
     ) == ["presentation", "admin"]
 
 
+def test_add_same_day_referral_sent_adds_urology_admin_row_for_pathway_day():
+    events = [
+        _event(
+            "prism",
+            date(2025, 5, 9),
+            "- PRISM 2WW Urology - questionnaire started. "
+            "Fast track referral for suspected urological cancer.",
+        ),
+        _event(
+            "admin",
+            date(2025, 5, 9),
+            "Fast track referral for suspected urological cancer. "
+            "Choice and booking enhanced services administration. "
+            "Patient awaiting OPD appt.: Yes 2ww urology.",
+        ),
+    ]
+
+    assert add_same_day_referral_sent_encounter_ids(
+        site_key="prostate_urological",
+        candidate_encounter_ids=["prism"],
+        timeline=events,
+    ) == ["prism", "admin"]
+
+
+def test_urology_normal_cystoscopy_is_benign_closure():
+    event = _event(
+        "closure",
+        date(2025, 5, 28),
+        "Minor: Haematuria. Flexible cystoscopy (Xa7va) - normal.",
+    )
+
+    links = infer_milestone_links(
+        _episode("closure", site_key="prostate_urological"), [event]
+    )
+
+    assert [link.milestone_type for link in links] == ["benign_closure"]
+
+
+def test_auto_filed_lab_panel_fallback_is_primary_care_not_correspondence():
+    event = _event(
+        "labs",
+        date(2024, 7, 10),
+        "09:30 - Surgery: Auto-filed  \n"
+        "Full blood count (424..)\n"
+        "Haemoglobin concentration (Xa96v) 145 g/L [130 - 180]\n"
+        "Urea and electrolytes (X77Wi)\n"
+        "Serum creatinine level (XE2q5) 99 umol/L [60 - 120]\n"
+        "Clinical Information: Reasons for Request:      urinary symptoms.\n"
+        "Full blood count Report, Normal, No Further Action.",
+    )
+
+    links = infer_milestone_links(
+        _episode("labs", site_key="prostate_urological"), [event]
+    )
+
+    assert [link.milestone_type for link in links] == ["primary_care_investigations"]
+
+
+def test_carcinoma_of_prostate_major_entry_is_diagnosis_confirmed():
+    event = _event(
+        "dx",
+        date(2024, 7, 29),
+        "Major: Carcinoma of prostate (X78Y6) (New Episode).",
+    )
+
+    links = infer_milestone_links(
+        _episode("dx", site_key="prostate_urological"), [event]
+    )
+
+    assert "diagnosis_confirmed" in {link.milestone_type for link in links}
+
+
+def test_first_seen_urology_clinic_after_diagnosis_date_is_suppressed():
+    events = [
+        _event(
+            "dx",
+            date(2024, 7, 29),
+            "Major: Carcinoma of prostate (X78Y6) (New Episode).",
+        ),
+        _event(
+            "seen",
+            date(2024, 9, 2),
+            "Seen in fast track suspected urological cancer clinic. "
+            "History: discussed MRI staging.",
+        ),
+    ]
+
+    links = infer_milestone_links(
+        _episode("dx", "seen", site_key="prostate_urological"),
+        events,
+    )
+
+    by_enc: dict[str, set[str]] = {}
+    for link in links:
+        by_enc.setdefault(link.encounter_id, set()).add(link.milestone_type)
+
+    assert "diagnosis_confirmed" in by_enc["dx"]
+    assert "first_seen" not in by_enc.get("seen", set())
+
+
+def test_first_seen_same_day_as_diagnosis_is_retained():
+    events = [
+        _event(
+            "same",
+            date(2024, 7, 29),
+            "Major: Carcinoma of prostate (X78Y6). "
+            "Seen in fast track suspected urological cancer clinic.",
+        ),
+    ]
+
+    links = infer_milestone_links(
+        _episode("same", site_key="prostate_urological"),
+        events,
+    )
+
+    types = {link.milestone_type for link in links}
+    assert "diagnosis_confirmed" in types
+    assert "first_seen" in types
+
+
+def test_degarelix_injection_visit_is_related_gp_visit():
+    event = _event(
+        "deg",
+        date(2025, 2, 3),
+        "Attended for 4 weekly Degarelix injection. Well tolerated.",
+    )
+
+    links = infer_milestone_links(
+        _episode("deg", site_key="prostate_urological"), [event]
+    )
+
+    assert "related_gp_visit" in {link.milestone_type for link in links}
+
+
+def test_breast_known_fibroadenoma_without_investigation_is_not_closure():
+    event = _event(
+        "skin-and-history",
+        date(2024, 5, 31),
+        "Problem: Benign melanocytic naevus of skin. "
+        "Known to have fibroadenoma of breast. Write to breast clinic if needed.",
+    )
+
+    links = infer_milestone_links(_episode("skin-and-history"), [event])
+
+    assert [link.milestone_type for link in links] == ["related_correspondence"]
+
+
 def test_prune_weak_breast_context_removes_unrelated_postnatal_history():
     events = [
         _event(
@@ -232,6 +442,56 @@ def test_prune_weak_breast_context_removes_unrelated_postnatal_history():
         candidate_encounter_ids=["breast-pathway", "postnatal"],
         timeline=events,
     ) == ["breast-pathway"]
+
+
+def test_prune_weak_breast_context_removes_screening_declined_import():
+    events = [
+        _event(
+            "pathway",
+            date(2024, 12, 2),
+            "Fast track referral for suspected breast cancer.",
+        ),
+        _event(
+            "screening-declined",
+            date(2024, 8, 27),
+            "GP2GP Import. Breast screening declined. "
+            "Invited, but does not wish to be screened at this time.",
+        ),
+    ]
+
+    assert prune_weak_breast_context_encounter_ids(
+        site_key="breast",
+        candidate_encounter_ids=["screening-declined", "pathway"],
+        timeline=events,
+    ) == ["pathway"]
+
+
+def test_prune_weak_breast_context_removes_breast_reduction_admin():
+    events = [
+        _event(
+            "pathway",
+            date(2024, 6, 10),
+            "Fast track referral for suspected breast cancer.",
+        ),
+        _event(
+            "breast-reduction",
+            date(2024, 10, 8),
+            "Came in to discuss breast reduction surgery. "
+            "Breast Surgery (cosmetic) PRISM to Unknown.",
+        ),
+        _event(
+            "funding-rejected",
+            date(2024, 12, 10),
+            "Telephone call to discuss recent breast reduction referral. "
+            "Funding request was rejected as didnt meet the criteria.",
+        ),
+    ]
+
+    assert prune_weak_breast_context_encounter_ids(
+        site_key="breast",
+        candidate_encounter_ids=["pathway", "breast-reduction", "funding-rejected"],
+        timeline=events,
+    ) == ["pathway"]
 
 
 def test_outpatient_date_awaiting_biopsy_is_referral_admin_not_diagnostics():
@@ -407,6 +667,37 @@ def test_normal_breast_ultrasound_is_benign_closure():
         "benign_closure",
         "specialist_diagnostics",
     }
+
+
+def test_breast_mammogram_no_change_and_us_nad_is_benign_closure():
+    event = _event(
+        "benign-outcome",
+        date(2025, 6, 18),
+        "Mammogram (537..) - no change, scattered fibroglandular breast density. "
+        "US scan of breast (585C.) - NAD.",
+    )
+
+    links = infer_milestone_links(_episode("benign-outcome"), [event])
+
+    assert {link.milestone_type for link in links} == {
+        "benign_closure",
+        "specialist_diagnostics",
+    }
+
+
+def test_historical_breast_treatment_summary_is_not_treatment_started():
+    event = _event(
+        "prior-treatment",
+        date(2025, 2, 25),
+        "Problem: Malignant neoplasm of female breast - L invasive ductal "
+        "carcinoma ER+ve; WLE + sentinel node Bx 9/5/23; radiotherapy "
+        "5 fractions 24/8-31/8/23; tamoxifen. History: has hx of breast "
+        "ca 2 yrs ago, found another lump in same breast.",
+    )
+
+    links = infer_milestone_links(_episode("prior-treatment"), [event])
+
+    assert "treatment_started" not in {link.milestone_type for link in links}
 
 
 def test_historical_normal_mammogram_does_not_close_current_referral():
@@ -639,6 +930,98 @@ def test_hrt_screening_background_does_not_join_breast_context():
     assert ids == []
 
 
+def test_skin_context_adds_dermatology_followup_rows():
+    events = [
+        _event(
+            "referral",
+            date(2024, 6, 3),
+            "Fast track referral for suspected skin cancer.",
+        ),
+        _event(
+            "derm-assessment",
+            date(2024, 6, 19),
+            "Entered at: UHL Dermatology Service. Suspected skin cancer: "
+            "Other: dysplastic naevus. Site of lesion: left forearm. "
+            "Dermoscopy S60.5: Yes.",
+        ),
+        _event(
+            "wound-check",
+            date(2024, 7, 25),
+            "Attended today for wound check. Lesion removed from left forearm. "
+            "Surgical wound. Wound healing well.",
+        ),
+        _event(
+            "derm-result",
+            date(2024, 8, 28),
+            "Entered at: UHL Dermatology Service. Skin Cancer Follow Up. "
+            "Excision left forearm-compound naevus with moderate atypia; "
+            "surgical margin is tumour free. Plan-results letter to patient "
+            "and GP. Discharge.",
+        ),
+        _event(
+            "gynae",
+            date(2024, 8, 28),
+            "Problem: Pain on intercourse. Menorrhagia. High Vaginal Swab.",
+        ),
+    ]
+
+    ids = infer_contextual_encounter_ids(
+        site_key="skin",
+        candidate_encounter_ids=[
+            "referral",
+            "derm-assessment",
+            "wound-check",
+            "derm-result",
+            "gynae",
+        ],
+        timeline=events,
+    )
+
+    assert ids == ["derm-assessment", "wound-check", "derm-result"]
+
+
+def test_skin_context_milestones_label_dermatology_followup():
+    events = [
+        _event(
+            "seen",
+            date(2024, 6, 20),
+            "Seen in fast track suspected skin cancer clinic.",
+        ),
+        _event(
+            "derm-assessment",
+            date(2024, 6, 19),
+            "Entered at: UHL Dermatology Service. Skin Lesion for Surgery: "
+            "left forearm 4 x 4 mm ?DN /Atypical naevus. Dermoscopy S60.5: Yes.",
+        ),
+        _event(
+            "wound-check",
+            date(2024, 7, 25),
+            "Attended today for wound check. Lesion removed from left forearm. "
+            "Surgical wound. Wound healing well.",
+        ),
+        _event(
+            "derm-result",
+            date(2024, 8, 28),
+            "Skin Cancer Follow Up. Excision left forearm-compound naevus "
+            "with moderate atypia; surgical margin is tumour free. Discharge.",
+        ),
+    ]
+
+    links = infer_milestone_links(
+        _episode("seen", "derm-assessment", "wound-check", "derm-result", site_key="skin"),
+        events,
+    )
+    by_encounter = {link.encounter_id: set() for link in links}
+    for link in links:
+        by_encounter[link.encounter_id].add(link.milestone_type)
+
+    assert by_encounter["seen"] == {"first_seen"}
+    assert "specialist_diagnostics" in by_encounter["derm-assessment"]
+    assert "related_gp_visit" in by_encounter["wound-check"]
+    assert "outcome_letter" in by_encounter["derm-result"]
+    assert "benign_closure" in by_encounter["derm-result"]
+
+
 def test_diagnosis_walkback_finds_uncoded_metastatic_precursors():
     events = [
         _event(
@@ -703,6 +1086,71 @@ def test_walkback_requires_diagnosis_anchor_and_metastatic_bridge():
         )
         == []
     )
+
+
+def test_haematology_walkback_from_axillary_diagnosis_to_screening_mammogram():
+    events = [
+        _event(
+            "screening",
+            date(2024, 4, 15),
+            "As per GP report list from the NHS Breast Screening Programme. "
+            "Breast neoplasm screening abnormal (68621).",
+        ),
+        _event(
+            "haem-diagnosis",
+            date(2024, 5, 24),
+            "Major: Chronic lymphoid leukaemia. "
+            "Major: Malignant lymphoma - small lymphocytic. "
+            "Biopsy of axillary lymph node - Core.",
+        ),
+        _event(
+            "bridge",
+            date(2024, 6, 3),
+            "Request for call re recent diagnosis. Possible CLL, referred to MDT. "
+            "Looks like this has come about as a result of something seen on "
+            "screening mammogram.",
+        ),
+    ]
+
+    ids = infer_walkback_encounter_ids(
+        site_key="haematology",
+        anchor_event_id="haem-diagnosis",
+        generator="diagnosis_anchored",
+        intent="confirmed",
+        timeline=events,
+    )
+
+    assert ids == ["screening", "bridge"]
+
+
+def test_haematology_pruning_removes_later_breast_2ww_referral():
+    events = [
+        _event(
+            "haem-diagnosis",
+            date(2024, 5, 24),
+            "Major: Chronic lymphoid leukaemia. "
+            "Biopsy of axillary lymph node - Core.",
+        ),
+        _event(
+            "breast-2ww",
+            date(2024, 11, 21),
+            "Fast track referral for suspected breast cancer. "
+            "2WW Breast Female Referral Pathway/Breast Clinic accessed. "
+            "Will also copy in haematology for their info after previous "
+            "axillary biopsy same side.",
+        ),
+        _event(
+            "haem-letter",
+            date(2025, 1, 7),
+            "Haematology to Woodbrook Medical Centre.",
+        ),
+    ]
+
+    assert prune_weak_haematology_context_encounter_ids(
+        site_key="haematology",
+        candidate_encounter_ids=["haem-diagnosis", "breast-2ww", "haem-letter"],
+        timeline=events,
+    ) == ["haem-diagnosis", "haem-letter"]
 
 
 def test_walkback_events_get_reviewable_milestones():

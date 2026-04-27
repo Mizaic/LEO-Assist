@@ -153,4 +153,32 @@ describe("PatientDetailDrawer - refresh sibling tabs after inline coding edit", 
     expect(body).toMatch(/refresh\(\s*\)/);
     expect(body).toMatch(/onCodingChanged\?\.\(\s*\)/);
   });
+
+  test("TC-010: coded-data rows can request the linked encounter text", () => {
+    const src = readFile(CODED_DATA_TAB);
+    expect(src).toMatch(/onOpenEncounterText\?:\s*\(\s*encounterId:\s*string\s*\)\s*=>\s*void/);
+    expect(src).toMatch(/role=\{\s*onOpenEncounterText\s*\?\s*"button"\s*:\s*undefined\s*\}/);
+    expect(src).toMatch(/tabIndex=\{\s*onOpenEncounterText\s*\?\s*0\s*:\s*undefined\s*\}/);
+    expect(src).toMatch(/onKeyDown=\{\s*\(event\)\s*=>\s*\{/);
+    expect(src).toMatch(/onOpenEncounterText\?\.\(\s*row\.encounter_id\s*\)/);
+  });
+
+  test("TC-011: drawer routes coded-data row clicks to EncounterTextTab focus", () => {
+    const src = readFile(DRAWER);
+    expect(src).toMatch(/const\s+\[encounterTextFocusId,\s*setEncounterTextFocusId\]/);
+    expect(src).toMatch(/setEncounterTextFocusId\(\s*encounterId\s*\)/);
+    expect(src).toMatch(/setTab\(\s*2\s*\)/);
+    const codedTag = src.match(/<CodedDataTab[\s\S]*?\/>/);
+    const encTextTag = src.match(/<EncounterTextTab[\s\S]*?\/>/);
+    expect(codedTag).not.toBeNull();
+    expect(encTextTag).not.toBeNull();
+    expect(codedTag![0]).toMatch(/onOpenEncounterText=\{\s*openEncounterTextFromCode\s*\}/);
+    expect(encTextTag![0]).toMatch(/focusEncounterId=\{\s*encounterTextFocusId\s*\}/);
+  });
+
+  test("TC-012: EncounterTextTab consumes drawer focus requests via existing jump helper", () => {
+    const src = readFile(ENCOUNTER_TEXT_TAB);
+    expect(src).toMatch(/focusEncounterId\?:\s*string\s*\|\s*null/);
+    expect(src).toMatch(/if\s*\(\s*focusEncounterId\s*\)\s*jumpToEncounter\(\s*focusEncounterId\s*\)/);
+  });
 });

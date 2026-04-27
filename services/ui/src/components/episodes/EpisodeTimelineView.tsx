@@ -45,6 +45,8 @@ import { MILESTONE_ORDER, daysBetween, BREACH_TARGETS, formatBreachLabel } from 
 import { closeEpisode, mergeEpisodes, editMilestone } from "@/lib/analyticsApi";
 import { fetchEncounter, fetchEncounterCodedLinks } from "@/lib/api";
 import type { CodedLink } from "@/lib/types";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskEncounterText, maskPatientId } from "@/lib/demoMode";
 
 type EpisodeWithRisk = Episode & { risk?: PathwayRisk };
 
@@ -198,6 +200,7 @@ export default function EpisodeTimelineView({
   siblingEpisodes?: EpisodeWithRisk[];
   onRefresh?: () => void;
 }) {
+  const { isDemoMode } = useDemoMode();
   const pathwayRisk = risk ?? episode.risk;
   const riskLevel = pathwayRisk?.level ?? "unknown";
   const chipCfg = RISK_CHIP[riskLevel] ?? RISK_CHIP.unknown;
@@ -297,7 +300,10 @@ export default function EpisodeTimelineView({
 
       <Box sx={{ display: "flex", gap: 1.5, mb: 1, flexWrap: "wrap", alignItems: "center" }}>
         {episode.patient_id && (
-          <InfoChip label="Patient" value={episode.patient_id} />
+          <InfoChip
+            label="Patient"
+            value={isDemoMode ? maskPatientId(episode.patient_id) : episode.patient_id}
+          />
         )}
         {episode.referral_date && (
           <InfoChip label="Referred" value={episode.referral_date} />
@@ -767,8 +773,15 @@ function RelatedPathways({ siblings }: { siblings: EpisodeWithRisk[] }) {
 }
 
 function CodedLinkTooltipItem({ link }: { link: CodedLink }) {
+  const { isDemoMode } = useDemoMode();
   const relProps: string[] = [];
-  if (link.evidence) relProps.push(`evidence: "${link.evidence}"`);
+  if (link.evidence) {
+    relProps.push(
+      `evidence: "${
+        isDemoMode ? maskEncounterText(link.evidence) : link.evidence
+      }"`,
+    );
+  }
   if (link.confidence != null) relProps.push(`confidence: ${Math.round(link.confidence * 100)}%`);
   if (link.domain) relProps.push(`domain: ${link.domain}`);
   if (link.coded_at) relProps.push(`coded_at: ${link.coded_at}`);
@@ -818,6 +831,7 @@ function MilestoneEncounterTooltip({
   milestone: Milestone;
   children: React.ReactNode;
 }) {
+  const { isDemoMode } = useDemoMode();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [encounter, setEncounter] = useState<{ text: string } | null>(null);
   const [codedLinks, setCodedLinks] = useState<CodedLink[] | null>(null);
@@ -945,7 +959,9 @@ function MilestoneEncounterTooltip({
                 borderRadius: 1,
               }}
             >
-              {encounter.text || "(No text)"}
+              {isDemoMode
+                ? maskEncounterText(encounter.text)
+                : encounter.text || "(No text)"}
             </Typography>
             <Box>
               <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>

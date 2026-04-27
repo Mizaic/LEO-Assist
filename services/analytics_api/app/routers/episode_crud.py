@@ -31,6 +31,7 @@ from pydantic import BaseModel
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.episodes.status import EpisodeStatus
 from libs.neo4j_client.client import PatientGraphClient
+from libs.oncology.cancer_types import normalise_cancer_type
 
 from ._episode_crud_helpers import (
     MILESTONE_TYPES,
@@ -117,11 +118,14 @@ def _validate_milestone_type(value: str) -> None:
     if value not in MILESTONE_TYPES:
         raise HTTPException(
             status_code=400,
-            detail=(
-                "milestone_type must be one of: "
-                f"{sorted(MILESTONE_TYPES)}"
-            ),
+            detail=("milestone_type must be one of: " f"{sorted(MILESTONE_TYPES)}"),
         )
+
+
+def _normalise_optional_cancer_type(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    return normalise_cancer_type(value)
 
 
 def _require_patient_in_scope(
@@ -132,8 +136,7 @@ def _require_patient_in_scope(
     """Raise HTTP 404 when the patient is outside the caller's org_ids."""
     if scope.is_admin:
         rows = client.run(
-            "MATCH (p:Patient) WHERE toString(p.id) = $pid "
-            "RETURN p.id AS id",
+            "MATCH (p:Patient) WHERE toString(p.id) = $pid " "RETURN p.id AS id",
             pid=patient_id,
         )
         if not rows:
@@ -167,10 +170,14 @@ def _create_episode_node(
     ``EpisodeStatus.REVIEW`` when the request body omits it.
     """
     canonical_status = body.status or EpisodeStatus.REVIEW.value
+    cancer_type = _normalise_optional_cancer_type(body.cancer_type)
+    condition_type = _normalise_optional_cancer_type(
+        body.condition_type or body.cancer_type
+    )
     props = {
         "episode_id": episode_id,
-        "cancer_type": body.cancer_type,
-        "condition_type": body.condition_type or body.cancer_type,
+        "cancer_type": cancer_type,
+        "condition_type": condition_type,
         "cancer_stage": body.cancer_stage,
         "referral_date": body.referral_date,
         "end_date": body.end_date,
@@ -234,13 +241,9 @@ def create_episode(
     try:
         _require_patient_in_scope(client, scope, body.patient_id)
         _create_episode_node(client, body, scope, episode_id)
-        _link_initial_encounters(
-            client, episode_id, body.initial_encounter_links
-        )
+        _link_initial_encounters(client, episode_id, body.initial_encounter_links)
         derived_dates: Optional[dict] = None
-        if body.initial_encounter_links and not (
-            body.referral_date and body.end_date
-        ):
+        if body.initial_encounter_links and not (body.referral_date and body.end_date):
             derived_dates = recompute_episode_dates(client, episode_id)
         after_snapshot = episode_property_snapshot(client, episode_id)
         write_episode_audit_event(
@@ -275,6 +278,14 @@ def update_episode(
     actor_role = require_eoc_curator_role(scope)
 
     raw_patch = body.model_dump(exclude_unset=True)
+    if "cancer_type" in raw_patch:
+        raw_patch["cancer_type"] = _normalise_optional_cancer_type(
+            raw_patch["cancer_type"]
+        )
+    if "condition_type" in raw_patch:
+        raw_patch["condition_type"] = _normalise_optional_cancer_type(
+            raw_patch["condition_type"]
+        )
     if not raw_patch:
         raise HTTPException(status_code=400, detail="No fields to update")
 
@@ -497,8 +508,7 @@ def detach_encounter_from_episode(
                 mt=milestone_type,
             )
             detach_note = (
-                f"Detached encounter={encounter_id} "
-                f"from slot={milestone_type}"
+                f"Detached encounter={encounter_id} " f"from slot={milestone_type}"
             )
         if not result:
             raise HTTPException(

@@ -48,6 +48,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { ReviewListCard, type ReviewListItem } from "@leo/design-system";
 import type { EncounterListItem } from "@/lib/missionControlApi";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskEncounterText, maskPatientId } from "@/lib/demoMode";
 import {
   HighlightedText,
   collectHighlightTerms,
@@ -162,11 +164,16 @@ interface BuildItemContext {
   wouldBeRemoved: boolean;
   highlightTerms: string[];
   hasActiveQuery: boolean;
+  isDemoMode?: boolean;
   onToggleSelection: (item: EncounterListItem) => void;
   onOpenPreview: (item: EncounterListItem) => void;
 }
 
-function rowMeta(row: EncounterListItem, wouldBeRemoved: boolean): ReactNode {
+function rowMeta(
+  row: EncounterListItem,
+  wouldBeRemoved: boolean,
+  isDemoMode: boolean,
+): ReactNode {
   const score = normaliseScore(row.score);
   return (
     <>
@@ -179,7 +186,7 @@ function rowMeta(row: EncounterListItem, wouldBeRemoved: boolean): ReactNode {
           color: "text.secondary",
         }}
       >
-        {row.patient_id}
+        {isDemoMode ? maskPatientId(row.patient_id) : row.patient_id}
       </Box>
       <MatchStrengthBar score={score} />
       {wouldBeRemoved && (
@@ -197,6 +204,7 @@ function rowMeta(row: EncounterListItem, wouldBeRemoved: boolean): ReactNode {
 function rowChips(
   row: EncounterListItem,
   status: JobState | undefined,
+  isDemoMode: boolean,
 ): ReactNode {
   const matchMeta = MATCH_CHIP[row.match_type] ?? MATCH_CHIP.none;
   const statusMeta = status ? STATUS_CHIP[status] : null;
@@ -225,7 +233,7 @@ function rowChips(
           sx={{ height: 22, fontSize: "0.7rem" }}
         />
       )}
-      {row.match_rationale?.slice(0, 4).map((term, idx) => (
+      {!isDemoMode && row.match_rationale?.slice(0, 4).map((term, idx) => (
         <Chip
           key={`${row.encounter_id}-mr-${idx}-${term}`}
           size="small"
@@ -268,12 +276,13 @@ export function buildEncounterListItem(ctx: BuildItemContext): ReviewListItem {
     wouldBeRemoved,
     highlightTerms,
     hasActiveQuery,
+    isDemoMode = false,
     onToggleSelection,
     onOpenPreview,
   } = ctx;
-  const text = (row.text ?? "").trim();
+  const text = (isDemoMode ? maskEncounterText(row.text) : row.text ?? "").trim();
   const title = text ? (
-    <HighlightedText text={text} terms={highlightTerms} />
+    <HighlightedText text={text} terms={isDemoMode ? [] : highlightTerms} />
   ) : (
     <Box component="span" sx={{ color: "text.disabled", fontStyle: "italic" }}>
       No text recorded.
@@ -298,8 +307,8 @@ export function buildEncounterListItem(ctx: BuildItemContext): ReviewListItem {
         {title}
       </Box>
     ),
-    meta: rowMeta(row, wouldBeRemoved),
-    chips: rowChips(row, status),
+    meta: rowMeta(row, wouldBeRemoved, isDemoMode),
+    chips: rowChips(row, status, isDemoMode),
     actions: rowActions(row, isSelected, onToggleSelection),
     tone: toneFor(row, status, hasActiveQuery),
     onSelect: () => onOpenPreview(row),
@@ -347,6 +356,7 @@ export default function EncounterResultsTable({
   onPageChange,
   onRowsPerPageChange,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const vectorDrift =
     (liveMinVectorScore ?? 0) !== (lastSearchedMinVectorScore ?? 0);
   const showLiveImpact = liveMinScore !== lastSearchedMinScore || vectorDrift;
@@ -374,6 +384,7 @@ export default function EncounterResultsTable({
             isFilteredByLiveThreshold(row, liveMinScore, liveMinVectorScore),
           highlightTerms,
           hasActiveQuery,
+          isDemoMode,
           onToggleSelection,
           onOpenPreview,
         }),
@@ -388,6 +399,7 @@ export default function EncounterResultsTable({
       liveMinVectorScore,
       highlightTerms,
       hasActiveQuery,
+      isDemoMode,
       onToggleSelection,
       onOpenPreview,
     ],

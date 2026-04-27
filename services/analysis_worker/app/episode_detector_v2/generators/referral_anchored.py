@@ -27,19 +27,26 @@ def generate_referral_anchored(
     candidates: list[CandidateEpisode] = []
     events_list = list(events)
     event_by_id = {evt.encounter_id: evt for evt in events_list}
-    pathway_signals = [
-        s for s in signals if s.channel == "pathway" and s.role == "referral"
+    anchor_signals = [
+        s
+        for s in signals
+        if (
+            (s.role == "referral" and s.intent == "suspected")
+            or (s.channel == "pathway" and s.role == "first_seen")
+        )
     ]
-    pathway_events_by_site: dict[str, list[TimelineEvent]] = {}
-    for signal in pathway_signals:
+    referral_events_by_site: dict[str, list[TimelineEvent]] = {}
+    for signal in anchor_signals:
+        if signal.role != "referral":
+            continue
         event = event_by_id.get(signal.encounter_id)
         if event is None:
             continue
-        pathway_events_by_site.setdefault(signal.site_key, []).append(event)
-    for site_events in pathway_events_by_site.values():
+        referral_events_by_site.setdefault(signal.site_key, []).append(event)
+    for site_events in referral_events_by_site.values():
         site_events.sort(key=lambda evt: (evt.occurred_on, evt.encounter_id))
     seen: set[tuple[str, str, str]] = set()
-    for signal in pathway_signals:
+    for signal in anchor_signals:
         anchor_event = event_by_id.get(signal.encounter_id)
         if anchor_event is None:
             continue
@@ -49,7 +56,7 @@ def generate_referral_anchored(
         seen.add(key)
         lookback_days, lookahead_days = _repeat_referral_window(
             anchor_event=anchor_event,
-            site_events=pathway_events_by_site.get(signal.site_key, []),
+            site_events=referral_events_by_site.get(signal.site_key, []),
         )
         cand = CandidateEpisode(
             candidate_id=candidate_id(
@@ -69,7 +76,7 @@ def generate_referral_anchored(
             ),
             anchor_event_id=anchor_event.encounter_id,
             anchor_date=anchor_event.occurred_on,
-            role_hint="referral",
+            role_hint=signal.role,
             intent_hint=signal.intent,
             raw_score=signal.confidence,
             supporting_signals=[signal],

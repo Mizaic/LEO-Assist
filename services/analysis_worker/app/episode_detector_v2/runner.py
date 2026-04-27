@@ -11,16 +11,17 @@ flag (see libs/feature_flags.py).
 
 Pipeline order matches the 12-component defence-in-depth design:
 
-    normalise -> 5 signal extractors -> 5 candidate generators
+    normalise -> 5 signal extractors -> referral/seen/diagnosis candidate anchors
       -> evidence aggregator -> conflict resolver -> boundary detector
       -> generator-consensus voting -> coverage check -> confidence tier
-      -> persist (only auto-tier) -> persist provenance
+      -> persist (default: auto-tier only) -> persist provenance
 """
 
 from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
@@ -29,6 +30,7 @@ from libs.episodes.lifecycle import (
     canonical_status_from_v2_boundary,
 )
 from libs.episodes.status import EpisodeStatus
+from libs.oncology.cancer_types import normalise_cancer_type
 
 from .aggregator import aggregate_evidence
 from .boundary import detect_boundary
@@ -36,9 +38,6 @@ from .coverage import check_coverage
 from .generators import (
     generate_diagnosis_anchored,
     generate_referral_anchored,
-    generate_site_cohort_anchored,
-    generate_symptom_cluster_anchored,
-    generate_treatment_anchored,
 )
 from .milestone_inference import (
     add_same_day_referral_sent_encounter_ids,
@@ -48,6 +47,7 @@ from .milestone_inference import (
     infer_walkback_encounter_ids,
     prune_duplicate_same_day_referral_encounter_ids,
     prune_weak_breast_context_encounter_ids,
+    prune_weak_haematology_context_encounter_ids,
 )
 from .normaliser import load_timeline
 from .provenance import persist_provenance
@@ -64,6 +64,8 @@ from .types import (
     EpisodeBuildResultV2,
     EpisodeProvenance,
     ResolvedEpisode,
+    Signal,
+    TimelineEvent,
 )
 from .voting import assign_confidence_tier, vote_for_candidates
 
@@ -73,6 +75,90 @@ logger = logging.getLogger(__name__)
 def _episode_id(patient_id: str, site_key: str, anchor_iso: str) -> str:
     raw = f"{patient_id}|{site_key.lower()}|{anchor_iso}|v2"
     return f"ep-v2-{hashlib.sha1(raw.encode('utf-8')).hexdigest()[:16]}"
+
+
+def _context_signal_eligible_for_membership(
+    signal: Signal,
+    *,
+    event_by_id: dict[str, TimelineEvent],
+) -> bool:
+    """Whether a context_milestone may tie an in-window encounter to membership.
+
+    Including every context hit in the referral window over-links generic
+    primary-care rows (routine FBC/bloods). Gate ``primary_care_investigations``
+    and ``referral_admin`` with short urology/oncology pathway cues; keep
+    specialist-facing tags that already encode staging intent.
+    """
+    if signal.role != "context_milestone":
+        return False
+    tag = signal.context_tag or ""
+    event = event_by_id.get(signal.encounter_id)
+    text = (event.text_snippet if event else "") or ""
+    lower = text.lower()
+    if tag in {
+        "referral_sent",
+        "related_gp_visit",
+        "specialist_diagnostics",
+        "related_specialist_visit",
+    }:
+        return True
+    if tag == "related_correspondence":
+        return any(
+            x in lower
+            for x in (
+                "prostate",
+                "urology",
+                "urological",
+                "psa",
+                "oncology",
+                "mdt",
+                "biopsy",
+                "2ww",
+                "2 ww",
+                "two week",
+            )
+        )
+    if tag == "referral_admin":
+        return any(
+            x in lower
+            for x in (
+                "oncology",
+                "urology",
+                "urological",
+                "2ww",
+                "2 ww",
+                "two week",
+                "fast track",
+                "suspected cancer",
+                "usc",
+                "mdt",
+            )
+        )
+    if tag == "primary_care_investigations":
+        return any(
+            x in lower
+            for x in (
+                "pathology",
+                "psa",
+                "urea",
+                " u & e",
+                "u & e",
+                "u&e",
+                "electrolyte",
+                "prostate",
+                "urology",
+                "biopsy",
+                "mp-mri",
+                "mri prostate",
+                "trus",
+                "cystoscopy",
+                "luts",
+                "haematuria",
+                "2ww",
+                "2 ww",
+            )
+        )
+    return False
 
 
 # Strict ordering of confidence tiers -- higher index wins when two
@@ -148,10 +234,16 @@ class _EpisodeAccumulator:
             for r in reasons:
                 if r not in self.reasons:
                     self.reasons.append(r)
-        # Boundary widens: pick the latest end_date, never clip back.
-        if boundary_end is not None and (
+        # Benign closure is a hard boundary for suspected pathways: once a
+        # rule-out result lands, later symptom recurrences need a fresh anchor.
+        if boundary_status == "benign_closure":
+            self.intent = boundary_intent
+            self.status = boundary_status
+            self.end_date = boundary_end
+        elif boundary_end is not None and (
             self.end_date is None or boundary_end > self.end_date
         ):
+            # Boundary widens: pick the latest end_date, never clip back.
             self.end_date = boundary_end
         # Promote intent: confirmed > suspected > ruled_out collapse to
         # the most clinically significant signal observed.
@@ -264,7 +356,8 @@ UNWIND $episodes AS ep
 MATCH (p:Patient {id: $patient_id})
 MERGE (e:EpisodeOfCare {episode_id: ep.episode_id})
 SET e.suspected_site = ep.suspected_site,
-    e.cancer_type = coalesce(e.cancer_type, ep.suspected_site),
+    e.cancer_type = coalesce(e.cancer_type, ep.cancer_type),
+    e.condition_type = coalesce(e.condition_type, ep.cancer_type),
     e.site_key = ep.site_key,
     e.start_date = ep.start_date,
     e.end_date = ep.end_date,
@@ -336,6 +429,7 @@ WITH e,
               CASE WHEN d > best THEN d ELSE best END)
           ELSE null END AS treatment_end_date
 SET e.referral_date = referral_date,
+    e.benign_closure_date = benign_closure_date,
     e.end_date = coalesce(benign_closure_date, treatment_end_date),
     e.diagnostic_interval_days =
         CASE WHEN referral_date IS NOT NULL AND diagnosis_date IS NOT NULL
@@ -359,9 +453,20 @@ async def build_episodes(
     anchors: Any = None,  # parity arg, ignored by v2
     patient_client: Any,
     domain_id: str = "",
+    persist_confidence_tiers: Collection[str] | None = None,
 ) -> EpisodeBuildResultV2:
-    """Run the v2 detector and return an EpisodeBuildResultV2."""
+    """Run the v2 detector and return an EpisodeBuildResultV2.
+
+    ``persist_confidence_tiers`` defaults to ``{\"auto\"}`` only. Pass
+    e.g. ``{\"auto\", \"suggest\"}`` to MERGE suggest-tier proposals so
+    curators can review them in Mission Control.
+    """
     _ = (anchors, domain_id)
+    persist_tiers = (
+        frozenset(persist_confidence_tiers)
+        if persist_confidence_tiers is not None
+        else frozenset({"auto"})
+    )
     errors: list[str] = []
     if not patient_id:
         return EpisodeBuildResultV2(
@@ -401,15 +506,6 @@ async def build_episodes(
         + generate_diagnosis_anchored(
             patient_id=patient_id, events=timeline, signals=signals
         )
-        + generate_symptom_cluster_anchored(
-            patient_id=patient_id, events=timeline, signals=signals
-        )
-        + generate_site_cohort_anchored(
-            patient_id=patient_id, events=timeline, signals=signals
-        )
-        + generate_treatment_anchored(
-            patient_id=patient_id, events=timeline, signals=signals
-        )
     )
 
     aggregated = aggregate_evidence(candidates, signals)
@@ -422,6 +518,7 @@ async def build_episodes(
     # so we de-duplicate here before persistence).
     by_episode_id: dict[str, _EpisodeAccumulator] = {}
     event_dates = _encounter_dates(timeline)
+    event_by_id = {evt.encounter_id: evt for evt in timeline}
     for agg in resolved_aggs:
         cand = agg.candidate
         boundary = detect_boundary(agg, timeline)
@@ -430,11 +527,29 @@ async def build_episodes(
         )
         tier, reasons = assign_confidence_tier(agg, consensus)
         all_signals = [s for sl in agg.signals_by_channel.values() for s in sl]
-        signal_encounter_ids = {
+        non_context_encounter_ids = {
             s.encounter_id
             for s in all_signals
             if getattr(s, "role", "") != "context_milestone"
         }
+        # Context milestones (rulebook context_role_catalogue) are site-
+        # specific and must count toward membership when the encounter is
+        # already inside the generator window. Otherwise pathway-windowed
+        # admin/lab text that only fires context_milestone -- common for
+        # prostate U&E requests, letter routing, PSD injections -- is
+        # dropped; infer_contextual_encounter_ids only expands breast/skin.
+        # Generic primary-care context (routine FBC) is gated on text so
+        # the episode does not absorb every chronic-disease blood test.
+        candidate_id_set = frozenset(cand.encounter_ids)
+        context_window_encounter_ids = {
+            s.encounter_id
+            for s in all_signals
+            if isinstance(s, Signal)
+            and s.site_key == cand.site_key
+            and s.encounter_id in candidate_id_set
+            and _context_signal_eligible_for_membership(s, event_by_id=event_by_id)
+        }
+        signal_encounter_ids = non_context_encounter_ids | context_window_encounter_ids
         # Restrict encounter membership to those with at least one
         # supporting signal for this candidate's site. The window in
         # the generator was for *search*; final membership is signal-
@@ -503,6 +618,18 @@ async def build_episodes(
             candidate_encounter_ids=scoped_encounters,
             timeline=timeline,
         )
+        scoped_encounters = prune_weak_haematology_context_encounter_ids(
+            site_key=cand.site_key,
+            candidate_encounter_ids=scoped_encounters,
+            timeline=timeline,
+        )
+        if boundary.status == "benign_closure":
+            scoped_encounters = _filter_to_boundary(
+                scoped_encounters,
+                event_dates=event_dates,
+                start=effective_start,
+                end=boundary.end_date,
+            )
         if not scoped_encounters and cand.anchor_event_id:
             scoped_encounters = [cand.anchor_event_id]
         alternatives = [
@@ -557,16 +684,20 @@ async def build_episodes(
             f"coverage_incomplete:{len(coverage.encounter_ids_unaccounted)}_unaccounted"
         )
 
-    auto_episodes = auto_only
+    episodes_to_persist = [
+        ep for ep in resolved_episodes if ep.confidence_tier in persist_tiers
+    ]
     persisted_ids: list[str] = []
-    if auto_episodes and patient_client is not None:
+    if episodes_to_persist and patient_client is not None:
         milestone_links_by_episode = {
-            ep.episode_id: infer_milestone_links(ep, timeline) for ep in auto_episodes
+            ep.episode_id: infer_milestone_links(ep, timeline)
+            for ep in episodes_to_persist
         }
         rows = [
             {
                 "episode_id": ep.episode_id,
                 "site_key": ep.site_key,
+                "cancer_type": normalise_cancer_type(ep.site_key),
                 "suspected_site": ep.suspected_site,
                 "start_date": ep.start_date.isoformat() if ep.start_date else None,
                 "end_date": ep.end_date.isoformat() if ep.end_date else None,
@@ -593,23 +724,25 @@ async def build_episodes(
                     for link in milestone_links_by_episode[ep.episode_id]
                 ],
             }
-            for ep in auto_episodes
+            for ep in episodes_to_persist
         ]
         try:
             patient_client.run(_EPISODE_MERGE, patient_id=patient_id, episodes=rows)
-            persisted_ids = [ep.episode_id for ep in auto_episodes]
+            persisted_ids = [ep.episode_id for ep in episodes_to_persist]
         except Exception:
             logger.exception(
-                "v2 detector: failed to persist %d auto-episodes for %s",
-                len(auto_episodes),
+                "v2 detector: failed to persist %d episodes for %s",
+                len(episodes_to_persist),
                 patient_id,
             )
             errors.append("persist_auto_failed")
 
     if persisted_ids:
-        persist_provenance(patient_client, records=provenance_records)
+        persisted_set = set(persisted_ids)
+        prov_filtered = [r for r in provenance_records if r.episode_id in persisted_set]
+        persist_provenance(patient_client, records=prov_filtered)
 
-    encounters_linked = sum(len(ep.encounter_ids) for ep in auto_episodes)
+    encounters_linked = sum(len(ep.encounter_ids) for ep in episodes_to_persist)
     # Count episodes that resolved to a closed-family canonical status.
     # The v2 boundary still uses internal labels (open / closed /
     # benign_closure); we project them to canonical to compute the
@@ -621,7 +754,7 @@ async def build_episodes(
     }
     completed_count = sum(
         1
-        for ep in auto_episodes
+        for ep in episodes_to_persist
         if canonical_status_from_v2_boundary(ep.status, ep.needs_human_review)
         in closed_canonical
     )

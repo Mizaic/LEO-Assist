@@ -24,8 +24,7 @@ import { useEncounterLoad, type Encounter } from "./useEncounterLoad";
 import { useEncounterRecode } from "./useEncounterRecode";
 import {
   buildMilestoneLookup,
-  useEncounterEpisodeChips,
-  useMilestoneCuration,
+  useEncounterEpisodeChips, useMilestoneCuration,
 } from "./useMilestoneCuration";
 
 interface Props {
@@ -34,6 +33,7 @@ interface Props {
   // Sibling episodes for re-attaching across the patient's pathways.
   episodes?: MissionEpisode[];
   reviewerRole?: string;
+  focusEncounterId?: string | null;
   onCodingChanged?: () => void;
   // Refresh patient.episodes after milestone attach / detach.
   onEpisodeStructureChanged?: () => void;
@@ -44,6 +44,7 @@ export default function EncounterTextTab({
   episode,
   episodes,
   reviewerRole = "developer",
+  focusEncounterId,
   onCodingChanged,
   onEpisodeStructureChanged,
 }: Props) {
@@ -66,15 +67,10 @@ export default function EncounterTextTab({
   const [confirmResetEncounterId, setConfirmResetEncounterId] = useState<string | null>(null);
   const [focusedEncounterId, setFocusedEncounterId] = useState<string | null>(null);
   const [visibleEncounterId, setVisibleEncounterId] = useState<string | null>(null);
-  const [timelineRange, setTimelineRange] = useState<
-    { fromMs: number; toMs: number } | null
-  >(null);
+  const [timelineRange, setTimelineRange] = useState<{ fromMs: number; toMs: number } | null>(null);
   const encounterRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const encounterLocks = useEpisodeEncounterLocks(episode.episode_id);
-  const dialogEpisodes = useMemo(
-    () => (episodes && episodes.length > 0 ? episodes : [episode]),
-    [episodes, episode]
-  );
+  const dialogEpisodes = useMemo(() => (episodes && episodes.length > 0 ? episodes : [episode]), [episodes, episode]);
   const milestoneLookup = useMemo(
     () => buildMilestoneLookup(dialogEpisodes),
     [dialogEpisodes]
@@ -238,6 +234,10 @@ export default function EncounterTextTab({
     setFocusedEncounterId(encounterId);
     setVisibleEncounterId(encounterId);
   }, []);
+
+  useEffect(() => {
+    if (focusEncounterId) jumpToEncounter(focusEncounterId);
+  }, [focusEncounterId, jumpToEncounter]);
 
   const handleTimelineRangeChange = useCallback(
     (fromMs: number | null, toMs: number | null) => {

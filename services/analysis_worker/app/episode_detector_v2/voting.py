@@ -12,6 +12,9 @@ candidate. Assigns publishing tier:
 - ``auto``    -- 2+ generator votes, channel diversity >= 2,
                  site is auto_publish-eligible (see site_keys.py),
                  AND no supporting signal carries role="context_milestone".
+                 Fast-track/seen/diagnosis anchors with 3+ independent
+                 evidence channels also qualify without result-only
+                 generators.
 - ``suggest`` -- 2+ generator votes OR (1 vote AND channel diversity >= 2),
                  AND no context_milestone signal present.
 - ``review``  -- everything else, OR any context_milestone signal is present.
@@ -67,7 +70,15 @@ def assign_confidence_tier(
     has_ctx = _has_context_milestone_signal(aggregated)
     reasons: list[str] = []
 
-    if vote_count >= 2 and diversity >= 2 and site_auto and not has_ctx:
+    strong_single_anchor = (
+        cand.role_hint in {"referral", "first_seen", "diagnosis"} and diversity >= 3
+    )
+    if (
+        (vote_count >= 2 or strong_single_anchor)
+        and diversity >= 2
+        and site_auto
+        and not has_ctx
+    ):
         return "auto", reasons
 
     if vote_count >= 2 or diversity >= 2:

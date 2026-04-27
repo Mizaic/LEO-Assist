@@ -36,6 +36,10 @@ import {
   STATUS_REVIEW,
   EPISODE_STATUS_LABELS,
 } from "@/lib/episodeLifecycle";
+import { CANCER_TYPE_NO_INFORMATION } from "@/lib/cancerTypes";
+import { CANCER_TYPE_OPTIONS } from "@/lib/pathwayLabels";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskPatientId } from "@/lib/demoMode";
 import { MILESTONE_OPTIONS } from "./milestoneOptions";
 
 // Restricted starting-status set for manual create. The full
@@ -78,7 +82,7 @@ interface FormState {
 }
 
 const INITIAL_FORM: FormState = {
-  cancer_type: "",
+  cancer_type: CANCER_TYPE_NO_INFORMATION,
   cancer_stage: "",
   condition_type: "",
   referral_date: "",
@@ -119,6 +123,7 @@ export default function CreateEpisodeDialog({
   onClose,
   onCreated,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -206,19 +211,27 @@ export default function CreateEpisodeDialog({
           </Alert>
         )}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Creating a new episode for patient <strong>{patientId}</strong>.
+          Creating a new episode for patient{" "}
+          <strong>{isDemoMode ? maskPatientId(patientId) : patientId}</strong>.
           You can attach an encounter at the same time -- the episode dates
           will be re-derived from the attached encounter.
         </Typography>
         <Stack spacing={2}>
           <TextField
+            select
             label="Cancer type"
             value={form.cancer_type}
             onChange={update("cancer_type")}
             disabled={!isCurator || saving}
             inputProps={{ "aria-label": "Cancer type" }}
-            helperText="Plain English. Example: breast, lung, prostate."
-          />
+            helperText="NCDA standard cancer type."
+          >
+            {CANCER_TYPE_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </TextField>
           <TextField
             label="Cancer stage"
             value={form.cancer_stage}

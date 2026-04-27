@@ -72,7 +72,9 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import { useDemoMode } from "@/context/DemoModeContext";
 import { useOrg } from "@/context/OrgContext";
+import { maskOrgName } from "@/lib/demoMode";
 
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
@@ -163,6 +165,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { session, status, signIn, signOut } = useAuth();
   const { currentOrg, organizations, isPlatformAdmin, switchOrg, viewAll } = useOrg();
+  const { isDemoMode } = useDemoMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -409,7 +412,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 )
                 .map((org) => (
                   <MenuItem key={org.id} value={org.id} sx={{ fontSize: "0.9rem" }}>
-                    {org.shortName || org.name}
+                    {isDemoMode
+                      ? maskOrgName(org.shortName || org.name)
+                      : org.shortName || org.name}
                   </MenuItem>
                 ))}
             </Select>

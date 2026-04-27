@@ -26,6 +26,8 @@ import Typography from "@mui/material/Typography";
 import LinkOff from "@mui/icons-material/LinkOff";
 import { detachEncounterFromEpisode } from "@/lib/missionControlApi";
 import type { MissionEpisode } from "@/lib/missionControlApi";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskPatientId } from "@/lib/demoMode";
 import { milestoneLabel } from "./milestoneOptions";
 
 interface Props {
@@ -43,6 +45,7 @@ export default function EditEpisodeEncountersTab({
   onSaved,
   onError,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const [busy, setBusy] = useState<string | null>(null);
 
   const linkedEncounters = episode.linked_encounter_ids ?? [];
@@ -85,7 +88,8 @@ export default function EditEpisodeEncountersTab({
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         Encounters attached to this episode for patient{" "}
-        <strong>{patientId}</strong>. Episode dates re-derive automatically
+        <strong>{isDemoMode ? maskPatientId(patientId) : patientId}</strong>.
+        Episode dates re-derive automatically
         from the attached encounters.
       </Typography>
       <Alert severity="info" sx={{ mb: 2 }} data-testid="edit-episode-attach-hint">

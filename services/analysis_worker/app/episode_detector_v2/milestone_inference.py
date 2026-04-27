@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+import re
 
 from .types import ResolvedEpisode, TimelineEvent
 
@@ -93,9 +94,14 @@ def infer_milestone_links(
             continue
         event_links = _links_for_event(event, episode.site_key)
         if not event_links:
-            event_links = [_link(event, "related_correspondence")]
+            haystack = " ".join([_normalised_text(event), *_concept_names(event)])
+            if _should_fallback_primary_care_lab(haystack):
+                event_links = [_link(event, "primary_care_investigations")]
+            else:
+                event_links = [_link(event, "related_correspondence")]
         links.extend(event_links)
-    return _dedupe_and_sort(links, event_by_id)
+    links = _dedupe_and_sort(links, event_by_id)
+    return _suppress_first_seen_after_diagnosis(links, event_by_id)
 
 
 def infer_contextual_encounter_ids(
@@ -111,7 +117,7 @@ def infer_contextual_encounter_ids(
     cancer episode when the text makes the breast-pathway context clear,
     but they should not seed a separate site episode.
     """
-    if site_key != "breast":
+    if site_key not in {"breast", "skin"}:
         return []
     event_by_id = {event.encounter_id: event for event in timeline}
     out: list[str] = []
@@ -120,7 +126,9 @@ def infer_contextual_encounter_ids(
         if event is None:
             continue
         haystack = " ".join([_normalised_text(event), *_concept_names(event)])
-        if _is_strong_breast_context(haystack):
+        if site_key == "breast" and _is_strong_breast_context(haystack):
+            out.append(enc_id)
+        elif site_key == "skin" and _is_strong_skin_context(haystack):
             out.append(enc_id)
     return out
 
@@ -135,6 +143,13 @@ def infer_walkback_encounter_ids(
     lookback_days: int = 90,
 ) -> list[str]:
     """Walk back from diagnosis to related uncoded precursor events."""
+    if site_key == "haematology" and generator == "diagnosis_anchored":
+        return _infer_haematology_screening_walkback(
+            anchor_event_id=anchor_event_id,
+            intent=intent,
+            timeline=timeline,
+            lookback_days=lookback_days,
+        )
     if site_key != "breast" or generator != "diagnosis_anchored":
         return []
     if intent != "confirmed":
@@ -169,6 +184,98 @@ def infer_walkback_encounter_ids(
     for event in candidates:
         if event.encounter_id != anchor_event_id:
             out.append(event.encounter_id)
+    return out
+
+
+def _infer_haematology_screening_walkback(
+    *,
+    anchor_event_id: str,
+    intent: str,
+    timeline: list[TimelineEvent],
+    lookback_days: int,
+) -> list[str]:
+    if intent != "confirmed":
+        return []
+    event_by_id = {event.encounter_id: event for event in timeline}
+    anchor = event_by_id.get(anchor_event_id)
+    if anchor is None:
+        return []
+    anchor_haystack = " ".join([_normalised_text(anchor), *_concept_names(anchor)])
+    if _is_myeloproliferative_haematology_diagnosis(anchor_haystack):
+        return _haematology_diagnosis_walkback_events(
+            anchor=anchor,
+            timeline=timeline,
+            lookback_days=max(lookback_days, 365),
+        )
+    anchors = [anchor] if _is_haematology_axillary_event(anchor) else []
+    if not anchors:
+        anchors = [
+            event for event in timeline if _is_haematology_axillary_event(event)
+        ]
+    if not anchors:
+        return []
+    out: list[str] = []
+    for diagnosis_event in anchors:
+        bridge_events = _haematology_screening_bridge_events(diagnosis_event, timeline)
+        if not bridge_events:
+            continue
+        for event in timeline:
+            days_before = (diagnosis_event.occurred_on - event.occurred_on).days
+            if days_before < 0 or days_before > lookback_days:
+                continue
+            haystack = " ".join([_normalised_text(event), *_concept_names(event)])
+            if _is_abnormal_breast_screening_entry(haystack):
+                out.append(event.encounter_id)
+        out.extend(event.encounter_id for event in bridge_events)
+    return list(dict.fromkeys(out))
+
+
+def _haematology_diagnosis_walkback_events(
+    *,
+    anchor: TimelineEvent,
+    timeline: list[TimelineEvent],
+    lookback_days: int,
+) -> list[str]:
+    strong_dates = [
+        event.occurred_on
+        for event in timeline
+        if 0 <= (anchor.occurred_on - event.occurred_on).days <= lookback_days
+        and _is_strong_haematology_diagnostic_context(
+            " ".join([_normalised_text(event), *_concept_names(event)])
+        )
+        and not _is_weak_haematology_context(event)
+    ]
+    out: list[str] = []
+    for event in timeline:
+        days_before = (anchor.occurred_on - event.occurred_on).days
+        if days_before < 0 or days_before > lookback_days:
+            continue
+        haystack = " ".join([_normalised_text(event), *_concept_names(event)])
+        if _is_weak_haematology_context(event):
+            continue
+        if _is_strong_haematology_diagnostic_context(haystack):
+            out.append(event.encounter_id)
+        elif _is_haematology_letter_stub(haystack) and any(
+            abs((event.occurred_on - strong_date).days) <= 45
+            for strong_date in strong_dates
+        ):
+            out.append(event.encounter_id)
+    return out
+
+
+def _haematology_screening_bridge_events(
+    anchor: TimelineEvent,
+    timeline: list[TimelineEvent],
+    lookahead_days: int = 30,
+) -> list[TimelineEvent]:
+    out: list[TimelineEvent] = []
+    for event in timeline:
+        days_after = (event.occurred_on - anchor.occurred_on).days
+        if days_after < 0 or days_after > lookahead_days:
+            continue
+        haystack = " ".join([_normalised_text(event), *_concept_names(event)])
+        if _is_screening_mammogram_haematology_bridge(haystack):
+            out.append(event)
     return out
 
 
@@ -240,8 +347,6 @@ def add_same_day_referral_sent_encounter_ids(
     candidate_encounter_ids: list[str],
     timeline: Sequence[TimelineEvent],
 ) -> list[str]:
-    if site_key != "breast":
-        return candidate_encounter_ids
     event_by_id = {event.encounter_id: event for event in timeline}
     dates = {
         event_by_id[enc_id].occurred_on
@@ -254,7 +359,7 @@ def add_same_day_referral_sent_encounter_ids(
         if event.occurred_on not in dates or event.encounter_id in seen:
             continue
         haystack = " ".join([_normalised_text(event), *_concept_names(event)])
-        if _is_referral_sent(haystack):
+        if _is_referral_sent(haystack, site_key):
             out.append(event.encounter_id)
             seen.add(event.encounter_id)
     return out
@@ -276,17 +381,36 @@ def prune_weak_breast_context_encounter_ids(
     ]
 
 
+def prune_weak_haematology_context_encounter_ids(
+    *,
+    site_key: str,
+    candidate_encounter_ids: list[str],
+    timeline: Sequence[TimelineEvent],
+) -> list[str]:
+    if site_key != "haematology":
+        return candidate_encounter_ids
+    event_by_id = {event.encounter_id: event for event in timeline}
+    return [
+        enc_id
+        for enc_id in candidate_encounter_ids
+        if not _is_weak_haematology_context(event_by_id.get(enc_id))
+    ]
+
+
 def _links_for_event(event: TimelineEvent, site_key: str) -> list[MilestoneLink]:
     text = _normalised_text(event)
     concepts = _concept_names(event)
     haystack = " ".join([text, *concepts])
     links: list[MilestoneLink] = []
 
+    if site_key == "haematology" and _is_abnormal_breast_screening_entry(haystack):
+        links.append(_link(event, "first_presentation"))
+        links.append(_link(event, "referral"))
     if _is_first_presentation(haystack, text, site_key) or _is_metastatic_presentation(
         haystack
     ):
         links.append(_link(event, "first_presentation"))
-    if _is_referral_sent(haystack):
+    if _is_referral_sent(haystack, site_key):
         links.append(_link(event, "referral_sent"))
     if _is_referral_decision(haystack):
         links.append(_link(event, "referral"))
@@ -371,6 +495,54 @@ def _is_strong_breast_context(haystack: str) -> bool:
     )
 
 
+def _is_strong_skin_context(haystack: str) -> bool:
+    if "fast track referral" in haystack or "questionnaire started" in haystack:
+        return False
+    if any(
+        phrase in haystack
+        for phrase in (
+            "2ww breast",
+            "breast clinic",
+            "breast surgery",
+            "breast reduction",
+            "podiatry",
+            "menorrhagia",
+            "dyspareunia",
+            "high vaginal swab",
+            "chlamydia",
+            "gonorrhoeae",
+        )
+    ):
+        return False
+    return any(
+        phrase in haystack
+        for phrase in (
+            "uhl dermatology service",
+            "under care of dermatologist",
+            "dermatology to",
+            "seen in fast track suspected skin cancer clinic",
+            "suspected skin cancer",
+            "skin cancer follow up",
+            "skin lesion for surgery",
+            "excision of skin lesion",
+            "excision left forearm",
+            "left forearm",
+            "dysplastic naevus",
+            "atypical naevus",
+            "compound naevus with moderate atypia",
+            "surgical margin is tumour free",
+            "dermoscopy",
+            "lesion removed",
+            "wound check",
+            "surgical wound",
+            "wound healing well",
+            "letter to gp",
+            "letter to patient",
+            "discharge",
+        )
+    )
+
+
 def _is_weak_breast_context(event: TimelineEvent | None) -> bool:
     if event is None:
         return False
@@ -392,9 +564,97 @@ def _is_weak_breast_context(event: TimelineEvent | None) -> bool:
             "does not breast feed",
             "previous breast surgery with right-sided surgical clips",
             "no sign disease recurrence",
+            "breast screening declined",
+            "does not wish to be screened",
             "shingrix vaccination",
             "lymphoedema clinic",
+            "breast reduction surgery",
+            "breast surgery (cosmetic)",
+            "funding request was rejected",
+            "funding request",
+            "doesnt meet the criteria",
+            "doesn't meet the criteria",
         )
+    )
+
+
+def _is_weak_haematology_context(event: TimelineEvent | None) -> bool:
+    if event is None:
+        return False
+    haystack = " ".join([_normalised_text(event), *_concept_names(event)])
+    if _is_strong_haematology_diagnostic_context(haystack):
+        return False
+    is_breast_2ww = any(
+        phrase in haystack
+        for phrase in (
+            "fast track referral for suspected breast cancer",
+            "2ww breast female referral pathway",
+            "2ww breast female prism",
+            "patient awaiting opd appt.: yes 2ww breast",
+            "seen in fast track suspected breast cancer clinic",
+        )
+    )
+    is_lab_boilerplate = any(
+        phrase in haystack
+        for phrase in (
+            "haematology referral guidelines",
+            "globulins may be raised in myeloma",
+            "free light chains to rule out myeloma",
+            "unlikely to represent myeloma",
+        )
+    )
+    is_non_cancer_admin = any(
+        phrase in haystack
+        for phrase in (
+            "letter from haem asking to remove ckd diagnosis",
+            "chronic kidney disease",
+            "ckd staging",
+        )
+    )
+    return (
+        is_breast_2ww
+        or is_lab_boilerplate
+        or is_non_cancer_admin
+    )
+
+
+def _is_strong_haematology_diagnostic_context(haystack: str) -> bool:
+    return any(
+        phrase in haystack
+        for phrase in (
+            "chronic lymphoid leukaemia",
+            "chronic lymphoid leukemia",
+            "malignant lymphoma",
+            "small lymphocytic",
+            "possible cll",
+            "screening mammogram",
+            "rare haematological malignancy",
+            "rare hematological malignancy",
+            "blood cancer",
+            "myeloproliferative disorder",
+            "myeloproliferative neoplasm",
+            "polycythaemia vera",
+            "polycythemia vera",
+            "ruxolitinib",
+        )
+    )
+
+
+def _is_myeloproliferative_haematology_diagnosis(haystack: str) -> bool:
+    return any(
+        phrase in haystack
+        for phrase in (
+            "myeloproliferative disorder",
+            "myeloproliferative neoplasm",
+            "polycythaemia vera",
+            "polycythemia vera",
+        )
+    )
+
+
+def _is_haematology_letter_stub(haystack: str) -> bool:
+    return len(haystack.strip()) < 180 and bool(
+        re.search(r"\b(?:haematology|hematology) to [\w\s\[\].'-]+$", haystack)
     )
 
 
@@ -433,6 +693,58 @@ def _is_breast_primary_diagnosis(haystack: str) -> bool:
             "infiltrating duct carcinoma",
         )
     )
+
+
+def _is_haematology_axillary_diagnosis(haystack: str) -> bool:
+    has_haematology_diagnosis = any(
+        phrase in haystack
+        for phrase in (
+            "chronic lymphoid leukaemia",
+            "chronic lymphoid leukemia",
+            "malignant lymphoma",
+            "small lymphocytic",
+            "cll",
+        )
+    )
+    return has_haematology_diagnosis and "axillary lymph node" in haystack
+
+
+def _is_haematology_axillary_event(event: TimelineEvent) -> bool:
+    haystack = " ".join([_normalised_text(event), *_concept_names(event)])
+    return _is_haematology_axillary_diagnosis(haystack)
+
+
+def _is_abnormal_breast_screening_entry(haystack: str) -> bool:
+    return (
+        "breast neoplasm screening abnormal" in haystack
+        or (
+            "nhs breast screening programme" in haystack
+            and "abnormal" in haystack
+        )
+    )
+
+
+def _is_screening_mammogram_haematology_bridge(haystack: str) -> bool:
+    has_bridge = any(
+        phrase in haystack
+        for phrase in (
+            "come about as a result of something seen on screening mammogram",
+            "result of something seen on screening mammogram",
+            "screening mammogram",
+        )
+    )
+    has_haematology_context = any(
+        phrase in haystack
+        for phrase in (
+            "possible cll",
+            "cll",
+            "haematology",
+            "hematology",
+            "histology",
+            "mdt",
+        )
+    )
+    return has_bridge and has_haematology_context
 
 
 def _is_walkback_symptom_or_escalation(haystack: str) -> bool:
@@ -529,7 +841,9 @@ def _is_metastatic_presentation(haystack: str) -> bool:
     )
 
 
-def _is_referral_sent(haystack: str) -> bool:
+def _is_referral_sent(haystack: str, site_key: str = "") -> bool:
+    if site_key == "prostate_urological" and "questionnaire started" in haystack:
+        return False
     return any(
         phrase in haystack
         for phrase in (
@@ -538,6 +852,7 @@ def _is_referral_sent(haystack: str) -> bool:
             "updated: waiting for information",
             "fast track referral for suspected breast cancer",
             "fast track referral for suspected head and neck cancer",
+            "fast track referral for suspected urological cancer",
             "fast track referral for suspected breast cancer updated",
         )
     )
@@ -573,6 +888,8 @@ def _is_first_seen(haystack: str) -> bool:
     return (
         "seen in fast track suspected breast cancer clinic" in haystack
         or "seen in fast track suspected head and neck cancer clinic" in haystack
+        or "seen in fast track suspected urological cancer clinic" in haystack
+        or "seen in fast track suspected skin cancer clinic" in haystack
         or "seen in 2ww clinic" in haystack
     )
 
@@ -596,6 +913,10 @@ def _is_specialist_diagnostics(haystack: str) -> bool:
             "ultrasound",
             "core needle",
             "sentinel lymph node",
+            "dermoscopy",
+            "excision of skin lesion",
+            "skin lesion for surgery",
+            "lesion removed",
         )
     )
 
@@ -630,6 +951,10 @@ def _is_outcome_letter(haystack: str) -> bool:
             "breast surgeon to",
             "clinic letter",
             "outcome letter",
+            "dermatology to",
+            "skin cancer follow up",
+            "surgical margin is tumour free",
+            "discharge",
         )
     )
 
@@ -651,6 +976,19 @@ def _is_confirmed_diagnosis(haystack: str) -> bool:
             "ductal carcinoma in situ",
             "metastasis to lymph node",
             "macrometastasis",
+            "chronic lymphoid leukaemia",
+            "chronic lymphoid leukemia",
+            "malignant lymphoma - small lymphocytic",
+            "myeloproliferative disorder",
+            "myeloproliferative neoplasm",
+            "polycythaemia vera",
+            "polycythemia vera",
+            "carcinoma of prostate",
+            "malignant neoplasm of prostate",
+            "malignant tumor of prostate",
+            "adenocarcinoma of prostate",
+            "prostate adenocarcinoma",
+            "prostate cancer",
         )
     )
 
@@ -664,6 +1002,47 @@ def _is_benign_closure(haystack: str, site_key: str = "breast") -> bool:
                 "occipital lymph node",
             )
         )
+    if site_key == "prostate_urological":
+        has_urology_investigation = any(
+            phrase in haystack
+            for phrase in (
+                "cystoscopy",
+                "flexible cystoscopy",
+                "prostate biopsy",
+                "prostate mri",
+                "prostate ultrasound",
+            )
+        )
+        has_benign_result = any(
+            phrase in haystack
+            for phrase in (
+                " - normal",
+                " normal",
+                "no malignancy",
+                "no abnormality",
+                "benign",
+                "negative",
+            )
+        )
+        return has_urology_investigation and has_benign_result
+    if site_key == "skin":
+        has_benign_skin_result = any(
+            phrase in haystack
+            for phrase in (
+                "compound naevus with moderate atypia",
+                "surgical margin is tumour free",
+                "skin cancer follow up",
+            )
+        )
+        has_completion_context = any(
+            phrase in haystack
+            for phrase in (
+                "surgical margin is tumour free",
+                "discharge",
+                "plan-results letter",
+            )
+        )
+        return has_benign_skin_result and has_completion_context
     if any(
         phrase in haystack
         for phrase in (
@@ -675,6 +1054,16 @@ def _is_benign_closure(haystack: str, site_key: str = "breast") -> bool:
         return False
     if "lipoma of breast" in haystack or "cyst of breast" in haystack:
         return True
+    if "fibroadenoma of breast" in haystack and any(
+        phrase in haystack
+        for phrase in (
+            "us scan of breast",
+            "ultrasound scan of breast",
+            "mammogram",
+            "breast ultrasound",
+        )
+    ):
+        return True
     has_breast_investigation = any(
         phrase in haystack
         for phrase in (
@@ -682,14 +1071,16 @@ def _is_benign_closure(haystack: str, site_key: str = "breast") -> bool:
             "ultrasound scan of breast",
             "mammogram",
             "breast ultrasound",
-            "breast clinic",
         )
     )
     has_benign_result = any(
         phrase in haystack
         for phrase in (
             " - normal",
+            " - nad",
             " normal",
+            " nad",
+            "no change",
             "no malignancy",
             "no abnormality",
             "benign",
@@ -721,6 +1112,8 @@ def _is_treatment_started(haystack: str, text: str) -> bool:
         or "following treatment for breast cancer" in haystack
     ):
         return False
+    if _is_historical_breast_treatment_summary(haystack):
+        return False
     return any(
         phrase in haystack
         for phrase in (
@@ -732,8 +1125,37 @@ def _is_treatment_started(haystack: str, text: str) -> bool:
             "wide local excision",
             "mastectomy",
             "radiotherapy",
+            "ruxolitinib",
         )
     ) or ("chemotherapy" in haystack and "major:" in text)
+
+
+def _is_historical_breast_treatment_summary(haystack: str) -> bool:
+    has_breast_history = any(
+        phrase in haystack
+        for phrase in (
+            "hx of breast ca",
+            "history of breast ca",
+            "background - l breast",
+            "b/g of breast ca",
+            "left breast ca",
+            "breast ca",
+            "breast ca 2 years ago",
+            "invasive ductal carcinoma",
+        )
+    )
+    has_prior_treatment = any(
+        phrase in haystack
+        for phrase in (
+            "wle +",
+            "radiotherapy 5 fractions",
+            "post-radiotherapy fibrosis",
+            "after radiotherapy",
+            "currently on tamoxifen",
+            "tamoxifen",
+        )
+    )
+    return has_breast_history and has_prior_treatment
 
 
 def _is_treatment_completed(haystack: str) -> bool:
@@ -791,24 +1213,137 @@ def _is_care_obstruction(haystack: str) -> bool:
             "appointment so rescheduled",
             "unable to attend",
             "did not attend",
+            "we don't have any letters yet",
+            "dont have any letters yet",
         )
     )
 
 
+def _is_auto_filed_lab_panel(haystack: str) -> bool:
+    """True for typical SystmOne / GP auto-filed quantitative lab blocks."""
+    h = haystack.lower()
+    if "auto-filed" not in h and "auto filed" not in h:
+        return False
+    unit_markers = (
+        "mmol/l",
+        "umol/l",
+        "iu/l",
+        "g/l",
+        "10^9/l",
+        "10^12/l",
+        "ng/ml",
+        "mg/l",
+    )
+    return any(m in h for m in unit_markers)
+
+
 def _is_primary_care_investigation(haystack: str) -> bool:
+    """Primary-care or general-practice bloods / near-patient tests.
+
+    Aligned with ``primary_care_investigations`` regexes in site rulebooks;
+    keeps milestone labels off generic correspondence for result-only rows.
+    """
+    h = haystack.lower()
+    if _is_auto_filed_lab_panel(h):
+        return True
     return any(
-        phrase in haystack
+        phrase in h
         for phrase in (
             "pre chemo",
             "blood sample taken",
             "phlebotomy",
             "blood test",
             "blood taken",
+            "venepuncture",
+            "bloods",
+            "full blood count",
+            "fbc",
+            "haemoglobin concentration",
+            "platelet count",
+            "white blood cell count",
+            "urea & electrolytes",
+            "urea and electrolytes",
+            "u&es",
+            "u and e",
+            "serum creatinine level",
+            "serum urea level",
+            "egfr using creatinine",
+            "liver function tests",
+            "serum albumin level",
+            "serum bilirubin level",
+            "plasma c-reactive protein",
+            "c-reactive protein level",
+            "thyroid function tests",
+            "urinalysis",
+            "mid-stream urine",
+            "midstream urine",
+            "msu ",
+            "dipstick",
+            "prostate-specific antigen",
+            "prostate-specific antigen level",
         )
     )
 
 
+def _should_fallback_primary_care_lab(haystack: str) -> bool:
+    """Prefer investigation labelling over correspondence for bare lab rows."""
+    if _is_primary_care_investigation(haystack):
+        return True
+    h = haystack.lower()
+    if "clinic letter" in h or "outcome letter" in h or "discharge summary" in h:
+        return False
+    if ("report summary" in h or "report:" in h) and any(
+        m in h for m in ("mmol/l", "umol/l", "iu/l", "g/l", "ng/ml", "10^9/l")
+    ):
+        return True
+    if "clinical information" in h and "request" in h:
+        if any(
+            k in h
+            for k in (
+                "mmol/l",
+                "full blood",
+                "fbc",
+                "psa",
+                "prostate-specific",
+                "urea",
+                "creatinine",
+                "liver function",
+                "haemoglobin",
+                "platelet",
+            )
+        ):
+            return True
+    return False
+
+
+def _suppress_first_seen_after_diagnosis(
+    links: list[MilestoneLink],
+    event_by_id: dict[str, TimelineEvent],
+) -> list[MilestoneLink]:
+    """Drop ``first_seen`` on encounters strictly after the first diagnosis."""
+    diag_dates: list[date] = []
+    for link in links:
+        if link.milestone_type != "diagnosis_confirmed":
+            continue
+        event = event_by_id.get(link.encounter_id)
+        if event is not None:
+            diag_dates.append(event.occurred_on)
+    if not diag_dates:
+        return links
+    cutoff = min(diag_dates)
+    out: list[MilestoneLink] = []
+    for link in links:
+        if link.milestone_type == "first_seen":
+            event = event_by_id.get(link.encounter_id)
+            if event is not None and event.occurred_on > cutoff:
+                continue
+        out.append(link)
+    return out
+
+
 def _is_related_gp_visit(haystack: str) -> bool:
+    if _is_skin_wound_followup(haystack):
+        return True
     if _is_treatment_planned(haystack):
         return False
     if _is_treatment_toxicity(haystack) and not any(
@@ -840,6 +1375,31 @@ def _is_related_gp_visit(haystack: str) -> bool:
             "cancer care review",
             "general catch up",
             "complaining of hot flushes",
+            "degarelix injection",
+            "degarelix",
+            "firmagon injection",
+            "firmagon",
+        )
+    )
+
+
+def _is_skin_wound_followup(haystack: str) -> bool:
+    return any(
+        phrase in haystack
+        for phrase in (
+            "wound check",
+            "lesion removed",
+            "surgical wound",
+            "wound healing well",
+            "suture removal",
+        )
+    ) and any(
+        phrase in haystack
+        for phrase in (
+            "left forearm",
+            "skin lesion",
+            "dermatology",
+            "secondary care",
         )
     )
 
@@ -864,7 +1424,7 @@ def _has_breast_cancer_followup_context(haystack: str) -> bool:
 def _is_related_specialist_visit(haystack: str) -> bool:
     return (
         "seen in 2ww clinic" in haystack and "summary care record" in haystack
-    ) or "lymphoedema clinic" in haystack
+    ) or "lymphoedema clinic" in haystack or "uhl dermatology service" in haystack
 
 
 def _treatment_type(event: TimelineEvent, milestone_type: str) -> str | None:
@@ -945,9 +1505,7 @@ def _drop_duplicate_same_day_referral_sent(
     if not drop:
         return links
     return [
-        link
-        for link in links
-        if (link.encounter_id, link.milestone_type) not in drop
+        link for link in links if (link.encounter_id, link.milestone_type) not in drop
     ]
 
 
@@ -959,9 +1517,8 @@ def _preferred_referral_sent_link(
     return min(
         links,
         key=lambda link: (
-            "referral_admin" not in milestones_by_encounter.get(
-                link.encounter_id, set()
-            ),
+            "referral_admin"
+            not in milestones_by_encounter.get(link.encounter_id, set()),
             event_by_id[link.encounter_id].occurred_on,
             link.encounter_id,
         ),

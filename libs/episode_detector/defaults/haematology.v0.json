@@ -140,6 +140,7 @@
       },
       "regex_catalogue": [
         "\\b(lymphoma|leukaem\\w+|myeloma|myelodysplas\\w+|mds)\\b",
+        "\\b(myeloproliferative|polycytha?emia|blood cancer|ruxolitinib)\\b",
         "\\b(lymph node|lymphadenopathy)\\b",
         "\\b(spleen|splenomegal\\w*|hepatosplenomegal\\w*)\\b",
         "\\b(night sweats|weight loss).{0,40}\\b(fever|pyrexia)\\b",

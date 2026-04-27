@@ -157,6 +157,30 @@ def test_cancer_care_review_problem_list_is_not_confirmation_signal():
     assert extract_code_signals([evt]) == []
 
 
+def test_historical_breast_diagnosis_reference_is_not_confirmation_signal():
+    evt = TimelineEvent(
+        encounter_id="enc-1",
+        occurred_on=date(2024, 5, 20),
+        event_kind="encounter",
+        text_snippet=(
+            "History: Asthma review. Stopped smoking 1 year ago when diagnosed "
+            "with breast cancer."
+        ),
+        coded_entities=(
+            {
+                "concept_id": "254837009",
+                "display_name": "Malignant neoplasm of breast (disorder)",
+                "source": "deterministic_cancer_diagnosis_coder",
+                "evidence": (
+                    "Stopped smoking 1 year ago when diagnosed with breast cancer"
+                ),
+            },
+        ),
+    )
+
+    assert extract_code_signals([evt]) == []
+
+
 def test_breast_suspected_concept_emits_suspected_signal():
     evt = _evt(codes=[{"concept_id": "134405005"}])
     signals = extract_code_signals([evt])
@@ -208,6 +232,23 @@ def test_emits_lung_confirmed_signal_for_registered_lung_snomed():
     signals = extract_code_signals([evt])
     assert len(signals) == 1
     assert signals[0].site_key == "lung"
+    assert signals[0].intent == "confirmed"
+
+
+def test_emits_haematology_confirmed_signal_for_myeloproliferative_disorder():
+    evt = _evt(
+        codes=[
+            {
+                "concept_id": "425333006",
+                "display_name": "Myeloproliferative disorder (disorder)",
+            }
+        ]
+    )
+
+    signals = extract_code_signals([evt])
+
+    assert len(signals) == 1
+    assert signals[0].site_key == "haematology"
     assert signals[0].intent == "confirmed"
 
 

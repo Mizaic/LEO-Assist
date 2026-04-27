@@ -12,9 +12,12 @@ import { useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { CANCER_TYPE_NO_INFORMATION } from "@/lib/cancerTypes";
+import { CANCER_TYPE_OPTIONS } from "@/lib/pathwayLabels";
 import { updateEpisode } from "@/lib/missionControlApi";
 import type { EpisodeUpdateBody, MissionEpisode } from "@/lib/missionControlApi";
 
@@ -37,7 +40,7 @@ interface FormState {
 
 function fromEpisode(episode: MissionEpisode): FormState {
   return {
-    cancer_type: episode.cancer_type ?? "",
+    cancer_type: episode.cancer_type ?? CANCER_TYPE_NO_INFORMATION,
     cancer_stage: episode.cancer_stage ?? "",
     condition_type: episode.condition_type ?? "",
     referral_date: episode.referral_date ?? "",
@@ -114,13 +117,20 @@ export default function EditEpisodeDetailsTab({
       </Typography>
       <Stack spacing={2}>
         <TextField
+          select
           label="Cancer type"
           value={form.cancer_type}
           onChange={update("cancer_type")}
           disabled={disabled || saving}
           inputProps={{ "aria-label": "Cancer type" }}
-          helperText="Plain English. Example: breast, lung, prostate."
-        />
+          helperText="NCDA standard cancer type."
+        >
+          {CANCER_TYPE_OPTIONS.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
         <TextField
           label="Cancer stage"
           value={form.cancer_stage}

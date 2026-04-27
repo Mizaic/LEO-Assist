@@ -94,6 +94,20 @@ describe("VT-DAEE0DFD - PatientDetailDrawer full episode list", () => {
     expect(drawerSrc).toMatch(/refreshDrawerEpisodes\(\)[\s\S]*?onPatientRefreshed/);
   });
 
+  it("preserves focused episode across same-patient refreshes", () => {
+    expect(drawerSrc).toMatch(/previousPatientIdRef/);
+    expect(drawerSrc).toMatch(
+      /setFocusedEpisodeId\(\(current\) => \{[\s\S]*?if \(patientChanged\) return patient\.episodes\[0\]\?\.episode_id \?\? ""/,
+    );
+    expect(drawerSrc).toMatch(/if \(current\) return current/);
+    expect(drawerSrc).toMatch(
+      /res\.episodes\.some\(\(e\) => e\.episode_id === current\)/,
+    );
+    expect(drawerSrc).not.toMatch(
+      /setFocusedEpisodeId\(patient\.episodes\[0\]\?\.episode_id \?\? ""\)/,
+    );
+  });
+
   it("OverviewTab accepts an episodes override and uses it when set", () => {
     // The Props interface gains an optional `episodes` prop ...
     expect(overviewSrc).toMatch(/episodes\?:\s*MissionEpisode\[\]/);

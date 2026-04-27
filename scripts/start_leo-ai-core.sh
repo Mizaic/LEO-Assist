@@ -18,7 +18,8 @@
 #   LEO_PYTHON  -- full path to python3.12 used to create .venv (must be 3.12.x; matches CI)
 #   API_PORT, TERM_PORT, FHIR_PORT, ANALYTICS_PORT, MODEL_INFERENCE_PORT,
 #   TRAINING_WORKER_PORT, PIPELINE_WORKER_PORT, RESEARCH_WORKER_PORT, UI_PORT,
-#   PIPELINE_WORKERS, TERM_WORKERS
+#   PIPELINE_WORKERS, TERM_WORKERS, TRAINING_JOB_TIMEOUT_S (0 disables cap),
+#   TRAINING_MAX_STEPS (local default: 4000)
 
 set -euo pipefail
 
@@ -36,6 +37,8 @@ RESEARCH_WORKER_PORT="${RESEARCH_WORKER_PORT:-8007}"
 UI_PORT="${UI_PORT:-3000}"
 PIPELINE_WORKERS="${PIPELINE_WORKERS:-1}"
 TERM_WORKERS="${TERM_WORKERS:-1}"
+TRAINING_JOB_TIMEOUT_S="${TRAINING_JOB_TIMEOUT_S:-0}"
+TRAINING_MAX_STEPS="${TRAINING_MAX_STEPS:-4000}"
 
 SKIP_INSTALL=0
 NO_WORKERS=0
@@ -411,8 +414,8 @@ fi
 if [[ "$NO_TRAINING_WORKER" -eq 0 ]] && should_start "training_worker"; then
   kill_listener_on_port "$TRAINING_WORKER_PORT"
   start_service_window "Training Worker :${TRAINING_WORKER_PORT}" \
-    "'$TRAINING_VENV_PYTHON' -m uvicorn app.main:app --app-dir '$TRAINING_WORKER_DIR' --host 0.0.0.0 --port $TRAINING_WORKER_PORT"
-  echo "    Training Worker    http://localhost:${TRAINING_WORKER_PORT}  (NER fine-tuning /train/jobs /train/progress)"
+    "TRAINING_JOB_TIMEOUT_S='$TRAINING_JOB_TIMEOUT_S' TRAINING_MAX_STEPS='$TRAINING_MAX_STEPS' '$TRAINING_VENV_PYTHON' -m uvicorn app.main:app --app-dir '$TRAINING_WORKER_DIR' --host 0.0.0.0 --port $TRAINING_WORKER_PORT"
+  echo "    Training Worker    http://localhost:${TRAINING_WORKER_PORT}  (NER fine-tuning /train/jobs /train/progress, timeout=${TRAINING_JOB_TIMEOUT_S}s, max_steps=${TRAINING_MAX_STEPS})"
   WINDOW_COUNT=$((WINDOW_COUNT + 1))
 else
   echo "    Training Worker    [skipped; omit --no-training-worker to start]"

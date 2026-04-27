@@ -87,10 +87,10 @@ class TestDeidentifyWithSpanSentinel:
 
     def test_sentinel_values_are_negative_one(self):
         # Guarantee the sentinel is exactly -1, -1 (not None or 0).
-        sentence = "Dr ATKIN, Sarah discussed asthma."
-        # The name "ATKIN, Sarah" will be redacted; asthma should survive.
+        sentence = "Dr LARKIN, Sarah discussed asthma."
+        # The name "LARKIN, Sarah" will be redacted; asthma should survive.
         # We test a span that definitely won't exist after de-id.
-        deident, start, end = deidentify_with_span(sentence, "ATKIN")
+        deident, start, end = deidentify_with_span(sentence, "LARKIN")
         if start == -1:
             assert end == -1, "Sentinel end must also be -1"
 
@@ -174,3 +174,129 @@ class TestPostcodePreservesReadCodes:
     )
     def test_looks_like_read_code(self, token: str, expected: bool) -> None:
         assert _looks_like_read_code(token) is expected
+
+
+class TestContextualPhiPatterns:
+    """Encounter-export PII patterns found in staff and letter contexts."""
+
+    @pytest.mark.parametrize(
+        "raw_text,leaked_fragments,expected_tokens",
+        [
+            (
+                "Surgery: LARKIN, Amira (Healthcare Assistant)",
+                ["LARKIN", "Amira"],
+                ["[PERSON]", "Healthcare Assistant"],
+            ),
+            (
+                "Surgery: BHATIA, Neel (Mr) (Pharmacist)",
+                ["BHATIA", "Neel"],
+                ["[PERSON]", "Pharmacist"],
+            ),
+            (
+                "Surgery: BRADLEY, Sara (Miss)",
+                ["BRADLEY", "Sara"],
+                ["[PERSON]"],
+            ),
+            (
+                "Surgery: DONNELLY, Portia",
+                ["DONNELLY", "Portia"],
+                ["[PERSON]"],
+            ),
+            (
+                "Referred to MEHTA, RK (MISS)",
+                ["MEHTA", "RK", "MISS"],
+                ["Referred to [PERSON]"],
+            ),
+            (
+                "Dear Mrs Carlton, please contact reception.",
+                ["Mrs Carlton"],
+                ["Dear [PERSON]"],
+            ),
+            (
+                "Dear Priya Carlton, please contact reception.",
+                ["Priya", "Carlton"],
+                ["Dear [PERSON]"],
+            ),
+            (
+                "Patient telephone number (9159.) - 07903 950555",
+                ["07903 950555"],
+                ["[PHONE]"],
+            ),
+            (
+                "Patient telephone number (9159.) - +447903950555",
+                ["+447903950555"],
+                ["[PHONE]"],
+            ),
+            (
+                "Boots: Mina Carter",
+                ["Boots", "Mina", "Carter"],
+                ["[ORGANISATION]: [PERSON]"],
+            ),
+            (
+                "Hms Pharmacy: Ravi1 (Ravi Shah)",
+                ["Hms", "Ravi1", "Ravi Shah"],
+                ["[ORGANISATION]: [PERSON]"],
+            ),
+            (
+                "Thanks, Dr Asha Patel",
+                ["Asha", "Patel"],
+                ["Thanks, [PERSON]"],
+            ),
+            (
+                "09:04 - NADIR, Leila",
+                ["NADIR", "Leila"],
+                ["[PERSON]"],
+            ),
+            (
+                "Thanks, Alex Harper",
+                ["Alex", "Harper"],
+                ["Thanks, [PERSON]"],
+            ),
+            (
+                "James Carter / RA68802",
+                ["James", "Carter", "RA68802"],
+                ["[PERSON] / [STAFF_ID]"],
+            ),
+            (
+                "JAMES CARTER REPORTING RADIOGRAPHER RA68802 UHL",
+                ["JAMES", "CARTER", "RA68802"],
+                ["[PERSON] REPORTING RADIOGRAPHER [STAFF_ID]"],
+            ),
+            (
+                "Review done by MORGAN, Ellis (Dr)",
+                ["MORGAN", "Ellis"],
+                ["[PERSON]"],
+            ),
+            (
+                "Patient Leaflet to Mrs Priya Carlton",
+                ["Priya", "Carlton"],
+                ["Patient Leaflet to [PERSON]"],
+            ),
+            (
+                "Shelthorpe Pharmacy: Unknown Staff Member",
+                ["Shelthorpe", "Unknown Staff Member"],
+                ["[ORGANISATION]: [PERSON]"],
+            ),
+            (
+                "08:34 - O'BRIEN, Charlotte (Ms)",
+                ["O'BRIEN", "Charlotte"],
+                ["[PERSON]"],
+            ),
+        ],
+    )
+    def test_contextual_pii_redacted(
+        self,
+        raw_text: str,
+        leaked_fragments: list[str],
+        expected_tokens: list[str],
+    ) -> None:
+        result = deidentify_text(raw_text)
+
+        for fragment in leaked_fragments:
+            assert fragment not in result
+        for token in expected_tokens:
+            assert token in result
+
+    def test_salutation_does_not_redact_generic_patient(self) -> None:
+        text = "Dear Patient, your blood test is normal."
+        assert deidentify_text(text) == text

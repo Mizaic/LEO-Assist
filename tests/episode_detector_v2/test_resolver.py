@@ -20,14 +20,22 @@ from services.analysis_worker.app.episode_detector_v2.types import (
 )
 
 
-def _agg(candidate_id: str, *, site="breast", anchor="enc-1", weight=1.0) -> AggregatedCandidate:
+def _agg(
+    candidate_id: str,
+    *,
+    site="breast",
+    anchor="enc-1",
+    anchor_date=date(2024, 3, 15),
+    encounter_ids: list[str] | None = None,
+    weight=1.0,
+) -> AggregatedCandidate:
     cand = CandidateEpisode(
         candidate_id=candidate_id,
         site_key=site,
         generator="referral_anchored",
-        encounter_ids=["enc-1"],
+        encounter_ids=encounter_ids or ["enc-1"],
         anchor_event_id=anchor,
-        anchor_date=date(2024, 3, 15),
+        anchor_date=anchor_date,
     )
     sig = Signal(
         channel="pathway",
@@ -68,3 +76,35 @@ def test_two_sites_coexist_no_competition():
 
 def test_returns_empty_for_empty_input():
     assert resolve_conflicts([]) == []
+
+
+def test_same_site_anchors_months_apart_do_not_merge_on_overlap():
+    first = _agg(
+        "c-first",
+        anchor="referral-2024",
+        anchor_date=date(2024, 6, 10),
+        encounter_ids=["shared", "referral-2024"],
+    )
+    second = _agg(
+        "c-second",
+        anchor="referral-2025",
+        anchor_date=date(2025, 4, 22),
+        encounter_ids=["shared", "referral-2025"],
+    )
+    # Simulate the broad search windows sharing historical signals; the
+    # explicit anchor gap still means these are separate referral episodes.
+    first.signals_by_channel["code"] = [
+        Signal(
+            channel="code",
+            encounter_id="shared",
+            site_key="breast",
+            role="diagnosis",
+            intent="suspected",
+            confidence=0.5,
+        )
+    ]
+    second.signals_by_channel["code"] = list(first.signals_by_channel["code"])
+
+    survivors = resolve_conflicts([first, second])
+
+    assert [s.candidate.candidate_id for s in survivors] == ["c-first", "c-second"]

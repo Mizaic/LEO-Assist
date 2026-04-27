@@ -33,6 +33,8 @@ import UserManagement from "@/components/tenant/UserManagement";
 import SubOrgManagement from "@/components/tenant/SubOrgManagement";
 import SubscriptionPanel from "@/components/tenant/SubscriptionPanel";
 import { useAuth } from "@/lib/authContext";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskOrgName, maskPostcode } from "@/lib/demoMode";
 import type { OrgGraphNode } from "@/lib/api/admin";
 import type { Org } from "@/lib/api/admin";
 
@@ -269,16 +271,21 @@ function OverviewPanel({
   isPlatformAdmin: boolean;
   session: ReturnType<typeof useAuth>["session"];
 }) {
+  const { isDemoMode } = useDemoMode();
   const orgs = session?.organizations ?? [];
   return (
     <Box>
       {!isPlatformAdmin && orgs.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle1" fontWeight={600}>
-            {orgs[0].name}
+            {isDemoMode ? maskOrgName(orgs[0].name) : orgs[0].name}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            ODS code: {orgs[0].odsCode ?? "—"} · Type: {orgs[0].type ?? "—"}
+            ODS code:{" "}
+            {isDemoMode
+              ? maskPostcode(orgs[0].odsCode)
+              : orgs[0].odsCode ?? "—"}{" "}
+            · Type: {orgs[0].type ?? "—"}
           </Typography>
         </Box>
       )}

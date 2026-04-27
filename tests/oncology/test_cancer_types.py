@@ -17,7 +17,6 @@ from libs.oncology.cancer_types import (
     normalise_cancer_type,
 )
 
-
 # Every raw value observed on the live graph (per the migration plan)
 # plus near-synonyms we expect a producer to emit.
 _OBSERVED_RAW_VALUES: tuple[tuple[str, str], ...] = (
@@ -25,13 +24,18 @@ _OBSERVED_RAW_VALUES: tuple[tuple[str, str], ...] = (
     ("skin", "Melanoma"),
     ("colorectal", "Colorectal"),
     ("head and neck", "Oropharyngeal"),
+    ("head_neck", "Oropharyngeal"),
+    ("lower_gi", "Colorectal"),
     ("prostate", "Prostate"),
     ("urinary bladder / prostate", "Prostate"),
     ("urological", "Other"),
+    ("prostate_urological", "Other"),
     ("lung", "Lung"),
     ("upper gi", "Other"),
+    ("upper_gi", "Other"),
     ("upper gastrointestinal", "Other"),
     ("gynaecological", "Other"),
+    ("gynae", "Other"),
     ("gynaecological (cervix)", "Cervical"),
     ("cervix", "Cervical"),
     ("endometrium", "Endometrial"),
@@ -47,10 +51,12 @@ _OBSERVED_RAW_VALUES: tuple[tuple[str, str], ...] = (
     ("liver", "Liver"),
     ("anal", "Colorectal"),
     ("haematology", "Lymphoma"),
+    ("hematology", "Lymphoma"),
     ("lymphoid", "Lymphoma"),
     ("haematology (lymphoma)", "Lymphoma"),
     ("salivary gland", "Other"),
     ("cardiac", "Other"),
+    ("brain_cns", "Brain"),
     ("lymph node / mediastinal mass (pediatric)", "Lymphoma"),
     ("unknown", "Unknown Primary"),
 )

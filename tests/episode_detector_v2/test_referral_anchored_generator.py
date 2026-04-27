@@ -29,6 +29,28 @@ def _pathway(encounter_id: str) -> Signal:
     )
 
 
+def _first_seen(encounter_id: str) -> Signal:
+    return Signal(
+        channel="pathway",
+        encounter_id=encounter_id,
+        site_key="breast",
+        role="first_seen",
+        intent="suspected",
+        confidence=0.85,
+    )
+
+
+def _routine_referral(encounter_id: str) -> Signal:
+    return Signal(
+        channel="pathway",
+        encounter_id=encounter_id,
+        site_key="breast",
+        role="referral",
+        intent="unspecified",
+        confidence=0.40,
+    )
+
+
 def test_repeat_referrals_after_quiet_gap_get_separate_windows():
     events = [
         _event("presentation-1", date(2024, 4, 30)),
@@ -42,7 +64,12 @@ def test_repeat_referrals_after_quiet_gap_get_separate_windows():
     candidates = generate_referral_anchored(
         patient_id="patient",
         events=events,
-        signals=[_pathway("referral-1"), _pathway("referral-2")],
+        signals=[
+            _pathway("referral-1"),
+            _first_seen("seen-1"),
+            _pathway("referral-2"),
+            _first_seen("seen-2"),
+        ],
     )
 
     by_anchor = {candidate.anchor_event_id: candidate for candidate in candidates}
@@ -50,3 +77,29 @@ def test_repeat_referrals_after_quiet_gap_get_separate_windows():
     assert "referral-2" not in by_anchor["referral-1"].encounter_ids
     assert "referral-1" not in by_anchor["referral-2"].encounter_ids
     assert "seen-1" not in by_anchor["referral-2"].encounter_ids
+
+
+def test_fast_track_seen_can_anchor_candidate():
+    events = [_event("seen", date(2024, 5, 5))]
+
+    candidates = generate_referral_anchored(
+        patient_id="patient",
+        events=events,
+        signals=[_first_seen("seen")],
+    )
+
+    assert len(candidates) == 1
+    assert candidates[0].anchor_event_id == "seen"
+    assert candidates[0].role_hint == "first_seen"
+
+
+def test_routine_referral_does_not_anchor_candidate():
+    events = [_event("routine", date(2024, 5, 5))]
+
+    candidates = generate_referral_anchored(
+        patient_id="patient",
+        events=events,
+        signals=[_routine_referral("routine")],
+    )
+
+    assert candidates == []

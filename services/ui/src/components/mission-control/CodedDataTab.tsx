@@ -112,13 +112,19 @@ function ConfidenceCell({ confidence }: { confidence: number | null }) {
 interface Props {
   patientId: string;
   episode: MissionEpisode;
+  onOpenEncounterText?: (encounterId: string) => void;
   /** Bumped by the parent drawer after an inline coding edit so this
    *  tab refetches its patient-scoped concept list and shows the
    *  saved state without forcing a drawer close/reopen. */
   refreshKey?: number;
 }
 
-export default function CodedDataTab({ patientId, episode, refreshKey = 0 }: Props) {
+export default function CodedDataTab({
+  patientId,
+  episode,
+  onOpenEncounterText,
+  refreshKey = 0,
+}: Props) {
   const [rows, setRows] = useState<ConceptRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -215,29 +221,58 @@ export default function CodedDataTab({ patientId, episode, refreshKey = 0 }: Pro
             </TableRow>
           </TableHead>
           <TableBody>
-            {keyedVisibleRows.map(({ row, key }) => (
-              <TableRow key={key} hover>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  {row.encounter_date?.slice(0, 10) ?? "--"}
-                </TableCell>
-                <TableCell>{row.concept_name}</TableCell>
-                <TableCell sx={{ fontFamily: "monospace", fontSize: "0.7rem" }}>
-                  {row.concept_id}
-                </TableCell>
-                <TableCell sx={{ fontSize: "0.7rem" }}>{row.semantic_tag}</TableCell>
-                <ObsValueCell
-                  value={row.value}
-                  unit={row.unit}
-                  referenceRange={row.reference_range}
-                  semanticTag={row.semantic_tag}
-                />
-                <TableCell>
-                  <AssertionChip assertion={row.assertion} />
-                </TableCell>
-                <ConfidenceCell confidence={row.confidence} />
-                <TableCell sx={{ fontSize: "0.7rem" }}>{row.source ?? "model"}</TableCell>
-              </TableRow>
-            ))}
+            {keyedVisibleRows.map(({ row, key }) => {
+              const openEncounter = () => onOpenEncounterText?.(row.encounter_id);
+              const dateLabel = row.encounter_date?.slice(0, 10) ?? "unknown date";
+              return (
+                <TableRow
+                  key={key}
+                  hover
+                  role={onOpenEncounterText ? "button" : undefined}
+                  tabIndex={onOpenEncounterText ? 0 : undefined}
+                  aria-label={
+                    onOpenEncounterText
+                      ? `Open encounter text for ${row.concept_name} on ${dateLabel}`
+                      : undefined
+                  }
+                  onClick={openEncounter}
+                  onKeyDown={(event) => {
+                    if (!onOpenEncounterText) return;
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    openEncounter();
+                  }}
+                  sx={{
+                    cursor: onOpenEncounterText ? "pointer" : undefined,
+                    "&:focus-visible": {
+                      outline: "2px solid",
+                      outlineColor: "primary.main",
+                      outlineOffset: -2,
+                    },
+                  }}
+                >
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    {row.encounter_date?.slice(0, 10) ?? "--"}
+                  </TableCell>
+                  <TableCell>{row.concept_name}</TableCell>
+                  <TableCell sx={{ fontFamily: "monospace", fontSize: "0.7rem" }}>
+                    {row.concept_id}
+                  </TableCell>
+                  <TableCell sx={{ fontSize: "0.7rem" }}>{row.semantic_tag}</TableCell>
+                  <ObsValueCell
+                    value={row.value}
+                    unit={row.unit}
+                    referenceRange={row.reference_range}
+                    semanticTag={row.semantic_tag}
+                  />
+                  <TableCell>
+                    <AssertionChip assertion={row.assertion} />
+                  </TableCell>
+                  <ConfidenceCell confidence={row.confidence} />
+                  <TableCell sx={{ fontSize: "0.7rem" }}>{row.source ?? "model"}</TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
       </Table>
       {scope === "linked" && !hasExplicitLinks && (

@@ -29,8 +29,10 @@ import {
   getDiagnosticIntervalColour,
   getStatusLabel,
 } from "@/lib/pathwayLabels";
-import { STATUS_CLOSED_BENIGN } from "@/lib/episodeStatus";
+import { CLOSURE_REASON_STATUSES, STATUS_CLOSED_BENIGN } from "@/lib/episodeStatus";
 import type { MissionEpisode, MissionPatient } from "@/lib/missionControlApi";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskAge, maskPatientId } from "@/lib/demoMode";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "--";
@@ -61,6 +63,7 @@ type DisplayInterval = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const CLOSURE_REASON_STATUS_SET = new Set<string>(CLOSURE_REASON_STATUSES);
 const REFERRAL_ANCHOR_MILESTONES = new Set([
   "referral",
   "referral_sent",
@@ -111,6 +114,14 @@ function derivedDisplayInterval(episode: MissionEpisode): DisplayInterval | null
   }
   if (benignDays != null) {
     return { days: benignDays, label: "Time to cancer excluded" };
+  }
+  // Match EpisodeTimeline.resolveMilestones: when explicit benign_closure
+  // milestones are missing, closure-reason statuses still use end_date on the rail.
+  if (diagnosisDays == null && CLOSURE_REASON_STATUS_SET.has(episode.status)) {
+    const fromEnd = daysBetween(referralDate, episode.end_date);
+    if (fromEnd != null) {
+      return { days: fromEnd, label: "Time to cancer excluded" };
+    }
   }
   return null;
 }
@@ -173,6 +184,7 @@ interface Props {
 }
 
 export default function PatientCaseRow({ patient, onOpen }: Props) {
+  const { isDemoMode } = useDemoMode();
   const [expanded, setExpanded] = useState(false);
   const displayEpisodes = getDisplayEpisodes(patient);
   const hasEpisodes = displayEpisodes.length > 0;
@@ -242,10 +254,10 @@ export default function PatientCaseRow({ patient, onOpen }: Props) {
         {/* Patient */}
         <TableCell>
           <Typography variant="body2" sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}>
-            {patient.patient_id}
+            {isDemoMode ? maskPatientId(patient.patient_id) : patient.patient_id}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            {patient.age ?? "--"} &middot; {patient.gender ?? "--"}
+            {isDemoMode ? maskAge(patient.age) : patient.age ?? "--"} &middot; {patient.gender ?? "--"}
           </Typography>
           {multiEpisode && (
             <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>

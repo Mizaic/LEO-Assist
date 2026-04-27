@@ -75,7 +75,7 @@ describe("VT-LEO-AI-214 -- /care/encounters preview wrapper", () => {
 
   it("TC-004: match rationale chrome is rendered in preview and forwarded via headerChrome", () => {
     expect(PREVIEW_SRC).toContain(
-      "headerChrome={<MatchRationaleHeader item={item} />}",
+      "headerChrome={<MatchRationaleHeader item={item} isDemoMode={isDemoMode} />}",
     );
     expect(PREVIEW_SRC).toContain('data-testid="encounter-preview-rationale"');
     expect(PREVIEW_SRC).toContain("Why this matched your search");

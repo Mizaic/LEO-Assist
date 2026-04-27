@@ -51,7 +51,7 @@
     "detector_binary": "v2",
     "snomed_edition": "uk-202511"
   },
-  "rulebook_version": "v1-2026.04.0",
+  "rulebook_version": "v1-2026.04.3",
   "schema_version": "1.0.0",
   "scorer_weights": {
     "bias": -0.2,
@@ -92,11 +92,17 @@
     },
     "result_channel": {
       "investigation_terms": [
+        "bone scan",
+        "cystoscopy",
+        "flexible cystoscopy",
         "prostate biopsy",
         "prostate mri",
         "prostate ultrasound",
         "psa",
-        "transrectal ultrasound"
+        "spect ct",
+        "transrectal ultrasound",
+        "urea and electrolytes",
+        "urea & electrolytes"
       ],
       "negative_terms": [
         "benign",
@@ -117,10 +123,15 @@
       ]
     },
     "text_channel": {
+      "exclusion_catalogue": [
+        "\\bpatient\\.info\\b.{0,160}\\bprostate\\b"
+      ],
       "context_role_catalogue": {
         "primary_care_investigations": [
           "\\b(full blood count|fbc)\\b",
-          "\\b(u\\s?&\\s?e|u and e|urea and electrolytes)\\b",
+          "\\b(u\\s?&\\s?e|u and e|urea\\s*(&|and)\\s*electrolytes)\\b",
+          "\\bpathology request\\b.{0,160}\\b(urea|electrolyte|u\\s*&\\s*e)\\b",
+          "\\bserum urea\\b",
           "\\b(lft|liver function tests?)\\b",
           "\\b(tft|thyroid function tests?)\\b",
           "\\b(crp|c[- ]reactive protein|esr|inflammatory markers)\\b",
@@ -131,6 +142,7 @@
           "\\bgp[- ]requested (imaging|scan|ultrasound)\\b"
         ],
         "referral_admin": [
+          "\\b(oncology|urology|urological)\\s+to\\b",
           "\\breferral letter (sent|dictated|typed|drafted)\\b",
           "\\breferral (received|accepted|rejected|returned|lost)\\b",
           "\\b2[- ]?week[- ]?wait (form|letter|proforma)\\b",
@@ -155,8 +167,7 @@
           "\\bmdt (letter|outcome letter|summary|report)\\b",
           "\\bconsultant letter (received|sent|copied)\\b",
           "\\bletter (received|copied|forwarded) (to|from)\\b",
-          "\\b(specialist|hospital) correspondence\\b",
-          "\\b(results (received|back|returned)|report received)\\b"
+          "\\b(specialist|hospital) correspondence\\b"
         ],
         "related_gp_visit": [
           "\\bgp (consultation|appointment|review|visit|surgery)\\b",
@@ -165,7 +176,13 @@
           "\\bhome visit\\b",
           "\\bsurgery consultation\\b",
           "\\b(seen by|reviewed by) gp\\b",
-          "\\b(locum|duty) gp\\b"
+          "\\b(locum|duty) gp\\b",
+          "\\battended for\\b.{0,80}\\bdegarelix\\b",
+          "\\bdegarelix\\s+injection\\b",
+          "\\bfirmagon\\b",
+          "\\b(psd|patient specific direction)\\b.{0,200}\\b(degarelix|firmagon)\\b",
+          "\\bdrug injection\\b.{0,200}\\b(degarelix|firmagon)\\b",
+          "\\bauthori[sz]e\\b.{0,120}\\b(firmagon|degarelix)\\b"
         ],
         "related_specialist_visit": [
           "\\bconsultant (review|clinic|follow[- ]?up|appointment)\\b",
@@ -173,14 +190,17 @@
           "\\boutpatient (review|appointment|clinic|follow[- ]?up)\\b",
           "\\b(oncology|haematology) (clinic|review|follow[- ]?up)\\b",
           "\\b(clinic review|review in clinic|clinic follow[- ]?up)\\b",
-          "\\b(seen|reviewed) in (the )?(clinic|outpatients?)\\b"
+          "\\b(seen|reviewed) in (the )?(clinic|outpatients?)\\b",
+          "\\bcare navigation\\b.{0,160}\\bfollow[- ]?up after biopsy\\b",
+          "\\breason for the appointment:\\s*follow[- ]?up after biopsy\\b"
         ],
         "specialist_diagnostics": [
           "\\b(trus|transrectal ultrasound)\\b",
           "\\b(mri prostate|mp[- ]?mri|multiparametric mri)\\b",
           "\\b(prostate biopsy|template biopsy|transperineal biopsy)\\b",
           "\\b(cystoscop|flexible cystoscop|ureteroscop)\\w*",
-          "\\b(renal biopsy|nephrostom)\\w*"
+          "\\b(renal biopsy|nephrostom)\\w*",
+          "\\b(bone scan(ning)?|bone\\s*/\\s*spect\\s*ct|spect\\s*ct)\\b"
         ]
       },
       "regex_catalogue": [
@@ -192,8 +212,12 @@
         "\\b(bph|benign prostatic|lower urinary tract symptoms|luts)\\b",
         "\\b(haematuria|blood in (the )?urine)\\b",
         "\\b(bladder cancer|renal cell|kidney cancer)\\b",
-        "\\b(nocturia|hesitancy|poor stream|dribbling)\\b",
-        "\\b(digital rectal exam|dre)\\b"
+        "\\b(nocturia|hesitancy|poor stream|poor flow|weak stream|slow stream|dribbling|urgency|failed voiding)\\b",
+        "\\b(getting up|gets up).{0,40}\\b(pass urine|urinate|wee|pee)\\b",
+        "\\b(incomplete(?:ly)? empt(?:y|ies|ying)|incomplete bladder emptying)\\b",
+        "\\b(digital rectal exam|dre)\\b",
+        "\\bfollow[- ]?up after biopsy\\b",
+        "\\b(bone scan(ning)?|spect\\s*ct)\\b"
       ]
     },
     "treatment_channel": {

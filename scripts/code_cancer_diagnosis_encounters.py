@@ -29,24 +29,23 @@ from libs.terminology.client import ResolvedTerm, TerminologyClient  # noqa: E40
 REPORT_DIR = _REPO_ROOT / "artifacts" / "cancer_diagnosis_coding"
 SOURCE = "deterministic_cancer_diagnosis_coder"
 
-CANCER_WORD_RE = re.compile(
-    r"\b(?:malignant|cancer|carcinoma|adenocarcinoma|melanoma|lymphoma|"
-    r"leukaemia|leukemia|metastasis|metastatic|neoplasm|tumou?r)\b",
-    re.IGNORECASE,
+CANCER_TERM_PATTERN = (
+    r"(?:malignant|cancer|carcinoma|adenocarcinoma|melanoma|lymphoma|"
+    r"leukaemia|leukemia|metastasis|metastatic|myeloproliferative|"
+    r"neoplasm|polycythaemia|polycythemia|tumou?r)"
 )
+CANCER_WORD_RE = re.compile(rf"\b{CANCER_TERM_PATTERN}\b", re.IGNORECASE)
 EXPLICIT_CODED_RE = re.compile(
     r"(?P<prefix>\b(?:Major|Minor|Problem(?:\s*-\s*whole event)?|Diagnosis):\s*)?"
-    r"(?P<term>[A-Z][^()\n\r:]{2,130}?"
-    r"(?:malignant|cancer|carcinoma|adenocarcinoma|melanoma|lymphoma|"
-    r"leukaemia|leukemia|metastasis|metastatic|neoplasm|tumou?r)"
-    r"[^()\n\r:]{0,90}?)\s*\((?P<read>[A-Za-z0-9.]+)\)",
+    rf"(?P<term>(?:{CANCER_TERM_PATTERN}[^()\n\r:]*|"
+    rf"[A-Z][^()\n\r:]{{0,130}}?{CANCER_TERM_PATTERN}"
+    r"[^()\n\r:]{0,90}?))\s*\((?P<read>[A-Za-z0-9.]+)\)",
     re.IGNORECASE,
 )
 FREE_TEXT_RE = re.compile(
     r"\b(?:new diagnosis of|diagnosed with|known|reason:)\s+"
     r"(?P<term>[A-Za-z][^.\n\r;]{0,80}?"
-    r"(?:cancer|carcinoma|adenocarcinoma|melanoma|lymphoma|"
-    r"leukaemia|leukemia|metastatic)[^.\n\r;]{0,40})",
+    rf"{CANCER_TERM_PATTERN}[^.\n\r;]{{0,40}})",
     re.IGNORECASE,
 )
 BOILERPLATE_REJECT_RE = re.compile(

@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -39,6 +39,8 @@ import {
   fetchMissionPatientEpisodes,
   rerunEpisodeDetector,
 } from "@/lib/missionControlApi";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskAge, maskGpName, maskPatientId } from "@/lib/demoMode";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 const EPISODE_CURATOR_ROLES = new Set([
@@ -82,6 +84,7 @@ export default function PatientDetailDrawer({
   onPatientRebuilt,
   onPatientRefreshed,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const [tab, setTab] = useState(tabToIndex(initialTab));
   // Drawer-local episode list: hydrated from the new
   // /mission-control/patients/{patient_id}/episodes endpoint
@@ -97,6 +100,8 @@ export default function PatientDetailDrawer({
   const [focusedEpisodeId, setFocusedEpisodeId] = useState(
     patient.episodes[0]?.episode_id ?? ""
   );
+  const [encounterTextFocusId, setEncounterTextFocusId] = useState<string | null>(null);
+  const previousPatientIdRef = useRef(patient.patient_id);
   // Manual EpisodeOfCare CRUD dialogs (DI-3A19BE12 / DI-F4C06C92 /
   // DI-41B71BF8 / DI-B35DCA0F / DI-6C3E4783). Role-gated locally;
   // the backend enforces the same gate independently. Verified by
@@ -178,10 +183,20 @@ export default function PatientDetailDrawer({
   }, [initialTab, patient.patient_id]);
 
   useEffect(() => {
-    setFocusedEpisodeId(patient.episodes[0]?.episode_id ?? "");
+    const patientChanged = previousPatientIdRef.current !== patient.patient_id;
+    previousPatientIdRef.current = patient.patient_id;
+    setFocusedEpisodeId((current) => {
+      if (patientChanged) return patient.episodes[0]?.episode_id ?? "";
+      // Same-patient refreshes can briefly contain the dashboard-filtered
+      // episode list before the drawer-local full list arrives. Preserve
+      // the current focus so milestone edits do not jump to another pathway.
+      if (current) return current;
+      return patient.episodes[0]?.episode_id ?? "";
+    });
     setDrawerEpisodes(patient.episodes);
     setDrawerEpisodesNonce(0);
     setRefreshNonce(0);
+    setEncounterTextFocusId(null);
   }, [patient.patient_id, patient.episodes]);
 
   // Hydrate the drawer-local episode list from the dedicated
@@ -196,6 +211,12 @@ export default function PatientDetailDrawer({
         if (cancelled) return;
         if (Array.isArray(res?.episodes)) {
           setDrawerEpisodes(res.episodes);
+          setFocusedEpisodeId((current) => {
+            if (current && res.episodes.some((e) => e.episode_id === current)) {
+              return current;
+            }
+            return res.episodes[0]?.episode_id ?? "";
+          });
         }
       })
       .catch(() => {
@@ -228,6 +249,10 @@ export default function PatientDetailDrawer({
   const focusEpisodeAndOpenEvidence = (episodeId: string) => {
     setFocusedEpisodeId(episodeId);
     setTab(1); // Switch to Coded data tab
+  };
+  const openEncounterTextFromCode = (encounterId: string) => {
+    setEncounterTextFocusId(encounterId);
+    setTab(2);
   };
 
   const handleRebuildConfirmed = async () => {
@@ -345,8 +370,11 @@ export default function PatientDetailDrawer({
             {title}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Patient {patient.patient_id} &middot; {patient.age ?? "--"} yrs &middot;{" "}
-            {patient.practice_name ?? "Unknown practice"}
+            Patient {isDemoMode ? maskPatientId(patient.patient_id) : patient.patient_id} &middot;{" "}
+            {isDemoMode ? maskAge(patient.age) : `${patient.age ?? "--"} yrs`} &middot;{" "}
+            {isDemoMode
+              ? maskGpName(patient.practice_name)
+              : patient.practice_name ?? "Unknown practice"}
           </Typography>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -512,6 +540,7 @@ export default function PatientDetailDrawer({
               <CodedDataTab
                 patientId={patient.patient_id}
                 episode={focusedEpisode}
+                onOpenEncounterText={openEncounterTextFromCode}
                 refreshKey={refreshNonce}
               />
             ) : (
@@ -530,6 +559,7 @@ export default function PatientDetailDrawer({
                 episode={focusedEpisode}
                 episodes={drawerEpisodes}
                 reviewerRole={reviewerRole}
+                focusEncounterId={encounterTextFocusId}
                 onCodingChanged={handleCodingChanged}
                 onEpisodeStructureChanged={triggerLiveRefresh}
               />

@@ -57,8 +57,10 @@ def _same_cluster(left: AggregatedCandidate, right: AggregatedCandidate) -> bool
     l_date = l_cand.anchor_date
     r_date = r_cand.anchor_date
     if l_date is not None and r_date is not None:
-        if abs((l_date - r_date).days) <= _CLUSTER_ANCHOR_DAYS:
+        anchor_gap = abs((l_date - r_date).days)
+        if anchor_gap <= _CLUSTER_ANCHOR_DAYS:
             return True
+        return False
     return _encounter_overlap(_signal_ids(left), _signal_ids(right)) >= (
         _CLUSTER_OVERLAP_THRESHOLD
     )
@@ -82,14 +84,18 @@ def _encounter_overlap(left: list[str], right: list[str]) -> float:
 
 
 def _best_candidate(cluster: list[AggregatedCandidate]) -> AggregatedCandidate:
-    return max(
+    return sorted(
         cluster,
         key=lambda agg: (
-            agg.evidence_weight,
-            _GENERATOR_PRIORITY.get(agg.candidate.generator, 0),
-            agg.candidate.anchor_date is not None,
-            agg.candidate.anchor_date,
-            -len(agg.candidate.encounter_ids),
+            -agg.evidence_weight,
+            -_GENERATOR_PRIORITY.get(agg.candidate.generator, 0),
+            -(agg.candidate.anchor_date is not None),
+            -(
+                agg.candidate.anchor_date.toordinal()
+                if agg.candidate.anchor_date is not None
+                else 0
+            ),
+            len(agg.candidate.encounter_ids),
             agg.candidate.candidate_id,
         ),
-    )
+    )[0]

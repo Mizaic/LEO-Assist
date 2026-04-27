@@ -157,6 +157,24 @@ describe("PatientCaseRow episode interval display", () => {
     expect(summarizeEpisodeReviews(ordered)).toBe("1/2 reviewed");
   });
 
+  test("derives cancer-excluded interval from end_date when benign_closure milestone is absent (matches EpisodeTimeline)", () => {
+    const ep = episode({
+      status: "closed_benign",
+      referral_date: "2024-04-30",
+      end_date: "2024-07-03",
+      benign_interval_days: null,
+      milestones: [
+        { milestone_type: "first_presentation", encounter_id: "e-1", date: "2024-04-30" },
+        { milestone_type: "referral", encounter_id: "e-1", date: "2024-04-30" },
+        { milestone_type: "first_seen", encounter_id: "e-2", date: "2024-05-06" },
+      ],
+    });
+    expect(getEpisodeDisplayInterval(ep)).toEqual({
+      days: 64,
+      label: "Time to cancer excluded",
+    });
+  });
+
   test("uses first presentation as the referral anchor when referral date is missing", () => {
     const inferred = episode({
       referral_date: null,
