@@ -143,3 +143,60 @@ EPISODE_PIPELINE = register_flag(
         ),
     )
 )
+
+
+NCDA_DETECTOR = register_flag(
+    FeatureFlag(
+        name="ncda_detector",
+        default="off",
+        allowed=("off", "shadow", "on"),
+        description=(
+            "Routes cancer-suspect patients to the NCDA four-anchor detector. "
+            "off: episode_detector_v2 runs unchanged. "
+            "shadow: v2 publishes, NCDA detector runs alongside and writes "
+            "evidence to NCDALabelAudit / NCDARunShadow for comparison. "
+            "on: cancer-suspect patients route to the NCDA detector; everyone "
+            "else stays on episode_detector_v2."
+        ),
+    )
+)
+
+
+# Patients qualify as cancer-suspect when at least one encounter scores
+# >= this probability for FTR or Dx in the role classifier (Stage 13 plan).
+NCDA_SUSPECT_PROBABILITY: float = 0.5
+
+
+def is_cancer_suspect(role_scores: list[dict]) -> bool:
+    """Return True when any encounter has FTR or Dx role probability >= 0.5.
+
+    Stage 13 contract from the plan: "Cancer-suspect = patient with at least
+    one role-classifier hit at P >= 0.5 for FTR or Dx".
+
+    role_scores is an iterable of dicts shaped like::
+
+        {"role": "ftr", "role_p": 0.83, ...}
+    """
+    for row in role_scores or []:
+        if row.get("role") in {"ftr", "dx"} and float(
+            row.get("role_p", 0.0)
+        ) >= NCDA_SUSPECT_PROBABILITY:
+            return True
+    return False
+
+
+def ncda_detector_should_run(
+    role_scores: list[dict], tenant_id: str | None = None
+) -> tuple[bool, str]:
+    """Decide whether to invoke the NCDA detector for this patient.
+
+    Returns ``(should_run, mode)`` where mode is the resolved flag value.
+    The caller treats ``shadow`` as run-but-do-not-publish, and ``on`` as
+    run-and-publish-when-cancer-suspect.
+    """
+    mode = resolve(NCDA_DETECTOR.name, tenant_id=tenant_id)
+    if mode == "off":
+        return False, mode
+    if mode == "shadow":
+        return True, mode
+    return is_cancer_suspect(role_scores), mode

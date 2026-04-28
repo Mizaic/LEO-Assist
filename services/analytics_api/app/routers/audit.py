@@ -41,6 +41,11 @@ from libs.neo4j_client.client import PatientGraphClient
 from ._audit_comorbidities import (  # noqa: F401 -- re-exported for main.py
     _ensure_registry,
     _q_comorbidities,
+    _q_comorbidities_drilldown,
+)
+from ._audit_symptoms import (
+    _q_symptoms,
+    _q_symptoms_drilldown,
 )
 from ._audit_helpers import (
     _add_date_filters,
@@ -585,6 +590,29 @@ def audit_avoidable_delays(
         client.close()
 
 
+@router.get("/audit/comorbidities/drilldown")
+def audit_comorbidities_drilldown(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None),
+    date_to: Optional[str] = Query(default=None),
+):
+    """Comorbidity profile sliced by age, gender, and referral / cancer outcome.
+
+    Practice scope only. Uses one primary EpisodeOfCare per patient (latest
+    referral_date) to label cancer diagnosis vs referral without cancer.
+    """
+    practice_base, practice_params = _episode_base(org_id, scope)
+    practice_base, practice_params = _add_date_filters(
+        practice_base, practice_params, date_from, date_to
+    )
+    client = PatientGraphClient()
+    try:
+        return _q_comorbidities_drilldown(practice_base, practice_params, client)
+    finally:
+        client.close()
+
+
 @router.get("/audit/comorbidities")
 def audit_comorbidities(
     scope: CallerScope = Depends(get_caller_scope),
@@ -609,8 +637,56 @@ def audit_comorbidities(
             date_from,
             date_to,
             benchmark_set_id,
-            "comorbidities",
+            "demographics",
             client,
         )
+    finally:
+        client.close()
+
+
+# ---------------------------------------------------------------------------
+# Symptoms (DO-D5B9FE5F / DI-6E1B71A4)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/audit/symptoms")
+def audit_symptoms(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None),
+    date_to: Optional[str] = Query(default=None),
+):
+    """Distinct symptom prevalence around referral plus PPV by suspected cancer type.
+
+    Practice scope only. Following-year diagnoses are reported in their own
+    bucket so current-year PPV provisional values are not misclassified as
+    false positives.
+    """
+    practice_base, practice_params = _episode_base(org_id, scope)
+    practice_base, practice_params = _add_date_filters(
+        practice_base, practice_params, date_from, date_to
+    )
+    client = PatientGraphClient()
+    try:
+        return _q_symptoms(practice_base, practice_params, client, date_to=date_to)
+    finally:
+        client.close()
+
+
+@router.get("/audit/symptoms/drilldown")
+def audit_symptoms_drilldown(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None),
+    date_to: Optional[str] = Query(default=None),
+):
+    """Symptom prevalence sliced by suspected cancer, diagnosed cancer, age, gender."""
+    practice_base, practice_params = _episode_base(org_id, scope)
+    practice_base, practice_params = _add_date_filters(
+        practice_base, practice_params, date_from, date_to
+    )
+    client = PatientGraphClient()
+    try:
+        return _q_symptoms_drilldown(practice_base, practice_params, client)
     finally:
         client.close()

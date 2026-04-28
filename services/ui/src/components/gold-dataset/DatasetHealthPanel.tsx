@@ -243,23 +243,23 @@ export default function DatasetHealthPanel({
   const fetchDatasetHealth = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [d, diagnostics, phrase] = await Promise.all([
+    const [d, diagnostics, phraseData] = await Promise.all([
       fetchLabelDistribution(),
       fetchExportDiagnostics(),
       fetchPhraseConsistency({ minOccurrences: 2, top: 10 }),
     ]);
-    return { d, diagnostics, phrase };
+    return { d, diagnostics, phraseData };
   }, []);
 
   useEffect(() => {
     if (!expanded) return;
     let cancelled = false;
     fetchDatasetHealth()
-      .then(({ d, diagnostics, phrase }) => {
+      .then(({ d, diagnostics, phraseData }) => {
         if (cancelled) return;
         setDist(d);
         setDiag(diagnostics);
-        setPhraseConsistency(phrase);
+        setPhraseConsistency(phraseData);
       })
       .catch((e) => {
         if (!cancelled) setError(String(e?.message ?? e));
@@ -285,10 +285,10 @@ export default function DatasetHealthPanel({
       setActionMsg(
         `Approved multi-label phrase "${phrase}" with labels: ${labels.join(", ")}.`,
       );
-      const { d, diagnostics, phrase } = await fetchDatasetHealth();
+      const { d, diagnostics, phraseData } = await fetchDatasetHealth();
       setDist(d);
       setDiag(diagnostics);
-      setPhraseConsistency(phrase);
+      setPhraseConsistency(phraseData);
       setApprovalError(null);
       return true;
     } catch (e) {

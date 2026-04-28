@@ -19,6 +19,10 @@ from __future__ import annotations
 from typing import Optional
 
 from libs.analytics import confirmed_cancer_where
+from libs.analytics.ncda_ethnicity_snomed import (
+    load_ncda_ethnicity_benchmark_table,
+    load_ncda_ethnicity_snomed_ids,
+)
 from libs.neo4j_client.client import PatientGraphClient
 from libs.oncology.cancer_types import normalise_cancer_type
 
@@ -237,9 +241,78 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
         "RETURN p.ethnicity AS ethnicity, count(DISTINCT p) AS n ORDER BY n DESC",
         **params,
     )
+    # DI-87D92943: age x sex cross-tab so the audit demographics evolution
+    # cards can render a true population pyramid per calendar-year window.
+    # `pct` is expressed as percentage of the total demographic population
+    # for that window (not row-stochastic by gender) so cards stay
+    # directly comparable across years.
+    age_band_by_sex_rows = client.run(
+        f"{base}"
+        "AND p.gender IS NOT NULL "
+        "WITH p, ep, "
+        f"  {_SAFE_BIRTH_DATE} AS birth_date_value, "
+        f"  {_SAFE_REFERRAL_DATE} AS referral_date_value "
+        "WHERE birth_date_value IS NOT NULL AND referral_date_value IS NOT NULL "
+        "WITH p, "
+        "  duration.inDays(birth_date_value, "
+        "referral_date_value).days / 365 AS age_at_referral "
+        "WITH p.gender AS gender, "
+        "  CASE WHEN age_at_referral < 25 THEN '0-24' "
+        "       WHEN age_at_referral < 50 THEN '25-49' "
+        "       WHEN age_at_referral < 65 THEN '50-64' "
+        "       WHEN age_at_referral < 75 THEN '65-74' "
+        "       WHEN age_at_referral < 85 THEN '75-84' "
+        "       ELSE '85+' END AS age_band "
+        "RETURN gender, age_band, count(*) AS n ORDER BY gender, age_band",
+        **params,
+    )
     ts = sum(r["n"] for r in sex_rows) or 1
     ta = sum(r["n"] for r in age_rows) or 1
     te = sum(r["n"] for r in eth_rows) or 1
+    tas = sum(r["n"] for r in age_band_by_sex_rows) or 1
+    # NCDA ethnicity ValueSet (configs/snomed/snomed_ncda_ethnicity_mapping.json):
+    # distinct patients per SNOMED coded via Encounter-[:DOCUMENTS {domain:
+    # 'ethnicity'}]->(s) where s.conceptId is in the benchmark set. Supports
+    # radar charts aligned to terminology ValueSet ncda-ethnicity.
+    eth_snomed_ids = load_ncda_ethnicity_snomed_ids()
+    benchmark_by_snomed = {
+        row["snomed"]: row for row in load_ncda_ethnicity_benchmark_table()
+    }
+    cohort_n = sum(r["n"] for r in sex_rows)
+    patients_with_ethnicity_snomed_n = 0
+    if eth_snomed_ids:
+        merged_eth_params = {**params, "eth_snomed_ids": list(eth_snomed_ids)}
+        eth_snomed_rows = client.run(
+            f"{base}"
+            "WITH DISTINCT p "
+            "MATCH (p)-[:HAS_ENCOUNTER]->(:Encounter)-[d:DOCUMENTS]->(s) "
+            "WHERE coalesce(d.domain, '') = 'ethnicity' "
+            "  AND s.conceptId IS NOT NULL "
+            "  AND toString(s.conceptId) IN $eth_snomed_ids "
+            "RETURN toString(s.conceptId) AS snomed, count(DISTINCT p) AS n "
+            "ORDER BY snomed",
+            **merged_eth_params,
+        )
+        eth_cover_rows = client.run(
+            f"{base}"
+            "WITH DISTINCT p "
+            "MATCH (p)-[:HAS_ENCOUNTER]->(:Encounter)-[d:DOCUMENTS]->(s) "
+            "WHERE coalesce(d.domain, '') = 'ethnicity' "
+            "  AND s.conceptId IS NOT NULL "
+            "  AND toString(s.conceptId) IN $eth_snomed_ids "
+            "RETURN count(DISTINCT p) AS n",
+            **merged_eth_params,
+        )
+        if eth_cover_rows:
+            patients_with_ethnicity_snomed_n = int(eth_cover_rows[0]["n"] or 0)
+    else:
+        eth_snomed_rows = []
+    counts_by_snomed = {str(r["snomed"]): int(r["n"] or 0) for r in eth_snomed_rows}
+    ethnicity_snomed_coverage_pct = (
+        round(patients_with_ethnicity_snomed_n * 100.0 / cohort_n, 1)
+        if cohort_n > 0
+        else None
+    )
     age_vals = sorted([r["age"] for r in age_vals_rows if r.get("age") is not None])
     n_age = len(age_vals)
     median_age = (
@@ -280,6 +353,28 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
             }
             for r in eth_rows
         ],
+        "age_band_by_sex": [
+            {
+                "gender": r["gender"],
+                "age_band": r["age_band"],
+                "n": r["n"],
+                "pct": round(r["n"] * 100.0 / tas, 1),
+            }
+            for r in age_band_by_sex_rows
+        ],
+        "ethnicity_by_snomed": [
+            {
+                "snomed": sid,
+                "benchmark_key": str(benchmark_by_snomed[sid]["benchmark_key"]),
+                "preferred_term": str(benchmark_by_snomed[sid]["preferred_term"]),
+                "n": counts_by_snomed.get(sid, 0),
+                "pct": round(counts_by_snomed.get(sid, 0) * 100.0 / ts, 1),
+            }
+            for sid in sorted(benchmark_by_snomed.keys())
+        ],
+        "demographics_cohort_n": cohort_n,
+        "patients_with_ethnicity_snomed_n": patients_with_ethnicity_snomed_n,
+        "ethnicity_snomed_coverage_pct": ethnicity_snomed_coverage_pct,
     }
 
 

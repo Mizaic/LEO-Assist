@@ -185,6 +185,103 @@ def test_urology_prism_questionnaire_started_is_referral_admin():
     ]
 
 
+def test_prostate_history_in_copd_review_does_not_create_milestones():
+    event = _event(
+        "copd",
+        date(2025, 7, 4),
+        "Problem: COPD exacerbation. Past Medical History includes emphysema, "
+        "COPD, and prostate cancer. Currently receiving hormone injections "
+        "every 3 months for prostate cancer. Plan: FBC, U&E and ECG for "
+        "possible heart failure.",
+    )
+
+    links = infer_milestone_links(
+        _episode("copd", site_key="prostate_urological"), [event]
+    )
+
+    assert links == []
+
+
+def test_prostate_planned_radiotherapy_is_not_treatment_started():
+    event = _event(
+        "hf",
+        date(2025, 8, 21),
+        "Problem: Heart failure. Reports a history of prostate cancer, "
+        "receiving ADT, and upcoming radiotherapy planned for November. "
+        "Assessment: Atrial fibrillation and hypokalaemia secondary to diuretic.",
+    )
+
+    links = infer_milestone_links(
+        _episode("hf", site_key="prostate_urological"), [event]
+    )
+
+    assert links == []
+
+
+def test_prostate_mechanical_back_pain_not_first_presentation():
+    event = _event(
+        "back",
+        date(2025, 10, 3),
+        "C/o right-sided lower back pain. Past Medical History: prostate cancer, "
+        "awaiting commencement of radiotherapy. Assessment: mechanical lower "
+        "back pain, likely musculoskeletal in origin.",
+    )
+
+    links = infer_milestone_links(
+        _episode("back", site_key="prostate_urological"), [event]
+    )
+
+    assert links == []
+
+
+def test_prostate_suspected_code_text_is_not_confirmed_diagnosis():
+    event = _event(
+        "psa",
+        date(2024, 5, 2),
+        "Prostate-specific antigen level 17 ng/ml. "
+        "Malignant neoplasm of prostate suspected (situation). "
+        "If PSA remains elevated, refer as a 2WW.",
+    )
+
+    links = infer_milestone_links(
+        _episode("psa", site_key="prostate_urological"), [event]
+    )
+
+    assert "diagnosis_confirmed" not in [link.milestone_type for link in links]
+
+
+def test_prostate_treatment_monitoring_not_relabelled_as_diagnosis():
+    event = _event(
+        "inj",
+        date(2025, 3, 5),
+        "Problem: Malignant tumour of prostate - Gleason 3+4=7; T3aN0. "
+        "Attended for Decapeptyl injection. GNRH given. Given under PSD.",
+    )
+
+    links = infer_milestone_links(
+        _episode("inj", site_key="prostate_urological"), [event]
+    )
+
+    assert [link.milestone_type for link in links] == ["treatment_started"]
+
+
+def test_prostate_psd_authorisation_is_not_treatment_started():
+    event = _event(
+        "psd",
+        date(2024, 12, 17),
+        "Problem: Malignant tumour of prostate - Gleason 3+4=7; T3aN0. "
+        "History: duty oncall - request for PSD, as per urology letter. "
+        "Plan: to start the injections half way into the Bicalutamide course. "
+        "PSD: I authorise Decapeptyl by IM injection.",
+    )
+
+    links = infer_milestone_links(
+        _episode("psd", site_key="prostate_urological"), [event]
+    )
+
+    assert "treatment_started" not in [link.milestone_type for link in links]
+
+
 def test_breast_prism_questionnaire_started_is_referral_admin():
     event = _event(
         "breast-prism",

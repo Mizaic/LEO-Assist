@@ -186,6 +186,61 @@ const LABEL_STAGES: TabStage[] = [
   },
 ];
 
+function parseEntities(raw?: string): LabelEntity[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((e) => ({
+        text: String(e?.text ?? "").trim(),
+        label: String(e?.label ?? "").trim(),
+        start: typeof e?.start === "number" ? e.start : undefined,
+        end: typeof e?.end === "number" ? e.end : undefined,
+      }))
+      .filter((e) => !!e.text);
+  } catch {
+    return [];
+  }
+}
+
+function findBestStart(
+  encounterText: string,
+  spanText: string,
+  oldStart = 0,
+): number | null {
+  const exact: number[] = [];
+  let p = encounterText.indexOf(spanText);
+  while (p !== -1) {
+    exact.push(p);
+    p = encounterText.indexOf(spanText, p + 1);
+  }
+  if (exact.length) {
+    return exact.reduce(
+      (best, cur) =>
+        Math.abs(cur - oldStart) < Math.abs(best - oldStart) ? cur : best,
+      exact[0],
+    );
+  }
+
+  const hay = encounterText.toLowerCase();
+  const needle = spanText.toLowerCase();
+  const ci: number[] = [];
+  p = hay.indexOf(needle);
+  while (p !== -1) {
+    ci.push(p);
+    p = hay.indexOf(needle, p + 1);
+  }
+  if (ci.length) {
+    return ci.reduce(
+      (best, cur) =>
+        Math.abs(cur - oldStart) < Math.abs(best - oldStart) ? cur : best,
+      ci[0],
+    );
+  }
+  return null;
+}
+
 export default function LabelVerificationPanel() {
   const [viewMode, setViewMode] = useState<"queue" | "history">("queue");
   const [reviews, setReviews] = useState<LabelVerificationReview[]>([]);
@@ -406,51 +461,6 @@ export default function LabelVerificationPanel() {
           ],
     [autoResolvedCount, page, pendingCount, reviews.length, stats, totalPages, verifyStatus, viewMode]
   );
-
-  const parseEntities = (raw?: string): LabelEntity[] => {
-    if (!raw) return [];
-    try {
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed
-        .map((e) => ({
-          text: String(e?.text ?? "").trim(),
-          label: String(e?.label ?? "").trim(),
-          start: typeof e?.start === "number" ? e.start : undefined,
-          end: typeof e?.end === "number" ? e.end : undefined,
-        }))
-        .filter((e) => !!e.text);
-    } catch {
-      return [];
-    }
-  };
-
-  const findBestStart = (encounterText: string, spanText: string, oldStart = 0): number | null => {
-    const exact: number[] = [];
-    let p = encounterText.indexOf(spanText);
-    while (p !== -1) {
-      exact.push(p);
-      p = encounterText.indexOf(spanText, p + 1);
-    }
-    if (exact.length) {
-      return exact.reduce((best, cur) =>
-        Math.abs(cur - oldStart) < Math.abs(best - oldStart) ? cur : best, exact[0]);
-    }
-
-    const hay = encounterText.toLowerCase();
-    const needle = spanText.toLowerCase();
-    const ci: number[] = [];
-    p = hay.indexOf(needle);
-    while (p !== -1) {
-      ci.push(p);
-      p = hay.indexOf(needle, p + 1);
-    }
-    if (ci.length) {
-      return ci.reduce((best, cur) =>
-        Math.abs(cur - oldStart) < Math.abs(best - oldStart) ? cur : best, ci[0]);
-    }
-    return null;
-  };
 
   const handleAddSpan = (review: LabelVerificationReview) => {
     const reviewId = review.review_id;

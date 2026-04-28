@@ -255,13 +255,51 @@ def _prostate_pathway_anchor_in_text(lower: str) -> bool:
     return any(term in lower for term in _PROSTATE_MEMBERSHIP_ANCHOR_TERMS)
 
 
+def _any_term(lower: str, terms: tuple[str, ...]) -> bool:
+    return any(term in lower for term in terms)
+
+
+def _prostate_specific_workflow_in_text(lower: str) -> bool:
+    """Return True for rows whose prostate content is the actual task."""
+    return _any_term(
+        lower,
+        (
+            "2ww",
+            "two week",
+            "fast track referral",
+            "urology prism",
+            "urology clinic",
+            "urology to",
+            "oncology to",
+            "template biopsy",
+            "prostate biopsy",
+            "biopsy of prostate",
+            "mri of prostate",
+            "mri prostate",
+            "prostate radiotherapy scan",
+            "radiotherapy planning",
+            "decapeptyl",
+            "triptorelin",
+            "gnrh",
+            "psd added",
+            "given under psd",
+            "carcinoma of prostate",
+            "malignant tumour of prostate",
+            "malignant tumor of prostate",
+        ),
+    )
+
+
 def _prostate_encounter_is_membership_noise(lower: str) -> bool:
     """True when free text suggests primary care / admin / other-pathway work."""
     if not lower.strip():
         return False
     pathway = _prostate_pathway_anchor_in_text(lower)
+    prostate_workflow = _prostate_specific_workflow_in_text(lower)
 
     if "minor injur" in lower:
+        return True
+    if "non-site-specific" in lower or "non site specific" in lower or "nss pathway" in lower:
         return True
     if "behind on accurx" in lower:
         return True
@@ -293,6 +331,15 @@ def _prostate_encounter_is_membership_noise(lower: str) -> bool:
     if ("h pylori" in lower or "helicobacter" in lower) and not pathway:
         return True
     if "clinical supervision" in lower and "patient present: no" in lower:
+        return True
+    if "problem item marked in error" in lower and "merging problem" in lower:
+        return True
+    if "summary care record update" in lower and "merging problem" in lower:
+        return True
+    if "transferring care safely referral" in lower or "trasferring care safely referral" in lower:
+        return True
+    # Pure routing stubs have no clinical content for the episode timeline.
+    if "urology to " in lower and len(lower) < 140:
         return True
     if "continence service" in lower or "llr continence" in lower:
         if pathway:
@@ -327,12 +374,108 @@ def _prostate_encounter_is_membership_noise(lower: str) -> bool:
     if "chest pain" in lower and "spect" in lower:
         if "coronary" in lower or "calcified" in lower:
             return True
+    if _any_term(
+        lower,
+        (
+            "copd review",
+            "copd",
+            "emphysema",
+            "chest infection",
+            "respiratory symptoms",
+            "productive cough",
+            "ongoing cough",
+            "worsening dyspnoea",
+            "shortness of breath",
+        ),
+    ):
+        if _any_term(
+            lower,
+            (
+                "past medical history",
+                "pmh includes",
+                "history of prostate cancer",
+                "awaiting radiotherapy",
+                "hormone injections every 3 months",
+            ),
+        ):
+            return True
+        if "recently been diagnosed with prostate cancer" in lower:
+            return True
+    if _any_term(
+        lower,
+        (
+            "atrial fibrillation",
+            "heart failure",
+            "ankle swelling",
+            "furosemide",
+            "hypokalaemia",
+            "hypokalemia",
+            "diuretic",
+        ),
+    ):
+        if _any_term(lower, ("prostate cancer", "adt", "radiotherapy")):
+            return True
+    if _any_term(
+        lower,
+        (
+            "mechanical lower back pain",
+            "msk lower back",
+            "likely musculoskeletal",
+            "musculoskeletal in origin",
+            "pulled muscle",
+            "right lumbar paraspinal",
+        ),
+    ):
+        return True
+    if "lower back pain" in lower and "no urinary sx" in lower and "no prostatism" in lower:
+        return True
+    if ("bowel care" in lower or "faecal impaction" in lower) and not prostate_workflow:
+        return True
     if "chest pain" in lower and not pathway:
         return True
     if "foreskin" in lower and not pathway:
         return True
     # Auto-filed U&E tied to CKD monitoring: curators tag 2WW bloods explicitly;
     # routine renal panels without that hook are usually not episode members.
+    if "pathology request" in lower:
+        if (
+            "prostate specific antigen (requested)" in lower
+            or "prostate-specific antigen (requested)" in lower
+        ) and not _any_term(
+            lower,
+            (
+                "2ww",
+                "two week",
+                "urology",
+                "raised psa",
+                "psa monitoring",
+                "llr psa monitoring",
+                "blood sample taken",
+                "phlebotomy",
+            ),
+        ):
+            return True
+        generic_panel = _any_term(
+            lower,
+            (
+                "urea & electrolytes",
+                "urea and electrolytes",
+                "full blood count",
+                "liver function test",
+                "nt - pro bnp",
+                "hba1c",
+                "lipids",
+                "thyroid stimulating hormone",
+                "urine microalbumin",
+                "albumin (random urine)",
+            ),
+        )
+        if generic_panel and not prostate_workflow:
+            return True
+        if "ltc review" in lower and "prostate specific antigen" in lower:
+            return True
+    if "ltc review" in lower and "psa monitoring" in lower:
+        return True
     if "auto-filed" in lower:
         if "psa" not in lower and "prostate-specific antigen" not in lower:
             if "serum urea level" in lower or "urea and electrolytes" in lower:
@@ -346,6 +489,98 @@ def _prostate_encounter_is_membership_noise(lower: str) -> bool:
         if "catheter" not in lower:
             return True
     return False
+
+
+def _prostate_confirmed_diagnosis_in_text(lower: str) -> bool:
+    if not any(
+        term in lower
+        for term in (
+            "carcinoma of prostate",
+            "malignant tumour of prostate",
+            "malignant tumor of prostate",
+            "malignant neoplasm of prostate",
+            "prostate cancer",
+        )
+    ):
+        return False
+    if " suspected" in lower and "new episode" not in lower:
+        return False
+    if any(term in lower for term in ("major:", "gleason", "tnm", "t3a", "new episode")):
+        return True
+    return False
+
+
+def _prostate_actual_treatment_start_in_text(lower: str) -> bool:
+    if any(
+        term in lower
+        for term in (
+            "request for psd",
+            "to start the injections",
+            "i authorise",
+            "has already been booked",
+        )
+    ) and not any(term in lower for term in ("attended for", "given under psd", "gnrh given")):
+        return False
+    injection = any(
+        term in lower
+        for term in ("decapeptyl", "triptorelin", "gnrh", "gonadorelin analogue")
+    )
+    actual_admin = any(
+        term in lower
+        for term in (
+            "attended for",
+            "given under psd",
+            "gnrh given",
+            "given: intramuscular",
+            "administered via psd",
+            "injection site:",
+        )
+    )
+    if injection and actual_admin:
+        return True
+    return "on-going tx for prostate cancer with radiotherapy" in lower or (
+        "ongoing tx for prostate cancer with radiotherapy" in lower
+    )
+
+
+def _truncate_prostate_after_treatment_start(
+    encounter_ids: list[str],
+    timeline: list[TimelineEvent],
+) -> list[str]:
+    """Stop prostate membership at first actual treatment after diagnosis.
+
+    Curated 6309359401 established the prostate pathway ended at first
+    Decapeptyl administration; downstream injections/monitoring belong outside
+    the diagnostic episode.
+    """
+    by_id = {e.encounter_id: e for e in timeline}
+    diagnosis_dates: list[date] = []
+    for eid in encounter_ids:
+        event = by_id.get(eid)
+        if event is None:
+            continue
+        lower = (event.text_snippet or "").lower()
+        if _prostate_confirmed_diagnosis_in_text(lower):
+            diagnosis_dates.append(event.occurred_on)
+    if not diagnosis_dates:
+        return encounter_ids
+    first_diagnosis = min(diagnosis_dates)
+    treatment_dates: list[date] = []
+    for eid in encounter_ids:
+        event = by_id.get(eid)
+        if event is None or event.occurred_on < first_diagnosis:
+            continue
+        lower = (event.text_snippet or "").lower()
+        if _prostate_actual_treatment_start_in_text(lower):
+            treatment_dates.append(event.occurred_on)
+    if not treatment_dates:
+        return encounter_ids
+    cutoff = min(treatment_dates)
+    return [
+        eid
+        for eid in encounter_ids
+        if (by_id.get(eid) is None or by_id[eid].occurred_on <= cutoff)
+    ]
 
 
 def _drop_prostate_low_value_encounters(
@@ -372,6 +607,92 @@ def _drop_prostate_low_value_encounters(
             continue
         out.append(eid)
     return out
+
+
+def _prostate_confirmed_diagnosis_in_text(lower: str) -> bool:
+    if "suspected" in lower and "new episode" not in lower:
+        return False
+    return any(
+        term in lower
+        for term in (
+            "major: carcinoma of prostate",
+            "major: malignant tumour of prostate",
+            "major: malignant tumor of prostate",
+            "carcinoma of prostate (x78y6)",
+            "gleason",
+            "t3an0",
+            "t3a n0",
+        )
+    )
+
+
+def _prostate_treatment_start_in_text(lower: str) -> bool:
+    if any(
+        term in lower
+        for term in (
+            "to start the injections",
+            "1st injection to be started",
+            "booked for",
+            "request for psd",
+            "psd added 17.12.24",
+            "awaiting radiotherapy",
+            "upcoming radiotherapy",
+            "radiotherapy planning",
+            "planning for radiotherapy",
+        )
+    ):
+        return False
+    injection = any(
+        term in lower
+        for term in (
+            "decapeptyl",
+            "triptorelin",
+            "gnrh",
+            "gonadorelin analogue",
+        )
+    )
+    administered = any(
+        term in lower
+        for term in (
+            "attended for 1st",
+            "attended for first",
+            "attended for 2nd",
+            "attended for second",
+            "administered",
+            "given under psd",
+            "gnrh given",
+            "given: intramuscular",
+        )
+    )
+    return injection and administered
+
+
+def _truncate_prostate_after_treatment_start(
+    encounter_ids: list[str],
+    timeline: list[TimelineEvent],
+) -> list[str]:
+    """Stop a prostate episode once diagnosis and first treatment are present."""
+    by_id = {e.encounter_id: e for e in timeline}
+    diagnosis_date: date | None = None
+    treatment_date: date | None = None
+    for eid in encounter_ids:
+        ev = by_id.get(eid)
+        if ev is None:
+            continue
+        lower = (ev.text_snippet or "").lower()
+        if diagnosis_date is None and _prostate_confirmed_diagnosis_in_text(lower):
+            diagnosis_date = ev.occurred_on
+        if _prostate_treatment_start_in_text(lower):
+            if diagnosis_date is None or ev.occurred_on >= diagnosis_date:
+                treatment_date = ev.occurred_on
+                break
+    if diagnosis_date is None or treatment_date is None:
+        return encounter_ids
+    return [
+        eid
+        for eid in encounter_ids
+        if (by_id.get(eid) is None or by_id[eid].occurred_on <= treatment_date)
+    ]
 
 
 # Strict ordering of confidence tiers -- higher index wins when two
@@ -845,6 +1166,10 @@ async def build_episodes(
                 scoped_encounters,
                 timeline,
                 anchor_event_id=cand.anchor_event_id or "",
+            )
+            scoped_encounters = _truncate_prostate_after_treatment_start(
+                scoped_encounters,
+                timeline,
             )
         if boundary.status == "benign_closure":
             scoped_encounters = _filter_to_boundary(

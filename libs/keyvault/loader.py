@@ -151,8 +151,18 @@ def load_keyvault_secrets() -> None:
             )
         return
 
-    from azure.keyvault.secrets import SecretClient
-    from libs.azure.credentials import get_credential
+    try:
+        from azure.keyvault.secrets import SecretClient
+        from libs.azure.credentials import get_credential
+    except ModuleNotFoundError as exc:
+        logger.warning(
+            "AZURE_KEYVAULT_URL is set but Azure SDK is not installed (%s). "
+            "Install azure-keyvault-secrets or unset AZURE_KEYVAULT_URL and "
+            "use secrets/.env.secrets. Falling back to local secrets file only.",
+            exc,
+        )
+        _load_local_secrets_fallback()
+        return
 
     client = SecretClient(vault_url=vault_url, credential=get_credential())
     loaded = 0

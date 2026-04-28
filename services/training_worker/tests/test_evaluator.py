@@ -210,6 +210,20 @@ class TestCheckLabelGates(unittest.TestCase):
         failures = _check_label_gates({}, {"DISORDER": 0.82})
         self.assertEqual(failures, [])
 
+    def test_low_support_label_is_reported_as_skip(self):
+        from app.evaluator import _check_label_gates
+
+        skips: list[str] = []
+        failures = _check_label_gates(
+            {"RECORD_ARTIFACT": {"f1": 0.0, "support": 3}},
+            {"RECORD_ARTIFACT": 0.55},
+            min_support=25,
+            skipped=skips,
+        )
+        self.assertEqual(failures, [])
+        self.assertEqual(len(skips), 1)
+        self.assertIn("support=3", skips[0])
+
     def test_multiple_failures_all_returned(self):
         from app.evaluator import _check_label_gates
         per_label = {
@@ -307,3 +321,41 @@ class TestCheckLabelGates(unittest.TestCase):
 
         self.assertTrue(result["passed_gates"])
         self.assertEqual(result["label_gate_failures"], [])
+
+    def test_evaluate_model_skips_low_support_label_gate(self):
+        from app import evaluator
+
+        logs: list[str] = []
+        dev_docs = [_make_mock_doc() for _ in range(5)]
+        dev_scores = {
+            "ents_p": 0.92,
+            "ents_r": 0.88,
+            "ents_f": 0.90,
+            "ents_per_type": {
+                "RECORD_ARTIFACT": {"p": 0.0, "r": 0.0, "f": 0.0, "support": 3},
+            },
+        }
+
+        with (
+            patch.object(evaluator, "_register_training_architectures"),
+            patch("spacy.load", return_value=MagicMock()),
+            patch("spacy.tokens.DocBin") as mock_docbin_cls,
+            patch.object(evaluator, "_score_examples", return_value=dev_scores),
+            patch.object(evaluator, "_fetch_golden_set_docs", return_value=[]),
+            patch.object(evaluator, "_MIN_LABEL_GATE_SUPPORT", 25),
+        ):
+            instance = MagicMock()
+            instance.get_docs.return_value = iter(dev_docs)
+            mock_docbin_cls.return_value = instance
+            instance.from_disk.return_value = instance
+            result = evaluator.evaluate_model(
+                Path("/tmp/model-best"),
+                Path("/tmp/dev.spacy"),
+                log_fn=logs.append,
+            )
+
+        self.assertTrue(result["passed_gates"])
+        self.assertEqual(result["label_gate_failures"], [])
+        self.assertEqual(len(result["label_gate_skips"]), 1)
+        self.assertIn("RECORD_ARTIFACT", result["label_gate_skips"][0])
+        self.assertTrue(any("LABEL GATE SKIPPED" in m for m in logs))

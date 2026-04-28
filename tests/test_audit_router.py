@@ -373,10 +373,23 @@ class TestAuditDemographics:
         age_rows = [{"age_band": "50-64", "n": 1}]
         age_vals_rows = [{"age": 58}]
         eth_rows = [{"ethnicity": "White", "n": 1}]
+        age_band_by_sex_rows = [{"gender": "female", "age_band": "50-64", "n": 1}]
+        eth_snomed_agg = [{"snomed": "976631000000101", "n": 1}]
+        eth_cover_row = [{"n": 1}]
         with patch(
             "services.analytics_api.app.routers.audit.PatientGraphClient"
         ) as MockClient:
-            mock = _mock_client([sex_rows, age_rows, age_vals_rows, eth_rows])
+            mock = _mock_client(
+                [
+                    sex_rows,
+                    age_rows,
+                    age_vals_rows,
+                    eth_rows,
+                    age_band_by_sex_rows,
+                    eth_snomed_agg,
+                    eth_cover_row,
+                ]
+            )
             MockClient.return_value = mock
 
             from services.analytics_api.app.routers.audit import (
@@ -392,6 +405,10 @@ class TestAuditDemographics:
             )
 
         assert result["scopes"]["practice"]["median_age"] == 58
+        pdemo = result["scopes"]["practice"]
+        assert pdemo["demographics_cohort_n"] == 1
+        assert pdemo["patients_with_ethnicity_snomed_n"] == 1
+        assert pdemo["ethnicity_snomed_coverage_pct"] == 100.0
         queries = [str(c.args[0]) for c in mock.run.call_args_list]
         assert any(
             "trim(coalesce(toString(ep.referral_date), '')) = ''" in q for q in queries
@@ -399,6 +416,91 @@ class TestAuditDemographics:
         assert any(
             "trim(coalesce(toString(p.birthDate), '')) = ''" in q for q in queries
         )
+
+    def test_age_band_by_sex_cross_tab_returned(self):
+        """DI-87D92943: /analytics/audit/demographics SHALL return an
+        age_band_by_sex array of {gender, age_band, n, pct} entries."""
+        sex_rows = [{"gender": "female", "n": 2}, {"gender": "male", "n": 1}]
+        age_rows = [
+            {"age_band": "50-64", "n": 2},
+            {"age_band": "65-74", "n": 1},
+        ]
+        age_vals_rows = [{"age": 58}, {"age": 60}, {"age": 70}]
+        eth_rows = [{"ethnicity": "White", "n": 3}]
+        age_band_by_sex_rows = [
+            {"gender": "female", "age_band": "50-64", "n": 2},
+            {"gender": "male", "age_band": "65-74", "n": 1},
+        ]
+        eth_snomed_agg = [{"snomed": "976631000000101", "n": 2}]
+        eth_cover_row = [{"n": 2}]
+        with patch(
+            "services.analytics_api.app.routers.audit.PatientGraphClient"
+        ) as MockClient:
+            mock = _mock_client(
+                [
+                    sex_rows,
+                    age_rows,
+                    age_vals_rows,
+                    eth_rows,
+                    age_band_by_sex_rows,
+                    eth_snomed_agg,
+                    eth_cover_row,
+                ]
+            )
+            MockClient.return_value = mock
+
+            from services.analytics_api.app.routers.audit import audit_demographics
+
+            result = audit_demographics(
+                scope=_mock_scope(),
+                org_id=None,
+                date_from=None,
+                date_to=None,
+                benchmark_set_id=None,
+            )
+
+        practice = result["scopes"]["practice"]
+        assert "age_band_by_sex" in practice
+        rows = practice["age_band_by_sex"]
+        assert len(rows) == 2
+        keys = {"gender", "age_band", "n", "pct"}
+        for row in rows:
+            assert keys.issubset(row.keys())
+        female_5064 = next(
+            r for r in rows if r["gender"] == "female" and r["age_band"] == "50-64"
+        )
+        assert female_5064["n"] == 2
+        # 2 / (2 + 1) = 66.7%
+        assert female_5064["pct"] == 66.7
+
+        eb = practice["ethnicity_by_snomed"]
+        assert isinstance(eb, list) and len(eb) >= 1
+        white_brit = next(
+            (r for r in eb if r.get("snomed") == "976631000000101"),
+            None,
+        )
+        assert white_brit is not None
+        assert white_brit["n"] == 2
+        # 2 / 3 sex-row patients = 66.7%
+        assert white_brit["pct"] == 66.7
+        assert "benchmark_key" in white_brit and "preferred_term" in white_brit
+        assert practice["demographics_cohort_n"] == 3
+        assert practice["patients_with_ethnicity_snomed_n"] == 2
+        assert practice["ethnicity_snomed_coverage_pct"] == 66.7
+
+        # Cross-tab Cypher must filter on gender and use age_at_referral case.
+        queries = [str(c.args[0]) for c in mock.run.call_args_list]
+        assert any(
+            "p.gender IS NOT NULL" in q and "age_band" in q and "gender, age_band" in q
+            for q in queries
+        )
+        assert any(
+            "coalesce(d.domain, '') = 'ethnicity'" in q
+            and "eth_snomed_ids" in q
+            and "WITH DISTINCT p" in q
+            for q in queries
+        )
+        assert any("RETURN count(DISTINCT p) AS n" in q for q in queries)
 
 
 # ---------------------------------------------------------------------------
@@ -654,8 +756,45 @@ class TestComorbidityDeduplication:
 
 
 # ---------------------------------------------------------------------------
-# Tests: IS_PART_OF link helper (phase 1 fix)
+# Tests: comorbidity referral-outcome labels (drilldown)
 # ---------------------------------------------------------------------------
+
+
+class TestComorbidityDrilldownOutcome:
+    def test_outcome_label_confirmed_uses_canonical_cancer_type(self):
+        from services.analytics_api.app.routers._audit_comorbidities import (
+            _outcome_label,
+        )
+
+        assert _outcome_label(True, "breast", True) == "Breast"
+
+    def test_outcome_label_prefers_snomed_cancer_type_bucket(self):
+        from services.analytics_api.app.routers._audit_comorbidities import (
+            _outcome_label,
+        )
+
+        assert (
+            _outcome_label(True, "breast", True, ["SNOMED breast cancer"])
+            == "SNOMED breast cancer"
+        )
+
+    def test_outcome_label_referral_no_cancer(self):
+        from services.analytics_api.app.routers._audit_comorbidities import (
+            _outcome_label,
+        )
+
+        assert (
+            _outcome_label(False, None, True) == "Referral without cancer diagnosis"
+        )
+
+    def test_outcome_label_other(self):
+        from services.analytics_api.app.routers._audit_comorbidities import (
+            _outcome_label,
+        )
+
+        assert _outcome_label(False, None, False) == "Other"
+
+
 
 
 class TestLinkEncountersToEpisode:

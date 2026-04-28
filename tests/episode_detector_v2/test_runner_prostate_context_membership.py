@@ -95,7 +95,8 @@ def test_prostate_episode_includes_context_only_lab_in_referral_window(v1_bundle
             "pr-lab-only",
             occurred_on="2025-08-04",
             encounter_text=(
-                "Pathology Request (Request Sent): Urea & electrolytes (Requested)"
+                "Pathology Request (Request Sent): Urea & electrolytes (Requested) "
+                "Reason for request: 2ww urology bloods"
             ),
             docs=[],
         ),

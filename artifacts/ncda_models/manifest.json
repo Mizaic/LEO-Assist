@@ -1,0 +1,44 @@
+{
+  "role_artifact": "/Users/robsmith/Documents/github/LEO-AI-CORE/artifacts/ncda_models/role.joblib",
+  "linkage_artifact": "/Users/robsmith/Documents/github/LEO-AI-CORE/artifacts/ncda_models/linkage.joblib",
+  "n_gold": 146,
+  "n_silver": 18010,
+  "n_linkage_positive": 114,
+  "n_linkage_negative": 196,
+  "role_metrics": {
+    "dx": {
+      "precision": 0.45454545454545453,
+      "recall": 0.052083333333333336,
+      "f1": 0.09345794392523364,
+      "support": 1248
+    },
+    "ftr": {
+      "precision": 0.10371075166508087,
+      "recall": 0.08014705882352942,
+      "f1": 0.0904189133139776,
+      "support": 1360
+    },
+    "none": {
+      "precision": 0.8027088036117381,
+      "recall": 0.6170183231538034,
+      "f1": 0.6977200486598909,
+      "support": 14408
+    },
+    "seen": {
+      "precision": 0.048824593128390596,
+      "recall": 0.1836734693877551,
+      "f1": 0.07714285714285714,
+      "support": 441
+    },
+    "treatment": {
+      "precision": 0.0489593188268685,
+      "recall": 0.296137339055794,
+      "f1": 0.08402679115080171,
+      "support": 699
+    }
+  },
+  "linkage_metrics": {
+    "training_accuracy": 0.9838709677419355,
+    "training_auc": 0.9999104905119942
+  }
+}

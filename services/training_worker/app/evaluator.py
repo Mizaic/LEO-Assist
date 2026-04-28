@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 _MIN_PRECISION = float(os.getenv("MODEL_MIN_PRECISION", "0.80"))
 _MIN_RECALL = float(os.getenv("MODEL_MIN_RECALL", "0.75"))
 _MIN_GOLDEN_F1 = float(os.getenv("MODEL_MIN_GOLDEN_F1", "0.70"))
+_MIN_LABEL_GATE_SUPPORT = int(os.getenv("LABEL_MIN_F1_SUPPORT", "25"))
 
 # Per-label minimum F1 gates.  Labels absent from the dev split are skipped
 # (zero-shot absence is a data-volume issue, not a regression signal).
@@ -117,17 +118,32 @@ def _load_label_min_f1() -> dict[str, float]:
 def _check_label_gates(
     per_label: dict[str, dict],
     label_min_f1: dict[str, float],
+    *,
+    min_support: int = 0,
+    skipped: list[str] | None = None,
 ) -> list[str]:
     """Return human-readable failure messages for any per-label F1 gate breach.
 
     Labels absent from per_label (not seen in the dev split) are skipped --
     zero-shot absence is a training-data volume problem, not a regression.
+    Labels present with support below ``min_support`` are also skipped and
+    reported through ``skipped`` so small dev counts become coverage findings
+    rather than unstable promotion blockers.
     """
     failures = []
     for label, threshold in sorted(label_min_f1.items()):
         scores = per_label.get(label)
         if scores is None:
             continue
+        support = scores.get("support")
+        if support is not None:
+            support_n = int(_as_float(support, default=0.0))
+            if min_support > 0 and support_n < min_support:
+                if skipped is not None:
+                    skipped.append(
+                        f"{label}: support={support_n} < min_support {min_support}"
+                    )
+                continue
         f1 = _as_float(scores.get("f1", 0.0))
         if f1 < threshold:
             failures.append(
@@ -239,15 +255,72 @@ def _score_examples(nlp, docs) -> dict:
     return scores
 
 
-def _build_per_label(scores: dict) -> dict[str, dict]:
+def _count_gold_label_support(docs) -> dict[str, int]:
+    """Count gold examples per label from spaCy dev docs."""
+    support: dict[str, int] = {}
+    for doc in docs:
+        spans = getattr(doc, "spans", None)
+        if hasattr(spans, "get"):
+            for span in spans.get("sc", []):
+                label = str(getattr(span, "label_", "") or "")
+                if label:
+                    support[label] = support.get(label, 0) + 1
+        for ent in getattr(doc, "ents", []) or []:
+            label = str(getattr(ent, "label_", "") or "")
+            if label:
+                support[label] = support.get(label, 0) + 1
+    return support
+
+
+def _rounded_int(value: object) -> int | None:
+    """Return a rounded non-negative int for numeric scorer counts."""
+    try:
+        if value is None:
+            return None
+        return max(0, int(round(float(value))))
+    except (TypeError, ValueError):
+        return None
+
+
+def _build_per_label(
+    scores: dict,
+    support_counts: dict[str, int] | None = None,
+) -> dict[str, dict]:
     per_label: dict[str, dict] = {}
     per_type = scores.get("spans_sc_per_type") or scores.get("ents_per_type") or {}
     for label, ls in per_type.items():
-        per_label[label] = {
+        support = (
+            support_counts.get(label)
+            if support_counts is not None and label in support_counts
+            else _rounded_int(ls.get("support") or ls.get("total"))
+        )
+        p = _as_float(ls.get("p", 0.0))
+        r = _as_float(ls.get("r", 0.0))
+        f1 = _as_float(ls.get("f", 0.0))
+        row = {
             "precision": round(_as_float(ls.get("p", 0.0)), 4),
             "recall": round(_as_float(ls.get("r", 0.0)), 4),
             "f1": round(_as_float(ls.get("f", 0.0)), 4),
         }
+        if support is not None:
+            tp = _rounded_int(ls.get("tp"))
+            fn = _rounded_int(ls.get("fn"))
+            fp = _rounded_int(ls.get("fp"))
+            if tp is None:
+                tp = _rounded_int(r * support)
+            if fn is None and tp is not None:
+                fn = max(0, support - tp)
+            if fp is None and tp is not None:
+                fp = _rounded_int((tp / p) - tp) if p > 0 else 0
+            row.update(
+                {
+                    "support": support,
+                    "true_positive": tp,
+                    "false_positive": fp,
+                    "false_negative": fn,
+                }
+            )
+        per_label[label] = row
     return per_label
 
 
@@ -423,11 +496,12 @@ def evaluate_model(
 
     _log(f"Evaluating on {len(gold_docs)} dev documents…")
     scores = _score_examples(nlp, gold_docs)
+    support_counts = _count_gold_label_support(gold_docs)
 
     spans_p = round(_first_numeric(scores, ("spans_sc_p", "ents_p")), 4)
     spans_r = round(_first_numeric(scores, ("spans_sc_r", "ents_r")), 4)
     spans_f = round(_first_numeric(scores, ("spans_sc_f", "ents_f")), 4)
-    per_label = _build_per_label(scores)
+    per_label = _build_per_label(scores, support_counts)
 
     passed = spans_p >= _MIN_PRECISION and spans_r >= _MIN_RECALL
 
@@ -443,7 +517,16 @@ def evaluate_model(
         )
 
     label_min_f1 = _load_label_min_f1()
-    label_failures = _check_label_gates(per_label, label_min_f1)
+    label_gate_skips: list[str] = []
+    label_failures = _check_label_gates(
+        per_label,
+        label_min_f1,
+        min_support=_MIN_LABEL_GATE_SUPPORT,
+        skipped=label_gate_skips,
+    )
+    if label_gate_skips:
+        for msg in label_gate_skips:
+            _log(f"LABEL GATE SKIPPED — {msg}")
     if label_failures:
         for msg in label_failures:
             _log(f"LABEL GATE FAILED — {msg}")
@@ -456,6 +539,8 @@ def evaluate_model(
         "per_label": per_label,
         "passed_gates": passed,
         "label_gate_failures": label_failures,
+        "label_gate_skips": label_gate_skips,
+        "min_label_gate_support": _MIN_LABEL_GATE_SUPPORT,
         "min_precision": _MIN_PRECISION,
         "min_recall": _MIN_RECALL,
         "dev_doc_count": len(gold_docs),

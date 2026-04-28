@@ -33,6 +33,9 @@ _LABEL_BY_TAG: dict[str, str] = {
     "situation": "Situation",
     "clinicalfinding": "Clinical_finding",
     "finding": "Clinical_finding",
+    # UK ethnicity census concepts often carry SNOMED semantic tag Ethnic_group.
+    # Persist them as typed Clinical_finding nodes so DOCUMENTS + HAS_FINDING matches other demographics findings.
+    "ethnicgroup": "Clinical_finding",
     "disease": "Disease",
     "disorder": "Disease",
     "observableentity": "Observable_entity",
@@ -238,6 +241,9 @@ def upsert_encounter_documents_link(
     run_id: str = "",
     domain: str = "clinical",
     confidence: float = 0.0,
+    numeric_value: float | None = None,
+    unit: str | None = None,
+    reference_range: str | None = None,
 ) -> bool:
     """One encounter-level DOCUMENTS write plus patient HAS_* when assertion allows.
 
@@ -279,9 +285,9 @@ def upsert_encounter_documents_link(
         body_site=None,
         body_site_concept_id=None,
         body_site_term=None,
-        numeric_value=None,
-        unit=None,
-        reference_range=None,
+        numeric_value=numeric_value,
+        unit=unit,
+        reference_range=reference_range,
         source=source,
         model_name=model_name,
         model_version=model_version,

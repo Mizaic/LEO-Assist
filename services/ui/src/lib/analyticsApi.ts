@@ -936,6 +936,30 @@ export interface AuditDemographics {
   age_bands: Array<{ age_band: string; n: number; pct: number }>;
   median_age: number | null;
   ethnicity: Array<{ ethnicity: string; n: number; pct: number }>;
+  // DI-87D92943: age x sex cross-tab so the demographics evolution view
+  // can render a true population pyramid per calendar-year window. `pct`
+  // is percentage of the total demographic population for that window
+  // (not row-stochastic by gender), so cards stay directly comparable.
+  age_band_by_sex: Array<{
+    gender: string;
+    age_band: string;
+    n: number;
+    pct: number;
+  }>;
+  /** Distinct patients per NCDA ethnicity SNOMED (DOCUMENTS domain ethnicity). */
+  ethnicity_by_snomed: Array<{
+    snomed: string;
+    benchmark_key: string;
+    preferred_term: string;
+    n: number;
+    pct: number;
+  }>;
+  /** Sum of sex-tab rows; cohort size for ethnicity radar denominators. */
+  demographics_cohort_n: number;
+  /** Distinct patients with at least one coded ethnicity link in the NCDA SNOMED set. */
+  patients_with_ethnicity_snomed_n: number;
+  /** patients_with_ethnicity_snomed_n as % of demographics_cohort_n; null when cohort is empty. */
+  ethnicity_snomed_coverage_pct: number | null;
 }
 
 export interface AuditPlaceRow {
@@ -1005,9 +1029,107 @@ export interface AuditComorbidityRow {
   benchmark_key?: string;
 }
 
+/** Registry order radar axes (same SNOMED rollup as bar chart). */
+export interface AuditComorbidityRadarRow {
+  condition: string;
+  n: number;
+  pct: number | null;
+  benchmark_key?: string | null;
+}
+
 export interface AuditComorbidities {
   comorbidities: AuditComorbidityRow[];
+  /** Stable-order axes for multimorbidity radar (may be omitted by older APIs). */
+  radar?: AuditComorbidityRadarRow[];
   total_patients: number;
+}
+
+export interface AuditComorbidityBreakdownSlice {
+  slice_key: string;
+  slice_label: string;
+  cohort_n: number;
+  rows: AuditComorbidityRow[];
+}
+
+export interface AuditComorbiditiesDrilldown {
+  total_patients: number;
+  by_age_band: AuditComorbidityBreakdownSlice[];
+  by_gender: AuditComorbidityBreakdownSlice[];
+  by_referral_outcome: AuditComorbidityBreakdownSlice[];
+}
+
+// ---------------------------------------------------------------------------
+// Symptoms (DO-D5B9FE5F / DI-6E1B71A4)
+// ---------------------------------------------------------------------------
+
+/** Stable axis entry for the symptoms heatmap and tables. */
+export interface AuditSymptomAxisEntry {
+  key: string;
+  symptom: string;
+}
+
+/** Overall row for the leading bar/heatmap visualisation. */
+export interface AuditSymptomRow {
+  symptom: string;
+  n: number;
+  pct: number;
+}
+
+/**
+ * Long-format heatmap cell. ``cohort_n`` is the denominator of patients
+ * inside ``bucket_label`` (e.g. cancer-type bucket). ``pct`` is the
+ * symptom prevalence within that bucket.
+ */
+export interface AuditSymptomHeatmapCell {
+  bucket_key: string;
+  bucket_label: string;
+  cohort_n: number;
+  symptom: string;
+  n: number;
+  pct: number;
+}
+
+/**
+ * PPV row by suspected cancer type. ``provisional`` is true when the
+ * cohort still contains unresolved or following-year diagnoses, in which
+ * case the UI should label the percentage as provisional rather than
+ * final.
+ */
+export interface AuditPpvByCancerTypeRow {
+  cancer_type: string;
+  referrals_n: number;
+  diagnosed_in_year_n: number;
+  no_cancer_in_year_n: number;
+  diagnosed_following_year_n: number;
+  unresolved_n: number;
+  ppv_pct: number | null;
+  provisional: boolean;
+}
+
+export interface AuditSymptoms {
+  total_referrals: number;
+  cohort_n: number;
+  symptom_axis: AuditSymptomAxisEntry[];
+  symptoms: AuditSymptomRow[];
+  heatmap_by_suspected_cancer_type: AuditSymptomHeatmapCell[];
+  heatmap_by_diagnosed_cancer_type: AuditSymptomHeatmapCell[];
+  ppv_by_suspected_cancer_type: AuditPpvByCancerTypeRow[];
+}
+
+export interface AuditSymptomBreakdownSlice {
+  slice_key: string;
+  slice_label: string;
+  cohort_n: number;
+  rows: AuditSymptomRow[];
+}
+
+export interface AuditSymptomsDrilldown {
+  total_patients: number;
+  symptom_axis: AuditSymptomAxisEntry[];
+  by_age_band: AuditSymptomBreakdownSlice[];
+  by_gender: AuditSymptomBreakdownSlice[];
+  by_suspected_cancer_type: AuditSymptomBreakdownSlice[];
+  by_diagnosed_cancer_type: AuditSymptomBreakdownSlice[];
 }
 
 export interface AuditAvoidableDelays {
@@ -1114,6 +1236,36 @@ export async function fetchAuditComorbidities(
   orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
 ): Promise<AuditSectionResult<AuditComorbidities>> {
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/comorbidities${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditComorbiditiesDrilldown(
+  orgId?: string,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<AuditComorbiditiesDrilldown> {
+  return fetchJson(
+    `${ANALYTICS_BASE}/analytics/audit/comorbidities/drilldown${_auditParams(orgId, dateFrom, dateTo)}`,
+  );
+}
+
+export async function fetchAuditSymptoms(
+  orgId?: string,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<AuditSymptoms> {
+  return fetchJson(
+    `${ANALYTICS_BASE}/analytics/audit/symptoms${_auditParams(orgId, dateFrom, dateTo)}`,
+  );
+}
+
+export async function fetchAuditSymptomsDrilldown(
+  orgId?: string,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<AuditSymptomsDrilldown> {
+  return fetchJson(
+    `${ANALYTICS_BASE}/analytics/audit/symptoms/drilldown${_auditParams(orgId, dateFrom, dateTo)}`,
+  );
 }
 
 export async function batchAddConceptsToSubdomain(

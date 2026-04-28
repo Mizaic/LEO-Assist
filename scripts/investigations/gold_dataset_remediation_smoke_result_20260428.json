@@ -1,0 +1,237 @@
+{
+  "export_total": 2902,
+  "split_counts": {
+    "train": 2026,
+    "val": 293,
+    "dev": 291,
+    "test": 292
+  },
+  "per_label_counts": {
+    "BODY_STRUCTURE": {
+      "train": 98,
+      "val": 14,
+      "dev": 13,
+      "test": 14
+    },
+    "DISORDER": {
+      "train": 289,
+      "val": 40,
+      "dev": 39,
+      "test": 42
+    },
+    "FINDING": {
+      "train": 698,
+      "val": 94,
+      "dev": 93,
+      "test": 95
+    },
+    "MEDICINAL_PRODUCT": {
+      "train": 70,
+      "val": 9,
+      "dev": 9,
+      "test": 9
+    },
+    "MORPHOLOGIC_ABNORMALITY": {
+      "train": 20,
+      "val": 3,
+      "dev": 3,
+      "test": 3
+    },
+    "OBSERVABLE": {
+      "train": 2323,
+      "val": 289,
+      "dev": 350,
+      "test": 340
+    },
+    "PROCEDURE": {
+      "train": 2744,
+      "val": 337,
+      "dev": 405,
+      "test": 395
+    },
+    "QUALIFIER": {
+      "train": 20,
+      "val": 3,
+      "dev": 3,
+      "test": 3
+    },
+    "RECORD_ARTIFACT": {
+      "train": 17,
+      "val": 2,
+      "dev": 2,
+      "test": 3
+    },
+    "REGIME_THERAPY": {
+      "train": 13,
+      "val": 2,
+      "dev": 2,
+      "test": 2
+    },
+    "SITUATION": {
+      "train": 90,
+      "val": 13,
+      "dev": 13,
+      "test": 12
+    },
+    "SUBSTANCE": {
+      "train": 3,
+      "val": 0,
+      "dev": 1,
+      "test": 0
+    },
+    "TUMOR_STAGING": {
+      "train": 1,
+      "val": 0,
+      "dev": 0,
+      "test": 0
+    }
+  },
+  "accelerator": {
+    "requested_accelerator": "auto",
+    "resolved_accelerator": "mps",
+    "fallback_applied": false,
+    "fallback_reason": ""
+  },
+  "evaluation": {
+    "precision": 0.0003,
+    "recall": 0.5852,
+    "f1": 0.0006,
+    "per_label": {
+      "BODY_STRUCTURE": {
+        "precision": 0.0,
+        "recall": 0.3077,
+        "f1": 0.0,
+        "support": 13,
+        "true_positive": 4,
+        "false_positive": 166019,
+        "false_negative": 9
+      },
+      "PROCEDURE": {
+        "precision": 0.0018,
+        "recall": 0.3926,
+        "f1": 0.0035,
+        "support": 405,
+        "true_positive": 159,
+        "false_positive": 90339,
+        "false_negative": 246
+      },
+      "DISORDER": {
+        "precision": 0.0002,
+        "recall": 0.9744,
+        "f1": 0.0003,
+        "support": 39,
+        "true_positive": 38,
+        "false_positive": 249884,
+        "false_negative": 1
+      },
+      "MEDICINAL_PRODUCT": {
+        "precision": 0.0,
+        "recall": 0.4444,
+        "f1": 0.0001,
+        "support": 9,
+        "true_positive": 4,
+        "false_positive": 158187,
+        "false_negative": 5
+      },
+      "SUBSTANCE": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1,
+        "true_positive": 0,
+        "false_positive": 0,
+        "false_negative": 1
+      },
+      "SITUATION": {
+        "precision": 0.0,
+        "recall": 0.7692,
+        "f1": 0.0001,
+        "support": 13,
+        "true_positive": 10,
+        "false_positive": 215382,
+        "false_negative": 3
+      },
+      "FINDING": {
+        "precision": 0.0004,
+        "recall": 0.8495,
+        "f1": 0.0009,
+        "support": 93,
+        "true_positive": 79,
+        "false_positive": 183233,
+        "false_negative": 14
+      },
+      "MORPHOLOGIC_ABNORMALITY": {
+        "precision": 0.0,
+        "recall": 0.6667,
+        "f1": 0.0,
+        "support": 3,
+        "true_positive": 2,
+        "false_positive": 106728,
+        "false_negative": 1
+      },
+      "TUMOR_STAGING": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "OBSERVABLE": {
+        "precision": 0.0012,
+        "recall": 0.7143,
+        "f1": 0.0024,
+        "support": 350,
+        "true_positive": 250,
+        "false_positive": 211575,
+        "false_negative": 100
+      },
+      "QUALIFIER": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 3,
+        "true_positive": 0,
+        "false_positive": 0,
+        "false_negative": 3
+      },
+      "RECORD_ARTIFACT": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2,
+        "true_positive": 0,
+        "false_positive": 0,
+        "false_negative": 2
+      },
+      "REGIME_THERAPY": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2,
+        "true_positive": 0,
+        "false_positive": 0,
+        "false_negative": 2
+      }
+    },
+    "passed_gates": false,
+    "label_gate_failures": [
+      "DISORDER: F1=0.000 < min 0.82",
+      "FINDING: F1=0.001 < min 0.78",
+      "OBSERVABLE: F1=0.002 < min 0.75",
+      "PROCEDURE: F1=0.004 < min 0.80",
+      "TUMOR_STAGING: F1=0.000 < min 0.65"
+    ],
+    "label_gate_skips": [
+      "BODY_STRUCTURE: support=13 < min_support 25",
+      "MEDICINAL_PRODUCT: support=9 < min_support 25",
+      "MORPHOLOGIC_ABNORMALITY: support=3 < min_support 25",
+      "QUALIFIER: support=3 < min_support 25",
+      "RECORD_ARTIFACT: support=2 < min_support 25",
+      "REGIME_THERAPY: support=2 < min_support 25",
+      "SITUATION: support=13 < min_support 25",
+      "SUBSTANCE: support=1 < min_support 25"
+    ],
+    "min_label_gate_support": 25,
+    "min_precision": 0.4,
+    "min_recall": 0.35,
+    "dev_doc_count": 291
+  }
+}

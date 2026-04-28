@@ -92,9 +92,16 @@ def infer_milestone_links(
         event = event_by_id.get(enc_id)
         if event is None:
             continue
+        if episode.site_key == "prostate_urological" and _is_prostate_noise_event(
+            event
+        ):
+            continue
         event_links = _links_for_event(event, episode.site_key)
         if not event_links:
             haystack = " ".join([_normalised_text(event), *_concept_names(event)])
+            if episode.site_key == "prostate_urological":
+                if not _prostate_lab_fallback_allowed(haystack):
+                    continue
             if _should_fallback_primary_care_lab(haystack):
                 event_links = [_link(event, "primary_care_investigations")]
             else:
@@ -406,8 +413,8 @@ def _links_for_event(event: TimelineEvent, site_key: str) -> list[MilestoneLink]
     if site_key == "haematology" and _is_abnormal_breast_screening_entry(haystack):
         links.append(_link(event, "first_presentation"))
         links.append(_link(event, "referral"))
-    if _is_first_presentation(haystack, text, site_key) or _is_metastatic_presentation(
-        haystack
+    if _is_first_presentation(haystack, text, site_key) or (
+        site_key != "prostate_urological" and _is_metastatic_presentation(haystack)
     ):
         links.append(_link(event, "first_presentation"))
     if _is_referral_sent(haystack, site_key):
@@ -424,9 +431,11 @@ def _links_for_event(event: TimelineEvent, site_key: str) -> list[MilestoneLink]
         links.append(_link(event, "outcome_letter"))
     if _is_benign_closure(haystack, site_key):
         links.append(_link(event, "benign_closure"))
-    if _is_confirmed_diagnosis(haystack) or _is_metastatic_diagnosis(haystack):
+    if _is_confirmed_diagnosis(haystack, site_key) or _is_metastatic_diagnosis(
+        haystack
+    ):
         links.append(_link(event, "diagnosis_confirmed"))
-    if _is_treatment_started(haystack, text):
+    if _is_treatment_started(haystack, text, site_key):
         links.append(_link(event, "treatment_started"))
     if _is_treatment_completed(haystack):
         links.append(_link(event, "treatment_completed"))
@@ -959,9 +968,91 @@ def _is_outcome_letter(haystack: str) -> bool:
     )
 
 
-def _is_confirmed_diagnosis(haystack: str) -> bool:
+def _is_prostate_history_or_other_problem(haystack: str) -> bool:
+    if not any(
+        phrase in haystack
+        for phrase in (
+            "prostate cancer",
+            "carcinoma of prostate",
+            "malignant tumour of prostate",
+            "malignant tumor of prostate",
+            "malignant neoplasm of prostate",
+        )
+    ):
+        return False
+    if any(
+        phrase in haystack
+        for phrase in (
+            "major: carcinoma of prostate",
+            "major: malignant tumour of prostate",
+            "major: malignant tumor of prostate",
+            "gleason",
+            "t3a",
+            "tnm",
+            "new episode",
+        )
+    ):
+        return False
+    if any(
+        phrase in haystack
+        for phrase in (
+            "past medical history",
+            "pmh includes",
+            "history of prostate cancer",
+            "reports a history of prostate cancer",
+            "problem item marked in error",
+            "merging problem",
+        )
+    ):
+        return True
+    return any(
+        phrase in haystack
+        for phrase in (
+            "copd",
+            "emphysema",
+            "cough",
+            "atrial fibrillation",
+            "heart failure",
+            "ankle swelling",
+            "mechanical lower back pain",
+            "musculoskeletal",
+        )
+    )
+
+
+def _is_confirmed_diagnosis(haystack: str, site_key: str = "breast") -> bool:
     if "cancer care review" in haystack:
         return False
+    if site_key == "prostate_urological" and _is_prostate_history_or_other_problem(
+        haystack
+    ):
+        return False
+    if site_key == "prostate_urological":
+        if any(
+            phrase in haystack
+            for phrase in (
+                "malignant neoplasm of prostate suspected",
+                "malignant tumour of prostate suspected",
+                "malignant tumor of prostate suspected",
+                "prostate suspected",
+            )
+        ):
+            return False
+        if "new episode" not in haystack and any(
+            phrase in haystack
+            for phrase in (
+                "attended for",
+                "decapeptyl",
+                "triptorelin",
+                "gnrh",
+                "given under psd",
+                "psd added",
+                "on-going tx",
+                "ongoing tx",
+                "radiotherapy",
+            )
+        ):
+            return False
     suspected_only = "suspected breast cancer" in haystack and "major:" not in haystack
     if suspected_only:
         return False
@@ -1102,9 +1193,67 @@ def _is_metastatic_diagnosis(haystack: str) -> bool:
     )
 
 
-def _is_treatment_started(haystack: str, text: str) -> bool:
+def _is_treatment_started(
+    haystack: str,
+    text: str,
+    site_key: str = "breast",
+) -> bool:
     if "starts chemo" in haystack or "awaits discussion about chemo" in haystack:
         return False
+    if site_key == "prostate_urological":
+        if any(
+            phrase in haystack
+            for phrase in (
+                "awaiting radiotherapy",
+                "upcoming radiotherapy",
+                "radiotherapy is planned",
+                "planned for november",
+                "scheduled for radiotherapy planning",
+                "radiotherapy planning appointment",
+            )
+        ):
+            return False
+        if any(
+            phrase in haystack
+            for phrase in (
+                "request for psd",
+                "to start the injections",
+                "i authorise",
+                "has already been booked",
+            )
+        ) and not any(
+            phrase in haystack
+            for phrase in (
+                "attended for",
+                "given under psd",
+                "gnrh given",
+                "given: intramuscular",
+                "injection site:",
+            )
+        ):
+            return False
+        return any(
+            phrase in haystack
+            for phrase in (
+                "radiotherapy started",
+                "radiotherapy commenced",
+                "on-going tx for prostate cancer with radiotherapy",
+                "ongoing tx for prostate cancer with radiotherapy",
+                "gnrh given",
+                "given under psd",
+                "given: intramuscular",
+                "injection site:",
+            )
+        ) and any(
+            phrase in haystack
+            for phrase in (
+                "radiotherapy",
+                "decapeptyl",
+                "triptorelin",
+                "gnrh",
+                "gonadorelin analogue",
+            )
+        )
     if "currently undergoing chemotherapy" in haystack:
         return False
     if (
@@ -1281,6 +1430,64 @@ def _is_primary_care_investigation(haystack: str) -> bool:
             "dipstick",
             "prostate-specific antigen",
             "prostate-specific antigen level",
+        )
+    )
+
+
+def _is_prostate_noise_event(event: TimelineEvent) -> bool:
+    h = " ".join([_normalised_text(event), *_concept_names(event)])
+    if _is_prostate_history_or_other_problem(h):
+        return True
+    if any(
+        phrase in h
+        for phrase in (
+            "pathology request",
+            "phlebotomy",
+            "blood test",
+            "u&e",
+            "urea & electrolytes",
+            "urea and electrolytes",
+            "full blood count",
+            "ecg",
+            "hba1c",
+            "lipids",
+            "urine microalbumin",
+        )
+    ):
+        if not any(
+            phrase in h
+            for phrase in (
+                "2ww",
+                "fast track",
+                "urology",
+                "template biopsy",
+                "prostate biopsy",
+                "mri of prostate",
+                "mri prostate",
+                "raised psa",
+                "psa monitoring",
+                "urinary symptoms",
+            )
+        ):
+            return True
+    return False
+
+
+def _prostate_lab_fallback_allowed(haystack: str) -> bool:
+    return any(
+        phrase in haystack
+        for phrase in (
+            "2ww",
+            "two week",
+            "fast track",
+            "raised psa",
+            "psa monitoring",
+            "prostate-specific antigen",
+            "prostate specific antigen",
+            "urology",
+            "urinary symptoms",
+            "haematuria",
+            "luts",
         )
     )
 
