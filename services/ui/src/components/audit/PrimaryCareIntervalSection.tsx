@@ -8,12 +8,14 @@
  */
 "use client";
 
+import { useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import SectionCard from "./SectionCard";
 import IntervalStripPlot from "./IntervalStripPlot";
 import SummaryStatsTable from "./SummaryStatsRow";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
+import ChartZoomDialog from "./ChartZoomDialog";
 import type { AuditIntervals, AuditSectionResult } from "@/lib/analyticsApi";
 import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
 import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
@@ -26,6 +28,7 @@ interface Props {
 }
 
 export default function PrimaryCareIntervalSection({ result, loading, error, orgSelected = false }: Props) {
+  const [zoomOpen, setZoomOpen] = useState(false);
   const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
   const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice;
@@ -80,7 +83,33 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
         allianceMedian={allianceMedian}
         maxDays={90}
         noDataMessage="No first-presentation dates are captured for this audit cohort, so time to referral cannot be calculated without showing misleading 0-day intervals."
+        onZoom={() => setZoomOpen(true)}
       />
+      <ChartZoomDialog
+        open={zoomOpen}
+        onClose={() => setZoomOpen(false)}
+        title="Time to Referral \u2014 Primary Care Interval"
+        subtitle="Each dot represents one patient. Dots further right = longer interval."
+        maxWidth="lg"
+        contentHeight={400}
+      >
+        <Box sx={{ width: "100%", display: "flex", flexDirection: "column" }}>
+          <IntervalStripPlot
+            patients={practice?.patients ?? []}
+            intervalKey="pci_days"
+            label="Primary Care Interval"
+            median={practice?.pci?.median ?? null}
+            q1={practice?.pci?.q1 ?? null}
+            q3={practice?.pci?.q3 ?? null}
+            nationalMedian={nationalMedian}
+            nationalLabel={nationalLabel}
+            allianceMedian={allianceMedian}
+            maxDays={90}
+            chartHeight={320}
+            noDataMessage="No first-presentation dates are captured for this audit cohort."
+          />
+        </Box>
+      </ChartZoomDialog>
       {(practice?.pci?.n ?? 0) > (practice?.patients?.length ?? 0) && (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>
           Showing {practice!.patients.length} of {practice!.pci!.n} episodes in the chart.

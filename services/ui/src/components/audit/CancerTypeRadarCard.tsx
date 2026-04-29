@@ -11,7 +11,10 @@
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 
 const COLOUR_LIVE = "#1D4ED8";
 const COLOUR_BASELINE = "#92400E";
@@ -41,6 +44,8 @@ interface Props {
   loading?: boolean;
   isBaseline?: boolean;
   hasLiveData: boolean;
+  /** When provided, renders a small expand button in the card header. */
+  onZoom?: () => void;
 }
 
 interface PolarPoint {
@@ -135,6 +140,7 @@ export default function CancerTypeRadarCard({
   loading = false,
   isBaseline = false,
   hasLiveData,
+  onZoom,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(320);
@@ -222,13 +228,27 @@ export default function CancerTypeRadarCard({
             {headerCaption}
           </Typography>
         </Box>
-        <Chip
-          label={`n = ${totalN}`}
-          size="small"
-          variant="outlined"
-          sx={{ fontWeight: 600, fontSize: "0.72rem" }}
-          aria-label={`Sample size for ${yearLabel}: ${totalN} confirmed cancer cases`}
-        />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+          <Chip
+            label={`n = ${totalN}`}
+            size="small"
+            variant="outlined"
+            sx={{ fontWeight: 600, fontSize: "0.72rem" }}
+            aria-label={`Sample size for ${yearLabel}: ${totalN} confirmed cancer cases`}
+          />
+          {onZoom && (
+            <Tooltip title="Expand chart" placement="top">
+              <IconButton
+                aria-label={`Expand ${yearLabel} cancer type radar chart`}
+                size="small"
+                onClick={onZoom}
+                sx={{ p: 0.25, color: "text.secondary", "&:hover": { color: "primary.main" } }}
+              >
+                <OpenInFullIcon sx={{ fontSize: "0.85rem" }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
 
       <Box sx={{ position: "relative", flex: 1 }}>

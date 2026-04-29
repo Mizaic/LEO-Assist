@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
+import ChartZoomDialog from "./ChartZoomDialog";
 
 import {
   CANCER_TYPE_OPTIONS,
@@ -302,6 +303,19 @@ export default function CancerTypeEvolutionSection({
 
   const baselineHasData = baseline.length > 0;
 
+  const [zoomedYear, setZoomedYear] = useState<string | null>(null);
+  const zoomedYearState = yearStates.find((y) => String(y.year) === zoomedYear) ?? null;
+  const zoomedAxes =
+    zoomedYear === String(BASELINE_YEAR)
+      ? baselineAxes
+      : zoomedYearState
+        ? liveAxesByYear[yearStates.indexOf(zoomedYearState)]
+        : null;
+  const zoomedN =
+    zoomedYear === String(BASELINE_YEAR)
+      ? baseline.length
+      : totalSampleN(zoomedYearState?.rows ?? null);
+
   return (
     <SectionCard
       id="section-cancer-type"
@@ -341,6 +355,7 @@ export default function CancerTypeEvolutionSection({
                 maxScale={sharedScaleMax}
                 isBaseline
                 hasLiveData={baselineHasData}
+                onZoom={() => setZoomedYear(String(BASELINE_YEAR))}
               />
             </Grid>
             {yearStates.map((state, idx) => (
@@ -353,10 +368,36 @@ export default function CancerTypeEvolutionSection({
                   maxScale={sharedScaleMax}
                   loading={state.loading}
                   hasLiveData={(state.rows?.length ?? 0) > 0}
+                  onZoom={() => setZoomedYear(String(state.year))}
                 />
               </Grid>
             ))}
           </Grid>
+
+          {zoomedYear !== null && zoomedAxes !== null && (
+            <ChartZoomDialog
+              open
+              onClose={() => setZoomedYear(null)}
+              title={`Cancer Type \u2014 ${zoomedYear}`}
+              subtitle={`Shared scale: 0\u2013${sharedScaleMax}%`}
+              maxWidth="sm"
+              contentHeight={520}
+            >
+              <CancerTypeRadarCard
+                yearLabel={zoomedYear}
+                axes={zoomedAxes}
+                baseline={zoomedYear === String(BASELINE_YEAR) ? null : baselineAxes}
+                totalN={zoomedN}
+                maxScale={sharedScaleMax}
+                isBaseline={zoomedYear === String(BASELINE_YEAR)}
+                hasLiveData={
+                  zoomedYear === String(BASELINE_YEAR)
+                    ? baselineHasData
+                    : (zoomedYearState?.rows?.length ?? 0) > 0
+                }
+              />
+            </ChartZoomDialog>
+          )}
         </Box>
       )}
     </SectionCard>

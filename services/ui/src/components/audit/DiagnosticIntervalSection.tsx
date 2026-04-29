@@ -8,12 +8,14 @@
  */
 "use client";
 
+import { useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import SectionCard from "./SectionCard";
 import IntervalStripPlot from "./IntervalStripPlot";
 import SummaryStatsTable from "./SummaryStatsRow";
 import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
+import ChartZoomDialog from "./ChartZoomDialog";
 import type { AuditIntervals, AuditSectionResult } from "@/lib/analyticsApi";
 import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
 import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
@@ -26,6 +28,7 @@ interface Props {
 }
 
 export default function DiagnosticIntervalSection({ result, loading, error, orgSelected = false }: Props) {
+  const [zoomOpen, setZoomOpen] = useState(false);
   const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
   const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
   const practice = result?.scopes.practice;
@@ -79,7 +82,32 @@ export default function DiagnosticIntervalSection({ result, loading, error, orgS
         nationalLabel={nationalLabel}
         allianceMedian={allianceMedian}
         maxDays={365}
+        onZoom={() => setZoomOpen(true)}
       />
+      <ChartZoomDialog
+        open={zoomOpen}
+        onClose={() => setZoomOpen(false)}
+        title="Time to Diagnosis \u2014 Diagnostic Interval"
+        subtitle="Each dot represents one patient. Dots further right = longer interval."
+        maxWidth="lg"
+        contentHeight={400}
+      >
+        <Box sx={{ width: "100%", display: "flex", flexDirection: "column" }}>
+          <IntervalStripPlot
+            patients={practice?.patients ?? []}
+            intervalKey="di_days"
+            label="Diagnostic Interval"
+            median={practice?.di?.median ?? null}
+            q1={practice?.di?.q1 ?? null}
+            q3={practice?.di?.q3 ?? null}
+            nationalMedian={nationalMedian}
+            nationalLabel={nationalLabel}
+            allianceMedian={allianceMedian}
+            maxDays={365}
+            chartHeight={320}
+          />
+        </Box>
+      </ChartZoomDialog>
       {(practice?.di?.n ?? 0) > (practice?.patients?.length ?? 0) && (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>
           Showing {practice!.patients.length} of {practice!.di!.n} episodes in the chart.

@@ -41,6 +41,7 @@ import {
 } from "@/lib/analyticsApi";
 import { useOrgId } from "@/context/OrgContext";
 import SectionCard from "./SectionCard";
+import ChartZoomDialog from "./ChartZoomDialog";
 import PopulationPyramidCard, {
   PYRAMID_AGE_BANDS,
   type BaselineMarginal,
@@ -209,6 +210,7 @@ export default function DemographicsEvolutionSection({
   error,
   orgSelected = false,
 }: Props) {
+  const [zoomedYear, setZoomedYear] = useState<string | null>(null);
   const orgId = useOrgId();
   const bm = result?.benchmark?.metrics;
 
@@ -343,6 +345,7 @@ export default function DemographicsEvolutionSection({
               medianAge={null}
               isBaseline
               baselineMarginal={baselineMarginal}
+              onZoom={() => setZoomedYear(String(BASELINE_YEAR))}
             />
           </Grid>
           {yearStates.map((state) => (
@@ -355,10 +358,36 @@ export default function DemographicsEvolutionSection({
                 medianAge={state.data?.median_age ?? null}
                 ageBandPct={ageBandPctFromPractice(state.data)}
                 loading={state.loading}
+                onZoom={() => setZoomedYear(String(state.year))}
               />
             </Grid>
           ))}
         </Grid>
+
+        {zoomedYear !== null && (() => {
+          const isBase = zoomedYear === String(BASELINE_YEAR);
+          const zState = yearStates.find((y) => String(y.year) === zoomedYear);
+          return (
+            <ChartZoomDialog
+              open
+              onClose={() => setZoomedYear(null)}
+              title={`Demographics \u2014 ${zoomedYear}`}
+              maxWidth="sm"
+              contentHeight={480}
+            >
+              <PopulationPyramidCard
+                yearLabel={zoomedYear}
+                totalN={isBase ? 0 : totalDemographicN(zState?.data ?? null)}
+                malePct={isBase ? null : pickPctByGender(zState?.data ?? null, "m")}
+                femalePct={isBase ? null : pickPctByGender(zState?.data ?? null, "f")}
+                medianAge={isBase ? null : (zState?.data?.median_age ?? null)}
+                ageBandPct={isBase ? undefined : ageBandPctFromPractice(zState?.data ?? null)}
+                isBaseline={isBase}
+                baselineMarginal={isBase ? baselineMarginal : null}
+              />
+            </ChartZoomDialog>
+          );
+        })()}
 
         <Typography
           variant="subtitle2"

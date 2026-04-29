@@ -22,6 +22,7 @@ import Typography from "@mui/material/Typography";
 import SectionCard from "./SectionCard";
 import ComorbidityRadarCard from "./ComorbidityRadarCard";
 import ComorbiditiesDrilldownDialog from "./ComorbiditiesDrilldownDialog";
+import ChartZoomDialog from "./ChartZoomDialog";
 import type {
   AuditComorbidities,
   AuditComorbidityRadarRow,
@@ -139,6 +140,7 @@ export default function ComorbiditiesSection({
     from: string;
     to: string;
   } | null>(null);
+  const [zoomedYear, setZoomedYear] = useState<string | null>(null);
 
   const comorbBm = result?.benchmark?.metrics;
   const practice = result?.scopes.practice;
@@ -238,6 +240,7 @@ export default function ComorbiditiesSection({
                 radar={baselineRadar}
                 totalPatients={0}
                 isBaseline
+                onZoom={() => setZoomedYear(String(BASELINE_YEAR))}
               />
             </Grid>
             {yearStates.map((state) => {
@@ -250,11 +253,34 @@ export default function ComorbiditiesSection({
                     totalPatients={state.data?.total_patients ?? 0}
                     loading={state.loading}
                     onBreakdown={() => setDrillArgs(window)}
+                    onZoom={() => setZoomedYear(String(state.year))}
                   />
                 </Grid>
               );
             })}
           </Grid>
+
+          {zoomedYear !== null && (() => {
+            const isBase = zoomedYear === String(BASELINE_YEAR);
+            const zState = yearStates.find((y) => String(y.year) === zoomedYear);
+            return (
+              <ChartZoomDialog
+                open
+                onClose={() => setZoomedYear(null)}
+                title={`Comorbidities \u2014 ${zoomedYear}`}
+                maxWidth="sm"
+                contentHeight={520}
+              >
+                <ComorbidityRadarCard
+                  yearLabel={zoomedYear}
+                  radar={isBase ? baselineRadar : (zState?.data?.radar ?? radar)}
+                  totalPatients={isBase ? 0 : (zState?.data?.total_patients ?? 0)}
+                  isBaseline={isBase}
+                />
+              </ChartZoomDialog>
+            );
+          })()}
+
           <ComorbiditiesDrilldownDialog
             open={drillArgs != null}
             onClose={() => setDrillArgs(null)}

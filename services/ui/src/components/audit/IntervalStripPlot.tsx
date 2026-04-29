@@ -18,8 +18,11 @@ import {
   ReferenceLine,
 } from "recharts";
 import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { BENCHMARK_COLOURS } from "./BenchmarkLegend";
 
 export interface PatientInterval {
@@ -44,6 +47,10 @@ interface IntervalStripPlotProps {
   unit?: string;
   maxDays?: number;
   noDataMessage?: string;
+  /** Height of the recharts ResponsiveContainer in px.  Defaults to 160. */
+  chartHeight?: number;
+  /** When provided, renders a small expand button beside the stats chips. */
+  onZoom?: () => void;
 }
 
 function jitter(index: number, total: number): number {
@@ -63,6 +70,8 @@ export default function IntervalStripPlot({
   unit = "days",
   maxDays = 365,
   noDataMessage,
+  chartHeight = 160,
+  onZoom,
 }: IntervalStripPlotProps) {
   const filtered = patients.filter(
     (p) =>
@@ -105,7 +114,8 @@ export default function IntervalStripPlot({
 
   return (
     <Box>
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mb: 1.5, alignItems: "center" }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mb: 1.5, alignItems: "center", justifyContent: "space-between" }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
         {median != null && (
           <Chip
             label={`Median: ${median} ${unit}`}
@@ -127,12 +137,25 @@ export default function IntervalStripPlot({
             sx={{ bgcolor: BENCHMARK_COLOURS.national, color: "white" }}
           />
         )}
-        {allianceMedian != null && (
-          <Chip
-            label={`Cancer Alliance median: ${allianceMedian} ${unit}`}
-            size="small"
-            sx={{ bgcolor: BENCHMARK_COLOURS.similar, color: "white" }}
-          />
+          {allianceMedian != null && (
+            <Chip
+              label={`Cancer Alliance median: ${allianceMedian} ${unit}`}
+              size="small"
+              sx={{ bgcolor: BENCHMARK_COLOURS.similar, color: "white" }}
+            />
+          )}
+        </Box>
+        {onZoom && (
+          <Tooltip title="Expand chart" placement="top">
+            <IconButton
+              aria-label={`Expand ${label} strip plot`}
+              size="small"
+              onClick={onZoom}
+              sx={{ p: 0.5, color: "text.secondary", flexShrink: 0, "&:hover": { color: "primary.main" } }}
+            >
+              <OpenInFullIcon sx={{ fontSize: "1rem" }} />
+            </IconButton>
+          </Tooltip>
         )}
       </Box>
 
@@ -145,7 +168,7 @@ export default function IntervalStripPlot({
           role="img"
           aria-label={`Strip plot: ${label}. ${points.length} patients shown. Median: ${median ?? "unknown"} ${unit}.`}
         >
-          <ResponsiveContainer width="99%" height={160}>
+          <ResponsiveContainer width="99%" height={chartHeight}>
             <ScatterChart margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
               <XAxis
                 type="number"

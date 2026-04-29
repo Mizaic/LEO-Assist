@@ -28,7 +28,10 @@
 
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 
 const C_MALE = "#2563EB";
 const C_FEMALE = "#DB2777";
@@ -73,6 +76,8 @@ export interface PopulationPyramidCardProps {
   loading?: boolean;
   isBaseline?: boolean;
   baselineMarginal?: BaselineMarginal | null;
+  /** When provided, renders a small expand button in the card header. */
+  onZoom?: () => void;
 }
 
 function fmtPct(value: number | null | undefined): string {
@@ -379,6 +384,7 @@ export default function PopulationPyramidCard({
   loading = false,
   isBaseline = false,
   baselineMarginal = null,
+  onZoom,
 }: PopulationPyramidCardProps) {
   const isEmpty = !loading && !isBaseline && totalN === 0;
   const isLowSample =
@@ -452,28 +458,42 @@ export default function PopulationPyramidCard({
             {headerCaption}
           </Typography>
         </Box>
-        {!isBaseline && (
-          <Chip
-            label={`n = ${totalN}`}
-            size="small"
-            variant="outlined"
-            sx={{ fontWeight: 600, fontSize: "0.72rem" }}
-            aria-label={`Sample size for ${yearLabel}: ${totalN} confirmed cancer cases`}
-          />
-        )}
-        {isBaseline && (
-          <Chip
-            label="2018 NCDA"
-            size="small"
-            sx={{
-              fontWeight: 600,
-              fontSize: "0.7rem",
-              bgcolor: "#FEF3C7",
-              color: C_BENCH18,
-              border: `1px solid ${C_BENCH18}33`,
-            }}
-          />
-        )}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+          {!isBaseline && (
+            <Chip
+              label={`n = ${totalN}`}
+              size="small"
+              variant="outlined"
+              sx={{ fontWeight: 600, fontSize: "0.72rem" }}
+              aria-label={`Sample size for ${yearLabel}: ${totalN} confirmed cancer cases`}
+            />
+          )}
+          {isBaseline && (
+            <Chip
+              label="2018 NCDA"
+              size="small"
+              sx={{
+                fontWeight: 600,
+                fontSize: "0.7rem",
+                bgcolor: "#FEF3C7",
+                color: C_BENCH18,
+                border: `1px solid ${C_BENCH18}33`,
+              }}
+            />
+          )}
+          {onZoom && (
+            <Tooltip title="Expand chart" placement="top">
+              <IconButton
+                aria-label={`Expand ${yearLabel} demographics chart`}
+                size="small"
+                onClick={onZoom}
+                sx={{ p: 0.25, color: "text.secondary", "&:hover": { color: "primary.main" } }}
+              >
+                <OpenInFullIcon sx={{ fontSize: "0.85rem" }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
 
       <Box

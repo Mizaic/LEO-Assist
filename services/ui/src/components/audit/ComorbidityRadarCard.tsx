@@ -16,7 +16,10 @@ import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 
 import type { AuditComorbidityRadarRow } from "@/lib/analyticsApi";
 
@@ -126,6 +129,8 @@ export interface ComorbidityRadarCardProps {
   loading?: boolean;
   isBaseline?: boolean;
   onBreakdown?: () => void;
+  /** When provided, renders a small expand button in the card header. */
+  onZoom?: () => void;
 }
 
 export default function ComorbidityRadarCard({
@@ -135,6 +140,7 @@ export default function ComorbidityRadarCard({
   loading = false,
   isBaseline = false,
   onBreakdown,
+  onZoom,
 }: ComorbidityRadarCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(280);
@@ -223,18 +229,31 @@ export default function ComorbidityRadarCard({
             {headerCaption}
           </Typography>
         </Box>
-        <Chip
-          label={isBaseline ? "2018 NCDA" : `n = ${totalPatients}`}
-          size="small"
-          variant={isBaseline ? "filled" : "outlined"}
-          sx={{
-            fontWeight: 600,
-            fontSize: "0.72rem",
-            bgcolor: isBaseline ? "#FEF3C7" : undefined,
-            color: isBaseline ? COLOUR_BASELINE : undefined,
-            flexShrink: 0,
-          }}
-        />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+          <Chip
+            label={isBaseline ? "2018 NCDA" : `n = ${totalPatients}`}
+            size="small"
+            variant={isBaseline ? "filled" : "outlined"}
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.72rem",
+              bgcolor: isBaseline ? "#FEF3C7" : undefined,
+              color: isBaseline ? COLOUR_BASELINE : undefined,
+            }}
+          />
+          {onZoom && (
+            <Tooltip title="Expand chart" placement="top">
+              <IconButton
+                aria-label={`Expand ${yearLabel} comorbidity radar chart`}
+                size="small"
+                onClick={onZoom}
+                sx={{ p: 0.25, color: "text.secondary", "&:hover": { color: "primary.main" } }}
+              >
+                <OpenInFullIcon sx={{ fontSize: "0.85rem" }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
 
       <Box sx={{ position: "relative", minHeight: 200 }}>
