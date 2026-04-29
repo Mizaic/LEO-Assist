@@ -1,0 +1,118 @@
+{
+  "summary": {
+    "generated_at": "20260428T230630Z",
+    "mode": "dry_run_no_graph_writes",
+    "window_days": 180,
+    "diagnosis_patient_count": 1,
+    "episode_candidate_count": 1,
+    "raw_pathway_count": 1,
+    "open_referral_count": 0,
+    "patients_with_no_pathways": 0,
+    "route_counts": {
+      "fast_track_clinic_referral_missing": 1
+    },
+    "cohort_counts": {
+      "3": 1
+    },
+    "raw_cohort_counts": {
+      "3": 1
+    },
+    "site_counts": {
+      "skin": 1
+    }
+  },
+  "episode_candidates": [
+    {
+      "patient_id": "4200186896",
+      "pathway_index": 1,
+      "cohort": "3",
+      "site": "skin",
+      "diagnosis_route": "fast_track_clinic_referral_missing",
+      "route_rationale": [
+        "seen_2ww_clinic_text_without_linked_gp_ftr"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 0,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "bff06127-b56f-4f65-81ab-b546de35d06d",
+        "encounter_date": "2025-05-12",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "skin",
+        "text_preview": "13:56 - Clinic: [PERSON] Entered at: UHL Dermatology Service\n11:33 - Clinic: [PERSON] Entered at: UHL Dermatology Service\n13:32 - Surgery: [STAFF] (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected skin ca"
+      },
+      "treatment": {
+        "encounter_id": "a841c9de-58b5-4449-847a-21e68f265382",
+        "encounter_date": "2025-05-12",
+        "role": "treatment",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "10:35 - Clinic: [PERSON] Entered at: UHL Dermatology Service\nMandatory checks form -  questionnaire started\n Dermatology Launchpad\n    Mandatory checks form -  questionnaire started\n Patient Attended - Outcome\n   Dermoscopy S60.5: Yes\n   Pa"
+      },
+      "n_encounters": 11,
+      "n_labelled_non_none": 3,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "372244006",
+          "concept_name": "Malignant melanoma (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    }
+  ],
+  "open_referrals": [],
+  "raw_pathways": [
+    {
+      "patient_id": "4200186896",
+      "pathway_index": 1,
+      "cohort": "3",
+      "site": "skin",
+      "diagnosis_route": "fast_track_clinic_referral_missing",
+      "route_rationale": [
+        "seen_2ww_clinic_text_without_linked_gp_ftr"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 0,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "bff06127-b56f-4f65-81ab-b546de35d06d",
+        "encounter_date": "2025-05-12",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "skin",
+        "text_preview": "13:56 - Clinic: [PERSON] Entered at: UHL Dermatology Service\n11:33 - Clinic: [PERSON] Entered at: UHL Dermatology Service\n13:32 - Surgery: [STAFF] (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected skin ca"
+      },
+      "treatment": {
+        "encounter_id": "a841c9de-58b5-4449-847a-21e68f265382",
+        "encounter_date": "2025-05-12",
+        "role": "treatment",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "10:35 - Clinic: [PERSON] Entered at: UHL Dermatology Service\nMandatory checks form -  questionnaire started\n Dermatology Launchpad\n    Mandatory checks form -  questionnaire started\n Patient Attended - Outcome\n   Dermoscopy S60.5: Yes\n   Pa"
+      },
+      "n_encounters": 11,
+      "n_labelled_non_none": 3,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "372244006",
+          "concept_name": "Malignant melanoma (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    }
+  ],
+  "no_pathway_patients": []
+}

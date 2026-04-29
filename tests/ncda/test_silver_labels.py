@@ -48,6 +48,133 @@ def test_deterministic_label_picks_dx_found_via_read_code():
     assert label.outcome == "cancer_found"
 
 
+def test_embedded_problem_cancer_header_does_not_create_dx():
+    label = deterministic_label(
+        patient_id="p",
+        encounter_id="e",
+        encounter_date="2025-08-21",
+        text=(
+            "15:35 - Surgery: [STAFF] Problem: Metastasis to bone of unknown "
+            "primary (Xa3AJ) Examination: Attended for XGEVA 120mg injection."
+        ),
+        flags=None,
+    )
+
+    assert label.role != "dx"
+
+
+def test_choice_and_booking_admin_alone_does_not_create_ftr():
+    label = deterministic_label(
+        patient_id="p",
+        encounter_id="e",
+        encounter_date="2025-07-07",
+        text=(
+            "Referral for echocardiography (XaION) Choice and booking enhanced "
+            "services administration (XaMJa)"
+        ),
+        flags=None,
+    )
+
+    assert label.role == "none"
+
+
+def test_outbound_referral_code_alone_does_not_create_ftr():
+    label = deterministic_label(
+        patient_id="p",
+        encounter_id="e",
+        encounter_date="2024-08-22",
+        text=(
+            "Community Echocardiogram Referral Pathway Accessed. "
+            "Referral to medical service (XaAcN). Outbound referral (XaY59)."
+        ),
+        flags=None,
+    )
+
+    assert label.role == "none"
+
+
+def test_atrial_fibrillation_code_does_not_create_dx():
+    label = deterministic_label(
+        patient_id="p",
+        encounter_id="e",
+        encounter_date="2025-03-11",
+        text="Atrial fibrillation (G5730) Bisoprolol medication review.",
+        flags=None,
+    )
+
+    assert label.role == "none"
+
+
+def test_generic_pet_code_does_not_create_dx_without_outcome_language():
+    label = deterministic_label(
+        patient_id="p",
+        encounter_id="e",
+        encounter_date="2025-08-08",
+        text="Positron emission tomography (X70lS) (New Episode)",
+        flags=None,
+    )
+
+    assert label.role == "none"
+
+
+def test_auto_filed_lab_alone_is_excluded():
+    """A bare auto-filed result (e.g. PSA, CXR) should still be silenced."""
+    label = deterministic_label(
+        patient_id="p",
+        encounter_id="e",
+        encounter_date="2025-04-10",
+        text="Surgery: Auto-filed Entered at: UHL\nSerum vitamin D level (XE2e7) 45 nmol/L",
+        flags=None,
+    )
+
+    assert label.role == "none"
+
+
+def test_emis_major_new_episode_promotes_to_dx_cancer_found():
+    """When the encounter contains EMIS 'Major: <cancer> ... (New Episode)'
+    the labeller should classify it as dx/cancer_found regardless of any
+    seen-in clinic Read codes that appear earlier in a composite encounter."""
+    text = (
+        "Surgery: [STAFF] (Receptionist Access Role)\n"
+        "2WW\n"
+        "Seen in 2WW Clinic?: Seen in fast track suspected skin cancer clinic (XaPyd)\n"
+        "Histology: pT1b\n"
+        "Major: Malignant melanoma (Xa99S) - stage pT1b - Right upper back (New Episode)\n"
+        "Excision of skin lesion (Xa8Pv)\n"
+    )
+    label = deterministic_label(
+        patient_id="p",
+        encounter_id="e",
+        encounter_date="2025-05-12",
+        text=text,
+        flags=None,
+    )
+
+    assert label.role == "dx"
+    assert label.outcome == "cancer_found"
+
+
+def test_auto_filed_does_not_silence_diagnosis_block():
+    """Composite encounter containing both an auto-filed lab AND a real
+    diagnosis/treatment block should not be wholesale excluded."""
+    text = (
+        "Letter\nDermatology to GP\n"
+        "Surgery: Auto-filed Entered at: UHL Dermatology Service\n"
+        "Serum vitamin D level (XE2e7) 45 nmol/L\n"
+        "Histology confirms malignant melanoma in situ\n"
+        "Wide local excision performed.  Excision of skin lesion (Xa8Pv).\n"
+    )
+    label = deterministic_label(
+        patient_id="p",
+        encounter_id="e",
+        encounter_date="2025-05-12",
+        text=text,
+        flags=None,
+    )
+
+    assert label.role != "none"
+
+
 def test_deterministic_label_falls_back_to_none_for_admin_text():
     label = deterministic_label(
         patient_id="P1",

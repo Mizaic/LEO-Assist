@@ -23,8 +23,33 @@ from libs.analytics.ncda_ethnicity_snomed import (
     load_ncda_ethnicity_benchmark_table,
     load_ncda_ethnicity_snomed_ids,
 )
+from libs.domains.ncda_concept_sets import FAST_TRACK_REFERRAL_IDS
 from libs.neo4j_client.client import PatientGraphClient
 from libs.oncology.cancer_types import normalise_cancer_type
+
+# ---------------------------------------------------------------------------
+# SNOMED concept ID → display label for fast-track referral sites.
+# Source of truth: FAST_TRACK_REFERRAL_IDS in libs/domains/ncda_concept_sets.py
+# ---------------------------------------------------------------------------
+_FTR_CONCEPT_LABEL: dict[str, str] = {
+    "276281000000104": "Skin",
+    "276311000000101": "Gynaecological",
+    "276341000000100": "Breast",
+    "276371000000106": "Children's Tumour",
+    "276401000000108": "Colorectal",
+    "276431000000102": "Urological",
+    "276461000000107": "Haematology",
+    "276491000000101": "Lung",
+    "276521000000103": "Sarcoma",
+    "276551000000108": "Upper GI",
+    "276581000000102": "Brain Tumour",
+    "280521000000108": "Head & Neck",
+    "892201000000106": "Lower GI",
+    "1556551000000104": "NSS",
+}
+
+_FTR_IDS_STR: list[str] = [str(c) for c in sorted(FAST_TRACK_REFERRAL_IDS)]
+_NSS_CONCEPT_ID = "1556551000000104"
 
 _SAFE_BIRTH_DATE = (
     "CASE "
@@ -547,6 +572,63 @@ def _q_referrals(base: str, params: dict, client: PatientGraphClient) -> list:
         }
         for r in rows
     ]
+
+
+# ---------------------------------------------------------------------------
+# Fast-track referral types
+# ---------------------------------------------------------------------------
+
+
+def _q_fast_track_referrals(base: str, params: dict, client: PatientGraphClient) -> list:
+    # Query SNOMED concept IDs directly from the referral milestone encounters.
+    # This is the source of truth -- ep.referral_site is a denormalised field
+    # with inconsistent values across scripts; the SNOMED concept IDs are not.
+    rows = client.run(
+        f"{base}"
+        "MATCH (enc:Encounter)-[__mp:IS_PART_OF]->(ep) "
+        "WHERE __mp.milestone_type = 'referral' "
+        "MATCH (enc)-[:DOCUMENTS]->(c) "
+        "WHERE toString(c.conceptId) IN $ftr_ids "
+        "RETURN toString(c.conceptId) AS concept_id, count(DISTINCT ep) AS n "
+        "ORDER BY n DESC",
+        **{**params, "ftr_ids": _FTR_IDS_STR},
+    )
+    total = sum(r["n"] for r in rows) or 1
+    return [
+        {
+            "referral_site": _FTR_CONCEPT_LABEL.get(r["concept_id"], r["concept_id"]),
+            "concept_id": r["concept_id"],
+            "n": r["n"],
+            "pct": round(r["n"] * 100.0 / total, 1),
+        }
+        for r in rows
+    ]
+
+
+def _q_nss_outcomes(base: str, params: dict, client: PatientGraphClient) -> dict:
+    # Query NSS outcomes via SNOMED concept 1556551000000104 on referral milestone
+    # encounters -- the canonical NSS 2WW referral code, not ep.referral_site.
+    rows = client.run(
+        f"{base}"
+        "MATCH (enc:Encounter)-[__mp:IS_PART_OF]->(ep) "
+        "WHERE __mp.milestone_type = 'referral' "
+        "MATCH (enc)-[:DOCUMENTS]->(c) "
+        "WHERE toString(c.conceptId) = $nss_id "
+        "RETURN coalesce(ep.cancer_type, 'No cancer diagnosed') AS outcome, "
+        "count(DISTINCT ep) AS n "
+        "ORDER BY n DESC",
+        **{**params, "nss_id": _NSS_CONCEPT_ID},
+    )
+    total = sum(r["n"] for r in rows) or 0
+    outcomes = [{"outcome": r["outcome"], "n": r["n"]} for r in rows]
+    no_cancer_n = next(
+        (o["n"] for o in outcomes if o["outcome"] == "No cancer diagnosed"), 0
+    )
+    return {
+        "total_nss": total,
+        "cancer_diagnosed_n": total - no_cancer_n,
+        "outcomes": outcomes,
+    }
 
 
 # ---------------------------------------------------------------------------

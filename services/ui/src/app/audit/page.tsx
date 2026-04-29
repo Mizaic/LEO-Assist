@@ -52,6 +52,7 @@ import {
   type AuditAvoidableDelays,
   type AuditSectionResult,
 } from "@/lib/analyticsApi";
+import FastTrackReferralEvolutionSection from "@/components/audit/FastTrackReferralEvolutionSection";
 
 import AuditReportShell, { type TocSection } from "@/components/audit/AuditReportShell";
 import AuditSnapshotView from "@/components/audit/AuditSnapshotView";
@@ -60,6 +61,7 @@ import CancerTypeEvolutionSection from "@/components/audit/CancerTypeEvolutionSe
 import CancerStageEvolutionSection from "@/components/audit/CancerStageEvolutionSection";
 import DemographicsEvolutionSection from "@/components/audit/DemographicsEvolutionSection";
 import ComorbiditiesSection from "@/components/audit/ComorbiditiesSection";
+import SymptomsSection from "@/components/audit/SymptomsSection";
 import PlaceOfPresentationSection from "@/components/audit/PlaceOfPresentationSection";
 import ConsultationsSection from "@/components/audit/ConsultationsSection";
 import MultipleConsultationsSection from "@/components/audit/MultipleConsultationsSection";
@@ -78,11 +80,13 @@ const TOC_SECTIONS: TocSection[] = [
   { id: "section-cancer-stage", label: "Cancer Stage", group: "results" },
   { id: "section-demographics", label: "Demographics", group: "results" },
   { id: "section-comorbidities", label: "Comorbidities", group: "results" },
+  { id: "section-symptoms", label: "Symptoms at Referral", group: "results" },
   { id: "section-place-of-presentation", label: "Place of Presentation", group: "results" },
   { id: "section-consultations", label: "Consultations", group: "results" },
   { id: "section-multiple-consultations", label: "Multiple Consultations", group: "results" },
   { id: "section-investigations", label: "Investigations", group: "results" },
   { id: "section-referrals", label: "Referrals", group: "results" },
+  { id: "section-ftr-types", label: "Fast Track Referral Types", group: "results" },
   { id: "section-emergency-routes", label: "Emergency Referral Routes", group: "results" },
   { id: "section-pci", label: "Primary Care Interval", group: "intervals" },
   { id: "section-di", label: "Diagnostic Interval", group: "intervals" },
@@ -388,6 +392,12 @@ export default function AuditPage() {
           dateTo={appliedTo}
         />
 
+        <SymptomsSection
+          orgId={orgId ?? undefined}
+          dateFrom={appliedFrom}
+          dateTo={appliedTo}
+        />
+
         <PlaceOfPresentationSection
           result={placeOfPresentation}
           loading={loading.placeOfPresentation}
@@ -418,6 +428,12 @@ export default function AuditPage() {
           result={referrals}
           loading={loading.referrals}
           error={errors.referrals}
+          orgSelected={orgSelected}
+        />
+
+        <FastTrackReferralEvolutionSection
+          result={null}
+          loading={false}
           orgSelected={orgSelected}
         />
 

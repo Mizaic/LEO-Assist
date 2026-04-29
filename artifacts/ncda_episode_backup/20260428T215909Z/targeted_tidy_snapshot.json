@@ -1,0 +1,233 @@
+[
+  {
+    "patient_id": "4246627143",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4469",
+    "cancer_type": "breast",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1175469189557715475",
+    "encounter_id": "720620e5-c15a-4b36-92fa-00f80560b627",
+    "date": "2024-04-30",
+    "mt": "referral",
+    "outcome": null,
+    "text": "11:34 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 30 Apr 2024 11:34)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n      2WW Breast Female Referral Pathway/Breast Clinic accessed\n      Outbound referral (XaY59)\n       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 30 Apr 2024 11:34)\n       2WW Breast Female PRISM to Unknown \n - PRISM 2WW Breast Female Drawing\n    \n2WW Breast Female PRISM to Unknown \nOutbound referral (XaY59)\n2WW Breast Female Referral Pathway/Breast Clinic accessed"
+  },
+  {
+    "patient_id": "4246627143",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4469",
+    "cancer_type": "breast",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6928817713523462517",
+    "encounter_id": "ce207be7-2eea-4ab7-8846-5b849a56edee",
+    "date": "2024-05-05",
+    "mt": "first_seen",
+    "outcome": null,
+    "text": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ) (New Episode)"
+  },
+  {
+    "patient_id": "4246627143",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4470",
+    "cancer_type": "breast",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1175469189557715565",
+    "encounter_id": "94ee67d6-9e7e-4448-86ee-6be416234284",
+    "date": "2025-05-15",
+    "mt": "referral",
+    "outcome": null,
+    "text": "10:32 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 15 May 2025 12:48)\n - PRISM 2WW Breast Female Drawing\n    \n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 15 May 2025 12:48)\n Possible Breast Cancer\n   NICE 30-50y\n      Unexplained breast lump (with or without pain): Yes\n      Possible breast cancer: Yes\n      Possible diagnosis clearly explained: Yes\n      *Fast track referral for suspected breast cancer: Yes\n      *Cancer safety netting: Yes\n      Information given to patient at time of referral: Yes\nReferral criteria status (Y0fda)\nSuspected breast cancer (XaIIt)\nPatient given advice (8CA..)\nFast track referral for suspected breast cancer (XaMeC)\nCancer safety netting (Y281b)\nInformation given to patient at time of referral (Y0fd9)"
+  },
+  {
+    "patient_id": "4246627143",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4470",
+    "cancer_type": "breast",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6924314113896092022",
+    "encounter_id": "7bc48a34-ef57-4006-a568-50df88f63d50",
+    "date": "2025-06-11",
+    "mt": "first_seen",
+    "outcome": null,
+    "text": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ) (Ongoing Episode)"
+  },
+  {
+    "patient_id": "4246627143",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4470",
+    "cancer_type": "breast",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6928817713523462518",
+    "encounter_id": "977bba2d-359a-4f8b-b880-6103280a0843",
+    "date": "2025-06-11",
+    "mt": "diagnosis_confirmed",
+    "outcome": "cancer_excluded",
+    "text": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nMinor: Cyst of breast (XaYQ7) (New Episode)\nAspiration of breast (Xa3qz) (New Episode)\nMammogram (537..) - M2 (New Episode)\nUS scan of breast (585C.) - U2 (New Episode)\nCyst of breast (XaYQ7)"
+  },
+  {
+    "patient_id": "4505618269",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5697",
+    "cancer_type": "Prostate",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6940076712591889985",
+    "encounter_id": "812133cf-ed23-4534-a8f5-38a0d5365135",
+    "date": "2024-05-21",
+    "mt": "diagnosis_confirmed",
+    "outcome": null,
+    "text": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Malignant tumour of prostate (B46..) (New Episode)\nMalignant tumour of prostate (B46..)"
+  },
+  {
+    "patient_id": "4505618269",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5698",
+    "cancer_type": "Melanoma",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1170965589930323850",
+    "encounter_id": "babca43c-585e-4321-9ebc-ef3b2f6487bc",
+    "date": "2024-02-28",
+    "mt": "referral",
+    "outcome": null,
+    "text": "09:27 - Surgery: [STAFF] (Health Professional Access Role) \n- PRISM 2WW Dermatology -  questionnaire started - (finalised: 28 Feb 2024 09:27)\nFast track referral for suspected skin cancer (XaMeA) - (Added from Questionnaire)\n Consultation\n   General\n      Encounter: Consultation (Xa1qL)\n      H:  1) Skin lesion on outer left ear since 1960s \nChanged recently over the past 2 weeks\nHas become more raised\nIncreased in size\nHas crusted coating over the top\nNo discharge / bleeding.\nNot itchy / painful \n\n2) Also has mole on upper chest\nHas had this for around 3 years\nIncreased in size\nItchy at times\nNo changes in colour / shape\nNot painful\n\nNo fever. No nausea/ vomiting. No appetite loss, E+D well. No unexpected weight loss. No night sweats.\n      E:  Sitting comfortably and not in any signs of distress\nLooking well\nConsented examination \nSee photos attached\n      P:  1. Safety netting advice given\n2. Advised to contact us or 111 if sx worsen or persist\n3. 2WW derm. Pt to let us know if not heard by then\n\nDiscussed with [PERSON] if worsens, no better or concerns: Yes\n - PRISM 2WW Drawing Dermatology\n    \n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Dermatology -  questionnaire started - (finalised: 28 Feb 2024 09:27)\nConsultation (Xa1qL)\nClinical history and observations (X76sV)\n1) Skin lesion on outer left ear since 1960s \nChanged recently over the past 2 weeks\nHas become more raised\nIncreased in size\nHas crusted coating over the top\nNo discharge / bleeding.\nNot itchy / painful \n\n2) Also has mole on upper chest\nHas had this for around 3 years\nIncreased in size\nItchy at times\nNo changes in colour / shape\nNot painful\n\nNo fever. No nausea/ vomiting. No appetite loss, E+D well. No unexpected weight loss. No night sweats.\nClinical examination (XB001)\nSitting comfortably and not in any signs of distress\nLooking well\nConsented examination \nSee photos attached\nPlan (XaIVg)\n1. Safety netting advice given\n2. Advised to contact us or 111 if sx worsen or persist\n3. 2WW derm. Pt to let us know if not heard by then\n\nDiscussed with [PERSON] given advice (8CA..)"
+  },
+  {
+    "patient_id": "4505618269",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5698",
+    "cancer_type": "Melanoma",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6935573112964519490",
+    "encounter_id": "d317a432-d4ce-4ee3-a430-c2cce349e338",
+    "date": "2024-03-15",
+    "mt": "first_seen",
+    "outcome": null,
+    "text": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected skin cancer clinic (XaPyd)"
+  },
+  {
+    "patient_id": "4926975998",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4458",
+    "cancer_type": "breast",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268721514",
+    "encounter_id": "1575f928-2aba-4c5d-a832-dc5e16a8e2ae",
+    "date": "2024-03-14",
+    "mt": "referral",
+    "outcome": null,
+    "text": "17:37 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 14 Mar 2024 17:37)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 14 Mar 2024 17:37)\n      Outbound referral (XaY59)\n       2WW Breast Female PRISM to Unknown \n      2WW Breast Female Referral Pathway/Breast Clinic accessed\n - PRISM 2WW Breast Female Drawing\n    \n2WW Breast Female PRISM to Unknown \nOutbound referral (XaY59)\n2WW Breast Female Referral Pathway/Breast Clinic accessed"
+  },
+  {
+    "patient_id": "4926975998",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4458",
+    "cancer_type": "breast",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709777258",
+    "encounter_id": "6719ae19-ddc6-4232-80fa-304bb8ddb7a0",
+    "date": "2024-04-08",
+    "mt": "first_seen",
+    "outcome": null,
+    "text": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+  },
+  {
+    "patient_id": "4926975998",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4458",
+    "cancer_type": "breast",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6937824912778203498",
+    "encounter_id": "a1a67260-5cda-488c-a0fc-c4a318bd5cad",
+    "date": "2024-04-15",
+    "mt": "diagnosis_confirmed",
+    "outcome": null,
+    "text": "Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Malignant tumour of breast (X78WM) (New Episode)\nMalignant tumour of breast (X78WM)"
+  },
+  {
+    "patient_id": "4926975998",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4460",
+    "cancer_type": "head_neck",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6924314113896092012",
+    "encounter_id": "85e86a92-c014-4092-87f6-6fdb02f90852",
+    "date": "2025-05-02",
+    "mt": "referral",
+    "outcome": null,
+    "text": "10:38 - Surgery: [STAFF] (Receptionist Access Role) \nFast track referral for suspected head and neck cancer (XaMkD)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes Head & Neck\nHospital Fast track referral for suspected head and neck cancer\nHospital Fast track referral for suspected head and neck cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - Head & Neck"
+  },
+  {
+    "patient_id": "4926975998",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4460",
+    "cancer_type": "head_neck",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1166461990302964928",
+    "encounter_id": "71065054-61d6-40f2-b5fb-177d423b06af",
+    "date": "2025-07-07",
+    "mt": "first_seen",
+    "outcome": null,
+    "text": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected head and neck cancer clinic (XaPya)"
+  },
+  {
+    "patient_id": "4926975998",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4460",
+    "cancer_type": "head_neck",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1152951191420853441",
+    "encounter_id": "2ff80b4f-df00-4f28-b67a-a28c908738a4",
+    "date": "2025-07-07",
+    "mt": "diagnosis_confirmed",
+    "outcome": "cancer_excluded",
+    "text": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nMinor: Occipital lymph node (X753K) (New Episode)\nOccipital lymph node (X753K)"
+  },
+  {
+    "patient_id": "6309359401",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5639",
+    "cancer_type": "Prostate",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1166461990302951423",
+    "encounter_id": "36e0068a-ee0b-4746-ac71-cca7f1f50a5b",
+    "date": "2024-04-30",
+    "mt": "referral",
+    "outcome": null,
+    "text": "11:38 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Loose stool (X76fC)\nHistory: Still having loose stool, upto 4-5x/day. \nHas lost 6kg since November last year. Appetite also reduced. \nPSA raised at 16. Other bloods look ok, TFT borderline. \nExamination: Urinalysis = no abnormality (4613.)\nPlan: Refer 2ww urology, check CXR in meantime\nPathology Request (Complete):\nXR Chest (Requested)\nPathology Request (Complete):\nUrine for Microscopy and Culture (Requested)"
+  },
+  {
+    "patient_id": "6309359401",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5639",
+    "cancer_type": "Prostate",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1175469189557692449",
+    "encounter_id": "d1d74e6f-e0f8-4a17-9cdb-abcce6a5c67e",
+    "date": "2024-06-05",
+    "mt": "first_seen",
+    "outcome": null,
+    "text": "Surgery: [STAFF] (Receptionist Access Role) \nSeen in urology clinic (9N1I.) (New Episode)"
+  },
+  {
+    "patient_id": "6309359401",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5639",
+    "cancer_type": "Prostate",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798151",
+    "encounter_id": "267f2023-959e-4601-83d9-e3db8e4301bf",
+    "date": "2024-10-08",
+    "mt": "diagnosis_confirmed",
+    "outcome": null,
+    "text": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Carcinoma of prostate (X78Y6) (New Episode)"
+  },
+  {
+    "patient_id": "6309359401",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5639",
+    "cancer_type": "Prostate",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6976105509610853895",
+    "encounter_id": "d4ddcbbb-d466-461b-a96e-84bfabdf27f1",
+    "date": "2024-12-27",
+    "mt": "treatment_started",
+    "outcome": null,
+    "text": "13:12 - Surgery: [STAFF] (Nurse Access Role) \nProblem: Malignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0\nExamination: Attended for 1st Decapeptyl injection, 16 days into 4 week course of oral medication. \nPSD added and injection issued but not added to repeats so will task [PERSON] to request Decapeptyl injection be added to repeats and issued so patient can bring it to the next appointment. \nAdvised re possible side effects, has been given information by the hospital. \nPlan: Next appointment made. \n[PERSON] tasked.\n Drug Injections\n   GnRH Analogue\n      Informed consent given: Yes\n      Given under PSD: Yes\n      Given: Intramuscular injection of gonadorelin analogue (Xaa4d)\n      GNRH given:  Decapeptyl SR 3mg injection\n      Injection site:  Left upper outer gluteal I/M\n      BN + Exp.:  BN 008691, EXP 4.27.\n      Next injection due:  24.1.25\n      Notes:  1st Decapeptyl injection administered with consent as per psd.\nInformed consent given (XaLQR)\nAdministration of medication under patient specific directn (XaVvz)\nIntramuscular injection of gonadorelin analogue (Xaa4d)\nMedication given (8B311) - Decapeptyl SR 3mg injection\nInjection into body site (Xa3HE) - Left upper outer gluteal I/M\nBatch number and expiry date (Y4615) - BN 008691, EXP 4.27.\nPatient informed of next injection due date (Y1378) - 24.1.25\nOverview Notes (Y0028) - 1st Decapeptyl injection administered with consent as per psd."
+  },
+  {
+    "patient_id": "6309359401",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5661",
+    "cancer_type": "Other",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6917558714455037469",
+    "encounter_id": "c6255cd4-ae21-457e-83f7-87b08cc3c44e",
+    "date": "2024-06-14",
+    "mt": "referral",
+    "outcome": null,
+    "text": "13:08 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Loose stool (X76fC)\nHistory: Fri 14 Jun 08:39 - [PERSON]\nplease see letter on pts home page regarding referral, usual gp and dr noble are not in today. would you be happy to action this today  so i can inform pt as he was quite anxious that this has not been addressed.\nmany thanks\n\nnot known to me  \ntask sent to me as extra this am clinic\nsee urol clinic letter from 5/6 following review on 2ww pathway  \nnote BN consults re: CIBH since feb24  \nApril 24 consult notes 6kg weight loss since nov 23  \nabdo exams noted \n\nnotes reviewed :\nPSA 17 \nMSU NAD  \nCXR - chronic scarring R apex, otherwise NAD  (note 50py smoking hx)\neGFR 68  \nFIT 9 and on rpt 8 \nTfts compensated euthyroid\nhab1c 5.4\nferritin 271, Hb 160, normal MCV and plts (april)\nCRP <5 (april)\ncalprotectin <30\nno myeloma screen\n\ncalled to discuss\n\"i went last week for the results of the MRI - they told me they wanted to do a biopsy within the next 2 weeks\"  \nbowels discussed - not imaged on the scan - advised by urol indep of the prostate issue \n\"we want to do a biopsy in 2 weeks, after that we'll give you the results and decide whether to sign you off or not\"\nurol feel the bowel issue is indep to the prostate\n\"like this since the end of march - no treatment\"  \n\"very messy - every time I eat I BO 20mins later - last week diarrhoea - whole weekend\"  \nBO 4-5/day  \nbaseline 12/12 ago BO alternate days  \naffecting John leaving house - afraid to go out as incontinenence  \nepisodes of faecal incontinence at home (<10)\nno PR bleeding noted  \nintermittent abdo pain - lower - relieved by BO  \nno PR mucous noted\nno Fhx bowel trouble  \nyounger sister had ? renal cancer  \nlost 7kg (prev 75kg and weighed by BN April 68kg)   \nno scales at urol review    \nintermittently feeling hot but no fever actually measured  \nappetite variable - worried to eat as makes BO  \nno vomits\nknown COPD - feels this is stable\nOutbound referral (XaY59)\nDiagnosis: - PRISM 2WW Non Site Specific Suggestive of Cancer accessed\nPlan: Fast track cancer referral (XaL1F)\ndiscussed options - discussed the limitation of the FIT here for using lower GI but I agree the sxs require further inx with a view to exclude maliganncy and therefore NSS 2ww agreed  \nJohn is keen to tolerate the upcoming test and discussed loperamide - i think a  low dose unlikely from the exams above and sxs to cause complete bowel obsx so agreed to issue  \ndiscussed the limitations of diagnosis in primary care and that I am unable to promise that he will be seen on the NSS 2ww before thr urol biopsy planned but I am hopeful the 2ww team will try and assist  \nJohn thanked me for my contact and care\n- PRISM 2WW Non Site Specific Suggestive of Cancer -  questionnaire started - (finalised: 14 Jun 2024 13:08)\nFast track referral for suspected cancer due to non-site-specific symptoms (Y3dd2) - (Added from Questionnaire)\n Common GP Values and Examination Codes  GP\n   Values\n      Weight: 68 Kg  (? 10 st 10 lb)\n      BMI: 20.99 Kg/m\u00b2\n2WW Non Site Specific Symptoms Suggestive of Cancer PRISM to Unknown \nO/E - weight (22A..) 68 Kg (? 10 st 10 lb)\nBody mass index - observation (22K..) 20.99 Kg/m\u00b2"
+  },
+  {
+    "patient_id": "6309359401",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5661",
+    "cancer_type": "Other",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1152951191420839998",
+    "encounter_id": "2e932578-d942-4333-896b-a5d111b05431",
+    "date": "2024-07-03",
+    "mt": "diagnosis_confirmed",
+    "outcome": "cancer_excluded",
+    "text": "16:32 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Faecal impaction (J5031)\nHistory: on call \nsee MDT letter 26/6/24  \nNSS CT noted - d/c from NSS pathway\nworking diagnosis of cause for PSA elevated is faecaloma is pressing on prostate  \nadvised to evacuate faecal mass then GP to rpt PSA and then urol can decide on whether further attempt at biopsy\nonly loperamide script since 14/6 in light of the overflow and John wanted to be able to be well enough to proceed to biopsy - unclear cause of the faecaloma initially  \nagreed to disimapct - suggest we start with cosmocol and supps regime and if not working in 3-4/7 John will let us know and we can ask DNs to assess re: ? enema needed  \nurol state 27/6  they will they review once disimpacted with view to ?biopsy  \nsuggest I call john in 2/52 to see how bowel working and consider ? needs proctoscope (note FIT <4 previously)\nadvised bowels will get worse before they get better\nPlan: no rota on so I will ask AJ to assist and release phone app with me to review in 2/52  \nmay need on call GP in interim to facilitate enemas  / DNs if the above disimpaction regime is not working\nFaecal impaction (J5031)\nFaecal impaction (J5031)\nGlycerol 4g suppositories - 12 suppository - insert one nightly for 5 days\n(R) CosmoCol Lemon and Lime Flavour oral powder sachets (Stirling Anglian Pharmaceuticals Ltd) - 60 sachet - disimpaction regime - 8 sachets daily in divided doses - all of which should be consumed within a 6hr period. continue for 3 days in total. THEN drop to maintenance of 2-4 sachets per day\nStopped 10 Jul 2024 Change to medication treatment regime by [PERSON]\nCosmoCol Lemon and Lime Flavour oral powder sachets (Stirling Anglian Pharmaceuticals Ltd) - 60 sachet - disimpaction regime - 8 sachets daily in divided doses - all of which should be consumed within a 6hr period. continue for 3 days in total. THEN drop to maintenance of 2-4 sachets per day\n Ended 10 Jul 2024 Change to medication treatment regime by [PERSON]\nETP2 FP10: Not Yet Printed - Signed\nETP2 FP10: Not Yet Printed - Signed\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nFaecal impaction (J5031)"
+  },
+  {
+    "patient_id": "7313758405",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:13616",
+    "cancer_type": "Breast",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6922062314082415920",
+    "encounter_id": "a14dbfa3-a92c-43e2-8ecb-d30ec6f9da9b",
+    "date": "2025-01-15",
+    "mt": "referral",
+    "outcome": null,
+    "text": "15:12 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Pain of breast (Xa4in)\nHistory: see prev breast FHx  \nmaternal side  \nmatenal great aunt ca breast, and x2 of her children subsequently died of this, maternal grandmother ca endometrium\nmum and remainder of 1st and second deg relatives no hx note  \nawaiting genetics teams screening  \nstopped breast feeding in march  \ndid ok initially then since sept 24 bilateral breast pain  \ndaily  \nworse premenstrually and over menstrual phase of cycle  \nnote her own health anxiety so remains unconfident re: self exam and ? lump - feels L axilla ? lump\nnil tried inc NSAIDs so far, but reports discomfort \"too much\" and worried \nOutbound referral (XaY59)\nExamination: nil lumps palp breast bilaterally - soreness felt lateral aspect L breast  \nsore fullness L axilla ?? fat pad\nDiagnosis: 2WW Breast Female Referral Pathway/Breast Clinic accessed\nPlan: options discussed - agreed symptomatic breast team review and NSAID trial ses warned in interim\n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 15 Jan 2025 15:12)\nPain of breast (Xa4in)\nReferral to breast surgery service (XaAdt) - (Added from Questionnaire)\n - PRISM 2WW Breast Female Drawing\n    \n2WW Breast Female PRISM to Unknown \nSummary Care Record Update\nPain of breast (Xa4in)"
+  }
+]

@@ -163,7 +163,7 @@ function totalSampleN(rows: AuditCancerTypeRow[] | null): number {
   return rows.reduce((acc, r) => acc + (r.n ?? 0), 0);
 }
 
-function computeMaxScale(allAxisGroups: AxisDatum[][]): number {
+function computeSharedScale(allAxisGroups: AxisDatum[][]): number {
   let max = 0;
   for (const group of allAxisGroups) {
     for (const datum of group) {
@@ -283,8 +283,8 @@ export default function CancerTypeEvolutionSection({
     [axisOrder, yearStates],
   );
 
-  const maxScale = useMemo(
-    () => computeMaxScale([baselineAxes, ...liveAxesByYear]),
+  const sharedScaleMax = useMemo(
+    () => computeSharedScale([baselineAxes, ...liveAxesByYear]),
     [baselineAxes, liveAxesByYear],
   );
 
@@ -294,7 +294,7 @@ export default function CancerTypeEvolutionSection({
     <SectionCard
       id="section-cancer-type"
       title="Cancer Type"
-      description="How the practice's confirmed-cancer case mix has evolved against the 2018 NCDA baseline. Each card covers a calendar year (Jan-Dec). The 2018 polygon is faded onto each live-year card so the reference shape is always visible."
+      description="How the practice's confirmed-cancer case mix has evolved against the 2018 NCDA baseline. Each card covers a calendar year (Jan-Dec). All radar cards use the same shared percentage scale, and the 2018 polygon is faded onto each live-year card so the reference shape is always visible."
       availability="ready"
       loading={loading}
       error={error}
@@ -312,6 +312,12 @@ export default function CancerTypeEvolutionSection({
           <Box sx={{ display: "flex", gap: 2, mb: 1.5, flexWrap: "wrap" }}>
             <LegendSwatch colour="#92400E" label="2018 NCDA baseline" dashed />
             <LegendSwatch colour="#1D4ED8" label="Live year" />
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", fontSize: "0.75rem" }}
+            >
+              Shared scale: 0-{sharedScaleMax}%
+            </Typography>
           </Box>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -320,7 +326,7 @@ export default function CancerTypeEvolutionSection({
                 axes={baselineAxes}
                 baseline={null}
                 totalN={baseline.length}
-                maxScale={maxScale}
+                maxScale={sharedScaleMax}
                 isBaseline
                 hasLiveData={baselineHasData}
               />
@@ -332,7 +338,7 @@ export default function CancerTypeEvolutionSection({
                   axes={liveAxesByYear[idx]}
                   baseline={baselineAxes}
                   totalN={totalSampleN(state.rows)}
-                  maxScale={maxScale}
+                  maxScale={sharedScaleMax}
                   loading={state.loading}
                   hasLiveData={(state.rows?.length ?? 0) > 0}
                 />

@@ -24,7 +24,17 @@ logger = logging.getLogger(__name__)
 # Match templates
 # ---------------------------------------------------------------------------
 
-_EPISODE_EXCLUDE = "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
+# ncda_detector is the sole live source of truth. Legacy episode_builder
+# episodes (no source tag) are excluded so audit numbers reflect only
+# detector-written pathways, preventing double-counting and polluted metrics.
+_EPISODE_FILTER = (
+    "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
+    "AND ep.source = 'ncda_detector'"
+)
+
+# Keep the old name as an alias so _episode_base_all_cohort's string replace
+# still works without needing its own refactor.
+_EPISODE_EXCLUDE = _EPISODE_FILTER
 
 _ORG_PATIENT_MATCH = (
     "MATCH (_scope:Organization {id: $org}) "
@@ -32,12 +42,12 @@ _ORG_PATIENT_MATCH = (
     "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
     "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
     "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-    f"WHERE {_EPISODE_EXCLUDE}"
+    f"WHERE {_EPISODE_FILTER}"
 )
 
 _ENGLAND_BASE = (
     "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-    f"WHERE {_EPISODE_EXCLUDE}"
+    f"WHERE {_EPISODE_FILTER}"
 )
 
 
@@ -111,17 +121,30 @@ def _patient_base(
 def _add_date_filters(
     base: str, params: dict, date_from: Optional[str], date_to: Optional[str]
 ) -> tuple[str, dict]:
-    """Append optional referral_date range filters.
+    """Append optional date range filters.
+
+    For episodes that have a referral (cohorts 1a/1b), the anchor date is
+    ep.referral_date.  For cohort-3 episodes (cancer found, no FTR) the
+    referral_date is empty; we fall back to ep.end_date (the diagnosis date)
+    so cohort-3 cases are correctly included in year-filtered views.
 
     All base templates end with an active WHERE clause (WHERE true, or a real
     predicate), so predicates are always joined with AND -- never a bare WHERE.
     """
+    # Cypher expression: use referral_date when it is a non-empty string,
+    # otherwise fall back to end_date (the diagnosis anchor for cohort-3).
+    _ANCHOR = (
+        "CASE WHEN trim(coalesce(toString(ep.referral_date), '')) <> '' "
+        "  THEN ep.referral_date "
+        "  ELSE ep.end_date "
+        "END"
+    )
     clauses: list[str] = []
     if date_from:
-        clauses.append("ep.referral_date >= $date_from")
+        clauses.append(f"({_ANCHOR}) >= $date_from")
         params = {**params, "date_from": date_from}
     if date_to:
-        clauses.append("ep.referral_date <= $date_to")
+        clauses.append(f"({_ANCHOR}) <= $date_to")
         params = {**params, "date_to": date_to}
     if clauses:
         base = base.rstrip() + " AND " + " AND ".join(clauses) + " "

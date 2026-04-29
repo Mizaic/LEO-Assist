@@ -64,10 +64,11 @@ READ_CODE_TO_NCDA_ROLE: dict[str, tuple[NcdaRole, DxOutcome | None]] = {
     "XaMkD": ("ftr", None),  # Fast track referral for suspected head and neck cancer
     "Xaalp": ("ftr", None),  # Fast track referral for suspected lower GI cancer
     "Y3dd2": ("ftr", None),  # Fast track referral for suspected cancer (non-site-specific)
-    # Supporting 2WW booking / pathway codes - appear only in Type-2
-    # (medical secretary booking submission) encounters alongside site codes.
-    "XaMJa": ("ftr", None),  # Choice and booking enhanced services admin (2WW booking)
-    "XaY59": ("ftr", None),  # Two-week-wait referral letter sent
+    # Supporting 2WW booking / pathway codes - appear alongside site codes.
+    # XaMJa is generic choice-and-booking admin and also appears on non-cancer
+    # referrals (e.g. echocardiography), so it must not create FTR alone.
+    "XaMJa": ("none", None),  # Choice and booking enhanced services admin
+    "XaY59": ("none", None),  # Outbound referral - generic, not cancer-specific
     "XaEir": ("ftr", None),  # Refer for suspected cancer
     "XaIvd": ("ftr", None),  # Suspected cancer pathway referral
     "Xa4in": ("ftr", None),  # Refer for two-week-wait cancer pathway
@@ -96,7 +97,12 @@ READ_CODE_TO_NCDA_ROLE: dict[str, tuple[NcdaRole, DxOutcome | None]] = {
     "X78WY": ("seen", None),  # Specialist review
     # -- Dx (cancer found) --------------------------------------------------
     "XE1vW": ("dx", "cancer_found"),  # Malignant tumour of rectum
-    "XE1Sf": ("dx", "cancer_found"),  # Malignant neoplasm of breast
+    # XE1Sf is listed as "Malignant neoplasm of breast" in Read v2 but EMIS
+    # reuses it as "Infectious disease: prevention/control" inside phlebotomy
+    # CBS templates and cervical screening templates.  Mapping it to dx/cancer_found
+    # causes false positives on virtually every routine blood draw and smear.
+    # Genuine breast cancer diagnoses are captured by phrase matching and other codes.
+    "XE1Sf": ("none", None),  # overloaded code — NOT reliable as cancer Dx
     "X78WM": ("dx", "cancer_found"),  # Cancer diagnosis communicated
     "X78WW": ("dx", "cancer_found"),  # Cancer confirmed at MDT
     "X78Y6": ("dx", "cancer_found"),  # Histology confirms malignancy
@@ -112,9 +118,13 @@ READ_CODE_TO_NCDA_ROLE: dict[str, tuple[NcdaRole, DxOutcome | None]] = {
     "Xa0U8": ("dx", "cancer_found"),  # Lymphoma confirmed
     "XaFC7": ("dx", "cancer_found"),  # Confirmed prostate cancer
     "XaW9C": ("dx", "cancer_found"),  # Carcinoma in situ confirmed
-    "X90PX": ("dx", "cancer_found"),  # Endometrial cancer confirmed
-    "X70lS": ("dx", "cancer_found"),  # Hodgkin lymphoma confirmed
-    "G5730": ("dx", "cancer_found"),  # Tumour described in record
+    # X90PX listed in CTV3 as "Endometrial carcinoma confirmed" but EMIS reuses
+    # this code in clinical-supervision and other general template encounters for
+    # non-endometrial-cancer patients.  It produces false dx/cancer_found labels
+    # on supervision encounters for patients with haematological or other cancers.
+    "X90PX": ("none", None),  # overloaded — unreliable as NCDA Dx signal
+    "X70lS": ("none", None),  # Positron emission tomography - generic investigation
+    "G5730": ("none", None),  # Atrial fibrillation - non-cancer LTC
     "XaaEP": ("dx", "cancer_found"),  # Histology malignant
     # -- FTR (screening programme referrals) --------------------------------
     # Breast and bowel screening programmes trigger an NCDA pathway in the same
@@ -298,16 +308,21 @@ SEEN_CODE_TO_SITE: dict[str, CancerSite] = {
 
 #: Keywords that signal each cancer site in free text.  Aligned with
 #: silver_labeller._SITE_TOKENS so site hints are comparable.
+# Order matters: site_from_text returns the first dict key whose tokens match.
+# More cancer-specific sites (breast, urological, haematological) come before
+# broad terms like "lung" whose tokens ("thoracic", "respiratory") can appear
+# incidentally in non-lung encounters (e.g. "XR Thoracic spine" in a prostate
+# review, NEWS2 "RR" / "respiratory rate" in an A&E triage).
 SITE_KEYWORDS: dict[CancerSite, tuple[str, ...]] = {
     "breast":          ("breast", "mammogram", "mammography"),
-    "lung":            ("lung", "chest x-ray", "cxr", "thoracic", "respiratory"),
+    "urological":      ("prostate", "urology", "urological", "bladder", "haematuria", "renal", "kidney", "psa"),
+    "haematological":  ("haematol", "lymphoma", "leukaemia", "myeloma", "sll", "cll"),
     "lower_gi":        ("lower gi", "colorectal", "bowel", "rectal", "rectum", "colon", "fit positive", "lgi"),
     "upper_gi":        ("upper gi", "oesophag", "stomach", "gastric", "dysphagia"),
-    "skin":            ("skin", "dermoscopy", "dermatology", "melanoma", "lesion"),
-    "urological":      ("prostate", "urology", "urological", "bladder", "haematuria", "renal", "psa"),
     "gynaecological":  ("gynae", "gynaecolog", "cervix", "endometri", "ovari", "uterus"),
-    "haematological":  ("haematol", "lymphoma", "leukaemia", "myeloma", "sll", "cll"),
     "head_neck":       ("head and neck", "head & neck", "thyroid", "larynx", "pharynx", "tongue", "hoarse"),
+    "skin":            ("skin", "dermoscopy", "dermatology", "melanoma", "lesion"),
+    "lung":            ("lung", "chest x-ray", "cxr", "thoracic", "respiratory"),
     "brain":           ("brain", "cns", "neurosurg", "headache", "seizure"),
     "nss":             ("non-site specific", "nss", "weight loss", "fatigue"),
 }

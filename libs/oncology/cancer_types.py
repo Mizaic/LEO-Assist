@@ -167,8 +167,13 @@ _RAW_TO_CANONICAL: dict[str, str] = {
     "haematology": CancerType.LYMPHOMA.value,
     "hematology": CancerType.LYMPHOMA.value,
     "haematology (lymphoma)": CancerType.LYMPHOMA.value,
+    "haematological": CancerType.LYMPHOMA.value,
     "lymphoid": CancerType.LYMPHOMA.value,
     "lymph node / mediastinal mass (pediatric)": CancerType.LYMPHOMA.value,
+    # Non-site-specific (NSS) 2WW pathway -- not a tumour site, surface as Other.
+    "nss": CancerType.OTHER.value,
+    "non-site-specific": CancerType.OTHER.value,
+    "non_site_specific": CancerType.OTHER.value,
     # Salivary gland -- not in the NCDA list; surface as Other.
     "salivary gland": CancerType.OTHER.value,
     # Cardiac -- almost certainly mis-classified as a cancer. Surface
@@ -184,6 +189,116 @@ _RAW_TO_CANONICAL: dict[str, str] = {
     "other": CancerType.OTHER.value,
     "": CancerType.NO_INFORMATION.value,
 }
+
+
+import re as _re
+
+# ---------------------------------------------------------------------------
+# Dx-text → specific NCDA type inference
+# ---------------------------------------------------------------------------
+#
+# Each tuple is (compiled_regex, canonical_CancerType_value).
+# Patterns are ordered from most-specific Read code first, then text phrases.
+# The function returns the FIRST match so order matters: prostate before
+# general urological, oesophageal before general upper-GI, etc.
+
+_DX_TEXT_TYPE_PATTERNS: list[tuple["_re.Pattern[str]", str]] = [
+    # Prostate
+    (_re.compile(r"B46\b|X78Y6|malignant tumour of prostate|carcinoma of prostate"
+                 r"|prostate\s+(?:cancer|carcinoma|adenocarcinoma)", _re.I), CancerType.PROSTATE.value),
+    # Bladder
+    (_re.compile(r"X78j2|transitional cell carcinoma of bladder"
+                 r"|bladder\s+(?:cancer|tcc|carcinoma|tumor|tumour)|TURBT\b", _re.I), CancerType.BLADDER.value),
+    # Renal / Kidney
+    (_re.compile(r"X78Yx|clear cell carcinoma of kidney"
+                 r"|renal\s+cell\s+carcinoma|renal\s+(?:cancer|carcinoma)"
+                 r"|kidney\s+(?:cancer|carcinoma)", _re.I), CancerType.RENAL.value),
+    # Testicular
+    (_re.compile(r"testicular\s+(?:cancer|carcinoma|tumour|tumor)"
+                 r"|germ\s+cell\s+(?:cancer|tumour|tumor)", _re.I), CancerType.TESTICULAR.value),
+    # Oesophageal (before general stomach/gastric to catch GOJ adenocarcinoma)
+    (_re.compile(r"Xa0DF|adenocarcinoma of oesophag"
+                 r"|oesophag(?:us|eal)\s+(?:cancer|carcinoma|adenocarcinoma)"
+                 r"|GOJ.*adenocarcinoma|oesophagectomy.*adenocarcinoma"
+                 r"|adenocarcinoma.*oesophag", _re.I), CancerType.OESOPHAGEAL.value),
+    # Stomach / Gastric
+    (_re.compile(r"X78gA|carcinoma of stomach"
+                 r"|gastric\s+(?:cancer|carcinoma)|stomach\s+(?:cancer|carcinoma)", _re.I), CancerType.STOMACH.value),
+    # Pancreatic
+    (_re.compile(r"pancrea(?:tic|s)\s+(?:cancer|carcinoma|adenocarcinoma)", _re.I), CancerType.PANCREATIC.value),
+    # Liver
+    (_re.compile(r"hepatocellular\s+carcinoma"
+                 r"|liver\s+(?:cancer|carcinoma)|hepatic\s+(?:cancer|carcinoma)", _re.I), CancerType.LIVER.value),
+    # Colorectal (colon / rectum / caecum / anal)
+    (_re.compile(r"B13\b|XE1vW|X78gM|X78gS"
+                 r"|malignant tumour of (?:colon|rectum)"
+                 r"|carcinoma of (?:colon|caecum|rectum|sigmoid|ascending)"
+                 r"|colorectal|colon\s+(?:cancer|carcinoma)"
+                 r"|rectal\s+(?:cancer|carcinoma)|anal\s+(?:cancer|carcinoma|margin)"
+                 r"|squamous cell carcinoma of anal", _re.I), CancerType.COLORECTAL.value),
+    # Endometrial / Uterine
+    (_re.compile(r"B4302|BB5j2|endometri(?:um|al|oid)"
+                 r"|uterine?\s+(?:cancer|carcinoma)|corpus\s+uteri", _re.I), CancerType.ENDOMETRIAL.value),
+    # Cervical
+    (_re.compile(r"X78Xg|adenocarcinoma of cervix"
+                 r"|cervix\s+(?:cancer|carcinoma)|cervical\s+(?:cancer|carcinoma)|CGIN\b", _re.I), CancerType.CERVICAL.value),
+    # Ovarian
+    (_re.compile(r"ovari(?:an|um)\s+(?:cancer|carcinoma)"
+                 r"|ovary\s+(?:cancer|carcinoma)", _re.I), CancerType.OVARIAN.value),
+    # Vulval
+    (_re.compile(r"vulv(?:al|a)\s+(?:cancer|carcinoma)", _re.I), CancerType.VULVAL.value),
+    # Thyroid
+    (_re.compile(r"X78cQ|B53\b|papillary thyroid"
+                 r"|thyroid\s+(?:cancer|carcinoma)|thyroidectomy.*carcinoma"
+                 r"|hemithyroidectomy.*(?:papillary|carcinoma)", _re.I), CancerType.THYROID.value),
+    # Leukaemia (before Lymphoma — CLL is more specific)
+    (_re.compile(r"B641\b|chronic lymphoid leukaemia|leuka?emia|CLL\b", _re.I), CancerType.LEUKAEMIA.value),
+    # Lymphoma
+    (_re.compile(r"Xa99l|malignant lymphoma|small lymphocytic|B.cell lymphoma"
+                 r"|T.cell lymphoma|Hodgkin|lymphoma", _re.I), CancerType.LYMPHOMA.value),
+    # Myeloma
+    (_re.compile(r"multiple myeloma|myeloma", _re.I), CancerType.MYELOMA.value),
+    # Mesothelioma
+    (_re.compile(r"mesothelioma", _re.I), CancerType.MESOTHELIOMA.value),
+    # Sarcoma
+    (_re.compile(r"sarcoma", _re.I), CancerType.SARCOMA.value),
+    # Gallbladder
+    (_re.compile(r"gallbladder.*carcinoma|carcinoma of gallbladder", _re.I), CancerType.GALLBLADDER.value),
+    # Lung (before Melanoma — avoid matching "lung metastasis" text)
+    (_re.compile(r"lung\s+(?:cancer|carcinoma|adenocarcinoma)"
+                 r"|pulmonary\s+(?:cancer|carcinoma)"
+                 r"|non.small.cell\s+lung|NSCLC\b|small.cell\s+lung", _re.I), CancerType.LUNG.value),
+    # Breast
+    (_re.compile(r"X78WM|X78WW|BB91\b"
+                 r"|malignant tumour of breast|malignant neoplasm of breast"
+                 r"|infiltrating duct carcinoma|intraductal carcinoma"
+                 r"|ductal\s+carcinoma|breast\s+(?:cancer|carcinoma)", _re.I), CancerType.BREAST.value),
+    # Melanoma / Skin (BCC, SCC, lentigo — catch-all for skin malignancies)
+    (_re.compile(r"XaCIv|Xa99Y|7G03J|XaXD8|XaXCZ|Xa98G"
+                 r"|malignant melanoma|lentigo.maligna|melanoma"
+                 r"|basal.cell.carcinoma|squamous.cell.carcinoma.*(?:scalp|skin|back|face|arm|ear|neck|lip|buccal mucosa)"
+                 r"|excision of melanoma|squamous cell carcinoma.*(?:buccal|mucosal)", _re.I), CancerType.MELANOMA.value),
+    # Oropharyngeal (catch-all for head-and-neck SCC not already matched above)
+    (_re.compile(r"X78Ig|squamous cell carcinoma of buccal"
+                 r"|oropharyn|nasopharyn|laryn(?:x|geal)"
+                 r"|oral\s+(?:cancer|carcinoma)|buccal\s+mucosa", _re.I), CancerType.OROPHARYNGEAL.value),
+]
+
+
+def infer_cancer_type_from_dx_text(site: str, dx_text: str) -> str:
+    """Derive a specific NCDA cancer type from a diagnosis encounter text.
+
+    Uses Read-code patterns and clinical phrases in ``dx_text`` to narrow a
+    pathway-group site (e.g. ``'urological'``) down to a specific NCDA type
+    (e.g. ``'Prostate'``).  Falls back to :func:`normalise_cancer_type` when
+    no pattern matches.
+
+    Suitable for use at write-back time when the dx encounter text is available.
+    """
+    for pattern, canonical in _DX_TEXT_TYPE_PATTERNS:
+        if pattern.search(dx_text):
+            return canonical
+    return normalise_cancer_type(site)
 
 
 def normalise_cancer_type(raw: str | None) -> str:

@@ -77,6 +77,10 @@ export default function AuditSummarySection({
     pathwayFilter: "all",
   })}`;
 
+  const hasCohorts =
+    summary != null &&
+    (summary.cohort_1a_n != null || summary.cohort_1b_n != null || summary.cohort_3_n != null);
+
   return (
     <SectionCard
       id="section-summary"
@@ -97,12 +101,11 @@ export default function AuditSummarySection({
               </Typography>
             </Box>
           )}
-          <Grid container spacing={1.5} sx={{ mb: 2 }}>
+
+          {/* ── Row 1: Pathway headline + key outcome metrics ── */}
+          <Grid container spacing={1.5} sx={{ mb: hasCohorts ? 1 : 2 }}>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
               <StatTile label="Cancer pathways" value={summary.total_episodes?.toLocaleString("en-GB")} sub="Total audited" />
-            </Grid>
-            <Grid size={{ xs: 6, sm: 4, md: 2 }}>
-              <StatTile label="Active" value={summary.active_episodes?.toLocaleString("en-GB")} sub="Still in progress" />
             </Grid>
             <Grid size={{ xs: 6, sm: 4, md: 2 }}>
               <StatTile
@@ -147,6 +150,62 @@ export default function AuditSummarySection({
               />
             </Grid>
           </Grid>
+
+          {/* ── Row 2: NCDA cohort breakdown ── */}
+          {hasCohorts && (
+            <>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600, display: "block", mb: 0.75 }}>
+                NCDA Cohorts
+              </Typography>
+              <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <Card variant="outlined" sx={{ height: "100%", borderLeft: "3px solid #15803D" }}>
+                    <CardContent sx={{ py: 1.5, px: 2, "&:last-child": { pb: 1.5 } }}>
+                      <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>
+                        Cohort 1a — FTR → Cancer found
+                      </Typography>
+                      <Typography variant="h5" sx={{ color: "#15803D", fontWeight: 700, lineHeight: 1.2, mt: 0.25 }}>
+                        {(summary.cohort_1a_n ?? 0).toLocaleString("en-GB")}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
+                        Fast-track referral with confirmed cancer diagnosis
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <Card variant="outlined" sx={{ height: "100%", borderLeft: "3px solid #0369A1" }}>
+                    <CardContent sx={{ py: 1.5, px: 2, "&:last-child": { pb: 1.5 } }}>
+                      <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>
+                        Cohort 1b — FTR → No cancer
+                      </Typography>
+                      <Typography variant="h5" sx={{ color: "#0369A1", fontWeight: 700, lineHeight: 1.2, mt: 0.25 }}>
+                        {(summary.cohort_1b_n ?? 0).toLocaleString("en-GB")}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
+                        Fast-track referral — cancer excluded at outcome
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <Card variant="outlined" sx={{ height: "100%", borderLeft: "3px solid #B45309" }}>
+                    <CardContent sx={{ py: 1.5, px: 2, "&:last-child": { pb: 1.5 } }}>
+                      <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>
+                        Cohort 3 — Cancer found, no FTR
+                      </Typography>
+                      <Typography variant="h5" sx={{ color: "#B45309", fontWeight: 700, lineHeight: 1.2, mt: 0.25 }}>
+                        {(summary.cohort_3_n ?? 0).toLocaleString("en-GB")}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
+                        Cancer diagnosed without a fast-track referral — needs review
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </>
+          )}
 
           <Divider sx={{ mb: 2 }} />
 

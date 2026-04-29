@@ -1,0 +1,76 @@
+[
+  {
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4354",
+    "episode_props": {
+      "linked_by": "manual_create",
+      "last_updated": "2026-04-25T15:13:34.670000000+00:00",
+      "reviewed_by": "auditor@nhs.net",
+      "reviewed_at": "2026-04-25T15:13:34.670000000+00:00",
+      "referral_date": "2024-04-15",
+      "condition_type": "Breast",
+      "created_at": "2026-04-25T15:08:18.794000000+00:00",
+      "cancer_type": "Breast",
+      "audit_flag": false,
+      "created_by": "local-dev@leo.local",
+      "dates_updated_at": "2026-04-27T10:04:23.521000000+00:00",
+      "needs_review": false,
+      "status_source": "curator_signoff",
+      "episode_id": "ep-manual-7d85999c6121",
+      "updated_at": "2026-04-25T15:08:18.794000000+00:00",
+      "needs_human_review": false,
+      "updated_by": "local-dev@leo.local",
+      "primary_care_interval_days": 0,
+      "audit_notes": "recompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active",
+      "review_verdict": "confirmed_benign",
+      "status": "closed_benign",
+      "status_updated_at": "2026-04-25T15:13:34.670000000+00:00"
+    },
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268721410",
+    "rel_props": {
+      "linked_by": "manual_attach",
+      "tidy_at": "2026-04-28T21:56:51+00:00",
+      "linked_at": "2026-04-25T15:09:16.733000000+00:00",
+      "milestone_type": "referral",
+      "tidy_previous": "referral_sent"
+    },
+    "encounter_id": "b096b3b8-9666-411c-b24d-1992c45acf2f",
+    "date": "2024-11-21",
+    "text": "14:12 - Surgery: [STAFF] (Medical Secretary Access Role) \nBreast referral prism form also sent to Haematology for their information, as per [PERSON].\nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\n WMC Medical Secretary Template\nHospital Fast track referral for suspected breast cancer\nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast"
+  },
+  {
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4354",
+    "episode_props": {
+      "linked_by": "manual_create",
+      "last_updated": "2026-04-25T15:13:34.670000000+00:00",
+      "reviewed_by": "auditor@nhs.net",
+      "reviewed_at": "2026-04-25T15:13:34.670000000+00:00",
+      "referral_date": "2024-04-15",
+      "condition_type": "Breast",
+      "created_at": "2026-04-25T15:08:18.794000000+00:00",
+      "cancer_type": "Breast",
+      "audit_flag": false,
+      "created_by": "local-dev@leo.local",
+      "dates_updated_at": "2026-04-27T10:04:23.521000000+00:00",
+      "needs_review": false,
+      "status_source": "curator_signoff",
+      "episode_id": "ep-manual-7d85999c6121",
+      "updated_at": "2026-04-25T15:08:18.794000000+00:00",
+      "needs_human_review": false,
+      "updated_by": "local-dev@leo.local",
+      "primary_care_interval_days": 0,
+      "audit_notes": "recompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active\nrecompute skipped: reviewed verdict respected; source=manual_milestone_recompute; would_flip closed_benign -> active",
+      "review_verdict": "confirmed_benign",
+      "status": "closed_benign",
+      "status_updated_at": "2026-04-25T15:13:34.670000000+00:00"
+    },
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1170965589930321279",
+    "rel_props": {
+      "linked_by": "manual_attach",
+      "linked_at": "2026-04-27T10:03:22.239000000+00:00",
+      "milestone_type": "first_seen"
+    },
+    "encounter_id": "4107a10f-b790-4bbb-a450-eaf892f4aa91",
+    "date": "2024-12-05",
+    "text": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+  }
+]

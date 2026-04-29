@@ -95,7 +95,7 @@ def test_role_mismatch_clears_when_phrase_present():
 
 
 def test_role_mismatch_clears_when_curated_read_code_present():
-    enc = _enc(milestone_type="referral", text="Sent referral letter (XaMJa).")
+    enc = _enc(milestone_type="referral", text="Sent referral letter (XaMeC).")
     assert find_role_mismatches([enc]) == []
 
 

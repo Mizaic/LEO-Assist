@@ -1,0 +1,34 @@
+{
+  "generated_at": "20260428T222141Z",
+  "mode": "dry_run_no_graph_writes",
+  "window_days": 180,
+  "diagnosis_patient_count": 43,
+  "pathway_count": 274,
+  "patients_with_no_pathways": 1,
+  "route_counts": {
+    "emergency_or_urgent_care": 51,
+    "gp_surgery_fast_track": 88,
+    "routine_gp_investigation": 3,
+    "screening": 11,
+    "unknown": 121
+  },
+  "cohort_counts": {
+    "1a": 68,
+    "1b": 29,
+    "2": 121,
+    "3": 56
+  },
+  "site_counts": {
+    "breast": 32,
+    "gynaecological": 13,
+    "haematological": 3,
+    "head_neck": 13,
+    "lower_gi": 51,
+    "lung": 18,
+    "nss": 7,
+    "skin": 30,
+    "unknown": 51,
+    "upper_gi": 11,
+    "urological": 45
+  }
+}

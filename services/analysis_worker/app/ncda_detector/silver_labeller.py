@@ -23,6 +23,9 @@ from libs.domains.read_code_ncda_lookup import (
     lookup_read_code,
 )
 from services.analysis_worker.app.ncda_detector.audit_rules import (
+    _DX_EXCLUDED_PHRASES,
+    _DX_FOUND_PHRASES,
+    _EMIS_MAJOR_DX,
     extract_read_codes,
     text_supports_role,
 )
@@ -111,6 +114,28 @@ def deterministic_label(
             source="deterministic",
         )
 
+    # EMIS "Major: <cancer term> (New Episode)" is the strongest possible
+    # signal that a NEW cancer diagnosis has just been recorded. It outranks
+    # any seen-in / treatment Read codes that might appear earlier in the same
+    # composite back-dated encounter (e.g. dermatology UHL bundles where the
+    # same Encounter node spans referral, attendance, histology, and excision).
+    # Guard: "(New Episode)" MUST be present — "Major: <cancer>" alone appears
+    # in routine problem-list recalls (prescriptions, LTC reviews) for EXISTING
+    # diagnoses and must not be promoted to a fresh dx/cancer_found.
+    if _EMIS_MAJOR_DX.search(text or "") and _EMIS_NEW_EPISODE.search(text or ""):
+        return SilverLabel(
+            patient_id=patient_id,
+            encounter_id=encounter_id,
+            encounter_date=encounter_date,
+            role="dx",
+            outcome="cancer_found",
+            confidence=0.85,
+            rationale="EMIS 'Major: <cancer> ... (New Episode)' - new diagnosis recorded.",
+            supporting_quote=(text or "").strip()[:160],
+            site_hint=_extract_site_hint(text),
+            source="deterministic",
+        )
+
     role, outcome = _best_role_from_codes(text)
     # Only call the phrase matcher when no codes were found at all (role is None).
     # When codes mapped to "none" are present (role == "none"), that code lookup
@@ -142,6 +167,22 @@ _AUTO_FILED_LABS = re.compile(
     r"\bAuto-filed\b",
     re.IGNORECASE,
 )
+# Strong secondary-care cancer-confirmed signals.  When these appear alongside
+# an "Auto-filed" line we should NOT silence the encounter, because we are
+# looking at a long composite encounter that contains both an auto-filed lab
+# (e.g. vitamin D level) AND a genuine diagnosis/treatment block.
+_CANCER_CONFIRMED_SIGNAL = re.compile(
+    r"\b("
+    r"malignant\s+(?:melanoma|neoplasm|tumou?r|carcinoma|lesion)"
+    r"|melanoma\s+(?:in\s+situ|of\s+skin)"
+    r"|invasive\s+(?:ductal|lobular)?\s*carcinoma"
+    r"|adenocarcinoma|squamous\s+cell\s+carcinoma|basal\s+cell\s+carcinoma"
+    r"|histolog(?:y|ical)\s+(?:result|confirms|confirmed|positive|malignant)"
+    r"|wide\s+local\s+excision|excision\s+of\s+(?:skin\s+)?(?:lesion|tumou?r|mass)"
+    r"|MDT\s+outcome\s+(?:malignant|positive|cancer)"
+    r")\b",
+    re.IGNORECASE,
+)
 _ADMIN_TRACKING_2WW = re.compile(
     r"2WW\s+Seen in 2WW Clinic\?",
     re.IGNORECASE,
@@ -171,9 +212,35 @@ _BENIGN_SKIN_LESION_REFERRAL_ADMIN = re.compile(
     r"\bBenign Skin Lesion PRISM to Unknown\b",
     re.IGNORECASE,
 )
+_GENETICS_REFERRAL_ADMIN = re.compile(
+    r"\bReferral to genetics service\b|\bGenetics Breast Cancer Family History Clinic\b",
+    re.IGNORECASE,
+)
+# A note confirming a referral was cancelled by the patient / GP / secondary
+# care.  These contain "2WW" or "referral" language but the pathway did not
+# proceed — must not be labelled ftr.
+_EMIS_NEW_EPISODE = re.compile(r"\(New Episode\)", re.IGNORECASE)
+# When a dx-phrase (e.g. "lymphoma", "malignant") is immediately preceded by an
+# existing-condition qualifier, the encounter is a monitoring/follow-up visit for
+# a known diagnosis — not a new NCDA Dx event.  This guard prevents "BG of
+# lymphoma" or "known carcinoma" in a routine GP note from misfiring as dx.
+_EXISTING_CONDITION_PREFIX = re.compile(
+    r"\b(?:b/g|bg|background|known|history|hx|previous|prior|existing"
+    r"|established|longstanding|chronic|ongoing)\s+(?:of\s+)?",
+    re.IGNORECASE,
+)
+_CANCELLED_REFERRAL = re.compile(
+    r"(?:pt|patient)\s+cancelled\s+(?:this\s+)?referral"
+    r"|referral\s+(?:cancelled|withdrawn)\s+by\s+(?:patient|pt|gp)"
+    r"|referral\s+cancelled\b"
+    r"|(?:pt|patient)\s+declined\s+(?:the\s+)?referral"
+    r"|did\s+not\s+attend.*(?:2WW|referral|clinic).*not\s+seen",
+    re.IGNORECASE | re.DOTALL,
+)
 
 _SITE_TOKENS: dict[str, tuple[str, ...]] = {
-    "prostate": ("prostate", "psa", "urology", "urological", "bladder", "haematuria"),
+    "urological": ("prostate", "psa", "urology", "urological", "bladder", "haematuria",
+                    "kidney", "renal", "nephrectomy"),
     "breast": ("breast", "mammogram", "mammography"),
     "lung": ("lung", "chest x-ray", "cxr", "thoracic", "respiratory"),
     "lower_gi": ("lower gi", "colorectal", "bowel", "rectal", "colon", "fit positive"),
@@ -198,20 +265,30 @@ def _is_excluded_none(text: str) -> tuple[bool, str]:
       4. Triage/rejection admin notes.
     """
     t = text or ""
-    if _AUTO_FILED_LABS.search(t):
+    # Exclusion rules below all silence encounters whose 2WW/cancer text is
+    # admin scaffolding rather than a real anchor.  When the same encounter
+    # also contains a confirmed-cancer signal (histology/excision/malignant
+    # neoplasm phrases) we should NOT silence it - the labeller below will
+    # then pick up the dx/treatment role from the genuine clinical block.
+    has_confirmed_cancer = bool(_CANCER_CONFIRMED_SIGNAL.search(t))
+    if _AUTO_FILED_LABS.search(t) and not has_confirmed_cancer:
         return True, "Auto-filed lab or radiology result - not an NCDA anchor."
-    if _ADMIN_TRACKING_2WW.search(t):
+    if _ADMIN_TRACKING_2WW.search(t) and not has_confirmed_cancer:
         return True, "Retrospective 2WW clinic-attendance tracking note."
-    if _ADMIN_OPA_DATE.search(t):
+    if _ADMIN_OPA_DATE.search(t) and not has_confirmed_cancer:
         return True, "2WW outpatient appointment date recording - admin note."
-    if _SCHEDULED_TASK.search(t):
+    if _SCHEDULED_TASK.search(t) and not has_confirmed_cancer:
         return True, "Scheduled task creation encounter - admin only."
-    if _TRIAGE_REJECTION.search(t):
+    if _TRIAGE_REJECTION.search(t) and not has_confirmed_cancer:
         return True, "Referral triage response or rejection note."
-    if _PHLEBOTOMY_TEMPLATE.search(t):
+    if _PHLEBOTOMY_TEMPLATE.search(t) and not has_confirmed_cancer:
         return True, "Phlebotomy template encounter — monitoring visit, not an NCDA anchor."
-    if _BENIGN_SKIN_LESION_REFERRAL_ADMIN.search(t):
+    if _BENIGN_SKIN_LESION_REFERRAL_ADMIN.search(t) and not has_confirmed_cancer:
         return True, "Benign skin lesion referral admin — not a cancer FTR."
+    if _GENETICS_REFERRAL_ADMIN.search(t):
+        return True, "Genetics/family-history referral admin — not an NCDA cancer FTR."
+    if _CANCELLED_REFERRAL.search(t):
+        return True, "Referral was cancelled by patient/GP — not an active NCDA anchor."
     return False, ""
 
 
@@ -295,12 +372,27 @@ def _best_role_from_phrases(text: str) -> tuple[NcdaRole | None, DxOutcome | Non
     questionnaire body will not cause this function to return "dx".
     The original ordering (dx > ftr) is preserved so that discharge notes
     ("Discharged from 2WW, no malignancy") return dx, not ftr.
+
+    For dx phrases (e.g. "lymphoma", "malignant") an existing-condition prefix
+    guard is applied: if the 80 characters before the match end with qualifiers
+    like "BG of", "known", "history of", the phrase describes a pre-existing
+    diagnosis and must not promote the encounter to dx/cancer_found.
+    Cancer-excluded signals (_DX_EXCLUDED_PHRASES) bypass this guard because
+    "no malignancy" / "benign" are outcome results regardless of context.
     """
-    t = text or ""
-    for role in ("dx", "ftr", "seen", "treatment"):
+    t = _strip_problem_lines(text or "")
+    # --- dx role: direct match with existing-condition guard on found-phrases ---
+    if _DX_EXCLUDED_PHRASES.search(t):
+        return "dx", _infer_dx_outcome(t)
+    m_found = _DX_FOUND_PHRASES.search(t)
+    if m_found:
+        prefix = t[max(0, m_found.start() - 80): m_found.start()]
+        if not _EXISTING_CONDITION_PREFIX.search(prefix):
+            return "dx", _infer_dx_outcome(t)
+    # --- remaining roles ---
+    for role in ("ftr", "seen", "treatment"):
         if text_supports_role(t, role):  # type: ignore[arg-type]
-            outcome = _infer_dx_outcome(t) if role == "dx" else None
-            return (role, outcome)  # type: ignore[return-value]
+            return (role, None)  # type: ignore[return-value]
     return (None, None)
 
 

@@ -142,6 +142,28 @@ def _pick_best_line_for_entity(entity: dict[str, Any], sentence_text: str) -> st
     return best_line
 
 
+def _realign_entities_to_text(
+    text: str,
+    entities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return entities with offsets relative to the persisted candidate text."""
+    from libs.ner.span_finder import find_span
+
+    aligned: list[dict[str, Any]] = []
+    for entity in entities:
+        surface = str(entity.get("text") or "").strip()
+        if not surface:
+            aligned.append(entity)
+            continue
+        found = find_span(text, surface)
+        if found is None:
+            aligned.append(entity)
+            continue
+        start, end = found
+        aligned.append({**entity, "text": text[start:end], "start": start, "end": end})
+    return aligned
+
+
 def _has_coding_qc_hold(changes: list[dict[str, Any]]) -> bool:
     for change in changes:
         if not isinstance(change, dict):
@@ -491,7 +513,11 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                 str(group.get("sentence_text") or ""),
                 ner=True,
             )
-            canonical_entities = group.get("entities") or []
+            canonical_entities = _realign_entities_to_text(
+                deid_sentence_text,
+                group.get("entities") or [],
+            )
+            group["entities"] = canonical_entities
             deid_issues = DeIdValidator().check_record(
                 {
                     "text": deid_sentence_text,
@@ -564,12 +590,16 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
                         str(group.get("sentence_text") or ""),
                         ner=True,
                     )
+                    aligned_entities = _realign_entities_to_text(
+                        deid_sentence_text,
+                        group.get("entities") or [],
+                    )
                     candidate_id = _candidate_id(deid_sentence_text)
                     session.run(
                         UPSERT_TRAINING_CANDIDATE,
                         candidate_id=candidate_id,
                         text=deid_sentence_text,
-                        entities_json=json.dumps(group.get("entities") or []),
+                        entities_json=json.dumps(aligned_entities),
                         relation_changes=json.dumps(relation_changes),
                         source="pipeline_gold",
                         status="pending",

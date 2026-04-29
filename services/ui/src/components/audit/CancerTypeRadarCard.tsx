@@ -98,6 +98,10 @@ function shortenLabel(label: string): string {
   return label.slice(0, 11) + "...";
 }
 
+function formatScaleLabel(level: number, maxScale: number): string {
+  return `${Math.round(level * maxScale)}%`;
+}
+
 export default function CancerTypeRadarCard({
   yearLabel,
   axes,
@@ -212,19 +216,33 @@ export default function CancerTypeRadarCard({
         >
           {gridLevels.map((level, idx) => {
             const r = outerRadius * level;
+            const isOuterRing = idx === gridLevels.length - 1;
             const ringPoints: string[] = [];
             for (let i = 0; i < total; i += 1) {
               const p = polar(cx, cy, r, angleFor(i, total));
               ringPoints.push(`${p.x.toFixed(2)},${p.y.toFixed(2)}`);
             }
             return (
-              <polygon
-                key={`grid-${level}`}
-                points={ringPoints.join(" ")}
-                fill="none"
-                stroke={idx === gridLevels.length - 1 ? COLOUR_GRID_BOLD : COLOUR_GRID}
-                strokeWidth={idx === gridLevels.length - 1 ? 1.25 : 1}
-              />
+              <g key={`grid-${level}`}>
+                <polygon
+                  points={ringPoints.join(" ")}
+                  fill="none"
+                  stroke={isOuterRing ? COLOUR_GRID_BOLD : COLOUR_GRID}
+                  strokeWidth={isOuterRing ? 1.25 : 1}
+                />
+                {isOuterRing && (
+                  <text
+                    x={cx}
+                    y={cy - outerRadius - 10}
+                    fontSize={9}
+                    fill={COLOUR_LABEL}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    {formatScaleLabel(level, maxScale)} outer ring
+                  </text>
+                )}
+              </g>
             );
           })}
 

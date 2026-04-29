@@ -110,9 +110,19 @@ _EMIS_MAJOR_BENIGN = _re.compile(
 
 
 _PROBLEM_CANCER_LINE = _re.compile(
-    r"^Problem:\s+(?:malignant|carcinoma|adenocarcinoma|lymphoma|melanoma|sarcoma"
-    r"|mesothelioma|tumour of|tumor of)\b",
+    r"^Problem(?:\s*-\s*whole event)?:\s+"
+    r"(?:malignant|carcinoma|adenocarcinoma|lymphoma|melanoma|sarcoma"
+    r"|mesothelioma|metastasis|metastatic|neoplastic disease|cancer"
+    r"|tumour of|tumor of)\b",
     _re.IGNORECASE | _re.MULTILINE,
+)
+_EMBEDDED_PROBLEM_CANCER_SEGMENT = _re.compile(
+    r"\bProblem(?:\s*-\s*whole event)?:\s+"
+    r"(?:malignant|carcinoma|adenocarcinoma|lymphoma|melanoma|sarcoma"
+    r"|mesothelioma|metastasis|metastatic|neoplastic disease|cancer"
+    r"|tumour of|tumor of)\b"
+    r"[^()\n]*(?:\([A-Za-z0-9.]+\))?",
+    _re.IGNORECASE,
 )
 
 _NEGATIVE_BREAST_IMAGING = _re.compile(
@@ -141,7 +151,7 @@ def _strip_problem_lines(text: str) -> str:
         stripped = ln.strip()
         if stripped.startswith("Problem:") and _PROBLEM_CANCER_LINE.match(stripped):
             continue
-        clean.append(ln)
+        clean.append(_EMBEDDED_PROBLEM_CANCER_SEGMENT.sub("", ln))
     return "\n".join(clean)
 
 

@@ -1,0 +1,64 @@
+[
+  {
+    "op": "add_dx",
+    "pid": "4505618269",
+    "suffix": "5698",
+    "date": "2024-03-20",
+    "marker": "Dermoscopy",
+    "result": {
+      "encounter_id": "486f8c6f-2e28-4126-bfa8-b6cc16e57eda",
+      "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5698",
+      "existing_types": []
+    }
+  },
+  {
+    "op": "add_dx",
+    "pid": "7313758405",
+    "suffix": "13616",
+    "date": "2025-01-30",
+    "marker": "US scan of breast",
+    "result": {
+      "encounter_id": "4ec4e1b3-232b-42f5-932b-7929d7d80a1e",
+      "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:13616",
+      "existing_types": []
+    }
+  },
+  {
+    "op": "add_dx",
+    "pid": "4246627143",
+    "suffix": "4469",
+    "date": "2024-05-05",
+    "marker": "US scan of breast",
+    "result": {
+      "encounter_id": "3853108b-49d9-4237-9836-104b84e51380",
+      "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4469",
+      "existing_types": []
+    }
+  },
+  {
+    "op": "stamp_outcome",
+    "pid": "4926975998",
+    "suffix": "4458",
+    "date": "2024-04-15",
+    "marker": "Malignant tumour of breast",
+    "result": {
+      "encounter_id": "a1a67260-5cda-488c-a0fc-c4a318bd5cad",
+      "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6937824912778203498",
+      "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4458",
+      "outcome": "cancer_found"
+    }
+  },
+  {
+    "op": "stamp_outcome",
+    "pid": "6309359401",
+    "suffix": "5639",
+    "date": "2024-10-08",
+    "marker": "Carcinoma of prostate",
+    "result": {
+      "encounter_id": "267f2023-959e-4601-83d9-e3db8e4301bf",
+      "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798151",
+      "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5639",
+      "outcome": "cancer_found"
+    }
+  }
+]

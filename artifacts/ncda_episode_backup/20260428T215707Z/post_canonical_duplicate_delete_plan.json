@@ -1,0 +1,458 @@
+[
+  {
+    "patient_id": "4187508279",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4382",
+    "cancer_type": "breast",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2025-03-10",
+        "encounter_id": "3bea758b-0949-447d-becf-954e682c85e8",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1175469189557651394",
+        "text": [
+          "14:13 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: F2F review. Breast lump.\n\nNoticed lump on left side last week.\nChecks self every fews. First time finding a lump.\nNo FHx breast cancer.\nMild discomfort.\nNo nipple discharge / change.\nNo skin change.\nMild weight loss 5kg due to reduced appetite recently (attributed to stress).\nNever smoked tobacco (XE0oh)\nMinimal alcohol.\nExamination: Examination with chaperone (Tracey Wright) and consent.\nNo skin / nipple changes BL.\nRight breast / axilla normal.\nLeft breast 1cm irregular lump at 2o'clock position of breast. Mobile. Normal axilla.\nDiagnosis: Breast lump ? cause.\nPlan: 2ww breast referral.\nContact us if not heard in 2 weeks.\n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 10 Mar 2025 14:13)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)"
+        ]
+      },
+      {
+        "date": "2025-03-10",
+        "encounter_id": "642f5f7d-fd3e-40b1-8b7d-ce0299b42cbc",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268721438",
+        "text": [
+          "16:34 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track referral for suspected breast cancer\n2WW Breast Female PRISM to Unknown \nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2025-03-10",
+      "encounter_id": "3bea758b-0949-447d-becf-954e682c85e8",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1175469189557651394",
+      "text": [
+        "14:13 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: F2F review. Breast lump.\n\nNoticed lump on left side last week.\nChecks self every fews. First time finding a lump.\nNo FHx breast cancer.\nMild discomfort.\nNo nipple discharge / change.\nNo skin change.\nMild weight loss 5kg due to reduced appetite recently (attributed to stress).\nNever smoked tobacco (XE0oh)\nMinimal alcohol.\nExamination: Examination with chaperone (Tracey Wright) and consent.\nNo skin / nipple changes BL.\nRight breast / axilla normal.\nLeft breast 1cm irregular lump at 2o'clock position of breast. Mobile. Normal axilla.\nDiagnosis: Breast lump ? cause.\nPlan: 2ww breast referral.\nContact us if not heard in 2 weeks.\n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 10 Mar 2025 14:13)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)"
+      ]
+    },
+    "delete": {
+      "date": "2025-03-10",
+      "encounter_id": "642f5f7d-fd3e-40b1-8b7d-ce0299b42cbc",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268721438",
+      "text": [
+        "16:34 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track referral for suspected breast cancer\n2WW Breast Female PRISM to Unknown \nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast"
+      ]
+    }
+  },
+  {
+    "patient_id": "4505618269",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5698",
+    "cancer_type": "Melanoma",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2024-02-28",
+        "encounter_id": "babca43c-585e-4321-9ebc-ef3b2f6487bc",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1170965589930323850",
+        "text": [
+          "09:27 - Surgery: [STAFF] (Health Professional Access Role) \n- PRISM 2WW Dermatology -  questionnaire started - (finalised: 28 Feb 2024 09:27)\nFast track referral for suspected skin cancer (XaMeA) - (Added from Questionnaire)\n Consultation\n   General\n      Encounter: Consultation (Xa1qL)\n      H:  1) Skin lesion on outer left ear since 1960s \nChanged recently over the past 2 weeks\nHas become more raised\nIncreased in size\nHas crusted coating over the top\nNo discharge / bleeding.\nNot itchy / painful \n\n2) Also has mole on upper chest\nHas had this for around 3 years\nIncreased in size\nItchy at times\nNo changes in colour / shape\nNot painful\n\nNo fever. No nausea/ vomiting. No appetite loss, E+D well. No unexpected weight loss. No night sweats.\n      E:  Sitting comfortably and not in any signs of distress\nLooking well\nConsented examination \nSee photos attached\n      P:  1. Safety netting advice given\n2. Advised to contact us or 111 if sx worsen or persist\n3. 2WW derm. Pt to let us know if not heard by then\n\nDiscussed with [PERSON] if worsens, no better or concerns: Yes\n - PRISM 2WW Drawing Dermatology\n    \n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Dermatology -  questionnaire started - (finalised: 28 Feb 2024 09:27)\nConsultation (Xa1qL)\nClinical history and observations (X76sV)\n1) Skin lesion on outer left ear since 1960s \nChanged recently over the past 2 weeks\nHas become more raised\nIncreased in size\nHas crusted coating over the top\nNo discharge / bleeding.\nNot itchy / painful \n\n2) Also has mole on upper chest\nHas had this for around 3 years\nIncreased in size\nItchy at times\nNo changes in colour / shape\nNot painful\n\nNo fever. No nausea/ vomiting. No appetite loss, E+D well. No unexpected weight loss. No night sweats.\nClinical examination (XB001)\nSitting comfortably and not in any signs of distress\nLooking well\nConsented examination \nSee photos attached\nPlan (XaIVg)\n1. Safety netting advice given\n2. Advised to contact us or 111 if sx worsen or persist\n3. 2WW derm. Pt to let us know if not heard by then\n\nDiscussed with [PERSON] given advice (8CA..)"
+        ]
+      },
+      {
+        "date": "2024-02-28",
+        "encounter_id": "e0eef40e-e1a9-42cc-824f-f6a8009bf94b",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709778498",
+        "text": [
+          "10:23 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected skin cancer (XaMeA)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes skin\nHospital Fast track referral for suspected skin cancer\n2WW Dermatology PRISM to Unknown \nHospital Fast track referral for suspected skin cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - skin"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2024-02-28",
+      "encounter_id": "babca43c-585e-4321-9ebc-ef3b2f6487bc",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1170965589930323850",
+      "text": [
+        "09:27 - Surgery: [STAFF] (Health Professional Access Role) \n- PRISM 2WW Dermatology -  questionnaire started - (finalised: 28 Feb 2024 09:27)\nFast track referral for suspected skin cancer (XaMeA) - (Added from Questionnaire)\n Consultation\n   General\n      Encounter: Consultation (Xa1qL)\n      H:  1) Skin lesion on outer left ear since 1960s \nChanged recently over the past 2 weeks\nHas become more raised\nIncreased in size\nHas crusted coating over the top\nNo discharge / bleeding.\nNot itchy / painful \n\n2) Also has mole on upper chest\nHas had this for around 3 years\nIncreased in size\nItchy at times\nNo changes in colour / shape\nNot painful\n\nNo fever. No nausea/ vomiting. No appetite loss, E+D well. No unexpected weight loss. No night sweats.\n      E:  Sitting comfortably and not in any signs of distress\nLooking well\nConsented examination \nSee photos attached\n      P:  1. Safety netting advice given\n2. Advised to contact us or 111 if sx worsen or persist\n3. 2WW derm. Pt to let us know if not heard by then\n\nDiscussed with [PERSON] if worsens, no better or concerns: Yes\n - PRISM 2WW Drawing Dermatology\n    \n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Dermatology -  questionnaire started - (finalised: 28 Feb 2024 09:27)\nConsultation (Xa1qL)\nClinical history and observations (X76sV)\n1) Skin lesion on outer left ear since 1960s \nChanged recently over the past 2 weeks\nHas become more raised\nIncreased in size\nHas crusted coating over the top\nNo discharge / bleeding.\nNot itchy / painful \n\n2) Also has mole on upper chest\nHas had this for around 3 years\nIncreased in size\nItchy at times\nNo changes in colour / shape\nNot painful\n\nNo fever. No nausea/ vomiting. No appetite loss, E+D well. No unexpected weight loss. No night sweats.\nClinical examination (XB001)\nSitting comfortably and not in any signs of distress\nLooking well\nConsented examination \nSee photos attached\nPlan (XaIVg)\n1. Safety netting advice given\n2. Advised to contact us or 111 if sx worsen or persist\n3. 2WW derm. Pt to let us know if not heard by then\n\nDiscussed with [PERSON] given advice (8CA..)"
+      ]
+    },
+    "delete": {
+      "date": "2024-02-28",
+      "encounter_id": "e0eef40e-e1a9-42cc-824f-f6a8009bf94b",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709778498",
+      "text": [
+        "10:23 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected skin cancer (XaMeA)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes skin\nHospital Fast track referral for suspected skin cancer\n2WW Dermatology PRISM to Unknown \nHospital Fast track referral for suspected skin cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - skin"
+      ]
+    }
+  },
+  {
+    "patient_id": "4587343129",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5489",
+    "cancer_type": "Breast",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2025-05-30",
+        "encounter_id": "b1b73a0e-c67b-4a0b-b8fa-bde3219534ac",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268722545",
+        "text": [
+          "14:32 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 30 May 2025 14:32)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n - PRISM 2WW Breast Female Drawing\n    \n Consultation.\n   General\n      Encounter: Consultation (Xa1qL)\n      H:  - Presented with a lump in the left breast noticed a few days ago. Reports some pain in the area. Unable to sleep on the affected side.\n- Reports previous history of breast lumps which were benign.\n- No skin changes noted.\n      E:  - Examination of left breast revealed a palpable lump.\n- Axillary examination performed - no lumps.\n      Chaperone: Chaperone present (XaEir) Paula Edwardes Reception Lead\n      P:  1. Left breast lump\n- Urgent referral to breast clinic at Glenfield Hospital.\n- Patient advised of potential 3-4 week wait time, though ideally would be seen within 2 weeks.\n- Patient advised to contact surgery if no appointment received within 3-4 weeks.\n- Patient has previously attended breast clinic, though location discussed (Queens Nottingham vs Glenfield).\n- Patient opted for referral to Glenfield Hospital.\nChaperone present (XaEir) - Paula Edwardes Reception Lead\nConsultation (Xa1qL)\nClinical history and observations (X76sV)\n- Presented with a lump in the left breast noticed a few days ago. Reports some pain in the area. Unable to sleep on the affected side.\n- Reports previous history of breast lumps which were benign.\n- No skin changes noted.\nClinical examination (XB001)\n- Examination of left breast revealed a palpable lump.\n- Axillary examination performed - no lumps.\nPlan (XaIVg)\n1. Left breast lump\n- Urgent referral to breast clinic at Glenfield Hospital.\n- Patient advised of potential 3-4 week wait time, though ideally would be seen within 2 weeks.\n- Patient advised to contact surgery if no appointment received within 3-4 weeks.\n- Patient has previously attended breast clinic, though location discussed (Queens Nottingham vs Glenfield).\n- Patient opted for referral to Glenfield Hospital."
+        ]
+      },
+      {
+        "date": "2025-05-30",
+        "encounter_id": "b1b73a0e-c67b-4a0b-b8fa-bde3219534ac",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6922062314082407793",
+        "text": [
+          "14:32 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 30 May 2025 14:32)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n - PRISM 2WW Breast Female Drawing\n    \n Consultation.\n   General\n      Encounter: Consultation (Xa1qL)\n      H:  - Presented with a lump in the left breast noticed a few days ago. Reports some pain in the area. Unable to sleep on the affected side.\n- Reports previous history of breast lumps which were benign.\n- No skin changes noted.\n      E:  - Examination of left breast revealed a palpable lump.\n- Axillary examination performed - no lumps.\n      Chaperone: Chaperone present (XaEir) Paula Edwardes Reception Lead\n      P:  1. Left breast lump\n- Urgent referral to breast clinic at Glenfield Hospital.\n- Patient advised of potential 3-4 week wait time, though ideally would be seen within 2 weeks.\n- Patient advised to contact surgery if no appointment received within 3-4 weeks.\n- Patient has previously attended breast clinic, though location discussed (Queens Nottingham vs Glenfield).\n- Patient opted for referral to Glenfield Hospital.\nChaperone present (XaEir) - Paula Edwardes Reception Lead\nConsultation (Xa1qL)\nClinical history and observations (X76sV)\n- Presented with a lump in the left breast noticed a few days ago. Reports some pain in the area. Unable to sleep on the affected side.\n- Reports previous history of breast lumps which were benign.\n- No skin changes noted.\nClinical examination (XB001)\n- Examination of left breast revealed a palpable lump.\n- Axillary examination performed - no lumps.\nPlan (XaIVg)\n1. Left breast lump\n- Urgent referral to breast clinic at Glenfield Hospital.\n- Patient advised of potential 3-4 week wait time, though ideally would be seen within 2 weeks.\n- Patient advised to contact surgery if no appointment received within 3-4 weeks.\n- Patient has previously attended breast clinic, though location discussed (Queens Nottingham vs Glenfield).\n- Patient opted for referral to Glenfield Hospital."
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2025-05-30",
+      "encounter_id": "b1b73a0e-c67b-4a0b-b8fa-bde3219534ac",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268722545",
+      "text": [
+        "14:32 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 30 May 2025 14:32)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n - PRISM 2WW Breast Female Drawing\n    \n Consultation.\n   General\n      Encounter: Consultation (Xa1qL)\n      H:  - Presented with a lump in the left breast noticed a few days ago. Reports some pain in the area. Unable to sleep on the affected side.\n- Reports previous history of breast lumps which were benign.\n- No skin changes noted.\n      E:  - Examination of left breast revealed a palpable lump.\n- Axillary examination performed - no lumps.\n      Chaperone: Chaperone present (XaEir) Paula Edwardes Reception Lead\n      P:  1. Left breast lump\n- Urgent referral to breast clinic at Glenfield Hospital.\n- Patient advised of potential 3-4 week wait time, though ideally would be seen within 2 weeks.\n- Patient advised to contact surgery if no appointment received within 3-4 weeks.\n- Patient has previously attended breast clinic, though location discussed (Queens Nottingham vs Glenfield).\n- Patient opted for referral to Glenfield Hospital.\nChaperone present (XaEir) - Paula Edwardes Reception Lead\nConsultation (Xa1qL)\nClinical history and observations (X76sV)\n- Presented with a lump in the left breast noticed a few days ago. Reports some pain in the area. Unable to sleep on the affected side.\n- Reports previous history of breast lumps which were benign.\n- No skin changes noted.\nClinical examination (XB001)\n- Examination of left breast revealed a palpable lump.\n- Axillary examination performed - no lumps.\nPlan (XaIVg)\n1. Left breast lump\n- Urgent referral to breast clinic at Glenfield Hospital.\n- Patient advised of potential 3-4 week wait time, though ideally would be seen within 2 weeks.\n- Patient advised to contact surgery if no appointment received within 3-4 weeks.\n- Patient has previously attended breast clinic, though location discussed (Queens Nottingham vs Glenfield).\n- Patient opted for referral to Glenfield Hospital."
+      ]
+    },
+    "delete": {
+      "date": "2025-05-30",
+      "encounter_id": "b1b73a0e-c67b-4a0b-b8fa-bde3219534ac",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6922062314082407793",
+      "text": [
+        "14:32 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 30 May 2025 14:32)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n - PRISM 2WW Breast Female Drawing\n    \n Consultation.\n   General\n      Encounter: Consultation (Xa1qL)\n      H:  - Presented with a lump in the left breast noticed a few days ago. Reports some pain in the area. Unable to sleep on the affected side.\n- Reports previous history of breast lumps which were benign.\n- No skin changes noted.\n      E:  - Examination of left breast revealed a palpable lump.\n- Axillary examination performed - no lumps.\n      Chaperone: Chaperone present (XaEir) Paula Edwardes Reception Lead\n      P:  1. Left breast lump\n- Urgent referral to breast clinic at Glenfield Hospital.\n- Patient advised of potential 3-4 week wait time, though ideally would be seen within 2 weeks.\n- Patient advised to contact surgery if no appointment received within 3-4 weeks.\n- Patient has previously attended breast clinic, though location discussed (Queens Nottingham vs Glenfield).\n- Patient opted for referral to Glenfield Hospital.\nChaperone present (XaEir) - Paula Edwardes Reception Lead\nConsultation (Xa1qL)\nClinical history and observations (X76sV)\n- Presented with a lump in the left breast noticed a few days ago. Reports some pain in the area. Unable to sleep on the affected side.\n- Reports previous history of breast lumps which were benign.\n- No skin changes noted.\nClinical examination (XB001)\n- Examination of left breast revealed a palpable lump.\n- Axillary examination performed - no lumps.\nPlan (XaIVg)\n1. Left breast lump\n- Urgent referral to breast clinic at Glenfield Hospital.\n- Patient advised of potential 3-4 week wait time, though ideally would be seen within 2 weeks.\n- Patient advised to contact surgery if no appointment received within 3-4 weeks.\n- Patient has previously attended breast clinic, though location discussed (Queens Nottingham vs Glenfield).\n- Patient opted for referral to Glenfield Hospital."
+      ]
+    }
+  },
+  {
+    "patient_id": "4622879921",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4481",
+    "cancer_type": "breast",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2024-12-02",
+        "encounter_id": "bd16377a-864a-4d17-b25d-10cd7876212e",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1175469189557718760",
+        "text": [
+          "14:55 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: Painful lump in L breast (last had in 2022) , last saw GP in 2016 \n\nNew lump in L breast\nTender\n5-6 weeks Hx\nNo increase in size\nBreasts look normal\nNo redness \nNo dimpling\nNo discharge or blood\n\nStarted periods at 15 years of age\nMenopausal - not had periods for 12 months\nLast period end of 2022\nNot used any drug based contraception in the past \n2 children - 1 natural and 1 C-section (breach)\n\nLast had breasts checked 11/22\n\nNo fevers   \nNo nightsweats \nNo unintended weight loss\nNo nausea or appetitie changes\n\nNo Back pain   \nNo abdominal pain  \nNo joint or bony pain \n\nE+D ok\nPassing urine and stool as normal \n\nPMhx \nVertigo \n\nNo current medications\nNo HRT\n\nNKDA  \nIntolerance to Codeine - causes dizziness \n\nSHx\nNever smoked tobacco (XE0oh)\nNon-drinker\nWill be in area for a few months \n\nFHx\nNo fmaily History of breast lumps or breast CA\nExamination: Alert and comfortable  \nO/E - temperature (XaBzA) 37.2 degC \nConsented and chaperoned breast examination, Tracey chaperoned \nBreasts symmetrical  \nPainful lump In L breast near nipple   \nPainless lump in R breast tissue  \nNeck and axillary nodes NAD\nDiagnosis: Breast lump\nPlan: 1. Breast 2WW for R breast \n2. Simple analgesia for L breast\n3. Warm compresses for L breast \n4. To check breasts regularly \n5. To represenr if ocnerns in the interim   \n6. To discuss at debrief\n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 02 Dec 2024 15:47)"
+        ]
+      },
+      {
+        "date": "2024-12-02",
+        "encounter_id": "9f5d61e8-2950-4d54-858a-04a24f6f4243",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268721537",
+        "text": [
+          "16:15 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track referral for suspected breast cancer\n2WW Breast Female PRISM to Unknown \nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2024-12-02",
+      "encounter_id": "9f5d61e8-2950-4d54-858a-04a24f6f4243",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268721537",
+      "text": [
+        "16:15 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track referral for suspected breast cancer\n2WW Breast Female PRISM to Unknown \nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast"
+      ]
+    },
+    "delete": {
+      "date": "2024-12-02",
+      "encounter_id": "bd16377a-864a-4d17-b25d-10cd7876212e",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1175469189557718760",
+      "text": [
+        "14:55 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: Painful lump in L breast (last had in 2022) , last saw GP in 2016 \n\nNew lump in L breast\nTender\n5-6 weeks Hx\nNo increase in size\nBreasts look normal\nNo redness \nNo dimpling\nNo discharge or blood\n\nStarted periods at 15 years of age\nMenopausal - not had periods for 12 months\nLast period end of 2022\nNot used any drug based contraception in the past \n2 children - 1 natural and 1 C-section (breach)\n\nLast had breasts checked 11/22\n\nNo fevers   \nNo nightsweats \nNo unintended weight loss\nNo nausea or appetitie changes\n\nNo Back pain   \nNo abdominal pain  \nNo joint or bony pain \n\nE+D ok\nPassing urine and stool as normal \n\nPMhx \nVertigo \n\nNo current medications\nNo HRT\n\nNKDA  \nIntolerance to Codeine - causes dizziness \n\nSHx\nNever smoked tobacco (XE0oh)\nNon-drinker\nWill be in area for a few months \n\nFHx\nNo fmaily History of breast lumps or breast CA\nExamination: Alert and comfortable  \nO/E - temperature (XaBzA) 37.2 degC \nConsented and chaperoned breast examination, Tracey chaperoned \nBreasts symmetrical  \nPainful lump In L breast near nipple   \nPainless lump in R breast tissue  \nNeck and axillary nodes NAD\nDiagnosis: Breast lump\nPlan: 1. Breast 2WW for R breast \n2. Simple analgesia for L breast\n3. Warm compresses for L breast \n4. To check breasts regularly \n5. To represenr if ocnerns in the interim   \n6. To discuss at debrief\n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 02 Dec 2024 15:47)"
+      ]
+    }
+  },
+  {
+    "patient_id": "4622879921",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4484",
+    "cancer_type": "Renal",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2025-05-07",
+        "encounter_id": "60c4795a-9924-4a04-aca2-1d66e1d23ec2",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1175469189557718837",
+        "text": [
+          "10:57 - Surgery: Auto-filed  \nUAS Urine Microscopy: RESULT; White blood cell count - Normal\nEpithelial cell count - HIGH\nCulture not performed. Automated analysis for white\ncells and bacteria indicates no evidence of urinary\ntract infection.\nClinical Information: Reasons for Request:      visible haematuria ? cause.\nUAS Urine Microscopy Report,\u00ef\u00bf\u00bdAbnormal,\u00ef\u00bf\u00bdOther (update KW): Hi Kat\nMSU normal. 2ww?. Review done by [PERSON] - 09 May 2025 08:18"
+        ]
+      },
+      {
+        "date": "2025-05-09",
+        "encounter_id": "cce32410-0efb-4daf-9b32-2daae2f89fed",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1202490787321941830",
+        "text": [
+          "16:35 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww urology\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww urology"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2025-05-07",
+      "encounter_id": "60c4795a-9924-4a04-aca2-1d66e1d23ec2",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1175469189557718837",
+      "text": [
+        "10:57 - Surgery: Auto-filed  \nUAS Urine Microscopy: RESULT; White blood cell count - Normal\nEpithelial cell count - HIGH\nCulture not performed. Automated analysis for white\ncells and bacteria indicates no evidence of urinary\ntract infection.\nClinical Information: Reasons for Request:      visible haematuria ? cause.\nUAS Urine Microscopy Report,\u00ef\u00bf\u00bdAbnormal,\u00ef\u00bf\u00bdOther (update KW): Hi Kat\nMSU normal. 2ww?. Review done by [PERSON] - 09 May 2025 08:18"
+      ]
+    },
+    "delete": {
+      "date": "2025-05-09",
+      "encounter_id": "cce32410-0efb-4daf-9b32-2daae2f89fed",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1202490787321941830",
+      "text": [
+        "16:35 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww urology\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww urology"
+      ]
+    }
+  },
+  {
+    "patient_id": "4867552062",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5490",
+    "cancer_type": "Prostate",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2025-04-11",
+        "encounter_id": "4c190ee8-7af2-42bf-b01a-adaace4d723c",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6922062314082407794",
+        "text": [
+          "14:20 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: F2F review.\n\nNocturia x2-3. No change recently, but getting fed up.\nPoor stream.\nDribbling.\nUrgency and failed voiding.\n\nNo FHx prostate cancer.\nNo weight loss.\nExamination: DRE with consent. Chaperone declined.\nProstate significantly enlarged.\nSmooth and symmetrical, but hard and with minimal sulcus.\nDiagnosis: Liekly BPH.\nPlan: 2ww urology in view of hard prostate.\nUrgent bloods and urine dip pls.\nIf normal urology outcome then can pass message to me and start tamsulosin.\n- PRISM 2WW Urology -  questionnaire started - (finalised: 22 Apr 2025 09:47)\nPathology Request (Complete):\nBone Profile (Requested), Full Blood Count (Requested), Liver Function Test (Requested), Prostate Specific Antigen (Requested), Urea & electrolytes (Requested)"
+        ]
+      },
+      {
+        "date": "2025-04-22",
+        "encounter_id": "76b3a6cd-597d-49ec-aded-9c94b5d539b3",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6928817713523463538",
+        "text": [
+          "09:47 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww urology\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\n'- PRISM 2WW Urology' - questionnaire amended\nPatient awaiting OPD appt. (9R52.) - 2ww urology"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2025-04-11",
+      "encounter_id": "4c190ee8-7af2-42bf-b01a-adaace4d723c",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6922062314082407794",
+      "text": [
+        "14:20 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: F2F review.\n\nNocturia x2-3. No change recently, but getting fed up.\nPoor stream.\nDribbling.\nUrgency and failed voiding.\n\nNo FHx prostate cancer.\nNo weight loss.\nExamination: DRE with consent. Chaperone declined.\nProstate significantly enlarged.\nSmooth and symmetrical, but hard and with minimal sulcus.\nDiagnosis: Liekly BPH.\nPlan: 2ww urology in view of hard prostate.\nUrgent bloods and urine dip pls.\nIf normal urology outcome then can pass message to me and start tamsulosin.\n- PRISM 2WW Urology -  questionnaire started - (finalised: 22 Apr 2025 09:47)\nPathology Request (Complete):\nBone Profile (Requested), Full Blood Count (Requested), Liver Function Test (Requested), Prostate Specific Antigen (Requested), Urea & electrolytes (Requested)"
+      ]
+    },
+    "delete": {
+      "date": "2025-04-22",
+      "encounter_id": "76b3a6cd-597d-49ec-aded-9c94b5d539b3",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6928817713523463538",
+      "text": [
+        "09:47 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww urology\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\n'- PRISM 2WW Urology' - questionnaire amended\nPatient awaiting OPD appt. (9R52.) - 2ww urology"
+      ]
+    }
+  },
+  {
+    "patient_id": "4926975998",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4458",
+    "cancer_type": "breast",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2024-03-14",
+        "encounter_id": "1575f928-2aba-4c5d-a832-dc5e16a8e2ae",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268721514",
+        "text": [
+          "17:37 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 14 Mar 2024 17:37)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 14 Mar 2024 17:37)\n      Outbound referral (XaY59)\n       2WW Breast Female PRISM to Unknown \n      2WW Breast Female Referral Pathway/Breast Clinic accessed\n - PRISM 2WW Breast Female Drawing\n    \n2WW Breast Female PRISM to Unknown \nOutbound referral (XaY59)\n2WW Breast Female Referral Pathway/Breast Clinic accessed"
+        ]
+      },
+      {
+        "date": "2024-03-15",
+        "encounter_id": "91c45cf1-3448-448f-8124-13edc076a899",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6922062314082406762",
+        "text": [
+          "09:48 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track referral for suspected breast cancer\nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2024-03-14",
+      "encounter_id": "1575f928-2aba-4c5d-a832-dc5e16a8e2ae",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268721514",
+      "text": [
+        "17:37 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 14 Mar 2024 17:37)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 14 Mar 2024 17:37)\n      Outbound referral (XaY59)\n       2WW Breast Female PRISM to Unknown \n      2WW Breast Female Referral Pathway/Breast Clinic accessed\n - PRISM 2WW Breast Female Drawing\n    \n2WW Breast Female PRISM to Unknown \nOutbound referral (XaY59)\n2WW Breast Female Referral Pathway/Breast Clinic accessed"
+      ]
+    },
+    "delete": {
+      "date": "2024-03-15",
+      "encounter_id": "91c45cf1-3448-448f-8124-13edc076a899",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6922062314082406762",
+      "text": [
+        "09:48 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track referral for suspected breast cancer\nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast"
+      ]
+    }
+  },
+  {
+    "patient_id": "6142203497",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5502",
+    "cancer_type": "Prostate",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2024-07-05",
+        "encounter_id": "b5aaedc5-3b3d-49c7-b599-d4a78f8ac82a",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1188979988439819049",
+        "text": [
+          "11:53 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Frank haematuria (K1973)\nHistory: Pt brought in for review - \nexplained it was a review due to recent symptoms he reported and to follow up, \nduring routine med review it was discovered he's had 2 x reports with blood - one frank haematuria, second dipstick microscopic haematuria but both MSU x negative for infection. duty of candor-  lack of follow up after the 2nd dipstick haeamturia. \npt initially rang on duty oncall 5th April with discomfort, frequency of urination and blood in urine, noticed a clot and blood in toilet pan. \nurine was dipped and sent off for MSU, \nrpt urine dip was requested after abx treatment\nexplained usual procedure in concerns with blood in the urine , frank and microscopic haematuria. pt aware we need to r/o ca and also treat any infection if present. \n1. when pt reported initial MSU form - for request didnt say frank haematuria, MSU got filed as normal , \n2. when patient then brought in sample as requested, MSU was sent off again as \"?uti\" , clinician not informed of microscopic haematuria so 2nd sample also got filed as normal.\n3, when patient queried about results via accurx  - since both samples were filed as normal, got informed by admin staff nothing further needed as samples were normal. \n\nGraeme felt he also chose to ignore the haematuria, says first episode settled with antibiotics which was reassuring for him, \nbut after 1-2 weeks had second episode and felt this was less than before and decided to ignore it. \nwas very open and receptive, says he understands due to pressures of the system, explained that we have since thought about failsafes at each of these points, \nusually frank haematuria needs further investigation ,\n\nsays now in the last few days starting to creep up slightly? \nfeeling well in self otherwise, \nno FH of ca, no FH of prostate issues. \nfeels he's gaining weight not losing, appetite good\nOutbound referral (XaY59)\nDiagnosis: PRISM 2WW Urology Pathway Accessed Frank haematuria (K1973)\nPlan: duty of candor - explained delay in referral by 2.5 months atleast. mid april 15th when 2nd MSU filed. apologised - pt accepted and thanked for calling him and also for informing / following up. \naware need to refute ca / can also be possible bladder / kidney stones , BPH / prostate ca. \nadvised urgent bloods and 2ww referral. advised not for any vigorous exercise/ SI/ etc 48 hrs prior to bloods, chat about PSA as well. \npt going on holiday from 12-19th july, says working for university cant get time off, needs to go - aware to refute ca but still wants to be referred after he's back. \naccepts the risks. \nadvised urgent bloods on monday - will ask NB to keep an eye, if urgent will inform pt. accepts this. \nwill ask Emma to kindly send off 2ww referral by 18/19th july - with bloods and rpt urine results. thanks\n- PRISM 2WW Urology V2 -  questionnaire started - (finalised: 05 Jul 2024 11:53)\nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Urology V2 -  questionnaire started - (finalised: 05 Jul 2024 11:53)\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nFrank haematuria (K1973)\nTemplate Entry Marked in Error: Wrong data entered\n\nLetter Marked in Error: Wrong data entered\nRecipient\nAttachment Marked in Error: Wrong data entered\n05 Jul 2024 11:53, Word Letter"
+        ]
+      },
+      {
+        "date": "2024-07-11",
+        "encounter_id": "3680c6e0-51da-45a9-9238-03f716669b6d",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6962594710728742270",
+        "text": [
+          "15:09 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Urology\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww Urology"
+        ]
+      },
+      {
+        "date": "2024-07-15",
+        "encounter_id": "9548b356-7d4b-4f09-9d44-64f37b89de6b",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6964846510542427518",
+        "text": [
+          "15:09 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Urology (second referral)\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww Urology (second referral)"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2024-07-05",
+      "encounter_id": "b5aaedc5-3b3d-49c7-b599-d4a78f8ac82a",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1188979988439819049",
+      "text": [
+        "11:53 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Frank haematuria (K1973)\nHistory: Pt brought in for review - \nexplained it was a review due to recent symptoms he reported and to follow up, \nduring routine med review it was discovered he's had 2 x reports with blood - one frank haematuria, second dipstick microscopic haematuria but both MSU x negative for infection. duty of candor-  lack of follow up after the 2nd dipstick haeamturia. \npt initially rang on duty oncall 5th April with discomfort, frequency of urination and blood in urine, noticed a clot and blood in toilet pan. \nurine was dipped and sent off for MSU, \nrpt urine dip was requested after abx treatment\nexplained usual procedure in concerns with blood in the urine , frank and microscopic haematuria. pt aware we need to r/o ca and also treat any infection if present. \n1. when pt reported initial MSU form - for request didnt say frank haematuria, MSU got filed as normal , \n2. when patient then brought in sample as requested, MSU was sent off again as \"?uti\" , clinician not informed of microscopic haematuria so 2nd sample also got filed as normal.\n3, when patient queried about results via accurx  - since both samples were filed as normal, got informed by admin staff nothing further needed as samples were normal. \n\nGraeme felt he also chose to ignore the haematuria, says first episode settled with antibiotics which was reassuring for him, \nbut after 1-2 weeks had second episode and felt this was less than before and decided to ignore it. \nwas very open and receptive, says he understands due to pressures of the system, explained that we have since thought about failsafes at each of these points, \nusually frank haematuria needs further investigation ,\n\nsays now in the last few days starting to creep up slightly? \nfeeling well in self otherwise, \nno FH of ca, no FH of prostate issues. \nfeels he's gaining weight not losing, appetite good\nOutbound referral (XaY59)\nDiagnosis: PRISM 2WW Urology Pathway Accessed Frank haematuria (K1973)\nPlan: duty of candor - explained delay in referral by 2.5 months atleast. mid april 15th when 2nd MSU filed. apologised - pt accepted and thanked for calling him and also for informing / following up. \naware need to refute ca / can also be possible bladder / kidney stones , BPH / prostate ca. \nadvised urgent bloods and 2ww referral. advised not for any vigorous exercise/ SI/ etc 48 hrs prior to bloods, chat about PSA as well. \npt going on holiday from 12-19th july, says working for university cant get time off, needs to go - aware to refute ca but still wants to be referred after he's back. \naccepts the risks. \nadvised urgent bloods on monday - will ask NB to keep an eye, if urgent will inform pt. accepts this. \nwill ask Emma to kindly send off 2ww referral by 18/19th july - with bloods and rpt urine results. thanks\n- PRISM 2WW Urology V2 -  questionnaire started - (finalised: 05 Jul 2024 11:53)\nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Urology V2 -  questionnaire started - (finalised: 05 Jul 2024 11:53)\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nFrank haematuria (K1973)\nTemplate Entry Marked in Error: Wrong data entered\n\nLetter Marked in Error: Wrong data entered\nRecipient\nAttachment Marked in Error: Wrong data entered\n05 Jul 2024 11:53, Word Letter"
+      ]
+    },
+    "delete": {
+      "date": "2024-07-11",
+      "encounter_id": "3680c6e0-51da-45a9-9238-03f716669b6d",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6962594710728742270",
+      "text": [
+        "15:09 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Urology\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww Urology"
+      ]
+    }
+  },
+  {
+    "patient_id": "6142203497",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5502",
+    "cancer_type": "Prostate",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2024-07-05",
+        "encounter_id": "b5aaedc5-3b3d-49c7-b599-d4a78f8ac82a",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1188979988439819049",
+        "text": [
+          "11:53 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Frank haematuria (K1973)\nHistory: Pt brought in for review - \nexplained it was a review due to recent symptoms he reported and to follow up, \nduring routine med review it was discovered he's had 2 x reports with blood - one frank haematuria, second dipstick microscopic haematuria but both MSU x negative for infection. duty of candor-  lack of follow up after the 2nd dipstick haeamturia. \npt initially rang on duty oncall 5th April with discomfort, frequency of urination and blood in urine, noticed a clot and blood in toilet pan. \nurine was dipped and sent off for MSU, \nrpt urine dip was requested after abx treatment\nexplained usual procedure in concerns with blood in the urine , frank and microscopic haematuria. pt aware we need to r/o ca and also treat any infection if present. \n1. when pt reported initial MSU form - for request didnt say frank haematuria, MSU got filed as normal , \n2. when patient then brought in sample as requested, MSU was sent off again as \"?uti\" , clinician not informed of microscopic haematuria so 2nd sample also got filed as normal.\n3, when patient queried about results via accurx  - since both samples were filed as normal, got informed by admin staff nothing further needed as samples were normal. \n\nGraeme felt he also chose to ignore the haematuria, says first episode settled with antibiotics which was reassuring for him, \nbut after 1-2 weeks had second episode and felt this was less than before and decided to ignore it. \nwas very open and receptive, says he understands due to pressures of the system, explained that we have since thought about failsafes at each of these points, \nusually frank haematuria needs further investigation ,\n\nsays now in the last few days starting to creep up slightly? \nfeeling well in self otherwise, \nno FH of ca, no FH of prostate issues. \nfeels he's gaining weight not losing, appetite good\nOutbound referral (XaY59)\nDiagnosis: PRISM 2WW Urology Pathway Accessed Frank haematuria (K1973)\nPlan: duty of candor - explained delay in referral by 2.5 months atleast. mid april 15th when 2nd MSU filed. apologised - pt accepted and thanked for calling him and also for informing / following up. \naware need to refute ca / can also be possible bladder / kidney stones , BPH / prostate ca. \nadvised urgent bloods and 2ww referral. advised not for any vigorous exercise/ SI/ etc 48 hrs prior to bloods, chat about PSA as well. \npt going on holiday from 12-19th july, says working for university cant get time off, needs to go - aware to refute ca but still wants to be referred after he's back. \naccepts the risks. \nadvised urgent bloods on monday - will ask NB to keep an eye, if urgent will inform pt. accepts this. \nwill ask Emma to kindly send off 2ww referral by 18/19th july - with bloods and rpt urine results. thanks\n- PRISM 2WW Urology V2 -  questionnaire started - (finalised: 05 Jul 2024 11:53)\nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Urology V2 -  questionnaire started - (finalised: 05 Jul 2024 11:53)\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nFrank haematuria (K1973)\nTemplate Entry Marked in Error: Wrong data entered\n\nLetter Marked in Error: Wrong data entered\nRecipient\nAttachment Marked in Error: Wrong data entered\n05 Jul 2024 11:53, Word Letter"
+        ]
+      },
+      {
+        "date": "2024-07-11",
+        "encounter_id": "3680c6e0-51da-45a9-9238-03f716669b6d",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6962594710728742270",
+        "text": [
+          "15:09 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Urology\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww Urology"
+        ]
+      },
+      {
+        "date": "2024-07-15",
+        "encounter_id": "9548b356-7d4b-4f09-9d44-64f37b89de6b",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6964846510542427518",
+        "text": [
+          "15:09 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Urology (second referral)\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww Urology (second referral)"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2024-07-05",
+      "encounter_id": "b5aaedc5-3b3d-49c7-b599-d4a78f8ac82a",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1188979988439819049",
+      "text": [
+        "11:53 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Frank haematuria (K1973)\nHistory: Pt brought in for review - \nexplained it was a review due to recent symptoms he reported and to follow up, \nduring routine med review it was discovered he's had 2 x reports with blood - one frank haematuria, second dipstick microscopic haematuria but both MSU x negative for infection. duty of candor-  lack of follow up after the 2nd dipstick haeamturia. \npt initially rang on duty oncall 5th April with discomfort, frequency of urination and blood in urine, noticed a clot and blood in toilet pan. \nurine was dipped and sent off for MSU, \nrpt urine dip was requested after abx treatment\nexplained usual procedure in concerns with blood in the urine , frank and microscopic haematuria. pt aware we need to r/o ca and also treat any infection if present. \n1. when pt reported initial MSU form - for request didnt say frank haematuria, MSU got filed as normal , \n2. when patient then brought in sample as requested, MSU was sent off again as \"?uti\" , clinician not informed of microscopic haematuria so 2nd sample also got filed as normal.\n3, when patient queried about results via accurx  - since both samples were filed as normal, got informed by admin staff nothing further needed as samples were normal. \n\nGraeme felt he also chose to ignore the haematuria, says first episode settled with antibiotics which was reassuring for him, \nbut after 1-2 weeks had second episode and felt this was less than before and decided to ignore it. \nwas very open and receptive, says he understands due to pressures of the system, explained that we have since thought about failsafes at each of these points, \nusually frank haematuria needs further investigation ,\n\nsays now in the last few days starting to creep up slightly? \nfeeling well in self otherwise, \nno FH of ca, no FH of prostate issues. \nfeels he's gaining weight not losing, appetite good\nOutbound referral (XaY59)\nDiagnosis: PRISM 2WW Urology Pathway Accessed Frank haematuria (K1973)\nPlan: duty of candor - explained delay in referral by 2.5 months atleast. mid april 15th when 2nd MSU filed. apologised - pt accepted and thanked for calling him and also for informing / following up. \naware need to refute ca / can also be possible bladder / kidney stones , BPH / prostate ca. \nadvised urgent bloods and 2ww referral. advised not for any vigorous exercise/ SI/ etc 48 hrs prior to bloods, chat about PSA as well. \npt going on holiday from 12-19th july, says working for university cant get time off, needs to go - aware to refute ca but still wants to be referred after he's back. \naccepts the risks. \nadvised urgent bloods on monday - will ask NB to keep an eye, if urgent will inform pt. accepts this. \nwill ask Emma to kindly send off 2ww referral by 18/19th july - with bloods and rpt urine results. thanks\n- PRISM 2WW Urology V2 -  questionnaire started - (finalised: 05 Jul 2024 11:53)\nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Urology V2 -  questionnaire started - (finalised: 05 Jul 2024 11:53)\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nFrank haematuria (K1973)\nTemplate Entry Marked in Error: Wrong data entered\n\nLetter Marked in Error: Wrong data entered\nRecipient\nAttachment Marked in Error: Wrong data entered\n05 Jul 2024 11:53, Word Letter"
+      ]
+    },
+    "delete": {
+      "date": "2024-07-15",
+      "encounter_id": "9548b356-7d4b-4f09-9d44-64f37b89de6b",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6964846510542427518",
+      "text": [
+        "15:09 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Urology (second referral)\nHospital Fast track referral for suspected urological cancer\n2WW Urology PRISM to Unknown \nHospital Fast track referral for suspected urological cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww Urology (second referral)"
+      ]
+    }
+  },
+  {
+    "patient_id": "7017599535",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4533",
+    "cancer_type": "Breast",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2025-04-22",
+        "encounter_id": "9c1e059d-2e19-4011-adc8-b28fb940d00e",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1166461990302928428",
+        "text": [
+          "12:34 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Breast lump present (1A82.) - First\nLaterality: Left\nHistory: f2f appt - seen in person \nhad breast reduction surgery privately - through Spire. \nnoticed a small lump when bandages came off 3 weeks ago. thought after the surgery and it will all get cleared \nFH of breast ca - maternal grandmother in her 80's - had chemo and lumpectomy. \nExamination: examine with consent - \nsome redness on top right breast- from palpating constantly. \nsymmetrical breasts, surgerical scars seen, healing well. \nsmall 4-5mm nodule like lump on right breast LUQ , can feel 2 smaller nodules adjacent to it. \nPlan: ?glandular tissues - but says different to usual lumps and bumps. not as mobile and feels prominent. \nalready been 3 weeks so advised will send for referral -happy with plan. \nadvice about referral given. \nr/v prn\n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 22 Apr 2025 12:34)\nReferral to breast surgery service (XaAdt) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 22 Apr 2025 12:34)\n - PRISM 2WW Breast Female Drawing"
+        ]
+      },
+      {
+        "date": "2025-04-22",
+        "encounter_id": "c65fa17e-906d-4433-b022-de1a8086a264",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6924314113896092085",
+        "text": [
+          "14:05 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track referral for suspected breast cancer\n2WW Breast Female PRISM to Unknown \nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2025-04-22",
+      "encounter_id": "9c1e059d-2e19-4011-adc8-b28fb940d00e",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1166461990302928428",
+      "text": [
+        "12:34 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Breast lump present (1A82.) - First\nLaterality: Left\nHistory: f2f appt - seen in person \nhad breast reduction surgery privately - through Spire. \nnoticed a small lump when bandages came off 3 weeks ago. thought after the surgery and it will all get cleared \nFH of breast ca - maternal grandmother in her 80's - had chemo and lumpectomy. \nExamination: examine with consent - \nsome redness on top right breast- from palpating constantly. \nsymmetrical breasts, surgerical scars seen, healing well. \nsmall 4-5mm nodule like lump on right breast LUQ , can feel 2 smaller nodules adjacent to it. \nPlan: ?glandular tissues - but says different to usual lumps and bumps. not as mobile and feels prominent. \nalready been 3 weeks so advised will send for referral -happy with plan. \nadvice about referral given. \nr/v prn\n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 22 Apr 2025 12:34)\nReferral to breast surgery service (XaAdt) - (Added from Questionnaire)\n PRISM Pathway & Referral Impl SysteM V3\n   2WW\n       - PRISM 2WW Breast Female -  questionnaire started - (finalised: 22 Apr 2025 12:34)\n - PRISM 2WW Breast Female Drawing"
+      ]
+    },
+    "delete": {
+      "date": "2025-04-22",
+      "encounter_id": "c65fa17e-906d-4433-b022-de1a8086a264",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6924314113896092085",
+      "text": [
+        "14:05 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track referral for suspected breast cancer\n2WW Breast Female PRISM to Unknown \nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast"
+      ]
+    }
+  },
+  {
+    "patient_id": "7017599535",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4849",
+    "cancer_type": "Melanoma",
+    "mt": "referral",
+    "rels": [
+      {
+        "date": "2024-06-03",
+        "encounter_id": "8e44bd92-de39-41c6-8d31-2dbffaf85ca3",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1206994386949262697",
+        "text": [
+          "12:44 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Benign melanocytic naevus of skin (X78Uv) - First\nOriginal text: Melanocytic naevus of skin\nHistory: Appt booked for dermoscopy given concerns about moles but had a few things she was concerned about\nMoles - L forearm, back, R upper arm and R thigh\nDeep dyspareunia - had it prior to copper IUD - had an exciting time since coil fit, seen at hospitla where she is at Uni and told coil in wrong place in womb and then told in fine place - all happened as unable to feel or find coil strings, no answer re cause of dyspareunia but given OK re coil!\nDischarge - mucus, not sure if vaginal or from back passage, worried it could be realted to bowel cancer, no bleeding etc\nConcerns about health that she sometimes struggles to manage\nExamination: Diagnostic dermatoscopy of skin (XaMns)multiple moles checked\nR upper arm - more like a birthmark - large with hairs growing thought and benign lookin\nBack - fleshy mole, compund I suspect as less pigmented fleshy area nd then rel normal looking naevus with melanocytes\nLeft forearm - irregular shape and pgiment noted with naked ey, under dermoscope - some areas of darker pigment with some honeycombing appearance, one area of regression also, lesion appro 5mm diameter - no signs of deeper changes\nPlan: Re other concerns - will ask Reception to get her booked in with me for internal inc bimanual, spec and ?coil string reveal!\nWIll work our way through systemiatically to ensure we have covered all bases\nRe mole on L forearm - 2ww due to concerning changes ?MIS - understands, safety netted"
+        ]
+      },
+      {
+        "date": "2024-06-03",
+        "encounter_id": "2bcd7f15-644e-45b3-a02b-89e20c830885",
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6917558714455036657",
+        "text": [
+          "17:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected skin cancer (XaMeA)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Skin\nHospital Fast track referral for suspected skin cancer\nHospital Fast track referral for suspected skin cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww Skin"
+        ]
+      }
+    ],
+    "keep": {
+      "date": "2024-06-03",
+      "encounter_id": "2bcd7f15-644e-45b3-a02b-89e20c830885",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6917558714455036657",
+      "text": [
+        "17:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected skin cancer (XaMeA)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Skin\nHospital Fast track referral for suspected skin cancer\nHospital Fast track referral for suspected skin cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww Skin"
+      ]
+    },
+    "delete": {
+      "date": "2024-06-03",
+      "encounter_id": "8e44bd92-de39-41c6-8d31-2dbffaf85ca3",
+      "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1206994386949262697",
+      "text": [
+        "12:44 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Benign melanocytic naevus of skin (X78Uv) - First\nOriginal text: Melanocytic naevus of skin\nHistory: Appt booked for dermoscopy given concerns about moles but had a few things she was concerned about\nMoles - L forearm, back, R upper arm and R thigh\nDeep dyspareunia - had it prior to copper IUD - had an exciting time since coil fit, seen at hospitla where she is at Uni and told coil in wrong place in womb and then told in fine place - all happened as unable to feel or find coil strings, no answer re cause of dyspareunia but given OK re coil!\nDischarge - mucus, not sure if vaginal or from back passage, worried it could be realted to bowel cancer, no bleeding etc\nConcerns about health that she sometimes struggles to manage\nExamination: Diagnostic dermatoscopy of skin (XaMns)multiple moles checked\nR upper arm - more like a birthmark - large with hairs growing thought and benign lookin\nBack - fleshy mole, compund I suspect as less pigmented fleshy area nd then rel normal looking naevus with melanocytes\nLeft forearm - irregular shape and pgiment noted with naked ey, under dermoscope - some areas of darker pigment with some honeycombing appearance, one area of regression also, lesion appro 5mm diameter - no signs of deeper changes\nPlan: Re other concerns - will ask Reception to get her booked in with me for internal inc bimanual, spec and ?coil string reveal!\nWIll work our way through systemiatically to ensure we have covered all bases\nRe mole on L forearm - 2ww due to concerning changes ?MIS - understands, safety netted"
+      ]
+    }
+  }
+]

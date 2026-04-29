@@ -879,6 +879,10 @@ export interface AuditSummary {
   confirmed_cancers: number;
   confirmed_cancers_via_2ww?: number;
   confirmed_cancers_via_2ww_pct?: number | null;
+  // NCDA cohort breakdown from ncda_detector.
+  cohort_1a_n?: number;
+  cohort_1b_n?: number;
+  cohort_3_n?: number;
   // MECE lifecycle decomposition (DI-105A4EC7). Sum of the four
   // *_episodes fields equals total_cohort_episodes by construction.
   total_cohort_episodes?: number;
@@ -992,6 +996,24 @@ export interface AuditReferralRow {
   pct: number;
 }
 
+export interface AuditFastTrackReferralRow {
+  referral_site: string;
+  concept_id: string;
+  n: number;
+  pct: number;
+}
+
+export interface AuditNSSOutcomeItem {
+  outcome: string;
+  n: number;
+}
+
+export interface AuditNSSOutcomes {
+  total_nss: number;
+  cancer_diagnosed_n: number;
+  outcomes: AuditNSSOutcomeItem[];
+}
+
 export interface AuditIntervalsPatient {
   episode_id: string;
   cancer_type?: string | null;
@@ -1090,10 +1112,23 @@ export interface AuditSymptomHeatmapCell {
 }
 
 /**
- * PPV row by suspected cancer type. ``provisional`` is true when the
- * cohort still contains unresolved or following-year diagnoses, in which
- * case the UI should label the percentage as provisional rather than
- * final.
+ * Clinical PPV row: for a given (suspected cancer type, symptom) pair,
+ * how many patients had the feature and how many of those got diagnosed.
+ *
+ * PPV = patients_with_cancer / patients_with_feature.
+ */
+export interface AuditSymptomPpvRow {
+  cancer_type: string;
+  symptom: string;
+  patients_with_feature: number;
+  patients_with_cancer: number;
+  ppv_pct: number;
+}
+
+/**
+ * Referral-cohort PPV row by suspected cancer type. ``provisional`` is
+ * true when the cohort still contains unresolved or following-year
+ * diagnoses.
  */
 export interface AuditPpvByCancerTypeRow {
   cancer_type: string;
@@ -1109,10 +1144,13 @@ export interface AuditPpvByCancerTypeRow {
 export interface AuditSymptoms {
   total_referrals: number;
   cohort_n: number;
-  symptom_axis: AuditSymptomAxisEntry[];
-  symptoms: AuditSymptomRow[];
-  heatmap_by_suspected_cancer_type: AuditSymptomHeatmapCell[];
-  heatmap_by_diagnosed_cancer_type: AuditSymptomHeatmapCell[];
+  /**
+   * Clinical PPV table: cancer_type × symptom, sorted by cancer type then
+   * patients_with_feature descending. Only rows where
+   * patients_with_feature > 0 are included.
+   */
+  rows: AuditSymptomPpvRow[];
+  /** Referral-cohort PPV per suspected cancer type (for hero cards). */
   ppv_by_suspected_cancer_type: AuditPpvByCancerTypeRow[];
 }
 
@@ -1212,6 +1250,18 @@ export async function fetchAuditReferrals(
   orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
 ): Promise<AuditSectionResult<AuditReferralRow[]>> {
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/referrals${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditFastTrackReferrals(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditFastTrackReferralRow[]>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/fast-track-referrals${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditNSSOutcomes(
+  orgId?: string, dateFrom?: string, dateTo?: string,
+): Promise<AuditNSSOutcomes> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/fast-track-referrals/nss-outcomes${_auditParams(orgId, dateFrom, dateTo)}`);
 }
 
 export async function fetchAuditIntervals(

@@ -72,6 +72,9 @@ from services.analysis_worker.app.ncda_detector.simple_linker import (  # noqa: 
     EncounterRow as SimpleEncounterRow,
     link_patient as simple_link_patient,
 )
+from services.analysis_worker.app.ncda_detector.route_classifier import (  # noqa: E402
+    classify_diagnosis_route,
+)
 
 # ---------------------------------------------------------------------------
 # Cypher queries
@@ -86,10 +89,11 @@ WHERE e.reviewed_at IS NOT NULL
   ]
 RETURN
     coalesce(toString(p.id), toString(p.patient_id)) AS patient_id,
-    e.id AS episode_id,
+    elementId(e) AS episode_id,
     coalesce(e.cancer_type, 'unknown') AS cancer_type,
     enc.id AS encounter_id,
     r.milestone_type AS milestone_type,
+    r.outcome AS outcome,
     toString(enc.date) AS encounter_date
 ORDER BY patient_id, episode_id, encounter_date
 """
@@ -130,7 +134,11 @@ def _infer_gold_cohort(milestones: list[dict]) -> str:
     types = {m["milestone_type"] for m in milestones}
     has_ftr = bool(types & _FTR_MILESTONES)
     has_dx = bool(types & _DX_MILESTONES)
-    is_benign = bool(types & _BENIGN_MILESTONES)
+    is_benign = bool(types & _BENIGN_MILESTONES) or any(
+        m["milestone_type"] in _DX_MILESTONES
+        and m.get("outcome") == "cancer_excluded"
+        for m in milestones
+    )
     if has_ftr and has_dx:
         return "1b" if is_benign else "1a"
     if has_ftr:
@@ -249,6 +257,34 @@ def _date_diff(a: str | None, b: str | None) -> int | None:
 
 _MATCH_WINDOW = 7  # days within which we call it a match
 
+_CANCER_TYPE_TO_SITE = {
+    "breast": "breast",
+    "melanoma": "skin",
+    "skin": "skin",
+    "prostate": "urological",
+    "urological": "urological",
+    "lymphoma": "haematological",
+    "haematological": "haematological",
+    "oesophageal": "upper_gi",
+    "upper_gi": "upper_gi",
+    "lung": "lung",
+}
+
+
+def _gold_site(cancer_type: str | None) -> str | None:
+    if not cancer_type:
+        return None
+    key = str(cancer_type).strip().lower().replace(" ", "_")
+    return _CANCER_TYPE_TO_SITE.get(key)
+
+
+def _site_match_for_compare(gold_site: str | None, detected_site: str | None) -> bool:
+    if not gold_site or not detected_site:
+        return True
+    if gold_site == detected_site:
+        return True
+    return gold_site == "haematological" or detected_site == "haematological"
+
 
 def _compare_anchor(
     label: str, gold_date: str | None, detected_date: str | None
@@ -314,6 +350,45 @@ def _fmt(result: dict, json_mode: bool) -> str:
 # ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
+
+def _anchor_match_cost(
+    *,
+    gold_ftr: str | None,
+    gold_seen: str | None,
+    gold_dx: str | None,
+    gold_tx: str | None,
+    detected_ftr: str | None,
+    detected_seen: str | None,
+    detected_dx: str | None,
+    detected_tx: str | None,
+    gold_site: str | None = None,
+    detected_site: str | None = None,
+) -> int:
+    """Return a cost for matching one detected pathway to one gold episode.
+
+    Diagnosis date carries the highest weight because multi-pathway patients can
+    have several same-day FTRs but only one pathway should own the reviewed
+    outcome.  Missing gold anchors are ignored here; extras are still reported in
+    the anchor table.
+    """
+    weighted = [
+        (gold_ftr, detected_ftr, 1),
+        (gold_seen, detected_seen, 1),
+        (gold_dx, detected_dx, 3),
+        (gold_tx, detected_tx, 2),
+    ]
+    cost = 0
+    for gold, detected, weight in weighted:
+        if not gold:
+            continue
+        diff = _date_diff(gold, detected)
+        # Missing anchors should hurt, but should not dominate an exact Dx match
+        # in multi-pathway patients where Seen-In or Treatment is absent from the
+        # detector output.
+        cost += (diff if diff is not None else 180) * weight
+    if not _site_match_for_compare(gold_site, detected_site):
+        cost += 1000
+    return cost
 
 def _connect():
     uri = os.environ.get("NEO4J_PATIENT_URI", "").strip() or os.environ.get("NEO4J_URI", "").strip()
@@ -435,10 +510,17 @@ def run_dry(
             best = None
             if candidates:
                 def _anchor_diff(c):
-                    d1 = _date_diff(c.dx_date, gold_dx)
-                    d2 = _date_diff(c.ftr_date, gold_ftr)
-                    vals = [v for v in [d1, d2] if v is not None]
-                    return min(vals) if vals else 9999
+                    return _anchor_match_cost(
+                        gold_ftr=gold_ftr,
+                        gold_seen=gold_seen,
+                        gold_dx=gold_dx,
+                        gold_tx=gold_tx,
+                        detected_ftr=c.ftr_date,
+                        detected_seen=c.seen_date,
+                        detected_dx=c.dx_date,
+                        detected_tx=c.treatment_date,
+                        gold_site=_gold_site(milestones[0]["cancer_type"]),
+                    )
 
                 best = min(candidates, key=_anchor_diff)
 
@@ -527,6 +609,8 @@ def run_simple(
             for r in enc_list
         ]
 
+        enc_by_id = {r["encounter_id"]: r for r in enc_list}
+
         # Convert to SimpleEncounterRow (site is populated by annotate_sites inside link_patient)
         simple_encs: list[SimpleEncounterRow] = [
             SimpleEncounterRow(
@@ -534,12 +618,24 @@ def run_simple(
                 encounter_date=lb.encounter_date or "",
                 role=lb.role,
                 outcome=lb.outcome,
-                text=lb.supporting_quote,
+                text=enc_by_id[lb.encounter_id].get("text") or "",
             )
             for lb in labels
         ]
 
         pathways = simple_link_patient(pid, simple_encs, link_window_days=window_days)
+
+        labeled_for_route: list[tuple[str, str, str]] = sorted(
+            [
+                (
+                    lb.encounter_date or "",
+                    enc_by_id[lb.encounter_id].get("text") or "",
+                    lb.role,
+                )
+                for lb in labels
+            ],
+            key=lambda x: x[0],
+        )
 
         # Compare each gold episode to the detected pathways
         for (ep_pid, ep_id), milestones in gold_by_ep.items():
@@ -558,12 +654,27 @@ def run_simple(
 
             # Pick the pathway whose anchors are closest to the gold episode
             def _pathway_diff(pw):
-                d1 = _date_diff(pw.dx.encounter_date if pw.dx else None, gold_dx)
-                d2 = _date_diff(pw.ftr.encounter_date if pw.ftr else None, gold_ftr)
-                vals = [v for v in [d1, d2] if v is not None]
-                return min(vals) if vals else 9999
+                detected_pathway_site = (
+                    str(pw.ftr_site)
+                    if pw.ftr_site
+                    else str(pw.dx.site)
+                    if pw.dx and pw.dx.site
+                    else None
+                )
+                return _anchor_match_cost(
+                    gold_ftr=gold_ftr,
+                    gold_seen=gold_seen,
+                    gold_dx=gold_dx,
+                    gold_tx=gold_tx,
+                    detected_ftr=(pw.ftr.encounter_date if pw.ftr else None),
+                    detected_seen=(pw.seen.encounter_date if pw.seen else None),
+                    detected_dx=(pw.dx.encounter_date if pw.dx else None),
+                    detected_tx=(pw.treatment.encounter_date if pw.treatment else None),
+                    gold_site=_gold_site(milestones[0]["cancer_type"]),
+                    detected_site=detected_pathway_site,
+                )
 
-            best = min(pathways, key=_pathway_diff) if pathways else None
+            best = min(pathways, key=_pathway_diff) if pathways and gold_cohort != "?" else None
 
             detected_cohort = best.cohort if best else "?"
             detected_ftr = (best.ftr.encounter_date if best and best.ftr else None)
@@ -579,12 +690,25 @@ def run_simple(
                 _compare_anchor("Treatment", gold_tx, detected_tx),
             ]
 
+            if best:
+                rc = classify_diagnosis_route(
+                    best,
+                    labeled_encounters=labeled_for_route,
+                )
+                diagnosis_route = rc.route
+                route_rationale = list(rc.rationale)
+            else:
+                diagnosis_route = "unknown"
+                route_rationale = ["no_matching_pathway"]
+
             result[pid].append({
                 "episode_id": ep_id,
                 "cancer_type": milestones[0]["cancer_type"],
                 "gold_cohort": gold_cohort,
                 "detected_cohort": detected_cohort,
                 "detected_site": detected_site,
+                "diagnosis_route": diagnosis_route,
+                "route_rationale": route_rationale,
                 "anchors": anchors,
                 "n_pathways": len(pathways),
                 "pathway_notes": best.notes if best else [],
@@ -604,6 +728,9 @@ def _fmt_simple(result: dict) -> str:
             lines.append(f"  Gold cohort: {ep['gold_cohort']}  Detected cohort: {ep['detected_cohort']}")
             cohort_ok = ep["gold_cohort"] == ep["detected_cohort"]
             lines.append(f"  Cohort match: {'OK' if cohort_ok else '!!'}")
+            dr = ep.get("diagnosis_route", "unknown")
+            rr = ep.get("route_rationale") or []
+            lines.append(f"  Diagnosis route: {dr}  ({'; '.join(rr)})")
             lines.append(f"  {'Anchor':<12} {'Gold date':<14} {'Detected date':<14} {'Diff':>6}  Status")
             lines.append(f"  {'-'*12} {'-'*14} {'-'*14} {'-'*6}  {'-'*10}")
             for anchor in ep["anchors"]:

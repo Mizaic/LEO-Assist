@@ -291,6 +291,11 @@ def test_write_gold_training_widens_short_sentence_with_context() -> None:
     assert "No cough." in stored_text
     assert "SOB" in stored_text
     assert "O2 sats 96%." in stored_text
+    stored_entities = json.loads(session.run.call_args.kwargs["entities_json"])
+    assert stored_entities[0]["text"] == "SOB"
+    assert stored_text[
+        stored_entities[0]["start"] : stored_entities[0]["end"]
+    ] == "SOB"
 
 
 def test_write_gold_training_leaves_long_sentence_unchanged() -> None:

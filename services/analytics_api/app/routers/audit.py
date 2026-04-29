@@ -68,7 +68,9 @@ from ._audit_sections import (
     _q_cancer_type,
     _q_consultations,
     _q_demographics,
+    _q_fast_track_referrals,
     _q_investigations,
+    _q_nss_outcomes,
     _q_place,
     _q_referrals,
     _q_safety_netting,
@@ -98,6 +100,19 @@ def audit_summary(
 
     client = PatientGraphClient()
     try:
+        # --- Headline total: ALL ncda_detector episodes (including cohort 3
+        # which has no referral).  This is the true NCDA 'total audited' count.
+        total_count_rows = client.run(
+            f"{base}"
+            "RETURN count(DISTINCT ep) AS n",
+            **params,
+        )
+        total = int((total_count_rows[0] or {}).get("n") or 0) if total_count_rows else 0
+
+        # --- Per-episode detail: referral-gated subset only (cohorts 1a + 1b).
+        # Used for PCI / DI interval and consultation calculations which
+        # require a known referral_date anchor.  Cohort 3 (no referral) is
+        # correctly excluded from these metric calculations.
         rows = client.run(
             f"{base}"
             "AND ep.referral_date IS NOT NULL "
@@ -161,6 +176,21 @@ def audit_summary(
             "RETURN count(DISTINCT ep) AS n",
             **params,
         )
+
+        # NCDA cohort breakdown: 1a (FTR + cancer found), 1b (FTR + benign),
+        # 3 (cancer found, no FTR).  Surfaced as headline cards in the
+        # redesigned Summary section.
+        cohort_rows = client.run(
+            f"{base}"
+            "RETURN coalesce(ep.cohort, 'unknown') AS cohort, "
+            "count(DISTINCT ep) AS n",
+            **params,
+        )
+        cohort_counts: dict[str, int] = {"1a": 0, "1b": 0, "3": 0}
+        for row in cohort_rows or []:
+            key = str(row.get("cohort") or "unknown")
+            if key in cohort_counts:
+                cohort_counts[key] = int(row.get("n") or 0)
 
         # MECE hero-card bucket counts -- run against the FULL cohort
         # (every EpisodeOfCare not in the always-excluded admin set), so
@@ -242,7 +272,9 @@ def audit_summary(
             except Exception:
                 return None
 
-        total = len(rows)
+        # total is set above from the all-episode count query (includes cohort 3).
+        # active is derived from the referral-gated rows subset because cohort-3
+        # episodes have no referral anchor and are always closed (never active).
         active = sum(1 for r in rows if r.get("ep_status") not in _CLOSED)
         # Headline 'Confirmed Cancers' uses the NCDA canonical cohort:
         # completed episode + not letter-inferred-benign + has a
@@ -286,6 +318,12 @@ def audit_summary(
         return {
             "total_episodes": total,
             "active_episodes": active,
+            # NCDA cohort breakdown (ncda_detector source).
+            # 1a = FTR + cancer found, 1b = FTR + cancer excluded,
+            # 3 = cancer found without FTR.
+            "cohort_1a_n": cohort_counts["1a"],
+            "cohort_1b_n": cohort_counts["1b"],
+            "cohort_3_n": cohort_counts["3"],
             # MECE lifecycle decomposition of the full cohort. The four
             # new fields sum to total_cohort_episodes by construction
             # and drive the four dashboard hero cards. The pre-existing
@@ -495,6 +533,53 @@ def audit_referrals(
             "referrals",
             client,
         )
+    finally:
+        client.close()
+
+
+@router.get("/audit/fast-track-referrals")
+def audit_fast_track_referrals(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None),
+    date_to: Optional[str] = Query(default=None),
+    benchmark_set_id: Optional[str] = Query(default=None),
+):
+    """Distribution of fast-track referral tumour sites for confirmed-cancer episodes."""
+    client = PatientGraphClient()
+    try:
+        return _run_multi_scope(
+            _q_fast_track_referrals,
+            org_id,
+            scope,
+            date_from,
+            date_to,
+            benchmark_set_id,
+            "ftr_site",
+            client,
+        )
+    finally:
+        client.close()
+
+
+@router.get("/audit/fast-track-referrals/nss-outcomes")
+def audit_fast_track_referrals_nss_outcomes(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None),
+    date_to: Optional[str] = Query(default=None),
+):
+    """Outcomes for NSS (non-site-specific) fast-track referral episodes.
+
+    Returns all episodes with referral_site = 'non_site_specific', grouped by
+    eventual cancer type (or 'No cancer diagnosed').  Practice-scope only --
+    this is a patient-level drilldown, analogous to symptoms/drilldown.
+    """
+    client = PatientGraphClient()
+    try:
+        base, params = _episode_base(org_id, scope)
+        base, params = _add_date_filters(base, params, date_from, date_to)
+        return _q_nss_outcomes(base, params, client)
     finally:
         client.close()
 

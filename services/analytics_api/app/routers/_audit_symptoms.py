@@ -58,20 +58,31 @@ from ._audit_sections import _SAFE_BIRTH_DATE, _SAFE_REFERRAL_DATE
 logger = logging.getLogger(__name__)
 
 
-# Anchor symptom evidence to the referral. Default lookback follows the NCDA
-# 12-month presenting-complaint window. ``ep`` and ``enc`` are bound by the
-# caller; this expression returns true when ``enc.date`` is on/before the
-# referral date and within the lookback window.
+# Anchor symptom evidence to the audited episode's referral date against each
+# linked patient's encounters (:HAS_ENCOUNTER), ±7 calendar days.
+#
+# Window: ±7 days of ep.referral_date against each encounter's calendar date.
+# Missing ``enc.date`` is treated as the referral date so coded encounters
+# linked without a date stamp still match (common on migrated encounters).
+#
+# SNOMED id may live on ``s`` or ``d`` (relationship carries ``conceptId`` too).
 _SYMPTOM_WINDOW_PREDICATE = (
-    "enc.date IS NOT NULL "
-    "AND ep.referral_date IS NOT NULL "
-    "AND enc.date <= date(toString(ep.referral_date)) "
-    "AND enc.date >= coalesce("
-    "  CASE WHEN trim(coalesce(toString(ep.first_presentation_date), '')) = '' "
+    "ep.referral_date IS NOT NULL "
+    "AND coalesce("
+    "  CASE WHEN enc.date IS NULL OR trim(toString(enc.date)) = '' "
     "    THEN NULL "
-    "    ELSE date(toString(ep.first_presentation_date)) END, "
-    "  date(toString(ep.referral_date)) - duration('P365D'))"
+    "    ELSE date(toString(enc.date)) END, "
+    "  date(toString(ep.referral_date))) "
+    ">= date(toString(ep.referral_date)) - duration('P7D') "
+    "AND coalesce("
+    "  CASE WHEN enc.date IS NULL OR trim(toString(enc.date)) = '' "
+    "    THEN NULL "
+    "    ELSE date(toString(enc.date)) END, "
+    "  date(toString(ep.referral_date))) "
+    "<= date(toString(ep.referral_date)) + duration('P7D')"
 )
+
+_SYMPTOM_CONCEPT_EXPR = "coalesce(toString(s.conceptId), toString(d.conceptId))"
 
 _REFERRAL_MILESTONE_EXISTS = (
     "EXISTS { MATCH (:Encounter)-[__ref:IS_PART_OF]->(ep) "
@@ -330,20 +341,31 @@ def _fetch_symptom_evidence(
     client: PatientGraphClient,
     symptom_all_ids: list[str],
 ) -> list[dict[str, Any]]:
-    """Distinct symptom concept ids per patient, anchored at referral."""
+    """Distinct symptom concept ids per patient, ±7 days of referral date.
+
+    Uses any patient encounter with SNOMED symptom coding (ValueSet ids).
+    Encounters do not require ``IS_PART_OF`` linkage when coding exists before
+    pathway stitching (still anchored to ``ep`` referral date).
+
+    The domain on DOCUMENTS is set by the terminology API (typically 'clinical'),
+    so we filter by ValueSet concept IDs only - no domain predicate.
+
+    Concept IDs are read from the SNOMED node and/or the DOCUMENTS rel (legacy).
+    """
     if not symptom_all_ids:
         return []
+    cid = _SYMPTOM_CONCEPT_EXPR
     return client.run(
         f"{base}"
         "WITH p, ep ORDER BY p.id, ep.referral_date DESC "
         "WITH p, head(collect(ep)) AS ep "
         "WHERE ep IS NOT NULL "
         "MATCH (p)-[:HAS_ENCOUNTER]->(enc)-[d:DOCUMENTS]->(s) "
-        "WHERE coalesce(d.domain, '') = 'symptoms' "
-        "  AND toString(s.conceptId) IN $symptom_ids "
+        f"WHERE {cid} IS NOT NULL AND trim({cid}) <> '' "
+        f"  AND {cid} IN $symptom_ids "
         f"  AND {_SYMPTOM_WINDOW_PREDICATE} "
         "RETURN toString(p.id) AS pid, "
-        "  collect(DISTINCT toString(s.conceptId)) AS concept_ids",
+        f"  collect(DISTINCT {cid}) AS concept_ids",
         **{**params, "symptom_ids": symptom_all_ids},
     )
 
@@ -357,19 +379,23 @@ def _patient_symptom_terms(
     rows: list[dict[str, Any]],
     id_to_term: dict[str, str],
 ) -> dict[str, set[str]]:
-    """Map pid -> set of top-level symptom group keys."""
+    """Map pid -> set of top-level symptom group keys.
+
+    The Cypher query collapses concept_ids per pid via collect(DISTINCT ...),
+    but this helper merges by pid as well so callers can pass partial
+    aggregations (e.g. unioning two evidence sources) without losing
+    earlier hits for the same patient.
+    """
     out: dict[str, set[str]] = {}
     for row in rows:
         pid = str(row.get("pid") or "")
         if not pid:
             continue
-        terms: set[str] = set()
+        bucket = out.setdefault(pid, set())
         for cid in row.get("concept_ids") or []:
             term = id_to_term.get(str(cid))
             if term:
-                terms.add(term)
-        if terms:
-            out[pid] = terms
+                bucket.add(term)
     return out
 
 
@@ -617,13 +643,99 @@ def _q_ppv_by_suspected_cancer_type(
 # ---------------------------------------------------------------------------
 
 
+def _build_ppv_table_rows(
+    patient_rows: list[dict[str, Any]],
+    pid_cancer_terms: dict[str, list[str]],
+    pid_symptom_terms: dict[str, set[str]],
+    symptom_ordered_keys: list[str],
+    symptom_display: dict[str, str],
+    cancer_order_display: list[str],
+) -> list[dict[str, Any]]:
+    """Build the clinical PPV table: cancer_type × symptom.
+
+    For each (suspected cancer type, symptom) pair:
+      - ``patients_with_feature``: distinct patients in that cancer-type
+        referral cohort who had the symptom at the referral encounter.
+      - ``patients_with_cancer``: subset of the above who received a
+        confirmed cancer diagnosis on that episode.
+      - ``ppv_pct``: patients_with_cancer / patients_with_feature * 100.
+
+    Only rows where ``patients_with_feature > 0`` are included.
+    Results are sorted by registry cancer-type order then by
+    ``patients_with_feature`` descending.
+    """
+    # Bucket patients by suspected cancer type
+    suspected_buckets: dict[str, set[str]] = {}
+    confirmed_pids: set[str] = set()
+    for row in patient_rows:
+        pid = str(row.get("pid") or "")
+        if not pid:
+            continue
+        label = _suspected_cancer_label(
+            pid_cancer_terms.get(pid),
+            row.get("cancer_type_raw"),
+        )
+        suspected_buckets.setdefault(label, set()).add(pid)
+        if bool(row.get("is_confirmed")):
+            confirmed_pids.add(pid)
+
+    # Stable ordering: registry order first, then alphabetical extras
+    sorted_cancer_types: list[str] = []
+    for label in cancer_order_display:
+        if label in suspected_buckets and label not in sorted_cancer_types:
+            sorted_cancer_types.append(label)
+    for label in sorted(suspected_buckets.keys()):
+        if label not in sorted_cancer_types:
+            sorted_cancer_types.append(label)
+
+    table_rows: list[dict[str, Any]] = []
+    for cancer_type in sorted_cancer_types:
+        type_pids = suspected_buckets[cancer_type]
+        type_rows: list[dict[str, Any]] = []
+        for key in symptom_ordered_keys:
+            symptom_label = symptom_display.get(key, key)
+            with_feature = {
+                pid for pid in type_pids
+                if key in pid_symptom_terms.get(pid, set())
+            }
+            n_feature = len(with_feature)
+            if n_feature == 0:
+                continue
+            n_cancer = sum(1 for pid in with_feature if pid in confirmed_pids)
+            ppv_pct = round(n_cancer * 100.0 / n_feature, 1)
+            type_rows.append(
+                {
+                    "cancer_type": cancer_type,
+                    "symptom": symptom_label,
+                    "patients_with_feature": n_feature,
+                    "patients_with_cancer": n_cancer,
+                    "ppv_pct": ppv_pct,
+                }
+            )
+        # Sort within cancer type: by patients_with_feature desc, then symptom
+        type_rows.sort(key=lambda r: (-r["patients_with_feature"], r["symptom"]))
+        table_rows.extend(type_rows)
+
+    return table_rows
+
+
 def _q_symptoms(
     base: str,
     params: dict,
     client: PatientGraphClient,
     date_to: Optional[str] = None,
 ) -> dict:
-    """Symptom prevalence at referral plus PPV by suspected cancer type."""
+    """Symptom evidence at referral (±7 days) with PPV per cancer type × symptom.
+
+    Primary output is ``rows``: each row is a (suspected cancer type, symptom)
+    pair with distinct-patient counts for 'has feature' and 'has feature AND
+    confirmed cancer', plus the PPV percentage.
+
+    Symptom evidence is read from DOCUMENTS relationships on encounters within
+    ±7 days of the episode's referral date, using only the SNOMED concept IDs
+    from the ncda-symptoms ValueSet (no domain filter -- the terminology API
+    sets domain = 'clinical').
+    """
     kg = KnowledgeGraphClient()
     try:
         registry = _ensure_registry(kg)
@@ -669,82 +781,28 @@ def _q_symptoms(
         1 for r in patient_rows if bool(r.get("has_referral_milestone"))
     )
     cohort_n = len(patient_rows)
-    denom = max(cohort_n, 1)
 
-    symptom_counts: dict[str, int] = {key: 0 for key in symptom_ordered_keys}
-    for terms in pid_symptom_terms.values():
-        for t in terms:
-            if t in symptom_counts:
-                symptom_counts[t] += 1
+    cancer_bucket_order = [cancer_display.get(k, k) for k in cancer_order]
 
-    symptoms = [
-        {
-            "symptom": symptom_display.get(key, key),
-            "n": symptom_counts.get(key, 0),
-            "pct": round(symptom_counts.get(key, 0) * 100.0 / denom, 1),
-        }
-        for key in symptom_ordered_keys
-    ]
-    symptoms.sort(key=lambda r: (-r["n"], r["symptom"]))
-
-    suspected_pids: dict[str, set[str]] = {}
-    diagnosed_pids: dict[str, set[str]] = {}
-    for row in patient_rows:
-        pid = str(row.get("pid") or "")
-        if not pid:
-            continue
-        suspected_label = _suspected_cancer_label(
-            pid_cancer_terms.get(pid),
-            row.get("cancer_type_raw"),
-        )
-        suspected_pids.setdefault(suspected_label, set()).add(pid)
-        if bool(row.get("is_confirmed")):
-            confirmed_label = (
-                pid_cancer_terms.get(pid, [None])[0]
-                if pid_cancer_terms.get(pid)
-                else normalise_cancer_type(
-                    (row.get("cancer_type_raw") or "").strip() or "No Information"
-                )
-            )
-            diagnosed_pids.setdefault(confirmed_label or "No Information", set()).add(pid)
-
-    cancer_bucket_order = [
-        cancer_display.get(k, k) for k in cancer_order
-    ]
-
-    heatmap_by_suspected = _heatmap_rows(
-        suspected_pids,
-        pid_symptom_terms,
-        symptom_ordered_keys,
-        symptom_display,
-        cancer_bucket_order,
-    )
-    heatmap_by_diagnosed = _heatmap_rows(
-        diagnosed_pids,
+    table_rows = _build_ppv_table_rows(
+        patient_rows,
+        pid_cancer_terms,
         pid_symptom_terms,
         symptom_ordered_keys,
         symptom_display,
         cancer_bucket_order,
     )
 
-    ppv_rows = _q_ppv_by_suspected_cancer_type(
+    # Referral-cohort PPV per cancer type (for hero cards / provisional flags)
+    ppv_hero_rows = _q_ppv_by_suspected_cancer_type(
         base, params, client, patient_rows, pid_cancer_terms, date_to
     )
 
     return {
         "total_referrals": total_referrals,
         "cohort_n": cohort_n,
-        "symptom_axis": [
-            {
-                "key": key,
-                "symptom": symptom_display.get(key, key),
-            }
-            for key in symptom_ordered_keys
-        ],
-        "symptoms": symptoms,
-        "heatmap_by_suspected_cancer_type": heatmap_by_suspected,
-        "heatmap_by_diagnosed_cancer_type": heatmap_by_diagnosed,
-        "ppv_by_suspected_cancer_type": ppv_rows,
+        "rows": table_rows,
+        "ppv_by_suspected_cancer_type": ppv_hero_rows,
     }
 
 
@@ -752,10 +810,7 @@ def _empty_symptoms_payload() -> dict:
     return {
         "total_referrals": 0,
         "cohort_n": 0,
-        "symptom_axis": [],
-        "symptoms": [],
-        "heatmap_by_suspected_cancer_type": [],
-        "heatmap_by_diagnosed_cancer_type": [],
+        "rows": [],
         "ppv_by_suspected_cancer_type": [],
     }
 
