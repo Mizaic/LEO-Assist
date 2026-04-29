@@ -19,7 +19,8 @@
  *          context, with no SummaryStatsTable present.
  *   AC4 -- CancerTypeRadarCard.tsx exposes an SVG aria-label, an
  *          n-badge, an empty-state caption and a low-sample caption to
- *          mitigate R-C700EACC (sparse current-year card misread).
+ *          mitigate R-C700EACC (sparse current-year card misread), plus
+ *          keyboard-accessible point tooltips for counts.
  *   AC5 -- both new files carry the canonical Atlas trace header
  *          pointing at DO-BFF68D36 / DI-077C8810.
  */
@@ -171,6 +172,12 @@ describe("VT-AFEDEB85 Cancer Type radar evolution chrome", () => {
 
     test("draws a dashed ghost polygon for the baseline overlay", () => {
       expect(card).toMatch(/strokeDasharray/);
+    });
+
+    test("renders keyboard-accessible point tooltips with counts", () => {
+      expect(card).toMatch(/role="tooltip"/);
+      expect(card).toMatch(/tabIndex=\{0\}/);
+      expect(card).toMatch(/countLabel/);
     });
   });
 

@@ -43,6 +43,7 @@ interface IntervalStripPlotProps {
   allianceMedian?: number | null;
   unit?: string;
   maxDays?: number;
+  noDataMessage?: string;
 }
 
 function jitter(index: number, total: number): number {
@@ -61,9 +62,13 @@ export default function IntervalStripPlot({
   allianceMedian,
   unit = "days",
   maxDays = 365,
+  noDataMessage,
 }: IntervalStripPlotProps) {
   const filtered = patients.filter(
-    (p) => p[intervalKey] != null && (p[intervalKey] as number) <= maxDays
+    (p) =>
+      p[intervalKey] != null &&
+      (p[intervalKey] as number) >= 0 &&
+      (p[intervalKey] as number) <= maxDays
   );
   const points = filtered.map((p, i) => ({
     x: p[intervalKey] as number,
@@ -133,7 +138,7 @@ export default function IntervalStripPlot({
 
       {noData ? (
         <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
-          No {label.toLowerCase()} data available for the selected period.
+          {noDataMessage ?? `No ${label.toLowerCase()} data available for the selected period.`}
         </Typography>
       ) : (
         <Box

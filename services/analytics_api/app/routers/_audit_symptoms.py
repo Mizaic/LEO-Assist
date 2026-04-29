@@ -66,20 +66,18 @@ logger = logging.getLogger(__name__)
 # linked without a date stamp still match (common on migrated encounters).
 #
 # SNOMED id may live on ``s`` or ``d`` (relationship carries ``conceptId`` too).
+_SAFE_ENCOUNTER_DATE = (
+    "CASE "
+    "  WHEN enc.date IS NULL OR trim(toString(enc.date)) = '' THEN NULL "
+    "  ELSE date(toString(enc.date)) "
+    "END"
+)
 _SYMPTOM_WINDOW_PREDICATE = (
-    "ep.referral_date IS NOT NULL "
-    "AND coalesce("
-    "  CASE WHEN enc.date IS NULL OR trim(toString(enc.date)) = '' "
-    "    THEN NULL "
-    "    ELSE date(toString(enc.date)) END, "
-    "  date(toString(ep.referral_date))) "
-    ">= date(toString(ep.referral_date)) - duration('P7D') "
-    "AND coalesce("
-    "  CASE WHEN enc.date IS NULL OR trim(toString(enc.date)) = '' "
-    "    THEN NULL "
-    "    ELSE date(toString(enc.date)) END, "
-    "  date(toString(ep.referral_date))) "
-    "<= date(toString(ep.referral_date)) + duration('P7D')"
+    f"({_SAFE_REFERRAL_DATE}) IS NOT NULL "
+    f"AND coalesce(({_SAFE_ENCOUNTER_DATE}), ({_SAFE_REFERRAL_DATE})) "
+    f">= ({_SAFE_REFERRAL_DATE}) - duration('P7D') "
+    f"AND coalesce(({_SAFE_ENCOUNTER_DATE}), ({_SAFE_REFERRAL_DATE})) "
+    f"<= ({_SAFE_REFERRAL_DATE}) + duration('P7D')"
 )
 
 _SYMPTOM_CONCEPT_EXPR = "coalesce(toString(s.conceptId), toString(d.conceptId))"
@@ -103,6 +101,9 @@ _AGE_BAND_ORDER: tuple[str, ...] = (
     "85+",
     "unknown",
 )
+
+BucketMap = dict[str, set[str]]
+DrilldownBucketTuple = tuple[BucketMap, BucketMap, BucketMap, BucketMap]
 
 
 def _ensure_registry(kg: KnowledgeGraphClient) -> DomainRegistry:
@@ -460,9 +461,7 @@ def _heatmap_rows(
     """
     rows: list[dict[str, Any]] = []
     seen_buckets = [b for b in bucket_order if b in bucket_pids and bucket_pids[b]]
-    extras = sorted(
-        b for b in bucket_pids if bucket_pids[b] and b not in seen_buckets
-    )
+    extras = sorted(b for b in bucket_pids if bucket_pids[b] and b not in seen_buckets)
     for bucket in seen_buckets + extras:
         pids = bucket_pids.get(bucket) or set()
         denom = len(pids)
@@ -499,12 +498,14 @@ def _resolve_ep_status(
     if is_confirmed and has_diagnosis_milestone:
         return "diagnosed"
     status = (ep_status or "").lower()
-    if (
-        status in {"closed_benign", "closed", "completed"}
-        or letter_benign
-    ):
+    if status in {"closed_benign", "closed", "completed"} or letter_benign:
         return "no_cancer"
     return "unresolved"
+
+
+def _has_in_year_diagnosis(row: dict[str, Any]) -> bool:
+    """Return true when the audited episode has confirmed diagnosis evidence."""
+    return bool(row.get("is_confirmed")) and bool(row.get("has_diagnosis_milestone"))
 
 
 def _fetch_following_year_diagnosis_pids(
@@ -520,7 +521,9 @@ def _fetch_following_year_diagnosis_pids(
     the follow-year window directly.
     """
     cc_pred = confirmed_cancer_where("ep2")
-    follow_params = {k: v for k, v in params.items() if k not in {"date_from", "date_to"}}
+    follow_params = {
+        k: v for k, v in params.items() if k not in {"date_from", "date_to"}
+    }
     rows = client.run(
         f"{base}"
         "WITH DISTINCT p "
@@ -609,9 +612,7 @@ def _q_ppv_by_suspected_cancer_type(
     rows_out: list[dict[str, Any]] = []
     for label, b in buckets.items():
         resolved = (
-            b["referrals_n"]
-            - b["unresolved_n"]
-            - b["diagnosed_following_year_n"]
+            b["referrals_n"] - b["unresolved_n"] - b["diagnosed_following_year_n"]
         )
         ppv_pct = (
             round(b["diagnosed_in_year_n"] * 100.0 / resolved, 1)
@@ -671,12 +672,14 @@ def _build_ppv_table_rows(
         pid = str(row.get("pid") or "")
         if not pid:
             continue
+        if not bool(row.get("has_referral_milestone")):
+            continue
         label = _suspected_cancer_label(
             pid_cancer_terms.get(pid),
             row.get("cancer_type_raw"),
         )
         suspected_buckets.setdefault(label, set()).add(pid)
-        if bool(row.get("is_confirmed")):
+        if _has_in_year_diagnosis(row):
             confirmed_pids.add(pid)
 
     # Stable ordering: registry order first, then alphabetical extras
@@ -695,8 +698,7 @@ def _build_ppv_table_rows(
         for key in symptom_ordered_keys:
             symptom_label = symptom_display.get(key, key)
             with_feature = {
-                pid for pid in type_pids
-                if key in pid_symptom_terms.get(pid, set())
+                pid for pid in type_pids if key in pid_symptom_terms.get(pid, set())
             }
             n_feature = len(with_feature)
             if n_feature == 0:
@@ -867,43 +869,24 @@ def _q_symptoms_drilldown(
     symptom_rows = _fetch_symptom_evidence(base, params, client, symptom_all_ids)
     pid_symptom_terms = _patient_symptom_terms(symptom_rows, symptom_id_to_term)
 
-    age_buckets: dict[str, set[str]] = {}
-    gender_buckets: dict[str, set[str]] = {}
-    suspected_buckets: dict[str, set[str]] = {}
-    diagnosed_buckets: dict[str, set[str]] = {}
-    for row in patient_rows:
-        pid = str(row.get("pid") or "")
-        if not pid:
-            continue
-        age_buckets.setdefault(str(row.get("age_band") or "unknown"), set()).add(pid)
-        gender_buckets.setdefault(
-            str(row.get("gender_bucket") or "unknown"), set()
-        ).add(pid)
-        suspected_label = _suspected_cancer_label(
-            pid_cancer_terms.get(pid),
-            row.get("cancer_type_raw"),
-        )
-        suspected_buckets.setdefault(suspected_label, set()).add(pid)
-        if bool(row.get("is_confirmed")):
-            confirmed = (
-                pid_cancer_terms.get(pid, [None])[0]
-                if pid_cancer_terms.get(pid)
-                else normalise_cancer_type(
-                    (row.get("cancer_type_raw") or "").strip() or "No Information"
-                )
-            )
-            diagnosed_buckets.setdefault(
-                confirmed or "No Information", set()
-            ).add(pid)
+    age_buckets, gender_buckets, suspected_buckets, diagnosed_buckets = (
+        _build_drilldown_buckets(patient_rows, pid_cancer_terms)
+    )
 
     by_age_band = _slice_table(
-        age_buckets, _AGE_BAND_ORDER, pid_symptom_terms,
-        symptom_ordered_keys, symptom_display,
+        age_buckets,
+        _AGE_BAND_ORDER,
+        pid_symptom_terms,
+        symptom_ordered_keys,
+        symptom_display,
     )
     gender_order = ("male", "female", "unknown")
     by_gender = _slice_table(
-        gender_buckets, gender_order, pid_symptom_terms,
-        symptom_ordered_keys, symptom_display,
+        gender_buckets,
+        gender_order,
+        pid_symptom_terms,
+        symptom_ordered_keys,
+        symptom_display,
         label_fn=lambda g: g.capitalize(),
     )
     cancer_bucket_order = [cancer_display.get(k, k) for k in cancer_order]
@@ -937,6 +920,34 @@ def _q_symptoms_drilldown(
     }
 
 
+def _build_drilldown_buckets(
+    patient_rows: list[dict[str, Any]],
+    pid_cancer_terms: dict[str, list[str]],
+) -> DrilldownBucketTuple:
+    """Bucket patients for symptom drilldown slices."""
+    age_buckets: dict[str, set[str]] = {}
+    gender_buckets: dict[str, set[str]] = {}
+    suspected_buckets: dict[str, set[str]] = {}
+    diagnosed_buckets: dict[str, set[str]] = {}
+    for row in patient_rows:
+        pid = str(row.get("pid") or "")
+        if not pid:
+            continue
+        age_buckets.setdefault(str(row.get("age_band") or "unknown"), set()).add(pid)
+        gender_buckets.setdefault(
+            str(row.get("gender_bucket") or "unknown"), set()
+        ).add(pid)
+        suspected_label = _suspected_cancer_label(
+            pid_cancer_terms.get(pid),
+            row.get("cancer_type_raw"),
+        )
+        if bool(row.get("has_referral_milestone")):
+            suspected_buckets.setdefault(suspected_label, set()).add(pid)
+            if _has_in_year_diagnosis(row):
+                diagnosed_buckets.setdefault(suspected_label, set()).add(pid)
+    return age_buckets, gender_buckets, suspected_buckets, diagnosed_buckets
+
+
 def _slice_table(
     bucket_pids: dict[str, set[str]],
     bucket_order: tuple[str, ...] | tuple,
@@ -964,9 +975,7 @@ def _slice_table(
             }
         )
     if include_extras:
-        leftovers = sorted(
-            k for k in bucket_pids if bucket_pids[k] and k not in seen
-        )
+        leftovers = sorted(k for k in bucket_pids if bucket_pids[k] and k not in seen)
         for key in leftovers:
             pids = bucket_pids[key]
             denom = len(pids)

@@ -16,6 +16,7 @@ audit endpoint agrees on what 'confirmed cancer episode' means
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import Optional
 
 from libs.analytics import confirmed_cancer_where
@@ -50,6 +51,30 @@ _FTR_CONCEPT_LABEL: dict[str, str] = {
 
 _FTR_IDS_STR: list[str] = [str(c) for c in sorted(FAST_TRACK_REFERRAL_IDS)]
 _NSS_CONCEPT_ID = "1556551000000104"
+_UNCODED_FTR_SITE_ID = "__uncoded__"
+
+_FTR_TEXT_SITE_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("1556551000000104", ("non-site-specific", "non site specific", " nss ")),
+    ("276581000000102", ("brain tumour", "brain tumor")),
+    (
+        "276341000000100",
+        ("2ww breast", "breast clinic", "breast cancer", "breast neoplasm"),
+    ),
+    ("276371000000106", ("children's tumour", "childrens tumour")),
+    ("276401000000108", ("colorectal", "bowel cancer", "rectal")),
+    ("892201000000106", ("lower gi", "lower gastrointestinal")),
+    ("276311000000101", ("gynaecolog", "gynecolog", "ovarian", "endometrial")),
+    ("276461000000107", ("haematolog", "hematolog", "lymphoma", "myeloma")),
+    ("280521000000108", ("head and neck", "neck cancer", "thyroid")),
+    ("276491000000101", ("lung cancer", "chest clinic", "mesothelioma")),
+    ("276521000000103", ("sarcoma",)),
+    ("276281000000104", ("dermatology", "derm", "skin cancer", "melanoma")),
+    (
+        "276551000000108",
+        ("upper gi", "upper gastrointestinal", "pancreatic", "hepatobiliary", "hpb"),
+    ),
+    ("276431000000102", ("urology", "urological", "prostate", "bladder")),
+)
 
 _SAFE_BIRTH_DATE = (
     "CASE "
@@ -68,6 +93,25 @@ _SAFE_FIRST_PRESENTATION_DATE = (
     "  WHEN trim(coalesce(toString(ep.first_presentation_date), '')) = '' THEN NULL "
     "  ELSE date(toString(ep.first_presentation_date)) "
     "END"
+)
+_STAGING_EARLY_LATE_VALUE = (
+    "toLower(trim(coalesce(toString(ep.staging_early_late), '')))"
+)
+_STAGE_GROUP_EXPR = (
+    "CASE "
+    f"  WHEN {_STAGING_EARLY_LATE_VALUE} IN ['early', 'late'] "
+    "THEN toLower(trim(toString(ep.staging_early_late))) "
+    "  ELSE 'unknown' "
+    "END"
+)
+_STAGING_VALUE_EXPR = (
+    "CASE "
+    "  WHEN trim(coalesce(toString(ep.staging_value), '')) = '' THEN 'unknown' "
+    "  ELSE trim(toString(ep.staging_value)) "
+    "END"
+)
+_STAGING_RECORDED_EXPR = (
+    f"{_STAGING_EARLY_LATE_VALUE} IN ['early', 'late']"
 )
 
 
@@ -111,21 +155,9 @@ def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
 # ---------------------------------------------------------------------------
 
 
-def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict:
-    confirmed_base = (
-        f"{base}"
-        f"AND {confirmed_cancer_where('ep')} "
-    )
-
-    rows = client.run(
-        f"{confirmed_base}"
-        "RETURN coalesce(ep.cancer_stage, 'unknown') AS stage_group, "
-        "count(DISTINCT ep) AS n "
-        "ORDER BY stage_group",
-        **params,
-    )
+def _stage_percent_rows(rows: list[dict]) -> list[dict]:
     total = sum(r["n"] for r in rows) or 1
-    by_stage = [
+    return [
         {
             "stage_group": r["stage_group"],
             "n": r["n"],
@@ -134,25 +166,85 @@ def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict
         for r in rows
     ]
 
+
+def _stage_detail_payload(rows: list[dict]) -> list[dict]:
+    return [
+        {
+            "cancer_stage_group": r["cancer_stage_group"],
+            "staging_value": r["cancer_stage_group"],
+            "stage_group": r["stage_group"],
+            "n": r["n"],
+        }
+        for r in rows
+    ]
+
+
+def _stage_coverage(
+    confirmed_base: str,
+    params: dict,
+    client: PatientGraphClient,
+) -> tuple[float, int, int]:
+    denom_row = client.run(
+        f"{confirmed_base}RETURN count(DISTINCT ep) AS denom",
+        **params,
+    )
+    numerator_row = client.run(
+        f"{confirmed_base}"
+        f"RETURN count(DISTINCT CASE WHEN {_STAGING_RECORDED_EXPR} "
+        "THEN ep END) AS numer",
+        **params,
+    )
+    denom = int((denom_row[0] or {}).get("denom") or 0) if denom_row else 0
+    numer = int((numerator_row[0] or {}).get("numer") or 0) if numerator_row else 0
+    coverage = round((numer * 100.0 / denom), 1) if denom > 0 else 0.0
+    return coverage, numer, denom
+
+
+def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict:
+    confirmed_base = (
+        f"{base}"
+        f"AND {confirmed_cancer_where('ep')} "
+    )
+
+    rows = client.run(
+        f"{confirmed_base}"
+        f"WITH ep, {_STAGE_GROUP_EXPR} AS stage_group "
+        "RETURN stage_group, "
+        "count(DISTINCT ep) AS n "
+        "ORDER BY stage_group",
+        **params,
+    )
+    by_stage = _stage_percent_rows(rows)
+
     by_system_rows = client.run(
         f"{confirmed_base}"
-        "RETURN coalesce(ep.staging_system, 'unknown') AS staging_system, "
+        "WITH CASE "
+        "  WHEN trim(coalesce(toString(ep.staging_system), '')) = '' THEN 'unknown' "
+        "  ELSE trim(toString(ep.staging_system)) "
+        "END AS staging_system, ep "
+        "RETURN staging_system, "
         "count(DISTINCT ep) AS n "
         "ORDER BY n DESC, staging_system",
         **params,
     )
     by_source_rows = client.run(
         f"{confirmed_base}"
-        "RETURN coalesce(ep.staging_source, 'none') AS staging_source, "
+        "WITH CASE "
+        "  WHEN trim(coalesce(toString(ep.staging_source), '')) = '' THEN 'none' "
+        "  ELSE trim(toString(ep.staging_source)) "
+        "END AS staging_source, ep "
+        "RETURN staging_source, "
         "count(DISTINCT ep) AS n "
         "ORDER BY n DESC, staging_source",
         **params,
     )
     group_rows = client.run(
         f"{confirmed_base}"
-        "WITH ep "
-        "WHERE coalesce(ep.cancer_stage_group, '') <> '' "
-        "RETURN ep.cancer_stage_group AS cancer_stage_group, "
+        f"WITH ep, {_STAGING_VALUE_EXPR} AS staging_value, "
+        f"{_STAGE_GROUP_EXPR} AS stage_group "
+        "WHERE staging_value <> 'unknown' "
+        "RETURN staging_value AS cancer_stage_group, "
+        "stage_group, "
         "count(DISTINCT ep) AS n "
         "ORDER BY n DESC, cancer_stage_group",
         **params,
@@ -160,7 +252,7 @@ def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict
     by_cancer_type_rows = client.run(
         f"{confirmed_base}"
         "WITH coalesce(ep.cancer_type, 'unknown') AS cancer_type, "
-        "     coalesce(ep.cancer_stage, 'unknown') AS stage_group, "
+        f"     {_STAGE_GROUP_EXPR} AS stage_group, "
         "     count(DISTINCT ep) AS n "
         "WITH cancer_type, collect({stage_group: stage_group, n: n}) AS buckets, "
         "sum(n) AS total "
@@ -176,19 +268,7 @@ def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict
         **params,
     )
 
-    denom_row = client.run(
-        f"{confirmed_base}RETURN count(DISTINCT ep) AS denom",
-        **params,
-    )
-    numerator_row = client.run(
-        f"{confirmed_base}"
-        "RETURN count(DISTINCT CASE WHEN coalesce(ep.cancer_stage, 'unknown') "
-        "<> 'unknown' THEN ep END) AS numer",
-        **params,
-    )
-    denom = int((denom_row[0] or {}).get("denom") or 0) if denom_row else 0
-    numer = int((numerator_row[0] or {}).get("numer") or 0) if numerator_row else 0
-    coverage = round((numer * 100.0 / denom), 1) if denom > 0 else 0.0
+    coverage, numer, denom = _stage_coverage(confirmed_base, params, client)
 
     return {
         "rows": by_stage,
@@ -199,10 +279,7 @@ def _q_cancer_stage(base: str, params: dict, client: PatientGraphClient) -> dict
         "by_source": [
             {"staging_source": r["staging_source"], "n": r["n"]} for r in by_source_rows
         ],
-        "by_stage_group_detail": [
-            {"cancer_stage_group": r["cancer_stage_group"], "n": r["n"]}
-            for r in group_rows
-        ],
+        "by_stage_group_detail": _stage_detail_payload(group_rows),
         "by_cancer_type": [
             {
                 "cancer_type": normalise_cancer_type(r["cancer_type"]),
@@ -411,7 +488,14 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
 def _q_place(base: str, params: dict, client: PatientGraphClient) -> list:
     rows = client.run(
         f"{base}"
-        "RETURN coalesce(ep.place_of_presentation, 'Not recorded') AS place, "
+        "WITH ep, CASE "
+        "  WHEN trim(coalesce(toString(ep.place_of_presentation), '')) <> '' "
+        "THEN trim(toString(ep.place_of_presentation)) "
+        "  WHEN trim(coalesce(toString(ep.place_of_presetnation), '')) <> '' "
+        "THEN trim(toString(ep.place_of_presetnation)) "
+        "  ELSE 'Not recorded' "
+        "END AS place "
+        "RETURN place, "
         "count(DISTINCT ep) AS n "
         "ORDER BY n DESC",
         **params,
@@ -579,48 +663,91 @@ def _q_referrals(base: str, params: dict, client: PatientGraphClient) -> list:
 # ---------------------------------------------------------------------------
 
 
+def _infer_ftr_concept_id(cids: list, texts: list) -> str:
+    coded = sorted({str(cid) for cid in cids if cid is not None})
+    if coded:
+        return coded[0]
+    joined = f" {' '.join(str(t or '') for t in texts)} ".lower()
+    for concept_id, phrases in _FTR_TEXT_SITE_PATTERNS:
+        if any(phrase in joined for phrase in phrases):
+            return concept_id
+    return _UNCODED_FTR_SITE_ID
+
+
 def _q_fast_track_referrals(base: str, params: dict, client: PatientGraphClient) -> list:
-    # Query SNOMED concept IDs directly from the referral milestone encounters.
-    # This is the source of truth -- ep.referral_site is a denormalised field
-    # with inconsistent values across scripts; the SNOMED concept IDs are not.
+    # The denominator is the NCDA FTR cohort (1a + 1b), matching the dashboard
+    # hero cards. Coded SNOMED sites win; when missing, infer from the referral
+    # wording such as "Fast Track Referral for Suspected X cancer".
     rows = client.run(
         f"{base}"
-        "MATCH (enc:Encounter)-[__mp:IS_PART_OF]->(ep) "
-        "WHERE __mp.milestone_type = 'referral' "
-        "MATCH (enc)-[:DOCUMENTS]->(c) "
-        "WHERE toString(c.conceptId) IN $ftr_ids "
-        "RETURN toString(c.conceptId) AS concept_id, count(DISTINCT ep) AS n "
-        "ORDER BY n DESC",
-        **{**params, "ftr_ids": _FTR_IDS_STR},
+        "AND coalesce(ep.cohort, '') IN ['1a', '1b'] "
+        "WITH DISTINCT ep "
+        "OPTIONAL MATCH (enc:Encounter)-[__mp:IS_PART_OF]->(ep) "
+        "  WHERE __mp.milestone_type = 'referral' "
+        "OPTIONAL MATCH (enc)-[:DOCUMENTS]->(c) "
+        "  WHERE toString(c.conceptId) IN $ftr_ids "
+        "RETURN ep.episode_id AS episode_id, "
+        "collect(DISTINCT toString(c.conceptId)) AS cids, "
+        "collect(DISTINCT enc.text) AS texts",
+        **{
+            **params,
+            "ftr_ids": _FTR_IDS_STR,
+        },
     )
-    total = sum(r["n"] for r in rows) or 1
+    by_concept: Counter = Counter()
+    for row in rows:
+        concept_id = _infer_ftr_concept_id(row.get("cids") or [], row.get("texts") or [])
+        by_concept[concept_id] += 1
+    total = sum(by_concept.values()) or 1
     return [
         {
-            "referral_site": _FTR_CONCEPT_LABEL.get(r["concept_id"], r["concept_id"]),
-            "concept_id": r["concept_id"],
-            "n": r["n"],
-            "pct": round(r["n"] * 100.0 / total, 1),
+            "referral_site": _FTR_CONCEPT_LABEL.get(
+                concept_id, "Uncoded site"
+            ),
+            "concept_id": concept_id,
+            "n": n,
+            "pct": round(n * 100.0 / total, 1),
         }
-        for r in rows
+        for concept_id, n in by_concept.most_common()
     ]
 
 
 def _q_nss_outcomes(base: str, params: dict, client: PatientGraphClient) -> dict:
-    # Query NSS outcomes via SNOMED concept 1556551000000104 on referral milestone
-    # encounters -- the canonical NSS 2WW referral code, not ep.referral_site.
+    # Two complementary ways to identify NSS episodes:
+    #  1. Legacy path: DOCUMENTS -> SNOMED concept 1556551000000104 on the referral
+    #     milestone encounter (used by the old NER-based detector).
+    #  2. ncda_detector path: ep.nss_referral = true, written at write-back time
+    #     when Y3dd2 appears in the FTR encounter text.
+    # Both return (episode_id, outcome) rows; UNION deduplicates across sources.
+    confirmed_clause = confirmed_cancer_where("ep")
+    outcome_expr = (
+        f"CASE WHEN {confirmed_clause} "
+        "THEN coalesce(ep.cancer_type, 'Cancer diagnosed') "
+        "ELSE 'No cancer diagnosed' END"
+    )
     rows = client.run(
+        # SNOMED-DOCUMENTS path (legacy)
         f"{base}"
         "MATCH (enc:Encounter)-[__mp:IS_PART_OF]->(ep) "
         "WHERE __mp.milestone_type = 'referral' "
         "MATCH (enc)-[:DOCUMENTS]->(c) "
         "WHERE toString(c.conceptId) = $nss_id "
-        "RETURN coalesce(ep.cancer_type, 'No cancer diagnosed') AS outcome, "
-        "count(DISTINCT ep) AS n "
-        "ORDER BY n DESC",
+        f"RETURN ep.episode_id AS eid, {outcome_expr} AS outcome "
+        "UNION "
+        # ep.nss_referral path (ncda_detector)
+        f"{base}"
+        "AND ep.nss_referral = true "
+        f"RETURN ep.episode_id AS eid, {outcome_expr} AS outcome",
         **{**params, "nss_id": _NSS_CONCEPT_ID},
     )
-    total = sum(r["n"] for r in rows) or 0
-    outcomes = [{"outcome": r["outcome"], "n": r["n"]} for r in rows]
+    outcome_counter: Counter = Counter()
+    for r in rows:
+        outcome_counter[r["outcome"]] += 1
+    outcomes = sorted(
+        [{"outcome": k, "n": v} for k, v in outcome_counter.items()],
+        key=lambda x: -x["n"],
+    )
+    total = sum(o["n"] for o in outcomes) or 0
     no_cancer_n = next(
         (o["n"] for o in outcomes if o["outcome"] == "No cancer diagnosed"), 0
     )

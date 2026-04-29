@@ -1,0 +1,42 @@
+{
+  "generated_at": "20260429T061711Z",
+  "mode": "apply",
+  "window_days": 180,
+  "diagnosis_patient_count": 43,
+  "episode_candidate_count": 61,
+  "raw_pathway_count": 203,
+  "open_referral_count": 89,
+  "patients_with_no_pathways": 0,
+  "route_counts": {
+    "emergency_or_urgent_care": 7,
+    "external_or_unknown_route": 2,
+    "fast_track_clinic_referral_missing": 1,
+    "gp_surgery_fast_track": 42,
+    "screening": 8,
+    "secondary_care_surgical": 1
+  },
+  "cohort_counts": {
+    "1a": 36,
+    "1b": 12,
+    "3": 13
+  },
+  "raw_cohort_counts": {
+    "1a": 52,
+    "1b": 24,
+    "2": 89,
+    "3": 38
+  },
+  "site_counts": {
+    "breast": 12,
+    "gynaecological": 4,
+    "haematological": 1,
+    "head_neck": 4,
+    "lower_gi": 8,
+    "lung": 2,
+    "nss": 1,
+    "skin": 10,
+    "unknown": 1,
+    "upper_gi": 3,
+    "urological": 15
+  }
+}

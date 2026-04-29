@@ -39,6 +39,7 @@ export const FTR_CONCEPT_LABELS: Record<string, string> = {
   "280521000000108": "Head & Neck",
   "892201000000106": "Lower GI",
   "1556551000000104": "NSS",
+  "__uncoded__": "Uncoded site",
 };
 
 export const NSS_CONCEPT_ID = "1556551000000104";
@@ -59,14 +60,19 @@ function buildAxesForYear(
 ): AxisDatum[] {
   // Key by concept_id — the SNOMED source of truth
   const lookup = new Map<string, number>();
+  const countLookup = new Map<string, number>();
   for (const row of rows ?? []) {
     const cid = row.concept_id;
-    if (cid) lookup.set(cid, (lookup.get(cid) ?? 0) + (row.pct ?? 0));
+    if (cid) {
+      lookup.set(cid, (lookup.get(cid) ?? 0) + (row.pct ?? 0));
+      countLookup.set(cid, (countLookup.get(cid) ?? 0) + (row.n ?? 0));
+    }
   }
   return FTR_AXIS_ORDER.map((cid) => ({
     key: cid,
     label: FTR_CONCEPT_LABELS[cid] ?? cid,
     value: lookup.has(cid) ? (lookup.get(cid) as number) : null,
+    count: countLookup.has(cid) ? (countLookup.get(cid) as number) : null,
   }));
 }
 

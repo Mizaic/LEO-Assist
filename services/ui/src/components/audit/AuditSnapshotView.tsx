@@ -193,8 +193,8 @@ function deriveMetrics(
   return [
     { id: "early_stage",        label: "Early stage diagnosis",       unit: "%",     sectionId: "section-cancer-stage",     higherIsBetter: true,  live: earlyRow?.pct ?? null,                     baseline: resolveBenchmarkValue(bm, "cancer_stage.early_stage_pct", orgSelected) },
     { id: "fewer_than_3",       label: "Fewer than 3 consultations",  unit: "%",     sectionId: "section-consultations",    higherIsBetter: true,  live: consultPractice?.fewer_than_3_pct ?? null, baseline: resolveBenchmarkValue(bm, "consultations.fewer_than_3_pct", orgSelected) },
-    { id: "tww_referral",       label: "TWW referral rate",           unit: "%",     sectionId: "section-referrals",        higherIsBetter: true,  live: twwRow?.pct ?? null,                       baseline: resolveBenchmarkValue(bm, "referrals.tww_pct", orgSelected) },
-    { id: "emergency_referral", label: "Emergency referral rate",     unit: "%",     sectionId: "section-referrals",        higherIsBetter: false, live: emgRow?.pct ?? null,                       baseline: resolveBenchmarkValue(bm, "referrals.emergency_pct", orgSelected) },
+    { id: "tww_referral",       label: "TWW referral rate",           unit: "%",     sectionId: "section-ftr-types",        higherIsBetter: true,  live: twwRow?.pct ?? null,                       baseline: resolveBenchmarkValue(bm, "referrals.tww_pct", orgSelected) },
+    { id: "emergency_referral", label: "Emergency referral rate",     unit: "%",     sectionId: "section-ftr-types",        higherIsBetter: false, live: emgRow?.pct ?? null,                       baseline: resolveBenchmarkValue(bm, "referrals.emergency_pct", orgSelected) },
     { id: "pci_days",           label: "Median time to referral",     unit: " days", sectionId: "section-pci",              higherIsBetter: false, threshold: 1, live: intervalPractice?.pci.median ?? null, baseline: resolveBenchmarkValue(bm, "primary_care_interval.median_pci_days", orgSelected) },
     { id: "di_days",            label: "Median time to diagnosis",    unit: " days", sectionId: "section-di",               higherIsBetter: false, threshold: 3, live: intervalPractice?.di.median ?? null,  baseline: resolveBenchmarkValue(bm, "diagnostic_interval.median_di_days", orgSelected) },
     { id: "safety_netting",     label: "Safety netting recorded",     unit: "%",     sectionId: "section-safety-netting",   higherIsBetter: true,  live: snPractice?.recorded_pct ?? null,          baseline: resolveBenchmarkValue(bm, "safety_netting.recorded_pct", orgSelected) },
@@ -798,7 +798,7 @@ export default function AuditSnapshotView({
                 <SummaryCard
                   title="Referrals"
                   practiceLabel={practiceLabel} englandLabel={englandLabel}
-                  onView={() => onViewInReport("section-referrals")}
+                  onView={() => onViewInReport("section-ftr-types")}
                   rows={[
                     { label: "Two Week Wait (TWW)", practice: fmtPct(twwRow?.pct), england: fmtPct(resolveBenchmarkValue(bm, "referrals.tww_pct", orgSelected)) },
                     { label: "Emergency", practice: fmtPct(emgRow?.pct), england: fmtPct(resolveBenchmarkValue(bm, "referrals.emergency_pct", orgSelected)) },

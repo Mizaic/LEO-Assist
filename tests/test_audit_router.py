@@ -366,6 +366,16 @@ class TestIntervalStats:
             "trim(coalesce(effective_diag_date, '')) <> ''" in q for q in queries
         )
 
+    def test_pci_does_not_count_missing_first_presentation_as_zero_days(self):
+        from services.analytics_api.app.routers._audit_intervals import (
+            DI_START_DATE_EXPR,
+            FP_DATE_EXPR,
+        )
+
+        assert "ep.first_presentation_date" in FP_DATE_EXPR
+        assert "THEN toString(ep.referral_date)" not in FP_DATE_EXPR
+        assert "THEN toString(ep.referral_date)" in DI_START_DATE_EXPR
+
 
 class TestAuditDemographics:
     def test_query_guards_empty_temporal_strings(self):

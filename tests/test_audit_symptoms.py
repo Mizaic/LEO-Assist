@@ -16,6 +16,7 @@ import pytest
 
 from services.analytics_api.app.routers import _audit_symptoms as mod
 from services.analytics_api.app.routers._audit_symptoms import (
+    _build_drilldown_buckets,
     _build_ppv_table_rows,
     _follow_year_window,
     _heatmap_rows,
@@ -30,9 +31,7 @@ from services.analytics_api.app.routers._audit_symptoms import (
 
 class TestSuspectedCancerLabel:
     def test_prefers_snomed_terms_over_raw(self):
-        assert (
-            _suspected_cancer_label(["Breast"], "lung") == "Breast"
-        )
+        assert _suspected_cancer_label(["Breast"], "lung") == "Breast"
 
     def test_falls_back_to_normalised_raw(self):
         assert _suspected_cancer_label(None, "breast") == "Breast"
@@ -43,27 +42,16 @@ class TestSuspectedCancerLabel:
 
 class TestResolveEpStatus:
     def test_diagnosed_when_confirmed_with_milestone(self):
-        assert (
-            _resolve_ep_status(True, True, "in_progress", False) == "diagnosed"
-        )
+        assert _resolve_ep_status(True, True, "in_progress", False) == "diagnosed"
 
     def test_no_cancer_for_closed_benign(self):
-        assert (
-            _resolve_ep_status(False, False, "closed_benign", False)
-            == "no_cancer"
-        )
+        assert _resolve_ep_status(False, False, "closed_benign", False) == "no_cancer"
 
     def test_no_cancer_for_letter_inferred_benign(self):
-        assert (
-            _resolve_ep_status(False, False, "in_progress", True)
-            == "no_cancer"
-        )
+        assert _resolve_ep_status(False, False, "in_progress", True) == "no_cancer"
 
     def test_unresolved_for_in_progress_without_outcome(self):
-        assert (
-            _resolve_ep_status(False, False, "in_progress", False)
-            == "unresolved"
-        )
+        assert _resolve_ep_status(False, False, "in_progress", False) == "unresolved"
 
 
 class TestFollowYearWindow:
@@ -95,6 +83,27 @@ class TestPatientSymptomTerms:
         assert {"cough"} == out["P2"]
 
 
+class TestSymptomEvidenceQuery:
+    def test_referral_window_uses_safe_referral_date_guard(self):
+        class FakeClient:
+            query = ""
+
+            def run(self, query, **params):  # noqa: ANN001, ANN202, ARG002
+                self.query = query
+                return []
+
+        client = FakeClient()
+        mod._fetch_symptom_evidence(
+            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) ",
+            {},
+            client,
+            ["123"],
+        )
+
+        assert "trim(coalesce(toString(ep.referral_date), '')) = ''" in client.query
+        assert "date(toString(enc.date))" in client.query
+
+
 class TestPatientCancerTerms:
     def test_orders_by_registry_then_alpha(self):
         rows = [{"pid": "P1", "concept_ids": ["10", "20"]}]
@@ -119,8 +128,16 @@ class TestSymptomRowsForSlice:
             group_key_to_display={"cough": "Cough", "fatigue": "Fatigue"},
             denom=3,
         )
-        assert rows[0] == {"symptom": "Cough", "n": 2, "pct": pytest.approx(66.7, abs=0.1)}
-        assert rows[1] == {"symptom": "Fatigue", "n": 1, "pct": pytest.approx(33.3, abs=0.1)}
+        assert rows[0] == {
+            "symptom": "Cough",
+            "n": 2,
+            "pct": pytest.approx(66.7, abs=0.1),
+        }
+        assert rows[1] == {
+            "symptom": "Fatigue",
+            "n": 1,
+            "pct": pytest.approx(33.3, abs=0.1),
+        }
 
 
 class TestHeatmapRows:
@@ -142,7 +159,9 @@ class TestHeatmapRows:
             ["Breast", "Lung"],
         )
         breast_cough = next(
-            c for c in cells if c["bucket_label"] == "Breast" and c["symptom"] == "Cough"
+            c
+            for c in cells
+            if c["bucket_label"] == "Breast" and c["symptom"] == "Cough"
         )
         assert breast_cough == {
             "bucket_key": "Breast",
@@ -188,9 +207,7 @@ class TestPpvBucketing:
             self._patient_row(
                 pid="P1", is_confirmed=True, has_diagnosis_milestone=True
             ),
-            self._patient_row(
-                pid="P2", is_confirmed=False, ep_status="closed_benign"
-            ),
+            self._patient_row(pid="P2", is_confirmed=False, ep_status="closed_benign"),
         ]
         rows = _q_ppv_by_suspected_cancer_type(
             base="MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) WHERE true ",
@@ -220,9 +237,7 @@ class TestPpvBucketing:
                 pid="P1", is_confirmed=True, has_diagnosis_milestone=True
             ),
             # P2 had no in-year diagnosis but did get diagnosed Y+1.
-            self._patient_row(
-                pid="P2", is_confirmed=False, ep_status="closed"
-            ),
+            self._patient_row(pid="P2", is_confirmed=False, ep_status="closed"),
         ]
         rows = _q_ppv_by_suspected_cancer_type(
             base="MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) WHERE true ",
@@ -364,6 +379,33 @@ class TestBuildPpvTableRows:
         )
         assert rows == []
 
+    def test_referral_cohort_excludes_rows_without_referral_milestone(self):
+        patient_rows = [
+            self._row("P1", True, "colorectal"),
+            self._row(
+                "P2",
+                True,
+                "colorectal",
+                has_referral_milestone=False,
+            ),
+        ]
+        pid_symptom_terms = {
+            "P1": {"abdominal_pain"},
+            "P2": {"abdominal_pain"},
+        }
+
+        rows = _build_ppv_table_rows(
+            patient_rows=patient_rows,
+            pid_cancer_terms={},
+            pid_symptom_terms=pid_symptom_terms,
+            symptom_ordered_keys=["abdominal_pain"],
+            symptom_display={"abdominal_pain": "Abdominal pain"},
+            cancer_order_display=["Colorectal"],
+        )
+
+        assert rows[0]["patients_with_feature"] == 1
+        assert rows[0]["patients_with_cancer"] == 1
+
     def test_sorted_by_registry_cancer_order_then_feature_count(self):
         from services.analytics_api.app.routers._audit_symptoms import (
             _build_ppv_table_rows,
@@ -384,7 +426,11 @@ class TestBuildPpvTableRows:
         # Force explicit labels via pid_cancer_terms
         rows = _build_ppv_table_rows(
             patient_rows=patient_rows,
-            pid_cancer_terms={"P1": ["Skin cancer"], "P2": ["Breast cancer"], "P3": ["Skin cancer"]},
+            pid_cancer_terms={
+                "P1": ["Skin cancer"],
+                "P2": ["Breast cancer"],
+                "P3": ["Skin cancer"],
+            },
             pid_symptom_terms=pid_symptom_terms,
             symptom_ordered_keys=["rash"],
             symptom_display={"rash": "Rash"},
@@ -392,3 +438,37 @@ class TestBuildPpvTableRows:
         )
         cancer_types = [r["cancer_type"] for r in rows]
         assert cancer_types == ["Skin cancer", "Breast cancer"]
+
+
+class TestDrilldownBucketing:
+    def _row(self, pid, **kw):
+        base = {
+            "pid": pid,
+            "age_band": "50-64",
+            "gender_bucket": "female",
+            "is_confirmed": False,
+            "has_referral_milestone": True,
+            "has_diagnosis_milestone": False,
+            "cancer_type_raw": "colorectal",
+        }
+        base.update(kw)
+        return base
+
+    def test_suspected_and_diagnosed_buckets_use_milestone_qualified_counts(self):
+        _, _, suspected, diagnosed = _build_drilldown_buckets(
+            [
+                self._row("P1", is_confirmed=True, has_diagnosis_milestone=True),
+                self._row("P2", is_confirmed=True, has_diagnosis_milestone=False),
+                self._row("P3", has_referral_milestone=False),
+                self._row(
+                    "P4",
+                    is_confirmed=True,
+                    has_diagnosis_milestone=True,
+                    has_referral_milestone=False,
+                ),
+            ],
+            {},
+        )
+
+        assert suspected["Colorectal"] == {"P1", "P2"}
+        assert diagnosed["Colorectal"] == {"P1"}

@@ -49,6 +49,12 @@ interface BaselineEntry {
   pct: number;
 }
 
+interface AxisSource {
+  type: string;
+  pct: number | null;
+  count?: number | null;
+}
+
 function canonicalToMetricKey(canonical: string): string {
   return canonical.toLowerCase().replace(/\s+/g, "_");
 }
@@ -124,21 +130,24 @@ function buildAxisOrder(
 function buildAxesForYear(
   axisOrder: string[],
   rows: AuditCancerTypeRow[] | BaselineEntry[] | null,
-  rowAccessor: (row: AuditCancerTypeRow | BaselineEntry) => {
-    type: string;
-    pct: number | null;
-  },
+  rowAccessor: (row: AuditCancerTypeRow | BaselineEntry) => AxisSource,
 ): AxisDatum[] {
   const lookup = new Map<string, number>();
+  const countLookup = new Map<string, number>();
   let otherTotal = 0;
+  let otherCount: number | null = null;
   let otherSeen = false;
   for (const row of rows ?? []) {
-    const { type, pct } = rowAccessor(row);
+    const { type, pct, count } = rowAccessor(row);
     if (pct == null) continue;
     if (axisOrder.includes(type) && type !== CANCER_TYPE_OTHER) {
       lookup.set(type, (lookup.get(type) ?? 0) + pct);
+      if (count != null) {
+        countLookup.set(type, (countLookup.get(type) ?? 0) + count);
+      }
     } else {
       otherTotal += pct;
+      if (count != null) otherCount = (otherCount ?? 0) + count;
       otherSeen = true;
     }
   }
@@ -148,12 +157,14 @@ function buildAxesForYear(
         key,
         label: CANCER_TYPE_OTHER,
         value: otherSeen ? otherTotal : null,
+        count: otherCount,
       };
     }
     return {
       key,
       label: key,
       value: lookup.has(key) ? (lookup.get(key) as number) : null,
+      count: countLookup.has(key) ? (countLookup.get(key) as number) : null,
     };
   });
 }
@@ -277,6 +288,7 @@ export default function CancerTypeEvolutionSection({
           return {
             type: normaliseCancerType(r.cancer_type),
             pct: r.pct ?? null,
+          count: r.n ?? null,
           };
         }),
       ),

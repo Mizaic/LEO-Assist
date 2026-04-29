@@ -64,6 +64,7 @@ interface GraphNode {
   label: string;
   group: "symptom" | "cancer" | "age" | "gender";
   value: number;
+  displayValue?: number;
   metric: number;
 }
 
@@ -141,6 +142,9 @@ function buildGraph(
     if (!ex) nodeMap.set(n.id, { ...n });
     else {
       if (n.value > ex.value) ex.value = n.value;
+      if ((n.displayValue ?? n.value) > (ex.displayValue ?? ex.value)) {
+        ex.displayValue = n.displayValue ?? n.value;
+      }
       if (n.metric > ex.metric) ex.metric = n.metric;
     }
   };
@@ -152,11 +156,25 @@ function buildGraph(
   ) => {
     for (const slice of slices) {
       const tid = `${targetGroup}:${slice.slice_key}`;
-      upsert({ id: tid, label: slice.slice_label, group: targetGroup, value: slice.cohort_n, metric: 0 });
+      upsert({
+        id: tid,
+        label: slice.slice_label,
+        group: targetGroup,
+        value: slice.cohort_n,
+        displayValue: slice.cohort_n,
+        metric: 0,
+      });
       for (const row of slice.rows) {
         if (row.n < minN) continue;
         const sid = `symptom:${row.symptom}`;
-        upsert({ id: sid, label: row.symptom, group: "symptom", value: row.n, metric: row.pct });
+        upsert({
+          id: sid,
+          label: row.symptom,
+          group: "symptom",
+          value: row.n,
+          displayValue: row.n,
+          metric: row.pct,
+        });
         links.push({ source: sid, target: tid, type, value: row.n, metric: row.pct });
         // propagate metric to target
         const t = nodeMap.get(tid);
@@ -310,6 +328,10 @@ function filterGraphByCancerTargets(
   };
 }
 
+function buildNodeOrder(graph: GraphData): Map<string, number> {
+  return new Map(graph.nodes.map((node, index) => [node.id, index]));
+}
+
 // ── Canvas rendering helpers ───────────────────────────────────────────────────
 
 function drawPill(
@@ -368,6 +390,7 @@ type SkLink = SankeyLink<SkNodeData, SkLinkData>;
 interface SankeyPanelProps {
   data: GraphData;
   edgeType: "referral" | "diagnosis";
+  nodeOrder: Map<string, number>;
   width: number;
   height: number;
   hovered: GraphNode | null;
@@ -382,6 +405,7 @@ interface SankeyPanelProps {
 function SankeyPanel({
   data,
   edgeType,
+  nodeOrder,
   width,
   height,
   hovered,
@@ -434,6 +458,11 @@ function SankeyPanel({
       .nodeId((n) => n.id)
       .nodeWidth(12)
       .nodePadding(isCompact ? 8 : 12)
+      .nodeSort(
+        (a, b) =>
+          (nodeOrder.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (nodeOrder.get(b.id) ?? Number.MAX_SAFE_INTEGER),
+      )
       .nodeAlign((n) => (n.group === "symptom" ? 0 : 1))
       .extent([
         [labelGutter, chartTop],
@@ -441,7 +470,7 @@ function SankeyPanel({
       ]);
 
     return sk({ nodes: nodesIn, links: linksIn } as SankeyGraph<SkNodeData, SkLinkData>);
-  }, [data, edgeType, isCompact, labelGutter, targetGutter, svgWidth, height]);
+  }, [data, edgeType, isCompact, labelGutter, nodeOrder, targetGutter, svgWidth, height]);
 
   if (!layout) {
     return (
@@ -465,7 +494,8 @@ function SankeyPanel({
 
   const linkPath = sankeyLinkHorizontal<SkNodeData, SkLinkData>();
   const edgeCol = LINK_COLOR[edgeType];
-  const maxNodeValue = Math.max(1, ...layout.nodes.map((n) => n.value ?? 0));
+  const nodeCount = (node: SkNode) => node.displayValue ?? node.value ?? 0;
+  const maxNodeValue = Math.max(1, ...layout.nodes.map((n) => nodeCount(n)));
 
   const truncate = (label: string, maxChars: number) =>
     label.length > maxChars ? `${label.slice(0, maxChars - 1)}...` : label;
@@ -547,8 +577,9 @@ function SankeyPanel({
           const labelX = isLeft ? x0 - labelPad : x1 + labelPad;
           const mainY = Math.max(18, Math.min(height - 30, (y0 + y1) / 2 - 5));
           const metaY = mainY + 14;
+          const count = nodeCount(node);
           const valueBarWidth = isLeft
-            ? Math.max(14, Math.min(isCompact ? 42 : 60, ((node.value ?? 0) / maxNodeValue) * 60))
+            ? Math.max(14, Math.min(isCompact ? 42 : 60, (count / maxNodeValue) * 60))
             : 0;
           const fill =
             node.group === "symptom"
@@ -560,7 +591,7 @@ function SankeyPanel({
               opacity={lit ? 1 : 0.22}
               onMouseEnter={() => onHover(node)}
               onMouseLeave={() => onHover(null)}
-              aria-label={`${node.label}: ${node.value} patient${(node.value ?? 0) !== 1 ? "s" : ""}`}
+              aria-label={`${node.label}: ${count} patient${count !== 1 ? "s" : ""}`}
               style={{ cursor: "pointer", transition: "opacity 0.15s" }}
             >
               <rect
@@ -607,7 +638,7 @@ function SankeyPanel({
                 fontFamily="system-ui, sans-serif"
                 style={{ pointerEvents: "none", userSelect: "none" }}
               >
-                {node.value} {isCompact ? "pt" : "patient"}{!isCompact && (node.value ?? 0) !== 1 ? "s" : ""}
+                {count} {isCompact ? "pt" : "patient"}{!isCompact && count !== 1 ? "s" : ""}
                 {node.metric > 0 ? ` · ${node.metric}%` : ""}
               </text>
             </g>
@@ -703,6 +734,7 @@ function SankeyPanel({
 interface SankeyViewProps {
   data: GraphData;
   view: ViewMode;
+  nodeOrder: Map<string, number>;
   width: number;
   height: number;
   hovered: GraphNode | null;
@@ -713,6 +745,7 @@ interface SankeyViewProps {
 function SankeyView({
   data,
   view,
+  nodeOrder,
   width,
   height,
   hovered,
@@ -743,6 +776,7 @@ function SankeyView({
         <SankeyPanel
           data={data}
           edgeType="referral"
+          nodeOrder={nodeOrder}
           width={width}
           height={halfH}
           hovered={hovered}
@@ -769,6 +803,7 @@ function SankeyView({
         <SankeyPanel
           data={data}
           edgeType="diagnosis"
+          nodeOrder={nodeOrder}
           width={width}
           height={halfH}
           hovered={hovered}
@@ -783,6 +818,7 @@ function SankeyView({
     <SankeyPanel
       data={data}
       edgeType={view === "diagnosis" ? "diagnosis" : "referral"}
+      nodeOrder={nodeOrder}
       width={width}
       height={height}
       hovered={hovered}
@@ -1063,6 +1099,12 @@ export default function SymptomsDrilldownDialog({
     () => filterGraphByCancerTargets(fullGraphData, selectedCancerIds),
     [fullGraphData, selectedCancerIds],
   );
+
+  const sankeyNodeOrder = useMemo(() => {
+    if (!data) return new Map<string, number>();
+    const combinedGraph = buildGraph(data, "compare", new Set(), minN);
+    return buildNodeOrder(filterGraphByCancerTargets(combinedGraph, selectedCancerIds));
+  }, [data, minN, selectedCancerIds]);
 
   const toggleCancer = (id: string) =>
     setSelectedCancerIds((prev) => {
@@ -1505,6 +1547,7 @@ export default function SymptomsDrilldownDialog({
             <SankeyView
               data={graphData}
               view={view}
+              nodeOrder={sankeyNodeOrder}
               width={dims.w}
               height={dims.h}
               hovered={hovered}

@@ -78,7 +78,8 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
         nationalMedian={nationalMedian}
         nationalLabel={nationalLabel}
         allianceMedian={allianceMedian}
-        maxDays={180}
+        maxDays={90}
+        noDataMessage="No first-presentation dates are captured for this audit cohort, so time to referral cannot be calculated without showing misleading 0-day intervals."
       />
       {(practice?.pci?.n ?? 0) > (practice?.patients?.length ?? 0) && (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right", mt: 0.5 }}>

@@ -163,7 +163,8 @@ describe("VT-D5B9FE5F Symptoms audit section chrome", () => {
 
     test("renders clinical PPV heatmap cards using rows field", () => {
       expect(section).toMatch(/TumourSiteHeatmapCard/);
-      expect(section).toMatch(/Symptom PPV heatmaps by suspected cancer type/);
+      // Plain-English heading per .cursor/rules/health-literacy.mdc.
+      expect(section).toMatch(/Which symptoms led to cancer, by tumour site/);
       expect(section).toMatch(/patients_with_feature/);
       expect(section).toMatch(/patients_with_cancer/);
       expect(section).toMatch(/ppv_pct/);
@@ -254,6 +255,20 @@ describe("VT-D5B9FE5F Symptoms audit section chrome", () => {
       expect(dialog).toMatch(/sankeyLinkHorizontal/);
       expect(dialog).toMatch(/SankeyView/);
       expect(dialog).toMatch(/SankeyPanel/);
+    });
+
+    test("Sankey keeps node order stable when toggling referral and diagnosis", () => {
+      expect(dialog).toMatch(/buildNodeOrder/);
+      expect(dialog).toMatch(/sankeyNodeOrder/);
+      expect(dialog).toMatch(/buildGraph\(data,\s*"compare",\s*new Set\(\),\s*minN\)/);
+      expect(dialog).toMatch(/nodeSort/);
+    });
+
+    test("Sankey labels use distinct cohort counts rather than summed ribbons", () => {
+      expect(dialog).toMatch(/displayValue\?:\s*number/);
+      expect(dialog).toMatch(/displayValue:\s*slice\.cohort_n/);
+      expect(dialog).toMatch(/const\s+nodeCount\s*=\s*\(node:\s*SkNode\)/);
+      expect(dialog).toMatch(/node\.displayValue\s*\?\?\s*node\.value/);
     });
 
     test("Sankey Compare mode stacks Referral and Diagnosis panels", () => {

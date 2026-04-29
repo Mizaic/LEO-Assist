@@ -59,6 +59,7 @@ from ._audit_helpers import (
 )
 from ._audit_intervals import (
     INFERRED_CANCER_DIAG_CASE,
+    DI_START_DATE_EXPR,
     FP_DATE_EXPR,
     _q_intervals,
 )
@@ -128,6 +129,7 @@ def audit_summary(
             f"WITH p, ep, diag_date, "
             f"{INFERRED_CANCER_DIAG_CASE} AS effective_diag_date, "
             f"{FP_DATE_EXPR} AS fp_date, "
+            f"{DI_START_DATE_EXPR} AS di_start_date, "
             "  CASE "
             "    WHEN trim(coalesce(toString(ep.referral_date), '')) = '' "
             "      THEN NULL "
@@ -152,12 +154,13 @@ def audit_summary(
             "      referral_date_value - duration('P365D')) "
             "WITH ep.status AS ep_status, "
             "     fp_date, "
+            "     di_start_date, "
             "     toString(ep.referral_date) AS ref_date, "
             "     ep.safety_netting_recorded AS sn, "
             "     effective_diag_date AS diag_date, "
             "     diag_is_inferred, "
             "     count(DISTINCT enc2) AS consultation_count "
-            "RETURN ep_status, fp_date, ref_date, sn, "
+            "RETURN ep_status, fp_date, di_start_date, ref_date, sn, "
             "diag_date, diag_is_inferred, consultation_count",
             **params,
         )
@@ -294,11 +297,14 @@ def audit_summary(
             v
             for r in rows
             if (v := _safe_days(r.get("fp_date"), r.get("ref_date"))) is not None
+            and v >= 0
         )
         di_vals = sorted(
             v
             for r in rows
-            if (v := _safe_days(r.get("fp_date"), r.get("diag_date"))) is not None
+            if (v := _safe_days(r.get("di_start_date"), r.get("diag_date")))
+            is not None
+            and v >= 0
         )
         consult_vals = [
             r["consultation_count"]

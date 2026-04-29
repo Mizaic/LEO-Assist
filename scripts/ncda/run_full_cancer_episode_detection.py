@@ -50,6 +50,7 @@ from libs.domains.documents_disorder_malignancy_ids import (  # noqa: E402
 )
 from libs.domains.ncda_concept_sets import CANCER_TYPE_IDS  # noqa: E402
 from libs.oncology.cancer_types import infer_cancer_type_from_dx_text  # noqa: E402
+from libs.oncology.staging_extractor import extract_staging  # noqa: E402
 from services.analysis_worker.app.ncda_detector.route_classifier import (  # noqa: E402
     classify_diagnosis_route,
 )
@@ -188,8 +189,9 @@ def _anchor_payload(anchor: SimpleEncounterRow | None) -> dict[str, Any] | None:
         "role": anchor.role,
         "outcome": anchor.outcome,
         "site": str(anchor.site) if anchor.site else None,
-        # 500 chars captures every Read code + phrase pattern in the dx text.
-        "text_preview": (anchor.text or "")[:500],
+        # 1000 chars ensures staging info (Gleason, Breslow, TNM) is included
+        # even when the dx encounter has a long preamble before the diagnosis.
+        "text_preview": (anchor.text or "")[:1000],
     }
 
 
@@ -234,7 +236,19 @@ def _run_patient(pid: str, enc_list: list[dict], *, window_days: int) -> list[di
         ],
         key=lambda x: x[0],
     )
-    pathways = simple_link_patient(pid, simple_encs, link_window_days=window_days)
+
+    # NSS (non-site-specific) referrals reach diagnosis much later than
+    # site-specific pathways — NICE guidance allows up to 12 months on the
+    # NSS pathway. Extend the link window to 400 days whenever an NSS FTR
+    # (Y3dd2) is present so these pathways aren't dropped as cohort-3.
+    has_nss_ftr = any(
+        "Y3dd2" in (enc_by_id.get(lb.encounter_id) or {}).get("text", "")
+        for lb in labels
+        if lb.role == "ftr"
+    )
+    effective_window = 400 if has_nss_ftr else window_days
+
+    pathways = simple_link_patient(pid, simple_encs, link_window_days=effective_window)
 
     rows: list[dict[str, Any]] = []
     for idx, pathway in enumerate(pathways, start=1):
@@ -612,6 +626,9 @@ ON CREATE SET
     ep.dx_outcome              = $dx_outcome,
     ep.referral_route          = $referral_route,
     ep.diagnosis_route         = $diagnosis_route,
+    ep.place_of_presentation   = $place_of_presentation,
+    ep.nss_referral            = $nss_referral,
+    ep.referral_site           = $referral_site,
     ep.route_rationale         = $route_rationale,
     ep.status                  = $status,
     ep.hitl_flag               = $hitl_flag,
@@ -621,9 +638,12 @@ ON CREATE SET
     ep.gap_dx_treatment_days   = $gap_dx_treatment_days,
     ep.cancer_stage            = 'unknown',
     ep.cancer_stage_group      = '',
-    ep.staging_system          = 'unknown',
-    ep.staging_source          = 'none',
-    ep.staging_confidence      = 0.0,
+    ep.staging_system          = $staging_system,
+    ep.staging_value           = $staging_value,
+    ep.staging_early_late      = $staging_early_late,
+    ep.staging_source          = $staging_source,
+    ep.staging_confidence      = $staging_confidence,
+    ep.staging_systems_found   = $staging_systems_found,
     ep.created_at              = datetime(),
     ep.updated_at              = datetime()
 ON MATCH SET
@@ -636,6 +656,9 @@ ON MATCH SET
     ep.dx_outcome              = $dx_outcome,
     ep.referral_route          = $referral_route,
     ep.diagnosis_route         = $diagnosis_route,
+    ep.place_of_presentation   = $place_of_presentation,
+    ep.nss_referral            = $nss_referral,
+    ep.referral_site           = $referral_site,
     ep.route_rationale         = $route_rationale,
     ep.status                  = $status,
     ep.hitl_flag               = $hitl_flag,
@@ -643,6 +666,12 @@ ON MATCH SET
     ep.gap_ftr_dx_days         = $gap_ftr_dx_days,
     ep.gap_ftr_seen_days       = $gap_ftr_seen_days,
     ep.gap_dx_treatment_days   = $gap_dx_treatment_days,
+    ep.staging_system          = $staging_system,
+    ep.staging_value           = $staging_value,
+    ep.staging_early_late      = $staging_early_late,
+    ep.staging_source          = $staging_source,
+    ep.staging_confidence      = $staging_confidence,
+    ep.staging_systems_found   = $staging_systems_found,
     ep.updated_at              = datetime()
 MERGE (p)-[:HAS_EPISODE_OF_CARE]->(ep)
 RETURN ep.episode_id AS written_id
@@ -670,6 +699,24 @@ def _det_episode_id(patient_id: str, site: str, anchor_date: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
+_ROUTE_TO_PLACE: dict[str, str] = {
+    "gp_surgery_fast_track": "GP Surgery",
+    "fast_track_clinic_referral_missing": "GP Surgery",
+    "routine_gp_investigation": "GP Surgery",
+    "screening": "Screening Programme",
+    "emergency_or_urgent_care": "A&E / Emergency",
+    "secondary_care_surgical": "Secondary Care",
+    "specialist_surveillance_incidental": "Secondary Care",
+    "external_or_unknown_route": "Other / Unknown",
+    "unknown": "Not Recorded",
+}
+
+
+def _place_of_presentation(diagnosis_route: str) -> str:
+    """Map a diagnosis_route to its canonical NCDA place-of-presentation label."""
+    return _ROUTE_TO_PLACE.get(diagnosis_route, "Not Recorded")
+
+
 def _episode_params(row: dict[str, Any]) -> dict[str, Any]:
     """Translate a reduced pathway row into MERGE parameters."""
     patient_id = row["patient_id"]
@@ -682,8 +729,21 @@ def _episode_params(row: dict[str, Any]) -> dict[str, Any]:
     # when the text yields no specific pattern match.
     dx_text_preview = (row["dx"] or {}).get("text_preview") or ""
     ftr_text_preview = (row["ftr"] or {}).get("text_preview") or ""
+    seen_text_preview = (row.get("seen") or {}).get("text_preview") or ""
+    treatment_text_preview = (row.get("treatment") or {}).get("text_preview") or ""
     ncda_cancer_type = infer_cancer_type_from_dx_text(
         site, dx_text_preview + " " + ftr_text_preview
+    )
+
+    # Extract staging information from all milestoned encounter texts.
+    # dx text is most likely to contain staging; the others are searched
+    # as fallback (e.g. staging mentioned in the treatment summary).
+    staging = extract_staging(
+        ncda_cancer_type,
+        dx_text_preview,
+        treatment_text_preview,
+        seen_text_preview,
+        ftr_text_preview,
     )
 
     ftr_date = (row["ftr"] or {}).get("encounter_date") or ""
@@ -716,6 +776,10 @@ def _episode_params(row: dict[str, Any]) -> dict[str, Any]:
 
     # Cohort-3 (no FTR) always needs human review
     hitl_flag = cohort == "3"
+
+    # NSS referral flag — Y3dd2 Read code in the FTR encounter text.
+    nss_referral = "Y3dd2" in ftr_text_preview
+    referral_site = "non_site_specific" if nss_referral else ("site_specific" if ftr_date else "unknown")
 
     # referral_route — kept for episode_builder compatibility
     referral_route = "fast_track" if ftr_date else "unknown"
@@ -759,6 +823,9 @@ def _episode_params(row: dict[str, Any]) -> dict[str, Any]:
         "dx_outcome": dx_outcome,
         "referral_route": referral_route,
         "diagnosis_route": row.get("diagnosis_route") or "",
+        "place_of_presentation": _place_of_presentation(row.get("diagnosis_route") or ""),
+        "nss_referral": nss_referral,
+        "referral_site": referral_site,
         "route_rationale": "; ".join(row.get("route_rationale") or []),
         "status": status,
         "hitl_flag": hitl_flag,
@@ -766,6 +833,12 @@ def _episode_params(row: dict[str, Any]) -> dict[str, Any]:
         "gap_ftr_dx_days": row.get("gap_ftr_dx_days"),
         "gap_ftr_seen_days": row.get("gap_ftr_seen_days"),
         "gap_dx_treatment_days": row.get("gap_dx_treatment_days"),
+        "staging_system": staging.system,
+        "staging_value": staging.raw_value,
+        "staging_early_late": staging.early_late,
+        "staging_source": "encounter_text" if staging.system != "none" else "none",
+        "staging_confidence": staging.confidence,
+        "staging_systems_found": staging.systems_found,
         "_encounters": encounters,
         "_all_encounter_ids": all_encounter_ids,
     }
@@ -818,6 +891,26 @@ def write_episodes_to_graph(
     try:
         with driver.session() as session:
             backup_path = _backup_existing_episodes(session, patient_ids, backup_dir)
+
+            # Stale episode cleanup: when a pathway is reclassified between runs
+            # (e.g. cohort-3 → cohort-1a after the NSS extended-window fix), the
+            # old episode_id stays in the graph because MERGE never deletes nodes.
+            # Remove any ncda_detector episodes for these patients whose episode_id
+            # is no longer in this run's output.  Reviewed episodes are safe — they
+            # have source='reviewed' which is explicitly excluded by the WHERE clause.
+            current_episode_ids = [p["episode_id"] for p in params_list]
+            session.run(
+                """
+                MATCH (ep:EpisodeOfCare)
+                WHERE ep.source = 'ncda_detector'
+                  AND ep.patient_id IN $patient_ids
+                  AND NOT ep.episode_id IN $current_ids
+                DETACH DELETE ep
+                """,
+                patient_ids=patient_ids,
+                current_ids=current_episode_ids,
+            )
+
             if dry_run:
                 return {
                     "mode": "write_back_dry_run",
@@ -868,6 +961,62 @@ def write_episodes_to_graph(
                     all_encounter_ids=p["_all_encounter_ids"],
                 )
                 written += 1
+
+            # Staging refinement pass: for episodes still missing staging (or
+            # having only receptor_status which is not a true stage), fetch the
+            # full encounter texts from the graph and re-run the extractor.
+            for p in params_list:
+                if p.get("staging_system") not in ("none", "receptor_status", ""):
+                    continue  # already has a proper staging classification
+                enc_rows = session.run(
+                    """
+                    MATCH (enc:Encounter)-[:IS_PART_OF]->(ep:EpisodeOfCare {episode_id: $eid})
+                    RETURN coalesce(enc.text, '') AS text
+                    ORDER BY enc.date
+                    """,
+                    eid=p["episode_id"],
+                )
+                full_texts = [r["text"] for r in enc_rows if r.get("text")]
+                if not full_texts:
+                    continue
+                staging = extract_staging(p["cancer_type"], *full_texts)
+                if staging.system == "none":
+                    continue
+                session.run(
+                    """
+                    MATCH (ep:EpisodeOfCare {episode_id: $eid})
+                    SET ep.staging_system        = $system,
+                        ep.staging_value         = $value,
+                        ep.staging_early_late    = $early_late,
+                        ep.staging_source        = 'encounter_text',
+                        ep.staging_confidence    = $confidence,
+                        ep.staging_systems_found = $systems_found
+                    """,
+                    eid=p["episode_id"],
+                    system=staging.system,
+                    value=staging.raw_value,
+                    early_late=staging.early_late,
+                    confidence=staging.confidence,
+                    systems_found=staging.systems_found,
+                )
+
+            # NSS referral reconciliation pass: scan every referral-milestone
+            # encounter in the graph for Y3dd2.  The text-preview check in
+            # _episode_params can miss cases where (a) Y3dd2 falls beyond the
+            # 1000-char preview, (b) the linker picked a different encounter as
+            # the FTR anchor than the actual Y3dd2 booking encounter, or (c) the
+            # episode was written manually (benign NSS patients).  This single
+            # Cypher pass is authoritative.
+            session.run(
+                """
+                MATCH (enc:Encounter)-[r:IS_PART_OF]->(ep:EpisodeOfCare)
+                WHERE r.milestone_type = 'referral'
+                  AND ep.source = 'ncda_detector'
+                  AND enc.text CONTAINS 'Y3dd2'
+                SET ep.nss_referral  = true,
+                    ep.referral_site = 'non_site_specific'
+                """
+            )
 
         return {
             "mode": "write_back_applied",

@@ -66,7 +66,6 @@ import PlaceOfPresentationSection from "@/components/audit/PlaceOfPresentationSe
 import ConsultationsSection from "@/components/audit/ConsultationsSection";
 import MultipleConsultationsSection from "@/components/audit/MultipleConsultationsSection";
 import InvestigationsSection from "@/components/audit/InvestigationsSection";
-import ReferralsSection from "@/components/audit/ReferralsSection";
 import EmergencyReferralRoutesSection from "@/components/audit/EmergencyReferralRoutesSection";
 import PrimaryCareIntervalSection from "@/components/audit/PrimaryCareIntervalSection";
 import DiagnosticIntervalSection from "@/components/audit/DiagnosticIntervalSection";
@@ -85,7 +84,6 @@ const TOC_SECTIONS: TocSection[] = [
   { id: "section-consultations", label: "Consultations", group: "results" },
   { id: "section-multiple-consultations", label: "Multiple Consultations", group: "results" },
   { id: "section-investigations", label: "Investigations", group: "results" },
-  { id: "section-referrals", label: "Referrals", group: "results" },
   { id: "section-ftr-types", label: "Fast Track Referral Types", group: "results" },
   { id: "section-emergency-routes", label: "Emergency Referral Routes", group: "results" },
   { id: "section-pci", label: "Primary Care Interval", group: "intervals" },
@@ -403,6 +401,7 @@ export default function AuditPage() {
           loading={loading.placeOfPresentation}
           error={errors.placeOfPresentation}
           orgSelected={orgSelected}
+          orgId={orgId ?? undefined}
         />
 
         <ConsultationsSection
@@ -421,13 +420,6 @@ export default function AuditPage() {
           result={investigations}
           loading={loading.investigations}
           error={errors.investigations}
-          orgSelected={orgSelected}
-        />
-
-        <ReferralsSection
-          result={referrals}
-          loading={loading.referrals}
-          error={errors.referrals}
           orgSelected={orgSelected}
         />
 

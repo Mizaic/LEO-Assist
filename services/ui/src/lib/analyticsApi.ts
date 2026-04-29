@@ -923,7 +923,12 @@ export interface AuditCancerStageSummary {
   by_stage_group: AuditCancerStageRow[];
   by_system: Array<{ staging_system: string; n: number }>;
   by_source: Array<{ staging_source: string; n: number }>;
-  by_stage_group_detail: Array<{ cancer_stage_group: string; n: number }>;
+  by_stage_group_detail: Array<{
+    cancer_stage_group: string;
+    staging_value?: string;
+    stage_group?: "early" | "late" | "unknown";
+    n: number;
+  }>;
   by_cancer_type: Array<{
     cancer_type: string;
     stage_group: "early" | "late" | "unknown";

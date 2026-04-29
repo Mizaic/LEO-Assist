@@ -29,6 +29,7 @@ export interface AxisDatum {
   key: string;
   label: string;
   value: number | null;
+  count?: number | null;
 }
 
 interface Props {
@@ -45,6 +46,14 @@ interface Props {
 interface PolarPoint {
   x: number;
   y: number;
+}
+
+interface RadarTooltipState {
+  x: number;
+  y: number;
+  title: string;
+  countLabel: string | null;
+  pctLabel: string;
 }
 
 function polar(
@@ -102,6 +111,21 @@ function formatScaleLabel(level: number, maxScale: number): string {
   return `${Math.round(level * maxScale)}%`;
 }
 
+function formatPct(value: number): string {
+  return `${value.toFixed(value % 1 === 0 ? 0 : 1)}%`;
+}
+
+function tooltipForDatum(datum: AxisDatum, point: PolarPoint): RadarTooltipState {
+  const pctLabel = datum.value == null ? "No value" : formatPct(datum.value);
+  return {
+    x: point.x,
+    y: point.y,
+    title: datum.label,
+    countLabel: datum.count == null ? null : `n = ${datum.count}`,
+    pctLabel,
+  };
+}
+
 export default function CancerTypeRadarCard({
   yearLabel,
   axes,
@@ -136,6 +160,9 @@ export default function CancerTypeRadarCard({
 
   const total = axes.length;
   const gridLevels = [0.25, 0.5, 0.75, 1];
+  const [activeTooltip, setActiveTooltip] = useState<RadarTooltipState | null>(
+    null,
+  );
 
   const livePoly = polygonPoints(axes, cx, cy, outerRadius, maxScale);
   const baselinePoly = baseline
@@ -289,14 +316,39 @@ export default function CancerTypeRadarCard({
               const angle = angleFor(idx, total);
               const p = polar(cx, cy, r, angle);
               if (datum.value == null || datum.value <= 0) return null;
+              const tooltip = tooltipForDatum(datum, p);
+              const ariaLabel = `${datum.label}: ${
+                tooltip.countLabel ? `${tooltip.countLabel}, ` : ""
+              }${tooltip.pctLabel}`;
               return (
-                <circle
+                <g
                   key={`dot-${idx}-${datum.key}`}
-                  cx={p.x}
-                  cy={p.y}
-                  r={2.5}
-                  fill={isBaseline ? COLOUR_BASELINE : COLOUR_LIVE}
-                />
+                  role="img"
+                  tabIndex={0}
+                  aria-label={ariaLabel}
+                  onPointerEnter={() => setActiveTooltip(tooltip)}
+                  onPointerMove={() => setActiveTooltip(tooltip)}
+                  onPointerLeave={() => setActiveTooltip(null)}
+                  onFocus={() => setActiveTooltip(tooltip)}
+                  onBlur={() => setActiveTooltip(null)}
+                  style={{ cursor: "default", outline: "none" }}
+                >
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={8}
+                    fill="transparent"
+                    stroke="transparent"
+                  />
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={3.25}
+                    fill={isBaseline ? COLOUR_BASELINE : COLOUR_LIVE}
+                    stroke="#FFFFFF"
+                    strokeWidth={1}
+                  />
+                </g>
               );
             })}
 
@@ -342,6 +394,44 @@ export default function CancerTypeRadarCard({
           >
             No data yet for {yearLabel}
           </Typography>
+        )}
+
+        {activeTooltip && (
+          <Box
+            role="tooltip"
+            sx={{
+              position: "absolute",
+              left: activeTooltip.x,
+              top: activeTooltip.y,
+              transform: "translate(-50%, calc(-100% - 10px))",
+              minWidth: 112,
+              maxWidth: 180,
+              px: 1,
+              py: 0.75,
+              borderRadius: 1,
+              bgcolor: "rgba(17, 24, 39, 0.94)",
+              color: "#FFFFFF",
+              boxShadow: 3,
+              pointerEvents: "none",
+              zIndex: 2,
+              textAlign: "center",
+            }}
+          >
+            <Typography
+              component="div"
+              sx={{ fontSize: "0.72rem", fontWeight: 700, lineHeight: 1.2 }}
+            >
+              {activeTooltip.title}
+            </Typography>
+            <Typography
+              component="div"
+              sx={{ fontSize: "0.68rem", lineHeight: 1.35, opacity: 0.9 }}
+            >
+              {activeTooltip.countLabel
+                ? `${activeTooltip.countLabel} (${activeTooltip.pctLabel})`
+                : activeTooltip.pctLabel}
+            </Typography>
+          </Box>
         )}
       </Box>
 

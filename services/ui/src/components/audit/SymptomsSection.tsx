@@ -11,14 +11,15 @@
 /**
  * Symptoms at Referral section.
  *
- * Shows clinical PPV heatmaps: for each suspected cancer type, each symptom
- * cell shows the count of patients with the symptom at the referral encounter
- * (+/-7 days) and the count who received a confirmed cancer diagnosis.
+ * Plain-English heatmaps: for each suspected cancer type, every cell shows
+ * "X of Y patients with this symptom were later told they had cancer".
  * PPV = patients_with_cancer / patients_with_feature.
  *
  * Symptom evidence uses SNOMED codes from the ncda-symptoms ValueSet
  * (concept + IS_A descendants), queried from DOCUMENTS relationships on
  * encounters within +/-7 days of the referral date.
+ *
+ * Copy targets a reading age of 9-11 (per `.cursor/rules/health-literacy.mdc`).
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -137,51 +138,67 @@ function buildGroups(
 function PpvHeroCard({ row }: { row: AuditPpvByCancerTypeRow }) {
   const ppvLabel = row.ppv_pct == null ? "n/a" : `${row.ppv_pct}%`;
   return (
-    <Box
-      sx={{
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 1,
-        p: 1.5,
-        display: "flex",
-        flexDirection: "column",
-        gap: 0.5,
-        minWidth: 130,
-      }}
+    <Tooltip
+      arrow
+      title={
+        <Box sx={{ fontSize: "0.78rem" }}>
+          <strong>{row.cancer_type}</strong>
+          <br />
+          {row.referrals_n} {row.referrals_n === 1 ? "person was" : "people were"} sent to hospital because the GP thought it might be {row.cancer_type.toLowerCase()} cancer.
+          <br />
+          {row.diagnosed_in_year_n} of them later found out they did have cancer.
+          <br />
+          That works out as {ppvLabel}.
+        </Box>
+      }
     >
-      <Typography
-        variant="caption"
-        sx={{ fontWeight: 700, lineHeight: 1.2, color: "text.secondary" }}
+      <Box
+        sx={{
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 1,
+          p: 1.5,
+          display: "flex",
+          flexDirection: "column",
+          gap: 0.5,
+          minWidth: 130,
+        }}
       >
-        {row.cancer_type}
-      </Typography>
-      <Stack direction="row" alignItems="baseline" spacing={0.5}>
         <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 700,
-            color: row.ppv_pct != null ? ppvColor(row.ppv_pct) : "text.disabled",
-          }}
+          variant="caption"
+          sx={{ fontWeight: 700, lineHeight: 1.2, color: "text.secondary" }}
         >
-          {ppvLabel}
+          {row.cancer_type}
         </Typography>
+        <Stack direction="row" alignItems="baseline" spacing={0.5}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: row.ppv_pct != null ? ppvColor(row.ppv_pct) : "text.disabled",
+            }}
+          >
+            {ppvLabel}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            had cancer
+          </Typography>
+        </Stack>
         <Typography variant="caption" color="text.secondary">
-          PPV
+          {row.diagnosed_in_year_n} of {row.referrals_n} {row.referrals_n === 1 ? "referral" : "referrals"}
         </Typography>
-      </Stack>
-      <Typography variant="caption" color="text.secondary">
-        {row.referrals_n} referrals &middot; {row.diagnosed_in_year_n} diagnosed
-      </Typography>
-      {row.provisional && (
-        <Chip
-          size="small"
-          label="Provisional"
-          color="warning"
-          variant="outlined"
-          sx={{ fontSize: "0.65rem", height: 18, alignSelf: "flex-start" }}
-        />
-      )}
-    </Box>
+        {row.provisional && (
+          <Chip
+            size="small"
+            label="Not final yet"
+            aria-label="Provisional"
+            color="warning"
+            variant="outlined"
+            sx={{ fontSize: "0.65rem", height: 18, alignSelf: "flex-start" }}
+          />
+        )}
+      </Box>
+    </Tooltip>
   );
 }
 
@@ -202,6 +219,9 @@ function SymptomCell({ row, maxN }: SymptomCellProps) {
     none: null,
   };
 
+  const featureLabel = row.patients_with_feature === 1 ? "person had" : "people had";
+  const cancerVerb = row.patients_with_cancer === 1 ? "was" : "were";
+
   return (
     <Tooltip
       arrow
@@ -209,13 +229,15 @@ function SymptomCell({ row, maxN }: SymptomCellProps) {
         <Box sx={{ fontSize: "0.78rem" }}>
           <strong>{row.symptom}</strong>
           <br />
-          {row.patients_with_cancer} of {row.patients_with_feature} patients diagnosed
+          {row.patients_with_feature} {featureLabel} this around the time of referral.
           <br />
-          PPV {row.ppv_pct}%
+          {row.patients_with_cancer} of them {cancerVerb} later told they had {row.cancer_type.toLowerCase()} cancer.
+          <br />
+          That works out as {row.ppv_pct}%.
           {row.patients_with_feature < 2 && (
             <>
               <br />
-              <em>Low confidence: only 1 patient</em>
+              <em>Only 1 patient -- the number is too small to trust on its own.</em>
             </>
           )}
         </Box>
@@ -284,7 +306,7 @@ function SymptomCell({ row, maxN }: SymptomCellProps) {
                 color="text.secondary"
                 sx={{ fontSize: "0.68rem" }}
               >
-                {row.patients_with_cancer}/{row.patients_with_feature}
+                {row.patients_with_cancer} of {row.patients_with_feature} had cancer
               </Typography>
             </Stack>
           </Stack>
@@ -323,7 +345,7 @@ function TumourSiteHeatmapCard({ group, hiddenCount }: SiteCardProps) {
           {group.strongCount > 0 && (
             <Chip
               size="small"
-              label={`${group.strongCount} strong`}
+              label={`${group.strongCount} strong signal${group.strongCount !== 1 ? "s" : ""}`}
               sx={{
                 fontSize: "0.6rem",
                 height: 16,
@@ -335,7 +357,7 @@ function TumourSiteHeatmapCard({ group, hiddenCount }: SiteCardProps) {
           {group.moderateCount > 0 && (
             <Chip
               size="small"
-              label={`${group.moderateCount} moderate`}
+              label={`${group.moderateCount} medium signal${group.moderateCount !== 1 ? "s" : ""}`}
               sx={{
                 fontSize: "0.6rem",
                 height: 16,
@@ -348,10 +370,10 @@ function TumourSiteHeatmapCard({ group, hiddenCount }: SiteCardProps) {
       </Stack>
       <Box
         role="list"
-        aria-label={`${group.cancer_type} symptom PPV heatmap`}
+        aria-label={`Symptoms found around the time of referral for ${group.cancer_type}`}
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(155px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
           gap: 0.75,
         }}
       >
@@ -433,7 +455,7 @@ export default function SymptomsSection({
     <SectionCard
       id="section-symptoms"
       title="Symptoms at Referral"
-      description="Clinical PPV per symptom and cancer type. Counts distinct patients whose referral encounter (+/-7 days) was coded with each symptom from the NCDA symptoms ValueSet; PPV is patients with feature who received a confirmed cancer diagnosis."
+      description="How often each symptom led to a real cancer. We look at the symptoms patients had in the week before or after their referral. For each symptom, we count how many of those patients turned out to have cancer."
       availability="ready"
       loading={parentLoading || loading}
       error={parentError || error}
@@ -445,9 +467,17 @@ export default function SymptomsSection({
             <Box sx={{ mb: 2.5 }}>
               <Typography
                 variant="subtitle2"
-                sx={{ fontWeight: 600, fontSize: "0.85rem", mb: 1 }}
+                sx={{ fontWeight: 600, fontSize: "0.85rem", mb: 0.25 }}
               >
-                Referral-cohort PPV by suspected cancer type
+                How many referrals turned out to be cancer
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mb: 1, fontSize: "0.72rem" }}
+              >
+                Each card is one type of cancer the GP suspected. The big number
+                shows how many of those referrals were later confirmed as cancer.
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {data.ppv_by_suspected_cancer_type.map((row) => (
@@ -471,7 +501,7 @@ export default function SymptomsSection({
                 variant="subtitle2"
                 sx={{ fontWeight: 600, fontSize: "0.85rem" }}
               >
-                Symptom PPV heatmaps by suspected cancer type
+                Which symptoms led to cancer, by tumour site
                 {totalShown > 0 && (
                   <Typography
                     component="span"
@@ -479,7 +509,7 @@ export default function SymptomsSection({
                     color="text.secondary"
                     sx={{ ml: 1 }}
                   >
-                    ({totalShown} symptom combinations &middot; {data.cohort_n}{" "}
+                    ({totalShown} symptom and cancer pairings &middot; {data.cohort_n}{" "}
                     patients)
                   </Typography>
                 )}
@@ -489,8 +519,9 @@ export default function SymptomsSection({
                 color="text.secondary"
                 sx={{ mt: 0.25, display: "block", fontSize: "0.7rem" }}
               >
-                Sorted by signal strength. Cell width of top bar = patients with
-                feature as % of max.
+                Strongest signals first. The thin bar at the top of each box shows
+                how many patients had that symptom -- a longer bar means more
+                patients.
               </Typography>
             </Box>
 
@@ -546,10 +577,10 @@ export default function SymptomsSection({
             alignItems="center"
           >
             {[
-              { label: "PPV >= 75%", color: "#15803d" },
-              { label: "50-74%", color: "#0369a1" },
-              { label: "25-49%", color: "#92400e" },
-              { label: "< 25%", color: "#9ca3af" },
+              { label: "75%+ had cancer", color: "#15803d" },
+              { label: "50-74% had cancer", color: "#0369a1" },
+              { label: "25-49% had cancer", color: "#92400e" },
+              { label: "Under 25% had cancer", color: "#9ca3af" },
             ].map(({ label, color }) => (
               <Stack key={label} direction="row" alignItems="center" gap={0.5}>
                 <Box
@@ -571,7 +602,7 @@ export default function SymptomsSection({
               color="text.secondary"
               sx={{ fontSize: "0.68rem", opacity: 0.75 }}
             >
-              Dimmed cells = low confidence (n &lt; {minN})
+              Faded boxes mean fewer than {minN} patients had the symptom -- the number is too small to trust.
             </Typography>
           </Stack>
 
@@ -598,8 +629,9 @@ export default function SymptomsSection({
               color="text.secondary"
               sx={{ py: 1.5, fontSize: "0.82rem" }}
             >
-              No symptoms match the current filter. Try lowering the minimum
-              patient count or enabling &quot;Show 0% PPV&quot;.
+              No symptoms match your filters. Try a smaller &quot;Min patients&quot;
+              number, or turn on &quot;Show 0% PPV&quot; to include symptoms where
+              nobody was found to have cancer.
             </Typography>
           )}
 
@@ -609,10 +641,12 @@ export default function SymptomsSection({
             display="block"
             sx={{ mt: 2 }}
           >
-            PPV = patients with symptom who received a confirmed cancer diagnosis
-            / all patients with that symptom (for the suspected cancer type at
-            referral). Symptoms sourced from NCDA symptoms ValueSet SNOMED codes
-            on encounters within +/-7 days of referral date.
+            How to read each box: out of all patients with this symptom around
+            the time of referral, how many were later told they had cancer. The
+            same patient can show up in more than one box if they had more than
+            one symptom. Symptoms come from the patient&apos;s record in the week
+            before or after the referral. PPV (positive predictive value) is the
+            clinical name for the percentage shown.
           </Typography>
 
           <SymptomsDrilldownDialog
