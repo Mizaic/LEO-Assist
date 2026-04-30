@@ -1137,6 +1137,7 @@ export interface AuditInvestigations {
   no_investigation_pct: number;
   total_episodes: number;
   types: Array<{ type: string; n: number; pct: number }>;
+  top_procedures: Array<{ name: string; n: number; pct: number }>;
 }
 
 export interface AuditReferralRow {
@@ -1657,6 +1658,36 @@ export interface BloodCancerTypeMatrix {
 
 export async function fetchAuditBloodSignalCancerTypeMatrix(): Promise<BloodCancerTypeMatrix> {
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal/cancer-type-matrix`);
+}
+
+export interface BloodPerTestGroup {
+  n: number;
+  p10: number;
+  q1: number;
+  median: number;
+  q3: number;
+  p90: number;
+  mean: number;
+  n_above_ref?: number;
+  pct_above_ref?: number;
+  n_below_ref?: number;
+  pct_below_ref?: number;
+}
+
+export interface BloodPerTestResult {
+  key: string;
+  label: string;
+  unit: string;
+  ref_low: number | null;
+  ref_high: number | null;
+  n_cancer: number;
+  n_benign: number;
+  /** keys: "Benign" + cancer type names e.g. "Breast", "Prostate" */
+  groups: Record<string, BloodPerTestGroup>;
+}
+
+export async function fetchAuditBloodSignalPerTest(): Promise<BloodPerTestResult[]> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal/per-test-by-cancer-type`);
 }
 
 export async function batchAddConceptsToSubdomain(

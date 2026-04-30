@@ -67,6 +67,7 @@ import ComorbiditiesSection from "@/components/audit/ComorbiditiesSection";
 import SymptomsSection from "@/components/audit/SymptomsSection";
 import PlaceOfPresentationSection from "@/components/audit/PlaceOfPresentationSection";
 import ConsultationsSection from "@/components/audit/ConsultationsSection";
+import BloodSignalSection from "@/components/audit/BloodSignalAnalysis";
 import InvestigationsSection from "@/components/audit/InvestigationsSection";
 import PrimaryCareIntervalSection from "@/components/audit/PrimaryCareIntervalSection";
 import DiagnosticIntervalSection from "@/components/audit/DiagnosticIntervalSection";
@@ -83,6 +84,7 @@ const TOC_SECTIONS: TocSection[] = [
   { id: "section-symptoms", label: "Symptoms at Referral", group: "results" },
   { id: "section-place-of-presentation", label: "Place of Presentation", group: "results" },
   { id: "section-consultations", label: "Consultations", group: "results" },
+  { id: "section-blood-signal", label: "Blood Result Cancer Signal", group: "results" },
   { id: "section-investigations", label: "Investigations", group: "results" },
   { id: "section-ftr-types", label: "Fast Track Referral Types", group: "results" },
   { id: "section-pci", label: "Primary Care Interval", group: "intervals" },
@@ -386,7 +388,7 @@ export default function AuditPage() {
             Clinical Audit
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.82rem", mt: 0.25 }}>
-            National Cancer Diagnosis Audit (NCDA) -- 14 sections, year-on-year evolution against the 2019 NCDA benchmark.
+            National Cancer Diagnosis Audit (NCDA) -- 15 sections, year-on-year evolution against the 2019 NCDA benchmark.
             <br />
             Cohort window: {cohortWindowLabel}.
           </Typography>
@@ -542,6 +544,7 @@ export default function AuditPage() {
           orgSelected={orgSelected}
         />
 
+        <BloodSignalSection />
 
         <InvestigationsSection
           result={investigations}

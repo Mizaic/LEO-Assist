@@ -115,8 +115,8 @@ _GLOBAL_STATS_Q = """
 MATCH (enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
 WHERE obs.name = $test_name
   AND d.value IS NOT NULL
-  AND trim(d.value) <> ''
-WITH toFloat(d.value) AS v
+  AND trim(toString(d.value)) <> ''
+WITH toFloat(toString(d.value)) AS v
 WHERE v IS NOT NULL
 RETURN avg(v) AS mean_val, stDev(v) AS std_val, count(v) AS n
 """
@@ -124,11 +124,11 @@ RETURN avg(v) AS mean_val, stDev(v) AS std_val, count(v) AS n
 _EPISODE_TEST_VALUES_Q = """
 MATCH (p:Patient {id: $patient_id})-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
 WHERE obs.name = $test_name
-  AND d.value IS NOT NULL AND trim(d.value) <> ''
-  AND toFloat(d.value) IS NOT NULL
+  AND d.value IS NOT NULL AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date($anchor_date) - duration({years: 1})
   AND date(enc.date) <= date($anchor_date) + duration({days: 28})
-WITH toFloat(d.value) AS v
+WITH toFloat(toString(d.value)) AS v
 WHERE v IS NOT NULL
 RETURN avg(v) AS mean_val, count(v) AS n
 """

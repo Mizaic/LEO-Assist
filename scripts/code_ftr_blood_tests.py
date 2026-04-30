@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Deterministic coder for uncoded blood test encounters in the FTR/2WW window.
+"""Deterministic coder for all uncoded blood result encounters.
 
-Finds encounters with EMIS-format lab entries (``Description (ReadCode) value unit
-[range]``) that sit within the clinical window of a fast-track referral and have no
-existing SNOMED coding. Resolves each lab item via the Terminology API and writes
-``(Encounter)-[:DOCUMENTS]->(Concept)`` + ``(Patient)-[:HAS_<tag>]->(Concept)``
-links to Neo4j.
+Finds ANY encounter containing EMIS-format lab entries (``Description (ReadCode)
+value unit [range]``) that has no existing SNOMED coding. Resolves each lab item
+via the Terminology API and writes ``(Encounter)-[:DOCUMENTS]->(Concept)`` +
+``(Patient)-[:HAS_<tag>]->(Concept)`` links to Neo4j.
 
 Usage:
     # Dry run -- prints a summary and writes a JSON/CSV report, no Neo4j writes:
@@ -15,7 +14,7 @@ Usage:
     .venv/bin/python scripts/code_ftr_blood_tests.py --apply
 
     # Limit encounters (useful for testing):
-    .venv/bin/python scripts/code_ftr_blood_tests.py --apply --limit 20
+    .venv/bin/python scripts/code_ftr_blood_tests.py --apply --limit 100
 
     # Restrict to a single patient:
     .venv/bin/python scripts/code_ftr_blood_tests.py --patient 4187508279 --apply
@@ -65,30 +64,25 @@ SOURCE = "deterministic_lab_coder_v1"
 # ---------------------------------------------------------------------------
 
 _MATCH_QUERY = """
-MATCH (p:Patient)-[:HAS_ENCOUNTER]->(ftr:Encounter)
-WHERE ftr.text IS NOT NULL
-  AND ftr.date IS NOT NULL
-  AND (
-       toLower(ftr.text) CONTAINS 'fast track referral'
-    OR toLower(ftr.text) CONTAINS '2ww'
-    OR toLower(ftr.text) CONTAINS 'two week wait'
-    OR (ftr)-[:DOCUMENTS]->(:Procedure {{readCode: 'XaX3T'}})
-  )
-WITH p, ftr
-MATCH (p)-[:HAS_ENCOUNTER]->(lab:Encounter)
-WHERE lab.date IS NOT NULL
-  AND date(lab.date) >= date(ftr.date) - duration('P3M')
-  AND date(lab.date) <= date(ftr.date) + duration('P28D')
-  AND lab.text IS NOT NULL
-  AND NOT (lab)-[:DOCUMENTS]->()
-  AND lab.text =~ '(?s).*\\\\([A-Za-z0-9][A-Za-z0-9.]{{2,8}}\\\\)\\\\s+-?[0-9].*'
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE e.text IS NOT NULL
+  AND NOT (e)-[:DOCUMENTS]->()
 {patient_filter}
-RETURN DISTINCT
-  toString(p.id)   AS patient_id,
-  toString(lab.id) AS encounter_id,
-  lab.date         AS date,
-  lab.text         AS text
+RETURN
+  toString(p.id)  AS patient_id,
+  toString(e.id)  AS encounter_id,
+  e.date          AS date,
+  e.text          AS text
 ORDER BY patient_id, encounter_id
+SKIP $skip LIMIT $batch_size
+"""
+
+_COUNT_QUERY = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE e.text IS NOT NULL
+  AND NOT (e)-[:DOCUMENTS]->()
+{patient_filter}
+RETURN count(e) AS total
 """
 
 # ---------------------------------------------------------------------------
@@ -210,22 +204,45 @@ def _parse_args() -> argparse.Namespace:
 # ---------------------------------------------------------------------------
 
 
+_BATCH_SIZE = 2_000
+
+
 def _build_query(patient_id: str) -> str:
     if patient_id:
-        patient_filter = f"  AND toString(p.id) = '{patient_id}'"
+        patient_filter = f"AND toString(p.id) = '{patient_id}'"
     else:
         patient_filter = ""
     return _MATCH_QUERY.format(patient_filter=patient_filter)
 
 
-def _load_rows(patient_id: str, limit: int) -> list[dict[str, Any]]:
+def _build_count_query(patient_id: str) -> str:
+    if patient_id:
+        patient_filter = f"AND toString(p.id) = '{patient_id}'"
+    else:
+        patient_filter = ""
+    return _COUNT_QUERY.format(patient_filter=patient_filter)
+
+
+def _count_rows(patient_id: str) -> int:
     client = PatientGraphClient()
     try:
-        rows = client.run(_build_query(patient_id))
+        rows = client.run(_build_count_query(patient_id))
+        return int(rows[0]["total"]) if rows else 0
     finally:
         client.close()
-    logger.info("Loaded %d uncoded FTR-window lab encounters from Neo4j", len(rows))
-    return rows[:limit] if limit > 0 else rows
+
+
+def _load_batch(patient_id: str, skip: int, limit: int) -> list[dict[str, Any]]:
+    """Load one page of uncoded encounters."""
+    client = PatientGraphClient()
+    try:
+        return client.run(
+            _build_query(patient_id),
+            skip=skip,
+            batch_size=min(limit, _BATCH_SIZE) if limit > 0 else _BATCH_SIZE,
+        )
+    finally:
+        client.close()
 
 
 # ---------------------------------------------------------------------------
@@ -499,25 +516,58 @@ def _write_report(
 def main() -> int:
     args = _parse_args()
 
-    rows = _load_rows(args.patient, args.limit)
-    if not rows:
-        logger.warning("No uncoded FTR-window lab encounters found -- nothing to do")
+    total = _count_rows(args.patient)
+    if total == 0:
+        logger.warning("No uncoded encounters found -- nothing to do")
         return 0
 
-    proposals = _build_proposals(rows)
-    if not proposals:
-        logger.warning("No EMIS lab entries parsed from any encounter")
-        return 0
+    cap = args.limit if args.limit > 0 else total
+    logger.info(
+        "Found %d uncoded encounters (processing up to %d in batches of %d)",
+        total, cap, _BATCH_SIZE,
+    )
 
-    resolved = _resolve(proposals)
-    for proposal in proposals:
-        candidates = resolved.get(proposal.entry.surface_form, [])
-        _finalise(proposal, candidates)
+    all_proposals: list[Proposal] = []
+    total_encounters_scanned = 0
+    total_applied = 0
+    skip = 0
 
-    applied = _apply(proposals) if args.apply else 0
+    while skip < cap:
+        batch_rows = _load_batch(args.patient, skip, cap - skip)
+        if not batch_rows:
+            break
 
-    summary = _summary(proposals, applied, len(rows))
-    report_path = _write_report(args.report_dir, proposals, summary, args.apply)
+        batch_proposals = _build_proposals(batch_rows)
+        total_encounters_scanned += len(batch_rows)
+        skip += len(batch_rows)
+
+        if not batch_proposals:
+            logger.info(
+                "Batch %d-%d: no EMIS lab entries found, skipping",
+                skip - len(batch_rows), skip,
+            )
+            continue
+
+        resolved = _resolve(batch_proposals)
+        for proposal in batch_proposals:
+            candidates = resolved.get(proposal.entry.surface_form, [])
+            _finalise(proposal, candidates)
+
+        if args.apply:
+            batch_applied = _apply(batch_proposals)
+            total_applied += batch_applied
+
+        all_proposals.extend(batch_proposals)
+        safe = sum(1 for p in batch_proposals if p.status == "safe")
+        logger.info(
+            "Progress: %d/%d encounters | batch proposals=%d safe=%d | "
+            "total applied=%d",
+            total_encounters_scanned, cap,
+            len(batch_proposals), safe, total_applied,
+        )
+
+    summary = _summary(all_proposals, total_applied, total_encounters_scanned)
+    report_path = _write_report(args.report_dir, all_proposals, summary, args.apply)
 
     print(json.dumps({"report": str(report_path), **summary}, indent=2))
     return 0

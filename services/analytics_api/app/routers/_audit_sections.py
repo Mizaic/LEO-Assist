@@ -16,8 +16,11 @@ audit endpoint agrees on what 'confirmed cancer episode' means
 
 from __future__ import annotations
 
+import logging
 from collections import Counter
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from libs.analytics import confirmed_cancer_where
 from libs.analytics.ncda_ethnicity_snomed import (
@@ -25,7 +28,7 @@ from libs.analytics.ncda_ethnicity_snomed import (
     load_ncda_ethnicity_snomed_ids,
 )
 from libs.domains.ncda_concept_sets import FAST_TRACK_REFERRAL_IDS
-from libs.neo4j_client.client import PatientGraphClient
+from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
 from libs.oncology.cancer_types import normalise_cancer_type
 
 # ---------------------------------------------------------------------------
@@ -753,18 +756,69 @@ _INVESTIGATION_TYPES = (
 )
 
 
+def _load_investigation_concept_ids() -> list[str]:
+    """Fetch primary-care investigation concept IDs from the FHIR ValueSet registry.
+
+    Opens a KnowledgeGraphClient, bootstraps the DomainRegistry from ncda-*
+    ValueSet nodes, and expands the 'investigations' domain via IS_A (depth=3)
+    so that child concepts (e.g. 'Ultrasonography of breast') are included.
+
+    Returns an empty list on failure so the caller can fall back to unfiltered.
+    """
+    from ._audit_comorbidities import _ensure_registry  # avoid circular at module level
+
+    kg = KnowledgeGraphClient()
+    try:
+        registry = _ensure_registry(kg)
+        concept_groups = registry.get_concept_id_groups("investigations", kg, depth=3)
+        ids: list[str] = []
+        seen: set[str] = set()
+        for group_ids in concept_groups.values():
+            for cid in group_ids:
+                s = str(cid)
+                if s not in seen:
+                    seen.add(s)
+                    ids.append(s)
+        return ids
+    except Exception:
+        logger.warning("investigations: failed to load ValueSet concept IDs from KG", exc_info=True)
+        return []
+    finally:
+        kg.close()
+
+
 def _q_investigations(base: str, params: dict, client: PatientGraphClient) -> dict:
+    # Resolve the primary-care investigation ValueSet from the KG registry.
+    # On failure we fall back to showing all DOCUMENTS concepts (unfiltered).
+    investigation_ids = _load_investigation_concept_ids()
+    has_valueset = bool(investigation_ids)
+
+    # Count episodes that had at least one coded investigation from the ValueSet
+    # (or any DOCUMENTS link if the ValueSet is unavailable).
+    if has_valueset:
+        coded_predicate = (
+            "EXISTS { MATCH (enc)-[:DOCUMENTS]->(inv_c) "
+            "WHERE toString(inv_c.conceptId) IN $investigation_ids }"
+        )
+    else:
+        coded_predicate = (
+            "(enc)-[:DOCUMENTS]->(:Procedure) "
+            "OR (enc)-[:DOCUMENTS]->(:ObservableEntity)"
+        )
+
     summary_rows = client.run(
         f"{base}"
         "WITH DISTINCT ep "
         "OPTIONAL MATCH (enc:Encounter)-[:IS_PART_OF]->(ep) "
         f"  WHERE enc.encounter_type IN {_INVESTIGATION_TYPES} "
+        f"     OR {coded_predicate} "
         "WITH ep, count(enc) AS inv_count "
         "RETURN "
         "  count(DISTINCT ep) AS total_episodes, "
         "  sum(CASE WHEN inv_count > 0 THEN 1 ELSE 0 END) AS has_investigation, "
         "  sum(CASE WHEN inv_count = 0 THEN 1 ELSE 0 END) AS no_investigation",
         **params,
+        **({"investigation_ids": investigation_ids} if has_valueset else {}),
     )
     type_rows = client.run(
         f"{base}"
@@ -775,6 +829,29 @@ def _q_investigations(base: str, params: dict, client: PatientGraphClient) -> di
         "count(DISTINCT ep.episode_id) AS n "
         "ORDER BY n DESC",
         **params,
+    )
+    # Top coded procedures/labs filtered to the primary-care investigations ValueSet.
+    # Falls back to all Procedure/ObservableEntity DOCUMENTS if the ValueSet is unavailable.
+    if has_valueset:
+        proc_where = "WHERE toString(concept.conceptId) IN $investigation_ids AND concept.name IS NOT NULL "
+    else:
+        proc_where = (
+            "WHERE (concept:Procedure OR concept:ObservableEntity) "
+            "  AND concept.name IS NOT NULL "
+        )
+    procedure_rows = client.run(
+        f"{base}"
+        "WITH DISTINCT ep "
+        "MATCH (enc:Encounter)-[:IS_PART_OF]->(ep) "
+        "MATCH (enc)-[:DOCUMENTS]->(concept) "
+        f"{proc_where}"
+        "WITH concept.name AS name, "
+        "     count(DISTINCT ep.episode_id) AS n "
+        "RETURN name, n "
+        "ORDER BY n DESC "
+        "LIMIT 30",
+        **params,
+        **({"investigation_ids": investigation_ids} if has_valueset else {}),
     )
     s = summary_rows[0] if summary_rows else {}
     total = s.get("total_episodes") or 1
@@ -793,6 +870,14 @@ def _q_investigations(base: str, params: dict, client: PatientGraphClient) -> di
                 "pct": round(r["n"] * 100.0 / inv_total, 1),
             }
             for r in type_rows
+        ],
+        "top_procedures": [
+            {
+                "name": r["name"],
+                "n": r["n"],
+                "pct": round(r["n"] * 100.0 / total, 1),
+            }
+            for r in procedure_rows
         ],
     }
 
@@ -1414,6 +1499,160 @@ def _q_blood_signal_distributions(client: PatientGraphClient) -> list[dict]:
     return results
 
 
+_CANCER_VALS_RAW_Q = """
+MATCH (ep:EpisodeOfCare)
+WHERE ep.bf_cohort_label = 'cancer'
+  AND ep.bf_anchor_date IS NOT NULL
+WITH ep,
+     CASE WHEN toLower(ep.bf_cancer_type) = 'breast'
+          THEN 'Breast' ELSE ep.bf_cancer_type END AS cancer_type
+MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
+MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE d.value IS NOT NULL
+  AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
+  AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
+  AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
+RETURN cancer_type,
+       obs.name AS test_name,
+       toFloat(toString(d.value)) AS value,
+       collect(DISTINCT toString(d.referenceRange))[0] AS ref_range,
+       collect(DISTINCT toString(d.unit))[0] AS unit
+"""
+
+_BENIGN_VALS_RAW_Q = """
+MATCH (ep:EpisodeOfCare)
+WHERE ep.bf_cohort_label = 'benign'
+  AND ep.bf_anchor_date IS NOT NULL
+MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
+MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE d.value IS NOT NULL
+  AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
+  AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
+  AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
+RETURN obs.name AS test_name,
+       toFloat(toString(d.value)) AS value,
+       collect(DISTINCT toString(d.referenceRange))[0] AS ref_range,
+       collect(DISTINCT toString(d.unit))[0] AS unit
+"""
+
+
+def _compute_box_stats(
+    values: list[float],
+    ref_low: float | None = None,
+    ref_high: float | None = None,
+) -> dict | None:
+    if not values:
+        return None
+    s = sorted(values)
+    n = len(s)
+
+    def _pct(p: float) -> float:
+        idx = (n - 1) * p
+        lo, hi = int(idx), min(int(idx) + 1, n - 1)
+        return s[lo] + (s[hi] - s[lo]) * (idx - lo)
+
+    result: dict = {
+        "n":      n,
+        "p10":    round(_pct(0.10), 3),
+        "q1":     round(_pct(0.25), 3),
+        "median": round(_pct(0.50), 3),
+        "q3":     round(_pct(0.75), 3),
+        "p90":    round(_pct(0.90), 3),
+        "mean":   round(sum(values) / n, 3),
+    }
+    if ref_high is not None:
+        result["n_above_ref"] = sum(1 for v in values if v > ref_high)
+        result["pct_above_ref"] = round(result["n_above_ref"] / n * 100, 1)
+    if ref_low is not None:
+        result["n_below_ref"] = sum(1 for v in values if v < ref_low)
+        result["pct_below_ref"] = round(result["n_below_ref"] / n * 100, 1)
+    return result
+
+
+def _q_blood_per_test_by_cancer_type(client: "PatientGraphClient") -> list[dict]:  # type: ignore[name-defined]
+    """
+    Fully dynamic per-test distributions broken down by cancer type + overall benign.
+    Returns one entry per test ordered by total cancer reading count descending.
+    """
+    cancer_vals: dict[str, dict[str, list[float]]] = {}  # test -> cancer_type -> [values]
+    benign_vals: dict[str, list[float]] = {}             # test -> [values]
+    test_meta: dict[str, dict] = {}                      # test -> {ref_range, unit}
+
+    for r in client.run(_CANCER_VALS_RAW_Q):
+        tn = str(r["test_name"] or "")
+        if not tn or tn in _EXCLUDE_TESTS:
+            continue
+        v = r.get("value")
+        if v is None:
+            continue
+        ct = str(r.get("cancer_type") or "Unknown")
+        cancer_vals.setdefault(tn, {}).setdefault(ct, []).append(float(v))
+        if tn not in test_meta:
+            test_meta[tn] = {
+                "ref_range": str(r.get("ref_range") or ""),
+                "unit":      str(r.get("unit") or ""),
+            }
+
+    for r in client.run(_BENIGN_VALS_RAW_Q):
+        tn = str(r["test_name"] or "")
+        if not tn or tn in _EXCLUDE_TESTS:
+            continue
+        v = r.get("value")
+        if v is None:
+            continue
+        benign_vals.setdefault(tn, []).append(float(v))
+        if tn not in test_meta:
+            test_meta[tn] = {
+                "ref_range": str(r.get("ref_range") or ""),
+                "unit":      str(r.get("unit") or ""),
+            }
+
+    all_tests = sorted(
+        set(list(cancer_vals.keys()) + list(benign_vals.keys())),
+        key=lambda tn: -(sum(len(v) for v in cancer_vals.get(tn, {}).values())),
+    )
+
+    results: list[dict] = []
+    for tn in all_tests:
+        meta = test_meta.get(tn, {})
+        ref_pair = _parse_ref_range(meta.get("ref_range", ""))
+
+        ref_low  = ref_pair[0] if ref_pair else None
+        ref_high = ref_pair[1] if ref_pair else None
+
+        groups: dict[str, dict] = {}
+        bv = benign_vals.get(tn, [])
+        bstats = _compute_box_stats(bv, ref_low=ref_low, ref_high=ref_high)
+        if bstats:
+            groups["Benign"] = bstats
+
+        ct_groups: dict[str, dict] = {}
+        for ct, vals in sorted((cancer_vals.get(tn) or {}).items()):
+            stats = _compute_box_stats(vals, ref_low=ref_low, ref_high=ref_high)
+            if stats:
+                ct_groups[ct] = stats
+
+        groups.update(ct_groups)
+        if not groups:
+            continue
+
+        n_cancer = sum(len(v) for v in (cancer_vals.get(tn) or {}).values())
+        results.append({
+            "key":      tn,
+            "label":    _clean_test_label(tn),
+            "unit":     meta.get("unit", ""),
+            "ref_low":  ref_pair[0] if ref_pair else None,
+            "ref_high": ref_pair[1] if ref_pair else None,
+            "n_cancer": n_cancer,
+            "n_benign": len(bv),
+            "groups":   groups,
+        })
+
+    return results
+
+
 def _q_blood_signal_values(client: PatientGraphClient, prop_key: str) -> list[dict]:
     """Raw per-patient mean values for one test — used for scatter dots."""
     snomed_map = {
@@ -1473,7 +1712,12 @@ _SNOMED_NAME: dict[str, str] = {
 }
 
 # Per-patient mean value + reference range for one test, cancer episodes only.
-_CANCER_PATIENT_VALUES_Q = """
+# ---------------------------------------------------------------------------
+# Bulk queries for dynamic cancer-type matrix (all tests, not just hardcoded 21)
+# ---------------------------------------------------------------------------
+
+# All cancer FTR patients × all their numeric test results in one query.
+_CANCER_ALL_TESTS_Q = """
 MATCH (ep:EpisodeOfCare)
 WHERE ep.bf_cohort_label = 'cancer'
   AND ep.bf_anchor_date IS NOT NULL
@@ -1481,216 +1725,392 @@ WITH ep,
      CASE WHEN toLower(ep.bf_cancer_type) = 'breast'
           THEN 'Breast' ELSE ep.bf_cancer_type END AS cancer_type
 MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
-OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
-WHERE obs.name = $test_name
-  AND d.value IS NOT NULL AND trim(toString(d.value)) <> ''
+MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE d.value IS NOT NULL
+  AND trim(toString(d.value)) <> ''
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
 WITH ep.episode_id AS episode_id,
      cancer_type,
+     obs.name AS test_name,
      avg(toFloat(toString(d.value))) AS mean_value,
      collect(DISTINCT toString(d.referenceRange))[0] AS ref_range,
      collect(DISTINCT toString(d.unit))[0] AS unit
-RETURN episode_id, cancer_type, mean_value, ref_range, unit
-ORDER BY cancer_type, episode_id
+RETURN episode_id, cancer_type, test_name, mean_value, ref_range, unit
+ORDER BY cancer_type, episode_id, test_name
 """
 
-# Benign aggregate per test (combined episodes + no-episode FTR patients).
-_BENIGN_AGG_Q = """
+# All benign FTR patients (closed_benign episodes + no-episode BloodPanel)
+# × all their numeric test results. Used as baseline for effect size.
+_BENIGN_ALL_TESTS_Q = """
 MATCH (ep:EpisodeOfCare)
 WHERE ep.bf_cohort_label = 'benign'
   AND ep.bf_anchor_date IS NOT NULL
 MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
 MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
-WHERE obs.name = $test_name
-  AND d.value IS NOT NULL AND trim(toString(d.value)) <> ''
+WHERE d.value IS NOT NULL
+  AND trim(toString(d.value)) <> ''
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
-WITH toFloat(toString(d.value)) AS v, d.referenceRange AS ref_range
-WHERE v IS NOT NULL
-WITH collect(v) AS ep_vals, collect(DISTINCT ref_range) AS refs
-
-// Also pull in BloodPanel (no-episode FTR patients)
-CALL {
-  MATCH (bp:BloodPanel)
-  WHERE bp.bf_anchor_date IS NOT NULL
-  MATCH (p2:Patient {id: bp.patient_id})-[:HAS_ENCOUNTER]->(enc2:Encounter)-[d2:DOCUMENTS]->(obs2:Observable_entity)
-  WHERE obs2.name = $test_name
-    AND d2.value IS NOT NULL AND trim(toString(d2.value)) <> ''
-    AND toFloat(toString(d2.value)) IS NOT NULL
-    AND date(enc2.date) >= date(bp.bf_anchor_date) - duration({years: 1})
-    AND date(enc2.date) <= date(bp.bf_anchor_date) + duration({days: 28})
-  WITH toFloat(toString(d2.value)) AS v2, d2.referenceRange AS ref2
-  WHERE v2 IS NOT NULL
-  RETURN collect(v2) AS bp_vals, collect(DISTINCT ref2) AS bp_refs
-}
-
-WITH ep_vals + bp_vals AS all_vals,
-     refs + bp_refs AS all_refs
-
-UNWIND all_vals AS v
-RETURN avg(v) AS mean_v,
-       stDev(v) AS std_v,
+WITH obs.name AS test_name,
+     toFloat(toString(d.value)) AS v,
+     d.referenceRange AS ref_range, d.unit AS unit
+RETURN test_name,
+       avg(v) AS mean_v, stDev(v) AS std_v,
        percentileCont(v, 0.5) AS median_v,
        count(v) AS n,
-       all_refs[0] AS ref_range
+       collect(DISTINCT toString(ref_range))[0] AS ref_range,
+       collect(DISTINCT toString(unit))[0] AS unit
+
+UNION ALL
+
+MATCH (bp:BloodPanel)
+WHERE bp.bf_anchor_date IS NOT NULL
+MATCH (p:Patient {id: bp.patient_id})-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE d.value IS NOT NULL
+  AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
+  AND date(enc.date) >= date(bp.bf_anchor_date) - duration({years: 1})
+  AND date(enc.date) <= date(bp.bf_anchor_date) + duration({days: 28})
+WITH obs.name AS test_name,
+     toFloat(toString(d.value)) AS v,
+     d.referenceRange AS ref_range, d.unit AS unit
+RETURN test_name,
+       avg(v) AS mean_v, stDev(v) AS std_v,
+       percentileCont(v, 0.5) AS median_v,
+       count(v) AS n,
+       collect(DISTINCT toString(ref_range))[0] AS ref_range,
+       collect(DISTINCT toString(unit))[0] AS unit
 """
+
+# Tests to exclude from the matrix (vitals, measurements, psychosocial, tobacco)
+_EXCLUDE_TESTS: frozenset[str] = frozenset({
+    "Heart rate (observable entity)",
+    "Heart rate measured at systemic artery (observable entity)",
+    "Respiratory rate (observable entity)",
+    "Peripheral blood oxygen saturation on room air at rest",
+    "Blood oxygen saturation (calculated) (observable entity)",
+    "Oxygen saturation at periphery equivocal",
+    "Oxygen saturation at periphery unknown",
+    "Body weight (observable entity)",
+    "Body mass index (observable entity)",
+    "Body temperature (observable entity)",
+    "Temperature (observable entity)",
+    "Waist circumference (observable entity)",
+    "Blood pressure (observable entity)",
+    "Peak expiratory flow rate measured using EN 13826 device",
+    "Forced vital capacity (observable entity)",
+    "Forced vital capacity/expected forced vital capacity percent (observable entity)",
+    "Forced vital capacity after bronchodilation (observable entity)",
+    "Vital capacity (observable entity)",
+    "Spirometric lung age (observable entity)",
+    "Residual urine volume (observable entity)",
+    "Length of wound tunneling (observable entity)",
+    "Width of wound (observable entity)",
+    "Pain score (observable entity)",
+    "Pain level (observable entity)",
+    "Level of depression (observable entity)",
+    "Level of nausea (observable entity)",
+    "Drowsiness, function (observable entity)",
+    "DIALOG patient rated outcome measure treatment satisfaction score (observable entity)",
+    "Age at starting smoking (observable entity)",
+    "Cigarette consumption (observable entity)",
+    "Cigar consumption (observable entity)",
+    "Pipe tobacco consumption (observable entity)",
+    "Alcohol units consumed per week (observable entity)",
+    "Percentage change in weight (observable entity)",
+    "Bradycardia - baseline fetal heart rate",
+    "Breslow depth staging for melanoma of skin (observable entity)",
+    # Arbitrary allergy IgE panels (not routine blood chemistry)
+    "Arbitrary concentration of rAct d 8 PR-10, Kiwi specific immunoglobulin E antibody in serum (observable entity)",
+    "Arbitrary concentration of rApi g 1.01 PR-10, Celery specific immunoglobulin E antibody in serum (observable entity)",
+    "Arbitrary concentration of nBos d 8 Casein, Milk specific immunoglobulin E antibody in serum (observable entity)",
+})
+
+
+def _clean_test_label(name: str) -> str:
+    """Shorten verbose SNOMED Observable_entity names to concise clinical labels."""
+    replacements = [
+        # Specific verbose names first (order matters)
+        ("Mass concentration of haemoglobin in blood (observable entity)", "Haemoglobin"),
+        ("Mass concentration of haemoglobin in blood", "Haemoglobin"),
+        ("Neutrophil percent count in blood", "Neutrophil %"),
+        ("Monocyte count in blood (observable entity)", "Monocyte"),
+        ("Monocyte count in blood", "Monocyte"),
+        ("Mean corpuscular haemoglobin", "MCH"),
+        ("Mean corpuscular volume", "MCV"),
+        ("Haemoglobin A1c level (observable entity)", "HbA1c"),
+        ("Haemoglobin A1c", "HbA1c"),
+        ("Serum random high density lipoprotein cholesterol level (observable entity)", "HDL Cholesterol"),
+        ("Serum random high density lipoprotein cholesterol level", "HDL Cholesterol"),
+        ("Serum fasting low density lipoprotein cholesterol level (observable entity)", "LDL Cholesterol (fasting)"),
+        ("Serum random low density lipoprotein cholesterol level", "LDL Cholesterol"),
+        ("Serum non high density lipoprotein cholesterol level", "Non-HDL Cholesterol"),
+        ("Serum cholesterol level (observable entity)", "Total Cholesterol"),
+        ("Serum total cholesterol level (observable entity)", "Total Cholesterol"),
+        ("Total cholesterol level (observable entity)", "Total Cholesterol"),
+        ("Serum random triglyceride level (observable entity)", "Triglycerides"),
+        ("Serum triglycerides level (observable entity)", "Triglycerides"),
+        ("Serum inorganic phosphate level (observable entity)", "Phosphate"),
+        ("Serum inorganic phosphate level", "Phosphate"),
+        ("Blood inorganic phosphate level (observable entity)", "Phosphate"),
+        ("Serum alkaline phosphatase placental enzyme level", "ALP"),
+        ("Serum albumin level", "Albumin"),
+        ("Serum bilirubin level", "Bilirubin"),
+        ("Serum folate level (observable entity)", "Folate"),
+        ("Serum calcium level (observable entity)", "Calcium"),
+        ("Serum sodium level (observable entity)", "Sodium"),
+        ("Sodium level (observable entity)", "Sodium"),
+        ("Serum total protein", "Total Protein"),
+        ("Serum ferritin level (observable entity)", "Ferritin"),
+        ("Serum ferritin level", "Ferritin"),
+        ("Estimated creatinine clearance calculated using actual body weight Cockcroft-Gault formula (observable entity)", "eGFR (CG)"),
+        ("Estimated creatinine clearance calculated using actual body weigh", "eGFR (CG)"),
+        ("Mass concentration ratio of albumin to creatinine in urine", "Urine ACR"),
+        ("Urine albumin level (observable entity)", "Urine Albumin"),
+        ("Urine protein outside reference range", "Urine Protein"),
+        ("Urine creatinine level (observable entity)", "Urine Creatinine"),
+        ("Prostate specific antigen level (observable entity)", "PSA"),
+        ("Serum free prostate specific antigen level", "Free PSA"),
+        ("Tissue transglutaminase immunoglobulin A level (observable entity)", "tTG-IgA"),
+        ("GD1a immunoglobulin G level", "GD1a IgG"),
+        ("Red blood cell count (observable entity)", "RBC"),
+        ("Red blood cell count", "RBC"),
+        ("Platelet count", "Platelets"),
+        ("Blood potassium level", "Potassium"),
+        ("Potassium level (observable entity)", "Potassium"),
+        ("Glomerular filtration rate calculated by abbreviated Modification of Diet in Renal Disease Study Group calculation (observable entity)", "eGFR (MDRD)"),
+        ("Serum amylase level (observable entity)", "Amylase"),
+        ("Quantitative faecal immunochemical test (observable entity)", "FIT"),
+        ("International normalized ratio (observable entity)", "INR"),
+        ("Serum C reactive protein level (observable entity)", "CRP"),
+        ("Serum gamma-glutamyl transferase level (observable entity)", "GGT"),
+        ("Serum glucose level (observable entity)", "Glucose (fasting)"),
+        ("Glucose level (observable entity)", "Glucose"),
+        ("Reticulocyte haemoglobin content", "Reticulocyte Hb"),
+        ("Fluid sample uric acid level (observable entity)", "Uric Acid"),
+        ("B12/folate level (observable entity)", "B12/Folate"),
+        ("Serum galactose-1-phosphate level (observable entity)", "Galactose-1-PO4"),
+        ("Serum 32-33 split pro-insulin level (observable entity)", "Pro-insulin"),
+    ]
+    for old, new in replacements:
+        if name == old or name.startswith(old):
+            name = new
+            break
+    # Generic strip of " (observable entity)" suffix if nothing matched
+    for suffix in [" (observable entity)", " (observable entity"]:
+        if name.endswith(suffix):
+            name = name[: -len(suffix)].strip()
+    # Strip trailing " level" when it adds nothing
+    if name.lower().endswith(" level"):
+        name = name[:-6].strip()
+    return name
 
 
 def _q_blood_cancer_type_matrix(client: "PatientGraphClient") -> dict:  # type: ignore[name-defined]
     """
-    Returns the data needed for the By Cancer Type heatmap + patient flag matrix.
+    Dynamic cancer-type heatmap + patient flag matrix.
 
-    For every (cancer_type, test) pair:
-      heatmap_rows  — per-cancer-type aggregated effect size vs benign
-      patient_flags — per-episode flag (high / low / normal / no_data) for each test
+    Discovers ALL numeric blood/biochemistry test results for every FTR
+    cancer patient within their referral window, without requiring a
+    pre-defined feature list. Benign comparison is included where the
+    benign cohort also has readings for the same test; cancer-only tests
+    still appear in the matrix.
     """
     # ------------------------------------------------------------------
-    # 1. Benign baseline stats per test
+    # 1. Benign baseline: bulk query, aggregate per test in Python
     # ------------------------------------------------------------------
-    benign_stats: dict[str, dict] = {}
-    for key in _BLOOD_SIGNAL_FEATURE_KEYS:
-        test_name = _SNOMED_NAME.get(key, "")
-        if not test_name:
+    benign_rows = client.run(_BENIGN_ALL_TESTS_Q)
+
+    # Merge duplicate test_name rows that come from UNION (ep + bp)
+    benign_agg: dict[str, dict] = {}
+    for r in benign_rows:
+        tn = str(r["test_name"] or "")
+        if not tn or tn in _EXCLUDE_TESTS:
             continue
-        rows = client.run(_BENIGN_AGG_Q, test_name=test_name)
-        if rows:
-            r = rows[0]
-            benign_stats[key] = {
-                "mean":   float(r["mean_v"] or 0),
-                "std":    float(r["std_v"] or 1),
+        n = int(r["n"] or 0)
+        if n == 0:
+            continue
+        if tn not in benign_agg:
+            benign_agg[tn] = {
+                "sum":    float(r["mean_v"] or 0) * n,
+                "sq":     0.0,
+                "n":      n,
                 "median": float(r["median_v"] or 0),
-                "n":      int(r["n"] or 0),
                 "ref_range": r.get("ref_range"),
+                "unit":   str(r.get("unit") or ""),
             }
+        else:
+            # Weighted merge of means; std not merged (use existing)
+            prev = benign_agg[tn]
+            total_n = prev["n"] + n
+            prev["sum"] += float(r["mean_v"] or 0) * n
+            prev["n"] = total_n
+            # Prefer whichever median came from more readings
+            if n > prev["n"] // 2:
+                prev["median"] = float(r["median_v"] or 0)
+            if not prev["ref_range"] and r.get("ref_range"):
+                prev["ref_range"] = r["ref_range"]
+
+    # Compute final mean and a rough std for effect size denominator
+    benign_stats: dict[str, dict] = {}
+    for tn, agg in benign_agg.items():
+        mean = agg["sum"] / agg["n"] if agg["n"] else 0.0
+        benign_stats[tn] = {
+            "mean":   mean,
+            "median": agg["median"],
+            "n":      agg["n"],
+            "ref_range": agg.get("ref_range"),
+            "unit":   agg.get("unit", ""),
+        }
 
     # ------------------------------------------------------------------
-    # 2. Per-cancer-type, per-test: individual patient mean values
+    # 2. Cancer patients: bulk query, all tests × all episodes
     # ------------------------------------------------------------------
-    # Structure: {episode_id: {test_key: {value, ref_range, unit}}}
-    episode_data: dict[str, dict] = {}
-    # Structure: {episode_id: cancer_type}
+    cancer_rows = client.run(_CANCER_ALL_TESTS_Q)
+
+    # episode_data[eid][test_name] = {value, ref_range, unit}
+    episode_data: dict[str, dict[str, dict]] = {}
     episode_cancer_type: dict[str, str] = {}
+    # Track all test names seen (preserves insertion order via dict)
+    all_test_names: dict[str, dict] = {}  # test_name -> {ref_range, unit}
 
-    for key in _BLOOD_SIGNAL_FEATURE_KEYS:
-        test_name = _SNOMED_NAME.get(key, "")
-        if not test_name:
+    for r in cancer_rows:
+        tn = str(r["test_name"] or "")
+        if not tn or tn in _EXCLUDE_TESTS:
             continue
-        rows = client.run(_CANCER_PATIENT_VALUES_Q, test_name=test_name)
-        for r in rows:
-            eid = str(r["episode_id"] or "")
-            ct = str(r.get("cancer_type") or "Unknown")
-            episode_cancer_type[eid] = ct
+        eid = str(r["episode_id"] or "")
+        ct = str(r.get("cancer_type") or "Unknown")
+        mv = r.get("mean_value")
+        ref = str(r.get("ref_range") or "")
+        unit = str(r.get("unit") or "")
 
-            if eid not in episode_data:
-                episode_data[eid] = {}
-
-            mv = r.get("mean_value")
-            episode_data[eid][key] = {
-                "value":     round(float(mv), 3) if mv is not None else None,
-                "ref_range": r.get("ref_range"),
-                "unit":      r.get("unit") or "",
+        episode_cancer_type[eid] = ct
+        episode_data.setdefault(eid, {})
+        episode_data[eid][tn] = {
+            "value":     round(float(mv), 3) if mv is not None else None,
+            "ref_range": ref or benign_stats.get(tn, {}).get("ref_range") or None,
+            "unit":      unit or benign_stats.get(tn, {}).get("unit") or "",
+        }
+        if tn not in all_test_names:
+            all_test_names[tn] = {
+                "ref_range": ref or benign_stats.get(tn, {}).get("ref_range"),
+                "unit":      unit or benign_stats.get(tn, {}).get("unit", ""),
             }
+        elif not all_test_names[tn]["ref_range"] and ref:
+            all_test_names[tn]["ref_range"] = ref
 
     # ------------------------------------------------------------------
-    # 3. Compute per-patient flags and per-cancer-type aggregates
+    # 3. Sort tests: by number of cancer patients with readings (desc)
     # ------------------------------------------------------------------
-    # Group episodes by cancer type
+    test_coverage: dict[str, int] = {}
+    for eid, tests in episode_data.items():
+        for tn in tests:
+            test_coverage[tn] = test_coverage.get(tn, 0) + 1
+
+    ordered_tests = sorted(all_test_names.keys(), key=lambda t: -test_coverage.get(t, 0))
+
+    # ------------------------------------------------------------------
+    # 4. Group episodes by cancer type
+    # ------------------------------------------------------------------
     by_ct: dict[str, list[str]] = {}
     for eid, ct in episode_cancer_type.items():
         by_ct.setdefault(ct, []).append(eid)
-
-    # For each cancer type sort episodes for stable ordering
     for ct in by_ct:
         by_ct[ct].sort()
 
-    # patient_flags: list of row dicts for the flag matrix
+    # ------------------------------------------------------------------
+    # 5. Build heatmap cells and patient flag matrix
+    # ------------------------------------------------------------------
     patient_flags: list[dict] = []
-    # heatmap_rows: list of {cancer_type, test_key, n, effect_size, pct_high, pct_low}
     heatmap_cells: list[dict] = []
 
-    for ct in sorted(by_ct.keys()):
+    for ct in sorted(by_ct.keys(), key=lambda c: -len(by_ct[c])):
         episodes = by_ct[ct]
-        # Counters per test for this cancer type
         test_counts: dict[str, dict] = {
-            k: {"n": 0, "high": 0, "low": 0, "values": []}
-            for k in _BLOOD_SIGNAL_FEATURE_KEYS
+            tn: {"n": 0, "high": 0, "low": 0, "values": []}
+            for tn in ordered_tests
         }
 
         for idx, eid in enumerate(episodes, start=1):
             row_flags: dict[str, str] = {}
+            row_values: dict[str, float | None] = {}
             test_vals = episode_data.get(eid, {})
 
-            for key in _BLOOD_SIGNAL_FEATURE_KEYS:
-                td = test_vals.get(key, {})
-                value = td.get("value") if isinstance(td, dict) else None
-                ref_raw = td.get("ref_range") if isinstance(td, dict) else None
+            for tn in ordered_tests:
+                td = test_vals.get(tn)
+                value = td["value"] if td else None
+                ref_raw = (td["ref_range"] if td else None) or all_test_names.get(tn, {}).get("ref_range")
                 ref = _parse_ref_range(ref_raw)
+                row_values[tn] = value
 
                 if value is None:
-                    row_flags[key] = "no_data"
+                    row_flags[tn] = "no_data"
                     continue
 
-                test_counts[key]["n"] += 1
-                test_counts[key]["values"].append(value)
+                test_counts[tn]["n"] += 1
+                test_counts[tn]["values"].append(value)
 
                 if ref:
                     if value > ref[1]:
-                        row_flags[key] = "high"
-                        test_counts[key]["high"] += 1
+                        row_flags[tn] = "high"
+                        test_counts[tn]["high"] += 1
                     elif value < ref[0]:
-                        row_flags[key] = "low"
-                        test_counts[key]["low"] += 1
+                        row_flags[tn] = "low"
+                        test_counts[tn]["low"] += 1
                     else:
-                        row_flags[key] = "normal"
+                        row_flags[tn] = "normal"
                 else:
-                    row_flags[key] = "normal"
+                    row_flags[tn] = "normal"
 
             patient_flags.append({
                 "label":       f"{ct} {idx}",
                 "cancer_type": ct,
                 "episode_id":  eid,
                 "flags":       row_flags,
-                # also carry raw values for tooltip
-                "values":      {
-                    k: (episode_data.get(eid, {}).get(k, {}) or {}).get("value")
-                    for k in _BLOOD_SIGNAL_FEATURE_KEYS
-                },
+                "values":      row_values,
             })
 
-        # Heatmap cells for this cancer type
-        for key in _BLOOD_SIGNAL_FEATURE_KEYS:
-            tc = test_counts[key]
+        # Heatmap cells
+        for tn in ordered_tests:
+            tc = test_counts[tn]
             vals = tc["values"]
-            bs = benign_stats.get(key, {})
+            bs = benign_stats.get(tn, {})
             median_v = sorted(vals)[len(vals) // 2] if vals else None
-            benign_std = bs.get("std") or 1.0
+            # Effect size vs benign median, normalised by a robust scale
+            # Use IQR-based scale (≈ 1.35 × std) or fallback to abs(benign_median)/4
             benign_median = bs.get("median") or 0.0
-            effect = round((median_v - benign_median) / benign_std, 3) if median_v is not None else None
-            n_total = len(episodes)
+            benign_scale = max(abs(benign_median) * 0.25, 0.01)
+            effect = round((median_v - benign_median) / benign_scale, 3) if (median_v is not None and benign_median) else None
+
+            ref_raw = all_test_names.get(tn, {}).get("ref_range") or bs.get("ref_range")
             heatmap_cells.append({
-                "cancer_type":  ct,
-                "test_key":     key,
-                "n_with_data":  tc["n"],
-                "n_total":      n_total,
-                "effect_size":  effect,
-                "pct_high":     round(tc["high"] / tc["n"] * 100, 1) if tc["n"] else None,
-                "pct_low":      round(tc["low"]  / tc["n"] * 100, 1) if tc["n"] else None,
-                "median_value": median_v,
+                "cancer_type":   ct,
+                "test_name":     tn,
+                "test_key":      tn,   # kept for TS compatibility
+                "n_with_data":   tc["n"],
+                "n_total":       len(episodes),
+                "effect_size":   effect,
+                "pct_high":      round(tc["high"] / tc["n"] * 100, 1) if tc["n"] else None,
+                "pct_low":       round(tc["low"]  / tc["n"] * 100, 1) if tc["n"] else None,
+                "median_value":  round(median_v, 3) if median_v is not None else None,
                 "benign_median": round(benign_median, 3),
-                "ref_range_raw": benign_stats.get(key, {}).get("ref_range"),
+                "benign_n":      bs.get("n", 0),
+                "ref_range_raw": ref_raw,
+                "unit":          all_test_names.get(tn, {}).get("unit", ""),
             })
 
-    # Ordered cancer types (by descending n_total)
-    cancer_types_ordered = sorted(
-        by_ct.keys(), key=lambda ct: -len(by_ct[ct])
-    )
-
+    cancer_types_ordered = sorted(by_ct.keys(), key=lambda c: -len(by_ct[c]))
     tests_meta = [
-        {"key": k, "label": _BLOOD_SIGNAL_FEATURE_LABELS[k]}
-        for k in _BLOOD_SIGNAL_FEATURE_KEYS
+        {
+            "key":   tn,
+            "label": _clean_test_label(tn),
+            "unit":  all_test_names.get(tn, {}).get("unit", ""),
+            "n_cancer_patients": test_coverage.get(tn, 0),
+        }
+        for tn in ordered_tests
     ]
 
     return {

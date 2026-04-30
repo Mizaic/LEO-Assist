@@ -69,6 +69,7 @@ from ._audit_sections import (
     _q_blood_signal_distributions,
     _q_blood_signal_values,
     _q_blood_cancer_type_matrix,
+    _q_blood_per_test_by_cancer_type,
     _q_cancer_stage,
     _q_cancer_type,
     _q_consultations,
@@ -1101,6 +1102,22 @@ def audit_blood_signal_cancer_type_matrix():
     client = PatientGraphClient()
     try:
         return _q_blood_cancer_type_matrix(client)
+    finally:
+        client.close()
+
+
+@router.get("/audit/blood-signal/per-test-by-cancer-type")
+def audit_blood_per_test_by_cancer_type():
+    """Per-test box plot distributions broken down by cancer type (fully dynamic).
+
+    Returns all blood tests observed in cancer and/or benign FTR patients within
+    the 12-month pre-referral + 28-day post-referral window, with box stats
+    (p10, q1, median, q3, p90, mean, n) per group (Benign + each cancer type).
+    Sorted by number of cancer readings descending.
+    """
+    client = PatientGraphClient()
+    try:
+        return _q_blood_per_test_by_cancer_type(client)
     finally:
         client.close()
 
