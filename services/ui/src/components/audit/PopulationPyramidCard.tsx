@@ -78,6 +78,8 @@ export interface PopulationPyramidCardProps {
   baselineMarginal?: BaselineMarginal | null;
   /** When provided, renders a small expand button in the card header. */
   onZoom?: () => void;
+  /** Bare mode: skip card border/padding/header for use inside ChartZoomDialog. */
+  bare?: boolean;
 }
 
 function fmtPct(value: number | null | undefined): string {
@@ -385,6 +387,7 @@ export default function PopulationPyramidCard({
   isBaseline = false,
   baselineMarginal = null,
   onZoom,
+  bare = false,
 }: PopulationPyramidCardProps) {
   const isEmpty = !loading && !isBaseline && totalN === 0;
   const isLowSample =
@@ -416,30 +419,15 @@ export default function PopulationPyramidCard({
     ? baselineMarginal?.medianAge ?? null
     : null;
 
-  return (
+  const headerRow = (
     <Box
-      role="group"
-      aria-label={`Demographics chart card for ${yearLabel}`}
       sx={{
         display: "flex",
-        flexDirection: "column",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-        p: 1.75,
-        bgcolor: "background.paper",
-        height: "100%",
+        alignItems: "center",
+        justifyContent: "space-between",
         gap: 1,
       }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 1,
-        }}
-      >
         <Box sx={{ minWidth: 0 }}>
           <Typography
             component="h3"
@@ -494,8 +482,11 @@ export default function PopulationPyramidCard({
             </Tooltip>
           )}
         </Box>
-      </Box>
+    </Box>
+  );
 
+  const bodyContent = (
+    <>
       <Box
         sx={{
           display: "flex",
@@ -635,6 +626,45 @@ export default function PopulationPyramidCard({
           representative.
         </Typography>
       )}
+    </>
+  );
+
+  if (bare) {
+    return (
+      <Box
+        role="group"
+        aria-label={`Demographics chart for ${yearLabel}`}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 1,
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        {bodyContent}
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      role="group"
+      aria-label={`Demographics chart card for ${yearLabel}`}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2,
+        p: 1.75,
+        bgcolor: "background.paper",
+        height: "100%",
+        gap: 1,
+      }}
+    >
+      {headerRow}
+      {bodyContent}
     </Box>
   );
 }

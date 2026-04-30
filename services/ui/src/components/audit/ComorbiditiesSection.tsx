@@ -263,20 +263,24 @@ export default function ComorbiditiesSection({
           {zoomedYear !== null && (() => {
             const isBase = zoomedYear === String(BASELINE_YEAR);
             const zState = yearStates.find((y) => String(y.year) === zoomedYear);
+            const zN = isBase ? 0 : (zState?.data?.total_patients ?? 0);
             return (
               <ChartZoomDialog
                 open
                 onClose={() => setZoomedYear(null)}
                 title={`Comorbidities \u2014 ${zoomedYear}`}
+                subtitle={isBase ? "2018 NCDA baseline" : `n = ${zN}`}
                 maxWidth="sm"
-                contentHeight={520}
               >
-                <ComorbidityRadarCard
-                  yearLabel={zoomedYear}
-                  radar={isBase ? baselineRadar : (zState?.data?.radar ?? radar)}
-                  totalPatients={isBase ? 0 : (zState?.data?.total_patients ?? 0)}
-                  isBaseline={isBase}
-                />
+                <Box sx={{ width: "100%", aspectRatio: "1" }}>
+                  <ComorbidityRadarCard
+                    yearLabel={zoomedYear}
+                    radar={isBase ? baselineRadar : (zState?.data?.radar ?? radar)}
+                    totalPatients={zN}
+                    isBaseline={isBase}
+                    bare
+                  />
+                </Box>
               </ChartZoomDialog>
             );
           })()}

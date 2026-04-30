@@ -50,6 +50,11 @@ from libs.pipeline.label_filter import (
     get_excluded_assertions as _get_excluded_assertions,
     realign_entity as _realign_entity,
 )
+from libs.training_ext.corpus_balancer import (
+    BalanceConfig,
+    TierOneLabelStarvationError,
+    balance_corpus,
+)
 from libs.training_ext.stratified_split import (
     SplitRatios,
     iterative_multilabel_split,
@@ -300,10 +305,64 @@ def export_labels(
             "(surface text not found in sentence)."
         )
 
+    # Corpus rebalancing -- collapse exact-duplicate text, cap per-source
+    # surface dupes, cap any single source's share, and abort if tier-1
+    # safety-critical labels are starved.  Without this guard a single bulk
+    # seeder (historically: lab_coder_v1) can dominate the corpus and produce
+    # a model that only fires on lab-test surfaces.
+    balance_cfg = BalanceConfig.from_env()
+    _log(
+        "Corpus rebalancer config: "
+        f"max_source_share={balance_cfg.max_source_share} "
+        f"max_surface_dupes_per_source={balance_cfg.max_surface_dupes_per_source} "
+        f"max_records_per_text={balance_cfg.max_records_per_text} "
+        f"min_per_label={balance_cfg.min_per_label} "
+        f"tier1={sorted(balance_cfg.tier1_labels)}"
+    )
+    try:
+        records, balance_report = balance_corpus(records, balance_cfg)
+    except TierOneLabelStarvationError as exc:
+        # Re-raise as ValueError so existing job runner failure handling
+        # surfaces the message verbatim to the user.
+        raise ValueError(str(exc)) from exc
+
+    for warning in balance_report.warnings:
+        _log(f"Corpus balancer warning: {warning}")
+    if balance_report.text_dedupe_dropped:
+        _log(
+            "Corpus balancer: dropped "
+            f"{balance_report.text_dedupe_dropped} duplicate-text records."
+        )
+    if balance_report.surface_dedupe_dropped:
+        _log(
+            "Corpus balancer: dropped "
+            f"{balance_report.surface_dedupe_dropped} repeated entity spans "
+            "(per-source surface cap)."
+        )
+    if balance_report.source_cap_dropped:
+        for action in balance_report.source_cap_actions:
+            _log(
+                "Corpus balancer: capped source "
+                f"{action['source']!r} {action['before']} -> {action['after']} "
+                f"(share {action['share_before']:.3f} -> "
+                f"<= {action['share_target']:.3f})."
+            )
+    if balance_report.other_under_min:
+        _log(
+            "Corpus balancer: non-tier1 labels under minimum "
+            f"({balance_cfg.min_per_label}): "
+            + "; ".join(balance_report.other_under_min)
+        )
+    _log(
+        f"Corpus balancer: {balance_report.pre_record_count} -> "
+        f"{balance_report.post_record_count} records after rebalancing."
+    )
+
     if len(records) < min_count:
         raise ValueError(
-            f"Only {len(records)} GoldLabel records — minimum is {min_count}. "
-            "Add more verified gold labels before training."
+            f"Only {len(records)} GoldLabel records after rebalancing -- "
+            f"minimum is {min_count}. Add more verified gold labels (or relax "
+            "TRAINING_CORPUS_* limits) before training."
         )
 
     ratios = _resolve_split_ratios(train_ratio, split_ratios)
@@ -426,6 +485,12 @@ def export_labels(
         for label in all_label_keys
     }
 
+    balance_report_dict = balance_report.to_dict()
+    (output_dir / "corpus_balance_report.json").write_text(
+        json.dumps(balance_report_dict, indent=2),
+        encoding="utf-8",
+    )
+
     meta = {
         "exported_at": exported_at,
         "total_records": len(records),
@@ -437,6 +502,16 @@ def export_labels(
         },
         "split_hashes": per_split_hashes,
         "stratification_warnings": split.warnings,
+        "corpus_balance": {
+            "pre_record_count": balance_report.pre_record_count,
+            "post_record_count": balance_report.post_record_count,
+            "text_dedupe_dropped": balance_report.text_dedupe_dropped,
+            "surface_dedupe_dropped": balance_report.surface_dedupe_dropped,
+            "source_cap_dropped": balance_report.source_cap_dropped,
+            "tier1_under_min": list(balance_report.tier1_under_min),
+            "other_under_min": list(balance_report.other_under_min),
+            "warnings": list(balance_report.warnings),
+        },
         # --- Legacy fields kept for back-compat with existing consumers --------
         "train_records": len(split_records["train"]),
         "dev_records": len(split_records["dev"]),

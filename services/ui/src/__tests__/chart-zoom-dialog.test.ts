@@ -75,9 +75,8 @@ describe("Chart zoom / expand capability", () => {
       expect(src).toMatch(/aria-label="Close expanded chart"/);
     });
 
-    test("exposes maxWidth and contentHeight customisation props", () => {
+    test("exposes maxWidth customisation prop", () => {
       expect(src).toMatch(/maxWidth\?:/);
-      expect(src).toMatch(/contentHeight\?:/);
     });
 
     test("marks the file as use client", () => {

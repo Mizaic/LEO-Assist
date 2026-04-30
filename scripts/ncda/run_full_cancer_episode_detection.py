@@ -50,6 +50,12 @@ from libs.domains.documents_disorder_malignancy_ids import (  # noqa: E402
 )
 from libs.domains.ncda_concept_sets import CANCER_TYPE_IDS  # noqa: E402
 from libs.oncology.cancer_types import infer_cancer_type_from_dx_text  # noqa: E402
+from libs.oncology.first_presentation import (  # noqa: E402
+    EXTENDED_LOOKBACK_DAYS as FP_EXTENDED_LOOKBACK_DAYS,
+    LOOKBACK_DAYS as FP_LOOKBACK_DAYS,
+    build_fp_cypher_filter,
+    resolve_symptom_site,
+)
 from libs.oncology.staging_extractor import extract_staging  # noqa: E402
 from services.analysis_worker.app.ncda_detector.route_classifier import (  # noqa: E402
     classify_diagnosis_route,
@@ -619,6 +625,7 @@ ON CREATE SET
     ep.domain_id               = 'cancer',
     ep.condition_type          = $condition_type,
     ep.cancer_type             = $cancer_type,
+    ep.site                    = $site,
     ep.cohort                  = $cohort,
     ep.referral_date           = $referral_date,
     ep.specialist_visit_date   = $specialist_visit_date,
@@ -644,11 +651,13 @@ ON CREATE SET
     ep.staging_source          = $staging_source,
     ep.staging_confidence      = $staging_confidence,
     ep.staging_systems_found   = $staging_systems_found,
+    ep.first_presentation_date = $first_presentation_date,
     ep.created_at              = datetime(),
     ep.updated_at              = datetime()
 ON MATCH SET
     ep.cohort                  = $cohort,
     ep.cancer_type             = $cancer_type,
+    ep.site                    = $site,
     ep.condition_type          = $condition_type,
     ep.referral_date           = $referral_date,
     ep.specialist_visit_date   = $specialist_visit_date,
@@ -672,6 +681,7 @@ ON MATCH SET
     ep.staging_source          = $staging_source,
     ep.staging_confidence      = $staging_confidence,
     ep.staging_systems_found   = $staging_systems_found,
+    ep.first_presentation_date = $first_presentation_date,
     ep.updated_at              = datetime()
 MERGE (p)-[:HAS_EPISODE_OF_CARE]->(ep)
 RETURN ep.episode_id AS written_id
@@ -816,6 +826,7 @@ def _episode_params(row: dict[str, Any]) -> dict[str, Any]:
         "source": _SOURCE_TAG,
         "condition_type": condition_type,
         "cancer_type": ncda_cancer_type,
+        "site": row.get("site") or "unknown",
         "cohort": cohort,
         "referral_date": ftr_date,
         "specialist_visit_date": seen_date,
@@ -839,6 +850,8 @@ def _episode_params(row: dict[str, Any]) -> dict[str, Any]:
         "staging_source": "encounter_text" if staging.system != "none" else "none",
         "staging_confidence": staging.confidence,
         "staging_systems_found": staging.systems_found,
+        # Populated in the post-write first_presentation_date pass.
+        "first_presentation_date": "",
         "_encounters": encounters,
         "_all_encounter_ids": all_encounter_ids,
     }
@@ -1017,6 +1030,108 @@ def write_episodes_to_graph(
                     ep.referral_site = 'non_site_specific'
                 """
             )
+
+            # First presentation date pass — text-keyword scan backwards from the
+            # episode anchor date.
+            #
+            # Anchor selection:
+            #   cohort 1a / 1b: referral_date (when the 2WW FTR was issued)
+            #   cohort 3 (no FTR): end_date (cancer confirmation date)
+            #
+            # Two-pass attempt: 90 days first (NCDA typical window), widening to
+            # 180 days for pathways where symptoms pre-date the referral by more
+            # than 3 months (e.g. slow-presenting cancers, delayed presentation).
+            for p in params_list:
+                anchor = p["referral_date"] if p["referral_date"] else p["end_date"]
+                if not anchor:
+                    continue
+                symptom_site = resolve_symptom_site(
+                    p.get("cancer_type") or "", p.get("site") or ""
+                )
+                kw_filter = build_fp_cypher_filter(symptom_site)
+                fp_date: str | None = None
+                for lookback in (FP_LOOKBACK_DAYS, FP_EXTENDED_LOOKBACK_DAYS):
+                    row = session.run(
+                        f"""
+                        MATCH (pat:Patient)-[:HAS_ENCOUNTER]->(enc:Encounter)
+                        WHERE toString(pat.id) = $pid
+                          AND enc.date IS NOT NULL
+                          AND date(toString(enc.date)) <= date($anchor)
+                          AND date(toString(enc.date)) >= date($anchor) - duration({{days: $lookback}})
+                          AND size(coalesce(enc.text, '')) > 150
+                          AND {kw_filter}
+                        RETURN toString(min(enc.date)) AS fp_date
+                        """,
+                        pid=p["patient_id"],
+                        anchor=anchor,
+                        lookback=lookback,
+                    ).single()
+                    if row and row["fp_date"]:
+                        fp_date = row["fp_date"]
+                        break
+                if fp_date:
+                    session.run(
+                        """
+                        MATCH (ep:EpisodeOfCare {episode_id: $eid})
+                        SET ep.first_presentation_date = $fp_date
+                        """,
+                        eid=p["episode_id"],
+                        fp_date=fp_date,
+                    )
+
+            # Supplementary fp_date pass: covers ncda_detector episodes that
+            # were written directly to Neo4j (e.g. manually-created benign NSS
+            # episodes) and therefore do not appear in params_list.  Uses the
+            # generic symptom keyword list since site is unknown or "nss".
+            remaining = session.run(
+                """
+                MATCH (ep:EpisodeOfCare)
+                WHERE ep.source = 'ncda_detector'
+                  AND (ep.first_presentation_date IS NULL
+                       OR ep.first_presentation_date = '')
+                RETURN ep.episode_id AS eid,
+                       ep.patient_id AS pid,
+                       CASE WHEN ep.referral_date IS NOT NULL AND ep.referral_date <> ''
+                            THEN ep.referral_date
+                            ELSE ep.end_date END AS anchor,
+                       coalesce(ep.site, '') AS site,
+                       coalesce(ep.cancer_type, '') AS cancer_type
+                """
+            )
+            for rem in remaining:
+                anchor = rem["anchor"]
+                if not anchor:
+                    continue
+                symptom_site = resolve_symptom_site(
+                    rem.get("cancer_type") or "", rem.get("site") or ""
+                )
+                kw_filter = build_fp_cypher_filter(symptom_site)
+                for lookback in (FP_LOOKBACK_DAYS, FP_EXTENDED_LOOKBACK_DAYS):
+                    row = session.run(
+                        f"""
+                        MATCH (pat:Patient)-[:HAS_ENCOUNTER]->(enc:Encounter)
+                        WHERE toString(pat.id) = $pid
+                          AND enc.date IS NOT NULL
+                          AND date(toString(enc.date)) <= date($anchor)
+                          AND date(toString(enc.date)) >= date($anchor) - duration({{days: $lookback}})
+                          AND size(coalesce(enc.text, '')) > 150
+                          AND {kw_filter}
+                        RETURN toString(min(enc.date)) AS fp_date
+                        """,
+                        pid=rem["pid"],
+                        anchor=anchor,
+                        lookback=lookback,
+                    ).single()
+                    if row and row["fp_date"]:
+                        session.run(
+                            """
+                            MATCH (ep:EpisodeOfCare {episode_id: $eid})
+                            SET ep.first_presentation_date = $fp_date
+                            """,
+                            eid=rem["eid"],
+                            fp_date=row["fp_date"],
+                        )
+                        break
 
         return {
             "mode": "write_back_applied",

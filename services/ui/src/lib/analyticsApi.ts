@@ -1025,6 +1025,7 @@ export interface AuditIntervalsPatient {
   pci_days?: number | null;
   di_days?: number | null;
   diag_is_inferred?: boolean | null;
+  is_benign?: boolean | null;
 }
 
 export interface AuditIntervalStats {
@@ -1035,9 +1036,20 @@ export interface AuditIntervalStats {
   q3: number | null;
 }
 
+export interface AuditIntervalSplitStats {
+  n: number;
+  median: number | null;
+  q1: number | null;
+  q3: number | null;
+}
+
 export interface AuditIntervals {
   pci: AuditIntervalStats;
+  pci_cancer: AuditIntervalSplitStats;
+  pci_benign: AuditIntervalSplitStats;
   di: AuditIntervalStats;
+  di_cancer: AuditIntervalSplitStats;
+  di_benign: AuditIntervalSplitStats;
   patients: AuditIntervalsPatient[];
 }
 

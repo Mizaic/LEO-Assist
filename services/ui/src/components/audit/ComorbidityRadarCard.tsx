@@ -131,6 +131,8 @@ export interface ComorbidityRadarCardProps {
   onBreakdown?: () => void;
   /** When provided, renders a small expand button in the card header. */
   onZoom?: () => void;
+  /** Bare mode: skip card border/padding/header for use inside ChartZoomDialog. */
+  bare?: boolean;
 }
 
 export default function ComorbidityRadarCard({
@@ -141,6 +143,7 @@ export default function ComorbidityRadarCard({
   isBaseline = false,
   onBreakdown,
   onZoom,
+  bare = false,
 }: ComorbidityRadarCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(280);
@@ -191,72 +194,8 @@ export default function ComorbidityRadarCard({
         ? "No data yet"
         : "Live";
 
-  return (
-    <Box
-      ref={containerRef}
-      role="group"
-      aria-label="Comorbidity multimorbidity radar"
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-        p: 1.5,
-        bgcolor: "background.paper",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          mb: 0.75,
-          gap: 1,
-        }}
-      >
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            component="h3"
-            sx={{ fontSize: "0.9rem", fontWeight: 700, color: "text.primary" }}
-          >
-            {yearLabel}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: "text.secondary", fontSize: "0.7rem" }}
-          >
-            {headerCaption}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
-          <Chip
-            label={isBaseline ? "2018 NCDA" : `n = ${totalPatients}`}
-            size="small"
-            variant={isBaseline ? "filled" : "outlined"}
-            sx={{
-              fontWeight: 600,
-              fontSize: "0.72rem",
-              bgcolor: isBaseline ? "#FEF3C7" : undefined,
-              color: isBaseline ? COLOUR_BASELINE : undefined,
-            }}
-          />
-          {onZoom && (
-            <Tooltip title="Expand chart" placement="top">
-              <IconButton
-                aria-label={`Expand ${yearLabel} comorbidity radar chart`}
-                size="small"
-                onClick={onZoom}
-                sx={{ p: 0.25, color: "text.secondary", "&:hover": { color: "primary.main" } }}
-              >
-                <OpenInFullIcon sx={{ fontSize: "0.85rem" }} />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-      </Box>
-
-      <Box sx={{ position: "relative", minHeight: 200 }}>
+  const svgLayer = (
+    <Box sx={{ position: "relative", minHeight: 200, flex: 1 }}>
         {loading ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
             Loading chart...
@@ -363,7 +302,88 @@ export default function ComorbidityRadarCard({
             })}
           </svg>
         )}
+    </Box>
+  );
+
+  if (bare) {
+    return (
+      <Box
+        ref={containerRef}
+        role="group"
+        aria-label={`Comorbidity radar for ${yearLabel}`}
+        sx={{ position: "relative", width: "100%", height: "100%", display: "flex" }}
+      >
+        {svgLayer}
       </Box>
+    );
+  }
+
+  return (
+    <Box
+      ref={containerRef}
+      role="group"
+      aria-label="Comorbidity multimorbidity radar"
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2,
+        p: 1.5,
+        bgcolor: "background.paper",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          mb: 0.75,
+          gap: 1,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            component="h3"
+            sx={{ fontSize: "0.9rem", fontWeight: 700, color: "text.primary" }}
+          >
+            {yearLabel}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", fontSize: "0.7rem" }}
+          >
+            {headerCaption}
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+          <Chip
+            label={isBaseline ? "2018 NCDA" : `n = ${totalPatients}`}
+            size="small"
+            variant={isBaseline ? "filled" : "outlined"}
+            sx={{
+              fontWeight: 600,
+              fontSize: "0.72rem",
+              bgcolor: isBaseline ? "#FEF3C7" : undefined,
+              color: isBaseline ? COLOUR_BASELINE : undefined,
+            }}
+          />
+          {onZoom && (
+            <Tooltip title="Expand chart" placement="top">
+              <IconButton
+                aria-label={`Expand ${yearLabel} comorbidity radar chart`}
+                size="small"
+                onClick={onZoom}
+                sx={{ p: 0.25, color: "text.secondary", "&:hover": { color: "primary.main" } }}
+              >
+                <OpenInFullIcon sx={{ fontSize: "0.85rem" }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+      </Box>
+
+      {svgLayer}
 
       <Typography
         variant="caption"

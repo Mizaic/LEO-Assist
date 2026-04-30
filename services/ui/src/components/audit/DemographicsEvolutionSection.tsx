@@ -367,23 +367,25 @@ export default function DemographicsEvolutionSection({
         {zoomedYear !== null && (() => {
           const isBase = zoomedYear === String(BASELINE_YEAR);
           const zState = yearStates.find((y) => String(y.year) === zoomedYear);
+          const zN = isBase ? 0 : totalDemographicN(zState?.data ?? null);
           return (
             <ChartZoomDialog
               open
               onClose={() => setZoomedYear(null)}
               title={`Demographics \u2014 ${zoomedYear}`}
+              subtitle={isBase ? "2018 NCDA baseline" : `n = ${zN}`}
               maxWidth="sm"
-              contentHeight={480}
             >
               <PopulationPyramidCard
                 yearLabel={zoomedYear}
-                totalN={isBase ? 0 : totalDemographicN(zState?.data ?? null)}
+                totalN={zN}
                 malePct={isBase ? null : pickPctByGender(zState?.data ?? null, "m")}
                 femalePct={isBase ? null : pickPctByGender(zState?.data ?? null, "f")}
                 medianAge={isBase ? null : (zState?.data?.median_age ?? null)}
                 ageBandPct={isBase ? undefined : ageBandPctFromPractice(zState?.data ?? null)}
                 isBaseline={isBase}
                 baselineMarginal={isBase ? baselineMarginal : null}
+                bare
               />
             </ChartZoomDialog>
           );

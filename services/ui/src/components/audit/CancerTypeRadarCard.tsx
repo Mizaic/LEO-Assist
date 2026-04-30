@@ -46,6 +46,12 @@ interface Props {
   hasLiveData: boolean;
   /** When provided, renders a small expand button in the card header. */
   onZoom?: () => void;
+  /**
+   * Bare mode: skip the card border/padding/header and render only the
+   * SVG chart.  Used when the chart is displayed inside ChartZoomDialog
+   * where the dialog title already provides the label context.
+   */
+  bare?: boolean;
 }
 
 interface PolarPoint {
@@ -141,6 +147,7 @@ export default function CancerTypeRadarCard({
   isBaseline = false,
   hasLiveData,
   onZoom,
+  bare = false,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(320);
@@ -191,68 +198,9 @@ export default function CancerTypeRadarCard({
         ? "Limited sample"
         : "Live";
 
-  return (
-    <Box
-      ref={containerRef}
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-        p: 1.5,
-        bgcolor: "background.paper",
-        height: "100%",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          mb: 0.5,
-          gap: 1,
-        }}
-      >
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            component="h3"
-            sx={{ fontSize: "0.95rem", fontWeight: 700, color: "text.primary" }}
-          >
-            {yearLabel}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: "text.secondary", fontSize: "0.7rem" }}
-          >
-            {headerCaption}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
-          <Chip
-            label={`n = ${totalN}`}
-            size="small"
-            variant="outlined"
-            sx={{ fontWeight: 600, fontSize: "0.72rem" }}
-            aria-label={`Sample size for ${yearLabel}: ${totalN} confirmed cancer cases`}
-          />
-          {onZoom && (
-            <Tooltip title="Expand chart" placement="top">
-              <IconButton
-                aria-label={`Expand ${yearLabel} cancer type radar chart`}
-                size="small"
-                onClick={onZoom}
-                sx={{ p: 0.25, color: "text.secondary", "&:hover": { color: "primary.main" } }}
-              >
-                <OpenInFullIcon sx={{ fontSize: "0.85rem" }} />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
-      </Box>
-
-      <Box sx={{ position: "relative", flex: 1 }}>
-        <svg
+  const svgLayer = (
+    <Box sx={{ position: "relative", flex: 1 }}>
+      <svg
           role="img"
           aria-label={`Radar chart of cancer type distribution for ${yearLabel}. Sample size n = ${totalN}.${
             isBaseline ? " 2018 NCDA baseline." : ""
@@ -453,7 +401,81 @@ export default function CancerTypeRadarCard({
             </Typography>
           </Box>
         )}
+    </Box>
+  );
+
+  if (bare) {
+    return (
+      <Box
+        ref={containerRef}
+        sx={{ position: "relative", width: "100%", height: "100%" }}
+      >
+        {svgLayer}
       </Box>
+    );
+  }
+
+  return (
+    <Box
+      ref={containerRef}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2,
+        p: 1.5,
+        bgcolor: "background.paper",
+        height: "100%",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 0.5,
+          gap: 1,
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            component="h3"
+            sx={{ fontSize: "0.95rem", fontWeight: 700, color: "text.primary" }}
+          >
+            {yearLabel}
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", fontSize: "0.7rem" }}
+          >
+            {headerCaption}
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+          <Chip
+            label={`n = ${totalN}`}
+            size="small"
+            variant="outlined"
+            sx={{ fontWeight: 600, fontSize: "0.72rem" }}
+            aria-label={`Sample size for ${yearLabel}: ${totalN} confirmed cancer cases`}
+          />
+          {onZoom && (
+            <Tooltip title="Expand chart" placement="top">
+              <IconButton
+                aria-label={`Expand ${yearLabel} cancer type radar chart`}
+                size="small"
+                onClick={onZoom}
+                sx={{ p: 0.25, color: "text.secondary", "&:hover": { color: "primary.main" } }}
+              >
+                <OpenInFullIcon sx={{ fontSize: "0.85rem" }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+      </Box>
+
+      {svgLayer}
 
       {showLowSampleCaption && (
         <Typography

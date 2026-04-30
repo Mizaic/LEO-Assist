@@ -12,8 +12,28 @@ are also referenced by the summary endpoint.
 
 from __future__ import annotations
 
+import statistics
+
 from libs.neo4j_client.client import PatientGraphClient
 from libs.oncology.cancer_types import normalise_cancer_type
+
+_BENIGN_STATUSES = {"closed_benign"}
+_BENIGN_OUTCOMES = {"cancer_excluded", "cancer_assumed_excluded"}
+
+
+def _is_benign(ep_status: str | None, dx_outcome: str | None) -> bool:
+    return (ep_status or "") in _BENIGN_STATUSES or (dx_outcome or "") in _BENIGN_OUTCOMES
+
+
+def _split_stats(values: list[float]) -> dict:
+    if not values:
+        return {"n": 0, "median": None, "q1": None, "q3": None}
+    s = sorted(values)
+    n = len(s)
+    med = statistics.median(s)
+    q1 = statistics.median(s[: n // 2]) if n >= 2 else s[0]
+    q3 = statistics.median(s[(n + 1) // 2 :]) if n >= 2 else s[0]
+    return {"n": n, "median": round(med, 1), "q1": round(q1, 1), "q3": round(q3, 1)}
 
 # ---------------------------------------------------------------------------
 # Cypher fragments used by intervals + summary
@@ -122,6 +142,7 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
         "       ELSE null END AS raw_di_days "
         "RETURN "
         "  ep.episode_id AS episode_id, ep.cancer_type AS cancer_type, "
+        "  ep.status AS ep_status, ep.dx_outcome AS dx_outcome, "
         "  diag_is_inferred, "
         "  CASE WHEN raw_pci_days >= 0 THEN raw_pci_days ELSE null END AS pci_days, "
         "  CASE WHEN raw_di_days >= 0 THEN raw_di_days ELSE null END AS di_days "
@@ -131,6 +152,23 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
 
     s = agg[0] if agg else {}
 
+    patients = [
+        {
+            "episode_id": r["episode_id"],
+            "cancer_type": normalise_cancer_type(r.get("cancer_type")),
+            "pci_days": r.get("pci_days"),
+            "di_days": r.get("di_days"),
+            "diag_is_inferred": r.get("diag_is_inferred"),
+            "is_benign": _is_benign(r.get("ep_status"), r.get("dx_outcome")),
+        }
+        for r in pts
+    ]
+
+    cancer_pci = [p["pci_days"] for p in patients if not p["is_benign"] and p["pci_days"] is not None]
+    benign_pci = [p["pci_days"] for p in patients if p["is_benign"] and p["pci_days"] is not None]
+    cancer_di  = [p["di_days"]  for p in patients if not p["is_benign"] and p["di_days"]  is not None]
+    benign_di  = [p["di_days"]  for p in patients if p["is_benign"] and p["di_days"]  is not None]
+
     return {
         "pci": {
             "n": s.get("pci_n"),
@@ -139,6 +177,8 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
             "q1": s.get("pci_q1"),
             "q3": s.get("pci_q3"),
         },
+        "pci_cancer": _split_stats(cancer_pci),
+        "pci_benign": _split_stats(benign_pci),
         "di": {
             "n": s.get("di_n"),
             "mean": s.get("mean_di"),
@@ -146,14 +186,7 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
             "q1": s.get("di_q1"),
             "q3": s.get("di_q3"),
         },
-        "patients": [
-            {
-                "episode_id": r["episode_id"],
-                "cancer_type": normalise_cancer_type(r.get("cancer_type")),
-                "pci_days": r.get("pci_days"),
-                "di_days": r.get("di_days"),
-                "diag_is_inferred": r.get("diag_is_inferred"),
-            }
-            for r in pts
-        ],
+        "di_cancer": _split_stats(cancer_di),
+        "di_benign": _split_stats(benign_di),
+        "patients": patients,
     }

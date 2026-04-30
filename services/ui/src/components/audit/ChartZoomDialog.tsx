@@ -1,11 +1,17 @@
 /**
  * ChartZoomDialog -- generic "expand chart" modal shell.
  *
- * Any chart card that has a small on-page footprint can pass an
- * `onZoom` callback to trigger this dialog.  Because all chart
- * primitives (SVG radar cards, Recharts ResponsiveContainer strip
- * plots, population pyramids) are responsive, they auto-size to
- * fill the larger dialog container without any extra prop changes.
+ * Renders a MUI Dialog with a title bar and close button.  The content
+ * area is intentionally minimal: children are responsible for their own
+ * layout so each chart type can size itself correctly.
+ *
+ * Usage patterns:
+ *   - Square SVG charts (radar, pyramid): wrap children in a Box with
+ *     `sx={{ width: "100%", aspectRatio: "1" }}` so the responsive
+ *     SVG auto-fills a proper square without any fixed pixel height.
+ *   - Wide recharts (strip plots): wrap children in a Box with an
+ *     explicit `sx={{ height: 360 }}` and pass a larger chartHeight prop
+ *     to the chart component.
  */
 "use client";
 
@@ -24,12 +30,10 @@ interface ChartZoomDialogProps {
   subtitle?: string;
   children: React.ReactNode;
   /**
-   * Max-width of the dialog.  Defaults to "md" (960px).
-   * Use "sm" for square radar charts, "lg" for wide strip plots.
+   * Max-width of the dialog.  Defaults to "sm" (600px) for square
+   * charts.  Use "lg" for wide strip plots.
    */
   maxWidth?: "xs" | "sm" | "md" | "lg" | "xl";
-  /** Override the inner content box height (px).  Defaults to 520. */
-  contentHeight?: number;
 }
 
 export default function ChartZoomDialog({
@@ -38,8 +42,7 @@ export default function ChartZoomDialog({
   title,
   subtitle,
   children,
-  maxWidth = "md",
-  contentHeight = 520,
+  maxWidth = "sm",
 }: ChartZoomDialogProps) {
   return (
     <Dialog
@@ -90,17 +93,8 @@ export default function ChartZoomDialog({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ pt: "8px !important", pb: 2 }}>
-        <Box
-          sx={{
-            height: contentHeight,
-            width: "100%",
-            display: "flex",
-            alignItems: "stretch",
-          }}
-        >
-          {children}
-        </Box>
+      <DialogContent sx={{ pt: "8px !important", pb: 3 }}>
+        {children}
       </DialogContent>
     </Dialog>
   );

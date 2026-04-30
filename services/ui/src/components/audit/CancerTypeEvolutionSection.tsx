@@ -379,23 +379,25 @@ export default function CancerTypeEvolutionSection({
               open
               onClose={() => setZoomedYear(null)}
               title={`Cancer Type \u2014 ${zoomedYear}`}
-              subtitle={`Shared scale: 0\u2013${sharedScaleMax}%`}
+              subtitle={`n = ${zoomedN}\u2003Shared scale: 0\u2013${sharedScaleMax}%`}
               maxWidth="sm"
-              contentHeight={520}
             >
-              <CancerTypeRadarCard
-                yearLabel={zoomedYear}
-                axes={zoomedAxes}
-                baseline={zoomedYear === String(BASELINE_YEAR) ? null : baselineAxes}
-                totalN={zoomedN}
-                maxScale={sharedScaleMax}
-                isBaseline={zoomedYear === String(BASELINE_YEAR)}
-                hasLiveData={
-                  zoomedYear === String(BASELINE_YEAR)
-                    ? baselineHasData
-                    : (zoomedYearState?.rows?.length ?? 0) > 0
-                }
-              />
+              <Box sx={{ width: "100%", aspectRatio: "1" }}>
+                <CancerTypeRadarCard
+                  yearLabel={zoomedYear}
+                  axes={zoomedAxes}
+                  baseline={zoomedYear === String(BASELINE_YEAR) ? null : baselineAxes}
+                  totalN={zoomedN}
+                  maxScale={sharedScaleMax}
+                  isBaseline={zoomedYear === String(BASELINE_YEAR)}
+                  hasLiveData={
+                    zoomedYear === String(BASELINE_YEAR)
+                      ? baselineHasData
+                      : (zoomedYearState?.rows?.length ?? 0) > 0
+                  }
+                  bare
+                />
+              </Box>
             </ChartZoomDialog>
           )}
         </Box>
