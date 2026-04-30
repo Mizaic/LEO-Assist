@@ -76,7 +76,6 @@ from ._audit_sections import (
     _q_referrals,
     _q_safety_netting,
     _q_care_obstructions,
-    _q_prior_consultations,
 )
 
 router = APIRouter()
@@ -287,46 +286,6 @@ def audit_summary(
         co_unrelated_filtered_events = int(
             co_relatedness.get("unrelated_filtered_events") or 0
         )
-
-        # Prior cancer-related consultations (NCDA Section 7).  Mirrors
-        # the care-obstruction headline computation above so the
-        # snapshot-tile contract is the same:  a denominator of the
-        # confirmed-cancer cohort, an ``_n`` count of episodes with
-        # 2+ cancer-related consultations in the year before the FTR,
-        # and a ``_pct`` derived from the two.  Backed by the
-        # ``ep.prior_consultations_*`` properties stamped by the
-        # Haiku enrichment pass -- see
-        # ``libs/oncology/prior_consultations`` and
-        # ``scripts/ncda/run_prior_consultations_enrichment.py``.
-        pc_summary_rows = client.run(
-            f"{base}"
-            f"AND {confirmed_cancer_where('ep')} "
-            "RETURN "
-            "  count(DISTINCT ep) AS denom, "
-            "  sum(CASE WHEN ep.prior_consultations_n IS NOT NULL "
-            "       THEN 1 ELSE 0 END) AS enriched, "
-            "  sum(CASE WHEN ep.prior_consultations_n >= 2 "
-            "       THEN 1 ELSE 0 END) AS multi_n, "
-            "  sum(coalesce(ep.prior_consultations_n, 0)) "
-            "    AS total_consultations, "
-            "  sum(coalesce(ep.prior_consultations_llm_cost_usd, 0.0)) "
-            "    AS llm_cost_usd",
-            **params,
-        )
-        pc_summary = pc_summary_rows[0] if pc_summary_rows else {}
-        pc_denom = int(pc_summary.get("denom") or 0)
-        pc_enriched_n = int(pc_summary.get("enriched") or 0)
-        pc_multi_n = int(pc_summary.get("multi_n") or 0)
-        pc_total_consultations = int(pc_summary.get("total_consultations") or 0)
-        pc_mean_per_episode = (
-            round(pc_total_consultations / pc_enriched_n, 2)
-            if pc_enriched_n
-            else None
-        )
-        pc_pct = (
-            round(pc_multi_n * 100.0 / pc_denom, 1) if pc_denom else None
-        )
-        pc_llm_cost_usd = round(float(pc_summary.get("llm_cost_usd") or 0.0), 4)
 
         # NCDA cohort breakdown: 1a (FTR + cancer found), 1b (FTR + benign),
         # 3 (cancer found, no FTR).  Derived dynamically from milestone checks
@@ -630,21 +589,6 @@ def audit_summary(
             "care_obstruction_confirmed_events": co_confirmed_events,
             "care_obstruction_unrelated_filtered_events":
                 co_unrelated_filtered_events,
-            # Prior cancer-related consultations headline (NCDA Section
-            # 7).  ``prior_consultations_pct`` is the % of confirmed-
-            # cancer episodes with 2+ cancer-related consultations in
-            # the year before the FTR.  Same denominator as
-            # care_obstruction_pct so the two NCDA Section-equivalent
-            # tiles are directly comparable.  Backed by the Haiku
-            # enrichment pass -- see
-            # libs/oncology/prior_consultations.py.
-            "prior_consultations_pct": pc_pct,
-            "prior_consultations_n": pc_multi_n,
-            "prior_consultations_denominator": pc_denom,
-            "prior_consultations_enriched_n": pc_enriched_n,
-            "prior_consultations_total_consultations": pc_total_consultations,
-            "prior_consultations_mean_per_episode": pc_mean_per_episode,
-            "prior_consultations_llm_cost_usd": pc_llm_cost_usd,
         }
     finally:
         client.close()
@@ -969,44 +913,6 @@ def audit_care_obstructions(
             date_to,
             benchmark_set_id,
             "care_obstruction",
-            client,
-        )
-    finally:
-        client.close()
-
-
-@router.get("/audit/prior-consultations")
-def audit_prior_consultations(
-    scope: CallerScope = Depends(get_caller_scope),
-    org_id: Optional[str] = Query(default=None),
-    date_from: Optional[str] = Query(default=None),
-    date_to: Optional[str] = Query(default=None),
-    benchmark_set_id: Optional[str] = Query(default=None),
-):
-    """NCDA Section 7 — prior cancer-related consultations + factors.
-
-    Returns the % of confirmed-cancer episodes with multiple
-    consultations (>=2) for cancer-related symptoms in the year before
-    the FTR, plus the distribution of consultation counts and the
-    top-N NCDA "multiple consultations" factor codes proposed by the
-    LLM enrichment pass (Claude Haiku 4.5).  Multi-scope envelope;
-    consumed by the ``PriorConsultationsSection`` tile +
-    EvolutionDetailDialog on the audit dashboard.
-
-    Backed by ``ep.prior_consultations_*`` properties stamped onto
-    each EpisodeOfCare by
-    ``scripts/ncda/run_prior_consultations_enrichment.py``.
-    """
-    client = PatientGraphClient()
-    try:
-        return _run_multi_scope(
-            _q_prior_consultations,
-            org_id,
-            scope,
-            date_from,
-            date_to,
-            benchmark_set_id,
-            "prior_consultations",
             client,
         )
     finally:

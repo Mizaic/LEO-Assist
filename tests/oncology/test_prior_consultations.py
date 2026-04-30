@@ -355,6 +355,52 @@ class TestBuildUserMessage:
         assert payload["candidates"] == []
         assert payload["episode"]["candidate_count"] == 0
 
+    def test_anchor_context_included_in_payload(self) -> None:
+        cand = CandidateEncounter(
+            encounter_id="e1", date="2025-01-10", text="FIT result.", contact_type="f2f"
+        )
+        msg = build_user_message(
+            cancer_type="Colorectal",
+            first_presentation_date="2025-01-06",
+            referral_date="2025-01-23",
+            candidates=[cand],
+            first_presentation_text="history: F2F. change in bowel habit x6 months.",
+            referral_texts=["2ww colorectal referral for rectal bleeding and weight loss."],
+        )
+        payload = json.loads(msg)
+        assert "anchor_context" in payload
+        assert "bowel habit" in payload["anchor_context"]["first_presentation_text"]
+        assert len(payload["anchor_context"]["referral_texts"]) == 1
+        assert "colorectal" in payload["anchor_context"]["referral_texts"][0]
+
+    def test_anchor_context_truncates_long_text(self) -> None:
+        from libs.oncology.prior_consultations import _ANCHOR_TEXT_CHARS
+
+        long = "x" * (_ANCHOR_TEXT_CHARS + 500)
+        msg = build_user_message(
+            cancer_type="Breast",
+            first_presentation_date="2025-02-01",
+            referral_date="2025-02-15",
+            candidates=[],
+            first_presentation_text=long,
+            referral_texts=[long, long],
+        )
+        payload = json.loads(msg)
+        assert len(payload["anchor_context"]["first_presentation_text"]) == _ANCHOR_TEXT_CHARS
+        for t in payload["anchor_context"]["referral_texts"]:
+            assert len(t) == _ANCHOR_TEXT_CHARS
+
+    def test_anchor_context_absent_gives_empty_strings(self) -> None:
+        msg = build_user_message(
+            cancer_type="Lung",
+            first_presentation_date="2025-03-01",
+            referral_date="2025-03-10",
+            candidates=[],
+        )
+        payload = json.loads(msg)
+        assert payload["anchor_context"]["first_presentation_text"] == ""
+        assert payload["anchor_context"]["referral_texts"] == []
+
 
 # ---------------------------------------------------------------------------
 # parse_llm_response
@@ -588,6 +634,47 @@ class TestClassifyEpisodeConsultations:
         assert result.consultations_n == 1
         assert result.f2f_n == 1
         assert any(f.factor == "different_initial_diagnosis" for f in result.factors)
+
+    def test_anchor_texts_passed_to_llm_in_user_message(self) -> None:
+        """Anchor context must appear in the user message payload so Haiku
+        can judge relatedness against the specific presenting symptoms."""
+        captured_payload: dict[str, Any] = {}
+
+        def fake_caller(
+            system_prompt: str,
+            user_message: str,
+            *,
+            agent_task: str,
+            patient_id: str,
+        ) -> dict[str, Any]:
+            captured_payload.update(json.loads(user_message))
+            return {"encounters": [], "factors": []}
+
+        classify_episode_consultations(
+            cancer_type="Prostate",
+            first_presentation_date="2024-09-26",
+            referral_date="2024-10-01",
+            first_presentation_text="DRE: enlarged prostate. 2ww urology referral raised.",
+            referral_texts=["Hospital fast track referral for suspected urological cancer."],
+            patient_id="6040304227",
+            encounters=[
+                {
+                    "encounter_id": "enc1",
+                    "date": "2024-09-26",
+                    "text": (
+                        "09:30 - Surgery: [STAFF] (Clinical Practitioner Access Role)\n"
+                        "history: DRE: large prostate. 2ww urology referral."
+                    ),
+                }
+            ],
+            llm_caller=fake_caller,
+        )
+
+        assert "anchor_context" in captured_payload
+        ac = captured_payload["anchor_context"]
+        assert "enlarged prostate" in ac["first_presentation_text"]
+        assert len(ac["referral_texts"]) == 1
+        assert "urological" in ac["referral_texts"][0]
 
     def test_llm_error_falls_back_to_deterministic_count(self) -> None:
         def failing_caller(*args: Any, **kwargs: Any) -> dict[str, Any]:

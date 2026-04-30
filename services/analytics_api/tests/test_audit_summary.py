@@ -518,29 +518,13 @@ def test_audit_summary_care_obstruction_handles_zero_confirmed(monkeypatch):
     assert result["care_obstruction_denominator"] == 0
 
 
-def test_audit_summary_prior_consultations_uses_haiku_enrichment(monkeypatch):
-    """Section 7 (NCDA "multiple consultations") headline rate must
-    come from the ``ep.prior_consultations_n`` count stamped on each
-    EpisodeOfCare by the Haiku enrichment pass.  Multi >= 2.  Same
-    denominator (confirmed cancer cohort) as care-obstruction +
-    safety-netting so the three NCDA-equivalent tiles are directly
-    comparable."""
-
-    captured: list[str] = []
+def test_audit_summary_does_not_include_prior_consultations_fields(monkeypatch):
+    """audit_summary no longer returns prior_consultations_* headline
+    fields -- those are now exposed via /audit/consultations envelope so
+    the snapshot tile reads three_or_more_pct from the consultations scope."""
 
     class _FakeClient:
         def run(self, query, **kwargs):
-            captured.append(query)
-            if "AS multi_n" in query and "prior_consultations_n" in query:
-                return [
-                    {
-                        "denom": 30,
-                        "enriched": 28,
-                        "multi_n": 18,
-                        "total_consultations": 64,
-                        "llm_cost_usd": 0.7321,
-                    }
-                ]
             return [{"n": 0}]
 
         def close(self):
@@ -551,51 +535,9 @@ def test_audit_summary_prior_consultations_uses_haiku_enrichment(monkeypatch):
 
     result = audit.audit_summary(scope=scope)
 
-    assert result["prior_consultations_denominator"] == 30
-    assert result["prior_consultations_enriched_n"] == 28
-    assert result["prior_consultations_n"] == 18
-    # 18 / 30 -> 60.0%
-    assert result["prior_consultations_pct"] == 60.0
-    # Mean per ENRICHED episode (not denominator): 64 / 28 -> 2.29
-    assert result["prior_consultations_mean_per_episode"] == 2.29
-    assert result["prior_consultations_total_consultations"] == 64
-    assert result["prior_consultations_llm_cost_usd"] == 0.7321
-
-    # The summary query MUST scope to confirmed cancers so the rate is
-    # comparable to safety-netting and care-obstructions.
-    pc_queries = [q for q in captured if "prior_consultations_n" in q]
-    assert len(pc_queries) == 1, captured
-    assert "letter_inferred_benign" in pc_queries[0], (
-        "prior-consultations summary must use confirmed_cancer_where(), "
-        "which contains the letter_inferred_benign guard."
-    )
-
-
-def test_audit_summary_prior_consultations_handles_zero_confirmed(monkeypatch):
-    """When no episodes have been enriched, the prior-consultations
-    rates must be ``None`` (renders as em-dash) rather than crashing
-    on a zero-division."""
-
-    class _FakeClient:
-        def run(self, query, **kwargs):
-            if "AS multi_n" in query and "prior_consultations_n" in query:
-                return [{"denom": 0, "enriched": 0, "multi_n": 0,
-                         "total_consultations": 0, "llm_cost_usd": 0.0}]
-            return [{"n": 0}]
-
-        def close(self):
-            return None
-
-    monkeypatch.setattr(audit, "PatientGraphClient", _FakeClient)
-    scope = CallerScope(email="qa@example.com", is_admin=True)
-
-    result = audit.audit_summary(scope=scope)
-
-    assert result["prior_consultations_pct"] is None
-    assert result["prior_consultations_mean_per_episode"] is None
-    assert result["prior_consultations_n"] == 0
-    assert result["prior_consultations_denominator"] == 0
-    assert result["prior_consultations_llm_cost_usd"] == 0.0
+    assert "prior_consultations_pct" not in result
+    assert "prior_consultations_n" not in result
+    assert "prior_consultations_denominator" not in result
 
 
 def test_audit_summary_safety_netting_handles_zero_confirmed(monkeypatch):

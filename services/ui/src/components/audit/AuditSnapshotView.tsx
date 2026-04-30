@@ -111,7 +111,7 @@ export interface YearSummaryPoint {
   diMedian: number | null;
   twwPct: number | null;
   emergencyPct: number | null;
-  fewerThan3Pct: number | null;
+  multipleConsultationsPct: number | null;
   safetyNettingPct: number | null;
   /** Legacy GP-flagged "avoidable delay" rate. Kept for back-compat
    * but no longer surfaced on the snapshot — the snapshot now shows
@@ -298,13 +298,18 @@ function deriveMetrics(
       targetDeadline: String(NHS_TARGET_EARLY_STAGE_YEAR),
     },
     {
-      id: "fewer_than_3",
-      label: "Fewer than 3 consultations",
+      id: "multiple_consultations",
+      label: "Multiple consultations (3+)",
       unit: "%",
       sectionId: "section-consultations",
-      higherIsBetter: true,
-      live: consultPractice?.fewer_than_3_pct ?? null,
-      baseline: resolveBenchmarkValue(bm, "consultations.fewer_than_3_pct", orgSelected),
+      higherIsBetter: false,
+      live: consultPractice?.three_or_more_pct ?? null,
+      baseline:
+        resolveBenchmarkValue(bm, "consultations.three_or_more_pct", orgSelected) ??
+        (() => {
+          const f = resolveBenchmarkValue(bm, "consultations.fewer_than_3_pct", orgSelected);
+          return f != null ? Math.round((100 - f) * 10) / 10 : null;
+        })(),
     },
     {
       id: "tww_referral",
@@ -384,7 +389,7 @@ function getYearValue(point: YearSummaryPoint, metricId: string): number | null 
     case "di_days":           return point.diMedian;
     case "tww_referral":      return point.twwPct;
     case "emergency_referral":return point.emergencyPct;
-    case "fewer_than_3":      return point.fewerThan3Pct;
+    case "multiple_consultations": return point.multipleConsultationsPct;
     case "safety_netting":    return point.safetyNettingPct;
     case "avoidable_delay":   return point.avoidableDelayPct;
     case "care_obstruction":  return point.careObstructionPct;

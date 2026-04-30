@@ -155,30 +155,102 @@ class TestAuditCancerType:
 
 
 # ---------------------------------------------------------------------------
-# Tests: _q_consultations
+# Tests: _q_consultations  (Haiku-enriched, NCDA-native polarity)
 # ---------------------------------------------------------------------------
+
+
+def _consult_agg_row(
+    total: int = 20,
+    three_or_more: int = 8,
+    fewer_than_3: int = 12,
+    enriched: int = 18,
+    bucket_zero: int = 2,
+    bucket_one: int = 10,
+    bucket_two: int = 3,
+    bucket_three_four: int = 4,
+    bucket_five_seven: int = 2,
+    bucket_eight_plus: int = 1,
+    total_consultations: int = 60,
+    f2f_total: int = 20,
+    phone_total: int = 15,
+    nurse_total: int = 5,
+    email_total: int = 0,
+    specialist_clinic_total: int = 10,
+    home_visit_total: int = 0,
+    phlebotomy_total: int = 8,
+    result_review_total: int = 2,
+    unrelated_filtered_total: int = 5,
+    llm_cost_usd: float = 0.4200,
+    llm_input_tokens: int = 200000,
+    llm_output_tokens: int = 30000,
+    llm_calls: int = 18,
+    episodes_raw: list | None = None,
+) -> list[dict]:
+    """Build the aggregate row returned by the rewritten _q_consultations."""
+    if episodes_raw is None:
+        episodes_raw = [
+            {"n": 0, "factors": [], "cancer_type": "Breast", "episode_id": "ep-a"},
+            {"n": 1, "factors": [], "cancer_type": "Breast", "episode_id": "ep-b"},
+            {"n": 2, "factors": ["different_initial_diagnosis"], "cancer_type": "Colorectal", "episode_id": "ep-c"},
+            {"n": 3, "factors": ["reassurance_from_negative_investigation"], "cancer_type": "Melanoma", "episode_id": "ep-d"},
+            {"n": 5, "factors": ["different_initial_diagnosis", "co_morbidity_blurring"], "cancer_type": "Colorectal", "episode_id": "ep-e"},
+            {"n": 8, "factors": ["different_initial_diagnosis"], "cancer_type": "Prostate", "episode_id": "ep-f"},
+        ]
+    return [
+        {
+            "total_episodes": total,
+            "three_or_more": three_or_more,
+            "fewer_than_3": fewer_than_3,
+            "enriched_n": enriched,
+            "bucket_zero": bucket_zero,
+            "bucket_one": bucket_one,
+            "bucket_two": bucket_two,
+            "bucket_three_four": bucket_three_four,
+            "bucket_five_seven": bucket_five_seven,
+            "bucket_eight_plus": bucket_eight_plus,
+            "total_consultations": total_consultations,
+            "f2f_total": f2f_total,
+            "phone_total": phone_total,
+            "nurse_total": nurse_total,
+            "email_total": email_total,
+            "specialist_clinic_total": specialist_clinic_total,
+            "home_visit_total": home_visit_total,
+            "phlebotomy_total": phlebotomy_total,
+            "result_review_total": result_review_total,
+            "unrelated_filtered_total": unrelated_filtered_total,
+            "llm_cost_usd": llm_cost_usd,
+            "llm_input_tokens": llm_input_tokens,
+            "llm_output_tokens": llm_output_tokens,
+            "llm_calls": llm_calls,
+            "episodes_raw": episodes_raw,
+        }
+    ]
+
+
+_CT_ROWS = [
+    {"cancer_type": "Breast",     "n_total": 10, "n_three_or_more": 3, "n_enriched": 9, "mean_n": 2.1},
+    {"cancer_type": "Colorectal", "n_total": 8,  "n_three_or_more": 4, "n_enriched": 8, "mean_n": 3.2},
+]
+
+
+def _consult_mock(agg_row=None, ct_rows=None):
+    """_q_consultations now issues 2 Cypher queries: aggregate + per-CT."""
+    return _mock_client([agg_row or _consult_agg_row(), ct_rows if ct_rows is not None else _CT_ROWS])
 
 
 class TestAuditConsultations:
     """Tests for GET /analytics/audit/consultations multi-scope envelope.
 
-    _q_consultations makes 2 DB calls: summary row + per-episode rows.
+    _q_consultations issues 2 Cypher queries:
+      1. Aggregate row (+ inline episodes_raw).
+      2. Per-cancer-type breakdown (by_cancer_type_live).
     """
 
     def test_multi_scope_envelope_present(self):
-        summary_rows = [
-            {
-                "fewer_than_3": 10,
-                "three_or_more": 5,
-                "total_episodes": 15,
-                "avg_consultations": 2.0,
-            }
-        ]
-        per_ep_rows = [{"consult_count": 1}, {"consult_count": 3}]
         with patch(
             "services.analytics_api.app.routers.audit.PatientGraphClient"
         ) as MockClient:
-            mock = _mock_client([summary_rows, per_ep_rows])
+            mock = _consult_mock()
             MockClient.return_value = mock
 
             from services.analytics_api.app.routers.audit import audit_consultations
@@ -193,75 +265,140 @@ class TestAuditConsultations:
 
         assert "scopes" in result
         practice = _practice(result)
-        assert "fewer_than_3_pct" in practice
         assert "three_or_more_pct" in practice
+        assert "fewer_than_3_pct" in practice
+        assert "buckets" in practice
+        assert "top_factors" in practice
+        assert "factors_by_cancer_type" in practice
+        assert "episode_evidence" in practice
 
-    def test_percentages_sum_to_100(self):
-        summary_rows = [
-            {
-                "fewer_than_3": 42,
-                "three_or_more": 9,
-                "total_episodes": 51,
-                "avg_consultations": 1.5,
-            }
-        ]
-        per_ep_rows = []
+    def test_ncda_native_polarity(self):
+        """three_or_more_pct is the primary metric; fewer_than_3_pct is kept."""
+        row = _consult_agg_row(total=20, three_or_more=8, fewer_than_3=12)
         with patch(
             "services.analytics_api.app.routers.audit.PatientGraphClient"
         ) as MockClient:
-            mock = _mock_client([summary_rows, per_ep_rows])
-            MockClient.return_value = mock
-
+            MockClient.return_value = _consult_mock(row)
             from services.analytics_api.app.routers.audit import audit_consultations
 
             result = audit_consultations(
-                scope=_mock_scope(),
-                org_id=None,
-                date_from=None,
-                date_to=None,
-                benchmark_set_id=None,
+                scope=_mock_scope(), org_id=None,
+                date_from=None, date_to=None, benchmark_set_id=None,
             )
 
         practice = _practice(result)
-        assert practice["fewer_than_3_pct"] == round(42 * 100.0 / 51, 1)
-        assert practice["three_or_more_pct"] == round(9 * 100.0 / 51, 1)
+        assert practice["three_or_more_pct"] == round(8 * 100.0 / 20, 1)
+        assert practice["fewer_than_3_pct"] == round(12 * 100.0 / 20, 1)
 
-    def test_query_guards_empty_temporal_strings(self):
-        summary_rows = [
-            {
-                "fewer_than_3": 1,
-                "three_or_more": 1,
-                "total_episodes": 2,
-                "avg_consultations": 2.0,
-            }
-        ]
-        per_ep_rows = [{"consult_count": 1}, {"consult_count": 3}]
+    def test_distribution_buckets_present(self):
+        row = _consult_agg_row(
+            bucket_zero=2, bucket_one=5, bucket_two=4,
+            bucket_three_four=6, bucket_five_seven=4, bucket_eight_plus=3,
+            total=24,
+        )
         with patch(
             "services.analytics_api.app.routers.audit.PatientGraphClient"
         ) as MockClient:
-            mock = _mock_client([summary_rows, per_ep_rows])
-            MockClient.return_value = mock
+            MockClient.return_value = _consult_mock(row)
+            from services.analytics_api.app.routers.audit import audit_consultations
 
-            from services.analytics_api.app.routers.audit import (
-                audit_consultations,
+            result = audit_consultations(
+                scope=_mock_scope(), org_id=None,
+                date_from=None, date_to=None, benchmark_set_id=None,
             )
 
-            audit_consultations(
-                scope=_mock_scope(),
-                org_id=None,
-                date_from=None,
-                date_to=None,
-                benchmark_set_id=None,
+        practice = _practice(result)
+        buckets = practice["buckets"]
+        assert buckets["0"] == 2
+        assert buckets["2"] == 4
+        assert buckets["3-4"] == 6
+        assert buckets["8+"] == 3
+
+    def test_top_factors_ranked_by_frequency(self):
+        """Factor codes from episodes_raw are ranked by frequency."""
+        episodes_raw = [
+            {"n": 3, "factors": ["different_initial_diagnosis", "co_morbidity_blurring"],
+             "cancer_type": "Breast", "episode_id": "ep-1"},
+            {"n": 5, "factors": ["different_initial_diagnosis"],
+             "cancer_type": "Colorectal", "episode_id": "ep-2"},
+            {"n": 4, "factors": ["different_initial_diagnosis"],
+             "cancer_type": "Prostate", "episode_id": "ep-3"},
+            {"n": 2, "factors": ["co_morbidity_blurring"],
+             "cancer_type": "Melanoma", "episode_id": "ep-4"},
+        ]
+        row = _consult_agg_row(total=4, three_or_more=4, enriched=4,
+                               episodes_raw=episodes_raw)
+        with patch(
+            "services.analytics_api.app.routers.audit.PatientGraphClient"
+        ) as MockClient:
+            MockClient.return_value = _consult_mock(row)
+            from services.analytics_api.app.routers.audit import audit_consultations
+
+            result = audit_consultations(
+                scope=_mock_scope(), org_id=None,
+                date_from=None, date_to=None, benchmark_set_id=None,
             )
 
-        queries = [str(c.args[0]) for c in mock.run.call_args_list]
-        assert any(
-            "trim(coalesce(toString(ep.referral_date), '')) = ''" in q for q in queries
-        )
-        assert any(
-            "trim(coalesce(toString(ep.first_presentation_date), '')) = ''" in q
-            for q in queries
-        )
+        practice = _practice(result)
+        top = practice["top_factors"]
+        # different_initial_diagnosis appears in 3 episodes; co_morbidity_blurring in 2.
+        assert top[0]["factor"] == "different_initial_diagnosis"
+        assert top[0]["n"] == 3
+        assert any(f["factor"] == "co_morbidity_blurring" for f in top)
+
+    def test_factors_by_cancer_type_structure(self):
+        episodes_raw = [
+            {"n": 3, "factors": ["different_initial_diagnosis"],
+             "cancer_type": "Breast", "episode_id": "ep-1"},
+            {"n": 5, "factors": ["different_initial_diagnosis", "co_morbidity_blurring"],
+             "cancer_type": "Breast", "episode_id": "ep-2"},
+        ]
+        row = _consult_agg_row(total=2, episodes_raw=episodes_raw)
+        with patch(
+            "services.analytics_api.app.routers.audit.PatientGraphClient"
+        ) as MockClient:
+            MockClient.return_value = _consult_mock(row)
+            from services.analytics_api.app.routers.audit import audit_consultations
+
+            result = audit_consultations(
+                scope=_mock_scope(), org_id=None,
+                date_from=None, date_to=None, benchmark_set_id=None,
+            )
+
+        practice = _practice(result)
+        fct = practice["factors_by_cancer_type"]
+        assert "Breast" in fct
+        assert fct["Breast"]["different_initial_diagnosis"] == 2
+        assert fct["Breast"]["co_morbidity_blurring"] == 1
+
+    def test_median_iqr_computed_from_inline_episodes(self):
+        """Median and IQR are derived from the episodes_raw n values."""
+        episodes_raw = [
+            {"n": 1, "factors": [], "cancer_type": "Breast", "episode_id": "ep-a"},
+            {"n": 2, "factors": [], "cancer_type": "Breast", "episode_id": "ep-b"},
+            {"n": 3, "factors": [], "cancer_type": "Colorectal", "episode_id": "ep-c"},
+            {"n": 7, "factors": [], "cancer_type": "Melanoma", "episode_id": "ep-d"},
+        ]
+        row = _consult_agg_row(total=4, episodes_raw=episodes_raw)
+        with patch(
+            "services.analytics_api.app.routers.audit.PatientGraphClient"
+        ) as MockClient:
+            MockClient.return_value = _consult_mock(row)
+            from services.analytics_api.app.routers.audit import audit_consultations
+
+            result = audit_consultations(
+                scope=_mock_scope(), org_id=None,
+                date_from=None, date_to=None, benchmark_set_id=None,
+            )
+
+        practice = _practice(result)
+        # sorted [1,2,3,7] (n=4)
+        # median = (counts[1] + counts[2]) / 2 = (2+3)/2 = 2.5
+        # iqr_low  = counts[n//4]   = counts[1] = 2
+        # iqr_high = counts[3*n//4] = counts[3] = 7
+        assert practice["median_consultations"] == 2.5
+        assert practice["iqr_low"] == 2.0
+        assert practice["iqr_high"] == 7.0
 
 
 # ---------------------------------------------------------------------------

@@ -38,7 +38,6 @@ import {
   fetchAuditIntervals,
   fetchAuditSafetyNetting,
   fetchAuditCareObstructions,
-  fetchAuditPriorConsultations,
   fetchAuditAvoidableDelays,
   type AuditSummary,
   type AuditCancerTypeRow,
@@ -52,7 +51,6 @@ import {
   type AuditIntervals,
   type AuditSafetyNetting,
   type AuditCareObstruction,
-  type AuditPriorConsultations,
   type AuditAvoidableDelays,
   type AuditSectionResult,
 } from "@/lib/analyticsApi";
@@ -69,14 +67,11 @@ import ComorbiditiesSection from "@/components/audit/ComorbiditiesSection";
 import SymptomsSection from "@/components/audit/SymptomsSection";
 import PlaceOfPresentationSection from "@/components/audit/PlaceOfPresentationSection";
 import ConsultationsSection from "@/components/audit/ConsultationsSection";
-import MultipleConsultationsSection from "@/components/audit/MultipleConsultationsSection";
 import InvestigationsSection from "@/components/audit/InvestigationsSection";
-import EmergencyReferralRoutesSection from "@/components/audit/EmergencyReferralRoutesSection";
 import PrimaryCareIntervalSection from "@/components/audit/PrimaryCareIntervalSection";
 import DiagnosticIntervalSection from "@/components/audit/DiagnosticIntervalSection";
 import SafetyNettingSection from "@/components/audit/SafetyNettingSection";
 import CareObstructionsSection from "@/components/audit/CareObstructionsSection";
-import PriorConsultationsSection from "@/components/audit/PriorConsultationsSection";
 import { AuditBenchmarkOverlayProvider } from "@/context/AuditBenchmarkOverlayContext";
 
 const TOC_SECTIONS: TocSection[] = [
@@ -88,11 +83,8 @@ const TOC_SECTIONS: TocSection[] = [
   { id: "section-symptoms", label: "Symptoms at Referral", group: "results" },
   { id: "section-place-of-presentation", label: "Place of Presentation", group: "results" },
   { id: "section-consultations", label: "Consultations", group: "results" },
-  { id: "section-multiple-consultations", label: "Multiple Consultations", group: "results" },
-  { id: "section-prior-consultations", label: "Prior Consultations (NCDA S7)", group: "results" },
   { id: "section-investigations", label: "Investigations", group: "results" },
   { id: "section-ftr-types", label: "Fast Track Referral Types", group: "results" },
-  { id: "section-emergency-routes", label: "Emergency Referral Routes", group: "results" },
   { id: "section-pci", label: "Primary Care Interval", group: "intervals" },
   { id: "section-di", label: "Diagnostic Interval", group: "intervals" },
   { id: "section-safety-netting", label: "Safety Netting", group: "quality" },
@@ -112,7 +104,6 @@ interface SectionLoading {
   intervals: boolean;
   safetyNetting: boolean;
   careObstructions: boolean;
-  priorConsultations: boolean;
   avoidableDelays: boolean;
 }
 
@@ -124,14 +115,14 @@ const allTrue = (): SectionLoading => ({
   summary: true, cancerType: true, cancerStage: true, demographics: true, comorbidities: true,
   placeOfPresentation: true, consultations: true, investigations: true,
   referrals: true, intervals: true, safetyNetting: true, careObstructions: true,
-  priorConsultations: true, avoidableDelays: true,
+  avoidableDelays: true,
 });
 
 const allFalse = (): SectionLoading => ({
   summary: false, cancerType: false, cancerStage: false, demographics: false, comorbidities: false,
   placeOfPresentation: false, consultations: false, investigations: false,
   referrals: false, intervals: false, safetyNetting: false, careObstructions: false,
-  priorConsultations: false, avoidableDelays: false,
+  avoidableDelays: false,
 });
 
 export default function AuditPage() {
@@ -192,7 +183,6 @@ export default function AuditPage() {
   const [intervals, setIntervals] = useState<AuditSectionResult<AuditIntervals> | null>(null);
   const [safetyNetting, setSafetyNetting] = useState<AuditSectionResult<AuditSafetyNetting> | null>(null);
   const [careObstructions, setCareObstructions] = useState<AuditSectionResult<AuditCareObstruction> | null>(null);
-  const [priorConsultations, setPriorConsultations] = useState<AuditSectionResult<AuditPriorConsultations> | null>(null);
   const [avoidableDelays, setAvoidableDelays] = useState<AuditSectionResult<AuditAvoidableDelays> | null>(null);
 
   // Fetch available benchmark sets on mount and auto-select the first.
@@ -325,7 +315,7 @@ export default function AuditPage() {
         diMedian:           intData?.di?.median ?? null,
         twwPct,
         emergencyPct,
-        fewerThan3Pct:      consultData?.fewer_than_3_pct ?? null,
+        multipleConsultationsPct: consultData?.three_or_more_pct ?? null,
         safetyNettingPct,
         avoidableDelayPct:  adData?.avoidable_delay_pct ?? null,
         careObstructionPct,
@@ -369,7 +359,6 @@ export default function AuditPage() {
         settle("intervals", fetchAuditIntervals(orgId, from, to, effectiveBenchmarkSetId), setIntervals),
         settle("safetyNetting", fetchAuditSafetyNetting(orgId, from, to, effectiveBenchmarkSetId), setSafetyNetting),
         settle("careObstructions", fetchAuditCareObstructions(orgId, from, to, effectiveBenchmarkSetId), setCareObstructions),
-        settle("priorConsultations", fetchAuditPriorConsultations(orgId, from, to, effectiveBenchmarkSetId), setPriorConsultations),
         settle("avoidableDelays", fetchAuditAvoidableDelays(orgId, from, to, effectiveBenchmarkSetId), setAvoidableDelays),
       ]);
       setLoading(allFalse());
@@ -550,10 +539,6 @@ export default function AuditPage() {
           orgSelected={orgSelected}
         />
 
-        <MultipleConsultationsSection
-          result={consultations}
-          orgSelected={orgSelected}
-        />
 
         <InvestigationsSection
           result={investigations}
@@ -565,11 +550,6 @@ export default function AuditPage() {
         <FastTrackReferralEvolutionSection
           result={null}
           loading={false}
-          orgSelected={orgSelected}
-        />
-
-        <EmergencyReferralRoutesSection
-          result={referrals}
           orgSelected={orgSelected}
         />
 
@@ -602,12 +582,6 @@ export default function AuditPage() {
           avoidableDelaysResult={avoidableDelays}
         />
 
-        <PriorConsultationsSection
-          result={priorConsultations}
-          loading={loading.priorConsultations}
-          error={errors.priorConsultations}
-          orgSelected={orgSelected}
-        />
       </AuditReportShell>
       </Box>
       )}

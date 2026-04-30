@@ -31,12 +31,6 @@ _ENCOUNTER_TIMEOUT_S = 120  # ReadTimeoutError is no longer retried, so worst ca
 # Lazy-compiled graph to avoid import overhead in test environments
 _COMPILED_GRAPH: Any = None
 
-# Shared pool for graph.invoke calls.  Bounded size means zombie threads from
-# timed-out encounters count against the limit, preventing unbounded connection
-# accumulation when many encounters time out in quick succession.
-_GRAPH_POOL: ThreadPoolExecutor | None = None
-_GRAPH_POOL_SIZE = 32  # well above max (patient-workers × enc-workers) but bounded
-
 
 def _get_graph() -> Any:
     global _COMPILED_GRAPH
@@ -44,13 +38,6 @@ def _get_graph() -> Any:
         from libs.cohort_annotation.graph import build_graph
         _COMPILED_GRAPH = build_graph()
     return _COMPILED_GRAPH
-
-
-def _get_graph_pool() -> ThreadPoolExecutor:
-    global _GRAPH_POOL
-    if _GRAPH_POOL is None:
-        _GRAPH_POOL = ThreadPoolExecutor(max_workers=_GRAPH_POOL_SIZE)
-    return _GRAPH_POOL
 
 
 @dataclass
@@ -128,13 +115,17 @@ def annotate_encounter(
 
     graph = _get_graph()
     try:
-        # Submit to shared pool so zombie threads from timed-out encounters are
-        # bounded by _GRAPH_POOL_SIZE rather than growing without limit.
-        pool = _get_graph_pool()
-        _fut = pool.submit(graph.invoke, initial_state)
+        # Each encounter gets its own single-thread pool so a zombie thread
+        # from a timed-out call cannot block any other encounter.  The pool is
+        # released immediately on success; on timeout shutdown(wait=False) lets
+        # the zombie drain in the background without blocking new encounters.
+        _graph_pool = ThreadPoolExecutor(max_workers=1)
+        _fut = _graph_pool.submit(graph.invoke, initial_state)
         try:
             final_state = _fut.result(timeout=_ENCOUNTER_TIMEOUT_S)
+            _graph_pool.shutdown(wait=False)
         except FuturesTimeoutError:
+            _graph_pool.shutdown(wait=False)
             msg = (
                 f"encounter timed out after {_ENCOUNTER_TIMEOUT_S}s "
                 f"(graph.invoke did not complete)"

@@ -975,28 +975,6 @@ export interface AuditSummary {
    *  in the tooltip + dialog footer so the auditor can see how
    *  aggressive the filter is. */
   care_obstruction_unrelated_filtered_events?: number;
-  // ---- Prior consultations (NCDA Section 7) -------------------------
-  // Headline rate of confirmed-cancer episodes with 2+ cancer-related
-  // consultations in the year before the FTR.  Backed by Claude
-  // Haiku 4.5 classification of the year-prior workup window per
-  // episode.  See libs/oncology/prior_consultations.py.
-  /** % of confirmed-cancer episodes with multiple consultations. */
-  prior_consultations_pct?: number | null;
-  /** Numerator behind prior_consultations_pct (>= 2 consultations). */
-  prior_consultations_n?: number;
-  /** Confirmed-cancer denominator behind every prior_consultations_* field. */
-  prior_consultations_denominator?: number;
-  /** Subset of episodes the LLM enrichment pass has classified.
-   *  Should equal `prior_consultations_denominator` when fully
-   *  enriched. */
-  prior_consultations_enriched_n?: number;
-  /** Total cancer-related consultations across the cohort. */
-  prior_consultations_total_consultations?: number;
-  /** Mean per ENRICHED episode (not denominator) so the figure tracks
-   *  the LLM signal rather than being diluted by un-enriched rows. */
-  prior_consultations_mean_per_episode?: number | null;
-  /** Aggregated Haiku 4.5 spend across the cohort. */
-  prior_consultations_llm_cost_usd?: number;
 }
 
 export interface AuditCancerTypeRow {
@@ -1070,15 +1048,88 @@ export interface AuditPlaceRow {
   pct: number;
 }
 
+/** Per-episode evidence row -- drives the evidence accordion in
+ *  MultipleConsultationsSection.  `evidence_quotes` is null until the
+ *  detector persists per-factor quotes (see plan "Out of scope"). */
+export interface AuditConsultationEpisodeEvidence {
+  episode_id: string;
+  cancer_type: string;
+  n: number | null;
+  factors: string[];
+  evidence_quotes: null;
+}
+
+/** NCDA Section 7 -- Haiku-enriched consultation data.
+ *  Powered by ep.prior_consultations_* properties.
+ *  NCDA-native polarity: `three_or_more_*` is the headline. */
 export interface AuditConsultations {
-  fewer_than_3_pct: number;
+  /** NCDA-native polarity: % with 3+ cancer-related consultations. */
   three_or_more_pct: number;
-  fewer_than_3_n: number;
   three_or_more_n: number;
+  /** Kept for benchmark-overlay compatibility. */
+  fewer_than_3_pct: number;
+  fewer_than_3_n: number;
   total_episodes: number;
+  /** Episodes the Haiku enrichment has classified. */
+  enriched_n: number;
+  enriched_pct: number;
+  /** Median + IQR from the per-episode prior_consultations_n distribution. */
   median_consultations: number | null;
   iqr_low: number | null;
   iqr_high: number | null;
+  /** Consultation-count distribution -- drives the breakdown dialog histogram.
+   *  Buckets 3-4, 5-7, 8+ are in NCDA "multiple consultations" territory (>= 3). */
+  buckets?: {
+    "0": number;
+    "1": number;
+    "2": number;
+    "3-4": number;
+    "5-7": number;
+    "8+": number;
+  };
+  buckets_pct?: {
+    "0": number;
+    "1": number;
+    "2": number;
+    "3-4": number;
+    "5-7": number;
+    "8+": number;
+  };
+  /** Mean cancer-related contacts per enriched episode by contact type. */
+  mean_per_episode?: {
+    total: number;
+    f2f: number;
+    phone: number;
+    nurse: number;
+    email: number;
+    specialist_clinic: number;
+    home_visit: number;
+    phlebotomy: number;
+    result_review: number;
+  };
+  total_consultations?: number;
+  unrelated_filtered_total?: number;
+  /** Top NCDA factor codes ranked by frequency -- drives the "why" bar chart. */
+  top_factors?: Array<{ factor: string; n: number }>;
+  /** Per-cancer-type factor breakdown -- drives the heatmap.
+   *  `{ "Breast": { "different_initial_diagnosis": 3, ... }, ... }` */
+  factors_by_cancer_type?: Record<string, Record<string, number>>;
+  /** Per-episode evidence list -- drives the evidence drawer. */
+  episode_evidence?: AuditConsultationEpisodeEvidence[];
+  /** Live breakdown by tumour site -- drives the cancer-type table. */
+  by_cancer_type_live?: Array<{
+    cancer_type: string;
+    n_total: number;
+    n_three_or_more: number;
+    n_enriched: number;
+    three_or_more_pct: number | null;
+    mean_consultations: number | null;
+  }>;
+  /** Aggregated Claude Haiku 4.5 telemetry. */
+  llm_cost_usd?: number;
+  llm_input_tokens?: number;
+  llm_output_tokens?: number;
+  llm_calls?: number;
 }
 
 export interface AuditInvestigations {
@@ -1220,72 +1271,6 @@ export interface AuditCareObstruction {
   unrelated_filtered_events?: number;
 }
 
-/** Prior cancer-related consultations + NCDA "multiple consultations"
- *  factor breakdown -- mirrors AuditCareObstruction shape so the
- *  PriorConsultationsSection can reuse the same EvolutionYearCard +
- *  EvolutionDetailDialog rendering.  Backed by Claude Haiku 4.5
- *  classification of the year-prior workup window per episode. */
-export interface AuditPriorConsultations {
-  total_episodes: number;
-  /** Episodes the LLM enrichment pass has classified
-   *  (``ep.prior_consultations_n IS NOT NULL``).  Should equal
-   *  ``total_episodes`` once the cohort is fully enriched. */
-  enriched_n: number;
-  enriched_pct: number;
-  /** Headline NCDA Section 7 metric: % of episodes with 2+
-   *  cancer-related consultations in the year before the FTR. */
-  multiple_consultations_pct: number;
-  multiple_consultations_n: number;
-  /** Distribution of the consultation counts.  Drives the dialog
-   *  histogram.  Buckets are 0 / 1 / 2-3 / 4-6 / 7+. */
-  buckets?: {
-    "0": number;
-    "1": number;
-    "2-3": number;
-    "4-6": number;
-    "7+": number;
-  };
-  buckets_pct?: {
-    "0": number;
-    "1": number;
-    "2-3": number;
-    "4-6": number;
-    "7+": number;
-  };
-  /** Mean per-enriched-episode count by contact type.  ``total`` is
-   *  the cancer-related consultation tally.  ``result_review`` is
-   *  surfaced separately as it does NOT count toward the NCDA tally. */
-  mean_per_episode?: {
-    total: number;
-    f2f: number;
-    phone: number;
-    nurse: number;
-    email: number;
-    specialist_clinic: number;
-    home_visit: number;
-    phlebotomy: number;
-    result_review: number;
-  };
-  /** Total cancer-related consultations across the cohort. */
-  total_consultations?: number;
-  /** Encounters that hit the pre-filter but the LLM marked as
-   *  unrelated (LTC review, vaccine clinic, midwife, etc.) -- shown
-   *  in the dialog footer for transparency. */
-  unrelated_filtered_total?: number;
-  /** Top-N NCDA factor codes proposed by the LLM, ranked by
-   *  frequency.  Drives the "Why multiple consultations?" bar chart
-   *  in the detail dialog.  Codes match
-   *  libs/oncology/prior_consultations.NCDAFactor. */
-  top_factors?: Array<{ factor: string; n: number }>;
-  // ---- LLM cost telemetry --------------------------------------
-  /** Aggregated Haiku 4.5 spend across the cohort -- exposed so the
-   *  dashboard can surface the per-tile cost without hitting
-   *  LLMSpendPanel. */
-  llm_cost_usd?: number;
-  llm_input_tokens?: number;
-  llm_output_tokens?: number;
-  llm_calls?: number;
-}
 
 export interface AuditComorbidityRow {
   condition: string;
@@ -1526,11 +1511,6 @@ export async function fetchAuditCareObstructions(
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/care-obstructions${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
 }
 
-export async function fetchAuditPriorConsultations(
-  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
-): Promise<AuditSectionResult<AuditPriorConsultations>> {
-  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/prior-consultations${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
-}
 
 export async function fetchAuditAvoidableDelays(
   orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,

@@ -8,12 +8,20 @@
  */
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import {
   Cell,
   Pie,
@@ -23,6 +31,7 @@ import {
 } from "recharts";
 
 import SectionCard from "./SectionCard";
+import EvolutionDetailDialog from "./EvolutionDetailDialog";
 import type { AuditPlaceRow, AuditSectionResult } from "@/lib/analyticsApi";
 import { fetchAuditPlaceOfPresentation } from "@/lib/analyticsApi";
 import { useOrgId } from "@/context/OrgContext";
@@ -155,12 +164,14 @@ function PlacePieCard({
   sampleN,
   loading = false,
   isBaseline = false,
+  onZoom,
 }: {
   yearLabel: string;
   rows: AuditPlaceRow[];
   sampleN: number;
   loading?: boolean;
   isBaseline?: boolean;
+  onZoom?: () => void;
 }) {
   const innerRows = rows
     .filter((row) => row.pct > 0)
@@ -184,15 +195,30 @@ function PlacePieCard({
         borderRadius: 1.5,
         p: 1.5,
         bgcolor: "background.paper",
+        position: "relative",
       }}
     >
-      <Box>
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          {yearLabel}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {isBaseline ? "NCDA baseline" : sampleN > 0 ? `n = ${sampleN}` : "No cases"}
-        </Typography>
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <Box>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            {yearLabel}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {isBaseline ? "NCDA baseline" : sampleN > 0 ? `n = ${sampleN}` : "No cases"}
+          </Typography>
+        </Box>
+        {onZoom && (
+          <Tooltip title="Expand breakdown">
+            <IconButton
+              size="small"
+              onClick={onZoom}
+              aria-label={`Expand ${yearLabel} place of presentation breakdown`}
+              sx={{ mt: -0.5, mr: -0.5, color: "text.secondary" }}
+            >
+              <OpenInFullIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       <Box
@@ -270,6 +296,101 @@ function PlacePieCard({
   );
 }
 
+interface DialogState {
+  yearLabel: string;
+  rows: AuditPlaceRow[];
+  sampleN: number;
+  isBaseline: boolean;
+}
+
+function PlaceBreakdownTable({
+  rows,
+  sampleN,
+  isBaseline,
+}: {
+  rows: AuditPlaceRow[];
+  sampleN: number;
+  isBaseline: boolean;
+}) {
+  const sorted = [...rows]
+    .filter((r) => r.pct > 0 || (r.n ?? 0) > 0)
+    .sort((a, b) => b.pct - a.pct);
+
+  if (sorted.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+        No place of presentation data available.
+      </Typography>
+    );
+  }
+
+  return (
+    <Table size="small" aria-label="Place of presentation breakdown">
+      <TableHead>
+        <TableRow>
+          <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem" }}>
+            Place of first presentation
+          </TableCell>
+          {!isBaseline && (
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap" }}>
+              n
+            </TableCell>
+          )}
+          <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.78rem" }}>
+            %
+          </TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {sorted.map((row) => {
+          const key = normalisePlaceKey(row.place);
+          const colour = PLACE_COLOUR_MAP[key] ?? "#64748B";
+          return (
+            <TableRow key={row.place} hover>
+              <TableCell sx={{ fontSize: "0.8rem" }}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Box
+                    aria-hidden="true"
+                    sx={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: "50%",
+                      bgcolor: colour,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{formatPlace(row.place)}</span>
+                </Stack>
+              </TableCell>
+              {!isBaseline && (
+                <TableCell align="right" sx={{ fontSize: "0.8rem" }}>
+                  {row.n ?? "--"}
+                </TableCell>
+              )}
+              <TableCell align="right" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
+                {row.pct}%
+              </TableCell>
+            </TableRow>
+          );
+        })}
+        {!isBaseline && sampleN > 0 && (
+          <TableRow>
+            <TableCell sx={{ fontWeight: 700, fontSize: "0.8rem", borderTop: "2px solid", borderColor: "divider" }}>
+              Total
+            </TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.8rem", borderTop: "2px solid", borderColor: "divider" }}>
+              {sampleN}
+            </TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.8rem", borderTop: "2px solid", borderColor: "divider" }}>
+              100%
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
 export default function PlaceOfPresentationSection({
   result,
   loading,
@@ -287,11 +408,13 @@ export default function PlaceOfPresentationSection({
     [result?.benchmark, orgSelected],
   );
 
+  const [dialog, setDialog] = useState<DialogState | null>(null);
+
   return (
     <SectionCard
       id="section-place-of-presentation"
       title="Place of Presentation"
-      description="Where patients first presented, shown as 2019 NCDA benchmark plus the last two complete calendar years and the current year. Inner pies show the place mix; outer rings highlight GP surgery and screening in green versus non-GP presentation in red."
+      description="Where patients first presented — pie charts per year. Click the expand icon on any card for the full breakdown table with counts and percentages."
       availability="ready"
       loading={loading}
       loadingSkeletonVariant="pieGrid"
@@ -305,6 +428,14 @@ export default function PlaceOfPresentationSection({
               rows={baselineRows}
               sampleN={0}
               isBaseline
+              onZoom={() =>
+                setDialog({
+                  yearLabel: `${BASELINE_YEAR} NCDA Baseline`,
+                  rows: baselineRows,
+                  sampleN: 0,
+                  isBaseline: true,
+                })
+              }
             />
           </Grid>
           {liveYears.map((state) => (
@@ -314,11 +445,42 @@ export default function PlaceOfPresentationSection({
                 rows={state.data ?? []}
                 sampleN={totalN(state.data)}
                 loading={state.loading}
+                onZoom={
+                  state.loading || !state.data
+                    ? undefined
+                    : () =>
+                        setDialog({
+                          yearLabel: String(state.year),
+                          rows: state.data ?? [],
+                          sampleN: totalN(state.data),
+                          isBaseline: false,
+                        })
+                }
               />
             </Grid>
           ))}
         </Grid>
       </Box>
+
+      <EvolutionDetailDialog
+        open={dialog !== null}
+        onClose={() => setDialog(null)}
+        title={`Place of Presentation — ${dialog?.yearLabel ?? ""}`}
+        subtitle={
+          dialog?.isBaseline
+            ? "2018 NCDA published baseline. Only GP Surgery and A&E percentages are available nationally."
+            : `${dialog?.sampleN ?? 0} episodes with a recorded place of first presentation.`
+        }
+        maxWidth="sm"
+      >
+        {dialog && (
+          <PlaceBreakdownTable
+            rows={dialog.rows}
+            sampleN={dialog.sampleN}
+            isBaseline={dialog.isBaseline}
+          />
+        )}
+      </EvolutionDetailDialog>
     </SectionCard>
   );
 }

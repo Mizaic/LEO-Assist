@@ -590,6 +590,15 @@ You are auditing UK GP records to fill in the National Cancer Diagnosis Audit
 
 You receive:
   - episode metadata (cancer_type, first_presentation_date, referral_date)
+  - anchor_context containing:
+      first_presentation_text -- the GP encounter note from the patient's
+        first presentation.  The specific symptoms, signs, and concerns
+        documented here define this cancer pathway.
+      referral_texts -- one or more GP encounter notes that raised the
+        fast-track / 2WW referral.  There may be more than one referral
+        encounter if the referral was re-submitted or upgraded.
+    If either anchor field is empty, fall back to the cancer_type to infer
+    which symptoms are relevant.
   - a JSON list of candidate encounters that occurred in the year before the
     referral, each pre-tagged with a contact_type ("f2f", "telephone",
     "nurse", "email", "specialist_clinic", "home_visit", "phlebotomy",
@@ -597,11 +606,20 @@ You receive:
 
 For EACH candidate encounter you must decide:
   related (bool)
-    True if the encounter discusses the cancer-related symptoms, tests, or
-    workup that led to the fast-track referral. False if the encounter is
-    for an unrelated condition (LTC review, vaccination, repeat
-    prescription, midwife visit, podiatry, MSK injury unrelated to the
-    cancer site, etc.).
+    True ONLY if the encounter directly discusses the same symptoms, signs,
+    or clinical concerns documented in first_presentation_text / referral_texts,
+    OR tests and workup that flow from those specific findings.
+    False if the encounter is for ANY other reason, including:
+      - long-term condition (LTC) reviews (diabetes, hypertension, COPD, etc.)
+      - routine medication reviews or repeat-prescription consultations
+      - vaccinations or immunisations
+      - a different acute problem unrelated to the anchor symptoms
+        (e.g. knee injury, back pain, skin rash, dental referral)
+      - midwife, podiatry, physiotherapy, or other allied-health visits
+        with no connection to the cancer presentation
+      - administrative encounters (results filing, letters, recalls)
+    When in doubt, check: "Does this encounter mention the same body system,
+    symptom, or test type as the anchor context?"  If not, mark False.
   contact_type
     Confirm or correct the pre-tag from the list above.
   evidence (<=25 words)
@@ -667,15 +685,24 @@ Return a STRICT JSON object with this shape (and no markdown fences):
 """
 
 
+_ANCHOR_TEXT_CHARS = 800  # chars per anchor field sent to the LLM
+
+
 def build_user_message(
     *,
     cancer_type: str | None,
     first_presentation_date: str | None,
     referral_date: str | None,
     candidates: Sequence[CandidateEncounter],
+    first_presentation_text: str | None = None,
+    referral_texts: list[str] | None = None,
     text_chars_per_candidate: int = 600,
 ) -> str:
     """Build the user message handed to the LLM.
+
+    Anchor context (``first_presentation_text`` and ``referral_texts``) is
+    included so Haiku can judge relatedness against the *specific* symptoms
+    that drove this episode rather than just the cancer type.
 
     Truncates each candidate's text to ``text_chars_per_candidate`` to
     keep the prompt under control — 600 chars per encounter at ~30
@@ -688,6 +715,14 @@ def build_user_message(
             "first_presentation_date": first_presentation_date or "",
             "referral_date": referral_date or "",
             "candidate_count": len(candidates),
+        },
+        "anchor_context": {
+            "first_presentation_text": (
+                (first_presentation_text or "")[:_ANCHOR_TEXT_CHARS]
+            ),
+            "referral_texts": [
+                t[:_ANCHOR_TEXT_CHARS] for t in (referral_texts or []) if t
+            ],
         },
         "candidates": [
             {
@@ -890,12 +925,21 @@ def classify_episode_consultations(
     first_presentation_date: str | None,
     referral_date: str | None,
     encounters: Iterable[dict[str, Any]],
+    first_presentation_text: str | None = None,
+    referral_texts: list[str] | None = None,
     patient_id: str = "",
     llm_caller: Any = None,
     agent_task: str = "ncda_prior_consultations",
     text_chars_per_candidate: int = 600,
 ) -> PriorConsultationsResult:
     """End-to-end: pre-filter, build prompt, call Haiku, parse result.
+
+    ``first_presentation_text`` and ``referral_texts`` are the actual GP
+    encounter notes from the first presentation and referral encounters.
+    Providing these allows Haiku to judge relatedness against the *specific*
+    symptoms documented at the first presentation rather than the cancer
+    type alone, dramatically reducing false positives from LTC reviews,
+    medication consultations, or unrelated acute problems.
 
     The LLM call is delegated to the supplied ``llm_caller`` callable
     so the function is fully testable without hitting Bedrock.  The
@@ -926,6 +970,8 @@ def classify_episode_consultations(
         first_presentation_date=first_presentation_date,
         referral_date=referral_date,
         candidates=candidates,
+        first_presentation_text=first_presentation_text,
+        referral_texts=referral_texts,
         text_chars_per_candidate=text_chars_per_candidate,
     )
 

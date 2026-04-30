@@ -513,71 +513,233 @@ def _q_place(base: str, params: dict, client: PatientGraphClient) -> list:
 
 
 # ---------------------------------------------------------------------------
-# Consultations
+# Consultations  (NCDA Section 7 -- Haiku-enriched)
 # ---------------------------------------------------------------------------
 
 
 def _q_consultations(base: str, params: dict, client: PatientGraphClient) -> dict:
-    # NCDA definition: GP consultations BEFORE referral to secondary care.
-    # Window: first_presentation_date (or 365d before referral) up to referral.
-    _PRE_REF = (
-        f"WITH ep, p, enc, {_SAFE_REFERRAL_DATE} AS referral_date_value, "
-        f"{_SAFE_FIRST_PRESENTATION_DATE} AS first_presentation_date_value "
-        "  WHERE enc.date IS NOT NULL AND referral_date_value IS NOT NULL "
-        "    AND coalesce(enc.classification_content_type, 'clinical') = 'clinical' "
-        "    AND enc.date <= referral_date_value "
-        "    AND enc.date >= coalesce("
-        "      first_presentation_date_value, "
-        "      referral_date_value - duration('P365D')"
-        "    ) "
-    )
-    rows = client.run(
-        f"{base}"
-        "WITH DISTINCT ep, p "
-        "OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter) "
-        f"{_PRE_REF}"
-        "WITH ep, count(enc) AS consult_count "
-        "RETURN "
-        "  sum(CASE WHEN consult_count < 3 THEN 1 ELSE 0 END) AS fewer_than_3, "
-        "  sum(CASE WHEN consult_count >= 3 THEN 1 ELSE 0 END) AS three_or_more, "
-        "  count(DISTINCT ep) AS total_episodes, "
-        "  avg(consult_count) AS avg_consultations",
-        **params,
-    )
-    per_ep = client.run(
-        f"{base}"
-        "WITH DISTINCT ep, p "
-        "OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter) "
-        f"{_PRE_REF}"
-        "WITH ep, count(enc) AS consult_count "
-        "RETURN consult_count ORDER BY consult_count",
-        **params,
-    )
-    counts = sorted(
-        [r["consult_count"] for r in per_ep if r.get("consult_count") is not None]
-    )
-    n = len(counts)
-    median_val = (
-        counts[n // 2]
-        if n % 2
-        else ((counts[n // 2 - 1] + counts[n // 2]) / 2) if n else None
-    )
-    iqr_low = counts[n // 4] if n else None
-    iqr_high = counts[3 * n // 4] if n else None
+    """NCDA Section 7 -- cancer-related consultations in the year before the FTR.
 
-    s = rows[0] if rows else {}
-    total = s.get("total_episodes") or 1
-    fewer = s.get("fewer_than_3") or 0
-    three_plus = s.get("three_or_more") or 0
+    Reads the ``prior_consultations_*`` properties stamped on each
+    EpisodeOfCare by ``libs/oncology/prior_consultations.py`` (Claude Haiku
+    4.5 enrichment pass).  Returns the richer payload consumed by both
+    ``ConsultationsSection`` (how-many view) and
+    ``MultipleConsultationsSection`` (why view) so the two sections share a
+    single API call.
+
+    Returns NCDA-native polarity: ``three_or_more_*`` is the headline.
+    ``fewer_than_3_*`` is kept for benchmark-overlay compatibility.
+    """
+    # Aggregate row -- one query does everything except the per-episode list.
+    agg_rows = client.run(
+        f"{base}"
+        "WITH ep, ep.multiple_consultations_factors_auto AS factors_auto, "
+        "     ep.cancer_type AS cancer_type "
+        "RETURN "
+        "  count(DISTINCT ep) AS total_episodes, "
+        # NCDA "multiple consultations" = 3 or more pre-referral contacts.
+        "  sum(CASE WHEN ep.prior_consultations_n >= 3 "
+        "       THEN 1 ELSE 0 END) AS three_or_more, "
+        "  sum(CASE WHEN ep.prior_consultations_n IS NOT NULL "
+        "       AND ep.prior_consultations_n < 3 "
+        "       THEN 1 ELSE 0 END) AS fewer_than_3, "
+        "  sum(CASE WHEN ep.prior_consultations_n IS NOT NULL "
+        "       THEN 1 ELSE 0 END) AS enriched_n, "
+        "  sum(CASE WHEN coalesce(ep.prior_consultations_n, 0) = 0 "
+        "       THEN 1 ELSE 0 END) AS bucket_zero, "
+        "  sum(CASE WHEN ep.prior_consultations_n = 1 "
+        "       THEN 1 ELSE 0 END) AS bucket_one, "
+        "  sum(CASE WHEN ep.prior_consultations_n = 2 "
+        "       THEN 1 ELSE 0 END) AS bucket_two, "
+        "  sum(CASE WHEN ep.prior_consultations_n >= 3 "
+        "       AND ep.prior_consultations_n <= 4 "
+        "       THEN 1 ELSE 0 END) AS bucket_three_four, "
+        "  sum(CASE WHEN ep.prior_consultations_n >= 5 "
+        "       AND ep.prior_consultations_n <= 7 "
+        "       THEN 1 ELSE 0 END) AS bucket_five_seven, "
+        "  sum(CASE WHEN ep.prior_consultations_n >= 8 "
+        "       THEN 1 ELSE 0 END) AS bucket_eight_plus, "
+        "  sum(coalesce(ep.prior_consultations_n, 0)) AS total_consultations, "
+        "  sum(coalesce(ep.prior_consultations_f2f_n, 0)) AS f2f_total, "
+        "  sum(coalesce(ep.prior_consultations_phone_n, 0)) AS phone_total, "
+        "  sum(coalesce(ep.prior_consultations_nurse_n, 0)) AS nurse_total, "
+        "  sum(coalesce(ep.prior_consultations_email_n, 0)) AS email_total, "
+        "  sum(coalesce(ep.prior_consultations_specialist_clinic_n, 0)) "
+        "    AS specialist_clinic_total, "
+        "  sum(coalesce(ep.prior_consultations_home_visit_n, 0)) "
+        "    AS home_visit_total, "
+        "  sum(coalesce(ep.prior_consultations_phlebotomy_n, 0)) "
+        "    AS phlebotomy_total, "
+        "  sum(coalesce(ep.prior_consultations_result_review_n, 0)) "
+        "    AS result_review_total, "
+        "  sum(coalesce(ep.prior_consultations_unrelated_filtered_n, 0)) "
+        "    AS unrelated_filtered_total, "
+        "  collect({n: ep.prior_consultations_n, "
+        "           factors: factors_auto, "
+        "           cancer_type: cancer_type, "
+        "           episode_id: ep.episode_id}) AS episodes_raw, "
+        "  sum(coalesce(ep.prior_consultations_llm_cost_usd, 0.0)) "
+        "    AS llm_cost_usd, "
+        "  sum(coalesce(ep.prior_consultations_llm_input_tokens, 0)) "
+        "    AS llm_input_tokens, "
+        "  sum(coalesce(ep.prior_consultations_llm_output_tokens, 0)) "
+        "    AS llm_output_tokens, "
+        "  sum(coalesce(ep.prior_consultations_llm_calls, 0)) "
+        "    AS llm_calls",
+        **params,
+    )
+
+    # Per-cancer-type live breakdown (drives the tumour-site table).
+    by_ct_rows = client.run(
+        f"{base}"
+        "WITH ep, coalesce(ep.cancer_type, 'Unknown') AS ct "
+        "RETURN "
+        "  ct AS cancer_type, "
+        "  count(DISTINCT ep) AS n_total, "
+        "  sum(CASE WHEN ep.prior_consultations_n >= 3 "
+        "       THEN 1 ELSE 0 END) AS n_three_or_more, "
+        "  sum(CASE WHEN ep.prior_consultations_n IS NOT NULL "
+        "       THEN 1 ELSE 0 END) AS n_enriched, "
+        "  avg(CASE WHEN ep.prior_consultations_n IS NOT NULL "
+        "       THEN toFloat(ep.prior_consultations_n) END) AS mean_n "
+        "ORDER BY n_total DESC",
+        **params,
+    )
+    by_cancer_type_live = []
+    for row in by_ct_rows:
+        ct_total = int(row.get("n_total") or 0)
+        ct_three = int(row.get("n_three_or_more") or 0)
+        ct_enriched = int(row.get("n_enriched") or 0)
+        by_cancer_type_live.append({
+            "cancer_type": row.get("cancer_type") or "Unknown",
+            "n_total": ct_total,
+            "n_three_or_more": ct_three,
+            "n_enriched": ct_enriched,
+            "three_or_more_pct": round(ct_three * 100.0 / ct_total, 1) if ct_total else None,
+            "mean_consultations": round(float(row["mean_n"]), 1) if row.get("mean_n") is not None else None,
+        })
+
+    s = agg_rows[0] if agg_rows else {}
+    total = int(s.get("total_episodes") or 0)
+    safe_total = total or 1
+    enriched = int(s.get("enriched_n") or 0)
+    three_plus = int(s.get("three_or_more") or 0)
+    fewer = int(s.get("fewer_than_3") or 0)
+    safe_enriched = enriched or 1
+
+    # Compute median + IQR from the per-episode list returned inline.
+    ep_raw = s.get("episodes_raw") or []
+    counts = sorted(
+        int(ep["n"])
+        for ep in ep_raw
+        if ep.get("n") is not None
+    )
+    n_counts = len(counts)
+    median_val: float | None = (
+        float(counts[n_counts // 2])
+        if n_counts % 2
+        else (float(counts[n_counts // 2 - 1] + counts[n_counts // 2]) / 2)
+        if n_counts
+        else None
+    )
+    iqr_low: float | None = float(counts[n_counts // 4]) if n_counts else None
+    iqr_high: float | None = float(counts[3 * n_counts // 4]) if n_counts else None
+
+    # Global factor frequency + per-cancer-type factor breakdown.
+    factor_counts: dict[str, int] = {}
+    factors_by_cancer_type: dict[str, dict[str, int]] = {}
+    episode_evidence: list[dict] = []
+
+    for ep in ep_raw:
+        ct = ep.get("cancer_type") or "Unknown"
+        ep_factors = ep.get("factors") or []
+        ep_n = ep.get("n")
+        eid = ep.get("episode_id") or ""
+        fct_clean = [
+            f for f in ep_factors if f and f != "no_multiple_consultations"
+        ]
+        for code in fct_clean:
+            factor_counts[code] = factor_counts.get(code, 0) + 1
+            ct_map = factors_by_cancer_type.setdefault(ct, {})
+            ct_map[code] = ct_map.get(code, 0) + 1
+        episode_evidence.append({
+            "episode_id": eid,
+            "cancer_type": ct,
+            "n": ep_n,
+            "factors": fct_clean,
+            "evidence_quotes": None,  # populated in a future detector pass
+        })
+
+    top_factors = sorted(
+        ({"factor": k, "n": v} for k, v in factor_counts.items()),
+        key=lambda r: (-r["n"], r["factor"]),
+    )[:10]
+
     return {
-        "fewer_than_3_pct": round(fewer * 100.0 / total, 1),
-        "three_or_more_pct": round(three_plus * 100.0 / total, 1),
-        "fewer_than_3_n": fewer,
+        # NCDA-native polarity: 3+ is the "multiple consultations" headline.
+        "three_or_more_pct": round(three_plus * 100.0 / safe_total, 1),
         "three_or_more_n": three_plus,
+        # Kept for benchmark-overlay compatibility (fewer_than_3_pct key
+        # matches the existing BenchmarkValue metric_id in the KG).
+        "fewer_than_3_pct": round(fewer * 100.0 / safe_total, 1),
+        "fewer_than_3_n": fewer,
+        # Enrichment coverage
         "total_episodes": total,
+        "enriched_n": enriched,
+        "enriched_pct": round(enriched * 100.0 / safe_total, 1),
+        # Distribution -- drives the Consultations section breakdown dialog.
         "median_consultations": median_val,
         "iqr_low": iqr_low,
         "iqr_high": iqr_high,
+        # Buckets aligned to NCDA threshold (< 3 = not multiple, >= 3 = multiple).
+        "buckets": {
+            "0":   int(s.get("bucket_zero") or 0),
+            "1":   int(s.get("bucket_one") or 0),
+            "2":   int(s.get("bucket_two") or 0),
+            "3-4": int(s.get("bucket_three_four") or 0),
+            "5-7": int(s.get("bucket_five_seven") or 0),
+            "8+":  int(s.get("bucket_eight_plus") or 0),
+        },
+        "buckets_pct": {
+            "0":   round(int(s.get("bucket_zero") or 0)        * 100.0 / safe_total, 1),
+            "1":   round(int(s.get("bucket_one") or 0)         * 100.0 / safe_total, 1),
+            "2":   round(int(s.get("bucket_two") or 0)         * 100.0 / safe_total, 1),
+            "3-4": round(int(s.get("bucket_three_four") or 0)  * 100.0 / safe_total, 1),
+            "5-7": round(int(s.get("bucket_five_seven") or 0)  * 100.0 / safe_total, 1),
+            "8+":  round(int(s.get("bucket_eight_plus") or 0)  * 100.0 / safe_total, 1),
+        },
+        # Contact-type means -- drives the dialog contact-type table.
+        "mean_per_episode": {
+            "total":    round(int(s.get("total_consultations") or 0) / safe_enriched, 2),
+            "f2f":      round(int(s.get("f2f_total") or 0)    / safe_enriched, 2),
+            "phone":    round(int(s.get("phone_total") or 0)  / safe_enriched, 2),
+            "nurse":    round(int(s.get("nurse_total") or 0)  / safe_enriched, 2),
+            "email":    round(int(s.get("email_total") or 0)  / safe_enriched, 2),
+            "specialist_clinic": round(
+                int(s.get("specialist_clinic_total") or 0) / safe_enriched, 2
+            ),
+            "home_visit": round(int(s.get("home_visit_total") or 0) / safe_enriched, 2),
+            "phlebotomy": round(int(s.get("phlebotomy_total") or 0) / safe_enriched, 2),
+            "result_review": round(
+                int(s.get("result_review_total") or 0) / safe_enriched, 2
+            ),
+        },
+        # Aggregated totals.
+        "total_consultations": int(s.get("total_consultations") or 0),
+        "unrelated_filtered_total": int(s.get("unrelated_filtered_total") or 0),
+        # Top NCDA factor codes -- drives the "why" bar chart.
+        "top_factors": top_factors,
+        # Per-cancer-type factor breakdown -- drives the heatmap.
+        "factors_by_cancer_type": factors_by_cancer_type,
+        # Per-episode evidence list -- drives the evidence drawer.
+        "episode_evidence": episode_evidence,
+        # Per-tumour-site live breakdown.
+        "by_cancer_type_live": by_cancer_type_live,
+        # LLM cost / token telemetry.
+        "llm_cost_usd": round(float(s.get("llm_cost_usd") or 0.0), 4),
+        "llm_input_tokens":  int(s.get("llm_input_tokens") or 0),
+        "llm_output_tokens": int(s.get("llm_output_tokens") or 0),
+        "llm_calls":         int(s.get("llm_calls") or 0),
     }
 
 
@@ -918,158 +1080,6 @@ def _q_care_obstructions(
     }
 
 
-# ---------------------------------------------------------------------------
-# Prior cancer-related consultations + NCDA "multiple consultations" factors
-# ---------------------------------------------------------------------------
-
-
-def _q_prior_consultations(
-    base: str, params: dict, client: PatientGraphClient
-) -> dict:
-    """NCDA Section 7 ("multiple consultations") per-cohort breakdown.
-
-    Mirrors :func:`_q_care_obstructions` so the front-end can reuse the
-    same EvolutionYearCard / EvolutionDetailDialog components.  Reads
-    the ``prior_consultations_*`` properties stamped onto each
-    EpisodeOfCare by
-    ``libs/oncology/prior_consultations.classify_episode_consultations``
-    and ``scripts/ncda/run_prior_consultations_enrichment.py``.
-
-    Returns:
-      - Headline metric: % of episodes with 2+ cancer-related
-        consultations in the year before the FTR (the NCDA "multiple
-        consultations" condition).
-      - Distribution buckets (0 / 1 / 2-3 / 4-6 / 7+ consultations).
-      - Per-contact-type means (f2f, phone, nurse, email, specialist
-        clinic, home visit, phlebotomy, result review).
-      - Top-N NCDA factor codes proposed by the LLM, ranked by
-        frequency, suitable for the dialog "Why multiple consultations?"
-        bar chart.
-      - Aggregated LLM cost / token / call counts so the dashboard can
-        surface the per-tile spend without hitting LLMSpendPanel.
-    """
-    rows = client.run(
-        f"{base}"
-        "OPTIONAL MATCH (ep)<-[:HAS_AUDIT_EVENT|HAS_AUDIT]-(:Patient)"
-        "  -[:HAS_AUDIT_EVENT]->(ae:AuditEvent {"
-        "    type:'PipelineRun', event_type:'ncda_prior_consultations'})"
-        "  WHERE ae.episode_id = ep.episode_id "
-        "WITH ep, ae, ep.multiple_consultations_factors_auto AS factors_auto "
-        "RETURN "
-        "  count(DISTINCT ep) AS total_episodes, "
-        "  sum(CASE WHEN ep.prior_consultations_n >= 2 "
-        "       THEN 1 ELSE 0 END) AS multi_n, "
-        "  sum(CASE WHEN ep.prior_consultations_n IS NOT NULL "
-        "       THEN 1 ELSE 0 END) AS enriched_n, "
-        "  sum(CASE WHEN coalesce(ep.prior_consultations_n, 0) = 0 "
-        "       THEN 1 ELSE 0 END) AS bucket_zero, "
-        "  sum(CASE WHEN ep.prior_consultations_n = 1 "
-        "       THEN 1 ELSE 0 END) AS bucket_one, "
-        "  sum(CASE WHEN ep.prior_consultations_n >= 2 "
-        "       AND ep.prior_consultations_n <= 3 "
-        "       THEN 1 ELSE 0 END) AS bucket_two_three, "
-        "  sum(CASE WHEN ep.prior_consultations_n >= 4 "
-        "       AND ep.prior_consultations_n <= 6 "
-        "       THEN 1 ELSE 0 END) AS bucket_four_six, "
-        "  sum(CASE WHEN ep.prior_consultations_n >= 7 "
-        "       THEN 1 ELSE 0 END) AS bucket_seven_plus, "
-        "  sum(coalesce(ep.prior_consultations_n, 0)) AS total_consultations, "
-        "  sum(coalesce(ep.prior_consultations_f2f_n, 0)) AS f2f_total, "
-        "  sum(coalesce(ep.prior_consultations_phone_n, 0)) AS phone_total, "
-        "  sum(coalesce(ep.prior_consultations_nurse_n, 0)) AS nurse_total, "
-        "  sum(coalesce(ep.prior_consultations_email_n, 0)) AS email_total, "
-        "  sum(coalesce(ep.prior_consultations_specialist_clinic_n, 0)) "
-        "    AS specialist_clinic_total, "
-        "  sum(coalesce(ep.prior_consultations_home_visit_n, 0)) "
-        "    AS home_visit_total, "
-        "  sum(coalesce(ep.prior_consultations_phlebotomy_n, 0)) "
-        "    AS phlebotomy_total, "
-        "  sum(coalesce(ep.prior_consultations_result_review_n, 0)) "
-        "    AS result_review_total, "
-        "  sum(coalesce(ep.prior_consultations_unrelated_filtered_n, 0)) "
-        "    AS unrelated_filtered_total, "
-        "  collect(factors_auto) AS factor_arrays, "
-        "  sum(coalesce(ep.prior_consultations_llm_cost_usd, 0.0)) "
-        "    AS llm_cost_usd, "
-        "  sum(coalesce(ep.prior_consultations_llm_input_tokens, 0)) "
-        "    AS llm_input_tokens, "
-        "  sum(coalesce(ep.prior_consultations_llm_output_tokens, 0)) "
-        "    AS llm_output_tokens, "
-        "  sum(coalesce(ep.prior_consultations_llm_calls, 0)) "
-        "    AS llm_calls",
-        **params,
-    )
-    s = rows[0] if rows else {}
-    total = int(s.get("total_episodes") or 0)
-    safe_total = total or 1
-    enriched = int(s.get("enriched_n") or 0)
-    multi = int(s.get("multi_n") or 0)
-    safe_enriched = enriched or 1
-
-    factor_counts: dict[str, int] = {}
-    for arr in s.get("factor_arrays") or []:
-        if not arr:
-            continue
-        for code in arr:
-            if not code or code == "no_multiple_consultations":
-                continue
-            factor_counts[code] = factor_counts.get(code, 0) + 1
-    top_factors = sorted(
-        ({"factor": k, "n": v} for k, v in factor_counts.items()),
-        key=lambda r: (-r["n"], r["factor"]),
-    )[:10]
-
-    return {
-        # Headline % drives the snapshot tile.
-        "multiple_consultations_pct": round(multi * 100.0 / safe_total, 1),
-        "multiple_consultations_n": multi,
-        "total_episodes": total,
-        "enriched_n": enriched,
-        "enriched_pct": round(enriched * 100.0 / safe_total, 1),
-        # Distribution buckets for the dialog histogram.
-        "buckets": {
-            "0":      int(s.get("bucket_zero") or 0),
-            "1":      int(s.get("bucket_one") or 0),
-            "2-3":    int(s.get("bucket_two_three") or 0),
-            "4-6":    int(s.get("bucket_four_six") or 0),
-            "7+":     int(s.get("bucket_seven_plus") or 0),
-        },
-        "buckets_pct": {
-            "0":   round(int(s.get("bucket_zero") or 0)      * 100.0 / safe_total, 1),
-            "1":   round(int(s.get("bucket_one") or 0)       * 100.0 / safe_total, 1),
-            "2-3": round(int(s.get("bucket_two_three") or 0) * 100.0 / safe_total, 1),
-            "4-6": round(int(s.get("bucket_four_six") or 0)  * 100.0 / safe_total, 1),
-            "7+":  round(int(s.get("bucket_seven_plus") or 0) * 100.0 / safe_total, 1),
-        },
-        # Mean per enriched episode by contact type.
-        "mean_per_episode": {
-            "total":    round(int(s.get("total_consultations") or 0) / safe_enriched, 2),
-            "f2f":      round(int(s.get("f2f_total") or 0)    / safe_enriched, 2),
-            "phone":    round(int(s.get("phone_total") or 0)  / safe_enriched, 2),
-            "nurse":    round(int(s.get("nurse_total") or 0)  / safe_enriched, 2),
-            "email":    round(int(s.get("email_total") or 0)  / safe_enriched, 2),
-            "specialist_clinic": round(
-                int(s.get("specialist_clinic_total") or 0) / safe_enriched, 2
-            ),
-            "home_visit": round(int(s.get("home_visit_total") or 0) / safe_enriched, 2),
-            "phlebotomy": round(int(s.get("phlebotomy_total") or 0) / safe_enriched, 2),
-            "result_review": round(
-                int(s.get("result_review_total") or 0) / safe_enriched, 2
-            ),
-        },
-        # Aggregated totals (for the dialog footer).
-        "total_consultations":     int(s.get("total_consultations") or 0),
-        "unrelated_filtered_total": int(s.get("unrelated_filtered_total") or 0),
-        # Top NCDA factor codes (drives the "Why multiple consultations?"
-        # bar chart in the dialog).
-        "top_factors": top_factors,
-        # LLM cost / token telemetry -- exposed so the dashboard can show
-        # the spend behind this tile without hitting LLMSpendPanel.
-        "llm_cost_usd": round(float(s.get("llm_cost_usd") or 0.0), 4),
-        "llm_input_tokens":  int(s.get("llm_input_tokens") or 0),
-        "llm_output_tokens": int(s.get("llm_output_tokens") or 0),
-        "llm_calls":         int(s.get("llm_calls") or 0),
-    }
 
 
 # ---------------------------------------------------------------------------

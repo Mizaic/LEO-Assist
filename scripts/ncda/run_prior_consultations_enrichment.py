@@ -70,6 +70,18 @@ WITH ep, first_d, last_d,
      END AS window_end
 WITH ep, window_end,
      window_end - duration({days: 365}) AS window_start
+// Anchor context: text of the first-presentation and referral encounters
+// so the LLM can judge relatedness against the SPECIFIC symptoms, not
+// just the cancer type.
+OPTIONAL MATCH (fpE:Encounter)-[fpR:IS_PART_OF]->(ep)
+  WHERE fpR.milestone_type = 'first_presentation'
+WITH ep, window_start, window_end,
+     collect(DISTINCT coalesce(fpE.text, ''))[0] AS fp_encounter_text
+OPTIONAL MATCH (refE:Encounter)-[refR:IS_PART_OF]->(ep)
+  WHERE refR.milestone_type = 'referral'
+WITH ep, window_start, window_end, fp_encounter_text,
+     [t IN collect(DISTINCT coalesce(refE.text, '')) WHERE t <> '']
+       AS referral_encounter_texts
 MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
 MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter)
 WHERE date(toString(e.date)) >= window_start
@@ -80,6 +92,8 @@ WITH ep.episode_id              AS eid,
      ep.cohort                  AS cohort,
      ep.first_presentation_date AS fp_date,
      ep.referral_date           AS referral_date,
+     fp_encounter_text,
+     referral_encounter_texts,
      collect({
          encounter_id: e.id,
          date:         toString(e.date),
@@ -87,7 +101,7 @@ WITH ep.episode_id              AS eid,
          flags:        coalesce(e.flags, '')
      }) AS encounters
 RETURN eid, patient_id, cancer_type, cohort, fp_date, referral_date,
-       encounters
+       fp_encounter_text, referral_encounter_texts, encounters
 ORDER BY patient_id, eid
 """
 
@@ -272,6 +286,10 @@ def main(argv: list[str] | None = None) -> int:
             cohort = row["cohort"] or ""
             fp_date = str(row["fp_date"] or "")
             referral_date = str(row["referral_date"] or "")
+            fp_encounter_text = str(row["fp_encounter_text"] or "") or None
+            referral_encounter_texts = [
+                str(t) for t in (row["referral_encounter_texts"] or []) if t
+            ] or None
             encounters = row["encounters"] or []
             if not encounters:
                 skipped += 1
@@ -287,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
                     first_presentation_date=fp_date,
                     referral_date=referral_date,
                     encounters=encounters,
+                    first_presentation_text=fp_encounter_text,
+                    referral_texts=referral_encounter_texts,
                     patient_id=patient_id,
                 )
                 usage = rec.to_audit_dict(_HAIKU_COST)
