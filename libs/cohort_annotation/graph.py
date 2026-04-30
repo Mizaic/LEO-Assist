@@ -47,7 +47,7 @@ from libs.cohort_annotation.validators import run_all_validators
 logger = logging.getLogger(__name__)
 
 _JSON_START_RE = re.compile(r"\{", re.DOTALL)
-_MAX_RETRIES = 1
+_MAX_RETRIES = 0  # retry adds a second Bedrock call that pushes total time over the graph timeout
 
 
 def _parse_json(text: str) -> dict[str, Any]:

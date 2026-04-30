@@ -42,12 +42,13 @@ describe("AuditSnapshotView scorecards", () => {
 
   it("uses GP-confirmed avoidable delay as the 2019 comparator for potential delays", () => {
     expect(src).toContain("baseline: resolveBenchmarkValue(bm, \"avoidable_delays.avoidable_delay_pct\", orgSelected)");
-    expect(src).toContain("2019 is GP-confirmed. Later years are potential delay signals.");
+    expect(src).toContain("2019 is GP-confirmed. Live years are potentially avoidable -- detected automatically, not clinician-reviewed.");
     expect(src).toContain("The 2019 value is different. It is a GP-confirmed avoidable delay measure.");
   });
 
-  it("does not plot denominator-free zeroes for safety netting or potential delays", () => {
+  it("does not plot denominator-free zeroes for consultation, safety-netting, or delay metrics", () => {
     const pageSrc = readFile("services/ui/src/app/audit/page.tsx");
+    expect(pageSrc).toContain("consultData != null && consultData.total_episodes > 0");
     expect(pageSrc).toContain("snData != null && snData.total_episodes > 0");
     expect(pageSrc).toContain("coData != null && coData.total_episodes > 0");
   });

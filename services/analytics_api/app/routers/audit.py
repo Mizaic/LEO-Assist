@@ -65,6 +65,10 @@ from ._audit_intervals import (
 )
 from ._audit_sections import (
     _q_avoidable_delays,
+    _q_blood_signal,
+    _q_blood_signal_distributions,
+    _q_blood_signal_values,
+    _q_blood_cancer_type_matrix,
     _q_cancer_stage,
     _q_cancer_type,
     _q_consultations,
@@ -1042,5 +1046,75 @@ def audit_symptoms_drilldown(
     client = PatientGraphClient()
     try:
         return _q_symptoms_drilldown(practice_base, practice_params, client)
+    finally:
+        client.close()
+
+
+@router.get("/audit/blood-signal")
+def audit_blood_signal():
+    """GDS-enriched blood result cancer signal.
+
+    Returns per-episode/patient blood test z-scores (12 months prior to
+    referral + 28 days after), Pearson feature correlations (feature
+    importance), and k-means cluster assignments computed by
+    scripts/gds/build_blood_feature_vectors.py.
+
+    This endpoint does not filter by org or date -- it returns the full
+    cohort used in the GDS analysis (cancer + closed_benign episodes
+    plus no-episode FTR patients represented as BloodPanel nodes).
+    """
+    client = PatientGraphClient()
+    try:
+        return _q_blood_signal(client)
+    finally:
+        client.close()
+
+
+@router.get("/audit/blood-signal/distributions")
+def audit_blood_signal_distributions():
+    """Per-test box plot statistics for cancer vs benign cohorts.
+
+    Returns Q1/median/Q3/P10/P90 for actual raw blood values (not z-scores),
+    alongside the NHS reference range parsed from the coded data.  Used
+    by the Investigations section Per Test tab.
+    """
+    client = PatientGraphClient()
+    try:
+        return _q_blood_signal_distributions(client)
+    finally:
+        client.close()
+
+
+@router.get("/audit/blood-signal/cancer-type-matrix")
+def audit_blood_signal_cancer_type_matrix():
+    """Per-cancer-type heatmap and per-patient flag matrix.
+
+    Returns a JSON payload with two structures:
+      heatmap_cells -- effect size (median deviation from benign / benign_std)
+                       per (cancer_type, test_key) cell; null where no readings.
+      patient_flags -- per-cancer-episode flag (high/low/normal/no_data) for
+                       each of the 12 blood tests.
+
+    Cancer type 'breast' and 'Breast' are normalised to 'Breast'.
+    Small-sample caveat: max n=7 per cancer type in current cohort.
+    """
+    client = PatientGraphClient()
+    try:
+        return _q_blood_cancer_type_matrix(client)
+    finally:
+        client.close()
+
+
+@router.get("/audit/blood-signal/values")
+def audit_blood_signal_values(test_key: str = Query(default="bf_lymphocyte_z")):
+    """Raw per-patient mean values for one test.
+
+    Used for the scatter plot -- returns only patients who actually have
+    readings in the window (no imputed zeros).  The 'test_key' param
+    must be one of the bf_* feature keys.
+    """
+    client = PatientGraphClient()
+    try:
+        return _q_blood_signal_values(client, test_key)
     finally:
         client.close()

@@ -101,9 +101,13 @@ _ALWAYS_IGNORE_PATTERNS: tuple[re.Pattern[str], ...] = (
 # Applied after resolver returns results to suppress mismatches.
 # ---------------------------------------------------------------------------
 _ABBREV_BLOCKED_CONCEPTS: dict[str, set[str]] = {
-    # No entries currently -- NAD is handled by _ALWAYS_IGNORE_TERMS above.
-    # Add entries here for abbreviations where SOME concepts are correct and
-    # only specific wrong concepts need suppressing.
+    # NAD is handled by _ALWAYS_IGNORE_TERMS above.
+    #
+    # PSA: in UK primary care oncology context, "PSA" always means
+    # "Prostate Specific Antigen" (lab test), never "Psoriatic arthritis".
+    # Block the psoriatic arthritis concept so the correct observable entity
+    # (SNOMED 63476009 / 1016981000000101) surfaces as the top candidate.
+    "psa": {"156370009", "9946009"},  # Psoriatic arthritis concepts
 }
 
 

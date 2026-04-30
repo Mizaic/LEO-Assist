@@ -1554,6 +1554,111 @@ export async function fetchAuditSymptomsDrilldown(
   );
 }
 
+// ---------------------------------------------------------------------------
+// Blood Signal (GDS enrichment)
+// ---------------------------------------------------------------------------
+
+export interface BloodFeatureVector {
+  id: string;
+  cohort_label: "cancer" | "benign";
+  cancer_type: string | null;
+  cluster: number | null;
+  features: Record<string, number | null>;
+}
+
+export interface AuditBloodSignal {
+  episodes: BloodFeatureVector[];
+  feature_keys: string[];
+  feature_labels: Record<string, string>;
+  correlations: Record<string, number>;
+  cancer_n: number;
+  benign_n: number;
+  total_n: number;
+  updated_at: string | null;
+}
+
+export async function fetchAuditBloodSignal(): Promise<AuditBloodSignal> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal`);
+}
+
+export interface BloodBoxStats {
+  n: number;
+  p10: number;
+  q1: number;
+  median: number;
+  q3: number;
+  p90: number;
+  min: number;
+  max: number;
+  mean: number;
+}
+
+export interface BloodTestDistribution {
+  key: string;
+  label: string;
+  unit: string;
+  ref_low: number | null;
+  ref_high: number | null;
+  ref_raw: string | null;
+  cancer: BloodBoxStats | null;
+  benign: BloodBoxStats | null;
+}
+
+export async function fetchAuditBloodSignalDistributions(): Promise<BloodTestDistribution[]> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal/distributions`);
+}
+
+export interface BloodRawValue {
+  id: string;
+  cohort_label: "cancer" | "benign";
+  cancer_type: string | null;
+  value: number;
+}
+
+export async function fetchAuditBloodSignalValues(testKey: string): Promise<BloodRawValue[]> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal/values?test_key=${encodeURIComponent(testKey)}`);
+}
+
+export interface HeatmapCell {
+  cancer_type: string;
+  test_key: string;
+  n_with_data: number;
+  n_total: number;
+  /** Standardised effect size vs benign median; null = no readings */
+  effect_size: number | null;
+  pct_high: number | null;
+  pct_low: number | null;
+  median_value: number | null;
+  benign_median: number;
+  ref_range_raw: string | null;
+}
+
+export interface PatientFlagRow {
+  label: string;
+  cancer_type: string;
+  episode_id: string;
+  /** Flag per test key: "high" | "low" | "normal" | "no_data" */
+  flags: Record<string, "high" | "low" | "normal" | "no_data">;
+  /** Raw per-patient mean value per test key; null = no reading */
+  values: Record<string, number | null>;
+}
+
+export interface BloodTestMeta {
+  key: string;
+  label: string;
+}
+
+export interface BloodCancerTypeMatrix {
+  cancer_types: string[];
+  tests: BloodTestMeta[];
+  heatmap_cells: HeatmapCell[];
+  patient_flags: PatientFlagRow[];
+}
+
+export async function fetchAuditBloodSignalCancerTypeMatrix(): Promise<BloodCancerTypeMatrix> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal/cancer-type-matrix`);
+}
+
 export async function batchAddConceptsToSubdomain(
   domainId: string,
   subdomainName: string,

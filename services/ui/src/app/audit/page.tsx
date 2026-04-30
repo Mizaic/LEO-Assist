@@ -304,6 +304,9 @@ export default function AuditPage() {
       const safetyNettingPct = snData != null && snData.total_episodes > 0
         ? snData.recorded_pct
         : null;
+      const multipleConsultationsPct = consultData != null && consultData.total_episodes > 0
+        ? consultData.three_or_more_pct
+        : null;
       const careObstructionPct = coData != null && coData.total_episodes > 0
         ? coData.recorded_pct
         : null;
@@ -315,7 +318,7 @@ export default function AuditPage() {
         diMedian:           intData?.di?.median ?? null,
         twwPct,
         emergencyPct,
-        multipleConsultationsPct: consultData?.three_or_more_pct ?? null,
+        multipleConsultationsPct,
         safetyNettingPct,
         avoidableDelayPct:  adData?.avoidable_delay_pct ?? null,
         careObstructionPct,

@@ -442,7 +442,7 @@ function getYearPointDirection(
 }
 
 function pointTrendLabel(point: { v: number | null; direction: Direction }, index: number): string {
-  if (point.v == null) return "No data";
+  if (point.v == null) return "";
   if (index === 0) return "Base";
   if (point.direction === "unknown") return "No trend";
   if (point.direction === "unchanged") return "Same";
@@ -757,7 +757,7 @@ function ScorecardCard({
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {hasValue ? fmtVal(point.v) : "No data"}
+                      {hasValue ? fmtVal(point.v) : ""}
                     </Typography>
                     <Typography
                       variant="caption"

@@ -1126,3 +1126,621 @@ def _q_avoidable_delays(base: str, params: dict, client: PatientGraphClient) -> 
             else None
         ),
     }
+
+
+# ---------------------------------------------------------------------------
+# Blood signal (GDS enrichment results)
+# ---------------------------------------------------------------------------
+
+_BLOOD_SIGNAL_FEATURE_KEYS: list[str] = [
+    "bf_lymphocyte_z",
+    "bf_nucleated_rbc_z",
+    "bf_neutrophil_pct_z",
+    "bf_mcv_z",
+    "bf_mch_z",
+    "bf_haemoglobin_z",
+    "bf_monocyte_z",
+    "bf_rbc_z",
+    "bf_platelet_z",
+    "bf_alp_z",
+    "bf_albumin_z",
+    "bf_bilirubin_z",
+    "bf_phosphate_z",
+    "bf_sodium_z",
+    "bf_total_protein_z",
+    "bf_calcium_z",
+    "bf_hba1c_z",
+    "bf_folate_z",
+    "bf_ldl_z",
+    "bf_hdl_z",
+    "bf_total_chol_z",
+]
+
+_BLOOD_SIGNAL_FEATURE_LABELS: dict[str, str] = {
+    "bf_lymphocyte_z":     "Lymphocyte",
+    "bf_nucleated_rbc_z":  "Nucleated RBC",
+    "bf_neutrophil_pct_z": "Neutrophil %",
+    "bf_mcv_z":            "MCV",
+    "bf_mch_z":            "MCH",
+    "bf_haemoglobin_z":    "Haemoglobin",
+    "bf_monocyte_z":       "Monocyte",
+    "bf_rbc_z":            "RBC",
+    "bf_platelet_z":       "Platelets",
+    "bf_alp_z":            "ALP",
+    "bf_albumin_z":        "Albumin",
+    "bf_bilirubin_z":      "Bilirubin",
+    "bf_phosphate_z":      "Phosphate",
+    "bf_sodium_z":         "Sodium",
+    "bf_total_protein_z":  "Total Protein",
+    "bf_calcium_z":        "Calcium",
+    "bf_hba1c_z":          "HbA1c",
+    "bf_folate_z":         "Folate",
+    "bf_ldl_z":            "LDL Chol",
+    "bf_hdl_z":            "HDL Chol",
+    "bf_total_chol_z":     "Total Chol",
+}
+
+_BLOOD_EPISODE_Q = """
+MATCH (ep:EpisodeOfCare)
+WHERE ep.bf_cohort_label IS NOT NULL
+RETURN ep.episode_id    AS episode_id,
+       ep.bf_cohort_label  AS cohort_label,
+       ep.bf_cancer_type   AS cancer_type,
+       ep.bf_cluster       AS cluster,
+       ep.bf_label         AS bf_label,
+       ep.bf_lymphocyte_z     AS bf_lymphocyte_z,
+       ep.bf_nucleated_rbc_z  AS bf_nucleated_rbc_z,
+       ep.bf_neutrophil_pct_z AS bf_neutrophil_pct_z,
+       ep.bf_mcv_z            AS bf_mcv_z,
+       ep.bf_mch_z            AS bf_mch_z,
+       ep.bf_haemoglobin_z    AS bf_haemoglobin_z,
+       ep.bf_monocyte_z       AS bf_monocyte_z,
+       ep.bf_rbc_z            AS bf_rbc_z,
+       ep.bf_platelet_z       AS bf_platelet_z,
+       ep.bf_alp_z            AS bf_alp_z,
+       ep.bf_albumin_z        AS bf_albumin_z,
+       ep.bf_bilirubin_z      AS bf_bilirubin_z,
+       ep.bf_phosphate_z      AS bf_phosphate_z,
+       ep.bf_sodium_z         AS bf_sodium_z,
+       ep.bf_total_protein_z  AS bf_total_protein_z,
+       ep.bf_calcium_z        AS bf_calcium_z,
+       ep.bf_hba1c_z          AS bf_hba1c_z,
+       ep.bf_folate_z         AS bf_folate_z,
+       ep.bf_ldl_z            AS bf_ldl_z,
+       ep.bf_hdl_z            AS bf_hdl_z,
+       ep.bf_total_chol_z     AS bf_total_chol_z
+ORDER BY ep.bf_cohort_label, ep.episode_id
+"""
+
+_BLOOD_PANEL_Q = """
+MATCH (bp:BloodPanel)
+WHERE bp.bf_cohort_label IS NOT NULL
+RETURN bp.patient_id    AS episode_id,
+       bp.bf_cohort_label  AS cohort_label,
+       null                AS cancer_type,
+       bp.bf_cluster       AS cluster,
+       bp.bf_label         AS bf_label,
+       bp.bf_lymphocyte_z     AS bf_lymphocyte_z,
+       bp.bf_nucleated_rbc_z  AS bf_nucleated_rbc_z,
+       bp.bf_neutrophil_pct_z AS bf_neutrophil_pct_z,
+       bp.bf_mcv_z            AS bf_mcv_z,
+       bp.bf_mch_z            AS bf_mch_z,
+       bp.bf_haemoglobin_z    AS bf_haemoglobin_z,
+       bp.bf_monocyte_z       AS bf_monocyte_z,
+       bp.bf_rbc_z            AS bf_rbc_z,
+       bp.bf_platelet_z       AS bf_platelet_z,
+       bp.bf_alp_z            AS bf_alp_z,
+       bp.bf_albumin_z        AS bf_albumin_z,
+       bp.bf_bilirubin_z      AS bf_bilirubin_z,
+       bp.bf_phosphate_z      AS bf_phosphate_z,
+       bp.bf_sodium_z         AS bf_sodium_z,
+       bp.bf_total_protein_z  AS bf_total_protein_z,
+       bp.bf_calcium_z        AS bf_calcium_z,
+       bp.bf_hba1c_z          AS bf_hba1c_z,
+       bp.bf_folate_z         AS bf_folate_z,
+       bp.bf_ldl_z            AS bf_ldl_z,
+       bp.bf_hdl_z            AS bf_hdl_z,
+       bp.bf_total_chol_z     AS bf_total_chol_z
+ORDER BY bp.patient_id
+"""
+
+_BLOOD_ANALYSIS_Q = """
+MATCH (ar:BloodSignalAnalysis {name: 'blood_signal_v1'})
+RETURN ar.feature_correlations_json AS correlations_json,
+       ar.updated_at AS updated_at
+"""
+
+
+_BLOOD_DIST_EP_Q = """
+MATCH (ep:EpisodeOfCare)
+WHERE ep.bf_cohort_label IS NOT NULL AND ep.bf_anchor_date IS NOT NULL
+MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
+MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE obs.name = $test_name
+  AND d.value IS NOT NULL AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
+  AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
+  AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
+WITH toFloat(toString(d.value)) AS v, d.referenceRange AS ref_range, d.unit AS unit,
+     ep.bf_cohort_label AS cohort
+WHERE v IS NOT NULL
+RETURN cohort,
+       percentileCont(v, 0.1)  AS p10,
+       percentileCont(v, 0.25) AS q1,
+       percentileCont(v, 0.5)  AS median,
+       percentileCont(v, 0.75) AS q3,
+       percentileCont(v, 0.9)  AS p90,
+       min(v) AS min_v, max(v) AS max_v,
+       avg(v) AS mean_v, count(v) AS n,
+       collect(DISTINCT ref_range)[0] AS ref_range,
+       collect(DISTINCT unit)[0] AS unit
+"""
+
+_BLOOD_DIST_BP_Q = """
+MATCH (bp:BloodPanel)
+WHERE bp.bf_anchor_date IS NOT NULL
+MATCH (p:Patient {id: bp.patient_id})-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE obs.name = $test_name
+  AND d.value IS NOT NULL AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
+  AND date(enc.date) >= date(bp.bf_anchor_date) - duration({years: 1})
+  AND date(enc.date) <= date(bp.bf_anchor_date) + duration({days: 28})
+WITH toFloat(toString(d.value)) AS v, d.referenceRange AS ref_range, d.unit AS unit
+WHERE v IS NOT NULL
+RETURN percentileCont(v, 0.1)  AS p10,
+       percentileCont(v, 0.25) AS q1,
+       percentileCont(v, 0.5)  AS median,
+       percentileCont(v, 0.75) AS q3,
+       percentileCont(v, 0.9)  AS p90,
+       min(v) AS min_v, max(v) AS max_v,
+       avg(v) AS mean_v, count(v) AS n,
+       collect(DISTINCT ref_range)[0] AS ref_range,
+       collect(DISTINCT unit)[0] AS unit
+"""
+
+# Fetch all raw values for a test (used for individual scatter dots in the UI)
+_BLOOD_VALUES_EP_Q = """
+MATCH (ep:EpisodeOfCare)
+WHERE ep.bf_cohort_label IS NOT NULL AND ep.bf_anchor_date IS NOT NULL
+MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
+MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE obs.name = $test_name
+  AND d.value IS NOT NULL AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
+  AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
+  AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
+WITH ep.episode_id AS id, ep.bf_cohort_label AS cohort,
+     ep.bf_cancer_type AS cancer_type, toFloat(toString(d.value)) AS v
+WHERE v IS NOT NULL
+RETURN id, cohort, cancer_type, avg(v) AS value
+"""
+
+_BLOOD_VALUES_BP_Q = """
+MATCH (bp:BloodPanel)
+WHERE bp.bf_anchor_date IS NOT NULL
+MATCH (p:Patient {id: bp.patient_id})-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE obs.name = $test_name
+  AND d.value IS NOT NULL AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
+  AND date(enc.date) >= date(bp.bf_anchor_date) - duration({years: 1})
+  AND date(enc.date) <= date(bp.bf_anchor_date) + duration({days: 28})
+WITH bp.patient_id AS id, 'benign' AS cohort, null AS cancer_type,
+     toFloat(toString(d.value)) AS v
+WHERE v IS NOT NULL
+RETURN id, cohort, cancer_type, avg(v) AS value
+"""
+
+
+import re as _re
+
+
+def _parse_ref_range(raw: str | None) -> tuple[float, float] | None:
+    if not raw:
+        return None
+    m = _re.search(r"([\d.]+)\s*[-\u2013to ]+\s*([\d.]+)", raw)
+    if m:
+        try:
+            return float(m.group(1)), float(m.group(2))
+        except ValueError:
+            return None
+    return None
+
+
+def _box_dict(row: dict) -> dict | None:
+    if not row or not row.get("n"):
+        return None
+    return {
+        "n":      int(row["n"]),
+        "p10":    round(float(row["p10"]), 3),
+        "q1":     round(float(row["q1"]), 3),
+        "median": round(float(row["median"]), 3),
+        "q3":     round(float(row["q3"]), 3),
+        "p90":    round(float(row["p90"]), 3),
+        "min":    round(float(row["min_v"]), 3),
+        "max":    round(float(row["max_v"]), 3),
+        "mean":   round(float(row["mean_v"]), 3),
+    }
+
+
+def _q_blood_signal_distributions(client: PatientGraphClient) -> list[dict]:
+    """Per-test box plot statistics for cancer vs benign, with NHS reference range."""
+    results: list[dict] = []
+    for prop_key in _BLOOD_SIGNAL_FEATURE_KEYS:
+        snomed_name = _SNOMED_NAME.get(prop_key, "")
+        if not snomed_name:
+            continue
+
+        ep_rows = {
+            r["cohort"]: r
+            for r in client.run(_BLOOD_DIST_EP_Q, test_name=snomed_name)
+        }
+        bp_row = (client.run(_BLOOD_DIST_BP_Q, test_name=snomed_name) or [None])[0]
+
+        cancer_row = ep_rows.get("cancer")
+        benign_ep  = ep_rows.get("benign")
+
+        # Merge benign episode + BloodPanel distributions via combined values
+        # (approximate: use whichever has more data, or use ep_row if no bp_row)
+        # For the reference range, try cancer row first then bp_row
+        ref_raw = (
+            (cancer_row or {}).get("ref_range")
+            or (bp_row or {}).get("ref_range")
+        )
+        unit = (
+            (cancer_row or {}).get("unit")
+            or (bp_row or {}).get("unit")
+            or ""
+        )
+        ref_range = _parse_ref_range(ref_raw)
+
+        # For benign, prefer BloodPanel (more patients) if both exist
+        benign_box = _box_dict(dict(bp_row) if bp_row else {}) or _box_dict(dict(benign_ep) if benign_ep else {})
+        cancer_box = _box_dict(dict(cancer_row) if cancer_row else {})
+
+        if not cancer_box and not benign_box:
+            continue
+
+        results.append({
+            "key":        prop_key,
+            "label":      _BLOOD_SIGNAL_FEATURE_LABELS[prop_key],
+            "unit":       unit,
+            "ref_low":    ref_range[0] if ref_range else None,
+            "ref_high":   ref_range[1] if ref_range else None,
+            "ref_raw":    ref_raw,
+            "cancer":     cancer_box,
+            "benign":     benign_box,
+        })
+
+    return results
+
+
+def _q_blood_signal_values(client: PatientGraphClient, prop_key: str) -> list[dict]:
+    """Raw per-patient mean values for one test — used for scatter dots."""
+    snomed_map = {
+        "bf_lymphocyte_z":     "Lymphocyte count",
+        "bf_nucleated_rbc_z":  "Nucleated red blood cell count",
+        "bf_neutrophil_pct_z": "Neutrophil percent count in blood",
+        "bf_mcv_z":            "Mean corpuscular volume",
+        "bf_mch_z":            "Mean corpuscular haemoglobin",
+        "bf_haemoglobin_z":    "Mass concentration of haemoglobin in blood (observable entity)",
+        "bf_monocyte_z":       "Monocyte count",
+        "bf_alp_z":            "Serum alkaline phosphatase placental enzyme level",
+        "bf_albumin_z":        "Serum albumin level",
+        "bf_hba1c_z":          "Haemoglobin A1c level (observable entity)",
+        "bf_folate_z":         "Serum folate level (observable entity)",
+        "bf_calcium_z":        "Serum calcium level (observable entity)",
+    }
+    test_name = snomed_map.get(prop_key, "")
+    if not test_name:
+        return []
+    ep_rows = client.run(_BLOOD_VALUES_EP_Q, test_name=test_name)
+    bp_rows = client.run(_BLOOD_VALUES_BP_Q, test_name=test_name)
+    all_rows = []
+    for r in ep_rows + bp_rows:
+        v = r.get("value")
+        if v is not None:
+            all_rows.append({
+                "id":          str(r["id"] or ""),
+                "cohort_label": str(r["cohort"] or "benign"),
+                "cancer_type":  str(r.get("cancer_type") or "") or None,
+                "value":        round(float(v), 3),
+            })
+    return all_rows
+
+
+_SNOMED_NAME: dict[str, str] = {
+    "bf_lymphocyte_z":     "Lymphocyte count",
+    "bf_nucleated_rbc_z":  "Nucleated red blood cell count",
+    "bf_neutrophil_pct_z": "Neutrophil percent count in blood",
+    "bf_mcv_z":            "Mean corpuscular volume",
+    "bf_mch_z":            "Mean corpuscular haemoglobin",
+    "bf_haemoglobin_z":    "Mass concentration of haemoglobin in blood (observable entity)",
+    "bf_monocyte_z":       "Monocyte count",
+    "bf_rbc_z":            "Red blood cell count",
+    "bf_platelet_z":       "Platelet count",
+    "bf_alp_z":            "Serum alkaline phosphatase placental enzyme level",
+    "bf_albumin_z":        "Serum albumin level",
+    "bf_bilirubin_z":      "Serum bilirubin level",
+    "bf_phosphate_z":      "Serum inorganic phosphate level",
+    "bf_sodium_z":         "Serum sodium level (observable entity)",
+    "bf_total_protein_z":  "Serum total protein",
+    "bf_calcium_z":        "Serum calcium level (observable entity)",
+    "bf_hba1c_z":          "Haemoglobin A1c level (observable entity)",
+    "bf_folate_z":         "Serum folate level (observable entity)",
+    "bf_ldl_z":            "Serum random low density lipoprotein cholesterol level",
+    "bf_hdl_z":            "Serum random high density lipoprotein cholesterol level (obs",
+    "bf_total_chol_z":     "Total cholesterol level (observable entity)",
+}
+
+# Per-patient mean value + reference range for one test, cancer episodes only.
+_CANCER_PATIENT_VALUES_Q = """
+MATCH (ep:EpisodeOfCare)
+WHERE ep.bf_cohort_label = 'cancer'
+  AND ep.bf_anchor_date IS NOT NULL
+WITH ep,
+     CASE WHEN toLower(ep.bf_cancer_type) = 'breast'
+          THEN 'Breast' ELSE ep.bf_cancer_type END AS cancer_type
+MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
+OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE obs.name = $test_name
+  AND d.value IS NOT NULL AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
+  AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
+  AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
+WITH ep.episode_id AS episode_id,
+     cancer_type,
+     avg(toFloat(toString(d.value))) AS mean_value,
+     collect(DISTINCT toString(d.referenceRange))[0] AS ref_range,
+     collect(DISTINCT toString(d.unit))[0] AS unit
+RETURN episode_id, cancer_type, mean_value, ref_range, unit
+ORDER BY cancer_type, episode_id
+"""
+
+# Benign aggregate per test (combined episodes + no-episode FTR patients).
+_BENIGN_AGG_Q = """
+MATCH (ep:EpisodeOfCare)
+WHERE ep.bf_cohort_label = 'benign'
+  AND ep.bf_anchor_date IS NOT NULL
+MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
+MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter)-[d:DOCUMENTS]->(obs:Observable_entity)
+WHERE obs.name = $test_name
+  AND d.value IS NOT NULL AND trim(toString(d.value)) <> ''
+  AND toFloat(toString(d.value)) IS NOT NULL
+  AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
+  AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
+WITH toFloat(toString(d.value)) AS v, d.referenceRange AS ref_range
+WHERE v IS NOT NULL
+WITH collect(v) AS ep_vals, collect(DISTINCT ref_range) AS refs
+
+// Also pull in BloodPanel (no-episode FTR patients)
+CALL {
+  MATCH (bp:BloodPanel)
+  WHERE bp.bf_anchor_date IS NOT NULL
+  MATCH (p2:Patient {id: bp.patient_id})-[:HAS_ENCOUNTER]->(enc2:Encounter)-[d2:DOCUMENTS]->(obs2:Observable_entity)
+  WHERE obs2.name = $test_name
+    AND d2.value IS NOT NULL AND trim(toString(d2.value)) <> ''
+    AND toFloat(toString(d2.value)) IS NOT NULL
+    AND date(enc2.date) >= date(bp.bf_anchor_date) - duration({years: 1})
+    AND date(enc2.date) <= date(bp.bf_anchor_date) + duration({days: 28})
+  WITH toFloat(toString(d2.value)) AS v2, d2.referenceRange AS ref2
+  WHERE v2 IS NOT NULL
+  RETURN collect(v2) AS bp_vals, collect(DISTINCT ref2) AS bp_refs
+}
+
+WITH ep_vals + bp_vals AS all_vals,
+     refs + bp_refs AS all_refs
+
+UNWIND all_vals AS v
+RETURN avg(v) AS mean_v,
+       stDev(v) AS std_v,
+       percentileCont(v, 0.5) AS median_v,
+       count(v) AS n,
+       all_refs[0] AS ref_range
+"""
+
+
+def _q_blood_cancer_type_matrix(client: "PatientGraphClient") -> dict:  # type: ignore[name-defined]
+    """
+    Returns the data needed for the By Cancer Type heatmap + patient flag matrix.
+
+    For every (cancer_type, test) pair:
+      heatmap_rows  — per-cancer-type aggregated effect size vs benign
+      patient_flags — per-episode flag (high / low / normal / no_data) for each test
+    """
+    # ------------------------------------------------------------------
+    # 1. Benign baseline stats per test
+    # ------------------------------------------------------------------
+    benign_stats: dict[str, dict] = {}
+    for key in _BLOOD_SIGNAL_FEATURE_KEYS:
+        test_name = _SNOMED_NAME.get(key, "")
+        if not test_name:
+            continue
+        rows = client.run(_BENIGN_AGG_Q, test_name=test_name)
+        if rows:
+            r = rows[0]
+            benign_stats[key] = {
+                "mean":   float(r["mean_v"] or 0),
+                "std":    float(r["std_v"] or 1),
+                "median": float(r["median_v"] or 0),
+                "n":      int(r["n"] or 0),
+                "ref_range": r.get("ref_range"),
+            }
+
+    # ------------------------------------------------------------------
+    # 2. Per-cancer-type, per-test: individual patient mean values
+    # ------------------------------------------------------------------
+    # Structure: {episode_id: {test_key: {value, ref_range, unit}}}
+    episode_data: dict[str, dict] = {}
+    # Structure: {episode_id: cancer_type}
+    episode_cancer_type: dict[str, str] = {}
+
+    for key in _BLOOD_SIGNAL_FEATURE_KEYS:
+        test_name = _SNOMED_NAME.get(key, "")
+        if not test_name:
+            continue
+        rows = client.run(_CANCER_PATIENT_VALUES_Q, test_name=test_name)
+        for r in rows:
+            eid = str(r["episode_id"] or "")
+            ct = str(r.get("cancer_type") or "Unknown")
+            episode_cancer_type[eid] = ct
+
+            if eid not in episode_data:
+                episode_data[eid] = {}
+
+            mv = r.get("mean_value")
+            episode_data[eid][key] = {
+                "value":     round(float(mv), 3) if mv is not None else None,
+                "ref_range": r.get("ref_range"),
+                "unit":      r.get("unit") or "",
+            }
+
+    # ------------------------------------------------------------------
+    # 3. Compute per-patient flags and per-cancer-type aggregates
+    # ------------------------------------------------------------------
+    # Group episodes by cancer type
+    by_ct: dict[str, list[str]] = {}
+    for eid, ct in episode_cancer_type.items():
+        by_ct.setdefault(ct, []).append(eid)
+
+    # For each cancer type sort episodes for stable ordering
+    for ct in by_ct:
+        by_ct[ct].sort()
+
+    # patient_flags: list of row dicts for the flag matrix
+    patient_flags: list[dict] = []
+    # heatmap_rows: list of {cancer_type, test_key, n, effect_size, pct_high, pct_low}
+    heatmap_cells: list[dict] = []
+
+    for ct in sorted(by_ct.keys()):
+        episodes = by_ct[ct]
+        # Counters per test for this cancer type
+        test_counts: dict[str, dict] = {
+            k: {"n": 0, "high": 0, "low": 0, "values": []}
+            for k in _BLOOD_SIGNAL_FEATURE_KEYS
+        }
+
+        for idx, eid in enumerate(episodes, start=1):
+            row_flags: dict[str, str] = {}
+            test_vals = episode_data.get(eid, {})
+
+            for key in _BLOOD_SIGNAL_FEATURE_KEYS:
+                td = test_vals.get(key, {})
+                value = td.get("value") if isinstance(td, dict) else None
+                ref_raw = td.get("ref_range") if isinstance(td, dict) else None
+                ref = _parse_ref_range(ref_raw)
+
+                if value is None:
+                    row_flags[key] = "no_data"
+                    continue
+
+                test_counts[key]["n"] += 1
+                test_counts[key]["values"].append(value)
+
+                if ref:
+                    if value > ref[1]:
+                        row_flags[key] = "high"
+                        test_counts[key]["high"] += 1
+                    elif value < ref[0]:
+                        row_flags[key] = "low"
+                        test_counts[key]["low"] += 1
+                    else:
+                        row_flags[key] = "normal"
+                else:
+                    row_flags[key] = "normal"
+
+            patient_flags.append({
+                "label":       f"{ct} {idx}",
+                "cancer_type": ct,
+                "episode_id":  eid,
+                "flags":       row_flags,
+                # also carry raw values for tooltip
+                "values":      {
+                    k: (episode_data.get(eid, {}).get(k, {}) or {}).get("value")
+                    for k in _BLOOD_SIGNAL_FEATURE_KEYS
+                },
+            })
+
+        # Heatmap cells for this cancer type
+        for key in _BLOOD_SIGNAL_FEATURE_KEYS:
+            tc = test_counts[key]
+            vals = tc["values"]
+            bs = benign_stats.get(key, {})
+            median_v = sorted(vals)[len(vals) // 2] if vals else None
+            benign_std = bs.get("std") or 1.0
+            benign_median = bs.get("median") or 0.0
+            effect = round((median_v - benign_median) / benign_std, 3) if median_v is not None else None
+            n_total = len(episodes)
+            heatmap_cells.append({
+                "cancer_type":  ct,
+                "test_key":     key,
+                "n_with_data":  tc["n"],
+                "n_total":      n_total,
+                "effect_size":  effect,
+                "pct_high":     round(tc["high"] / tc["n"] * 100, 1) if tc["n"] else None,
+                "pct_low":      round(tc["low"]  / tc["n"] * 100, 1) if tc["n"] else None,
+                "median_value": median_v,
+                "benign_median": round(benign_median, 3),
+                "ref_range_raw": benign_stats.get(key, {}).get("ref_range"),
+            })
+
+    # Ordered cancer types (by descending n_total)
+    cancer_types_ordered = sorted(
+        by_ct.keys(), key=lambda ct: -len(by_ct[ct])
+    )
+
+    tests_meta = [
+        {"key": k, "label": _BLOOD_SIGNAL_FEATURE_LABELS[k]}
+        for k in _BLOOD_SIGNAL_FEATURE_KEYS
+    ]
+
+    return {
+        "cancer_types":  cancer_types_ordered,
+        "tests":         tests_meta,
+        "heatmap_cells": heatmap_cells,
+        "patient_flags": patient_flags,
+    }
+
+
+def _q_blood_signal(client: PatientGraphClient) -> dict:
+    import json
+
+    def _row_to_dict(r: dict) -> dict:
+        features: dict[str, float | None] = {}
+        for k in _BLOOD_SIGNAL_FEATURE_KEYS:
+            v = r.get(k)
+            features[k] = float(v) if v is not None else None
+        return {
+            "id":          str(r.get("episode_id") or ""),
+            "cohort_label": str(r.get("cohort_label") or "benign"),
+            "cancer_type":  str(r.get("cancer_type") or "") or None,
+            "cluster":      int(r["cluster"]) if r.get("cluster") is not None else None,
+            "features":     features,
+        }
+
+    ep_rows = client.run(_BLOOD_EPISODE_Q)
+    bp_rows = client.run(_BLOOD_PANEL_Q)
+
+    all_rows = [_row_to_dict(dict(r)) for r in ep_rows + bp_rows]
+
+    correlations: dict[str, float] = {}
+    updated_at: str | None = None
+    analysis_rows = client.run(_BLOOD_ANALYSIS_Q)
+    if analysis_rows:
+        ar = analysis_rows[0]
+        if ar.get("correlations_json"):
+            correlations = json.loads(ar["correlations_json"])
+        updated_at = str(ar.get("updated_at") or "")
+
+    cancer_n = sum(1 for r in all_rows if r["cohort_label"] == "cancer")
+    benign_n = sum(1 for r in all_rows if r["cohort_label"] == "benign")
+
+    return {
+        "episodes":      all_rows,
+        "feature_keys":  _BLOOD_SIGNAL_FEATURE_KEYS,
+        "feature_labels": _BLOOD_SIGNAL_FEATURE_LABELS,
+        "correlations":  correlations,
+        "cancer_n":      cancer_n,
+        "benign_n":      benign_n,
+        "total_n":       len(all_rows),
+        "updated_at":    updated_at,
+    }
