@@ -23,10 +23,12 @@ import MuiTooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { useRouter } from "next/navigation";
 import { BENCHMARK_COLOURS } from "./BenchmarkLegend";
 
 export interface PatientInterval {
   episode_id: string;
+  patient_id?: string | null;
   cancer_type?: string | null;
   pci_days?: number | null;
   di_days?: number | null;
@@ -86,6 +88,8 @@ export default function IntervalStripPlot({
   chartHeight = 160,
   onZoom,
 }: IntervalStripPlotProps) {
+  const router = useRouter();
+
   const filtered = patients.filter(
     (p) =>
       p[intervalKey] != null &&
@@ -98,6 +102,7 @@ export default function IntervalStripPlot({
     y: jitter(i, filtered.length),
     cancer_type: p.cancer_type ?? "Unknown",
     episode_id: p.episode_id,
+    patient_id: p.patient_id,
     inferred: !!p.diag_is_inferred,
     is_benign: !!p.is_benign,
   }));
@@ -109,6 +114,11 @@ export default function IntervalStripPlot({
 
   const effectiveCancerMedian = cancerMedian ?? (cancerPoints.length > 0 ? median : null);
   const effectiveBenignMedian = showBenign ? benignMedian : null;
+
+  function handleDotClick(data: { payload?: ScatterPointPayload }) {
+    const pid = data?.payload?.patient_id;
+    if (pid) router.push(`/care/patients?patient_id=${encodeURIComponent(pid)}`);
+  }
 
   const tooltipContent = ({
     payload,
@@ -130,6 +140,11 @@ export default function IntervalStripPlot({
         {!isBenign && d?.inferred && (
           <div style={{ color: "#B45309", fontStyle: "italic", marginTop: 2 }}>
             ~ Inferred outcome — not a coded diagnosis
+          </div>
+        )}
+        {d?.patient_id && (
+          <div style={{ color: "#6B7280", marginTop: 4, fontSize: "0.72rem" }}>
+            Click to open patient record
           </div>
         )}
       </Box>
@@ -228,14 +243,32 @@ export default function IntervalStripPlot({
                 <ReferenceLine x={allianceMedian} stroke={BENCHMARK_COLOURS.similar} strokeWidth={1.5} strokeDasharray="4 2"
                   label={{ value: "Cancer Alliance", fill: BENCHMARK_COLOURS.similar, fontSize: 10, position: "insideTopLeft" }} />
               )}
-              <Scatter data={cancerPoints} fill={CANCER_DOT_COLOUR} fillOpacity={0.65} r={4} name="Cancer" />
-              {showBenign && <Scatter data={benignPoints} fill={BENIGN_DOT_COLOUR} fillOpacity={0.65} r={4} name="Benign/excluded" />}
+              <Scatter
+                data={cancerPoints}
+                fill={CANCER_DOT_COLOUR}
+                fillOpacity={0.65}
+                r={4}
+                name="Cancer"
+                style={{ cursor: "pointer" }}
+                onClick={handleDotClick}
+              />
+              {showBenign && (
+                <Scatter
+                  data={benignPoints}
+                  fill={BENIGN_DOT_COLOUR}
+                  fillOpacity={0.65}
+                  r={4}
+                  name="Benign/excluded"
+                  style={{ cursor: "pointer" }}
+                  onClick={handleDotClick}
+                />
+              )}
             </ScatterChart>
           </ResponsiveContainer>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "center", mt: 0.5 }}>
-            Each dot represents one referral. Red = cancer confirmed, green = benign/excluded. Dots further right = longer {label.toLowerCase()}.
+            Each dot represents one referral — click to open the patient record. Red = cancer confirmed, green = benign/excluded.
             {allPoints.length < patients.filter((p) => p[intervalKey] != null && (showBenign || !p.is_benign)).length && (
-              ` (Referrals beyond ${maxDays} days not shown.)`
+              ` Referrals beyond ${maxDays} days not shown.`
             )}
           </Typography>
         </Box>

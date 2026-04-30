@@ -141,7 +141,8 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
         "date(effective_diag_date)).days "
         "       ELSE null END AS raw_di_days "
         "RETURN "
-        "  ep.episode_id AS episode_id, ep.cancer_type AS cancer_type, "
+        "  ep.episode_id AS episode_id, ep.patient_id AS patient_id, "
+        "  ep.cancer_type AS cancer_type, "
         "  ep.status AS ep_status, ep.dx_outcome AS dx_outcome, "
         "  diag_is_inferred, "
         "  CASE WHEN raw_pci_days >= 0 THEN raw_pci_days ELSE null END AS pci_days, "
@@ -155,6 +156,7 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
     patients = [
         {
             "episode_id": r["episode_id"],
+            "patient_id": r.get("patient_id"),
             "cancer_type": normalise_cancer_type(r.get("cancer_type")),
             "pci_days": r.get("pci_days"),
             "di_days": r.get("di_days"),

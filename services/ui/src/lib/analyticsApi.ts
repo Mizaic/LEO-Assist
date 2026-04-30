@@ -1021,6 +1021,7 @@ export interface AuditNSSOutcomes {
 
 export interface AuditIntervalsPatient {
   episode_id: string;
+  patient_id?: string | null;
   cancer_type?: string | null;
   pci_days?: number | null;
   di_days?: number | null;

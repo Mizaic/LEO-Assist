@@ -103,33 +103,39 @@ export default function IntervalYearlyBarChart({
   unit = "days",
 }: Props) {
   const baselineDatum = yearData.find((d) => d.isBaseline);
-  const baselineMedian = baselineDatum?.cancerMedian ?? null;
+  // Only show baseline reference line when a meaningful benchmark value exists.
+  const baselineMedian =
+    baselineDatum?.cancerMedian != null && baselineDatum.cancerMedian > 0
+      ? baselineDatum.cancerMedian
+      : null;
+
+  // Exclude baseline from bar rendering — it goes in as a reference line only.
+  const liveBars = yearData.filter((d) => !d.isBaseline);
 
   const maxVal = Math.max(
-    ...yearData.flatMap((d) => [d.cancerMedian ?? 0, showBenign ? (d.benignMedian ?? 0) : 0]),
+    ...liveBars.flatMap((d) => [d.cancerMedian ?? 0, showBenign ? (d.benignMedian ?? 0) : 0]),
+    baselineMedian ?? 0,
     1,
   );
-  const yMax = Math.ceil((maxVal * 1.2) / 10) * 10;
+  // Add extra headroom and always at least 10 days so near-zero bars are still visible.
+  const yMax = Math.max(Math.ceil((maxVal * 1.3) / 10) * 10, 10);
 
   return (
     <Box>
       <ResponsiveContainer width="99%" height={180}>
         <BarChart
-          data={yearData}
-          barCategoryGap="30%"
-          barGap={3}
+          data={liveBars}
+          barCategoryGap="35%"
+          barGap={4}
           margin={{ top: 10, right: 16, left: 0, bottom: 4 }}
           onClick={(e) => {
-            if (e?.activeLabel && !yearData.find((d) => d.year === e.activeLabel)?.isBaseline) {
-              onSelectYear(e.activeLabel as string);
-            }
+            if (e?.activeLabel) onSelectYear(e.activeLabel as string);
           }}
         >
           <XAxis
             dataKey="year"
             tick={({ x, y, payload }) => {
               const isSelected = payload.value === selectedYear;
-              const isBl = yearData.find((d) => d.year === payload.value)?.isBaseline;
               return (
                 <text
                   x={x as number}
@@ -137,8 +143,8 @@ export default function IntervalYearlyBarChart({
                   textAnchor="middle"
                   fontSize={11}
                   fontWeight={isSelected ? 700 : 400}
-                  fill={isBl ? BASELINE_COLOUR : isSelected ? "#111827" : "#6B7280"}
-                  style={{ cursor: isBl ? "default" : "pointer" }}
+                  fill={isSelected ? "#111827" : "#6B7280"}
+                  style={{ cursor: "pointer" }}
                 >
                   {payload.value}
                 </text>
@@ -184,19 +190,21 @@ export default function IntervalYearlyBarChart({
               }}
             />
           )}
+          {/* Cancer confirmed — always rendered first so it appears in legend first */}
           <Bar
             dataKey="cancerMedian"
             name="Cancer confirmed"
             fill={CANCER_COLOUR}
             radius={[3, 3, 0, 0]}
             isAnimationActive={false}
+            minPointSize={3}
           >
-            {yearData.map((entry) => (
+            {liveBars.map((entry) => (
               <Cell
                 key={entry.year}
-                fill={entry.isBaseline ? BASELINE_COLOUR : CANCER_COLOUR}
-                fillOpacity={entry.year === selectedYear ? 1 : 0.6}
-                cursor={entry.isBaseline ? "default" : "pointer"}
+                fill={CANCER_COLOUR}
+                fillOpacity={entry.year === selectedYear ? 1 : 0.55}
+                cursor="pointer"
               />
             ))}
           </Bar>
@@ -207,13 +215,14 @@ export default function IntervalYearlyBarChart({
               fill={BENIGN_COLOUR}
               radius={[3, 3, 0, 0]}
               isAnimationActive={false}
+              minPointSize={3}
             >
-              {yearData.map((entry) => (
+              {liveBars.map((entry) => (
                 <Cell
                   key={entry.year}
                   fill={BENIGN_COLOUR}
-                  fillOpacity={entry.year === selectedYear ? 1 : 0.6}
-                  cursor={entry.isBaseline ? "default" : "pointer"}
+                  fillOpacity={entry.year === selectedYear ? 1 : 0.55}
+                  cursor="pointer"
                 />
               ))}
             </Bar>
@@ -221,7 +230,7 @@ export default function IntervalYearlyBarChart({
         </BarChart>
       </ResponsiveContainer>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "center", mt: 0 }}>
-        Click a year to see individual referrals below.
+        Bars show median days. Click a year to see individual referrals below.
       </Typography>
     </Box>
   );

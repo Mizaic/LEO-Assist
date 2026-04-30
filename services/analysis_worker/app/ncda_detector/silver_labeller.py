@@ -224,9 +224,40 @@ _EMIS_NEW_EPISODE = re.compile(r"\(New Episode\)", re.IGNORECASE)
 # existing-condition qualifier, the encounter is a monitoring/follow-up visit for
 # a known diagnosis — not a new NCDA Dx event.  This guard prevents "BG of
 # lymphoma" or "known carcinoma" in a routine GP note from misfiring as dx.
+#
+# Also catches POST-EVENT narrative recaps where the GP describes a treatment
+# that has already happened ("recently was in hospital for hemicolectomy due
+# to malignant tumour of colon", "post-op for prostate ca", "underwent WLE
+# for melanoma").  These phrases unambiguously imply the cancer is already
+# established; the labeller must not promote them to dx/cancer_found.  We are
+# careful NOT to match bare temporal adverbs like "recently" because they can
+# legitimately co-occur with a new dx (e.g. "recently diagnosed with...").
 _EXISTING_CONDITION_PREFIX = re.compile(
+    r"(?:"
+    # Single-keyword qualifiers (matched then \s+ optional "of ").
     r"\b(?:b/g|bg|background|known|history|hx|previous|prior|existing"
-    r"|established|longstanding|chronic|ongoing)\s+(?:of\s+)?",
+    r"|established|longstanding|chronic|ongoing)\s+(?:of\s+)?"
+    r"|"
+    # Post-event recap qualifiers: surgery / treatment that already happened.
+    r"\bdue\s+to\s+"                                # "due to malignant tumour"
+    r"|\btreated\s+for\s+"                          # "treated for malignant"
+    r"|\bpost[-\s]?op(?:erative)?\s+(?:for\s+)?"    # "post-op for", "post-operative"
+    r"|\bunder(?:went|going)\s+\S+(?:\s+\S+){0,4}\s+(?:for|to)\s+"  # "underwent WLE for"
+    r"|\bafter\s+(?:surgery|operation|treatment|chemo(?:therapy)?"
+    r"|radio(?:therapy)?|hemicolectomy|mastectomy|lumpectomy|prostatectomy"
+    r"|hysterectomy|nephrectomy|cystectomy|lobectomy|pancreatectomy"
+    r"|gastrectomy|excision|resection|biopsy)\s+(?:for\s+)?"        # "after surgery for"
+    r"|\bfollowing\s+(?:surgery|operation|treatment|chemo(?:therapy)?"
+    r"|radio(?:therapy)?|hemicolectomy|mastectomy|lumpectomy|prostatectomy"
+    r"|hysterectomy|nephrectomy|cystectomy|lobectomy|pancreatectomy"
+    r"|gastrectomy|excision|resection|biopsy)\s+(?:for\s+)?"        # "following surgery for"
+    r"|\bhad\s+(?:a\s+|an\s+|the\s+)?(?:hemi)?(?:colectomy|mastectomy"
+    r"|lumpectomy|prostatectomy|hysterectomy|nephrectomy|cystectomy"
+    r"|lobectomy|pancreatectomy|gastrectomy|excision|resection|biopsy)"
+    r"\s+(?:for\s+)?"                                                # "had a mastectomy for"
+    r"|\bin\s+hospital\s+for\s+\S+(?:\s+\S+){0,4}\s+(?:due\s+to|for|after)\s+"
+                                                                     # "in hospital for X due to / for / after"
+    r")",
     re.IGNORECASE,
 )
 _CANCELLED_REFERRAL = re.compile(

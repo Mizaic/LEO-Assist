@@ -162,11 +162,23 @@ READ_CODE_TO_NCDA_ROLE: dict[str, tuple[NcdaRole, DxOutcome | None]] = {
     "Xa7va": ("dx", "cancer_excluded"),  # Reassurance given - no malignancy
     # -- Treatment ----------------------------------------------------------
     "X40EC": ("treatment", None),  # Chemotherapy started
-    "XaXfG": ("treatment", None),  # First cycle chemotherapy
+    # XaXfG and XaIg6 were previously listed here as treatment.  In the live
+    # corpus they appear overwhelmingly in non-cancer admin/templates:
+    #   XaXfG = "Medication reconciliation" (pharmacist drug-review activity,
+    #           fires on BP / eczema / Parkinson's reviews, not chemotherapy)
+    #   XaIg6 = "Comment note" (generic admin comment box, fires on phone
+    #           messages, e-mails, NEWS2 triage, district-nurse status updates)
+    # Mapping them to treatment created phantom treatment_started anchors that
+    # in turn caused the simple linker to spawn duplicate cohort-1a episodes
+    # when paired with any nearby cancer-mention encounter.  See agent
+    # transcript debugging session for patient 6243439488.  Treatment for
+    # cancer drugs (Letrozole, Tamoxifen, etc.) is still picked up via the
+    # bare-drug-token check on TREATMENT_DRUG_TOKENS, so genuine endocrine and
+    # chemo encounters remain detected.  They are now classified as 'none'
+    # (see the none section below) so the labeller short-circuits cleanly.
     "XaZ08": ("treatment", None),  # Hormone therapy started
     "XaF83": ("treatment", None),  # Surgery for cancer
     "7H601": ("treatment", None),  # Radical prostatectomy procedure
-    "XaIg6": ("treatment", None),  # Cancer surgery performed
     "XaLQR": ("treatment", None),  # Radiotherapy started
     "Xa8SI": ("treatment", None),  # Targeted therapy started
     "XaBtn": ("treatment", None),  # Immunotherapy commenced
@@ -198,6 +210,11 @@ READ_CODE_TO_NCDA_ROLE: dict[str, tuple[NcdaRole, DxOutcome | None]] = {
     "X76sV": ("none", None),  # Clinical history and observations
     "XaIVg": ("none", None),  # Refer for cancer specialist opinion (too generic - fires on phone consults)
     "XaBzA": ("none", None),  # Refer for cancer suspected (too generic - fires on consultations)
+    # Generic admin-template codes — present in the vast majority of clinical
+    # encounters and must NOT trigger any NCDA role.
+    "XaIg6": ("none", None),  # Comment note — generic admin comment box (phone messages, e-mails, status updates)
+    "XaXfG": ("none", None),  # Medication reconciliation — pharmacist drug-review activity, NOT chemotherapy
+    "XaIg4": ("none", None),  # Administration note — generic admin entry
     "XaMiI": ("none", None),  # Short message service (SMS) text sent - admin
     "9159.": ("none", None),  # Patient telephone number - admin
     "9N31.": ("none", None),  # Telephone encounter type - admin

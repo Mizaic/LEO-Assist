@@ -7,6 +7,7 @@
 # nested source folders like libs/training/ or
 # services/ui/src/app/api/training/.
 /training/
+data/cancer_cohort
 
 # Training run checkpoints: large spaCy weights — never commit. README.txt in that
 # dir is tracked; everything else is ignored.

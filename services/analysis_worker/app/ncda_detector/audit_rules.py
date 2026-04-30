@@ -26,17 +26,26 @@ from libs.domains.read_code_ncda_lookup import (
 _READ_CODE_RE = re.compile(r"\(([A-Za-z0-9.]+)\)")
 
 # Plain-text patterns supporting each role when no curated Read code is present.
+#
+# Screening programme pathways — equivalent to GP 2WW for NCDA purposes.
+# NOTE: "NHS Breast Screening" alone is too broad — it also appears on
+# NORMAL mammogram letters.  Breast screening FTRs are instead detected
+# via Read code 68621 (Breast neoplasm screening abnormal) in the lookup.
+#
+# An earlier version included the bare phrase "Bowel Cancer Screening" here on
+# the assumption it only appeared on positive-FIT referrals.  In practice that
+# phrase is a generic admin string used for every routine screening invitation
+# routed through the GP, including post-treatment surveillance for already-
+# diagnosed bowel-cancer patients.  This created phantom FTR anchors that
+# spawned duplicate cohort-1a episodes after the real diagnosis (see patient
+# 6243439488).  Genuine positive-screen referrals are still captured via:
+#   - Read code (XaPVj) "Bowel cancer screening FOBT positive result letter"
+#     (in libs/domains/read_code_ncda_lookup.py)
+#   - The explicit "FIT Positive" / "FOBT Abnormal" phrases below.
 _FTR_PHRASES = re.compile(
     r"\b(2WW|2 ?week ?wait|fast.track|FTS|USC|urgent suspected cancer"
     r"|PRISM 2WW|fast.?track referral|two.?week.?wait"
-    # Screening programme pathways — equivalent to GP 2WW for NCDA purposes.
-    # NOTE: "NHS Breast Screening" alone is too broad — it also appears on
-    # NORMAL mammogram letters.  Breast screening FTRs are instead detected
-    # via Read code 68621 (Breast neoplasm screening abnormal) in the lookup.
-    # Bowel Cancer Screening letters to the GP practice are a specific enough
-    # phrase that they only appear when the screening programme has referred
-    # the patient (i.e. positive FIT → colonoscopy referral).
-    r"|Bowel Cancer Screening|FOBT Abnormal|FIT Positive)\b",
+    r"|FOBT Abnormal|FIT Positive)\b",
     re.IGNORECASE,
 )
 _SEEN_PHRASES = re.compile(
