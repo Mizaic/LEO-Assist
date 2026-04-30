@@ -75,6 +75,8 @@ from ._audit_sections import (
     _q_place,
     _q_referrals,
     _q_safety_netting,
+    _q_care_obstructions,
+    _q_prior_consultations,
 )
 
 router = APIRouter()
@@ -83,6 +85,19 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
+
+
+def _screening_programme_place_where(alias: str = "ep") -> str:
+    place_expr = (
+        "CASE "
+        f"  WHEN trim(coalesce(toString({alias}.place_of_presentation), '')) <> '' "
+        f"THEN trim(toString({alias}.place_of_presentation)) "
+        f"  WHEN trim(coalesce(toString({alias}.place_of_presetnation), '')) <> '' "
+        f"THEN trim(toString({alias}.place_of_presetnation)) "
+        "  ELSE '' "
+        "END"
+    )
+    return f"(toLower({place_expr}) CONTAINS 'screening')"
 
 
 @router.get("/audit/summary")
@@ -179,6 +194,20 @@ def audit_summary(
             "RETURN count(DISTINCT ep) AS n",
             **params,
         )
+        confirmed_screening_rows = client.run(
+            f"{base}"
+            f"AND {confirmed_cancer_where('ep')} "
+            f"AND {_screening_programme_place_where('ep')} "
+            "RETURN count(DISTINCT ep) AS n",
+            **params,
+        )
+        via_2ww_excluding_screening_rows = client.run(
+            f"{base}"
+            f"AND {suspected_cancer_referral_where('ep')} "
+            f"AND NOT {_screening_programme_place_where('ep')} "
+            "RETURN count(DISTINCT ep) AS n",
+            **params,
+        )
 
         # Safety-netting Section 8 breakdown.  Denominator is the
         # canonical confirmed-cancer cohort (so the rate is comparable
@@ -204,6 +233,100 @@ def audit_summary(
             key = str(row.get("signal") or "none")
             if key in sn_signal_counts:
                 sn_signal_counts[key] += int(row.get("n") or 0)
+
+        # Care-obstruction breakdown.  Same denominator as safety
+        # netting (canonical confirmed-cancer cohort) so the rate is
+        # directly comparable in the audit report and the dashboard.
+        # Numerators are layered by signal severity AND pathway-
+        # relatedness so the dashboard can render the strict default
+        # ("recorded" = pathway-related obstruction of any severity)
+        # and surface the confirmed / filtered-as-unrelated numbers
+        # via tooltip and the breakdown dialog.  See
+        # libs/oncology/care_obstruction.py for the signal hierarchy
+        # and the relatedness classifier.
+        co_breakdown_rows = client.run(
+            f"{base}"
+            f"AND {confirmed_cancer_where('ep')} "
+            "RETURN coalesce(ep.care_obstruction_signal, 'none') AS signal, "
+            "       count(DISTINCT ep) AS n",
+            **params,
+        )
+        co_signal_counts: dict[str, int] = {
+            "rejection": 0,
+            "dna": 0,
+            "cancellation": 0,
+            "access_barrier": 0,
+            "none": 0,
+        }
+        for row in co_breakdown_rows or []:
+            key = str(row.get("signal") or "none")
+            if key in co_signal_counts:
+                co_signal_counts[key] += int(row.get("n") or 0)
+
+        # Pathway-relatedness sums — one extra round-trip but keeps
+        # the breakdown query above unchanged for stability.
+        co_relatedness_rows = client.run(
+            f"{base}"
+            f"AND {confirmed_cancer_where('ep')} "
+            "RETURN sum(coalesce(ep.care_obstruction_confirmed_n, 0)) "
+            "         AS confirmed_events, "
+            "       sum(coalesce(ep.care_obstruction_unrelated_filtered_n, 0)) "
+            "         AS unrelated_filtered_events, "
+            "       sum(CASE WHEN coalesce(ep.care_obstruction_confirmed_n, 0) > 0 "
+            "                THEN 1 ELSE 0 END) "
+            "         AS confirmed_episodes",
+            **params,
+        )
+        co_relatedness = (
+            co_relatedness_rows[0] if co_relatedness_rows else {}
+        )
+        co_confirmed_n = int(co_relatedness.get("confirmed_episodes") or 0)
+        co_confirmed_events = int(
+            co_relatedness.get("confirmed_events") or 0
+        )
+        co_unrelated_filtered_events = int(
+            co_relatedness.get("unrelated_filtered_events") or 0
+        )
+
+        # Prior cancer-related consultations (NCDA Section 7).  Mirrors
+        # the care-obstruction headline computation above so the
+        # snapshot-tile contract is the same:  a denominator of the
+        # confirmed-cancer cohort, an ``_n`` count of episodes with
+        # 2+ cancer-related consultations in the year before the FTR,
+        # and a ``_pct`` derived from the two.  Backed by the
+        # ``ep.prior_consultations_*`` properties stamped by the
+        # Haiku enrichment pass -- see
+        # ``libs/oncology/prior_consultations`` and
+        # ``scripts/ncda/run_prior_consultations_enrichment.py``.
+        pc_summary_rows = client.run(
+            f"{base}"
+            f"AND {confirmed_cancer_where('ep')} "
+            "RETURN "
+            "  count(DISTINCT ep) AS denom, "
+            "  sum(CASE WHEN ep.prior_consultations_n IS NOT NULL "
+            "       THEN 1 ELSE 0 END) AS enriched, "
+            "  sum(CASE WHEN ep.prior_consultations_n >= 2 "
+            "       THEN 1 ELSE 0 END) AS multi_n, "
+            "  sum(coalesce(ep.prior_consultations_n, 0)) "
+            "    AS total_consultations, "
+            "  sum(coalesce(ep.prior_consultations_llm_cost_usd, 0.0)) "
+            "    AS llm_cost_usd",
+            **params,
+        )
+        pc_summary = pc_summary_rows[0] if pc_summary_rows else {}
+        pc_denom = int(pc_summary.get("denom") or 0)
+        pc_enriched_n = int(pc_summary.get("enriched") or 0)
+        pc_multi_n = int(pc_summary.get("multi_n") or 0)
+        pc_total_consultations = int(pc_summary.get("total_consultations") or 0)
+        pc_mean_per_episode = (
+            round(pc_total_consultations / pc_enriched_n, 2)
+            if pc_enriched_n
+            else None
+        )
+        pc_pct = (
+            round(pc_multi_n * 100.0 / pc_denom, 1) if pc_denom else None
+        )
+        pc_llm_cost_usd = round(float(pc_summary.get("llm_cost_usd") or 0.0), 4)
 
         # NCDA cohort breakdown: 1a (FTR + cancer found), 1b (FTR + benign),
         # 3 (cancer found, no FTR).  Derived dynamically from milestone checks
@@ -330,6 +453,27 @@ def audit_summary(
         confirmed_via_2ww_pct = (
             round(confirmed_via_2ww * 100.0 / confirmed, 1) if confirmed else None
         )
+        confirmed_screening = (
+            int((confirmed_screening_rows[0] or {}).get("n") or 0)
+            if confirmed_screening_rows
+            else 0
+        )
+        confirmed_excluding_screening = max(0, confirmed - confirmed_screening)
+        confirmed_via_2ww_excluding_screening = (
+            int((via_2ww_excluding_screening_rows[0] or {}).get("n") or 0)
+            if via_2ww_excluding_screening_rows
+            else 0
+        )
+        confirmed_via_2ww_excluding_screening_pct = (
+            round(
+                confirmed_via_2ww_excluding_screening
+                * 100.0
+                / confirmed_excluding_screening,
+                1,
+            )
+            if confirmed_excluding_screening
+            else None
+        )
 
         pci_vals = sorted(
             v
@@ -375,6 +519,29 @@ def audit_summary(
             round(sn_strong_n * 100.0 / sn_denom, 1) if sn_denom else None
         )
 
+        # Care-obstruction summary.  Headline rate is "any non-none
+        # signal recorded" (rejection + dna + cancellation +
+        # access_barrier).  Severe-only rate counts rejection + dna
+        # only — the events that hard-stop the workup, used by the
+        # tile's secondary subtext.
+        co_denom = sum(co_signal_counts.values())
+        co_recorded_n = (
+            co_signal_counts["rejection"]
+            + co_signal_counts["dna"]
+            + co_signal_counts["cancellation"]
+            + co_signal_counts["access_barrier"]
+        )
+        co_severe_n = co_signal_counts["rejection"] + co_signal_counts["dna"]
+        co_recorded_pct = (
+            round(co_recorded_n * 100.0 / co_denom, 1) if co_denom else None
+        )
+        co_severe_pct = (
+            round(co_severe_n * 100.0 / co_denom, 1) if co_denom else None
+        )
+        co_confirmed_pct = (
+            round(co_confirmed_n * 100.0 / co_denom, 1) if co_denom else None
+        )
+
         return {
             "total_episodes": total,
             "active_episodes": active,
@@ -402,6 +569,10 @@ def audit_summary(
             "confirmed_cancers": confirmed,
             "confirmed_cancers_via_2ww": confirmed_via_2ww,
             "confirmed_cancers_via_2ww_pct": confirmed_via_2ww_pct,
+            "confirmed_cancers_screening_programme": confirmed_screening,
+            "confirmed_cancers_excluding_screening": confirmed_excluding_screening,
+            "confirmed_cancers_via_2ww_excluding_screening": confirmed_via_2ww_excluding_screening,
+            "confirmed_cancers_via_2ww_excluding_screening_pct": confirmed_via_2ww_excluding_screening_pct,
             "median_pci_days": (round(_median(pci_vals), 1) if pci_vals else None),
             "median_di_days": (round(_median(di_vals), 1) if di_vals else None),
             "avg_consultations": (
@@ -429,6 +600,51 @@ def audit_summary(
             "safety_netting_legacy_pct": (
                 round(sn_count * 100.0 / total, 1) if total else None
             ),
+            # Care-obstruction headline: rate of confirmed-cancer
+            # episodes where the milestone window contains a rejected
+            # referral (XaQgL), DNA (XacSG/XaF81/Xa1kG), cancellation
+            # or softer access barrier.  Same denominator as
+            # safety-netting so the two NCDA Section-9-equivalents
+            # are comparable.  See libs/oncology/care_obstruction.py
+            # for the signal hierarchy.
+            "care_obstruction_pct": co_recorded_pct,
+            "care_obstruction_recorded_n": co_recorded_n,
+            "care_obstruction_severe_pct": co_severe_pct,
+            "care_obstruction_severe_n": co_severe_n,
+            "care_obstruction_signal_counts": co_signal_counts,
+            "care_obstruction_denominator": co_denom,
+            # Pathway-relatedness telemetry — see
+            # libs/oncology/care_obstruction.py for the classifier.
+            # ``confirmed_n`` = episodes where AT LEAST ONE
+            # obstruction came with explicit cancer-pathway markers
+            # (2WW, FTR, oncology, site-specific specialty).
+            # ``unrelated_filtered_events`` = number of encounter
+            # rows that tripped an obstruction phrase but were
+            # filtered as clearly non-cancer (midwife, district
+            # nurse, phlebotomy, UTC, cardiac/pulmonary rehab,
+            # smoking cessation, etc.) and so are NOT in the
+            # headline.  Surfaced for the tooltip + dialog footer
+            # so the auditor knows how aggressive the filter is.
+            "care_obstruction_confirmed_n": co_confirmed_n,
+            "care_obstruction_confirmed_pct": co_confirmed_pct,
+            "care_obstruction_confirmed_events": co_confirmed_events,
+            "care_obstruction_unrelated_filtered_events":
+                co_unrelated_filtered_events,
+            # Prior cancer-related consultations headline (NCDA Section
+            # 7).  ``prior_consultations_pct`` is the % of confirmed-
+            # cancer episodes with 2+ cancer-related consultations in
+            # the year before the FTR.  Same denominator as
+            # care_obstruction_pct so the two NCDA Section-equivalent
+            # tiles are directly comparable.  Backed by the Haiku
+            # enrichment pass -- see
+            # libs/oncology/prior_consultations.py.
+            "prior_consultations_pct": pc_pct,
+            "prior_consultations_n": pc_multi_n,
+            "prior_consultations_denominator": pc_denom,
+            "prior_consultations_enriched_n": pc_enriched_n,
+            "prior_consultations_total_consultations": pc_total_consultations,
+            "prior_consultations_mean_per_episode": pc_mean_per_episode,
+            "prior_consultations_llm_cost_usd": pc_llm_cost_usd,
         }
     finally:
         client.close()
@@ -721,6 +937,76 @@ def audit_safety_netting(
             date_to,
             benchmark_set_id,
             "safety_netting",
+            client,
+        )
+    finally:
+        client.close()
+
+
+@router.get("/audit/care-obstructions")
+def audit_care_obstructions(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None),
+    date_to: Optional[str] = Query(default=None),
+    benchmark_set_id: Optional[str] = Query(default=None),
+):
+    """Care-obstruction rates per cohort + signal-severity breakdown.
+
+    Returns the rate of confirmed-cancer episodes whose milestone
+    window contains a rejected referral, DNA, cancellation or other
+    access barrier (per ``libs/oncology/care_obstruction``).  Multi-
+    scope envelope; consumed by the ``CareObstructionsSection`` tile +
+    EvolutionDetailDialog on the audit dashboard.
+    """
+    client = PatientGraphClient()
+    try:
+        return _run_multi_scope(
+            _q_care_obstructions,
+            org_id,
+            scope,
+            date_from,
+            date_to,
+            benchmark_set_id,
+            "care_obstruction",
+            client,
+        )
+    finally:
+        client.close()
+
+
+@router.get("/audit/prior-consultations")
+def audit_prior_consultations(
+    scope: CallerScope = Depends(get_caller_scope),
+    org_id: Optional[str] = Query(default=None),
+    date_from: Optional[str] = Query(default=None),
+    date_to: Optional[str] = Query(default=None),
+    benchmark_set_id: Optional[str] = Query(default=None),
+):
+    """NCDA Section 7 — prior cancer-related consultations + factors.
+
+    Returns the % of confirmed-cancer episodes with multiple
+    consultations (>=2) for cancer-related symptoms in the year before
+    the FTR, plus the distribution of consultation counts and the
+    top-N NCDA "multiple consultations" factor codes proposed by the
+    LLM enrichment pass (Claude Haiku 4.5).  Multi-scope envelope;
+    consumed by the ``PriorConsultationsSection`` tile +
+    EvolutionDetailDialog on the audit dashboard.
+
+    Backed by ``ep.prior_consultations_*`` properties stamped onto
+    each EpisodeOfCare by
+    ``scripts/ncda/run_prior_consultations_enrichment.py``.
+    """
+    client = PatientGraphClient()
+    try:
+        return _run_multi_scope(
+            _q_prior_consultations,
+            org_id,
+            scope,
+            date_from,
+            date_to,
+            benchmark_set_id,
+            "prior_consultations",
             client,
         )
     finally:

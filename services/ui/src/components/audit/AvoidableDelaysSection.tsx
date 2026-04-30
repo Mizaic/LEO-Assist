@@ -167,6 +167,7 @@ export default function AvoidableDelaysSection({
       description="Cases where the GP (family doctor), looking back, felt that diagnosis could have happened sooner. Each card covers a Jan-Dec calendar year and counts episodes by year of diagnosis or benign closure. This section needs GPs to fill in a form -- it is not calculated automatically."
       availability="manual_entry"
       loading={loading}
+      loadingSkeletonVariant="cardGrid"
       error={error}
     >
       {dataNotCaptured && (

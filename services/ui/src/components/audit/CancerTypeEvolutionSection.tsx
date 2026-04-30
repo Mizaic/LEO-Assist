@@ -323,6 +323,7 @@ export default function CancerTypeEvolutionSection({
       description="How the practice's confirmed-cancer case mix has evolved against the 2018 NCDA baseline. Each card covers a calendar year (Jan-Dec). All radar cards use the same shared percentage scale, and the 2018 polygon is faded onto each live-year card so the reference shape is always visible."
       availability="ready"
       loading={loading}
+      loadingSkeletonVariant="radarGrid"
       error={error}
     >
       {!baselineHasData && yearStates.every((y) => !y.rows || y.rows.length === 0) ? (

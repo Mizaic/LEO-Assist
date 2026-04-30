@@ -540,6 +540,7 @@ export default function SymptomsSection({
       description="How often each symptom led to a real cancer. We look at the symptoms patients had in the week before or after their referral. For each symptom, we count how many of those patients turned out to have cancer."
       availability="ready"
       loading={parentLoading || loading}
+      loadingSkeletonVariant="cardGrid"
       error={parentError || error}
     >
       {!loading && data ? (

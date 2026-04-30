@@ -5,7 +5,7 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2E8544FD")
  *
  * Shared hook for the /care/audit "year-on-year evolution" section
- * pattern: render four cards (2018 baseline + currentYear-2 / -1 /
+ * pattern: render four cards (2019 benchmark + currentYear-2 / -1 /
  * current) and have each card show the same metric scoped to its
  * Jan-Dec calendar window.
  *
@@ -15,7 +15,7 @@
  * -- so each card on the report consumes the same denominator
  * for the same year.
  *
- * The 2018 baseline values are NOT fetched here; they come from the
+ * The 2019 benchmark values are NOT fetched here; they come from the
  * `result.benchmark` envelope on the page-level prop and are rendered
  * by each section using its own benchmark accessor.
  */
@@ -70,7 +70,7 @@ function calendarYearWindow(year: number): { from: string; to: string } {
  * Fetch the same audit section endpoint for the previous two complete
  * calendar years and the current calendar year-to-date (UTC).
  *
- * The 2018 baseline card sits alongside these live years on every
+ * The 2019 benchmark card sits alongside these live years on every
  * evolution section but is rendered separately (from the page-level
  * `result.benchmark` prop) -- this hook only owns the *live* fetches.
  */
@@ -158,4 +158,4 @@ export function useAuditYearWindows<T>(
   };
 }
 
-export const BASELINE_YEAR = 2018;
+export const BASELINE_YEAR = 2019;

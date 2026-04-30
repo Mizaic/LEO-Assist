@@ -208,6 +208,7 @@ export default function FastTrackReferralEvolutionSection({
         description="Distribution of fast-track (2WW) referral tumour sites. Each card covers a calendar year. NSS = Non-Site-Specific symptoms pathway."
         availability="ready"
         loading={loading}
+        loadingSkeletonVariant="pieGrid"
         error={error}
       >
         {allYearsEmpty ? (

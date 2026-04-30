@@ -21,6 +21,7 @@ import IntervalCompositeBoxScatterPlot, {
   type IntervalCompositeStats,
   type IntervalCompositeYearDatum,
 } from "./IntervalCompositeBoxScatterPlot";
+import AuditChartSkeleton from "./AuditChartSkeleton";
 import { useAuditYearWindows, BASELINE_YEAR } from "./_useAuditYearWindows";
 
 type IntervalFamily = "pci" | "di";
@@ -105,13 +106,7 @@ export default function IntervalEvolutionPanel({
       )}
 
       {anyLoading ? (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ py: 3, textAlign: "center" }}
-        >
-          Loading yearly referrals...
-        </Typography>
+        <AuditChartSkeleton variant="boxScatter" height={320} label={`Loading yearly ${label} chart`} />
       ) : (
         <IntervalCompositeBoxScatterPlot
           yearData={compositeData}

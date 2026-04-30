@@ -381,7 +381,13 @@ _SITE_TOKENS: dict[str, tuple[str, ...]] = {
     "urological": ("prostate", "psa", "urology", "urological", "bladder", "haematuria",
                     "kidney", "renal", "nephrectomy"),
     "breast": ("breast", "mammogram", "mammography"),
-    "lung": ("lung", "chest x-ray", "cxr", "thoracic", "respiratory"),
+    # NB: bare "thorax" intentionally NOT here — it appears in melanoma /
+    # colorectal staging CTs ("CT Neck thorax abdomen and pelvis") and would
+    # mis-route those to lung.  We instead match the qualified forms
+    # "ct thorax" / "ct chest" plus "bronchoscop" / "respiratory".  See
+    # patient 7324271383 (right-thigh melanoma with CT staging).
+    "lung": ("lung", "chest x-ray", "cxr", "thoracic", "ct thorax", "ct chest",
+              "respiratory", "bronchoscop"),
     "lower_gi": ("lower gi", "colorectal", "bowel", "rectal", "colon", "fit positive",
                   "caecum", "cecum", "rectum", "anal canal", "ileum"),
     "upper_gi": ("upper gi", "oesophag", "stomach", "gastric", "dysphagia"),

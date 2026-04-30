@@ -367,6 +367,7 @@ export default function SafetyNettingSection({
       description="Whether a follow-up plan (safety netting) was written in the clinical record at any point during the patient's diagnostic journey. Safety netting means agreeing what to do if symptoms do not improve. Each card covers a Jan-Dec calendar year and counts episodes by year of diagnosis or benign closure."
       availability="pipeline_pending"
       loading={loading}
+      loadingSkeletonVariant="cardGrid"
       error={error}
     >
       {dataNotCaptured && (

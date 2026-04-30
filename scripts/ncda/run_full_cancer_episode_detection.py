@@ -56,7 +56,19 @@ from libs.oncology.first_presentation import (  # noqa: E402
     build_fp_cypher_filter,
     resolve_symptom_site,
 )
+from libs.llm_client.usage_recorder import LLMUsageRecorder  # noqa: E402
+from libs.llm_usage import LLMCostConfig  # noqa: E402
+from libs.oncology.prior_consultations import (  # noqa: E402
+    NCDA_FACTOR_LABELS,
+    classify_episode_consultations,
+)
+
+# Cost-per-million-token table for the Haiku tier we run the
+# prior-consultations enrichment against.  Pinned at module-load so
+# the AuditEvent ``llm_cost_usd`` field is consistent across runs.
+_PRIOR_CONSULTATIONS_COST = LLMCostConfig.for_tier("small")
 from libs.oncology.safety_netting import detect_safety_netting  # noqa: E402
+from libs.oncology.care_obstruction import detect_care_obstructions  # noqa: E402
 from libs.oncology.staging_extractor import extract_staging  # noqa: E402
 from services.analysis_worker.app.ncda_detector.route_classifier import (  # noqa: E402
     classify_diagnosis_route,
@@ -953,6 +965,7 @@ def write_episodes_to_graph(
     *,
     backup_dir: Path,
     dry_run: bool = True,
+    enrich_prior_consultations: bool = True,
 ) -> dict[str, Any]:
     """Persist episode_candidates as EpisodeOfCare nodes in Neo4j.
 
@@ -1266,6 +1279,374 @@ def write_episodes_to_graph(
                     rows=sn_updates,
                 )
 
+            # Care-obstruction enrichment pass — populates the audit
+            # dashboard's "Care obstructions" tile.  Scans every encounter
+            # in a referral-anchored window for rejected referrals
+            # (XaQgL), DNAs (XacSG / XaF81 / Xa1kG + the EMIS encounter
+            # ``flags = "DNA"`` marker), cancellations and softer access
+            # barriers.  See libs/oncology/care_obstruction.py for the
+            # full signal hierarchy.
+            #
+            # Window definition (referral-anchored, NOT
+            # earliest-milestone anchored — that would let pre-pathway
+            # admin noise from another condition leak in):
+            #
+            #   end   = last milestone + 14d  (catches the immediate
+            #           post-diagnosis follow-up)
+            #
+            #   start =
+            #     if a referral_date exists:
+            #         min(first_presentation_date, referral_date - 30d)
+            #         -- anchor 30 days before the referral, BUT extend
+            #         back to first presentation when there is one, so
+            #         obstructions in the GP→referral interval (PCI)
+            #         are captured.
+            #     else (cohort 3 — no FTR ever sent):
+            #         earliest milestone - 30d
+            #         -- fallback to the old window so cohort-3
+            #         pathways still get a scan.
+            #
+            # Runs against ALL EpisodeOfCare nodes (detector + reviewed)
+            # so the dashboard tile uses the same denominator as
+            # /audit/summary's confirmed-cancer count.
+            co_enrichment_rows = session.run(
+                """
+                MATCH (ep:EpisodeOfCare)
+                WHERE NOT ep.status IN
+                    ['merged','closed_phantom','closed_related']
+                OPTIONAL MATCH (mE:Encounter)-[mR:IS_PART_OF]->(ep)
+                  WHERE mR.milestone_type IN
+                    ['referral','diagnosis','diagnosis_confirmed',
+                     'seen','treatment']
+                WITH ep,
+                     min(toString(mE.date)) AS first_d,
+                     max(toString(mE.date)) AS last_d
+                WHERE first_d IS NOT NULL
+                WITH ep, first_d, last_d,
+                     CASE
+                       WHEN ep.referral_date IS NOT NULL
+                            AND trim(toString(ep.referral_date)) <> ''
+                       THEN
+                         CASE
+                           WHEN ep.first_presentation_date IS NOT NULL
+                                AND trim(toString(ep.first_presentation_date)) <> ''
+                                AND date(toString(ep.first_presentation_date))
+                                    < date(toString(ep.referral_date))
+                                        - duration({days: 30})
+                           THEN date(toString(ep.first_presentation_date))
+                           ELSE date(toString(ep.referral_date))
+                                - duration({days: 30})
+                         END
+                       ELSE date(first_d) - duration({days: 30})
+                     END AS window_start,
+                     date(last_d) + duration({days: 14}) AS window_end
+                MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
+                MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter)
+                WHERE date(toString(e.date)) >= window_start
+                  AND date(toString(e.date)) <= window_end
+                WITH ep.episode_id AS eid,
+                     ep.cancer_type AS cancer_type,
+                     collect({
+                       text: coalesce(e.text, ''),
+                       flags: coalesce(e.flags, '')
+                     }) AS events
+                RETURN eid, cancer_type, events
+                """
+            )
+            co_updates = []
+            for row in co_enrichment_rows:
+                events = [
+                    (ev.get("text") or "", ev.get("flags") or "")
+                    for ev in (row["events"] or [])
+                ]
+                # Pass cancer_type so site-specific specialty markers
+                # (e.g. dermatology for melanoma, urology for prostate)
+                # promote relevant obstructions to "confirmed" instead
+                # of leaving them in the noisier "possible" bucket.
+                match = detect_care_obstructions(
+                    events, cancer_type=row.get("cancer_type")
+                )
+                co_updates.append(
+                    {
+                        "eid": row["eid"],
+                        "recorded": match.recorded,
+                        "signal": match.signal,
+                        "evidence_count": match.evidence_count,
+                        "confirmed_n": match.confirmed_count,
+                        "unrelated_filtered_n": match.unrelated_filtered_count,
+                        "rejection_n": match.type_counts.get("rejection", 0),
+                        "dna_n": match.type_counts.get("dna", 0),
+                        "cancellation_n": match.type_counts.get("cancellation", 0),
+                        "access_barrier_n": match.type_counts.get("access_barrier", 0),
+                        "codes": list(match.codes),
+                        "phrases": list(match.phrases),
+                    }
+                )
+            if co_updates:
+                session.run(
+                    """
+                    UNWIND $rows AS row
+                    MATCH (ep:EpisodeOfCare {episode_id: row.eid})
+                    SET ep.care_obstruction_recorded       = row.recorded,
+                        ep.care_obstruction_signal         = row.signal,
+                        ep.care_obstruction_evidence_count = row.evidence_count,
+                        ep.care_obstruction_confirmed_n    = row.confirmed_n,
+                        ep.care_obstruction_unrelated_filtered_n
+                                                           = row.unrelated_filtered_n,
+                        ep.care_obstruction_rejection_n    = row.rejection_n,
+                        ep.care_obstruction_dna_n          = row.dna_n,
+                        ep.care_obstruction_cancellation_n = row.cancellation_n,
+                        ep.care_obstruction_access_barrier_n = row.access_barrier_n,
+                        ep.care_obstruction_codes          = row.codes,
+                        ep.care_obstruction_phrases        = row.phrases
+                    """,
+                    rows=co_updates,
+                )
+
+            # Prior cancer-related consultations + NCDA "multiple
+            # consultations" factor enrichment pass.  Costs Bedrock
+            # tokens; gated by the --skip-prior-consultations CLI
+            # flag so a fast no-LLM apply remains possible.
+            if not enrich_prior_consultations:
+                pc_updates = []
+                pc_telemetry = []
+                pc_skipped = 0
+                pc_enrichment_rows = []  # type: ignore[assignment]
+                # Skip the rest of the LLM pass.
+                return {
+                    "mode": "write_back_applied",
+                    "written": written,
+                    "skipped_reviewed": skipped_reviewed,
+                    "patient_count": len(patient_ids),
+                    "backup_path": str(backup_path),
+                    "safety_netting_enriched": len(sn_updates),
+                    "care_obstruction_enriched": len(co_updates),
+                    "prior_consultations_enriched": 0,
+                    "prior_consultations_skipped":  0,
+                    "prior_consultations_total_cost_usd": 0.0,
+                    "prior_consultations_total_input_tokens": 0,
+                    "prior_consultations_total_output_tokens": 0,
+                }
+
+            # Implements Section 7 of the NCDA primary-care pro forma:
+            #
+            #   "The number of consultations for cancer-related
+            #    symptoms up to one year before the referral that led
+            #    directly to the cancer diagnosis."
+            #
+            # Window definition:  [referral_date - 365d, referral_date]
+            # falling back to [end_date - 365d, end_date] for cohort-3
+            # episodes that never reached an FTR.  365d matches the
+            # NCDA pro forma wording exactly.
+            #
+            # Pipeline (per episode):
+            #   1. Pull every encounter in the window (text + flags).
+            #   2. Deterministic pre-filter
+            #      (libs.oncology.prior_consultations.is_clinical_contact)
+            #      drops admin / SMS / repeat-script / vaccine
+            #      invitation / unrelated-lab noise -- typically ~70%
+            #      of raw rows -- so we don't pay tokens for them.
+            #   3. Survivors are tagged with their contact_type
+            #      (f2f / phone / nurse / email / specialist_clinic /
+            #      home_visit / phlebotomy / result_review).
+            #   4. The candidates are sent to Claude Haiku 4.5 (the
+            #      Bedrock "small" tier) for cancer-relatedness review
+            #      and NCDA factor identification.  The call is wrapped
+            #      in LLMUsageRecorder so cost telemetry flows through
+            #      to the dashboard.
+            #   5. Per-bucket counts, the verdict list, the proposed
+            #      NCDA factors, and the LLM telemetry block are
+            #      persisted on EpisodeOfCare.  An AuditEvent
+            #      {type:'PipelineRun', event_type:
+            #      'ncda_prior_consultations'} captures the cost +
+            #      latency for billing.
+            pc_enrichment_rows = list(
+                session.run(
+                    """
+                    MATCH (ep:EpisodeOfCare)
+                    WHERE NOT ep.status IN
+                        ['merged','closed_phantom','closed_related']
+                    OPTIONAL MATCH (mE:Encounter)-[mR:IS_PART_OF]->(ep)
+                      WHERE mR.milestone_type IN
+                        ['referral','diagnosis','diagnosis_confirmed',
+                         'seen','treatment']
+                    WITH ep,
+                         min(toString(mE.date)) AS first_d,
+                         max(toString(mE.date)) AS last_d
+                    WHERE first_d IS NOT NULL
+                    WITH ep, first_d, last_d,
+                         CASE
+                           WHEN ep.referral_date IS NOT NULL
+                                AND trim(toString(ep.referral_date)) <> ''
+                           THEN date(toString(ep.referral_date))
+                           ELSE date(last_d)
+                         END AS window_end
+                    WITH ep, window_end,
+                         window_end - duration({days: 365}) AS window_start
+                    MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
+                    MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter)
+                    WHERE date(toString(e.date)) >= window_start
+                      AND date(toString(e.date)) <= window_end
+                    WITH ep.episode_id              AS eid,
+                         ep.patient_id              AS patient_id,
+                         ep.cancer_type             AS cancer_type,
+                         ep.first_presentation_date AS fp_date,
+                         ep.referral_date           AS referral_date,
+                         collect({
+                             encounter_id: e.id,
+                             date:         toString(e.date),
+                             text:         coalesce(e.text, ''),
+                             flags:        coalesce(e.flags, '')
+                         }) AS encounters
+                    RETURN eid, patient_id, cancer_type, fp_date,
+                           referral_date, encounters
+                    """
+                )
+            )
+            pc_updates: list[dict[str, Any]] = []
+            pc_telemetry: list[dict[str, Any]] = []
+            pc_skipped = 0
+            for row in pc_enrichment_rows:
+                eid = row["eid"]
+                patient_id = str(row["patient_id"] or "")
+                encounters_raw = row["encounters"] or []
+                if not encounters_raw:
+                    pc_skipped += 1
+                    continue
+                # Wrap each episode's LLM call in its own recorder so
+                # the cost is attributed to that specific AuditEvent.
+                with LLMUsageRecorder() as rec:
+                    result = classify_episode_consultations(
+                        cancer_type=str(row["cancer_type"] or ""),
+                        first_presentation_date=str(row["fp_date"] or ""),
+                        referral_date=str(row["referral_date"] or ""),
+                        encounters=encounters_raw,
+                        patient_id=patient_id,
+                    )
+                    usage = rec.to_audit_dict(_PRIOR_CONSULTATIONS_COST)
+
+                verdicts_payload = [
+                    {
+                        "encounter_id": v.encounter_id,
+                        "date":         v.date,
+                        "related":      v.related,
+                        "contact_type": v.contact_type,
+                        "evidence":     v.evidence,
+                    }
+                    for v in result.verdicts
+                ]
+                factors_payload = [
+                    {
+                        "factor": f.factor,
+                        "label":  NCDA_FACTOR_LABELS.get(f.factor, f.factor),
+                        "evidence_encounter_ids": list(f.evidence_encounter_ids),
+                        "rationale": f.rationale,
+                    }
+                    for f in result.factors
+                ]
+                pc_updates.append(
+                    {
+                        "eid":              eid,
+                        "patient_id":       patient_id,
+                        "consultations_n":  result.consultations_n,
+                        "f2f_n":            result.f2f_n,
+                        "phone_n":          result.phone_n,
+                        "nurse_n":          result.nurse_n,
+                        "email_n":          result.email_n,
+                        "specialist_clinic_n": result.specialist_clinic_n,
+                        "home_visit_n":     result.home_visit_n,
+                        "phlebotomy_n":     result.phlebotomy_n,
+                        "result_review_n":  result.result_review_n,
+                        "unrelated_filtered_n": result.unrelated_filtered_n,
+                        "factor_codes":     [f.factor for f in result.factors],
+                        "evidence_json":    json.dumps(verdicts_payload),
+                        "factors_json":     json.dumps(factors_payload),
+                        "notes":            result.notes,
+                        "window_days":      365,
+                        "llm_calls":        usage["llm_calls"],
+                        "llm_input_tokens": usage["input_tokens"],
+                        "llm_output_tokens":usage["output_tokens"],
+                        "llm_cached_tokens":usage["cached_input_tokens"],
+                        "llm_total_tokens": usage["total_tokens"],
+                        "llm_cost_usd":     usage["cost_usd"],
+                        "llm_latency_ms":   usage["total_latency_ms"],
+                        "llm_model_id":     usage["model_name"],
+                        "llm_model_provider": usage["model_provider"],
+                        "llm_usage_json":   json.dumps(usage),
+                    }
+                )
+                pc_telemetry.append(
+                    {
+                        "patient_id": patient_id,
+                        "eid":        eid,
+                        "usage":      usage,
+                    }
+                )
+            if pc_updates:
+                session.run(
+                    """
+                    UNWIND $rows AS row
+                    MATCH (ep:EpisodeOfCare {episode_id: row.eid})
+                    SET ep.prior_consultations_n               = row.consultations_n,
+                        ep.prior_consultations_window_days     = row.window_days,
+                        ep.prior_consultations_f2f_n           = row.f2f_n,
+                        ep.prior_consultations_phone_n         = row.phone_n,
+                        ep.prior_consultations_nurse_n         = row.nurse_n,
+                        ep.prior_consultations_email_n         = row.email_n,
+                        ep.prior_consultations_specialist_clinic_n
+                                                               = row.specialist_clinic_n,
+                        ep.prior_consultations_home_visit_n    = row.home_visit_n,
+                        ep.prior_consultations_phlebotomy_n    = row.phlebotomy_n,
+                        ep.prior_consultations_result_review_n = row.result_review_n,
+                        ep.prior_consultations_unrelated_filtered_n
+                                                               = row.unrelated_filtered_n,
+                        ep.prior_consultations_evidence_json   = row.evidence_json,
+                        ep.multiple_consultations_factors_auto = row.factor_codes,
+                        ep.multiple_consultations_factors_evidence_json
+                                                               = row.factors_json,
+                        ep.prior_consultations_notes           = row.notes,
+                        ep.prior_consultations_llm_input_tokens  = row.llm_input_tokens,
+                        ep.prior_consultations_llm_output_tokens = row.llm_output_tokens,
+                        ep.prior_consultations_llm_cached_tokens = row.llm_cached_tokens,
+                        ep.prior_consultations_llm_total_tokens  = row.llm_total_tokens,
+                        ep.prior_consultations_llm_calls         = row.llm_calls,
+                        ep.prior_consultations_llm_cost_usd      = row.llm_cost_usd,
+                        ep.prior_consultations_llm_latency_ms    = row.llm_latency_ms,
+                        ep.prior_consultations_llm_model_id      = row.llm_model_id,
+                        ep.prior_consultations_llm_model_provider= row.llm_model_provider,
+                        ep.prior_consultations_llm_usage_json    = row.llm_usage_json,
+                        ep.prior_consultations_updated_at        = datetime()
+                    """,
+                    rows=pc_updates,
+                )
+                session.run(
+                    """
+                    UNWIND $rows AS row
+                    MATCH (p:Patient)
+                    WHERE coalesce(toString(p.id), toString(p.patient_id)) = row.patient_id
+                    MERGE (ae:AuditEvent {
+                        type:        'PipelineRun',
+                        event_type:  'ncda_prior_consultations',
+                        episode_id:  row.eid
+                    })
+                    SET ae.created_at         = datetime(),
+                        ae.consultations_n    = row.consultations_n,
+                        ae.window_days        = row.window_days,
+                        ae.factor_codes       = row.factor_codes,
+                        ae.llm_calls          = row.llm_calls,
+                        ae.llm_input_tokens   = row.llm_input_tokens,
+                        ae.llm_output_tokens  = row.llm_output_tokens,
+                        ae.llm_cached_tokens  = row.llm_cached_tokens,
+                        ae.llm_total_tokens   = row.llm_total_tokens,
+                        ae.llm_cost_usd       = row.llm_cost_usd,
+                        ae.llm_latency_ms     = row.llm_latency_ms,
+                        ae.llm_model_id       = row.llm_model_id,
+                        ae.llm_model_provider = row.llm_model_provider
+                    MERGE (p)-[:HAS_AUDIT_EVENT]->(ae)
+                    """,
+                    rows=pc_updates,
+                )
+
         return {
             "mode": "write_back_applied",
             "written": written,
@@ -1273,6 +1654,18 @@ def write_episodes_to_graph(
             "patient_count": len(patient_ids),
             "backup_path": str(backup_path),
             "safety_netting_enriched": len(sn_updates),
+            "care_obstruction_enriched": len(co_updates),
+            "prior_consultations_enriched": len(pc_updates),
+            "prior_consultations_skipped":  pc_skipped,
+            "prior_consultations_total_cost_usd": round(
+                sum(t["usage"]["cost_usd"] for t in pc_telemetry), 6
+            ),
+            "prior_consultations_total_input_tokens": sum(
+                t["usage"]["input_tokens"] for t in pc_telemetry
+            ),
+            "prior_consultations_total_output_tokens": sum(
+                t["usage"]["output_tokens"] for t in pc_telemetry
+            ),
         }
     finally:
         driver.close()
@@ -1285,6 +1678,7 @@ def run_full_dry_run(
     window_days: int,
     output_dir: Path,
     apply: bool = False,
+    enrich_prior_consultations: bool = True,
 ) -> dict[str, Any]:
     driver = _connect()
     try:
@@ -1424,6 +1818,7 @@ def run_full_dry_run(
             episode_candidates,
             backup_dir=backup_dir,
             dry_run=False,
+            enrich_prior_consultations=enrich_prior_consultations,
         )
         result["write_back"] = wb_result
 
@@ -1451,6 +1846,17 @@ def main(argv: list[str] | None = None) -> int:
             "Existing 'reviewed' episodes are always preserved."
         ),
     )
+    parser.add_argument(
+        "--skip-prior-consultations",
+        action="store_true",
+        default=False,
+        help=(
+            "Skip the prior-consultations LLM enrichment pass (Section 7 "
+            "of the NCDA pro forma).  Use when iterating on the deterministic "
+            "passes to avoid Bedrock token spend; the cohort needs ~$0.05 of "
+            "Haiku per full apply when this is left enabled."
+        ),
+    )
     args = parser.parse_args(argv)
 
     result = run_full_dry_run(
@@ -1459,6 +1865,7 @@ def main(argv: list[str] | None = None) -> int:
         window_days=args.window,
         output_dir=args.output_dir,
         apply=args.apply,
+        enrich_prior_consultations=not args.skip_prior_consultations,
     )
     summary = result["summary"]
 
@@ -1469,6 +1876,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  Reviewed episodes skipped : {wb.get('skipped_reviewed', 0)}")
         print(f"  Patients affected         : {wb.get('patient_count', '?')}")
         print(f"  Pre-apply backup          : {wb.get('backup_path', '?')}")
+        print(f"  Safety-netting enriched   : {wb.get('safety_netting_enriched', 0)}")
+        print(f"  Care-obstruction enriched : {wb.get('care_obstruction_enriched', 0)}")
+        print(f"  Prior-consultations LLM   : {wb.get('prior_consultations_enriched', 0)}")
+        print(
+            "  Prior-consultations cost  : "
+            f"${wb.get('prior_consultations_total_cost_usd', 0.0):.4f} "
+            f"({wb.get('prior_consultations_total_input_tokens', 0)} in / "
+            f"{wb.get('prior_consultations_total_output_tokens', 0)} out tokens)"
+        )
     else:
         print("Full NCDA dry run complete (no graph writes). Use --apply to write.")
 

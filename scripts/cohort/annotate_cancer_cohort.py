@@ -113,6 +113,17 @@ def dry_run_annotate(encounter_row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _cost_usd(input_tokens: int, output_tokens: int, cache_tokens: int = 0) -> float:
+    """Calculate cost using Haiku 4.5 EU cross-region rates ($1.10/$5.50 per MTok)."""
+    from libs.llm_usage import LLMCostConfig, LLMUsage
+    cfg = LLMCostConfig.for_tier("small")
+    return LLMUsage(
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cached_input_tokens=cache_tokens,
+    ).cost_usd(cfg)
+
+
 def build_run_summary(
     results_by_patient: dict[str, list[dict[str, Any]]],
     elapsed_s: float,
@@ -162,6 +173,8 @@ def build_run_summary(
         else 0.0
     )
 
+    cost = _cost_usd(total_in_tok, total_out_tok, total_cache_tok)
+
     return {
         "generated_at":        datetime.now().strftime("%Y%m%dT%H%M%SZ"),
         "dry_run":             dry_run,
@@ -178,6 +191,7 @@ def build_run_summary(
             "input_tokens":     total_in_tok,
             "output_tokens":    total_out_tok,
             "cache_read_tokens": total_cache_tok,
+            "cost_usd":         round(cost, 4),
         },
         "verbatim_drop_rate":  verbatim_drop_rate,
         "encounter_class_counts": dict(class_counts),
@@ -197,6 +211,21 @@ def annotate_patient(
     total_patients: int,
 ) -> list[dict[str, Any]]:
     pid = patient_file.stem[1:]  # strip leading 'p'
+
+    out_path = output_dir / f"p{pid}.jsonl"
+    if out_path.exists():
+        with lock:
+            progress["done"] += 1
+            done = progress["done"]
+        logger.info("[%d/%d] p%s already done — skipping", done, total_patients, pid)
+        existing = []
+        with out_path.open() as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    existing.append(json.loads(line))
+        return existing
+
     rows = load_patient_encounters(patient_file)
     if not rows:
         return []
@@ -220,22 +249,40 @@ def annotate_patient(
             row["annotation"] = result.to_dict()
             annotated_rows.append(row)
 
-    out_path = output_dir / f"p{pid}.jsonl"
     with out_path.open("w") as f:
         for row in annotated_rows:
             f.write(json.dumps(row, ensure_ascii=True) + "\n")
-
-    with lock:
-        progress["done"] += 1
-        done = progress["done"]
 
     enc_count  = len(annotated_rows)
     ent_count  = sum(len((r.get("annotation") or {}).get("entities") or []) for r in annotated_rows)
     llm_calls  = sum((r.get("annotation") or {}).get("llm_calls") or 0 for r in annotated_rows)
     err_count  = sum(len((r.get("annotation") or {}).get("errors") or []) for r in annotated_rows)
+    in_tok     = sum((r.get("annotation") or {}).get("total_input_tokens") or 0 for r in annotated_rows)
+    out_tok    = sum((r.get("annotation") or {}).get("total_output_tokens") or 0 for r in annotated_rows)
+    cache_tok  = sum((r.get("annotation") or {}).get("total_cache_read_tokens") or 0 for r in annotated_rows)
+    pat_cost   = _cost_usd(in_tok, out_tok, cache_tok)
+
+    with lock:
+        progress["done"]          += 1
+        progress["run_in_tok"]    += in_tok
+        progress["run_out_tok"]   += out_tok
+        progress["run_cache_tok"] += cache_tok
+        done          = progress["done"]
+        run_in_tok    = progress["run_in_tok"]
+        run_out_tok   = progress["run_out_tok"]
+        run_cache_tok = progress["run_cache_tok"]
+
+    run_cost = _cost_usd(run_in_tok, run_out_tok, run_cache_tok)
     logger.info(
-        "[%d/%d] p%s -> %d encs, %d entities, %d llm_calls, %d errors",
+        "[%d/%d] p%s -> %d encs, %d entities, %d llm_calls, %d errors, "
+        "%dk in / %dk out tokens, $%.4f",
         done, total_patients, pid, enc_count, ent_count, llm_calls, err_count,
+        in_tok // 1000, out_tok // 1000, pat_cost,
+    )
+    logger.info(
+        "  TOTAL [%d/%d patients]  in: %dk  out: %dk  cache: %dk  running cost: $%.4f",
+        done, total_patients,
+        run_in_tok // 1000, run_out_tok // 1000, run_cache_tok // 1000, run_cost,
     )
     return annotated_rows
 
@@ -289,7 +336,9 @@ def main() -> int:
 
     started = datetime.now()
     lock: threading.Lock = threading.Lock()
-    progress: dict[str, int] = {"done": 0}
+    progress: dict[str, int] = {
+        "done": 0, "run_in_tok": 0, "run_out_tok": 0, "run_cache_tok": 0,
+    }
     results_by_patient: dict[str, list[dict[str, Any]]] = {}
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -326,6 +375,15 @@ def main() -> int:
         totals["relations"], totals["qa_drops"],
         summary["verbatim_drop_rate"] * 100,
         totals["llm_calls"], elapsed_s,
+    )
+    logger.info(
+        "LLM usage  -> input: %dk tokens  output: %dk tokens  "
+        "cache_read: %dk tokens  total_cost: $%.4f  "
+        "(Haiku 4.5 EU: $1.10/MTok in, $5.50/MTok out)",
+        totals["input_tokens"] // 1000,
+        totals["output_tokens"] // 1000,
+        totals["cache_read_tokens"] // 1000,
+        totals["cost_usd"],
     )
     try:
         summary_rel = summary_path.relative_to(ROOT)

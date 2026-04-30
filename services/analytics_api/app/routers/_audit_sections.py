@@ -822,6 +822,256 @@ def _q_safety_netting(base: str, params: dict, client: PatientGraphClient) -> di
     }
 
 
+def _q_care_obstructions(
+    base: str, params: dict, client: PatientGraphClient
+) -> dict:
+    """Care-obstruction per-year breakdown.
+
+    Mirrors the safety-netting helper shape so the front-end can reuse
+    the same EvolutionYearCard / EvolutionDetailDialog rendering.
+    Returns the headline 'recorded' rate (any non-none signal) plus the
+    full signal-severity breakdown stamped onto each episode by
+    ``libs/oncology/care_obstruction.detect_care_obstructions``.
+    The /care/audit Care Obstructions section reads this to render the
+    'Open detail' dialog (signal-severity bar chart) -- see
+    CareObstructionsSection.tsx.
+    """
+    rows = client.run(
+        f"{base}"
+        "RETURN "
+        "  count(DISTINCT ep) AS total_episodes, "
+        "  sum(CASE WHEN ep.care_obstruction_recorded = true "
+        "THEN 1 ELSE 0 END) AS recorded, "
+        "  sum(CASE WHEN ep.care_obstruction_signal = 'rejection' "
+        "THEN 1 ELSE 0 END) AS rejection_n, "
+        "  sum(CASE WHEN ep.care_obstruction_signal = 'dna' "
+        "THEN 1 ELSE 0 END) AS dna_n, "
+        "  sum(CASE WHEN ep.care_obstruction_signal = 'cancellation' "
+        "THEN 1 ELSE 0 END) AS cancellation_n, "
+        "  sum(CASE WHEN ep.care_obstruction_signal = 'access_barrier' "
+        "THEN 1 ELSE 0 END) AS access_barrier_n, "
+        "  sum(CASE WHEN coalesce(ep.care_obstruction_signal, 'none') "
+        "= 'none' THEN 1 ELSE 0 END) AS none_n, "
+        "  sum(coalesce(ep.care_obstruction_evidence_count, 0)) "
+        "AS total_events, "
+        "  sum(coalesce(ep.care_obstruction_confirmed_n, 0)) "
+        "AS confirmed_events, "
+        "  sum(coalesce(ep.care_obstruction_unrelated_filtered_n, 0)) "
+        "AS unrelated_filtered_events, "
+        "  sum(CASE WHEN coalesce(ep.care_obstruction_confirmed_n, 0) > 0 "
+        "THEN 1 ELSE 0 END) AS confirmed_episodes",
+        **params,
+    )
+    s = rows[0] if rows else {}
+    total = int(s.get("total_episodes") or 0)
+    safe_total = total or 1
+    recorded = int(s.get("recorded") or 0)
+    rejection_n = int(s.get("rejection_n") or 0)
+    dna_n = int(s.get("dna_n") or 0)
+    cancellation_n = int(s.get("cancellation_n") or 0)
+    access_barrier_n = int(s.get("access_barrier_n") or 0)
+    none_n = int(s.get("none_n") or 0)
+    severe_n = rejection_n + dna_n
+    confirmed_episodes = int(s.get("confirmed_episodes") or 0)
+    return {
+        "recorded_pct": round(recorded * 100.0 / safe_total, 1),
+        "not_recorded_pct": round((safe_total - recorded) * 100.0 / safe_total, 1),
+        "recorded_n": recorded,
+        "total_episodes": total,
+        "total_events": int(s.get("total_events") or 0),
+        # Severity breakdown — drives the Open-detail dialog.
+        "signal_counts": {
+            "rejection": rejection_n,
+            "dna": dna_n,
+            "cancellation": cancellation_n,
+            "access_barrier": access_barrier_n,
+            "none": none_n,
+        },
+        "signal_pct": {
+            "rejection": round(rejection_n * 100.0 / safe_total, 1),
+            "dna": round(dna_n * 100.0 / safe_total, 1),
+            "cancellation": round(cancellation_n * 100.0 / safe_total, 1),
+            "access_barrier": round(access_barrier_n * 100.0 / safe_total, 1),
+            "none": round(none_n * 100.0 / safe_total, 1),
+        },
+        # 'Severe' subset (rejection + dna): the events that hard-stop
+        # the workup.  Surfaced for the dialog header.
+        "severe_n": severe_n,
+        "severe_pct": round(severe_n * 100.0 / safe_total, 1),
+        # Pathway-relatedness breakdown.  ``confirmed_n`` is the count
+        # of episodes where AT LEAST ONE recorded obstruction came
+        # with explicit cancer-pathway markers (2WW, FTR, oncology,
+        # site-specific specialty); these are the events a clinician
+        # would unambiguously agree delayed THIS pathway.
+        # ``unrelated_filtered_events`` is the total number of
+        # encounter rows that tripped an obstruction phrase but were
+        # filtered as clearly non-cancer (midwife, district nurse,
+        # phlebotomy, UTC, cardiac rehab, etc.) and therefore are
+        # NOT counted in `recorded_n` / `signal_counts`.  Surfaced
+        # for the tile tooltip and the dialog footer.
+        "confirmed_n": confirmed_episodes,
+        "confirmed_pct": round(
+            confirmed_episodes * 100.0 / safe_total, 1
+        ),
+        "confirmed_events": int(s.get("confirmed_events") or 0),
+        "unrelated_filtered_events": int(s.get("unrelated_filtered_events") or 0),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Prior cancer-related consultations + NCDA "multiple consultations" factors
+# ---------------------------------------------------------------------------
+
+
+def _q_prior_consultations(
+    base: str, params: dict, client: PatientGraphClient
+) -> dict:
+    """NCDA Section 7 ("multiple consultations") per-cohort breakdown.
+
+    Mirrors :func:`_q_care_obstructions` so the front-end can reuse the
+    same EvolutionYearCard / EvolutionDetailDialog components.  Reads
+    the ``prior_consultations_*`` properties stamped onto each
+    EpisodeOfCare by
+    ``libs/oncology/prior_consultations.classify_episode_consultations``
+    and ``scripts/ncda/run_prior_consultations_enrichment.py``.
+
+    Returns:
+      - Headline metric: % of episodes with 2+ cancer-related
+        consultations in the year before the FTR (the NCDA "multiple
+        consultations" condition).
+      - Distribution buckets (0 / 1 / 2-3 / 4-6 / 7+ consultations).
+      - Per-contact-type means (f2f, phone, nurse, email, specialist
+        clinic, home visit, phlebotomy, result review).
+      - Top-N NCDA factor codes proposed by the LLM, ranked by
+        frequency, suitable for the dialog "Why multiple consultations?"
+        bar chart.
+      - Aggregated LLM cost / token / call counts so the dashboard can
+        surface the per-tile spend without hitting LLMSpendPanel.
+    """
+    rows = client.run(
+        f"{base}"
+        "OPTIONAL MATCH (ep)<-[:HAS_AUDIT_EVENT|HAS_AUDIT]-(:Patient)"
+        "  -[:HAS_AUDIT_EVENT]->(ae:AuditEvent {"
+        "    type:'PipelineRun', event_type:'ncda_prior_consultations'})"
+        "  WHERE ae.episode_id = ep.episode_id "
+        "WITH ep, ae, ep.multiple_consultations_factors_auto AS factors_auto "
+        "RETURN "
+        "  count(DISTINCT ep) AS total_episodes, "
+        "  sum(CASE WHEN ep.prior_consultations_n >= 2 "
+        "       THEN 1 ELSE 0 END) AS multi_n, "
+        "  sum(CASE WHEN ep.prior_consultations_n IS NOT NULL "
+        "       THEN 1 ELSE 0 END) AS enriched_n, "
+        "  sum(CASE WHEN coalesce(ep.prior_consultations_n, 0) = 0 "
+        "       THEN 1 ELSE 0 END) AS bucket_zero, "
+        "  sum(CASE WHEN ep.prior_consultations_n = 1 "
+        "       THEN 1 ELSE 0 END) AS bucket_one, "
+        "  sum(CASE WHEN ep.prior_consultations_n >= 2 "
+        "       AND ep.prior_consultations_n <= 3 "
+        "       THEN 1 ELSE 0 END) AS bucket_two_three, "
+        "  sum(CASE WHEN ep.prior_consultations_n >= 4 "
+        "       AND ep.prior_consultations_n <= 6 "
+        "       THEN 1 ELSE 0 END) AS bucket_four_six, "
+        "  sum(CASE WHEN ep.prior_consultations_n >= 7 "
+        "       THEN 1 ELSE 0 END) AS bucket_seven_plus, "
+        "  sum(coalesce(ep.prior_consultations_n, 0)) AS total_consultations, "
+        "  sum(coalesce(ep.prior_consultations_f2f_n, 0)) AS f2f_total, "
+        "  sum(coalesce(ep.prior_consultations_phone_n, 0)) AS phone_total, "
+        "  sum(coalesce(ep.prior_consultations_nurse_n, 0)) AS nurse_total, "
+        "  sum(coalesce(ep.prior_consultations_email_n, 0)) AS email_total, "
+        "  sum(coalesce(ep.prior_consultations_specialist_clinic_n, 0)) "
+        "    AS specialist_clinic_total, "
+        "  sum(coalesce(ep.prior_consultations_home_visit_n, 0)) "
+        "    AS home_visit_total, "
+        "  sum(coalesce(ep.prior_consultations_phlebotomy_n, 0)) "
+        "    AS phlebotomy_total, "
+        "  sum(coalesce(ep.prior_consultations_result_review_n, 0)) "
+        "    AS result_review_total, "
+        "  sum(coalesce(ep.prior_consultations_unrelated_filtered_n, 0)) "
+        "    AS unrelated_filtered_total, "
+        "  collect(factors_auto) AS factor_arrays, "
+        "  sum(coalesce(ep.prior_consultations_llm_cost_usd, 0.0)) "
+        "    AS llm_cost_usd, "
+        "  sum(coalesce(ep.prior_consultations_llm_input_tokens, 0)) "
+        "    AS llm_input_tokens, "
+        "  sum(coalesce(ep.prior_consultations_llm_output_tokens, 0)) "
+        "    AS llm_output_tokens, "
+        "  sum(coalesce(ep.prior_consultations_llm_calls, 0)) "
+        "    AS llm_calls",
+        **params,
+    )
+    s = rows[0] if rows else {}
+    total = int(s.get("total_episodes") or 0)
+    safe_total = total or 1
+    enriched = int(s.get("enriched_n") or 0)
+    multi = int(s.get("multi_n") or 0)
+    safe_enriched = enriched or 1
+
+    factor_counts: dict[str, int] = {}
+    for arr in s.get("factor_arrays") or []:
+        if not arr:
+            continue
+        for code in arr:
+            if not code or code == "no_multiple_consultations":
+                continue
+            factor_counts[code] = factor_counts.get(code, 0) + 1
+    top_factors = sorted(
+        ({"factor": k, "n": v} for k, v in factor_counts.items()),
+        key=lambda r: (-r["n"], r["factor"]),
+    )[:10]
+
+    return {
+        # Headline % drives the snapshot tile.
+        "multiple_consultations_pct": round(multi * 100.0 / safe_total, 1),
+        "multiple_consultations_n": multi,
+        "total_episodes": total,
+        "enriched_n": enriched,
+        "enriched_pct": round(enriched * 100.0 / safe_total, 1),
+        # Distribution buckets for the dialog histogram.
+        "buckets": {
+            "0":      int(s.get("bucket_zero") or 0),
+            "1":      int(s.get("bucket_one") or 0),
+            "2-3":    int(s.get("bucket_two_three") or 0),
+            "4-6":    int(s.get("bucket_four_six") or 0),
+            "7+":     int(s.get("bucket_seven_plus") or 0),
+        },
+        "buckets_pct": {
+            "0":   round(int(s.get("bucket_zero") or 0)      * 100.0 / safe_total, 1),
+            "1":   round(int(s.get("bucket_one") or 0)       * 100.0 / safe_total, 1),
+            "2-3": round(int(s.get("bucket_two_three") or 0) * 100.0 / safe_total, 1),
+            "4-6": round(int(s.get("bucket_four_six") or 0)  * 100.0 / safe_total, 1),
+            "7+":  round(int(s.get("bucket_seven_plus") or 0) * 100.0 / safe_total, 1),
+        },
+        # Mean per enriched episode by contact type.
+        "mean_per_episode": {
+            "total":    round(int(s.get("total_consultations") or 0) / safe_enriched, 2),
+            "f2f":      round(int(s.get("f2f_total") or 0)    / safe_enriched, 2),
+            "phone":    round(int(s.get("phone_total") or 0)  / safe_enriched, 2),
+            "nurse":    round(int(s.get("nurse_total") or 0)  / safe_enriched, 2),
+            "email":    round(int(s.get("email_total") or 0)  / safe_enriched, 2),
+            "specialist_clinic": round(
+                int(s.get("specialist_clinic_total") or 0) / safe_enriched, 2
+            ),
+            "home_visit": round(int(s.get("home_visit_total") or 0) / safe_enriched, 2),
+            "phlebotomy": round(int(s.get("phlebotomy_total") or 0) / safe_enriched, 2),
+            "result_review": round(
+                int(s.get("result_review_total") or 0) / safe_enriched, 2
+            ),
+        },
+        # Aggregated totals (for the dialog footer).
+        "total_consultations":     int(s.get("total_consultations") or 0),
+        "unrelated_filtered_total": int(s.get("unrelated_filtered_total") or 0),
+        # Top NCDA factor codes (drives the "Why multiple consultations?"
+        # bar chart in the dialog).
+        "top_factors": top_factors,
+        # LLM cost / token telemetry -- exposed so the dashboard can show
+        # the spend behind this tile without hitting LLMSpendPanel.
+        "llm_cost_usd": round(float(s.get("llm_cost_usd") or 0.0), 4),
+        "llm_input_tokens":  int(s.get("llm_input_tokens") or 0),
+        "llm_output_tokens": int(s.get("llm_output_tokens") or 0),
+        "llm_calls":         int(s.get("llm_calls") or 0),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Avoidable delays
 # ---------------------------------------------------------------------------

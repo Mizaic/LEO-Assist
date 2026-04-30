@@ -24,10 +24,18 @@ logger = logging.getLogger(__name__)
 # a hanging Bedrock TCP connection that has no bytes flowing but the SSL/urllib3
 # socket timeout hasn't fired (can happen inside nested ThreadPoolExecutor threads
 # on some botocore/urllib3 configurations).
-_ENCOUNTER_TIMEOUT_S = 180
+_ENCOUNTER_TIMEOUT_S = 120  # ReadTimeoutError is no longer retried, so worst case is one
+                            # 90s read timeout + graph overhead. 120s catches anything stuck
+                            # beyond that without burning 6 minutes per encounter.
 
 # Lazy-compiled graph to avoid import overhead in test environments
 _COMPILED_GRAPH: Any = None
+
+# Shared pool for graph.invoke calls.  Bounded size means zombie threads from
+# timed-out encounters count against the limit, preventing unbounded connection
+# accumulation when many encounters time out in quick succession.
+_GRAPH_POOL: ThreadPoolExecutor | None = None
+_GRAPH_POOL_SIZE = 32  # well above max (patient-workers × enc-workers) but bounded
 
 
 def _get_graph() -> Any:
@@ -36,6 +44,13 @@ def _get_graph() -> Any:
         from libs.cohort_annotation.graph import build_graph
         _COMPILED_GRAPH = build_graph()
     return _COMPILED_GRAPH
+
+
+def _get_graph_pool() -> ThreadPoolExecutor:
+    global _GRAPH_POOL
+    if _GRAPH_POOL is None:
+        _GRAPH_POOL = ThreadPoolExecutor(max_workers=_GRAPH_POOL_SIZE)
+    return _GRAPH_POOL
 
 
 @dataclass
@@ -113,27 +128,13 @@ def annotate_encounter(
 
     graph = _get_graph()
     try:
-        # Run the graph in its own thread so we can apply a hard wall-clock
-        # timeout.  Without this, a Bedrock connection that hangs at the TCP
-        # level (no bytes flowing, yet the socket timeout hasn't fired) would
-        # block the worker indefinitely.
-        #
-        # NOTE: cancel() cannot kill a running thread; the zombie thread will
-        # continue until the socket eventually times out or the process exits.
-        # We therefore keep the timeout generous (3 min) so normal large
-        # encounters (7-9k chars) are not falsely killed, and throttled ones
-        # get a bounded wait.
-        _graph_pool = ThreadPoolExecutor(max_workers=1)
-        _fut = _graph_pool.submit(graph.invoke, initial_state)
-        # Do NOT use the pool as a context manager — __exit__ would call
-        # shutdown(wait=True), blocking until the zombie thread finishes.
-        # Instead, call shutdown(wait=False) on timeout so the pool is GC'd
-        # while the zombie thread drains in the background.
+        # Submit to shared pool so zombie threads from timed-out encounters are
+        # bounded by _GRAPH_POOL_SIZE rather than growing without limit.
+        pool = _get_graph_pool()
+        _fut = pool.submit(graph.invoke, initial_state)
         try:
             final_state = _fut.result(timeout=_ENCOUNTER_TIMEOUT_S)
-            _graph_pool.shutdown(wait=False)
         except FuturesTimeoutError:
-            _graph_pool.shutdown(wait=False)
             msg = (
                 f"encounter timed out after {_ENCOUNTER_TIMEOUT_S}s "
                 f"(graph.invoke did not complete)"

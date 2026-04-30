@@ -178,6 +178,7 @@ export default function ComorbiditiesSection({
       description="Other long-term health conditions recorded for audited patients (SNOMED rollup under the cancer_audit comorbidities subdomain). Use the breakdown dialog for slices by age, gender, and referral versus cancer diagnosis outcome."
       availability="ready"
       loading={loading}
+      loadingSkeletonVariant="radar"
       error={error}
     >
       {radar.length > 0 ? (

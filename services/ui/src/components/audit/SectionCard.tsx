@@ -15,13 +15,13 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Alert from "@mui/material/Alert";
-import Skeleton from "@mui/material/Skeleton";
 import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import CloudDownloadOutlinedIcon from "@mui/icons-material/CloudDownloadOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import OpenInNew from "@mui/icons-material/OpenInNew";
 import Link from "next/link";
+import AuditChartSkeleton, { type AuditChartSkeletonVariant } from "./AuditChartSkeleton";
 
 export type DataAvailability = "ready" | "pipeline_pending" | "manual_entry" | "external_feed";
 
@@ -33,6 +33,8 @@ interface SectionCardProps {
   loading?: boolean;
   error?: string | null;
   viewCasesHref?: string;
+  loadingSkeletonVariant?: AuditChartSkeletonVariant;
+  loadingSkeleton?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -77,6 +79,8 @@ export default function SectionCard({
   loading = false,
   error = null,
   viewCasesHref,
+  loadingSkeletonVariant = "bars",
+  loadingSkeleton,
   children,
 }: SectionCardProps) {
   const cfg = AVAILABILITY_CONFIG[availability];
@@ -143,7 +147,7 @@ export default function SectionCard({
         )}
 
         {loading ? (
-          <Skeleton variant="rectangular" height={220} aria-label={`Loading ${title}`} />
+          loadingSkeleton ?? <AuditChartSkeleton variant={loadingSkeletonVariant} label={`Loading ${title}`} />
         ) : (
           children
         )}

@@ -41,6 +41,7 @@ export default function PrimaryCareIntervalSection({ result, loading, error, org
       description="Days from the patient's first GP contact with cancer symptoms to fast-track referral. Red = cancer confirmed, green = benign or excluded outcome. Click any dot to open the patient record."
       availability="ready"
       loading={loading}
+      loadingSkeletonVariant="boxScatter"
       error={error}
     >
       <IntervalEvolutionPanel

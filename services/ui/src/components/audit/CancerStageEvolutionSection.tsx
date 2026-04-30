@@ -256,6 +256,7 @@ export default function CancerStageEvolutionSection({
       description="How the practice's stage-at-diagnosis mix has evolved against the 2018 NCDA baseline. Each card covers a calendar year (Jan-Dec). Stage is rarely captured in primary care, so cards may be sparse -- the n badge and warnings show how reliable each card is."
       availability="ready"
       loading={loading}
+      loadingSkeletonVariant="segmentedCards"
       error={error}
     >
       <Box>

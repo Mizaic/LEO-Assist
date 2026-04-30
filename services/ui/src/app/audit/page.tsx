@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
@@ -37,6 +37,8 @@ import {
   fetchAuditReferrals,
   fetchAuditIntervals,
   fetchAuditSafetyNetting,
+  fetchAuditCareObstructions,
+  fetchAuditPriorConsultations,
   fetchAuditAvoidableDelays,
   type AuditSummary,
   type AuditCancerTypeRow,
@@ -49,13 +51,16 @@ import {
   type AuditReferralRow,
   type AuditIntervals,
   type AuditSafetyNetting,
+  type AuditCareObstruction,
+  type AuditPriorConsultations,
   type AuditAvoidableDelays,
   type AuditSectionResult,
 } from "@/lib/analyticsApi";
 import FastTrackReferralEvolutionSection from "@/components/audit/FastTrackReferralEvolutionSection";
 
 import AuditReportShell, { type TocSection } from "@/components/audit/AuditReportShell";
-import AuditSnapshotView from "@/components/audit/AuditSnapshotView";
+import AuditSnapshotView, { type YearSummaryPoint } from "@/components/audit/AuditSnapshotView";
+import { useAuditYearWindows } from "@/components/audit/_useAuditYearWindows";
 import AuditSummarySection from "@/components/audit/AuditSummarySection";
 import CancerTypeEvolutionSection from "@/components/audit/CancerTypeEvolutionSection";
 import CancerStageEvolutionSection from "@/components/audit/CancerStageEvolutionSection";
@@ -70,7 +75,8 @@ import EmergencyReferralRoutesSection from "@/components/audit/EmergencyReferral
 import PrimaryCareIntervalSection from "@/components/audit/PrimaryCareIntervalSection";
 import DiagnosticIntervalSection from "@/components/audit/DiagnosticIntervalSection";
 import SafetyNettingSection from "@/components/audit/SafetyNettingSection";
-import AvoidableDelaysSection from "@/components/audit/AvoidableDelaysSection";
+import CareObstructionsSection from "@/components/audit/CareObstructionsSection";
+import PriorConsultationsSection from "@/components/audit/PriorConsultationsSection";
 import { AuditBenchmarkOverlayProvider } from "@/context/AuditBenchmarkOverlayContext";
 
 const TOC_SECTIONS: TocSection[] = [
@@ -83,6 +89,7 @@ const TOC_SECTIONS: TocSection[] = [
   { id: "section-place-of-presentation", label: "Place of Presentation", group: "results" },
   { id: "section-consultations", label: "Consultations", group: "results" },
   { id: "section-multiple-consultations", label: "Multiple Consultations", group: "results" },
+  { id: "section-prior-consultations", label: "Prior Consultations (NCDA S7)", group: "results" },
   { id: "section-investigations", label: "Investigations", group: "results" },
   { id: "section-ftr-types", label: "Fast Track Referral Types", group: "results" },
   { id: "section-emergency-routes", label: "Emergency Referral Routes", group: "results" },
@@ -104,6 +111,8 @@ interface SectionLoading {
   referrals: boolean;
   intervals: boolean;
   safetyNetting: boolean;
+  careObstructions: boolean;
+  priorConsultations: boolean;
   avoidableDelays: boolean;
 }
 
@@ -114,45 +123,27 @@ interface SectionErrors {
 const allTrue = (): SectionLoading => ({
   summary: true, cancerType: true, cancerStage: true, demographics: true, comorbidities: true,
   placeOfPresentation: true, consultations: true, investigations: true,
-  referrals: true, intervals: true, safetyNetting: true, avoidableDelays: true,
+  referrals: true, intervals: true, safetyNetting: true, careObstructions: true,
+  priorConsultations: true, avoidableDelays: true,
 });
 
 const allFalse = (): SectionLoading => ({
   summary: false, cancerType: false, cancerStage: false, demographics: false, comorbidities: false,
   placeOfPresentation: false, consultations: false, investigations: false,
-  referrals: false, intervals: false, safetyNetting: false, avoidableDelays: false,
+  referrals: false, intervals: false, safetyNetting: false, careObstructions: false,
+  priorConsultations: false, avoidableDelays: false,
 });
 
 export default function AuditPage() {
   const orgId = useOrgId();
   const orgSelected = !!orgId;
 
-  // 0 = Report (View 1), 1 = Snapshot (View 2)
+  // 0 = Insight Snapshot, 1 = Full Report
   const [activeTab, setActiveTab] = useState(0);
-  const pendingScrollRef = useRef<string | null>(null);
-
-  // Scroll to a report section after the tab panel has been mounted.
-  // Using a ref avoids the fragile setTimeout(100) pattern which fails on
-  // slow devices or when React batches the state update differently.
-  useEffect(() => {
-    if (activeTab !== 1 || !pendingScrollRef.current) return;
-    const sectionId = pendingScrollRef.current;
-    pendingScrollRef.current = null;
-    const el = document.getElementById(sectionId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      // Retry once on the next animation frame in case the section rendered
-      // slightly after the effect ran (lazy / deferred content).
-      requestAnimationFrame(() => {
-        const retryEl = document.getElementById(sectionId);
-        if (retryEl) retryEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
-  }, [activeTab]);
+  const [pendingReportScrollSectionId, setPendingReportScrollSectionId] = useState<string | null>(null);
 
   const handleViewInReport = (sectionId: string) => {
-    pendingScrollRef.current = sectionId;
+    setPendingReportScrollSectionId(sectionId);
     setActiveTab(1);
   };
 
@@ -160,7 +151,7 @@ export default function AuditPage() {
   // (DI-077C8810 + this commit), each section owns its own per-year
   // fetch via useAuditYearWindows; the page-level fetch is now
   // restricted to the same Jan(Y-2) -> Dec(Y) cohort window so the
-  // Summary headline, the cohort breakdown, the snapshot deviation
+  // Summary headline, the cohort breakdown, the snapshot trend
   // table, and every section radar agree on the same denominator
   // (year of diagnosis or benign closure -- see _OUTCOME_DATE_BIND
   // on the backend). Users may still narrow the window via the
@@ -181,7 +172,7 @@ export default function AuditPage() {
   // rules-of-hooks constant-size requirement).  The user-facing selector was
   // removed when the cancer-type section moved to a fixed evolution view; the
   // first available benchmark set is selected automatically on mount so the
-  // 2018 baseline can still be resolved by every section.
+  // 2019 benchmark can still be resolved by every section.
   const [benchmarkSetId, setBenchmarkSetId] = useState<string | null>(null);
 
   // Section loading / error state
@@ -200,6 +191,8 @@ export default function AuditPage() {
   const [referrals, setReferrals] = useState<AuditSectionResult<AuditReferralRow[]> | null>(null);
   const [intervals, setIntervals] = useState<AuditSectionResult<AuditIntervals> | null>(null);
   const [safetyNetting, setSafetyNetting] = useState<AuditSectionResult<AuditSafetyNetting> | null>(null);
+  const [careObstructions, setCareObstructions] = useState<AuditSectionResult<AuditCareObstruction> | null>(null);
+  const [priorConsultations, setPriorConsultations] = useState<AuditSectionResult<AuditPriorConsultations> | null>(null);
   const [avoidableDelays, setAvoidableDelays] = useState<AuditSectionResult<AuditAvoidableDelays> | null>(null);
 
   // Fetch available benchmark sets on mount and auto-select the first.
@@ -222,6 +215,124 @@ export default function AuditPage() {
     ? undefined
     : benchmarkSetId;
 
+  // ── Per-year fetchers for the Insight Snapshot trend table ─────────────────
+  // These use stable references so useAuditYearWindows doesn't loop. Note: we
+  // don't pass benchmarkSetId because the snapshot's trend table only needs
+  // live practice values; the 2019 benchmark column comes from the page-level
+  // benchmark envelope already in scope.
+  const stageFetcher = useCallback(
+    (o: string | undefined, from: string, to: string) => fetchAuditCancerStage(o, from, to),
+    [],
+  );
+  const intervalFetcher = useCallback(
+    (o: string | undefined, from: string, to: string) => fetchAuditIntervals(o, from, to),
+    [],
+  );
+  const referralFetcher = useCallback(
+    (o: string | undefined, from: string, to: string) => fetchAuditReferrals(o, from, to),
+    [],
+  );
+  const consultFetcher = useCallback(
+    (o: string | undefined, from: string, to: string) => fetchAuditConsultations(o, from, to),
+    [],
+  );
+  const snFetcher = useCallback(
+    (o: string | undefined, from: string, to: string) => fetchAuditSafetyNetting(o, from, to),
+    [],
+  );
+  const adFetcher = useCallback(
+    (o: string | undefined, from: string, to: string) => fetchAuditAvoidableDelays(o, from, to),
+    [],
+  );
+  const coFetcher = useCallback(
+    (o: string | undefined, from: string, to: string) => fetchAuditCareObstructions(o, from, to),
+    [],
+  );
+  const placeFetcher = useCallback(
+    (o: string | undefined, from: string, to: string) => fetchAuditPlaceOfPresentation(o, from, to),
+    [],
+  );
+  // fetchAuditSummary returns AuditSummary directly (not AuditSectionResult),
+  // so wrap it in the multi-scope envelope shape that useAuditYearWindows expects.
+  const summaryFetcher = useCallback(
+    async (o: string | undefined, from: string, to: string) => {
+      const data = await fetchAuditSummary(o, from, to);
+      return { scopes: { practice: data as AuditSummary }, benchmark: undefined } as {
+        scopes: { practice: AuditSummary };
+        benchmark: undefined;
+      };
+    },
+    [],
+  );
+
+  const { liveYears: stageYears }    = useAuditYearWindows(stageFetcher,    { orgId });
+  const { liveYears: intervalYears } = useAuditYearWindows(intervalFetcher, { orgId });
+  const { liveYears: referralYears } = useAuditYearWindows(referralFetcher, { orgId });
+  const { liveYears: consultYears }  = useAuditYearWindows(consultFetcher,  { orgId });
+  const { liveYears: snYears }       = useAuditYearWindows(snFetcher,       { orgId });
+  const { liveYears: adYears }       = useAuditYearWindows(adFetcher,       { orgId });
+  const { liveYears: coYears }       = useAuditYearWindows(coFetcher,       { orgId });
+  const { liveYears: placeYears }    = useAuditYearWindows(placeFetcher,    { orgId });
+  const { liveYears: summaryYears }  = useAuditYearWindows(summaryFetcher,  { orgId });
+
+  const yearSummary = useMemo((): YearSummaryPoint[] => {
+    return stageYears.map((sy, idx) => {
+      const iy   = intervalYears[idx];
+      const cy   = consultYears[idx];
+      const sny  = snYears[idx];
+      const ady  = adYears[idx];
+      const coy  = coYears[idx];
+      const py   = placeYears[idx];
+      const sy2  = summaryYears[idx];
+
+      const stageData   = sy.data;
+      const intData     = iy?.data;
+      const consultData = cy?.data;
+      const snData      = sny?.data;
+      const adData      = ady?.data;
+      const coData      = coy?.data;
+      const placeData   = py?.data;
+      const sumData     = sy2?.data as AuditSummary | null;
+
+      const earlyRow = stageData?.rows?.find((r) => r.stage_group === "early");
+
+      // Fast-track rate excludes diagnoses presented through screening.
+      const c1a = sumData?.cohort_1a_n ?? null;
+      const c3  = sumData?.cohort_3_n  ?? null;
+      const confirmed = c1a != null && c3 != null ? c1a + c3 : null;
+      const twwPct = sumData?.confirmed_cancers_via_2ww_excluding_screening_pct ?? null;
+
+      // Emergency rate = (Cohort 3 − Screening) / (1A + 3) × 100
+      const screeningRow = Array.isArray(placeData)
+        ? placeData.find((r) => r.place?.toLowerCase().includes("screening"))
+        : undefined;
+      const screeningN   = screeningRow?.n ?? 0;
+      const emergencyN   = c3 != null ? Math.max(0, c3 - screeningN) : null;
+      const emergencyPct = confirmed != null && confirmed > 0 && emergencyN != null
+        ? Math.round((emergencyN / confirmed) * 1000) / 10
+        : null;
+      const safetyNettingPct = snData != null && snData.total_episodes > 0
+        ? snData.recorded_pct
+        : null;
+      const careObstructionPct = coData != null && coData.total_episodes > 0
+        ? coData.recorded_pct
+        : null;
+
+      return {
+        year: sy.year,
+        earlyStage:         earlyRow?.pct ?? null,
+        pciMedian:          intData?.pci?.median ?? null,
+        diMedian:           intData?.di?.median ?? null,
+        twwPct,
+        emergencyPct,
+        fewerThan3Pct:      consultData?.fewer_than_3_pct ?? null,
+        safetyNettingPct,
+        avoidableDelayPct:  adData?.avoidable_delay_pct ?? null,
+        careObstructionPct,
+      };
+    });
+  }, [stageYears, intervalYears, consultYears, snYears, adYears, coYears, placeYears, summaryYears]);
+
   const load = useCallback(
     async (from: string | undefined, to: string | undefined) => {
       // Bail out if the benchmark set lookup hasn't resolved yet. When it does,
@@ -238,9 +349,12 @@ export default function AuditPage() {
         setter: (v: T) => void,
       ) =>
         promise
-          .then((v) => setter(v))
-          .catch(() => setErrors((e) => ({ ...e, [key]: `Unable to load ${key} data.` })))
-          .finally(() => setLoading((l) => ({ ...l, [key]: false })));
+          .then((v) => {
+            setter(v);
+          })
+          .catch(() => {
+            setErrors((e) => ({ ...e, [key]: `Unable to load ${key} data.` }));
+          });
 
       await Promise.all([
         settle("summary", fetchAuditSummary(orgId, from, to), setSummary),
@@ -254,8 +368,11 @@ export default function AuditPage() {
         settle("referrals", fetchAuditReferrals(orgId, from, to, effectiveBenchmarkSetId), setReferrals),
         settle("intervals", fetchAuditIntervals(orgId, from, to, effectiveBenchmarkSetId), setIntervals),
         settle("safetyNetting", fetchAuditSafetyNetting(orgId, from, to, effectiveBenchmarkSetId), setSafetyNetting),
+        settle("careObstructions", fetchAuditCareObstructions(orgId, from, to, effectiveBenchmarkSetId), setCareObstructions),
+        settle("priorConsultations", fetchAuditPriorConsultations(orgId, from, to, effectiveBenchmarkSetId), setPriorConsultations),
         settle("avoidableDelays", fetchAuditAvoidableDelays(orgId, from, to, effectiveBenchmarkSetId), setAvoidableDelays),
       ]);
+      setLoading(allFalse());
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [orgId, effectiveBenchmarkSetId, benchmarkSetId],
@@ -277,7 +394,7 @@ export default function AuditPage() {
             Clinical Audit
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.82rem", mt: 0.25 }}>
-            National Cancer Diagnosis Audit (NCDA) -- 14 sections, year-on-year evolution against the 2018 NCDA baseline.
+            National Cancer Diagnosis Audit (NCDA) -- 14 sections, year-on-year evolution against the 2019 NCDA benchmark.
             <br />
             Cohort window: {cohortWindowLabel}.
           </Typography>
@@ -301,7 +418,7 @@ export default function AuditPage() {
         <Alert severity="info" sx={{ mb: 2, fontSize: "0.82rem" }}>
           <strong>All Organisations view:</strong> Showing England-wide live data.
           {" "}Select an organisation in the sidebar to compare your practice
-          against the 2018 NCDA baseline year-on-year.
+          against the 2019 NCDA benchmark year-on-year.
         </Alert>
       )}
 
@@ -353,8 +470,10 @@ export default function AuditPage() {
             intervals={intervals}
             safetyNetting={safetyNetting}
             avoidableDelays={avoidableDelays}
+            careObstructions={careObstructions}
             onViewInReport={handleViewInReport}
             cohortWindowLabel={isFiltered ? undefined : cohortWindowLabel}
+            yearSummary={isFiltered ? undefined : yearSummary}
           />
         </Box>
       )}
@@ -362,7 +481,12 @@ export default function AuditPage() {
       {/* ── Report shell with TOC sidebar (tab 1) ───────────────────── */}
       {activeTab === 1 && (
       <Box role="tabpanel" id="audit-tabpanel-report" aria-labelledby="audit-tab-report">
-      <AuditReportShell sections={TOC_SECTIONS}>
+      <AuditReportShell
+        sections={TOC_SECTIONS}
+        pendingScrollSectionId={pendingReportScrollSectionId}
+        pendingScrollReady={!anyLoading}
+        onPendingScrollHandled={() => setPendingReportScrollSectionId(null)}
+      >
         <AuditSummarySection
           summary={summary}
           loading={loading.summary}
@@ -470,10 +594,18 @@ export default function AuditPage() {
           orgSelected={orgSelected}
         />
 
-        <AvoidableDelaysSection
-          result={avoidableDelays}
-          loading={loading.avoidableDelays}
-          error={errors.avoidableDelays}
+        <CareObstructionsSection
+          result={careObstructions}
+          loading={loading.careObstructions}
+          error={errors.careObstructions}
+          orgSelected={orgSelected}
+          avoidableDelaysResult={avoidableDelays}
+        />
+
+        <PriorConsultationsSection
+          result={priorConsultations}
+          loading={loading.priorConsultations}
+          error={errors.priorConsultations}
           orgSelected={orgSelected}
         />
       </AuditReportShell>

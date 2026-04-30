@@ -190,9 +190,12 @@ class LLMClient:
 
         cfg = Config(
             connect_timeout=30,
-            read_timeout=90,   # reduced from 300 — Haiku responds in <30s; long hang = throttle stall
+            read_timeout=90,    # Haiku ~200 tok/s → 8192 tokens ≈ 41s; 90s gives 2× headroom.
+                                # ReadTimeoutError is NOT retried (see bedrock_retry._is_retryable),
+                                # so a hung call fails in 90s and the encounter is recorded as ERROR.
             retries={"max_attempts": 1, "mode": "standard"},  # our own retry loop handles backoff
-        )
+            tcp_keepalive=True,  # prevents NAT gateway (350s idle timeout) from silently dropping
+        )                        # the TCP connection and causing indefinite SSL read hangs
         return boto3.client(
             "bedrock-runtime",
             region_name=self.region or os.getenv("AWS_DEFAULT_REGION", "eu-west-2"),

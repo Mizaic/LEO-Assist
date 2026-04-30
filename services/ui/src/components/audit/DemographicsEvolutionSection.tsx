@@ -329,6 +329,7 @@ export default function DemographicsEvolutionSection({
       description="How the practice's demographic mix has evolved against the 2018 NCDA baseline. Each card covers a calendar year (Jan-Dec). Cards may be sparse early in a year -- the n badge and warnings show how reliable each card is."
       availability="ready"
       loading={loading}
+      loadingSkeletonVariant="pyramid"
       error={error}
     >
       <Box>

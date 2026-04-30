@@ -141,6 +141,7 @@ export default function InvestigationsSection({
       description="Tests ordered by the GP (family doctor) before referring the patient to a specialist. Each card covers a Jan-Dec calendar year and counts episodes by year of diagnosis or benign closure."
       availability="pipeline_pending"
       loading={loading}
+      loadingSkeletonVariant="cardGrid"
       error={error}
     >
       <Box sx={{ display: "flex", gap: 2, mb: 1.5, flexWrap: "wrap" }}>

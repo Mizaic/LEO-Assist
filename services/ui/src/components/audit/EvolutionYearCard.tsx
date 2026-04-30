@@ -26,6 +26,7 @@
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
+import Skeleton from "@mui/material/Skeleton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -168,43 +169,57 @@ export default function EvolutionYearCard({
         )}
       </Box>
 
-      <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5, mt: 0.5 }}>
-        <Typography
-          component="span"
-          sx={{
-            fontWeight: 800,
-            fontSize: "1.5rem",
-            color: isBaseline ? C_BENCH18 : accentColor,
-            lineHeight: 1,
-            opacity: loading || isEmpty ? 0.4 : 1,
-          }}
-        >
-          {loading ? "..." : (headlineValue ?? "--")}
-        </Typography>
-        {secondaryValue && !loading && (
+      {loading ? (
+        <Box role="status" aria-label={`Loading ${yearLabel} audit metric`} sx={{ mt: 0.5 }}>
+          <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5 }}>
+            <Skeleton variant="text" width={76} height={40} />
+            <Skeleton variant="text" width={96} height={22} />
+          </Box>
+          <Box sx={{ display: "flex", gap: 0.75, mt: 1.25 }}>
+            <Skeleton variant="rounded" width="45%" height={16} />
+            <Skeleton variant="rounded" width="28%" height={16} />
+            <Skeleton variant="rounded" width="18%" height={16} />
+          </Box>
+        </Box>
+      ) : (
+        <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5, mt: 0.5 }}>
           <Typography
             component="span"
             sx={{
-              fontWeight: 600,
-              fontSize: "0.95rem",
-              color: "text.secondary",
+              fontWeight: 800,
+              fontSize: "1.5rem",
+              color: isBaseline ? C_BENCH18 : accentColor,
               lineHeight: 1,
+              opacity: isEmpty ? 0.4 : 1,
             }}
           >
-            {secondaryValue}
+            {headlineValue ?? "--"}
           </Typography>
-        )}
-        {headlineSubLabel && (
-          <Typography
-            component="span"
-            variant="caption"
-            color="text.secondary"
-            sx={{ fontSize: "0.72rem" }}
-          >
-            {headlineSubLabel}
-          </Typography>
-        )}
-      </Box>
+          {secondaryValue && (
+            <Typography
+              component="span"
+              sx={{
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                color: "text.secondary",
+                lineHeight: 1,
+              }}
+            >
+              {secondaryValue}
+            </Typography>
+          )}
+          {headlineSubLabel && (
+            <Typography
+              component="span"
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: "0.72rem" }}
+            >
+              {headlineSubLabel}
+            </Typography>
+          )}
+        </Box>
+      )}
 
       {children && <Box sx={{ flexGrow: 1 }}>{children}</Box>}
 

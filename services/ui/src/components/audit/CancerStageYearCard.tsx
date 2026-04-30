@@ -31,6 +31,7 @@
 
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
+import Skeleton from "@mui/material/Skeleton";
 import Typography from "@mui/material/Typography";
 
 const C_EARLY = "#16A34A";
@@ -206,6 +207,16 @@ export default function CancerStageYearCard({
         )}
       </Box>
 
+      {loading ? (
+        <Box role="status" aria-label={`Loading cancer stage card for ${yearLabel}`} sx={{ py: 0.5 }}>
+          <Skeleton variant="rounded" width="100%" height={TRACK_H} sx={{ mt: `${TICK_EXT}px`, borderRadius: "5px" }} />
+          <Box sx={{ display: "flex", gap: 1.5, alignItems: "baseline", mt: 1 }}>
+            <Skeleton variant="text" width={68} height={34} />
+            <Skeleton variant="text" width={48} height={24} />
+            <Skeleton variant="text" width={62} height={22} />
+          </Box>
+        </Box>
+      ) : (
       <Box sx={{ position: "relative", height: TRACK_H + TICK_EXT + 22 }}>
         <Box
           sx={{
@@ -272,7 +283,9 @@ export default function CancerStageYearCard({
 
         {showBaselineTick && <BaselineTick pct={baseline2018Early as number} />}
       </Box>
+      )}
 
+      {!loading && (
       <Box
         sx={{
           display: "flex",
@@ -350,6 +363,7 @@ export default function CancerStageYearCard({
           </Box>
         )}
       </Box>
+      )}
 
       {isBaseline && (
         <Typography

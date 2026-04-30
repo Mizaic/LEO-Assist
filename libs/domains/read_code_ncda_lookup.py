@@ -357,7 +357,11 @@ SITE_KEYWORDS: dict[CancerSite, tuple[str, ...]] = {
                         "squamous cell carcinoma - l vertex",
                         "squamous cell carcinoma of scalp",
                         "scalp", "vertex"),
-    "lung":            ("lung", "chest x-ray", "cxr", "thoracic", "respiratory"),
+    # NB: bare "thorax" intentionally NOT here — it appears in melanoma /
+    # colorectal staging CTs ("CT Neck thorax abdomen and pelvis") and would
+    # mis-route those to lung.  Mirrors silver_labeller._SITE_TOKENS["lung"].
+    "lung":            ("lung", "chest x-ray", "cxr", "thoracic", "ct thorax",
+                        "ct chest", "respiratory", "bronchoscop"),
     "brain":           ("brain", "cns", "neurosurg", "headache", "seizure"),
     "nss":             ("non-site specific", "nss", "weight loss", "fatigue"),
 }

@@ -100,6 +100,7 @@ export default function ConsultationsSection({
       description="How many times patients saw a GP for possible cancer symptoms in the year before being referred for tests that led to their diagnosis. Each card covers a Jan-Dec calendar year and counts episodes by year of diagnosis or benign closure."
       availability="ready"
       loading={loading}
+      loadingSkeletonVariant="cardGrid"
       error={error}
     >
       <Box sx={{ display: "flex", gap: 2, mb: 1.5, flexWrap: "wrap" }}>

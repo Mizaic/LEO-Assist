@@ -125,6 +125,7 @@ export default function EmergencyReferralRoutesSection({
       description="For patients referred by emergency route, the route subtype (self-referred to A&E, GP-referred to A&E, awaiting prior referral, etc.). Each card covers a Jan-Dec calendar year and counts episodes by year of diagnosis or benign closure. Requires structured data entry."
       availability="manual_entry"
       loading={loading}
+      loadingSkeletonVariant="cardGrid"
       error={error}
     >
       <Box sx={{ display: "flex", gap: 2, mb: 1.5, flexWrap: "wrap" }}>

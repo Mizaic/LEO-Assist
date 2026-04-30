@@ -13,11 +13,16 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
 export type AuditChartSkeletonVariant =
+  | "area"
   | "bars"
+  | "boxScatter"
+  | "cardGrid"
   | "horizontalBars"
+  | "pieGrid"
   | "radar"
   | "radarGrid"
   | "pie"
+  | "segmentedCards"
   | "pyramid"
   | "segmented"
   | "strip"
@@ -35,6 +40,44 @@ interface AuditChartSkeletonProps {
 // variant in this file in the same change.
 
 const widths = ["72%", "54%", "82%", "38%", "66%"];
+
+function AreaSkeleton() {
+  return (
+    <Box sx={{ position: "relative", height: "100%", minHeight: 200, px: 1.5, pt: 2 }}>
+      {[18, 40, 62, 84].map((top) => (
+        <Skeleton
+          key={top}
+          variant="rounded"
+          width="100%"
+          height={1}
+          sx={{ position: "absolute", left: 12, right: 12, top: `${top}%` }}
+        />
+      ))}
+      <Box
+        sx={{
+          position: "absolute",
+          left: 12,
+          right: 12,
+          bottom: 28,
+          height: "56%",
+          clipPath: "polygon(0 82%, 18% 54%, 34% 62%, 52% 28%, 70% 44%, 88% 18%, 100% 36%, 100% 100%, 0 100%)",
+        }}
+      >
+        <Skeleton variant="rounded" width="100%" height="100%" />
+      </Box>
+      {[0, 18, 34, 52, 70, 88, 100].map((left, idx) => (
+        <Skeleton
+          key={`${left}-${idx}`}
+          variant="circular"
+          width={10}
+          height={10}
+          sx={{ position: "absolute", left: `calc(${left}% + 7px)`, bottom: `${76 - (idx % 3) * 18}px` }}
+        />
+      ))}
+      <Skeleton variant="rounded" width="100%" height={2} sx={{ position: "absolute", left: 12, right: 12, bottom: 24 }} />
+    </Box>
+  );
+}
 
 function BarsSkeleton({ horizontal = false }: { horizontal?: boolean }) {
   return (
@@ -98,6 +141,51 @@ function RadarSkeleton() {
           />
         ))}
       </Box>
+    </Box>
+  );
+}
+
+function CardGridSkeleton({ shape = "metric" }: { shape?: "metric" | "segmented" | "pie" }) {
+  return (
+    <Box
+      role="status"
+      aria-label="Loading audit cards"
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" },
+        gap: 2,
+      }}
+    >
+      {[0, 1, 2, 3].map((idx) => (
+        <Stack key={idx} spacing={1.1} sx={{ minHeight: 168, border: "1px solid", borderColor: "divider", borderRadius: 2, p: 1.75 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
+            <Stack spacing={0.5} sx={{ flex: 1 }}>
+              <Skeleton variant="text" width="42%" />
+              <Skeleton variant="text" width="34%" />
+            </Stack>
+            <Skeleton variant="rounded" width={54} height={24} />
+          </Box>
+          {shape === "pie" ? (
+            <Box sx={{ display: "grid", placeItems: "center", flex: 1 }}>
+              <Skeleton variant="circular" width={92} height={92} />
+            </Box>
+          ) : shape === "segmented" ? (
+            <Stack spacing={1.2} sx={{ justifyContent: "center", flex: 1 }}>
+              <Skeleton variant="rounded" width="100%" height={22} />
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Skeleton variant="text" width="36%" height={32} />
+                <Skeleton variant="text" width="24%" height={24} />
+              </Box>
+            </Stack>
+          ) : (
+            <Stack spacing={0.9} sx={{ justifyContent: "center", flex: 1 }}>
+              <Skeleton variant="text" width="48%" height={38} />
+              <Skeleton variant="rounded" width="78%" height={10} />
+              <Skeleton variant="rounded" width="56%" height={10} />
+            </Stack>
+          )}
+        </Stack>
+      ))}
     </Box>
   );
 }
@@ -168,6 +256,38 @@ function StripSkeleton() {
   );
 }
 
+function BoxScatterSkeleton() {
+  return (
+    <Box sx={{ position: "relative", height: "100%", minHeight: 260, px: 2, py: 1.5 }}>
+      {[18, 36, 54, 72].map((top) => (
+        <Skeleton
+          key={top}
+          variant="rounded"
+          width="100%"
+          height={1}
+          sx={{ position: "absolute", left: 16, right: 16, top: `${top}%` }}
+        />
+      ))}
+      {["16%", "34%", "52%", "70%", "88%"].map((left, idx) => (
+        <Box key={left} sx={{ position: "absolute", left, bottom: 42, width: 42, height: "58%" }}>
+          <Skeleton variant="rounded" width={34} height={72 + (idx % 2) * 28} sx={{ position: "absolute", bottom: 24, left: 4 }} />
+          <Skeleton variant="rounded" width={46} height={3} sx={{ position: "absolute", bottom: 74 + (idx % 2) * 18, left: -2 }} />
+          {[10, 23, 36, 49, 62].map((offset, dotIdx) => (
+            <Skeleton
+              key={`${offset}-${dotIdx}`}
+              variant="circular"
+              width={8}
+              height={8}
+              sx={{ position: "absolute", bottom: `${offset + (idx % 3) * 8}%`, left: `${8 + dotIdx * 6}px` }}
+            />
+          ))}
+        </Box>
+      ))}
+      <Skeleton variant="rounded" width="100%" height={2} sx={{ position: "absolute", left: 16, right: 16, bottom: 34 }} />
+    </Box>
+  );
+}
+
 function SankeySkeleton() {
   return (
     <Box sx={{ position: "relative", height: "100%", minHeight: 220 }}>
@@ -193,7 +313,13 @@ function SankeySkeleton() {
 
 function StatsSkeleton() {
   return (
-    <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 1.5 }}>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" },
+        gap: 1.5,
+      }}
+    >
       {[0, 1, 2, 3].map((idx) => (
         <Stack key={idx} spacing={1} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 1.5 }}>
           <Skeleton variant="text" width="60%" />
@@ -211,7 +337,12 @@ export default function AuditChartSkeleton({
   label = "Loading chart",
 }: AuditChartSkeletonProps) {
   const content = (() => {
+    if (variant === "area") return <AreaSkeleton />;
+    if (variant === "boxScatter") return <BoxScatterSkeleton />;
+    if (variant === "cardGrid") return <CardGridSkeleton />;
     if (variant === "horizontalBars") return <BarsSkeleton horizontal />;
+    if (variant === "pieGrid") return <CardGridSkeleton shape="pie" />;
+    if (variant === "segmentedCards") return <CardGridSkeleton shape="segmented" />;
     if (variant === "radar" || variant === "radarGrid") return <RadarSkeleton />;
     if (variant === "pie") return <PieSkeleton />;
     if (variant === "pyramid") return <PyramidSkeleton />;
@@ -224,12 +355,28 @@ export default function AuditChartSkeleton({
 
   if (variant === "radarGrid") {
     return (
-      <Box role="status" aria-label={label} sx={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 2 }}>
+      <Box
+        role="status"
+        aria-label={label}
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" },
+          gap: 2,
+        }}
+      >
         {[0, 1, 2, 3].map((idx) => (
           <Box key={idx} sx={{ height, border: "1px solid", borderColor: "divider", borderRadius: 2, p: 1.5 }}>
             <RadarSkeleton />
           </Box>
         ))}
+      </Box>
+    );
+  }
+
+  if (variant === "cardGrid" || variant === "pieGrid" || variant === "segmentedCards") {
+    return (
+      <Box role="status" aria-label={label} sx={{ width: "100%" }}>
+        {content}
       </Box>
     );
   }

@@ -46,11 +46,13 @@ def _get_error_code(exc: BaseException) -> str:
 def _is_retryable(exc: BaseException) -> bool:
     if _get_error_code(exc) in _THROTTLE_CODES:
         return True
-    # Also retry on network-level timeouts — a hung TCP connection (no bytes
-    # received within read_timeout) raises ReadTimeoutError, which is not a
-    # ClientError but is equally transient.
+    # ConnectTimeoutError is transient (can't reach Bedrock endpoint) — retry.
+    # ReadTimeoutError is NOT retried here: tcp_keepalive=True prevents silent
+    # NAT drops, so a read timeout means Bedrock is genuinely slow/overloaded.
+    # Retrying just burns another read_timeout worth of wall time and pushes the
+    # encounter into the graph-level wall-clock timeout. Let it fail fast instead.
     exc_type = type(exc).__name__
-    return exc_type in {"ReadTimeoutError", "ConnectTimeoutError", "ConnectionError"}
+    return exc_type in {"ConnectTimeoutError"}
 
 
 def converse_with_retry(

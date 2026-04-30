@@ -879,6 +879,10 @@ export interface AuditSummary {
   confirmed_cancers: number;
   confirmed_cancers_via_2ww?: number;
   confirmed_cancers_via_2ww_pct?: number | null;
+  confirmed_cancers_screening_programme?: number;
+  confirmed_cancers_excluding_screening?: number;
+  confirmed_cancers_via_2ww_excluding_screening?: number;
+  confirmed_cancers_via_2ww_excluding_screening_pct?: number | null;
   // NCDA cohort breakdown from ncda_detector.
   cohort_1a_n?: number;
   cohort_1b_n?: number;
@@ -927,6 +931,72 @@ export interface AuditSummary {
    * surface as the headline; kept for backwards-compat with older
    * snapshot tests that still assert the old denominator. */
   safety_netting_legacy_pct?: number | null;
+  // ---- Care obstructions (rejected referrals, DNAs, cancellations) ----
+  // Headline rate of confirmed-cancer episodes whose milestone window
+  // contains a rejected referral (XaQgL), DNA (XacSG / XaF81 / Xa1kG),
+  // cancellation or softer access barrier. Denominator is the canonical
+  // confirmed-cancer cohort (matches safety-netting). See
+  // libs/oncology/care_obstruction.py for the signal hierarchy.
+  care_obstruction_pct?: number | null;
+  /** Numerator behind care_obstruction_pct (any non-none signal). */
+  care_obstruction_recorded_n?: number;
+  /** Severe subset: rejection + dna only — events that hard-stop the workup. */
+  care_obstruction_severe_pct?: number | null;
+  care_obstruction_severe_n?: number;
+  /** Per-signal breakdown for the tooltip + breakdown dialog. */
+  care_obstruction_signal_counts?: {
+    rejection: number;
+    dna: number;
+    cancellation: number;
+    access_barrier: number;
+    none: number;
+  };
+  /** Confirmed-cancer denominator behind every care_obstruction_* field. */
+  care_obstruction_denominator?: number;
+  // ---- Pathway-relatedness telemetry --------------------------------
+  // Care obstruction events go through a corpus-driven relatedness
+  // classifier (see libs/oncology/care_obstruction.py) that drops
+  // clearly-unrelated services (midwife / district nurse / phlebotomy
+  // / urgent treatment centre / cardiac rehab / etc.) from the
+  // headline.  Episodes are flagged "confirmed" when at least one
+  // recorded obstruction matched an explicit cancer-pathway marker
+  // (2WW, FTR, oncology, MDT, or the site-specific specialty).
+  /** Number of confirmed-cancer episodes with at least one
+   *  pathway-confirmed obstruction (subset of recorded_n). */
+  care_obstruction_confirmed_n?: number;
+  /** care_obstruction_confirmed_n / denominator * 100. */
+  care_obstruction_confirmed_pct?: number | null;
+  /** Total event count whose text contained an explicit cancer-
+   *  pathway marker — informational, not used for the headline. */
+  care_obstruction_confirmed_events?: number;
+  /** Total event count that tripped an obstruction phrase but was
+   *  filtered as clearly non-cancer (midwife, district nurse, UTC,
+   *  cardiac rehab, etc.) and so is NOT in the headline.  Surfaced
+   *  in the tooltip + dialog footer so the auditor can see how
+   *  aggressive the filter is. */
+  care_obstruction_unrelated_filtered_events?: number;
+  // ---- Prior consultations (NCDA Section 7) -------------------------
+  // Headline rate of confirmed-cancer episodes with 2+ cancer-related
+  // consultations in the year before the FTR.  Backed by Claude
+  // Haiku 4.5 classification of the year-prior workup window per
+  // episode.  See libs/oncology/prior_consultations.py.
+  /** % of confirmed-cancer episodes with multiple consultations. */
+  prior_consultations_pct?: number | null;
+  /** Numerator behind prior_consultations_pct (>= 2 consultations). */
+  prior_consultations_n?: number;
+  /** Confirmed-cancer denominator behind every prior_consultations_* field. */
+  prior_consultations_denominator?: number;
+  /** Subset of episodes the LLM enrichment pass has classified.
+   *  Should equal `prior_consultations_denominator` when fully
+   *  enriched. */
+  prior_consultations_enriched_n?: number;
+  /** Total cancer-related consultations across the cohort. */
+  prior_consultations_total_consultations?: number;
+  /** Mean per ENRICHED episode (not denominator) so the figure tracks
+   *  the LLM signal rather than being diluted by un-enriched rows. */
+  prior_consultations_mean_per_episode?: number | null;
+  /** Aggregated Haiku 4.5 spend across the cohort. */
+  prior_consultations_llm_cost_usd?: number;
 }
 
 export interface AuditCancerTypeRow {
@@ -1102,6 +1172,119 @@ export interface AuditSafetyNetting {
    * alongside the headline strong+medium rate. */
   strong_n?: number;
   strong_pct?: number;
+}
+
+/** Care-obstruction section result — mirrors AuditSafetyNetting shape. */
+export interface AuditCareObstruction {
+  total_episodes: number;
+  recorded_n: number;
+  recorded_pct: number;
+  not_recorded_pct: number;
+  /** Total number of obstruction events across all episodes — sum of
+   * `care_obstruction_evidence_count` across the cohort. Useful for
+   * the dialog footer ("X obstructions across Y episodes"). */
+  total_events?: number;
+  /** Per-signal counts (rejection > dna > cancellation > access_barrier
+   * > none) — see libs/oncology/care_obstruction.py for the
+   * hierarchy. Drives the Care Obstructions "Open detail" dialog. */
+  signal_counts?: {
+    rejection: number;
+    dna: number;
+    cancellation: number;
+    access_barrier: number;
+    none: number;
+  };
+  signal_pct?: {
+    rejection: number;
+    dna: number;
+    cancellation: number;
+    access_barrier: number;
+    none: number;
+  };
+  /** Severe subset (rejection + dna): events that hard-stop the
+   * workup. Surfaced in the dialog header alongside the headline. */
+  severe_n?: number;
+  severe_pct?: number;
+  // ---- Pathway-relatedness telemetry --------------------------------
+  // Same definition as the AuditSummary fields above — see
+  // libs/oncology/care_obstruction.py.
+  /** Episodes with at least one pathway-confirmed obstruction. */
+  confirmed_n?: number;
+  confirmed_pct?: number;
+  /** Total event count whose text contained an explicit cancer-pathway
+   *  marker (informational; not used for the headline). */
+  confirmed_events?: number;
+  /** Total events filtered as clearly non-cancer (midwife / district
+   *  nurse / phlebotomy / UTC / cardiac rehab / etc.) and so are
+   *  NOT in the headline.  Surfaced in the dialog footer. */
+  unrelated_filtered_events?: number;
+}
+
+/** Prior cancer-related consultations + NCDA "multiple consultations"
+ *  factor breakdown -- mirrors AuditCareObstruction shape so the
+ *  PriorConsultationsSection can reuse the same EvolutionYearCard +
+ *  EvolutionDetailDialog rendering.  Backed by Claude Haiku 4.5
+ *  classification of the year-prior workup window per episode. */
+export interface AuditPriorConsultations {
+  total_episodes: number;
+  /** Episodes the LLM enrichment pass has classified
+   *  (``ep.prior_consultations_n IS NOT NULL``).  Should equal
+   *  ``total_episodes`` once the cohort is fully enriched. */
+  enriched_n: number;
+  enriched_pct: number;
+  /** Headline NCDA Section 7 metric: % of episodes with 2+
+   *  cancer-related consultations in the year before the FTR. */
+  multiple_consultations_pct: number;
+  multiple_consultations_n: number;
+  /** Distribution of the consultation counts.  Drives the dialog
+   *  histogram.  Buckets are 0 / 1 / 2-3 / 4-6 / 7+. */
+  buckets?: {
+    "0": number;
+    "1": number;
+    "2-3": number;
+    "4-6": number;
+    "7+": number;
+  };
+  buckets_pct?: {
+    "0": number;
+    "1": number;
+    "2-3": number;
+    "4-6": number;
+    "7+": number;
+  };
+  /** Mean per-enriched-episode count by contact type.  ``total`` is
+   *  the cancer-related consultation tally.  ``result_review`` is
+   *  surfaced separately as it does NOT count toward the NCDA tally. */
+  mean_per_episode?: {
+    total: number;
+    f2f: number;
+    phone: number;
+    nurse: number;
+    email: number;
+    specialist_clinic: number;
+    home_visit: number;
+    phlebotomy: number;
+    result_review: number;
+  };
+  /** Total cancer-related consultations across the cohort. */
+  total_consultations?: number;
+  /** Encounters that hit the pre-filter but the LLM marked as
+   *  unrelated (LTC review, vaccine clinic, midwife, etc.) -- shown
+   *  in the dialog footer for transparency. */
+  unrelated_filtered_total?: number;
+  /** Top-N NCDA factor codes proposed by the LLM, ranked by
+   *  frequency.  Drives the "Why multiple consultations?" bar chart
+   *  in the detail dialog.  Codes match
+   *  libs/oncology/prior_consultations.NCDAFactor. */
+  top_factors?: Array<{ factor: string; n: number }>;
+  // ---- LLM cost telemetry --------------------------------------
+  /** Aggregated Haiku 4.5 spend across the cohort -- exposed so the
+   *  dashboard can surface the per-tile cost without hitting
+   *  LLMSpendPanel. */
+  llm_cost_usd?: number;
+  llm_input_tokens?: number;
+  llm_output_tokens?: number;
+  llm_calls?: number;
 }
 
 export interface AuditComorbidityRow {
@@ -1335,6 +1518,18 @@ export async function fetchAuditSafetyNetting(
   orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
 ): Promise<AuditSectionResult<AuditSafetyNetting>> {
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/safety-netting${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditCareObstructions(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditCareObstruction>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/care-obstructions${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditPriorConsultations(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditPriorConsultations>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/prior-consultations${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
 }
 
 export async function fetchAuditAvoidableDelays(

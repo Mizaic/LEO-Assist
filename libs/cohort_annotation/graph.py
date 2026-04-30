@@ -46,15 +46,24 @@ from libs.cohort_annotation.validators import run_all_validators
 
 logger = logging.getLogger(__name__)
 
-_JSON_RE = re.compile(r"\{[\s\S]*\}", re.DOTALL)
+_JSON_START_RE = re.compile(r"\{", re.DOTALL)
 _MAX_RETRIES = 1
 
 
 def _parse_json(text: str) -> dict[str, Any]:
-    m = _JSON_RE.search(text)
+    """Parse the first complete JSON object from an LLM response.
+
+    Uses raw_decode so that trailing text (e.g. a second stray JSON block or
+    explanation prose) after the first valid object is silently ignored instead
+    of raising 'Extra data'.
+    """
+    m = _JSON_START_RE.search(text)
     if not m:
         raise ValueError(f"No JSON object found in LLM response: {text[:200]}")
-    return json.loads(m.group())
+    obj, _ = json.JSONDecoder().raw_decode(text, m.start())
+    if not isinstance(obj, dict):
+        raise ValueError(f"Expected JSON object, got {type(obj).__name__}: {text[:200]}")
+    return obj
 
 
 def _build_sentences_block(sentences: list[dict[str, Any]]) -> str:
@@ -190,7 +199,7 @@ def node_narrative(state: AnnotationState) -> AnnotationState:
         resp = llm.converse(
             system=NARRATIVE_SYSTEM_V1,
             messages=[{"role": "user", "content": user_msg}],
-            max_tokens=2048,
+            max_tokens=4096,
             temperature=0.0,
             agent_task="cohort_annotation_narrative",
             patient_id=pid,
@@ -239,7 +248,7 @@ def node_relation_linker(state: AnnotationState) -> AnnotationState:
         resp = llm.converse(
             system=RELATION_LINKER_SYSTEM_V1,
             messages=[{"role": "user", "content": user_msg}],
-            max_tokens=1024,
+            max_tokens=2048,
             temperature=0.0,
             agent_task="cohort_annotation_relation_linker",
             patient_id=pid,

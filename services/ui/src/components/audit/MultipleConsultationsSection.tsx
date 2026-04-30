@@ -101,6 +101,7 @@ export default function MultipleConsultationsSection({
       description="For patients who had 3 or more consultations before referral, the reasons as assessed by the GP. Requires structured data entry. Each card covers a Jan-Dec calendar year and counts episodes by year of diagnosis or benign closure."
       availability="manual_entry"
       loading={loading}
+      loadingSkeletonVariant="cardGrid"
       error={error}
     >
       <Box sx={{ display: "flex", gap: 2, mb: 1.5, flexWrap: "wrap" }}>
