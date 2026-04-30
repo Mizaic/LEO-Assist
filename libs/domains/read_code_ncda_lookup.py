@@ -147,6 +147,7 @@ READ_CODE_TO_NCDA_ROLE: dict[str, tuple[NcdaRole, DxOutcome | None]] = {
     "Y0785": ("dx", None),   # Dermoscopy (skin cancer assessment)
     "XaPQa": ("dx", None),   # CT colonoscopy
     "XaJGZ": ("dx", None),   # Colonoscopy (lower GI cancer pathway)
+    "XM0By": ("dx", None),   # Colonoscopy (procedural) - outcome inferred from text (e.g. "normal", "polyp removed", "Major: Carcinoma...")
     "XE0Gd": ("dx", None),   # Transperineal needle biopsy of prostate
     "XaW00": ("dx", None),   # Multiparametric MRI prostate
     "X40U7": ("dx", None),   # Bronchoscopy (lung cancer pathway)
@@ -334,11 +335,28 @@ SITE_KEYWORDS: dict[CancerSite, tuple[str, ...]] = {
     "breast":          ("breast", "mammogram", "mammography"),
     "urological":      ("prostate", "urology", "urological", "bladder", "haematuria", "renal", "kidney", "psa"),
     "haematological":  ("haematol", "lymphoma", "leukaemia", "myeloma", "sll", "cll"),
-    "lower_gi":        ("lower gi", "colorectal", "bowel", "rectal", "rectum", "colon", "fit positive", "lgi"),
+    "lower_gi":        ("lower gi", "colorectal", "bowel", "rectal", "rectum", "colon", "fit positive", "lgi",
+                        "caecum", "cecum", "anal canal", "ileum"),
     "upper_gi":        ("upper gi", "oesophag", "stomach", "gastric", "dysphagia"),
     "gynaecological":  ("gynae", "gynaecolog", "cervix", "endometri", "ovari", "uterus"),
-    "head_neck":       ("head and neck", "head & neck", "thyroid", "larynx", "pharynx", "tongue", "hoarse"),
-    "skin":            ("skin", "dermoscopy", "dermatology", "melanoma", "lesion"),
+    "head_neck":       ("head and neck", "head & neck", "thyroid", "larynx", "pharynx", "tongue",
+                        "hoarse", "papillary thyroid", "follicular thyroid", "thyroidectomy",
+                        "buccal mucosa", "oral cavity",
+                        "squamous cell carcinoma of buccal",
+                        "squamous cell carcinoma of tongue",
+                        "squamous cell carcinoma of larynx",
+                        "squamous cell carcinoma of pharynx"),
+    # See silver_labeller._SITE_TOKENS for the rationale on the BCC/SCC/AK
+    # additions and why bare "squamous cell carcinoma" is excluded.
+    "skin":            ("skin", "dermoscopy", "dermatology", "melanoma", "lesion",
+                        "basal cell carcinoma", "bcc",
+                        "actinic keratosis", "ak ", "wide local excision", "wle",
+                        "excision of basal", "excision of squamous",
+                        "squamous cell carcinoma of skin",
+                        "squamous cell carcinoma - r vertex",
+                        "squamous cell carcinoma - l vertex",
+                        "squamous cell carcinoma of scalp",
+                        "scalp", "vertex"),
     "lung":            ("lung", "chest x-ray", "cxr", "thoracic", "respiratory"),
     "brain":           ("brain", "cns", "neurosurg", "headache", "seizure"),
     "nss":             ("non-site specific", "nss", "weight loss", "fatigue"),

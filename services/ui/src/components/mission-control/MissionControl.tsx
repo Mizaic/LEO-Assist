@@ -459,6 +459,7 @@ export default function MissionControl() {
         }}
         onApply={handleApply}
         onClear={handleClear}
+        cancerTypeCounts={kpis?.cancer_type_counts}
       />
 
       {/* KPI strip */}

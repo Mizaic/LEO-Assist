@@ -148,6 +148,7 @@ export interface MissionKPIs {
   median_diagnostic_interval_days: number | null;
   safety_netting_rate: number;
   needs_review_count: number;
+  cancer_type_counts?: Record<string, number>;
   cohort?: MissionKPICohort;
 }
 

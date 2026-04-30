@@ -180,13 +180,51 @@ def audit_summary(
             **params,
         )
 
+        # Safety-netting Section 8 breakdown.  Denominator is the
+        # canonical confirmed-cancer cohort (so the rate is comparable
+        # to the NCDA report).  Numerators are layered by signal
+        # strength so the dashboard can render the strict default
+        # ("recorded" = strong+medium) and expose the strong-only and
+        # advice-only numbers via tooltip.  See
+        # libs/oncology/safety_netting.py for the signal hierarchy.
+        sn_breakdown_rows = client.run(
+            f"{base}"
+            f"AND {confirmed_cancer_where('ep')} "
+            "RETURN coalesce(ep.safety_netting_signal, 'none') AS signal, "
+            "       count(DISTINCT ep) AS n",
+            **params,
+        )
+        sn_signal_counts: dict[str, int] = {
+            "strong": 0,
+            "medium": 0,
+            "advice_only": 0,
+            "none": 0,
+        }
+        for row in sn_breakdown_rows or []:
+            key = str(row.get("signal") or "none")
+            if key in sn_signal_counts:
+                sn_signal_counts[key] += int(row.get("n") or 0)
+
         # NCDA cohort breakdown: 1a (FTR + cancer found), 1b (FTR + benign),
-        # 3 (cancer found, no FTR).  Surfaced as headline cards in the
-        # redesigned Summary section.
+        # 3 (cancer found, no FTR).  Derived dynamically from milestone checks
+        # so that legacy episodes (ep.cohort IS NULL) are correctly classified
+        # and the cohort totals agree with confirmed_cancers (1a + 3 == confirmed).
+        _confirmed = confirmed_cancer_where("ep")
+        _has_referral = (
+            "EXISTS { MATCH (:Encounter)-[__cref:IS_PART_OF]->(ep) "
+            "WHERE __cref.milestone_type = 'referral' }"
+        )
         cohort_rows = client.run(
             f"{base}"
-            "RETURN coalesce(ep.cohort, 'unknown') AS cohort, "
-            "count(DISTINCT ep) AS n",
+            f"WITH ep, ({_confirmed}) AS _is_confirmed, {_has_referral} AS _has_ref "
+            "WITH ep, "
+            "  CASE "
+            "    WHEN _is_confirmed AND _has_ref     THEN '1a' "
+            "    WHEN NOT _is_confirmed AND _has_ref AND ep.status = 'closed_benign' THEN '1b' "
+            "    WHEN _is_confirmed AND NOT _has_ref  THEN '3' "
+            "    ELSE 'other' "
+            "  END AS cohort "
+            "RETURN cohort, count(DISTINCT ep) AS n",
             **params,
         )
         cohort_counts: dict[str, int] = {"1a": 0, "1b": 0, "3": 0}
@@ -321,6 +359,22 @@ def audit_summary(
             return float(vals[mid]) if n % 2 else (vals[mid - 1] + vals[mid]) / 2.0
 
         mece_total = sum(bucket_counts.values())
+
+        # Safety-netting derived rates.  The headline "recorded" rate
+        # is strong+medium / confirmed (the NCDA Section 8 number).
+        # The strict "strong only" rate is surfaced separately for the
+        # tooltip so the user can see how many cases have a free-text
+        # plan vs only the structured PRISM/Y281b template.
+        sn_denom = sum(sn_signal_counts.values())
+        sn_recorded_n = sn_signal_counts["strong"] + sn_signal_counts["medium"]
+        sn_strong_n = sn_signal_counts["strong"]
+        sn_recorded_pct = (
+            round(sn_recorded_n * 100.0 / sn_denom, 1) if sn_denom else None
+        )
+        sn_strong_pct = (
+            round(sn_strong_n * 100.0 / sn_denom, 1) if sn_denom else None
+        )
+
         return {
             "total_episodes": total,
             "active_episodes": active,
@@ -355,7 +409,24 @@ def audit_summary(
                 if consult_vals
                 else None
             ),
-            "safety_netting_pct": (
+            # Safety-netting headline: rate of confirmed-cancer
+            # episodes with a Section-8-defensible safety-net record
+            # (strong: free-text "safety netted" / "safety net advice"
+            # OR Y281b code; medium: PRISM "Advice if worsens" field).
+            # The denominator is confirmed_cancers, NOT total_episodes,
+            # so the rate is comparable to NCDA Section 8.
+            "safety_netting_pct": sn_recorded_pct,
+            "safety_netting_recorded_n": sn_recorded_n,
+            "safety_netting_strong_pct": sn_strong_pct,
+            "safety_netting_strong_n": sn_strong_n,
+            "safety_netting_signal_counts": sn_signal_counts,
+            "safety_netting_denominator": sn_denom,
+            # Legacy field: the OLD safety_netting_pct was computed
+            # against ep.safety_netting_recorded for the referral-gated
+            # subset only (cohorts 1a + 1b).  Keep it under a different
+            # key so any tests still asserting the legacy denominator
+            # can be migrated incrementally.
+            "safety_netting_legacy_pct": (
                 round(sn_count * 100.0 / total, 1) if total else None
             ),
         }

@@ -520,7 +520,16 @@ class TestAuditDemographics:
 
 class TestAuditSafetyNetting:
     def test_multi_scope_envelope(self):
-        rows = [{"total_episodes": 51, "recorded": 10}]
+        rows = [
+            {
+                "total_episodes": 51,
+                "recorded": 10,
+                "strong_n": 7,
+                "medium_n": 3,
+                "advice_only_n": 5,
+                "none_n": 36,
+            }
+        ]
         with patch(
             "services.analytics_api.app.routers.audit.PatientGraphClient"
         ) as MockClient:
@@ -541,6 +550,103 @@ class TestAuditSafetyNetting:
         practice = _practice(result)
         assert "recorded_pct" in practice
         assert practice["recorded_pct"] == round(10 * 100.0 / 51, 1)
+
+    def test_returns_signal_strength_breakdown(self):
+        """The Safety Netting 'Open detail' dialog (per-year drill)
+        reads ``signal_counts`` / ``signal_pct`` directly off the
+        per-year response. Pin the contract here so a backend refactor
+        cannot silently strip the breakdown.
+        """
+        rows = [
+            {
+                "total_episodes": 42,
+                "recorded": 20,
+                "strong_n": 13,
+                "medium_n": 7,
+                "advice_only_n": 3,
+                "none_n": 19,
+            }
+        ]
+        with patch(
+            "services.analytics_api.app.routers.audit.PatientGraphClient"
+        ) as MockClient:
+            mock = _mock_client([rows])
+            MockClient.return_value = mock
+
+            from services.analytics_api.app.routers.audit import audit_safety_netting
+
+            result = audit_safety_netting(
+                scope=_mock_scope(),
+                org_id=None,
+                date_from=None,
+                date_to=None,
+                benchmark_set_id=None,
+            )
+
+        practice = _practice(result)
+        assert practice["signal_counts"] == {
+            "strong": 13,
+            "medium": 7,
+            "advice_only": 3,
+            "none": 19,
+        }
+        # signal_pct must sum to ~100 (modulo rounding drift on each row).
+        signal_pct = practice["signal_pct"]
+        assert signal_pct["strong"] == 31.0  # 13/42
+        assert signal_pct["medium"] == 16.7  # 7/42
+        assert signal_pct["advice_only"] == 7.1  # 3/42
+        assert signal_pct["none"] == 45.2  # 19/42
+
+        # The strict 'strong only' subset is surfaced for the dialog
+        # header ("strict (free-text or Y281b only)" tile).
+        assert practice["strong_n"] == 13
+        assert practice["strong_pct"] == 31.0
+
+        # Recorded headline still equals strong + medium so the year
+        # card and the dialog headline tile agree by construction.
+        assert practice["recorded_n"] == 20
+        assert practice["recorded_pct"] == round(20 * 100.0 / 42, 1)
+
+    def test_handles_zero_episodes_without_division_error(self):
+        """When the year window has no confirmed cancers yet, every
+        rate must clamp safely (no ZeroDivisionError on the helper)."""
+        rows = [
+            {
+                "total_episodes": 0,
+                "recorded": 0,
+                "strong_n": 0,
+                "medium_n": 0,
+                "advice_only_n": 0,
+                "none_n": 0,
+            }
+        ]
+        with patch(
+            "services.analytics_api.app.routers.audit.PatientGraphClient"
+        ) as MockClient:
+            mock = _mock_client([rows])
+            MockClient.return_value = mock
+
+            from services.analytics_api.app.routers.audit import audit_safety_netting
+
+            result = audit_safety_netting(
+                scope=_mock_scope(),
+                org_id=None,
+                date_from=None,
+                date_to=None,
+                benchmark_set_id=None,
+            )
+
+        practice = _practice(result)
+        assert practice["total_episodes"] == 0
+        assert practice["recorded_pct"] == 0.0
+        assert practice["signal_counts"] == {
+            "strong": 0,
+            "medium": 0,
+            "advice_only": 0,
+            "none": 0,
+        }
+        assert practice["signal_pct"]["strong"] == 0.0
+        assert practice["strong_pct"] == 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -668,8 +774,10 @@ class TestCypherComposition:
         base = "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep) WHERE true "
         result_base, _ = _add_date_filters(base, {}, "2024-01-01", "2024-12-31")
         assert "WHERE" not in result_base.split("AND")[0].split("true")[1]
-        assert "AND ep.referral_date >= $date_from" in result_base
-        assert "AND ep.referral_date <= $date_to" in result_base
+        # New anchor: outcome_date (year of diagnosis or benign closure),
+        # bound by _OUTCOME_DATE_BIND in the per-section base.
+        assert "AND outcome_date >= $date_from" in result_base
+        assert "AND outcome_date <= $date_to" in result_base
 
     def test_add_date_filters_no_dates_unchanged(self):
         """When no dates are provided the base is returned unchanged."""
@@ -680,26 +788,31 @@ class TestCypherComposition:
         assert result_base == base
         assert result_params == {"org": "x"}
 
-    def test_org_patient_match_starts_active_where_clause(self):
-        """_ORG_PATIENT_MATCH must end with an active WHERE clause for AND composition."""
+    def test_org_patient_match_binds_outcome_date(self):
+        """_ORG_PATIENT_MATCH must bind outcome_date and end with WHERE true."""
         from services.analytics_api.app.routers.audit import _ORG_PATIENT_MATCH
 
         stripped = _ORG_PATIENT_MATCH.rstrip()
-        # Must end with the episode-exclusion clause (not bare WHERE true)
+        # Episode-exclusion clause must still be present (now followed by
+        # the outcome_date OPTIONAL MATCH + WITH chain).
         assert "WHERE NOT ep.status IN" in stripped
-        # The trailing text must end with the closing bracket + space so AND can follow
-        assert stripped.endswith("]") or stripped.endswith("] ")
+        # Outcome anchor must be bound so _add_date_filters can filter on it.
+        assert "AS outcome_date" in stripped
+        # The chain must terminate in an active WHERE clause so callers
+        # can append predicates with AND.
+        assert stripped.endswith("WHERE true")
 
-    def test_england_base_starts_active_where_clause(self):
-        """_ENGLAND_BASE must end with an active WHERE clause for AND composition."""
+    def test_england_base_binds_outcome_date(self):
+        """_ENGLAND_BASE must bind outcome_date and end with WHERE true."""
         from services.analytics_api.app.routers.audit import _ENGLAND_BASE
 
         stripped = _ENGLAND_BASE.rstrip()
         assert "WHERE NOT ep.status IN" in stripped
-        assert stripped.endswith("]") or stripped.endswith("] ")
+        assert "AS outcome_date" in stripped
+        assert stripped.endswith("WHERE true")
 
-    def test_date_filters_with_org_base_produces_no_double_where(self):
-        """Applying date filters to org base must not produce double WHERE."""
+    def test_date_filters_with_org_base_produces_no_bare_where(self):
+        """Applying date filters to org base must not produce a bare WHERE."""
         from services.analytics_api.app.routers.audit import (
             _add_date_filters,
             _ORG_PATIENT_MATCH,
@@ -708,10 +821,11 @@ class TestCypherComposition:
         base, params = _add_date_filters(
             _ORG_PATIENT_MATCH, {"org": "abc"}, "2024-01-01", None
         )
-        # Count WHERE occurrences -- must be exactly 2:
-        # one for the GP filter, one for the episode filter ("WHERE true")
-        assert base.count("WHERE") == 2
-        assert "AND ep.referral_date >= $date_from" in base
+        # Count WHERE occurrences -- must be exactly 4:
+        # GP filter, episode filter, optional-match milestone filter,
+        # and the trailing WHERE true (now extended with the date filter).
+        assert base.count("WHERE") == 4
+        assert "AND outcome_date >= $date_from" in base
 
 
 # ---------------------------------------------------------------------------

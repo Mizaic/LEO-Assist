@@ -53,6 +53,15 @@ _DERMOSCOPY_RE = re.compile(r"\bdermoscop(?:y|ic)\b", re.IGNORECASE)
 LINK_WINDOW_DAYS: int = 180
 TREATMENT_WINDOW_DAYS: int = 180
 
+# Two FTR encounters within this many days of each other AND with compatible
+# sites are treated as the same real-world FTR submission entered twice (e.g.
+# clinician starts the PRISM 2WW questionnaire at 16:35 and the secretary
+# finalises it at 16:55 producing two encounters with the same date but only
+# the second one carries the explicit XaMeJ Read code).  Without this
+# collapse the simple linker would build TWO separate pathways and the
+# detector would persist two duplicate EpisodeOfCare nodes.
+NEAR_FTR_COLLAPSE_DAYS: int = 1
+
 
 @dataclass(frozen=True)
 class EncounterRow:
@@ -126,18 +135,119 @@ def _annotate_site(enc: EncounterRow) -> EncounterRow:
 def _sites_compatible(a: CancerSite | None, b: CancerSite | None) -> bool:
     """True when both sites are the same, or when either is NSS / unknown.
 
-    Haematological malignancies (lymphoma, leukaemia, myeloma) can present
-    through any referral pathway (e.g. axillary mass found during breast 2WW,
-    cervical lymphadenopathy on head & neck pathway) so they are considered
-    compatible with any FTR site.
+    The previous version allowed any haematological malignancy to wildcard-
+    match every FTR site, on the rationale that lymphoma can be discovered
+    incidentally on a breast or head-and-neck 2WW.  In practice that
+    wildcard caused FPs (e.g. patient 6310920987: breast-screening FTR
+    silently linked to a CLL dx 39 days later, producing a phantom cohort-1a
+    breast episode).  Genuine "incidental haematological discovery on a
+    site-specific 2WW" still falls into cohort 3 where the dx encounter has
+    no FTR within window — that is the correct NCDA route classification.
     """
     if a is None or b is None:
         return True
     if a == "nss" or b == "nss":
         return True
-    if a == "haematological" or b == "haematological":
+    return a == b
+
+
+def _ftr_sites_compatible_for_collapse(
+    a: CancerSite | None, b: CancerSite | None
+) -> bool:
+    """Stricter site-compatibility for collapsing duplicate FTR submissions.
+
+    Unlike ``_sites_compatible`` (which is used to link FTRs to Dx and so
+    treats haematological / NSS as wildcards), this only treats two FTRs as
+    duplicates when they have the SAME site, or when at least one site is
+    unknown (``None``).  We deliberately do NOT collapse a haematological FTR
+    with a same-day breast FTR — those are clinically distinct submissions
+    even if hard-to-distinguish at the linker stage.
+    """
+    if a is None or b is None:
         return True
     return a == b
+
+
+def _ftr_specificity(enc: EncounterRow) -> int:
+    """Return a sortable canonicality score for an FTR.
+
+    Higher is more canonical.  Used to pick the surviving FTR when a cluster
+    of near-duplicate same-day FTRs is collapsed.
+
+    Heuristics:
+        +3  encounter has an explicit FTR Read code in its text (XaMeJ etc.)
+        +2  encounter has a non-None inferred site (text mentions e.g. 'lung')
+        +1  encounter has any text at all (vs. a stub row)
+    """
+    score = 0
+    text = enc.text or ""
+    if any(code in text for code in FTR_CODE_TO_SITE):
+        score += 3
+    if enc.site is not None:
+        score += 2
+    if text.strip():
+        score += 1
+    return score
+
+
+def _collapse_near_duplicate_ftrs(
+    ftrs: Sequence[EncounterRow],
+    *,
+    window_days: int,
+) -> tuple[list[EncounterRow], list[tuple[EncounterRow, EncounterRow]]]:
+    """Collapse FTRs that look like the same real-world submission entered twice.
+
+    Two FTRs are considered duplicates when:
+        - They are within ``window_days`` days of each other; AND
+        - Their sites are compatible (``_sites_compatible``), i.e. same site
+          or one of them has no inferred site at all.
+
+    The most canonical FTR in each cluster (per ``_ftr_specificity``) is kept.
+    Ties broken by latest ``encounter_date`` (the finalised submission usually
+    follows the started one).
+
+    Returns:
+        (kept, dropped_pairs) where ``dropped_pairs`` is a list of
+        ``(dropped_ftr, kept_ftr)`` so the caller can log/audit which
+        encounters were collapsed.
+    """
+    if window_days < 0:
+        return list(ftrs), []
+    sorted_ftrs = sorted(
+        ftrs,
+        key=lambda e: (e.encounter_date or "", e.encounter_id),
+    )
+    kept: list[EncounterRow] = []
+    dropped: list[tuple[EncounterRow, EncounterRow]] = []
+    for cand in sorted_ftrs:
+        cand_date = _to_date(cand.encounter_date)
+        merged_with: EncounterRow | None = None
+        for i, existing in enumerate(kept):
+            existing_date = _to_date(existing.encounter_date)
+            if cand_date is None or existing_date is None:
+                continue
+            if abs((cand_date - existing_date).days) > window_days:
+                continue
+            if not _ftr_sites_compatible_for_collapse(existing.site, cand.site):
+                continue
+            cand_score = _ftr_specificity(cand)
+            existing_score = _ftr_specificity(existing)
+            if (
+                cand_score > existing_score
+                or (
+                    cand_score == existing_score
+                    and (cand.encounter_date or "") > (existing.encounter_date or "")
+                )
+            ):
+                kept[i] = cand
+                dropped.append((existing, cand))
+            else:
+                dropped.append((cand, existing))
+            merged_with = cand
+            break
+        if merged_with is None:
+            kept.append(cand)
+    return kept, dropped
 
 
 def _more_specific_ftr_exists(
@@ -231,6 +341,7 @@ def link_patient(
     *,
     link_window_days: int = LINK_WINDOW_DAYS,
     treatment_window_days: int = TREATMENT_WINDOW_DAYS,
+    near_ftr_collapse_days: int = NEAR_FTR_COLLAPSE_DAYS,
 ) -> list[SimplePathway]:
     """Build NCDA pathways for one patient using the site-aware simple linker.
 
@@ -254,6 +365,11 @@ def link_patient(
     ftrs = sorted(
         [e for e in encs if e.role == "ftr"],
         key=lambda e: e.encounter_date or "",
+    )
+    # Collapse near-duplicate FTRs (e.g. PRISM 2WW questionnaire started by
+    # one staff member and finalised by another, within the same day).
+    ftrs, _collapsed_pairs = _collapse_near_duplicate_ftrs(
+        ftrs, window_days=near_ftr_collapse_days
     )
     seens = sorted(
         [e for e in encs if e.role == "seen"],

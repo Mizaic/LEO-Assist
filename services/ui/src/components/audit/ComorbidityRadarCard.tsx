@@ -128,6 +128,12 @@ export interface ComorbidityRadarCardProps {
   totalPatients: number;
   loading?: boolean;
   isBaseline?: boolean;
+  /**
+   * Optional shared radial max (%). When provided the card uses this scale
+   * instead of computing its own per-card max, so all year cards in a
+   * section share the same axis and shapes are visually comparable.
+   */
+  maxScale?: number;
   onBreakdown?: () => void;
   /** When provided, renders a small expand button in the card header. */
   onZoom?: () => void;
@@ -141,6 +147,7 @@ export default function ComorbidityRadarCard({
   totalPatients,
   loading = false,
   isBaseline = false,
+  maxScale: maxScaleProp,
   onBreakdown,
   onZoom,
   bare = false,
@@ -169,7 +176,7 @@ export default function ComorbidityRadarCard({
   });
 
   const maxPct = axes.reduce((m, a) => Math.max(m, a.value ?? 0), 0);
-  const maxScale = Math.min(100, Math.max(8, Math.ceil(maxPct + 4)));
+  const maxScale = maxScaleProp ?? Math.min(100, Math.max(8, Math.ceil(maxPct + 4)));
 
   const svgW = Math.max(220, containerW);
   const svgH = svgW;

@@ -156,13 +156,23 @@ export default function AuditPage() {
     setActiveTab(1);
   };
 
-  // Other audit sections still consume appliedFrom/appliedTo from the global
-  // analytics-date-filter context. The on-page UI controls that wrote to
-  // those values were removed when the Cancer Type section moved to a fixed
-  // four-card year-on-year evolution view (DI-077C8810); the values now
-  // default to undefined (all-time) until each remaining section is migrated
-  // to the same progression model.
+  // After every section migrated to the year-on-year evolution model
+  // (DI-077C8810 + this commit), each section owns its own per-year
+  // fetch via useAuditYearWindows; the page-level fetch is now
+  // restricted to the same Jan(Y-2) -> Dec(Y) cohort window so the
+  // Summary headline, the cohort breakdown, the snapshot deviation
+  // table, and every section radar agree on the same denominator
+  // (year of diagnosis or benign closure -- see _OUTCOME_DATE_BIND
+  // on the backend). Users may still narrow the window via the
+  // global analytics-date-filter context; otherwise we anchor on the
+  // 3-year default that all evolution cards cover.
   const { appliedFrom, appliedTo, isFiltered } = useAnalyticsDateFilter();
+  const currentYear = new Date().getUTCFullYear();
+  const defaultWindowFrom = `${currentYear - 2}-01-01`;
+  const defaultWindowTo = `${currentYear}-12-31`;
+  const effectiveFrom = appliedFrom ?? defaultWindowFrom;
+  const effectiveTo = appliedTo ?? defaultWindowTo;
+  const cohortWindowLabel = `${currentYear - 2}-${currentYear} (year of diagnosis or benign closure)`;
 
   // Benchmark set selection.
   // null = lookup still in-flight; "none" = loaded but no benchmark selected; else = set id.
@@ -252,8 +262,8 @@ export default function AuditPage() {
   );
 
   useEffect(() => {
-    load(appliedFrom, appliedTo);
-  }, [load, appliedFrom, appliedTo]);
+    load(effectiveFrom, effectiveTo);
+  }, [load, effectiveFrom, effectiveTo]);
 
   const anyLoading = Object.values(loading).some(Boolean);
 
@@ -267,7 +277,9 @@ export default function AuditPage() {
             Clinical Audit
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.82rem", mt: 0.25 }}>
-            National Cancer Diagnosis Audit (NCDA) — 14 sections with multi-level live benchmarking
+            National Cancer Diagnosis Audit (NCDA) -- 14 sections, year-on-year evolution against the 2018 NCDA baseline.
+            <br />
+            Cohort window: {cohortWindowLabel}.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center">
@@ -342,6 +354,7 @@ export default function AuditPage() {
             safetyNetting={safetyNetting}
             avoidableDelays={avoidableDelays}
             onViewInReport={handleViewInReport}
+            cohortWindowLabel={isFiltered ? undefined : cohortWindowLabel}
           />
         </Box>
       )}
@@ -355,7 +368,11 @@ export default function AuditPage() {
           loading={loading.summary}
           error={errors.summary}
           totalCases={summary?.total_episodes}
-          auditPeriod={isFiltered ? `${appliedFrom ?? "Any date"} to ${appliedTo ?? "present"}` : undefined}
+          auditPeriod={
+            isFiltered
+              ? `${appliedFrom ?? "Any date"} to ${appliedTo ?? "present"}`
+              : cohortWindowLabel
+          }
           orgSelected={orgSelected}
         />
 
@@ -385,15 +402,14 @@ export default function AuditPage() {
           loading={loading.comorbidities}
           error={errors.comorbidities}
           orgSelected={orgSelected}
-          orgId={orgId ?? undefined}
-          dateFrom={appliedFrom}
-          dateTo={appliedTo}
+          dateFrom={effectiveFrom}
+          dateTo={effectiveTo}
         />
 
         <SymptomsSection
           orgId={orgId ?? undefined}
-          dateFrom={appliedFrom}
-          dateTo={appliedTo}
+          dateFrom={effectiveFrom}
+          dateTo={effectiveTo}
         />
 
         <PlaceOfPresentationSection
@@ -401,7 +417,6 @@ export default function AuditPage() {
           loading={loading.placeOfPresentation}
           error={errors.placeOfPresentation}
           orgSelected={orgSelected}
-          orgId={orgId ?? undefined}
         />
 
         <ConsultationsSection

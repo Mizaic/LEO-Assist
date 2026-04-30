@@ -56,6 +56,7 @@ from libs.oncology.first_presentation import (  # noqa: E402
     build_fp_cypher_filter,
     resolve_symptom_site,
 )
+from libs.oncology.safety_netting import detect_safety_netting  # noqa: E402
 from libs.oncology.staging_extractor import extract_staging  # noqa: E402
 from services.analysis_worker.app.ncda_detector.route_classifier import (  # noqa: E402
     classify_diagnosis_route,
@@ -67,6 +68,13 @@ from services.analysis_worker.app.ncda_detector.simple_linker import (  # noqa: 
     EncounterRow as SimpleEncounterRow,
     SimplePathway,
     link_patient as simple_link_patient,
+)
+
+from scripts.ncda._episode_guards import (  # noqa: E402
+    apply_reviewed_guard,
+    episode_id_hash as _guard_episode_id_hash,
+    fetch_existing_episodes,
+    stabilise_anchor_eids,
 )
 
 
@@ -184,6 +192,50 @@ def _same_specific_site(a: str | None, b: str | None) -> bool:
 # days that share a Seen-In or Dx encounter are almost always the same pathway
 # captured twice (admin re-send, secretary copy, secondary-care echo).
 _NEAR_FTR_COLLAPSE_DAYS = 7
+
+
+# A cohort-3 candidate whose dx encounter text is dominated by metastatic
+# recap language (e.g. "Major: Metastasis to lymph node (Xa980) (New
+# Episode)") is almost always a progression event of an already-known
+# cancer rather than a brand-new primary that arrived through an unknown
+# route.  When the same patient already has a cohort-1 cancer-found
+# pathway with an earlier dx, the cohort-3 metastasis dx is suppressed at
+# the reduce step.  See patients 4940120139 (3 metastatic cohort-3 NEWs
+# all attributable to the existing colorectal episode), 4802241127, and
+# 6044092682 in artifacts/ncda_full_run/new_candidates_inspection.txt.
+_METASTASIS_DX_RE = __import__("re").compile(
+    r"\b(?:metastas[ie]s|metastatic|secondary\s+(?:carcinoma|deposit)"
+    r"|met(?:s)?\s+to\s+(?:lung|liver|bone|brain|lymph\s+node|node|nodes)"
+    r"|metastasis\s+to\s+(?:lung|liver|bone|brain|lymph\s+node|node|nodes)"
+    r"|metastatic\s+(?:carcinoma|adenocarcinoma|deposit))\b",
+    __import__("re").IGNORECASE,
+)
+
+
+def _is_metastasis_only_dx(dx_text: str) -> bool:
+    """True when a dx encounter's text reads as metastasis recap only.
+
+    Heuristic: metastatic phrasing is present AND no "primary" cancer term
+    appears as the leading 'Major:' diagnosis (i.e. the encounter is not
+    introducing a fresh primary like 'Major: Malignant tumour of breast').
+    """
+    if not dx_text:
+        return False
+    if not _METASTASIS_DX_RE.search(dx_text):
+        return False
+    primary_major = __import__("re").search(
+        r"^Major:\s+(?:malignant\s+(?:tumou?r|neoplasm)\s+of"
+        r"|carcinoma\s+of"
+        r"|adenocarcinoma\s+of"
+        r"|chronic\s+lymphoid\s+leukaemia"
+        r"|invasive\s+(?:ductal|lobular)\s+carcinoma"
+        r"|infiltrating\s+duct\s+carcinoma"
+        r"|squamous\s+cell\s+carcinoma\s+(?:of|-)"
+        r"|basal\s+cell\s+carcinoma\s+(?:of|-))",
+        dx_text,
+        __import__("re").IGNORECASE | __import__("re").MULTILINE,
+    )
+    return primary_major is None
 
 
 def _anchor_payload(anchor: SimpleEncounterRow | None) -> dict[str, Any] | None:
@@ -532,6 +584,21 @@ def reduce_episode_candidates(
                     row.get("patient_id") or "", []
                 )
             )
+        # Drop cohort-3 candidates whose dx text is metastatic recap only
+        # AND the patient already has ANY cohort-1 cancer-found episode at
+        # an earlier date.  These are progression events of a known primary,
+        # not a new cancer diagnosis on a fresh route.
+        if not drop:
+            dx_text = (row.get("dx") or {}).get("text_preview", "") or ""
+            if _is_metastasis_only_dx(dx_text):
+                earlier_linked = [
+                    d for d in all_linked_found_by_patient.get(
+                        row.get("patient_id") or "", []
+                    )
+                    if _date_lte(d, dx_date)
+                ]
+                if earlier_linked:
+                    drop = True
         if not drop:
             filtered_cohort3.append(row)
 
@@ -761,9 +828,12 @@ def _episode_params(row: dict[str, Any]) -> dict[str, Any]:
     dx_date = (row["dx"] or {}).get("encounter_date") or ""
     treatment_date = (row["treatment"] or {}).get("encounter_date") or ""
 
-    # Deterministic anchor: prefer FTR date, fall back to Dx date for cohort-3
+    # Deterministic anchor: prefer FTR date, fall back to Dx date for cohort-3.
+    # If the guard layer found a stable existing detector eid for the same
+    # patient/site within +-N days of this anchor, reuse that eid to avoid
+    # DELETE+RECREATE churn on already-stable episodes.
     anchor = ftr_date or dx_date
-    episode_id = _det_episode_id(patient_id, site, anchor)
+    episode_id = row.get("_stable_eid") or _det_episode_id(patient_id, site, anchor)
 
     # Status
     # 1b = cancer excluded → closed_benign so the MECE hero-bucket correctly
@@ -1133,12 +1203,76 @@ def write_episodes_to_graph(
                         )
                         break
 
+            # Safety-netting enrichment pass — populates Section 8 of the
+            # NCDA report.  Scans every encounter in a milestone-anchored
+            # window [earliest_milestone - 30d, latest_milestone + 14d]
+            # for safety-net evidence (Y281b code, "safety netted",
+            # "Cancer safety netting", PRISM "Advice if worsens" field,
+            # "return if X" generic advice).  See libs/oncology/
+            # safety_netting.py for the full signal hierarchy.
+            #
+            # Runs against ALL EpisodeOfCare nodes (detector + reviewed)
+            # so the dashboard tile uses the same denominator as
+            # /audit/summary's confirmed-cancer count.
+            sn_enrichment_rows = session.run(
+                """
+                MATCH (ep:EpisodeOfCare)
+                WHERE NOT ep.status IN
+                    ['merged','closed_phantom','closed_related']
+                OPTIONAL MATCH (mE:Encounter)-[mR:IS_PART_OF]->(ep)
+                  WHERE mR.milestone_type IN
+                    ['referral','diagnosis','diagnosis_confirmed',
+                     'seen','treatment']
+                WITH ep,
+                     min(toString(mE.date)) AS first_d,
+                     max(toString(mE.date)) AS last_d
+                WHERE first_d IS NOT NULL
+                MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep)
+                MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter)
+                WHERE date(toString(e.date)) >=
+                        date(first_d) - duration({days: 30})
+                  AND date(toString(e.date)) <=
+                        date(last_d) + duration({days: 14})
+                  AND coalesce(e.text, '') <> ''
+                WITH ep.episode_id AS eid,
+                     collect(coalesce(e.text, '')) AS texts
+                RETURN eid, texts
+                """
+            )
+            sn_updates = []
+            for row in sn_enrichment_rows:
+                match = detect_safety_netting(row["texts"] or [])
+                sn_updates.append(
+                    {
+                        "eid": row["eid"],
+                        "recorded": match.recorded,
+                        "signal": match.signal,
+                        "evidence_count": match.evidence_count,
+                        "code_hits": list(match.code_hits),
+                        "phrase_hits": list(match.phrase_hits),
+                    }
+                )
+            if sn_updates:
+                session.run(
+                    """
+                    UNWIND $rows AS row
+                    MATCH (ep:EpisodeOfCare {episode_id: row.eid})
+                    SET ep.safety_netting_recorded       = row.recorded,
+                        ep.safety_netting_signal         = row.signal,
+                        ep.safety_netting_evidence_count = row.evidence_count,
+                        ep.safety_netting_codes          = row.code_hits,
+                        ep.safety_netting_phrases        = row.phrase_hits
+                    """,
+                    rows=sn_updates,
+                )
+
         return {
             "mode": "write_back_applied",
             "written": written,
             "skipped_reviewed": skipped_reviewed,
             "patient_count": len(patient_ids),
             "backup_path": str(backup_path),
+            "safety_netting_enriched": len(sn_updates),
         }
     finally:
         driver.close()
@@ -1212,6 +1346,26 @@ def run_full_dry_run(
 
     episode_candidates, open_referrals = reduce_episode_candidates(pathways)
 
+    # Reviewed-guard (wide) + anchor stabilisation: a reviewed episode covering
+    # the candidate's window for the same canonical site suppresses the
+    # candidate; an existing detector eid for the same patient/site within +-N
+    # days of the candidate's anchor is reused instead of computing a new
+    # deterministic hash.  Both passes only need a one-shot read of the graph.
+    guard_driver = _connect()
+    try:
+        existing_episodes = fetch_existing_episodes(guard_driver, patient_ids)
+    finally:
+        guard_driver.close()
+
+    episode_candidates, suppressed_by_review = apply_reviewed_guard(
+        episode_candidates, existing_episodes
+    )
+    episode_candidates = stabilise_anchor_eids(
+        episode_candidates,
+        existing_episodes,
+        eid_for_candidate=_guard_episode_id_hash,
+    )
+
     route_counts = Counter(row["diagnosis_route"] for row in episode_candidates)
     cohort_counts = Counter(row["cohort"] for row in episode_candidates)
     site_counts = Counter(row["site"] or "unknown" for row in episode_candidates)
@@ -1223,6 +1377,10 @@ def run_full_dry_run(
         "window_days": window_days,
         "diagnosis_patient_count": len(patient_ids),
         "episode_candidate_count": len(episode_candidates),
+        "suppressed_by_reviewed_guard": len(suppressed_by_review),
+        "anchor_stabilised_count": sum(
+            1 for row in episode_candidates if row.get("_stable_eid")
+        ),
         "raw_pathway_count": len(pathways),
         "open_referral_count": len(open_referrals),
         "patients_with_no_pathways": len(no_pathway_patients),
@@ -1242,6 +1400,7 @@ def run_full_dry_run(
     payload = {
         "summary": summary,
         "episode_candidates": episode_candidates,
+        "suppressed_by_reviewed_guard": suppressed_by_review,
         "open_referrals": open_referrals,
         "raw_pathways": pathways,
         "no_pathway_patients": no_pathway_patients,
@@ -1315,6 +1474,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"Diagnosis-positive patients: {summary['diagnosis_patient_count']}")
     print(f"Episode candidates:          {summary['episode_candidate_count']}")
+    print(f"Suppressed by reviewed guard:{summary.get('suppressed_by_reviewed_guard', 0)}")
+    print(f"Anchor stabilised:           {summary.get('anchor_stabilised_count', 0)}")
     print(f"Raw linker pathways:         {summary['raw_pathway_count']}")
     print(f"Open/unmatched referrals:    {summary['open_referral_count']}")
     print(f"Patients with no pathways:   {summary['patients_with_no_pathways']}")

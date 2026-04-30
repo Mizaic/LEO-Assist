@@ -44,7 +44,13 @@ def _get_error_code(exc: BaseException) -> str:
 
 
 def _is_retryable(exc: BaseException) -> bool:
-    return _get_error_code(exc) in _THROTTLE_CODES
+    if _get_error_code(exc) in _THROTTLE_CODES:
+        return True
+    # Also retry on network-level timeouts — a hung TCP connection (no bytes
+    # received within read_timeout) raises ReadTimeoutError, which is not a
+    # ClientError but is equally transient.
+    exc_type = type(exc).__name__
+    return exc_type in {"ReadTimeoutError", "ConnectTimeoutError", "ConnectionError"}
 
 
 def converse_with_retry(
@@ -53,7 +59,7 @@ def converse_with_retry(
     model_id: str,
     max_retries: int = 8,
     base_delay: float = 1.0,
-    max_delay: float = 60.0,
+    max_delay: float = 30.0,
     jitter: float = 0.5,
     **converse_kwargs: Any,
 ) -> dict[str, Any]:

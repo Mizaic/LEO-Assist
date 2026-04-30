@@ -26,6 +26,7 @@ from services.analysis_worker.app.ncda_detector.audit_rules import (
     _DX_EXCLUDED_PHRASES,
     _DX_FOUND_PHRASES,
     _EMIS_MAJOR_DX,
+    _TREATMENT_PHRASES,
     extract_read_codes,
     text_supports_role,
 )
@@ -216,6 +217,47 @@ _GENETICS_REFERRAL_ADMIN = re.compile(
     r"\bReferral to genetics service\b|\bGenetics Breast Cancer Family History Clinic\b",
     re.IGNORECASE,
 )
+# DNA / Did-Not-Attend appointment encounters.  These are admin "Patient
+# Attended - Outcome / Did not attend clinic (XacSG)" notes or the bare
+# "Did not attend hospital appointment (XaF81) (New Episode)" / "Did not
+# attend (Xa1kG)" / "Did not attend for Session appointment" patterns.  The
+# patient was a no-show, so the encounter is NOT a real first_seen / OPD
+# attendance and must be silenced.  Without this guard a DNA dermatology
+# slot ends up labelled `seen` and the linker uses it as the first_seen
+# milestone for the cancer pathway (see patient 6040304227 melanoma).
+_DNA_APPOINTMENT = re.compile(
+    r"\bDid\s+not\s+attend\b\s*"
+    r"(?:clinic|hospital(?:\s+appointment)?|appointment|for\s+(?:a\s+)?(?:Session|appointment|clinic))?"
+    r"(?:\s*\([A-Za-z0-9.]+\))?"
+    r"|\bDNA\b\s+(?:appointment|clinic|hospital|2WW)"
+    r"|^\s*DNA\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+# Provisional / suspected diagnosis qualifiers that should KEEP the encounter
+# as `seen` rather than promote it to `dx/cancer_found` even when a strong
+# cancer noun (e.g. "Squamous Cell Carcinoma") appears in the text.  Live
+# corpus examples (patient 6040304227, 2024-11-13 dermatology consult):
+#   "Suspected skin cancer (XaFww) - Squamous Cell Carcinoma"
+#   "?? BCC however, Scc can not be ruled out"
+#   "?suspected BCC vs SCC"
+#   "Squamous cell carcinoma cannot be ruled out"
+# These are SEEN milestones (clinician suspects but has not confirmed),
+# not Dx milestones.  Confirmation lives in a separate later encounter
+# (excision biopsy, MDT outcome, "Major: Squamous cell carcinoma (Y356f)").
+_PROVISIONAL_DX_QUALIFIER = re.compile(
+    r"\b(?:suspected\s+(?:skin\s+)?(?:cancer|carcinoma|melanoma|tumou?r|lesion)"
+    r"|suspect\s+(?:scc|bcc|carcinoma|melanoma|cancer|malignan)"
+    r"|\?\s*(?:scc|bcc|carcinoma|melanoma|cancer|malignan)"
+    r"|cannot\s+be\s+ruled\s+out|can\s+not\s+be\s+ruled\s+out|cant\s+be\s+ruled\s+out"
+    r"|to\s+rule\s+out\s+(?:cancer|malignan|scc|bcc|carcinoma|melanoma)"
+    r"|differential\s+(?:diagnosis|dx)"
+    r"|provisional\s+diagnosis"
+    r"|working\s+diagnosis"
+    r")\b"
+    r"|\?\?\s*(?:scc|bcc|carcinoma|melanoma)"
+    r"|\(\s*XaFww\s*\)",
+    re.IGNORECASE,
+)
 # A note confirming a referral was cancelled by the patient / GP / secondary
 # care.  These contain "2WW" or "referral" language but the pathway did not
 # proceed — must not be labelled ftr.
@@ -241,20 +283,52 @@ _EXISTING_CONDITION_PREFIX = re.compile(
     # Post-event recap qualifiers: surgery / treatment that already happened.
     r"\bdue\s+to\s+"                                # "due to malignant tumour"
     r"|\btreated\s+for\s+"                          # "treated for malignant"
+    # Patient is already an oncology patient for the named cancer.  Without
+    # this guard a duty-list telephone-triage encounter that just recaps
+    # the patient's current oncology context (e.g. "Currently under
+    # oncology for GOJ adenocarcinoma - had 3 cycles of chemo so far")
+    # gets promoted to dx/cancer_found and spawns a phantom new episode.
+    r"|\b(?:currently\s+)?under\s+(?:the\s+)?(?:care\s+of\s+)?"
+    r"(?:oncolog(?:y|ist)|haematolog(?:y|ist)|cancer\s+services|MDT)\s+for\s+"
+    # "had N cycles of <chemo|chemotherapy|radio|radiotherapy>"
+    r"|\bhad\s+(?:\d+\s+(?:more\s+)?)?(?:more\s+)?cycle[s]?\s+of\s+"
+    # Surveillance / monitoring of an existing cancer.  Prevents
+    # GP follow-up notes ("had bloods for lymphoma done too early",
+    # "monitoring for prostate ca", "follow up for endometrial cancer")
+    # from misfiring on the bare cancer noun via _DX_FOUND_PHRASES.
+    r"|\bhad\s+(?:bloods?|tests?|bloodwork|labs|imaging|ct|mri|us|ultrasound|scans?)"
+    r"\s+(?:done\s+)?(?:too\s+early\s+)?for\s+"
+    r"|\b(?:monitoring|surveillance|follow[\s-]?up|f\s*/\s*u)\s+for\s+"
     r"|\bpost[-\s]?op(?:erative)?\s+(?:for\s+)?"    # "post-op for", "post-operative"
-    r"|\bunder(?:went|going)\s+\S+(?:\s+\S+){0,4}\s+(?:for|to)\s+"  # "underwent WLE for"
+    r"|\bunder(?:went|going)\s+\S+(?:\s+\S+){0,4}\s+(?:for|to)\s+"  # "underwent WLE for melanoma"
+    # NEW: bare "underwent <surgery>" without a trailing "for ..." qualifier.
+    # Required so a follow-up note like "Patient underwent thyroidectomy this
+    # morning" silences the treatment-phrase match cleanly.
+    r"|\bunder(?:went|going)\s+(?:a\s+|an\s+|the\s+)?(?:hemi)?(?:colectomy"
+    r"|mastectomy|lumpectomy|prostatectomy|hysterectomy|nephrectomy"
+    r"|cystectomy|lobectomy|pancreatectomy|gastrectomy|oesophagectomy"
+    r"|esophagectomy|thyroidectomy|orchidectomy|splenectomy"
+    r"|tonsillectomy|adrenalectomy|parotidectomy|excision|resection|biopsy)\b"
     r"|\bafter\s+(?:surgery|operation|treatment|chemo(?:therapy)?"
     r"|radio(?:therapy)?|hemicolectomy|mastectomy|lumpectomy|prostatectomy"
     r"|hysterectomy|nephrectomy|cystectomy|lobectomy|pancreatectomy"
-    r"|gastrectomy|excision|resection|biopsy)\s+(?:for\s+)?"        # "after surgery for"
+    r"|gastrectomy|oesophagectomy|esophagectomy|thyroidectomy|orchidectomy"
+    r"|splenectomy|tonsillectomy|adrenalectomy|parotidectomy"
+    r"|excision|resection|biopsy)\s+(?:for\s+)?"        # "after surgery for"
     r"|\bfollowing\s+(?:surgery|operation|treatment|chemo(?:therapy)?"
     r"|radio(?:therapy)?|hemicolectomy|mastectomy|lumpectomy|prostatectomy"
     r"|hysterectomy|nephrectomy|cystectomy|lobectomy|pancreatectomy"
-    r"|gastrectomy|excision|resection|biopsy)\s+(?:for\s+)?"        # "following surgery for"
+    r"|gastrectomy|oesophagectomy|esophagectomy|thyroidectomy|orchidectomy"
+    r"|splenectomy|tonsillectomy|adrenalectomy|parotidectomy"
+    r"|excision|resection|biopsy)\s+(?:for\s+)?"        # "following surgery for"
     r"|\bhad\s+(?:a\s+|an\s+|the\s+)?(?:hemi)?(?:colectomy|mastectomy"
     r"|lumpectomy|prostatectomy|hysterectomy|nephrectomy|cystectomy"
-    r"|lobectomy|pancreatectomy|gastrectomy|excision|resection|biopsy)"
-    r"\s+(?:for\s+)?"                                                # "had a mastectomy for"
+    r"|lobectomy|pancreatectomy|gastrectomy|oesophagectomy|esophagectomy"
+    r"|thyroidectomy|orchidectomy|splenectomy|tonsillectomy"
+    r"|adrenalectomy|parotidectomy"
+    r"|excision|resection|biopsy)\b"                                # ends at the surgery name; trailing context is optional
+    r"(?:\s+in\s+\S+\s+\d{4})?"                                     # "had a thyroidectomy in March 2024"
+    r"(?:\s+for\s+)?"                                               # "had a mastectomy for"
     r"|\bin\s+hospital\s+for\s+\S+(?:\s+\S+){0,4}\s+(?:due\s+to|for|after)\s+"
                                                                      # "in hospital for X due to / for / after"
     r")",
@@ -268,16 +342,75 @@ _CANCELLED_REFERRAL = re.compile(
     r"|did\s+not\s+attend.*(?:2WW|referral|clinic).*not\s+seen",
     re.IGNORECASE | re.DOTALL,
 )
+# Follow-up admin / clinical notes that quote a previously CONCLUDED 2WW
+# pathway (NSS / 2WW / fast-track / cancer pathway "discharged" or with
+# "Recommendations to GP:" hand-over text).  Without this guard the phrase
+# matcher fires on the recapped "2WW" / "Fast track" text and creates a
+# phantom FTR anchor.  See patient 6261656266 (NSS pathway concluded
+# 2024-10-02, GP follow-up admin note 2024-10-24 misfired as a new FTR).
+_FOLLOWUP_TO_CONCLUDED_2WW_PATHWAY = re.compile(
+    r"\b(?:"
+    r"discharge(?:d)?\s+from\s+(?:the\s+)?(?:NSS|2WW|fast[-\s]?track|cancer"
+    r"|two[-\s]?week(?:\s+wait)?)\s+pathway"
+    # Inverse word order: "NSS pathway ... was/got discharged".  Handles
+    # GP recap notes that lead with the pathway name and then say it was
+    # closed without using the canonical "discharged from <type> pathway".
+    # Window is bounded to ~80 chars to avoid stretching across unrelated
+    # clauses.
+    r"|(?:NSS|2WW|cancer|fast[-\s]?track)\s+pathway\b[^.\n]{0,80}\b"
+    r"(?:was|got|now)?\s*discharge(?:d)?\b"
+    # "noted had NSS pathway 2ww referral and was discharged"
+    # "noted had / has had / had a NSS pathway done / referral / completed"
+    # patterns: a recap of a previously completed referral.
+    r"|\b(?:noted\s+)?(?:has\s+)?had\s+(?:a\s+|an\s+|the\s+)?"
+    r"(?:NSS|2WW|cancer|fast[-\s]?track|two[-\s]?week)\s+(?:pathway|referral)\b"
+    r"[^.\n]{0,80}\b(?:done|completed|finished|discharge(?:d)?)\b"
+    r"|(?:NSS|2WW|cancer|fast[-\s]?track)\s+pathway\s+update\s+letter"
+    r"|Recommendations?\s+to\s+GP\s*:\s*(?:please\s+|pls\s+)?(?:follow|continue|monitor)"
+    # Discussion of a CONCLUDED NSS/2WW work-up: "recent NSS work up... d/c
+    # from the MDT" / "no concerns for malignancy".  Captures the clinical-
+    # supervision style of recap that was missing from the original
+    # discharge-from-pathway pattern.
+    r"|(?:recent\s+)?(?:NSS|2WW|fast[-\s]?track)\s+work[-\s]?up\b[^.\n]{0,80}"
+    r"\b(?:d/?c|discharge(?:d)?|no\s+concerns?|no\s+malignancy)\b"
+    r")\b",
+    re.IGNORECASE,
+)
 
 _SITE_TOKENS: dict[str, tuple[str, ...]] = {
     "urological": ("prostate", "psa", "urology", "urological", "bladder", "haematuria",
                     "kidney", "renal", "nephrectomy"),
     "breast": ("breast", "mammogram", "mammography"),
     "lung": ("lung", "chest x-ray", "cxr", "thoracic", "respiratory"),
-    "lower_gi": ("lower gi", "colorectal", "bowel", "rectal", "colon", "fit positive"),
+    "lower_gi": ("lower gi", "colorectal", "bowel", "rectal", "colon", "fit positive",
+                  "caecum", "cecum", "rectum", "anal canal", "ileum"),
     "upper_gi": ("upper gi", "oesophag", "stomach", "gastric", "dysphagia"),
-    "skin": ("skin", "dermoscopy", "dermatology", "melanoma", "lesion"),
-    "head_neck": ("head and neck", "head & neck", "thyroid", "larynx", "pharynx", "tongue"),
+    # NB: order matters and the token list is deliberately narrow.  Bare
+    # "squamous cell carcinoma" (without a site qualifier) is intentionally
+    # NOT here because it appears on both head_neck (oropharyngeal /
+    # buccal mucosa) and skin diagnoses, and a wrong wildcard match would
+    # cross-site link a head_neck FTR to a skin dx (or vice versa).  We
+    # instead match the precise patterns that uniquely identify skin
+    # cancers (BCC, AK, the qualified "squamous cell carcinoma of skin",
+    # "of scalp", etc.).  See patient 4802297327: buccal-mucosa SCC was
+    # being misrouted to site=skin under the looser pattern.
+    "skin": ("skin", "dermoscopy", "dermatology", "melanoma", "lesion",
+             "basal cell carcinoma", "bcc", "actinic keratosis", "ak ",
+             "wide local excision", "wle",
+             "excision of basal", "excision of squamous",
+             "squamous cell carcinoma of skin",
+             "squamous cell carcinoma - r vertex",
+             "squamous cell carcinoma - l vertex",
+             "squamous cell carcinoma of scalp",
+             # Single-word body-site fallbacks that uniquely identify
+             "scalp", "vertex"),
+    "head_neck": ("head and neck", "head & neck", "thyroid", "larynx",
+                  "pharynx", "tongue", "papillary thyroid", "follicular thyroid",
+                  "thyroidectomy", "buccal mucosa", "oral cavity",
+                  "squamous cell carcinoma of buccal",
+                  "squamous cell carcinoma of tongue",
+                  "squamous cell carcinoma of larynx",
+                  "squamous cell carcinoma of pharynx"),
     "gynaecological": ("gynae", "gynaecolog", "cervix", "endometri", "ovari", "uterus"),
     "haematological": ("haematol", "lymphoma", "leukaemia", "myeloma", "sll", "cll"),
     "brain": ("brain", "cns", "neurosurg", "headache", "seizure"),
@@ -320,12 +453,54 @@ def _is_excluded_none(text: str) -> tuple[bool, str]:
         return True, "Genetics/family-history referral admin — not an NCDA cancer FTR."
     if _CANCELLED_REFERRAL.search(t):
         return True, "Referral was cancelled by patient/GP — not an active NCDA anchor."
+    if _FOLLOWUP_TO_CONCLUDED_2WW_PATHWAY.search(t) and not has_confirmed_cancer:
+        return True, (
+            "Follow-up admin note quoting a previously concluded 2WW / NSS / "
+            "fast-track pathway — not a new NCDA anchor."
+        )
+    # DNA / Did-Not-Attend appointment — patient did not present, so the
+    # encounter is not a real first_seen / OPD attendance.
+    if _DNA_APPOINTMENT.search(t) and not has_confirmed_cancer:
+        return True, (
+            "Did-not-attend appointment — patient was a no-show, "
+            "not a real first_seen anchor."
+        )
     return False, ""
 
 
+_PRIMARY_MAJOR_SITE_RE = re.compile(
+    r"^Major:\s+(?:malignant\s+(?:tumou?r|neoplasm)\s+of"
+    r"|carcinoma\s+of"
+    r"|adenocarcinoma\s+of"
+    r"|invasive\s+(?:ductal|lobular)\s+carcinoma"
+    r"|infiltrating\s+duct\s+carcinoma"
+    r"|squamous\s+cell\s+carcinoma\s+(?:of|-)"
+    r"|basal\s+cell\s+carcinoma\s+(?:of|-))"
+    r"\s*([A-Za-z][\w\s\-/]{0,60})",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
 def _extract_site_hint(text: str) -> str | None:
-    """Return a cancer site hint based on keyword signals in the encounter text."""
+    """Return a cancer site hint based on keyword signals in the encounter text.
+
+    Two-pass strategy:
+      1. Look for a "Major: <primary cancer term> <site>" line first.  When
+         present (e.g. "Major: Carcinoma of caecum"), the site of the primary
+         cancer wins over keywords elsewhere in the text — without this the
+         dx encounter "Major: Metastasis to lung. Major: Metastasis to liver.
+         Major: Carcinoma of caecum" was misrouted to site=lung because
+         "lung" is the first keyword to fire under the broad scan.
+      2. Fall back to the broad keyword scan over ``_SITE_TOKENS``.
+    """
     lower = (text or "").lower()
+    if text:
+        m = _PRIMARY_MAJOR_SITE_RE.search(text)
+        if m:
+            primary_phrase = m.group(0).lower()
+            for site, tokens in _SITE_TOKENS.items():
+                if any(tok in primary_phrase for tok in tokens):
+                    return site
     for site, tokens in _SITE_TOKENS.items():
         if any(tok in lower for tok in tokens):
             return site
@@ -395,6 +570,26 @@ _PRISM_QUESTIONNAIRE = re.compile(
 )
 
 
+def _phrase_match_outside_existing_condition(
+    text: str, pattern: re.Pattern[str]
+) -> bool:
+    """Return True if ``pattern`` matches ``text`` AND the match is NOT
+    inside an existing-condition / post-event qualifier.
+
+    Uses an 80-character window that INCLUDES the matched term itself.
+    This is required for the ``treatment`` phrase guard because the matched
+    treatment word (e.g. "oesophagectomy") is itself part of the qualifier
+    pattern (``had <surgery>``).  For the dx-phrase guard the matched term
+    (e.g. "adenocarcinoma") is not in the qualifier vocabulary so widening
+    the window is harmless.
+    """
+    m = pattern.search(text)
+    if not m:
+        return False
+    window = text[max(0, m.start() - 80): m.end()]
+    return not _EXISTING_CONDITION_PREFIX.search(window)
+
+
 def _best_role_from_phrases(text: str) -> tuple[NcdaRole | None, DxOutcome | None]:
     """Match NCDA role from free-text phrases.
 
@@ -410,6 +605,11 @@ def _best_role_from_phrases(text: str) -> tuple[NcdaRole | None, DxOutcome | Non
     diagnosis and must not promote the encounter to dx/cancer_found.
     Cancer-excluded signals (_DX_EXCLUDED_PHRASES) bypass this guard because
     "no malignancy" / "benign" are outcome results regardless of context.
+
+    The same existing-condition guard is now applied to ``treatment`` phrase
+    matches as well (e.g. "background thyroidectomy", "post-op for prostate
+    ca") so that recap mentions of historical treatment do not anchor a new
+    ``treatment_started`` milestone.
     """
     t = _strip_problem_lines(text or "")
     # --- dx role: direct match with existing-condition guard on found-phrases ---
@@ -418,10 +618,25 @@ def _best_role_from_phrases(text: str) -> tuple[NcdaRole | None, DxOutcome | Non
     m_found = _DX_FOUND_PHRASES.search(t)
     if m_found:
         prefix = t[max(0, m_found.start() - 80): m_found.start()]
-        if not _EXISTING_CONDITION_PREFIX.search(prefix):
+        # Provisional-dx guard: when the cancer noun is qualified by a
+        # "suspected" / "?? <cancer>" / "cannot be ruled out" / "rule out
+        # <cancer>" pattern anywhere in the text, the encounter is a SEEN
+        # milestone (clinician suspects but has not confirmed), not a Dx
+        # event.  Without this guard "Suspected skin cancer (XaFww) -
+        # Squamous Cell Carcinoma" promotes to dx/cancer_found and steals
+        # the diagnosis_confirmed milestone from the real later excision-
+        # biopsy encounter (see patient 6040304227 melanoma).
+        if not _EXISTING_CONDITION_PREFIX.search(prefix) and \
+                not _PROVISIONAL_DX_QUALIFIER.search(t):
             return "dx", _infer_dx_outcome(t)
     # --- remaining roles ---
     for role in ("ftr", "seen", "treatment"):
+        if role == "treatment":
+            # Apply existing-condition prefix guard to treatment phrase
+            # matches (parity with dx-found handling above).
+            if _phrase_match_outside_existing_condition(t, _TREATMENT_PHRASES):
+                return (role, None)
+            continue
         if text_supports_role(t, role):  # type: ignore[arg-type]
             return (role, None)  # type: ignore[return-value]
     return (None, None)

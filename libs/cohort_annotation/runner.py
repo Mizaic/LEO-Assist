@@ -13,11 +13,18 @@ Usage:
 from __future__ import annotations
 
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
+
+# Maximum wall-clock seconds allowed for a single encounter.  Protects against
+# a hanging Bedrock TCP connection that has no bytes flowing but the SSL/urllib3
+# socket timeout hasn't fired (can happen inside nested ThreadPoolExecutor threads
+# on some botocore/urllib3 configurations).
+_ENCOUNTER_TIMEOUT_S = 180
 
 # Lazy-compiled graph to avoid import overhead in test environments
 _COMPILED_GRAPH: Any = None
@@ -106,7 +113,39 @@ def annotate_encounter(
 
     graph = _get_graph()
     try:
-        final_state = graph.invoke(initial_state)
+        # Run the graph in its own thread so we can apply a hard wall-clock
+        # timeout.  Without this, a Bedrock connection that hangs at the TCP
+        # level (no bytes flowing, yet the socket timeout hasn't fired) would
+        # block the worker indefinitely.
+        #
+        # NOTE: cancel() cannot kill a running thread; the zombie thread will
+        # continue until the socket eventually times out or the process exits.
+        # We therefore keep the timeout generous (3 min) so normal large
+        # encounters (7-9k chars) are not falsely killed, and throttled ones
+        # get a bounded wait.
+        _graph_pool = ThreadPoolExecutor(max_workers=1)
+        _fut = _graph_pool.submit(graph.invoke, initial_state)
+        # Do NOT use the pool as a context manager — __exit__ would call
+        # shutdown(wait=True), blocking until the zombie thread finishes.
+        # Instead, call shutdown(wait=False) on timeout so the pool is GC'd
+        # while the zombie thread drains in the background.
+        try:
+            final_state = _fut.result(timeout=_ENCOUNTER_TIMEOUT_S)
+            _graph_pool.shutdown(wait=False)
+        except FuturesTimeoutError:
+            _graph_pool.shutdown(wait=False)
+            msg = (
+                f"encounter timed out after {_ENCOUNTER_TIMEOUT_S}s "
+                f"(graph.invoke did not complete)"
+            )
+            logger.warning("graph timed out for %s/%s — %s", pid, eid, msg)
+            return AnnotationResult(
+                patient_id=pid,
+                encounter_id=eid,
+                encounter_date=date,
+                encounter_class="ERROR",
+                errors=[msg],
+            )
     except Exception as exc:
         logger.error("graph failed for encounter %s/%s: %s", pid, eid, exc)
         return AnnotationResult(

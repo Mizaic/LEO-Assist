@@ -39,6 +39,12 @@ export interface EthnicitySnomedRadarCardProps {
   patientsWithEthnicitySnomedN: number;
   ethnicitySnomedCoveragePct: number | null;
   loading?: boolean;
+  /**
+   * Optional shared radial max (%). When provided the card uses this scale
+   * instead of computing its own per-card max, so all year cards in the
+   * section share the same axis and shapes are visually comparable.
+   */
+  maxScale?: number | null;
 }
 
 interface AxisDatum {
@@ -111,6 +117,7 @@ export default function EthnicitySnomedRadarCard({
   patientsWithEthnicitySnomedN,
   ethnicitySnomedCoveragePct,
   loading = false,
+  maxScale: maxScaleProp = null,
 }: EthnicitySnomedRadarCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerW, setContainerW] = useState(320);
@@ -136,7 +143,9 @@ export default function EthnicitySnomedRadarCard({
     (m, a) => Math.max(m, a.value ?? 0),
     0,
   );
-  const maxScale = Math.min(100, Math.max(12, Math.ceil(maxPct + 4)));
+  const maxScale = maxScaleProp && maxScaleProp > 0
+    ? maxScaleProp
+    : Math.min(100, Math.max(12, Math.ceil(maxPct + 4)));
 
   const svgW = Math.max(240, containerW);
   const svgH = svgW;

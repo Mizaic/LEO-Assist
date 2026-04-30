@@ -109,21 +109,77 @@ _EMIS_MAJOR_BENIGN = _re.compile(
 )
 
 
+# Problem header lines that name a cancer condition.  The regex allows up to
+# ~60 chars of qualifier words between the "Problem:" header and the cancer
+# term so that lines like:
+#   "Problem: Papillary thyroid carcinoma (X78cQ) - Thy5"
+#   "Problem: Infiltrating duct carcinoma of breast (BB91.)"
+#   "Problem - whole event: Chronic lymphoid leukaemia (B641.)"
+# all match and are stripped from the cancer-confirmation scan.  Without the
+# qualifier window an earlier version required the cancer noun directly
+# after "Problem:" which let "Papillary thyroid carcinoma" slip through and
+# then promoted routine LTC review encounters to dx/cancer_found (see
+# patient 6261656266 phantom thyroid->urological cohort 1a episode).
 _PROBLEM_CANCER_LINE = _re.compile(
     r"^Problem(?:\s*-\s*whole event)?:\s+"
+    r"(?:[A-Za-z][\w\-/'\s]{0,60}\s+)?"
     r"(?:malignant|carcinoma|adenocarcinoma|lymphoma|melanoma|sarcoma"
     r"|mesothelioma|metastasis|metastatic|neoplastic disease|cancer"
-    r"|tumour of|tumor of)\b",
+    r"|leukaemia|leukemia|myeloma|tumour of|tumor of)\b",
     _re.IGNORECASE | _re.MULTILINE,
 )
 _EMBEDDED_PROBLEM_CANCER_SEGMENT = _re.compile(
     r"\bProblem(?:\s*-\s*whole event)?:\s+"
+    r"(?:[A-Za-z][\w\-/'\s]{0,60}\s+)?"
     r"(?:malignant|carcinoma|adenocarcinoma|lymphoma|melanoma|sarcoma"
     r"|mesothelioma|metastasis|metastatic|neoplastic disease|cancer"
-    r"|tumour of|tumor of)\b"
+    r"|leukaemia|leukemia|myeloma|tumour of|tumor of)\b"
     r"[^()\n]*(?:\([A-Za-z0-9.]+\))?",
     _re.IGNORECASE,
 )
+
+# PRISM Triage / Long-Term-Conditions template field that recaps the
+# patient's past medical history.  Examples in the live corpus:
+#   "Previous / Current medical history:  COPD ..., Squamous cell carcinoma (2020), ..."
+#   "Previous/Current medical history (Y3535) - COPD ..., Squamous cell carcinoma (2020), ..."
+#   "Past medical history (XaaPI) - ..., Carcinoma of breast (2018), ..."
+#   "PMH: prostate ca treated with WLE 2019; current AAA monitoring."
+# The PMH field always lists historical conditions and never represents
+# a new diagnosis recorded at this encounter.  Without this guard a
+# PRISM rehab-triage rejection or LTC review note can promote bare
+# "carcinoma" text inside the PMH list to dx/cancer_found and spawn a
+# phantom episode (see patient 6040304227 phantom Melanoma-urological
+# cohort 1b episode that paired the F2F skin 2WW with a heart-failure
+# rehab triage rejection mentioning "Squamous cell carcinoma (2020)" in
+# the PMH list).
+_PMH_FIELD_LINE = _re.compile(
+    r"^\s*"
+    r"(?:Previous\s*/\s*Current\s+medical\s+history"
+    r"|Past\s+medical\s+history"
+    r"|PMH"
+    r")"
+    r"\s*(?:\([A-Za-z0-9.]+\))?\s*[-:].*$",
+    _re.IGNORECASE | _re.MULTILINE,
+)
+
+# "all clear" is too generic on its own — it appears in cardiology safety-net
+# plans ("advised if all clear, obs stable to continue Bumetanide"), gynae
+# follow-up plans ("Refer back to Urogynae if all clear for ongoing
+# prolapse"), and recap of a known cancer's resolved Mets status.  Only
+# treat it as cancer_excluded when paired with a cancer / imaging / pathway
+# context word within ~80 chars on either side.  See patient 6040304227.
+_ALL_CLEAR_CTX_TOKENS = (
+    r"cancer|malignan|2WW|pathway|MDT|biopsy|specimen|histology|imaging"
+    r"|scan|MRI|CT|USS|ultrasound|colonoscop|endoscop|gastroscop|cystoscop"
+    r"|bronchoscop|hysteroscop|colposcop|mammogram|breast|FIT|FOBT"
+    r"|x[-\s]?ray|cxr|melanoma|tumou?r|metasta|lesion|nodule|mass"
+)
+_ALL_CLEAR_WITH_CANCER_CTX = _re.compile(
+    r"\b(?:" + _ALL_CLEAR_CTX_TOKENS + r")\b[\s\S]{0,80}\ball clear\b"
+    r"|\ball clear\b[\s\S]{0,80}\b(?:" + _ALL_CLEAR_CTX_TOKENS + r")\b",
+    _re.IGNORECASE,
+)
+
 
 _NEGATIVE_BREAST_IMAGING = _re.compile(
     r"\b(?:us scan of breast|breast ultrasound|mammogram|mammography)\b"
@@ -132,18 +188,44 @@ _NEGATIVE_BREAST_IMAGING = _re.compile(
     r".*\b(?:us scan of breast|breast ultrasound|mammogram|mammography)\b",
     _re.IGNORECASE,
 )
+# Diagnostic procedures whose result is recorded inline as "- normal" / "- NAD"
+# and which therefore conclude an NCDA pathway with cancer_excluded.  Examples
+# in the live corpus:
+#   "Colonoscopy (XM0By) - normal (New Episode)"
+#   "Gastroscopy: NAD"
+#   "Sigmoidoscopy - no abnormality detected"
+# Narrow on purpose — only fires when the procedure name and the negative
+# qualifier appear in the same line/clause separated by a hyphen, en-dash or
+# colon.  Will not silence a "Colonoscopy showing adenocarcinoma" entry
+# because there is no "- normal/NAD" suffix on the procedure.
+_NEGATIVE_PROCEDURE_RESULT = _re.compile(
+    r"\b(?:colonoscopy|gastroscopy|sigmoidoscopy|endoscopy"
+    r"|cystoscopy|bronchoscopy|hysteroscopy|colposcopy"
+    r"|biopsy|MRI(?:\s+\w+)?|CT(?:\s+\w+){0,3}|ultrasound)"
+    r"[\s,()A-Za-z0-9.\-]*\s*[-\u2013:]\s*"
+    r"(?:normal|nad|no\s+abnormality(?:\s+detected)?|nil\s+significant"
+    r"|nil\s+of\s+note|all\s+clear|negative)\b",
+    _re.IGNORECASE,
+)
 
 
 def _strip_problem_lines(text: str) -> str:
-    """Remove EMIS 'Problem: [cancer diagnosis]' header lines.
+    """Remove EMIS recap lines that name historical diagnoses.
 
-    Only strips problem lines that NAME a cancer (e.g. "Problem: Carcinoma of
-    prostate") — these recap pre-existing diagnoses and contaminate outcome
-    detection for routine phlebotomy / LTC encounters.
+    Strips two flavours of recap content that contaminate outcome detection
+    for routine phlebotomy / LTC / triage encounters:
 
-    Lines like "Problem: No malignancy confirmed" or "Problem: Pre-diabetes" are
-    preserved because they either convey useful cancer-excluded language or are
-    harmless non-cancer content.
+    1. ``Problem: [cancer diagnosis]`` header lines that NAME a cancer
+       (e.g. ``Problem: Carcinoma of prostate``) — these recap pre-existing
+       diagnoses copied into the encounter header.
+    2. PRISM Triage / LTC template ``Previous / Current medical history``
+       (or ``Past medical history``, ``PMH``) field lines — the entire
+       field is a list of past conditions and any cancer noun inside it is
+       a recap, not a new diagnosis.
+
+    Lines like ``Problem: No malignancy confirmed`` or ``Problem: Pre-
+    diabetes`` are preserved because they either convey useful cancer-
+    excluded language or are harmless non-cancer content.
     """
     lines = text.splitlines()
     clean = []
@@ -151,7 +233,11 @@ def _strip_problem_lines(text: str) -> str:
         stripped = ln.strip()
         if stripped.startswith("Problem:") and _PROBLEM_CANCER_LINE.match(stripped):
             continue
-        clean.append(_EMBEDDED_PROBLEM_CANCER_SEGMENT.sub("", ln))
+        if _PMH_FIELD_LINE.match(ln):
+            continue
+        ln = _EMBEDDED_PROBLEM_CANCER_SEGMENT.sub("", ln)
+        ln = _PMH_FIELD_LINE.sub("", ln)
+        clean.append(ln)
     return "\n".join(clean)
 
 
@@ -183,7 +269,6 @@ def _infer_dx_outcome(text: str) -> DxOutcome | None:
         "benign",
         "cancer ruled out",
         "cancer excluded",
-        "all clear",
         "discharged from",
         "d/c from",
         "no evidence of cancer",
@@ -195,7 +280,15 @@ def _infer_dx_outcome(text: str) -> DxOutcome | None:
     )
     if any(p in t for p in excluded_phrases):
         return "cancer_excluded"
+    # "all clear" only counts as cancer_excluded when paired with a cancer /
+    # imaging / pathway context word within ~80 chars on either side (see
+    # patient 6040304227 cardiology-oncall regression — "advised if all clear,
+    # obs stable" must not close a urology pathway).
+    if _ALL_CLEAR_WITH_CANCER_CTX.search(clean):
+        return "cancer_excluded"
     if _NEGATIVE_BREAST_IMAGING.search(clean):
+        return "cancer_excluded"
+    if _NEGATIVE_PROCEDURE_RESULT.search(clean):
         return "cancer_excluded"
 
     # cancer_found: any strong cancer confirmation in the cleaned narrative,

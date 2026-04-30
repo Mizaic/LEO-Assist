@@ -39,12 +39,19 @@ import argparse
 import json
 import logging
 import os
+import socket
 import sys
 import threading
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+# Force a global socket timeout so that any SSL/TCP read blocked inside a
+# worker thread cannot stall indefinitely.  Without this, botocore's
+# Config(read_timeout=...) can fail to propagate when boto3 is first called
+# from a nested ThreadPoolExecutor worker thread.
+socket.setdefaulttimeout(120)
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -158,7 +165,7 @@ def build_run_summary(
     return {
         "generated_at":        datetime.now().strftime("%Y%m%dT%H%M%SZ"),
         "dry_run":             dry_run,
-        "input_dir":           str(input_dir.relative_to(ROOT)),
+        "input_dir":           str(input_dir.resolve().relative_to(ROOT) if input_dir.resolve().is_relative_to(ROOT) else input_dir),
         "elapsed_s":           round(elapsed_s, 1),
         "totals": {
             "patients":         len(results_by_patient),
@@ -205,8 +212,9 @@ def annotate_patient(
         from libs.cohort_annotation.runner import annotate_batch
 
         def cb(p_id: str, e_id: str) -> None:
-            pass
+            logger.info("  enc done  p%s / %s", p_id, e_id)
 
+        logger.info("annotating p%s — %d encounters", pid, len(rows))
         results = annotate_batch(rows, max_workers=min(workers, len(rows)), progress_callback=cb)
         for row, result in zip(rows, results):
             row["annotation"] = result.to_dict()
@@ -239,7 +247,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--patient", action="append", dest="patients",
                    help="Limit to specific patient ids (repeatable).")
     p.add_argument("--workers", type=int, default=DEFAULT_WORKERS,
-                   help=f"Parallelism within the per-patient batch (default {DEFAULT_WORKERS}).")
+                   help=(
+                       "Concurrent encounters per patient. "
+                       "Keep low (1-2) to avoid Bedrock throttling. "
+                       f"Default {DEFAULT_WORKERS}."
+                   ))
+    p.add_argument("--patient-workers", type=int, default=0,
+                   help=(
+                       "Patients processed in parallel (outer pool). "
+                       "Defaults to --workers when not set. "
+                       "Total Bedrock concurrency = patient-workers × workers."
+                   ))
     p.add_argument("--dry-run", action="store_true",
                    help="Classify + deterministic extraction only, no LLM calls.")
     return p.parse_args()
@@ -257,10 +275,16 @@ def main() -> int:
         logger.error("no patient files found in %s", args.input_dir)
         return 1
 
+    args.input_dir  = args.input_dir.resolve()
+    args.output_dir = args.output_dir.resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    patient_workers = args.patient_workers if args.patient_workers > 0 else args.workers
     logger.info(
-        "annotating %d patients, dry_run=%s, workers=%d",
-        len(patient_files), args.dry_run, args.workers,
+        "annotating %d patients, dry_run=%s, patient_workers=%d, enc_workers=%d "
+        "(total_bedrock_concurrency=%d)",
+        len(patient_files), args.dry_run,
+        patient_workers, args.workers,
+        patient_workers * args.workers,
     )
 
     started = datetime.now()
@@ -270,7 +294,7 @@ def main() -> int:
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    with ThreadPoolExecutor(max_workers=min(args.workers, len(patient_files))) as pool:
+    with ThreadPoolExecutor(max_workers=min(patient_workers, len(patient_files))) as pool:
         futures = {
             pool.submit(
                 annotate_patient,
@@ -303,7 +327,11 @@ def main() -> int:
         summary["verbatim_drop_rate"] * 100,
         totals["llm_calls"], elapsed_s,
     )
-    logger.info("summary: %s", summary_path.relative_to(ROOT))
+    try:
+        summary_rel = summary_path.relative_to(ROOT)
+    except ValueError:
+        summary_rel = summary_path
+    logger.info("summary: %s", summary_rel)
     return 0
 
 

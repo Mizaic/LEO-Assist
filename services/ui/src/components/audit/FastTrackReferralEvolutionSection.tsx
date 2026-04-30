@@ -233,6 +233,55 @@ export default function FastTrackReferralEvolutionSection({
               </Button>
             </Box>
             <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2,
+                    p: 1.5,
+                    bgcolor: "background.paper",
+                    height: "100%",
+                    minHeight: 280,
+                  }}
+                >
+                  <Typography
+                    component="h3"
+                    sx={{ fontSize: "0.95rem", fontWeight: 700, color: "text.primary" }}
+                  >
+                    2018
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary", fontSize: "0.7rem" }}
+                  >
+                    No baseline
+                  </Typography>
+                  <Box
+                    sx={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      px: 1,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "text.secondary",
+                        fontStyle: "italic",
+                        fontSize: "0.78rem",
+                        textAlign: "center",
+                      }}
+                    >
+                      Fast-track referral type breakdown was not published in the 2018 NCDA audit.
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
               {yearStates.map((state, idx) => {
                 const axes = liveAxesByYear[idx] ?? FTR_AXIS_ORDER.map((cid) => ({
                   key: cid,
@@ -240,7 +289,7 @@ export default function FastTrackReferralEvolutionSection({
                   value: null,
                 }));
                 return (
-                  <Grid key={state.year} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Grid key={state.year} size={{ xs: 12, sm: 6, md: 3 }}>
                     <CancerTypeRadarCard
                       yearLabel={String(state.year)}
                       axes={axes}

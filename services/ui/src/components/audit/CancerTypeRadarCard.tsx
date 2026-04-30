@@ -227,14 +227,15 @@ export default function CancerTypeRadarCard({
                 />
                 {isOuterRing && (
                   <text
-                    x={cx}
-                    y={cy - outerRadius - 10}
-                    fontSize={9}
+                    x={cx + 5}
+                    y={cy - outerRadius + 13}
+                    fontSize={8.5}
                     fill={COLOUR_LABEL}
-                    textAnchor="middle"
+                    textAnchor="start"
                     dominantBaseline="middle"
+                    opacity={0.7}
                   >
-                    {formatScaleLabel(level, maxScale)} outer ring
+                    {formatScaleLabel(level, maxScale)}
                   </text>
                 )}
               </g>

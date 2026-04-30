@@ -166,6 +166,8 @@ interface Props {
   safetyNetting:       AuditSectionResult<AuditSafetyNetting>     | null;
   avoidableDelays:     AuditSectionResult<AuditAvoidableDelays>   | null;
   onViewInReport: (sectionId: string) => void;
+  /** Human-readable label for the audit cohort window (e.g. "2024-2026"). */
+  cohortWindowLabel?: string;
 }
 
 // ─── Derive 8 key metrics ────────────────────────────────────────────────────
@@ -570,6 +572,7 @@ export default function AuditSnapshotView({
   orgSelected, loading, summary, cancerType, cancerStage, demographics,
   placeOfPresentation, consultations, investigations, referrals,
   intervals, safetyNetting, avoidableDelays, onViewInReport,
+  cohortWindowLabel,
 }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -607,7 +610,10 @@ export default function AuditSnapshotView({
   const betterCount   = okMetrics.filter((m) => computeDirection(m.live, m.baseline, m.higherIsBetter, m.threshold) === "better").length;
   const worseCount    = okMetrics.filter((m) => computeDirection(m.live, m.baseline, m.higherIsBetter, m.threshold) === "worse").length;
 
-  const practiceLabel = orgSelected ? "This Practice" : "All Patients (today)";
+  const windowSuffix  = cohortWindowLabel ? ` (${cohortWindowLabel})` : "";
+  const practiceLabel = orgSelected
+    ? `This Practice${windowSuffix}`
+    : `All Patients${windowSuffix || " (today)"}`;
   const englandLabel  = "All Patients (2018)";
 
   // Data for summary detail
@@ -650,6 +656,14 @@ export default function AuditSnapshotView({
       {totalEpisodes != null && (
         <Box sx={{ mb: 3, display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
           <Chip label={`${totalEpisodes} pathway${totalEpisodes !== 1 ? "s" : ""} audited`} size="small" color="primary" variant="outlined" />
+          {cohortWindowLabel && (
+            <Chip
+              label={`Diagnosis / benign close in ${cohortWindowLabel}`}
+              size="small"
+              color="default"
+              variant="outlined"
+            />
+          )}
           {hasBaseline && betterCount > 0 && <Chip label={`${betterCount} improved`} size="small" color="success" variant="outlined" />}
           {hasBaseline && worseCount > 0 && <Chip label={`${worseCount} worsened`} size="small" color="error" variant="outlined" />}
         </Box>
@@ -660,7 +674,11 @@ export default function AuditSnapshotView({
       <ZoneHeader
         zone={1}
         title="Awareness — How am I doing?"
-        subtitle="Key measures compared to the 2018 National Cancer Diagnosis Audit (NCDA) baseline. Green = improved, red = worsened."
+        subtitle={
+          cohortWindowLabel
+            ? `Pathways where diagnosis or benign close occurred in ${cohortWindowLabel}, compared to the 2018 National Cancer Diagnosis Audit (NCDA) baseline. Green = improved, red = worsened.`
+            : "Key measures compared to the 2018 National Cancer Diagnosis Audit (NCDA) baseline. Green = improved, red = worsened."
+        }
         icon={<VisibilityOutlinedIcon fontSize="small" />}
       />
 

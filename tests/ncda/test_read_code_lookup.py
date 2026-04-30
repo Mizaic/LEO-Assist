@@ -29,6 +29,17 @@ def test_benign_closure_codes_have_cancer_excluded_outcome():
     assert outcome == "cancer_excluded"
 
 
+def test_XM0By_colonoscopy_maps_to_dx_outcome_inferred():
+    """Patient 4245139757 regression: XM0By 'Colonoscopy' must be in the
+    lookup as a dx anchor with outcome=None so the labeller can infer
+    cancer_found vs cancer_excluded from the surrounding text.
+    """
+    assert "XM0By" in READ_CODE_TO_NCDA_ROLE
+    role, outcome = READ_CODE_TO_NCDA_ROLE["XM0By"]
+    assert role == "dx"
+    assert outcome is None
+
+
 def test_treatment_codes_have_no_outcome():
     role, outcome = READ_CODE_TO_NCDA_ROLE["X40EC"]
     assert role == "treatment"

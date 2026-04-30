@@ -299,3 +299,110 @@ def test_audit_summary_queries_use_hero_bucket_case(monkeypatch):
     # Letter-inferred-benign guard must be wired into the CASE so a
     # benign letter never gets classified as confirmed cancer.
     assert "letter_inferred_benign" in bucket_query
+
+
+def test_audit_summary_safety_netting_uses_signal_hierarchy(monkeypatch):
+    """Section 8 (safety-netting) headline percentage MUST be computed
+    from the canonical confirmed-cancer cohort (denominator) and the
+    signal hierarchy stamped onto each EpisodeOfCare by
+    ``libs/oncology/safety_netting.detect_safety_netting`` (numerator).
+
+    Strict default: 'recorded' = strong + medium (free-text safety-net
+    OR Y281b code OR PRISM 'Advice if worsens' field).  The tooltip
+    surfaces the strong-only number too.
+
+    Pinned because the previous implementation divided
+    ``ep.safety_netting_recorded`` (referral-gated subset) by
+    ``total_episodes`` (full cohort including cohort 3), which mixed
+    denominators and rendered as 0% on dashboards even when the EMIS
+    template had been completed.
+    """
+
+    captured: list[str] = []
+
+    class _FakeClient:
+        def __init__(self):
+            self.call = 0
+
+        def run(self, query, **kwargs):
+            self.call += 1
+            captured.append(query)
+            # Safety-netting breakdown query — return a realistic mix.
+            if (
+                "ep.safety_netting_signal" in query
+                and "RETURN coalesce(ep.safety_netting_signal" in query
+            ):
+                return [
+                    {"signal": "strong", "n": 13},
+                    {"signal": "medium", "n": 7},
+                    {"signal": "advice_only", "n": 3},
+                    {"signal": "none", "n": 19},
+                ]
+            return [{"n": 0}]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(audit, "PatientGraphClient", _FakeClient)
+    scope = CallerScope(email="qa@example.com", is_admin=True)
+
+    result = audit.audit_summary(scope=scope)
+
+    # Hierarchy is preserved end-to-end so the tooltip can render it.
+    assert result["safety_netting_signal_counts"] == {
+        "strong": 13,
+        "medium": 7,
+        "advice_only": 3,
+        "none": 19,
+    }
+    assert result["safety_netting_denominator"] == 42
+
+    # Headline (strong + medium) — 20 of 42.
+    assert result["safety_netting_recorded_n"] == 20
+    assert result["safety_netting_pct"] == 47.6
+
+    # Strict (strong only) — 13 of 42.
+    assert result["safety_netting_strong_n"] == 13
+    assert result["safety_netting_strong_pct"] == 31.0
+
+    # The breakdown query MUST scope to confirmed cancers, not the
+    # full cohort, so the rate matches NCDA Section 8 semantics.
+    sn_queries = [
+        q for q in captured if "RETURN coalesce(ep.safety_netting_signal" in q
+    ]
+    assert len(sn_queries) == 1, captured
+    assert "letter_inferred_benign" in sn_queries[0], (
+        "safety-netting breakdown must use confirmed_cancer_where(), "
+        "which contains the letter_inferred_benign guard."
+    )
+    assert "diagnosis_confirmed" in sn_queries[0], (
+        "safety-netting breakdown must use confirmed_cancer_where(), "
+        "which requires a diagnosis milestone."
+    )
+
+
+def test_audit_summary_safety_netting_handles_zero_confirmed(monkeypatch):
+    """When the cohort has no confirmed cancers, the safety-netting
+    rates must be ``None`` (renders as em-dash on the tile) rather
+    than crashing on a zero-division.
+    """
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            if "RETURN coalesce(ep.safety_netting_signal" in query:
+                return []
+            return [{"n": 0}]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(audit, "PatientGraphClient", _FakeClient)
+    scope = CallerScope(email="qa@example.com", is_admin=True)
+
+    result = audit.audit_summary(scope=scope)
+
+    assert result["safety_netting_pct"] is None
+    assert result["safety_netting_strong_pct"] is None
+    assert result["safety_netting_recorded_n"] == 0
+    assert result["safety_netting_strong_n"] == 0
+    assert result["safety_netting_denominator"] == 0

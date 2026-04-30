@@ -189,9 +189,9 @@ class LLMClient:
         from botocore.config import Config
 
         cfg = Config(
-            connect_timeout=60,
-            read_timeout=300,
-            retries={"max_attempts": 3, "mode": "standard"},
+            connect_timeout=30,
+            read_timeout=90,   # reduced from 300 — Haiku responds in <30s; long hang = throttle stall
+            retries={"max_attempts": 1, "mode": "standard"},  # our own retry loop handles backoff
         )
         return boto3.client(
             "bedrock-runtime",

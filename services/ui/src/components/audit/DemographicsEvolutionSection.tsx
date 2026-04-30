@@ -295,6 +295,33 @@ export default function DemographicsEvolutionSection({
     [bm, orgSelected],
   );
 
+  const sharedAgeMaxPct = useMemo(() => {
+    let max = 0;
+    for (const band of PYRAMID_AGE_BANDS) {
+      const v = baselineMarginal.ageBandPct?.[band];
+      if (v != null && v > max) max = v;
+    }
+    for (const state of yearStates) {
+      const banded = ageBandPctFromPractice(state.data);
+      for (const band of PYRAMID_AGE_BANDS) {
+        const v = banded[band];
+        if (v != null && v > max) max = v;
+      }
+    }
+    return max > 0 ? Math.ceil(max / 5) * 5 : null;
+  }, [baselineMarginal, yearStates]);
+
+  const sharedEthnicitySnomedScale = useMemo(() => {
+    let max = 0;
+    for (const state of yearStates) {
+      const rows = state.data?.ethnicity_by_snomed ?? [];
+      for (const row of rows) {
+        if (row.pct != null && row.pct > max) max = row.pct;
+      }
+    }
+    return max > 0 ? Math.min(100, Math.max(8, Math.ceil(max + 4))) : null;
+  }, [yearStates]);
+
   return (
     <SectionCard
       id="section-demographics"
@@ -345,6 +372,7 @@ export default function DemographicsEvolutionSection({
               medianAge={null}
               isBaseline
               baselineMarginal={baselineMarginal}
+              ageMaxPct={sharedAgeMaxPct}
               onZoom={() => setZoomedYear(String(BASELINE_YEAR))}
             />
           </Grid>
@@ -357,6 +385,7 @@ export default function DemographicsEvolutionSection({
                 femalePct={pickPctByGender(state.data, "f")}
                 medianAge={state.data?.median_age ?? null}
                 ageBandPct={ageBandPctFromPractice(state.data)}
+                ageMaxPct={sharedAgeMaxPct}
                 loading={state.loading}
                 onZoom={() => setZoomedYear(String(state.year))}
               />
@@ -385,6 +414,7 @@ export default function DemographicsEvolutionSection({
                 ageBandPct={isBase ? undefined : ageBandPctFromPractice(zState?.data ?? null)}
                 isBaseline={isBase}
                 baselineMarginal={isBase ? baselineMarginal : null}
+                ageMaxPct={sharedAgeMaxPct}
                 bare
               />
             </ChartZoomDialog>
@@ -424,6 +454,7 @@ export default function DemographicsEvolutionSection({
                   state.data?.ethnicity_snomed_coverage_pct ?? null
                 }
                 loading={state.loading}
+                maxScale={sharedEthnicitySnomedScale}
               />
             </Grid>
           ))}

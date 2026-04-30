@@ -21,7 +21,7 @@ Patterns covered:
     - UK phone numbers                   →  [PHONE]
     - Email addresses                    →  [EMAIL]
     - UK street addresses                →  [ADDRESS]
-    - Dates (DD/MM/YYYY, DD.MM.YYYY, YYYY-MM-DD)  →  [DATE]
+    - Dates (DD/MM/YYYY, DD.MM.YYYY, DD-MM-YYYY, YYYY-MM-DD)  →  [DATE]
 
 Intentionally NOT stripped (preserves clinical utility):
     - Coded terms (XaBC1, SNOMED codes)
@@ -251,6 +251,9 @@ EMAIL_RE = re.compile(r"\b[\w.\-+]+@[\w.\-]+\.\w+\b", re.IGNORECASE)
 DATE_SLASH_RE = re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
 DATE_DOT_RE = re.compile(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b")
 DATE_ISO_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+# DD-MM-YYYY (or DD-MM-YY) with hyphens — common in EHR exports (e.g. "DOB: 04-01-1978").
+# Distinct from ISO (YYYY-MM-DD) which is 4-digit year first and already covered above.
+DATE_HYPHEN_RE = re.compile(r"\b\d{1,2}-\d{1,2}-\d{2,4}\b")
 DATE_NATURAL_RE = re.compile(
     r"\b\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{2,4}\b",
     re.IGNORECASE,
@@ -358,6 +361,7 @@ def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     out = DATE_SLASH_RE.sub("[DATE]", out)
     out = DATE_DOT_RE.sub("[DATE]", out)
     out = DATE_ISO_RE.sub("[DATE]", out)
+    out = DATE_HYPHEN_RE.sub("[DATE]", out)
     out = DATE_NATURAL_RE.sub("[DATE]", out)
 
     # Optional NER second pass — catches residual first names in free narrative
@@ -437,6 +441,8 @@ def detect_phi(text: str) -> list[str]:
         found.append("postcode")
     if DATE_ISO_RE.search(text):
         found.append("iso_date")
+    if DATE_HYPHEN_RE.search(text):
+        found.append("hyphen_date")
     if DATE_NATURAL_RE.search(text):
         found.append("natural_date")
     return found

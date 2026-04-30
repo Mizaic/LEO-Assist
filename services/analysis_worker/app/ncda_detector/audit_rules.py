@@ -51,7 +51,27 @@ _FTR_PHRASES = re.compile(
 _SEEN_PHRASES = re.compile(
     r"\b(seen in|specialist clinic|outpatient (?:clinic|appt)"
     r"|attended.*(?:clinic|consultant|appointment)"
-    r"|review in clinic)\b",
+    r"|review in clinic"
+    # EMIS "Patient Attended - Outcome" template field — literal marker
+    # used by UHL Dermatology / Urology / Breast clinics for any OPD
+    # attendance (consultation, dermoscopy, lesion examination).
+    r"|Patient\s+Attended\s*-\s*Outcome"
+    # "Skin Cancer Follow Up" / "<Site> Cancer Follow Up" template fields
+    # are post-attendance follow-up visits.
+    r"|(?:skin|breast|lung|urolog|prostate|colorectal|gynae|ENT|head\s+and\s+neck)"
+    r"\s+cancer\s+follow[-\s]?up"
+    # Specialist clinic letter back to a GP practice ("Dermatology to
+    # Woodbrook Medical Centre", "Urology to Whitehill Surgery").  These
+    # are letters from a specialist clinic informing the GP that the
+    # patient was seen.  Cancer-specialty list is deliberately narrow so
+    # cardiology / physio / pharmacy / etc. letters do NOT spuriously
+    # anchor a `seen` milestone for a cancer pathway.
+    r"|(?:dermatology|urology|breast(?:\s+clinic)?|colorectal"
+    r"|gastroenterolog\w*|gynaecolog\w*|haematolog\w*|oncolog\w*|ENT"
+    r"|head\s+(?:and|&)\s+neck|respiratory)\s+to\s+"
+    r"[A-Z][\w&'.-]+(?:\s+[A-Z][\w&'.-]+){0,5}?\s+"
+    r"(?:Medical\s+Centre|Surgery|Health\s+Centre|Practice|Hospital|Clinic)"
+    r")\b",
     # NOTE: "clinic letter" intentionally removed — it matched GP letters from
     # any clinic (flu vaccine, physiotherapy, cardiology) not just cancer
     # specialist appointments, causing false Seen-In anchors that pushed the
@@ -73,12 +93,28 @@ _EMIS_MAJOR_DX = re.compile(
     r"|sarcoma|mesothelioma)\b",
     re.IGNORECASE | re.MULTILINE,
 )
+# Context tokens that, when present near "all clear", confirm the phrase is
+# describing a cancer / pathway / imaging outcome rather than a generic
+# safety-net plan.  Without this guard a cardiology oncall note such as
+# "advised if all clear, obs stable to continue Bumetanide" would match
+# "all clear" and be promoted to dx/cancer_excluded — which is what spawned
+# the phantom prostate-pathway closure on patient 6040304227.
+_CANCER_CTX_NEAR_ALL_CLEAR = (
+    r"cancer|malignan|2WW|pathway|MDT|biopsy|specimen|histology|imaging"
+    r"|scan|MRI|CT|USS|ultrasound|colonoscop|endoscop|gastroscop|cystoscop"
+    r"|bronchoscop|hysteroscop|colposcop|mammogram|breast|FIT|FOBT"
+    r"|x[-\s]?ray|cxr|melanoma|tumou?r|metasta|lesion|nodule|mass"
+)
 _DX_EXCLUDED_PHRASES = re.compile(
     r"\b(no malignancy|benign|cancer ruled out|cancer excluded"
     r"|d/?c (from|after).*(2WW|pathway|clinic)"
     r"|discharged from (clinic|cancer|2WW|pathway)"
-    r"|reassur(ed|ance).*no malignancy|all clear|no evidence of (cancer|malignancy)"
-    r"|dysplastic naevus|atypical naevus|compound naevus|melanocytic naevi)\b",
+    r"|reassur(ed|ance).*no malignancy|no evidence of (cancer|malignancy)"
+    r"|dysplastic naevus|atypical naevus|compound naevus|melanocytic naevi)\b"
+    # "all clear" — only when a cancer / imaging / pathway context word
+    # appears within ~80 chars on either side of the phrase.
+    r"|(?:\b(?:" + _CANCER_CTX_NEAR_ALL_CLEAR + r")\b[\s\S]{0,80}\ball clear\b"
+    r"|\ball clear\b[\s\S]{0,80}\b(?:" + _CANCER_CTX_NEAR_ALL_CLEAR + r")\b)",
     re.IGNORECASE,
 )
 _TREATMENT_PHRASES = re.compile(

@@ -30,6 +30,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from libs.analytics import confirmed_cancer_where
+from libs.oncology.cancer_types import synonyms_for
 from libs.auth.org_scope import ORG_PATIENT_FILTER, CallerScope, get_caller_scope
 from libs.episodes.lifecycle import (
     HERO_BUCKETS,
@@ -220,10 +221,16 @@ def _no_pathway_patients_cypher(
 def _apply_cancer_type_filter(
     base: str, params: dict, cancer_types: list[str]
 ) -> tuple[str, dict]:
-    """Append cancer_type IN filter when cancer_types list is non-empty."""
+    """Append cancer_type IN filter when cancer_types list is non-empty.
+
+    Expands canonical names to all known raw synonyms (e.g. 'Breast' also
+    catches 'breast') so legacy episodes with non-canonical casing are not
+    silently excluded.
+    """
     if not cancer_types:
         return base, params
-    params = {**params, "cancer_types": cancer_types}
+    expanded = synonyms_for(cancer_types)
+    params = {**params, "cancer_types": expanded}
     base = base.rstrip() + " AND ep.cancer_type IN $cancer_types "
     return base, params
 
@@ -450,7 +457,7 @@ def _episode_list_predicate(
         params = {**params, "lifecycle_bucket": lifecycle_bucket}
     if cancer_types:
         predicates.append(f"{alias}.cancer_type IN $cancer_types")
-        params = {**params, "cancer_types": cancer_types}
+        params = {**params, "cancer_types": synonyms_for(cancer_types)}
     if closure_reasons:
         predicates.append(f"{alias}.status IN $closure_reasons")
         params = {**params, "closure_reasons": closure_reasons}
@@ -664,6 +671,23 @@ def _patient_only_query(
 # ---------------------------------------------------------------------------
 
 
+def _cancer_type_counts_cypher(base: str, params: dict) -> tuple[str, dict]:
+    """Count distinct patients per non-null cancer type for the filter chip strip.
+
+    Runs against a base built WITHOUT the cancer_type filter so all types are
+    visible and their counts reflect the other active filters (date, org,
+    pathway, review status, lifecycle bucket).
+    """
+    q = (
+        f"{base}"
+        "WITH ep.cancer_type AS cancer_type, p "
+        "WHERE cancer_type IS NOT NULL "
+        "RETURN cancer_type, count(DISTINCT p) AS patient_count "
+        "ORDER BY patient_count DESC"
+    )
+    return q, params
+
+
 def _kpis_cypher(base: str, params: dict) -> tuple[str, dict]:
     """Return (query, params) for the Mission Control KPI aggregation.
 
@@ -695,7 +719,7 @@ def _kpis_cypher(base: str, params: dict) -> tuple[str, dict]:
         "  percentileCont(toFloat(ep.benign_interval_days), 0.5) AS median_benign_interval_days, "
         "  toFloat(count(DISTINCT CASE WHEN ep.safety_netting_milestone IS NOT NULL "
         "    AND ep.safety_netting_milestone <> '' THEN ep END)) / "
-        "  CASE WHEN count(ep) > 0 THEN toFloat(count(ep)) ELSE 1.0 END AS safety_netting_rate, "
+        "  CASE WHEN count(DISTINCT ep) > 0 THEN toFloat(count(DISTINCT ep)) ELSE 1.0 END AS safety_netting_rate, "
         "  count(DISTINCT CASE WHEN ep.reviewed_at IS NULL THEN ep END) AS needs_review_count "
     )
     return q, params
@@ -967,6 +991,7 @@ def get_mission_control_kpis(
                 "needs_review_count": 0,
             }
         ]
+        cancer_type_counts: dict[str, int] = {}
     else:
         base, params = _build_filtered_base(
             org_id,
@@ -981,12 +1006,32 @@ def get_mission_control_kpis(
             lifecycle_bucket=lifecycle_bucket,
         )
         q, qparams = _kpis_cypher(base, params)
+        # Build a second base without cancer_type filter so all types show counts.
+        counts_base, counts_params = _build_filtered_base(
+            org_id,
+            scope,
+            date_from,
+            date_to,
+            pathway_filter,
+            [],  # no cancer_type filter
+            closure_reason_list,
+            review_status,
+            patient_id,
+            lifecycle_bucket=lifecycle_bucket,
+        )
+        counts_q, counts_qparams = _cancer_type_counts_cypher(counts_base, counts_params)
         client = PatientGraphClient()
         try:
             rows = client.run(q, **qparams)
             cohort_rows = client.run(cohort_q, **cohort_params)
+            cancer_type_counts_rows = client.run(counts_q, **counts_qparams)
         finally:
             client.close()
+        cancer_type_counts: dict[str, int] = {
+            row["cancer_type"]: int(row.get("patient_count") or 0)
+            for row in (cancer_type_counts_rows or [])
+            if row.get("cancer_type")
+        }
 
     cohort = cohort_rows[0] if cohort_rows else {}
     cohort_block = {
@@ -1010,6 +1055,7 @@ def get_mission_control_kpis(
             "median_benign_interval_days": None,
             "safety_netting_rate": 0.0,
             "needs_review_count": 0,
+            "cancer_type_counts": cancer_type_counts,
             "cohort": cohort_block,
         }
 
@@ -1024,6 +1070,7 @@ def get_mission_control_kpis(
         "median_benign_interval_days": row.get("median_benign_interval_days"),
         "safety_netting_rate": float(row.get("safety_netting_rate") or 0.0),
         "needs_review_count": row.get("needs_review_count", 0),
+        "cancer_type_counts": cancer_type_counts,
         "cohort": cohort_block,
     }
 

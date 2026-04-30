@@ -105,7 +105,7 @@ def confirmed_cancer_where(alias: str = _DEFAULT_ALIAS) -> str:
         query = (
             "MATCH (p:Patient)-[:HAS_EPISODE]->(ep:EpisodeOfCare) "
             f"WHERE {confirmed_cancer_where('ep')} "
-            "RETURN count(ep)"
+            "RETURN count(DISTINCT ep)"
         )
     """
     status = _STATUS_AND_BENIGN.format(alias=alias)

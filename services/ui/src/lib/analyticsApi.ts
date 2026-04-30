@@ -903,7 +903,30 @@ export interface AuditSummary {
   median_pci_days: number | null;
   median_di_days: number | null;
   avg_consultations: number | null;
+  // Headline Section 8 rate: confirmed-cancer episodes with a
+  // strong (free-text "safety netted" / "safety net advice" OR Y281b
+  // Read code) OR medium (PRISM "Advice if worsens" template field)
+  // safety-netting record. Denominator is the canonical
+  // confirmed-cancer cohort. See libs/oncology/safety_netting.py.
   safety_netting_pct: number | null;
+  /** Numerator behind safety_netting_pct (strong + medium hits). */
+  safety_netting_recorded_n?: number;
+  /** Strict subset: free-text safety-net OR Y281b code only. */
+  safety_netting_strong_pct?: number | null;
+  safety_netting_strong_n?: number;
+  /** Per-signal breakdown for the tooltip ("X strong, Y PRISM-only, Z generic advice, W none"). */
+  safety_netting_signal_counts?: {
+    strong: number;
+    medium: number;
+    advice_only: number;
+    none: number;
+  };
+  /** Confirmed-cancer denominator behind every safety_netting_* field. */
+  safety_netting_denominator?: number;
+  /** Legacy field — referral-gated subset / total_episodes. Do NOT
+   * surface as the headline; kept for backwards-compat with older
+   * snapshot tests that still assert the old denominator. */
+  safety_netting_legacy_pct?: number | null;
 }
 
 export interface AuditCancerTypeRow {
@@ -1059,6 +1082,26 @@ export interface AuditSafetyNetting {
   recorded_n: number;
   recorded_pct: number;
   not_recorded_pct: number;
+  /** Per-signal counts (strong > medium > advice_only > none) — see
+   * libs/oncology/safety_netting.py for the hierarchy. Drives the
+   * Safety Netting "Open detail" dialog. */
+  signal_counts?: {
+    strong: number;
+    medium: number;
+    advice_only: number;
+    none: number;
+  };
+  signal_pct?: {
+    strong: number;
+    medium: number;
+    advice_only: number;
+    none: number;
+  };
+  /** Strict subset (strong only): free-text "safety netted" / "safety
+   * net advice" or Read code Y281b only — surfaced in the dialog
+   * alongside the headline strong+medium rate. */
+  strong_n?: number;
+  strong_pct?: number;
 }
 
 export interface AuditComorbidityRow {

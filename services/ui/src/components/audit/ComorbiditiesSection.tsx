@@ -15,7 +15,7 @@
  * gender / referral-outcome slices (DO-D5B9FE5F).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -29,23 +29,19 @@ import type {
   AuditSectionResult,
 } from "@/lib/analyticsApi";
 import { fetchAuditComorbidities } from "@/lib/analyticsApi";
+import { useOrgId } from "@/context/OrgContext";
 
-const BASELINE_YEAR = 2018;
+import { useAuditYearWindows, BASELINE_YEAR } from "./_useAuditYearWindows";
 
 interface Props {
   result: AuditSectionResult<AuditComorbidities> | null;
   loading: boolean;
   error?: string | null;
   orgSelected?: boolean;
+  /** @deprecated Resolved internally via useOrgId. */
   orgId?: string;
   dateFrom?: string;
   dateTo?: string;
-}
-
-interface LiveYearState {
-  year: number;
-  loading: boolean;
-  data: AuditComorbidities | null;
 }
 
 function calendarYearWindow(year: number): { from: string; to: string } {
@@ -132,10 +128,10 @@ export default function ComorbiditiesSection({
   loading,
   error,
   orgSelected = false,
-  orgId,
   dateFrom,
   dateTo,
 }: Props) {
+  const orgId = useOrgId();
   const [drillArgs, setDrillArgs] = useState<{
     from: string;
     to: string;
@@ -146,65 +142,10 @@ export default function ComorbiditiesSection({
   const practice = result?.scopes.practice;
   const radar = practice?.radar ?? [];
 
-  const currentYear = new Date().getUTCFullYear();
-  const liveYearNumbers = useMemo(
-    () => [currentYear - 2, currentYear - 1, currentYear],
-    [currentYear],
+  const { liveYears: yearStates } = useAuditYearWindows<AuditComorbidities>(
+    fetchAuditComorbidities,
+    { orgId },
   );
-
-  const [yearStates, setYearStates] = useState<LiveYearState[]>(() =>
-    liveYearNumbers.map((year) => ({
-      year,
-      loading: true,
-      data: null,
-    })),
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    setYearStates(
-      liveYearNumbers.map((year) => ({
-        year,
-        loading: true,
-        data: null,
-      })),
-    );
-
-    Promise.all(
-      liveYearNumbers.map(async (year) => {
-        const window = calendarYearWindow(year);
-        try {
-          const res = await fetchAuditComorbidities(
-            orgId,
-            window.from,
-            window.to,
-          );
-          return {
-            year,
-            data: res?.scopes?.practice ?? null,
-          };
-        } catch {
-          return {
-            year,
-            data: null,
-          };
-        }
-      }),
-    ).then((rows) => {
-      if (cancelled) return;
-      setYearStates(
-        rows.map((r) => ({
-          year: r.year,
-          loading: false,
-          data: r.data,
-        })),
-      );
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [orgId, liveYearNumbers]);
 
   const baselineRadar: AuditComorbidityRadarRow[] = useMemo(
     () =>
@@ -215,6 +156,20 @@ export default function ComorbiditiesSection({
       })),
     [radar, comorbBm, orgSelected],
   );
+
+  const sharedRadarScale = useMemo(() => {
+    const allRows: AuditComorbidityRadarRow[][] = [
+      baselineRadar,
+      ...yearStates.map((s) => s.data?.radar ?? []),
+    ];
+    let maxPct = 0;
+    for (const rows of allRows) {
+      for (const row of rows) {
+        if (row.pct != null && row.pct > maxPct) maxPct = row.pct;
+      }
+    }
+    return Math.min(100, Math.max(8, Math.ceil(maxPct + 4)));
+  }, [baselineRadar, yearStates]);
 
   return (
     <SectionCard
@@ -240,6 +195,7 @@ export default function ComorbiditiesSection({
                 radar={baselineRadar}
                 totalPatients={0}
                 isBaseline
+                maxScale={sharedRadarScale}
                 onZoom={() => setZoomedYear(String(BASELINE_YEAR))}
               />
             </Grid>
@@ -252,6 +208,7 @@ export default function ComorbiditiesSection({
                     radar={state.data?.radar ?? radar}
                     totalPatients={state.data?.total_patients ?? 0}
                     loading={state.loading}
+                    maxScale={sharedRadarScale}
                     onBreakdown={() => setDrillArgs(window)}
                     onZoom={() => setZoomedYear(String(state.year))}
                   />
@@ -278,6 +235,7 @@ export default function ComorbiditiesSection({
                     radar={isBase ? baselineRadar : (zState?.data?.radar ?? radar)}
                     totalPatients={zN}
                     isBaseline={isBase}
+                    maxScale={sharedRadarScale}
                     bare
                   />
                 </Box>
@@ -288,7 +246,7 @@ export default function ComorbiditiesSection({
           <ComorbiditiesDrilldownDialog
             open={drillArgs != null}
             onClose={() => setDrillArgs(null)}
-            orgId={orgId}
+            orgId={orgId ?? undefined}
             dateFrom={drillArgs?.from ?? dateFrom}
             dateTo={drillArgs?.to ?? dateTo}
           />

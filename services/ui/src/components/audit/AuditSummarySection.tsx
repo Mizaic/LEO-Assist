@@ -15,6 +15,7 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Skeleton from "@mui/material/Skeleton";
 import Divider from "@mui/material/Divider";
+import Tooltip from "@mui/material/Tooltip";
 import SectionCard from "./SectionCard";
 import type { AuditSummary } from "@/lib/analyticsApi";
 import { BENCHMARK_COLOURS } from "./BenchmarkLegend";
@@ -37,15 +38,43 @@ interface StatTileProps {
   value: string | number | null | undefined;
   sub?: string;
   color?: string;
+  /** Optional tooltip body. When supplied, the tile shows an
+   * underlined-dotted label hint on hover. */
+  tooltip?: React.ReactNode;
 }
 
-function StatTile({ label, value, sub, color = BENCHMARK_COLOURS.practice }: StatTileProps) {
+function StatTile({ label, value, sub, color = BENCHMARK_COLOURS.practice, tooltip }: StatTileProps) {
+  const labelNode = (
+    <Typography
+      variant="caption"
+      sx={{
+        color: "text.secondary",
+        fontSize: "0.72rem",
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+        fontWeight: 600,
+        ...(tooltip
+          ? {
+              borderBottom: "1px dotted",
+              borderBottomColor: "text.disabled",
+              cursor: "help",
+            }
+          : {}),
+      }}
+    >
+      {label}
+    </Typography>
+  );
   return (
     <Card variant="outlined" sx={{ height: "100%" }}>
       <CardContent sx={{ py: 1.5, px: 2, "&:last-child": { pb: 1.5 } }}>
-        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>
-          {label}
-        </Typography>
+        {tooltip ? (
+          <Tooltip title={tooltip} arrow placement="top" enterDelay={300}>
+            {labelNode}
+          </Tooltip>
+        ) : (
+          labelNode
+        )}
         {value == null ? (
           <Skeleton width={80} height={32} />
         ) : (
@@ -145,8 +174,45 @@ export default function AuditSummarySection({
               <StatTile
                 label="Safety netting"
                 value={fmt(summary.safety_netting_pct) != null ? `${fmt(summary.safety_netting_pct)}%` : "—"}
-                sub="Cases with a follow-up plan recorded"
+                sub={
+                  summary.safety_netting_recorded_n != null && summary.safety_netting_denominator
+                    ? `${summary.safety_netting_recorded_n} of ${summary.safety_netting_denominator} confirmed cancers`
+                    : "Confirmed cancers with a documented safety-net plan"
+                }
                 color="#C2410C"
+                tooltip={
+                  summary.safety_netting_signal_counts ? (
+                    <Box sx={{ p: 0.5, fontSize: "0.78rem", lineHeight: 1.5 }}>
+                      <Typography variant="caption" sx={{ display: "block", fontWeight: 700, mb: 0.5, color: "common.white" }}>
+                        How safety netting is detected
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: "block", color: "common.white" }}>
+                        <strong>{summary.safety_netting_signal_counts.strong}</strong> strong — free-text "safety netted" / "safety-net advice" or Read code Y281b
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: "block", color: "common.white" }}>
+                        <strong>{summary.safety_netting_signal_counts.medium}</strong> medium — PRISM "Advice if worsens / no better / concerns: Yes"
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: "block", color: "common.white" }}>
+                        <strong>{summary.safety_netting_signal_counts.advice_only}</strong> advice-only — generic "return if X" / red-flag wording (NOT counted)
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: "block", color: "common.white" }}>
+                        <strong>{summary.safety_netting_signal_counts.none}</strong> none — no safety-net evidence in the encounter window
+                      </Typography>
+                      <Divider sx={{ my: 0.75, borderColor: "rgba(255,255,255,0.25)" }} />
+                      <Typography variant="caption" sx={{ display: "block", color: "common.white" }}>
+                        Headline = strong + medium ({summary.safety_netting_recorded_n ?? 0}/{summary.safety_netting_denominator ?? 0}, {fmt(summary.safety_netting_pct) ?? "—"}%).
+                      </Typography>
+                      {summary.safety_netting_strong_pct != null && (
+                        <Typography variant="caption" sx={{ display: "block", color: "common.white" }}>
+                          Strict (strong only): {summary.safety_netting_strong_n ?? 0}/{summary.safety_netting_denominator ?? 0}, {fmt(summary.safety_netting_strong_pct)}%.
+                        </Typography>
+                      )}
+                      <Typography variant="caption" sx={{ display: "block", mt: 0.75, fontStyle: "italic", color: "rgba(255,255,255,0.85)" }}>
+                        Window: 30 days before earliest milestone to 14 days after the last.
+                      </Typography>
+                    </Box>
+                  ) : undefined
+                }
               />
             </Grid>
           </Grid>

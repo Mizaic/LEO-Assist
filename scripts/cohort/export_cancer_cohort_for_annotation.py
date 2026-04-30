@@ -120,6 +120,33 @@ RETURN
 ORDER BY date(e.date) ASC, e.id ASC
 """
 
+ALL_ENCOUNTERS_QUERY = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE coalesce(toString(p.id), toString(p.patient_id)) = $pid
+  AND e.text IS NOT NULL
+  AND trim(e.text) <> ''
+OPTIONAL MATCH (e)-[:DOCUMENTS]->(c)
+WITH e, collect(DISTINCT {
+    name:      coalesce(c.name, c.term, ''),
+    labels:    labels(c),
+    concept_id: coalesce(toString(c.conceptId), '')
+}) AS coded
+RETURN
+    e.id                AS encounter_id,
+    toString(e.date)     AS encounter_date,
+    coalesce(e.flags, '') AS encounter_flags,
+    e.text               AS text,
+    coded                AS existing_coded_concepts
+ORDER BY date(e.date) ASC, e.id ASC
+"""
+
+ALL_PATIENT_IDS_QUERY = """
+MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)
+WHERE e.text IS NOT NULL AND trim(e.text) <> ''
+RETURN DISTINCT coalesce(toString(p.id), toString(p.patient_id)) AS patient_id
+ORDER BY patient_id
+"""
+
 
 # ---------------------------------------------------------------------------
 # Sentence splitting (lightweight; the production splitter has more deps)
@@ -295,6 +322,20 @@ def fetch_encounters_in_window(
         return [dict(r) for r in result]
 
 
+def fetch_all_encounters(driver, patient_id: str) -> list[dict[str, Any]]:
+    """Return all encounters for a patient regardless of date."""
+    with driver.session() as session:
+        result = session.run(ALL_ENCOUNTERS_QUERY, pid=patient_id)
+        return [dict(r) for r in result]
+
+
+def fetch_all_patient_ids(driver) -> list[str]:
+    """Return every patient ID that has at least one non-empty encounter."""
+    with driver.session() as session:
+        result = session.run(ALL_PATIENT_IDS_QUERY)
+        return [row["patient_id"] for row in result]
+
+
 # ---------------------------------------------------------------------------
 # Per-patient export
 # ---------------------------------------------------------------------------
@@ -315,20 +356,28 @@ def export_patient(
     cohort_row: dict[str, Any],
     window_days: int,
     output_dir: Path,
+    *,
+    all_encounters: bool = False,
 ) -> dict[str, Any]:
     pid = cohort_row["patient_id"]
-    anchor = cohort_row["anchor_date"]
-    anchor_dt = datetime.strptime(anchor[:10], "%Y-%m-%d")
-    d_from = (anchor_dt - timedelta(days=window_days)).strftime("%Y-%m-%d")
-    d_to   = (anchor_dt + timedelta(days=window_days)).strftime("%Y-%m-%d")
+
+    if all_encounters:
+        encounters = fetch_all_encounters(driver, pid)
+        d_from = d_to = None
+        anchor = cohort_row.get("anchor_date")
+    else:
+        anchor = cohort_row["anchor_date"]
+        anchor_dt = datetime.strptime(anchor[:10], "%Y-%m-%d")
+        d_from = (anchor_dt - timedelta(days=window_days)).strftime("%Y-%m-%d")
+        d_to   = (anchor_dt + timedelta(days=window_days)).strftime("%Y-%m-%d")
+        encounters = fetch_encounters_in_window(driver, pid, d_from, d_to)
 
     demo = fetch_demographics(driver, pid)
-    encounters = fetch_encounters_in_window(driver, pid, d_from, d_to)
 
     patient_context = {
         "gender":            demo.get("gender"),
         "year_of_birth":     demo.get("year_of_birth"),
-        "age_at_diagnosis":  age_at(anchor, demo.get("year_of_birth")),
+        "age_at_diagnosis":  age_at(anchor, demo.get("year_of_birth")) if anchor else None,
         "cancer_site":       cohort_row.get("site"),
         "cohort":            cohort_row.get("cohort"),
         "diagnosis_date":    cohort_row.get("diagnosis_date"),
@@ -361,6 +410,7 @@ def export_patient(
         "anchor_date":    anchor,
         "window_from":    d_from,
         "window_to":      d_to,
+        "all_encounters": all_encounters,
         "n_encounters":   len(encounters),
         "n_chars":        n_chars,
         "n_sentences":    sum(len(split_sentences(e.get("text") or "")) for e in encounters),
@@ -392,6 +442,15 @@ def parse_args() -> argparse.Namespace:
         help=f"Days either side of diagnosis (default {DEFAULT_WINDOW_DAYS}).",
     )
     p.add_argument(
+        "--all-patients",
+        action="store_true",
+        help=(
+            "Export every patient in the graph (no NCDA cohort filter, no date window). "
+            "Useful for whole-corpus deterministic lab extraction. "
+            "Ignores --ncda-artifact and --window-days."
+        ),
+    )
+    p.add_argument(
         "--output-dir",
         type=Path,
         default=DEFAULT_OUTPUT_DIR,
@@ -414,33 +473,62 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    artifact = args.ncda_artifact or find_latest_ncda_artifact(DEFAULT_NCDA_GLOB)
-    logger.info("loading NCDA cohort from %s", artifact)
-    cohort = collapse_to_one_per_patient(load_cohort(artifact))
 
-    if args.patient:
-        wanted = {str(p) for p in args.patient}
-        cohort = [c for c in cohort if c["patient_id"] in wanted]
-    if args.limit > 0:
-        cohort = cohort[: args.limit]
+    driver = make_driver()
+
+    if args.all_patients:
+        logger.info("--all-patients: fetching every patient with encounters from Neo4j")
+        try:
+            all_pids = fetch_all_patient_ids(driver)
+        except Exception as exc:
+            logger.error("failed to fetch patient IDs: %s", exc)
+            driver.close()
+            return 1
+        logger.info("found %d patients with encounters", len(all_pids))
+        if args.patient:
+            wanted = {str(p) for p in args.patient}
+            all_pids = [p for p in all_pids if p in wanted]
+        if args.limit > 0:
+            all_pids = all_pids[: args.limit]
+        cohort = [{"patient_id": pid, "anchor_date": None, "site": None,
+                   "cohort": None, "diagnosis_date": None, "diagnosis_route": None}
+                  for pid in all_pids]
+        ncda_artifact_str = "all_patients"
+    else:
+        artifact = args.ncda_artifact or find_latest_ncda_artifact(DEFAULT_NCDA_GLOB)
+        logger.info("loading NCDA cohort from %s", artifact)
+        cohort = collapse_to_one_per_patient(load_cohort(artifact))
+        if args.patient:
+            wanted = {str(p) for p in args.patient}
+            cohort = [c for c in cohort if c["patient_id"] in wanted]
+        if args.limit > 0:
+            cohort = cohort[: args.limit]
+        ncda_artifact_str = str(artifact.relative_to(ROOT))
 
     if not cohort:
         logger.error("no patients selected after filtering")
+        driver.close()
         return 1
 
+    args.output_dir = args.output_dir.resolve()
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    mode = "all_encounters" if args.all_patients else f"window +/- {args.window_days}d"
+    try:
+        display_dir = args.output_dir.relative_to(ROOT)
+    except ValueError:
+        display_dir = args.output_dir
     logger.info(
-        "exporting %d patient(s), window +/- %d days, output dir %s",
-        len(cohort), args.window_days, args.output_dir.relative_to(ROOT),
+        "exporting %d patient(s), mode=%s, output dir %s",
+        len(cohort), mode, display_dir,
     )
 
-    driver = make_driver()
     manifest: list[dict[str, Any]] = []
     try:
         for i, row in enumerate(cohort, start=1):
             try:
                 summary = export_patient(
-                    driver, row, args.window_days, args.output_dir
+                    driver, row, args.window_days, args.output_dir,
+                    all_encounters=args.all_patients,
                 )
             except Exception as exc:
                 logger.error(
@@ -450,14 +538,11 @@ def main() -> int:
                 continue
             manifest.append(summary)
             logger.info(
-                "[%d/%d] %s site=%s anchor=%s -> %d encounters, %d chars, %d sentences",
+                "[%d/%d] %s -> %d encounters, %d chars",
                 i, len(cohort),
                 row["patient_id"],
-                row.get("site"),
-                row["anchor_date"],
                 summary["n_encounters"],
                 summary["n_chars"],
-                summary["n_sentences"],
             )
     finally:
         driver.close()
@@ -472,8 +557,9 @@ def main() -> int:
     with manifest_path.open("w") as f:
         json.dump({
             "generated_at":    datetime.now().strftime("%Y%m%dT%H%M%SZ"),
-            "ncda_artifact":   str(artifact.relative_to(ROOT)),
-            "window_days":     args.window_days,
+            "ncda_artifact":   ncda_artifact_str,
+            "window_days":     None if args.all_patients else args.window_days,
+            "all_patients":    args.all_patients,
             "totals":          totals,
             "patients":        manifest,
         }, f, indent=2)
@@ -483,7 +569,11 @@ def main() -> int:
         totals["n_patients"], totals["n_encounters"],
         totals["n_chars"], totals["n_sentences"],
     )
-    logger.info("manifest: %s", manifest_path.relative_to(ROOT))
+    try:
+        manifest_rel = manifest_path.relative_to(ROOT)
+    except ValueError:
+        manifest_rel = manifest_path
+    logger.info("manifest: %s", manifest_rel)
     return 0
 
 

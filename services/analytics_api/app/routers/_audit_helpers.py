@@ -24,17 +24,61 @@ logger = logging.getLogger(__name__)
 # Match templates
 # ---------------------------------------------------------------------------
 
-# ncda_detector is the sole live source of truth. Legacy episode_builder
-# episodes (no source tag) are excluded so audit numbers reflect only
-# detector-written pathways, preventing double-counting and polluted metrics.
+# Include both ncda_detector episodes (current pipeline) and legacy
+# episode_builder episodes (source IS NULL). The cohort currently has no
+# patient with both a detector and a legacy episode, so there is no
+# double-counting risk. The source IS NULL arm will quietly become a no-op
+# once all legacy patients have been re-processed by the detector.
 _EPISODE_FILTER = (
     "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
-    "AND ep.source = 'ncda_detector'"
+    "AND (ep.source = 'ncda_detector' OR ep.source IS NULL)"
 )
 
 # Keep the old name as an alias so _episode_base_all_cohort's string replace
 # still works without needing its own refactor.
 _EPISODE_EXCLUDE = _EPISODE_FILTER
+
+# Outcome anchor: the year the episode reached an outcome (cancer
+# diagnosis or benign closure). The /care/audit report buckets every
+# section by this anchor so the same denominator can be compared across
+# Cancer Type, Cancer Stage, Demographics, FTR, Consultations, etc.
+#
+# Resolution order, evaluated per episode:
+#   1. earliest IS_PART_OF encounter with milestone_type IN
+#      ['diagnosis', 'diagnosis_confirmed', 'benign_closure'] -- the
+#      canonical outcome date written by the v2 detector.
+#   2. ep.inferred_outcome_date when ep.inferred_outcome IN
+#      ['cancer', 'cancer_excluded', 'cancer_assumed_excluded'] -- used
+#      when the detector inferred an outcome without an explicit
+#      milestone encounter.
+#   3. ep.end_date when ep.status IN ['completed', 'closed_benign'] --
+#      the close date written by the canonical status writer
+#      (libs/episodes/lifecycle.py).
+#   4. NULL otherwise (still-open episodes without an outcome): they
+#      will be excluded from any year-windowed view.
+#
+# The chain ends with `WHERE true ` so callers can append predicates
+# (date filters, status filters, ...) using `... AND <predicate>`
+# without re-establishing a WHERE clause.
+_OUTCOME_DATE_BIND = (
+    "OPTIONAL MATCH (__outcome_enc:Encounter)-[__outcome_rel:IS_PART_OF]->(ep) "
+    "  WHERE __outcome_rel.milestone_type IN "
+    "['diagnosis', 'diagnosis_confirmed', 'benign_closure'] "
+    "WITH p, ep, min(toString(__outcome_enc.date)) AS __outcome_milestone_date "
+    "WITH p, ep, CASE "
+    "  WHEN trim(coalesce(__outcome_milestone_date, '')) <> '' "
+    "    THEN __outcome_milestone_date "
+    "  WHEN ep.inferred_outcome IN "
+    "['cancer', 'cancer_excluded', 'cancer_assumed_excluded'] "
+    "    AND trim(coalesce(toString(ep.inferred_outcome_date), '')) <> '' "
+    "    THEN toString(ep.inferred_outcome_date) "
+    "  WHEN ep.status IN ['completed', 'closed_benign'] "
+    "    AND trim(coalesce(toString(ep.end_date), '')) <> '' "
+    "    THEN toString(ep.end_date) "
+    "  ELSE null "
+    "END AS outcome_date "
+    "WHERE true "
+)
 
 _ORG_PATIENT_MATCH = (
     "MATCH (_scope:Organization {id: $org}) "
@@ -42,12 +86,14 @@ _ORG_PATIENT_MATCH = (
     "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
     "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
     "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-    f"WHERE {_EPISODE_FILTER}"
+    f"WHERE {_EPISODE_FILTER} "
+    f"{_OUTCOME_DATE_BIND}"
 )
 
 _ENGLAND_BASE = (
     "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-    f"WHERE {_EPISODE_FILTER}"
+    f"WHERE {_EPISODE_FILTER} "
+    f"{_OUTCOME_DATE_BIND}"
 )
 
 
@@ -57,7 +103,13 @@ _ENGLAND_BASE = (
 
 
 def _episode_base(org_id: Optional[str], scope: CallerScope) -> tuple[str, dict]:
-    """Return (match_clause, params) for the practice/org scope."""
+    """Return (match_clause, params) for the practice/org scope.
+
+    The returned base binds an `outcome_date` per episode (year of
+    diagnosis or benign closure -- see `_OUTCOME_DATE_BIND`) so
+    `_add_date_filters` can filter every audit section against the
+    same clinically-meaningful anchor.
+    """
     effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
     if effective_org:
         return _ORG_PATIENT_MATCH, {"org": effective_org}
@@ -65,7 +117,8 @@ def _episode_base(org_id: Optional[str], scope: CallerScope) -> tuple[str, dict]
         return _ENGLAND_BASE, {}
     return (
         "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-        f"WHERE {ORG_PATIENT_FILTER} AND {_EPISODE_EXCLUDE}",
+        f"WHERE {ORG_PATIENT_FILTER} AND {_EPISODE_EXCLUDE} "
+        f"{_OUTCOME_DATE_BIND}",
         scope.to_query_params(),
     )
 
@@ -123,28 +176,22 @@ def _add_date_filters(
 ) -> tuple[str, dict]:
     """Append optional date range filters.
 
-    For episodes that have a referral (cohorts 1a/1b), the anchor date is
-    ep.referral_date.  For cohort-3 episodes (cancer found, no FTR) the
-    referral_date is empty; we fall back to ep.end_date (the diagnosis date)
-    so cohort-3 cases are correctly included in year-filtered views.
+    Filters on the per-episode `outcome_date` bound by `_OUTCOME_DATE_BIND`
+    (year of diagnosis or benign closure). Episodes that have not yet
+    reached an outcome have outcome_date = NULL and are excluded from any
+    windowed view -- they are still counted in the all-time Summary
+    headline.
 
-    All base templates end with an active WHERE clause (WHERE true, or a real
-    predicate), so predicates are always joined with AND -- never a bare WHERE.
+    All base templates end with an active WHERE clause (WHERE true, or a
+    real predicate), so predicates are always joined with AND -- never a
+    bare WHERE.
     """
-    # Cypher expression: use referral_date when it is a non-empty string,
-    # otherwise fall back to end_date (the diagnosis anchor for cohort-3).
-    _ANCHOR = (
-        "CASE WHEN trim(coalesce(toString(ep.referral_date), '')) <> '' "
-        "  THEN ep.referral_date "
-        "  ELSE ep.end_date "
-        "END"
-    )
     clauses: list[str] = []
     if date_from:
-        clauses.append(f"({_ANCHOR}) >= $date_from")
+        clauses.append("outcome_date >= $date_from")
         params = {**params, "date_from": date_from}
     if date_to:
-        clauses.append(f"({_ANCHOR}) <= $date_to")
+        clauses.append("outcome_date <= $date_to")
         params = {**params, "date_to": date_to}
     if clauses:
         base = base.rstrip() + " AND " + " AND ".join(clauses) + " "

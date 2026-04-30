@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
@@ -35,6 +36,8 @@ import Button from "@mui/material/Button";
 
 import SectionCard from "./SectionCard";
 import SymptomsDrilldownDialog from "./SymptomsDrilldownDialog";
+import EvolutionYearCard, { EvolutionLegendSwatch } from "./EvolutionYearCard";
+import { BASELINE_YEAR } from "./_useAuditYearWindows";
 import type {
   AuditSymptomPpvRow,
   AuditPpvByCancerTypeRow,
@@ -48,6 +51,36 @@ interface Props {
   orgId?: string;
   dateFrom?: string;
   dateTo?: string;
+}
+
+const ACCENT_SYMPTOMS = "#0369A1";
+const C_BENCH18 = "#92400E";
+
+interface YearPpvState {
+  year: number;
+  loading: boolean;
+  data: AuditSymptoms | null;
+  error: string | null;
+}
+
+function computeOverallPpv(data: AuditSymptoms | null): {
+  pct: number | null;
+  refN: number;
+  cancerN: number;
+} {
+  if (!data) return { pct: null, refN: 0, cancerN: 0 };
+  let refN = 0;
+  let cancerN = 0;
+  for (const row of data.ppv_by_suspected_cancer_type ?? []) {
+    refN += row.referrals_n ?? 0;
+    cancerN += row.diagnosed_in_year_n ?? 0;
+  }
+  if (refN === 0) return { pct: null, refN: 0, cancerN: 0 };
+  return {
+    pct: Math.round((cancerN / refN) * 1000) / 10,
+    refN,
+    cancerN,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -419,6 +452,20 @@ export default function SymptomsSection({
   const [minN, setMinN] = useState<MinN>(2);
   const [showZero, setShowZero] = useState(false);
 
+  const currentYear = new Date().getUTCFullYear();
+  const liveYearNumbers = useMemo(
+    () => [currentYear - 2, currentYear - 1, currentYear],
+    [currentYear],
+  );
+  const [yearStates, setYearStates] = useState<YearPpvState[]>(() =>
+    liveYearNumbers.map((year) => ({
+      year,
+      loading: true,
+      data: null,
+      error: null,
+    })),
+  );
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -429,6 +476,41 @@ export default function SymptomsSection({
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [orgId, dateFrom, dateTo]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setYearStates(
+      liveYearNumbers.map((year) => ({
+        year,
+        loading: true,
+        data: null,
+        error: null,
+      })),
+    );
+    Promise.all(
+      liveYearNumbers.map(async (year): Promise<YearPpvState> => {
+        const from = `${year}-01-01`;
+        const to = `${year}-12-31`;
+        try {
+          const res = await fetchAuditSymptoms(orgId, from, to);
+          return { year, loading: false, data: res, error: null };
+        } catch (e) {
+          return {
+            year,
+            loading: false,
+            data: null,
+            error: e instanceof Error ? e.message : "Unable to load year data.",
+          };
+        }
+      }),
+    ).then((rows) => {
+      if (cancelled) return;
+      setYearStates(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, liveYearNumbers]);
 
   const groups = useMemo(
     () => buildGroups(data?.rows ?? [], minN, showZero),
@@ -462,7 +544,64 @@ export default function SymptomsSection({
     >
       {!loading && data ? (
         <Box>
-          {/* Referral-cohort PPV hero cards */}
+          {/* Year-on-year referral conversion: 4-card evolution row */}
+          <Box sx={{ mb: 2.5 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 600, fontSize: "0.85rem", mb: 0.25 }}
+            >
+              Referrals confirmed as cancer by year
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mb: 1, fontSize: "0.72rem" }}
+            >
+              Each card covers a Jan-Dec calendar year and counts referrals by
+              year of diagnosis or benign closure. The headline is the share
+              that turned out to be cancer.
+            </Typography>
+            <Box sx={{ display: "flex", gap: 2, mb: 1.5, flexWrap: "wrap" }}>
+              <EvolutionLegendSwatch colour={C_BENCH18} label="2018 NCDA baseline" dashed />
+              <EvolutionLegendSwatch colour={ACCENT_SYMPTOMS} label="Live year" />
+            </Box>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <EvolutionYearCard
+                  yearLabel={String(BASELINE_YEAR)}
+                  headlineValue={null}
+                  headlineSubLabel="referral conversion"
+                  isBaseline
+                  baselineFootnote="2018 NCDA does not publish overall referral conversion. Per-symptom signal shown in the heatmap below."
+                />
+              </Grid>
+              {yearStates.map((state) => {
+                const ppv = computeOverallPpv(state.data);
+                return (
+                  <Grid key={state.year} size={{ xs: 12, sm: 6, md: 3 }}>
+                    <EvolutionYearCard
+                      yearLabel={String(state.year)}
+                      loading={state.loading}
+                      error={state.error}
+                      totalN={ppv.refN}
+                      headlineValue={
+                        ppv.pct != null ? `${ppv.pct}%` : null
+                      }
+                      headlineSubLabel="referral conversion"
+                      secondaryValue={
+                        ppv.pct != null
+                          ? `${ppv.cancerN}/${ppv.refN}`
+                          : null
+                      }
+                      accentColor={ACCENT_SYMPTOMS}
+                    />
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </Box>
+
+          {/* Referral-cohort PPV hero cards (cohort-wide window) */}
           {data.ppv_by_suspected_cancer_type.length > 0 && (
             <Box sx={{ mb: 2.5 }}>
               <Typography

@@ -273,15 +273,25 @@ _DX_TEXT_TYPE_PATTERNS: list[tuple["_re.Pattern[str]", str]] = [
                  r"|malignant tumour of breast|malignant neoplasm of breast"
                  r"|infiltrating duct carcinoma|intraductal carcinoma"
                  r"|ductal\s+carcinoma|breast\s+(?:cancer|carcinoma)", _re.I), CancerType.BREAST.value),
-    # Melanoma / Skin (BCC, SCC, lentigo — catch-all for skin malignancies)
-    (_re.compile(r"XaCIv|Xa99Y|7G03J|XaXD8|XaXCZ|Xa98G"
-                 r"|malignant melanoma|lentigo.maligna|melanoma"
-                 r"|basal.cell.carcinoma|squamous.cell.carcinoma.*(?:scalp|skin|back|face|arm|ear|neck|lip|buccal mucosa)"
-                 r"|excision of melanoma|squamous cell carcinoma.*(?:buccal|mucosal)", _re.I), CancerType.MELANOMA.value),
-    # Oropharyngeal (catch-all for head-and-neck SCC not already matched above)
+    # Oropharyngeal (catch-all for head-and-neck SCC) MUST run BEFORE the
+    # Melanoma/skin SCC catch-all below, so that "squamous cell carcinoma
+    # of buccal mucosa" (X78Ig) is correctly typed as Oropharyngeal rather
+    # than Melanoma.  Without this ordering the Melanoma regex's
+    # "squamous.cell.carcinoma.*(?:...|lip|buccal mucosa)" branch wins
+    # because it appears earlier in the list, and the resulting episode
+    # carries cancer_type='Melanoma' for a clinically head-and-neck cancer
+    # (see patient 4802297327: SCC buccal mucosa was being typed as
+    # Melanoma in the graph).  We also strip "buccal" / "buccal mucosa"
+    # from the Melanoma branch so the two regexes do not silently fight.
     (_re.compile(r"X78Ig|squamous cell carcinoma of buccal"
                  r"|oropharyn|nasopharyn|laryn(?:x|geal)"
                  r"|oral\s+(?:cancer|carcinoma)|buccal\s+mucosa", _re.I), CancerType.OROPHARYNGEAL.value),
+    # Melanoma / Skin (BCC, SCC, lentigo — catch-all for skin malignancies)
+    (_re.compile(r"XaCIv|Xa99Y|7G03J|XaXD8|XaXCZ|Xa98G"
+                 r"|malignant melanoma|lentigo.maligna|melanoma"
+                 r"|basal.cell.carcinoma"
+                 r"|squamous.cell.carcinoma.*(?:scalp|skin|back|face|arm|ear|neck|lip)"
+                 r"|excision of melanoma|squamous cell carcinoma.*mucosal", _re.I), CancerType.MELANOMA.value),
 ]
 
 
@@ -325,3 +335,80 @@ def is_canonical(raw: str | None) -> bool:
     """True when ``raw`` is already an exact canonical value."""
 
     return raw in CANONICAL_CANCER_TYPE_SET
+
+
+def synonyms_for(canonical_types: list[str]) -> list[str]:
+    """Return all raw graph values that normalise to any of the given canonical types.
+
+    Use this when building Cypher ``IN`` filters so that both ``'breast'`` and
+    ``'Breast'`` (and any other legacy spelling) are matched when the caller
+    asks for ``CancerType.BREAST``.
+
+    The returned list always includes the canonical values themselves, so the
+    result is safe to use as a drop-in replacement for the input list.
+    """
+    targets: frozenset[str] = frozenset(
+        normalise_cancer_type(c) for c in canonical_types
+    )
+    expanded: set[str] = set(canonical_types)
+    for raw, canonical in _RAW_TO_CANONICAL.items():
+        if canonical in targets:
+            expanded.add(raw)
+            # Also add title-cased form in case graph has e.g. "Head_Neck"
+            expanded.add(raw.title())
+    return list(expanded)
+
+
+# -- Canonical cancer-type -> NCDA pathway / detector site key ---------------
+#
+# The detector emits ``EpisodeOfCare.site`` from a small enum of NCDA
+# pathway-group keys (see services/analysis_worker/app/ncda_detector site
+# resolvers): breast, lower_gi, upper_gi, urological, gynaecological,
+# head_neck, haematological, lung, brain, sarcoma, skin, nss, unknown.
+# Reviewed episodes carry only ``cancer_type`` (canonical or free-text);
+# this map projects a cancer_type to its detector-site key so the two can
+# be compared in the reviewed-guard / cross-site checks.
+_CANCER_TYPE_TO_DETECTOR_SITE: dict[str, str] = {
+    CancerType.BLADDER.value: "urological",
+    CancerType.BRAIN.value: "brain",
+    CancerType.BREAST.value: "breast",
+    CancerType.CERVICAL.value: "gynaecological",
+    CancerType.COLORECTAL.value: "lower_gi",
+    CancerType.ENDOMETRIAL.value: "gynaecological",
+    CancerType.GALLBLADDER.value: "upper_gi",
+    CancerType.LARYNGEAL.value: "head_neck",
+    CancerType.LEUKAEMIA.value: "haematological",
+    CancerType.LIVER.value: "upper_gi",
+    CancerType.LUNG.value: "lung",
+    CancerType.LYMPHOMA.value: "haematological",
+    CancerType.MELANOMA.value: "skin",
+    CancerType.MESOTHELIOMA.value: "lung",
+    CancerType.MYELOMA.value: "haematological",
+    CancerType.OESOPHAGEAL.value: "upper_gi",
+    CancerType.OROPHARYNGEAL.value: "head_neck",
+    CancerType.OVARIAN.value: "gynaecological",
+    CancerType.PANCREATIC.value: "upper_gi",
+    CancerType.PROSTATE.value: "urological",
+    CancerType.RENAL.value: "urological",
+    CancerType.SARCOMA.value: "sarcoma",
+    CancerType.SMALL_INTESTINE.value: "lower_gi",
+    CancerType.STOMACH.value: "upper_gi",
+    CancerType.TESTICULAR.value: "urological",
+    CancerType.THYROID.value: "head_neck",
+    CancerType.VULVAL.value: "gynaecological",
+    CancerType.OTHER.value: "unknown",
+    CancerType.UNKNOWN_PRIMARY.value: "unknown",
+    CancerType.NO_INFORMATION.value: "unknown",
+}
+
+
+def cancer_type_to_detector_site(raw: str | None) -> str:
+    """Map any cancer_type / suspected_site string to a detector-site key.
+
+    Coerces ``raw`` through :func:`normalise_cancer_type` first, then maps
+    the canonical cancer type to the detector pathway-group key (e.g.
+    ``"Prostate" -> "urological"``, ``"Melanoma" -> "skin"``).  Returns
+    ``"unknown"`` for ``Other``, ``Unknown Primary`` or unrecognised input.
+    """
+    canonical = normalise_cancer_type(raw)
+    return _CANCER_TYPE_TO_DETECTOR_SITE.get(canonical, "unknown")

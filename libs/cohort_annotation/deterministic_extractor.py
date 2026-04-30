@@ -165,14 +165,33 @@ def extract_structured_entities(
         if not text.strip():
             continue
 
-        # Primary: try the strict Read-code-based lab detector
+        # Primary: try the strict Read-code-based lab detector on the whole
+        # sentence.  When a lab-result block spans several lines (e.g. an EMIS
+        # lipid panel), the sentence splitter merges them into one chunk whose
+        # header text ("09:45 - Surgery: ...") makes the detector treat the
+        # test-name as prose and return matched=False.  In that case we fall
+        # back to running the detector line-by-line so each individual lab row
+        # is still captured.
         pattern = detect_lab_pattern(text)
         if pattern.matched and pattern.test_name_span is not None:
-            ts = pattern.test_name_span
+            matched_lines = [(text, pattern)]
+        else:
+            # Line-by-line fallback: collect only lines that match.
+            matched_lines = []
+            for raw_line in text.splitlines():
+                stripped = raw_line.strip()
+                if not stripped:
+                    continue
+                lp = detect_lab_pattern(stripped)
+                if lp.matched and lp.test_name_span is not None:
+                    matched_lines.append((stripped, lp))
+
+        for line_text, lp in matched_lines:
+            ts = lp.test_name_span
             entities.append({
                 "id":          _normalise_id("d", idx),
                 "sentence_id": sid,
-                "quote":       text[ts.start:ts.end].strip() or ts.text,
+                "quote":       line_text[ts.start:ts.end].strip() or ts.text,
                 "labels":      ["PROCEDURE"],
                 "assertion":   "present",
                 "rationale":   "deterministic R1 lab procedure",
@@ -180,9 +199,9 @@ def extract_structured_entities(
             })
             idx += 1
 
-            obs = pattern.observable_span
+            obs = lp.observable_span
             if obs is not None:
-                obs_text = text[obs.start:obs.end].strip() or obs.text
+                obs_text = line_text[obs.start:obs.end].strip() or obs.text
                 entities.append({
                     "id":          _normalise_id("d", idx),
                     "sentence_id": sid,
@@ -194,9 +213,9 @@ def extract_structured_entities(
                 })
                 idx += 1
 
-            fnd = pattern.finding_span
+            fnd = lp.finding_span
             if fnd is not None:
-                fnd_text = text[fnd.start:fnd.end].strip() or fnd.text
+                fnd_text = line_text[fnd.start:fnd.end].strip() or fnd.text
                 entities.append({
                     "id":          _normalise_id("d", idx),
                     "sentence_id": sid,
@@ -208,6 +227,7 @@ def extract_structured_entities(
                 })
                 idx += 1
 
+        if matched_lines:
             continue  # lab_span_detector matched; skip vitals extraction
 
         # Fallback: try vitals pattern for non-coded lines
@@ -220,9 +240,17 @@ def extract_structured_entities(
 
 
 def sentence_has_structured_content(text: str) -> bool:
-    """Return True if a sentence looks like it has lab/vitals content."""
+    """Return True if a sentence looks like it has lab/vitals content.
+
+    Uses line-by-line fallback so multi-row lab blocks (where the sentence
+    splitter groups header + result rows into one chunk) are still detected.
+    """
     if detect_lab_pattern(text).matched:
         return True
+    for raw_line in text.splitlines():
+        stripped = raw_line.strip()
+        if stripped and detect_lab_pattern(stripped).matched:
+            return True
     return bool(_VITALS_PROCEDURE_RE.search(text))
 
 

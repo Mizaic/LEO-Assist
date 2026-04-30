@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
@@ -25,8 +25,12 @@ import {
 import SectionCard from "./SectionCard";
 import type { AuditPlaceRow, AuditSectionResult } from "@/lib/analyticsApi";
 import { fetchAuditPlaceOfPresentation } from "@/lib/analyticsApi";
+import { useOrgId } from "@/context/OrgContext";
 
-const BASELINE_YEAR = 2018;
+import {
+  useAuditYearWindows,
+  BASELINE_YEAR,
+} from "./_useAuditYearWindows";
 const GP_GREEN = "#16A34A";
 const NON_GP_RED = "#DC2626";
 const INNER_COLOURS = [
@@ -65,13 +69,6 @@ function normalisePlaceKey(raw: string): string {
 
 function isGpPlace(raw: string): boolean {
   return normalisePlaceKey(raw) === "gp surgery";
-}
-
-function calendarYearWindow(year: number): { from: string; to: string } {
-  return {
-    from: `${year}-01-01`,
-    to: `${year}-12-31`,
-  };
 }
 
 function totalN(rows: AuditPlaceRow[] | null): number {
@@ -145,13 +142,11 @@ interface Props {
   loading: boolean;
   error?: string | null;
   orgSelected?: boolean;
+  /**
+   * @deprecated Resolved internally via useOrgId so every audit section
+   *   shares one source of truth for the org filter.
+   */
   orgId?: string;
-}
-
-interface LiveYearState {
-  year: number;
-  loading: boolean;
-  data: AuditPlaceRow[] | null;
 }
 
 function PlacePieCard({
@@ -307,66 +302,12 @@ export default function PlaceOfPresentationSection({
   loading,
   error,
   orgSelected = false,
-  orgId,
 }: Props) {
-  const currentYear = new Date().getUTCFullYear();
-  const liveYearNumbers = useMemo(
-    () => [currentYear - 2, currentYear - 1, currentYear],
-    [currentYear],
+  const orgId = useOrgId();
+  const { liveYears } = useAuditYearWindows<AuditPlaceRow[]>(
+    fetchAuditPlaceOfPresentation,
+    { orgId },
   );
-  const [yearStates, setYearStates] = useState<LiveYearState[]>(() =>
-    liveYearNumbers.map((year) => ({
-      year,
-      loading: true,
-      data: null,
-    })),
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    setYearStates(
-      liveYearNumbers.map((year) => ({
-        year,
-        loading: true,
-        data: null,
-      })),
-    );
-
-    Promise.all(
-      liveYearNumbers.map(async (year) => {
-        const window = calendarYearWindow(year);
-        try {
-          const res = await fetchAuditPlaceOfPresentation(
-            orgId,
-            window.from,
-            window.to,
-          );
-          return {
-            year,
-            data: res?.scopes?.practice ?? null,
-          };
-        } catch {
-          return {
-            year,
-            data: null,
-          };
-        }
-      }),
-    ).then((rows) => {
-      if (cancelled) return;
-      setYearStates(
-        rows.map((row) => ({
-          year: row.year,
-          loading: false,
-          data: row.data,
-        })),
-      );
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [orgId, liveYearNumbers]);
 
   const baselineRows = useMemo(
     () => buildBaselineRows(result?.benchmark, orgSelected),
@@ -413,7 +354,7 @@ export default function PlaceOfPresentationSection({
               isBaseline
             />
           </Grid>
-          {yearStates.map((state) => (
+          {liveYears.map((state) => (
             <Grid key={state.year} size={{ xs: 12, sm: 6, md: 3 }}>
               <PlacePieCard
                 yearLabel={String(state.year)}

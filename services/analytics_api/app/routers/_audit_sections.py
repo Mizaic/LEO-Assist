@@ -125,12 +125,13 @@ def _q_cancer_type(base: str, params: dict, client: PatientGraphClient) -> list:
     # values (libs.oncology.cancer_types). Normalise on read as a
     # safety net for any value the migration missed; collapse synonyms
     # into a single bucket. The Unknown Primary / No Information / Other
-    # sentinels are intentionally surfaced (they were silently hidden
-    # under the legacy exclusion list).
+    # sentinels are intentionally surfaced -- without this, confirmed
+    # cancers visible in /care/patients with a missing or unmapped
+    # cancer_type silently disappear from the radar (see
+    # DI-LEO-AI-134 / R-LEO-AI-092).
     rows = client.run(
         f"{base}"
         f"AND {confirmed_cancer_where('ep')} "
-        "AND ep.cancer_type IS NOT NULL "
         "RETURN ep.cancer_type AS cancer_type, count(DISTINCT ep) AS n",
         **params,
     )
@@ -316,14 +317,14 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
         "WITH p, ep, "
         "  duration.inDays(birth_date_value, "
         "referral_date_value).days / 365 AS age_at_referral "
-        "WITH age_at_referral, "
+        "WITH p, "
         "  CASE WHEN age_at_referral < 25 THEN '0-24' "
         "       WHEN age_at_referral < 50 THEN '25-49' "
         "       WHEN age_at_referral < 65 THEN '50-64' "
         "       WHEN age_at_referral < 75 THEN '65-74' "
         "       WHEN age_at_referral < 85 THEN '75-84' "
         "       ELSE '85+' END AS age_band "
-        "RETURN age_band, count(*) AS n ORDER BY age_band",
+        "RETURN age_band, count(DISTINCT p) AS n ORDER BY age_band",
         **params,
     )
     age_vals_rows = client.run(
@@ -358,14 +359,14 @@ def _q_demographics(base: str, params: dict, client: PatientGraphClient) -> dict
         "WITH p, "
         "  duration.inDays(birth_date_value, "
         "referral_date_value).days / 365 AS age_at_referral "
-        "WITH p.gender AS gender, "
+        "WITH p, p.gender AS gender, "
         "  CASE WHEN age_at_referral < 25 THEN '0-24' "
         "       WHEN age_at_referral < 50 THEN '25-49' "
         "       WHEN age_at_referral < 65 THEN '50-64' "
         "       WHEN age_at_referral < 75 THEN '65-74' "
         "       WHEN age_at_referral < 85 THEN '75-84' "
         "       ELSE '85+' END AS age_band "
-        "RETURN gender, age_band, count(*) AS n ORDER BY gender, age_band",
+        "RETURN gender, age_band, count(DISTINCT p) AS n ORDER BY gender, age_band",
         **params,
     )
     ts = sum(r["n"] for r in sex_rows) or 1
@@ -764,22 +765,60 @@ def _q_nss_outcomes(base: str, params: dict, client: PatientGraphClient) -> dict
 
 
 def _q_safety_netting(base: str, params: dict, client: PatientGraphClient) -> dict:
+    """Section 8 (safety netting) per-year breakdown.
+
+    Returns the headline 'recorded' rate (strong+medium signal) plus
+    the full four-bucket signal-strength hierarchy stamped onto each
+    episode by ``libs/oncology/safety_netting.detect_safety_netting``.
+    The /care/audit Safety Netting section reads this to render the
+    'Open detail' dialog (signal-strength bar chart) -- see
+    SafetyNettingSection.tsx.
+    """
     rows = client.run(
         f"{base}"
         "RETURN "
         "  count(DISTINCT ep) AS total_episodes, "
         "  sum(CASE WHEN ep.safety_netting_recorded = true "
-        "THEN 1 ELSE 0 END) AS recorded",
+        "THEN 1 ELSE 0 END) AS recorded, "
+        "  sum(CASE WHEN ep.safety_netting_signal = 'strong' "
+        "THEN 1 ELSE 0 END) AS strong_n, "
+        "  sum(CASE WHEN ep.safety_netting_signal = 'medium' "
+        "THEN 1 ELSE 0 END) AS medium_n, "
+        "  sum(CASE WHEN ep.safety_netting_signal = 'advice_only' "
+        "THEN 1 ELSE 0 END) AS advice_only_n, "
+        "  sum(CASE WHEN coalesce(ep.safety_netting_signal, 'none') "
+        "= 'none' THEN 1 ELSE 0 END) AS none_n",
         **params,
     )
     s = rows[0] if rows else {}
-    total = s.get("total_episodes") or 1
-    recorded = s.get("recorded") or 0
+    total = int(s.get("total_episodes") or 0)
+    safe_total = total or 1
+    recorded = int(s.get("recorded") or 0)
+    strong_n = int(s.get("strong_n") or 0)
+    medium_n = int(s.get("medium_n") or 0)
+    advice_only_n = int(s.get("advice_only_n") or 0)
+    none_n = int(s.get("none_n") or 0)
     return {
-        "recorded_pct": round(recorded * 100.0 / total, 1),
-        "not_recorded_pct": round((total - recorded) * 100.0 / total, 1),
+        "recorded_pct": round(recorded * 100.0 / safe_total, 1),
+        "not_recorded_pct": round((safe_total - recorded) * 100.0 / safe_total, 1),
         "recorded_n": recorded,
         "total_episodes": total,
+        # Signal-strength breakdown — drives the Open-detail dialog.
+        "signal_counts": {
+            "strong": strong_n,
+            "medium": medium_n,
+            "advice_only": advice_only_n,
+            "none": none_n,
+        },
+        "signal_pct": {
+            "strong": round(strong_n * 100.0 / safe_total, 1),
+            "medium": round(medium_n * 100.0 / safe_total, 1),
+            "advice_only": round(advice_only_n * 100.0 / safe_total, 1),
+            "none": round(none_n * 100.0 / safe_total, 1),
+        },
+        # Strict ('strong only') subset surfaced for the dialog header.
+        "strong_n": strong_n,
+        "strong_pct": round(strong_n * 100.0 / safe_total, 1),
     }
 
 

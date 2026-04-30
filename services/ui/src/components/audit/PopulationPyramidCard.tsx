@@ -76,6 +76,12 @@ export interface PopulationPyramidCardProps {
   loading?: boolean;
   isBaseline?: boolean;
   baselineMarginal?: BaselineMarginal | null;
+  /**
+   * Optional shared age-band y-axis max (%). When provided, the area chart
+   * uses this value instead of fitting to the card's own data, so all year
+   * cards in the section share the same scale.
+   */
+  ageMaxPct?: number | null;
   /** When provided, renders a small expand button in the card header. */
   onZoom?: () => void;
   /** Bare mode: skip card border/padding/header for use inside ChartZoomDialog. */
@@ -195,9 +201,11 @@ function SexPie({ yearLabel, malePct, femalePct }: SexPieProps) {
 interface AgeAreaProps {
   yearLabel: string;
   data: Array<{ band: PyramidAgeBand; pct: number | null }>;
+  /** Optional shared y-axis max (%) so all year cards share the same scale. */
+  maxPctOverride?: number | null;
 }
 
-function AgeArea({ yearLabel, data }: AgeAreaProps) {
+function AgeArea({ yearLabel, data, maxPctOverride }: AgeAreaProps) {
   const W = 200;
   const H = 110;
   const PAD_X = 6;
@@ -207,7 +215,9 @@ function AgeArea({ yearLabel, data }: AgeAreaProps) {
   const innerH = H - PAD_TOP - PAD_BOTTOM;
 
   const values = data.map((d) => d.pct ?? 0);
-  const maxPct = Math.max(...values, 1);
+  const maxPct = maxPctOverride && maxPctOverride > 0
+    ? maxPctOverride
+    : Math.max(...values, 1);
   const C_AREA = "#16A34A";
 
   const points = data.map((d, i) => {
@@ -287,6 +297,7 @@ interface DemographicsChartsProps {
   malePct: number | null;
   femalePct: number | null;
   ageBandPctLive?: Partial<Record<PyramidAgeBand, number | null>>;
+  ageMaxPct?: number | null;
 }
 
 function DemographicsCharts({
@@ -296,6 +307,7 @@ function DemographicsCharts({
   malePct,
   femalePct,
   ageBandPctLive,
+  ageMaxPct,
 }: DemographicsChartsProps) {
   const m = isBaseline ? baselineMarginal?.malePct ?? null : malePct;
   const f = isBaseline ? baselineMarginal?.femalePct ?? null : femalePct;
@@ -369,7 +381,11 @@ function DemographicsCharts({
           Age at diagnosis (% of cases)
         </Typography>
         <Box sx={{ height: 110 }}>
-          <AgeArea yearLabel={yearLabel} data={ageData} />
+          <AgeArea
+            yearLabel={yearLabel}
+            data={ageData}
+            maxPctOverride={ageMaxPct}
+          />
         </Box>
       </Box>
     </Box>
@@ -386,6 +402,7 @@ export default function PopulationPyramidCard({
   loading = false,
   isBaseline = false,
   baselineMarginal = null,
+  ageMaxPct = null,
   onZoom,
   bare = false,
 }: PopulationPyramidCardProps) {
@@ -569,6 +586,7 @@ export default function PopulationPyramidCard({
             malePct={malePct}
             femalePct={femalePct}
             ageBandPctLive={ageBandPct}
+            ageMaxPct={ageMaxPct}
           />
         ) : (
           <Box
