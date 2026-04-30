@@ -17,8 +17,6 @@ import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import Divider from "@mui/material/Divider";
-
 import {
   fetchAuditInvestigations,
   type AuditInvestigations,
@@ -30,32 +28,11 @@ import { resolveBenchmarkValue } from "./BenchmarkLegend";
 import SectionCard from "./SectionCard";
 import EvolutionYearCard, { EvolutionLegendSwatch } from "./EvolutionYearCard";
 import EvolutionDetailDialog from "./EvolutionDetailDialog";
-import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
 import { useAuditYearWindows, BASELINE_YEAR } from "./_useAuditYearWindows";
 
 const ACCENT = "#0369A1";
 const C_BENCH18 = "#92400E";
 
-const INV_DISPLAY: Record<string, string> = {
-  blood_test: "Blood test",
-  imaging: "Imaging",
-  urinalysis: "Urinary test",
-  urinary_test: "Urinary test",
-  biopsy: "Biopsy",
-  endoscopy: "Endoscopy",
-  symptomatic_fit: "Symptomatic FIT",
-  other_investigation: "Other",
-  investigation: "Other",
-};
-
-const BM_TYPES = [
-  { type: "blood_test", bmKey: "blood_test_pct" },
-  { type: "imaging", bmKey: "imaging_pct" },
-  { type: "urinary_test", bmKey: "urinary_test_pct" },
-  { type: "endoscopy", bmKey: "endoscopy_pct" },
-  { type: "symptomatic_fit", bmKey: "symptomatic_fit_pct" },
-  { type: "other_investigation", bmKey: "other_investigation_pct" },
-];
 
 /** Strip verbose SNOMED qualifiers that slip through the backend cleaner. */
 function cleanLabel(label: string): string {
@@ -108,20 +85,6 @@ export default function InvestigationsSection({
     [zoomState],
   );
 
-  const detailRows: ComparisonDataRow[] = useMemo(() => {
-    const data = zoomState?.data;
-    if (!data) return [];
-    return BM_TYPES.map(({ type, bmKey }) => {
-      const live = (data.types ?? []).find((t) => t.type === type);
-      return {
-        category: INV_DISPLAY[type] ?? type,
-        practice: live?.pct ?? 0,
-        national: resolveBenchmarkValue(bm, `investigations.${bmKey}`, orgSelected),
-      } satisfies ComparisonDataRow;
-    });
-  }, [zoomState, bm, orgSelected]);
-
-  const visibleKeys = ["practice", "national"] as const;
 
   return (
     <SectionCard
