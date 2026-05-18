@@ -57,6 +57,7 @@ import {
   type BloodPerTestResult,
   type BloodCancerTypeMatrix,
   type PatientFlagRow,
+  type BloodPerTestGroup,
 } from "@/lib/analyticsApi";
 import SectionCard from "./SectionCard";
 // Plotly loaded client-side only (avoids SSR mismatch)
@@ -77,6 +78,103 @@ const C_BENIGN = "#0369A1";
 // Per-test Plotly box plot -- one card per test
 // ---------------------------------------------------------------------------
 
+function PerTestBoxChart({
+  test,
+  cancerType,
+}: {
+  test: BloodPerTestResult;
+  cancerType: string;
+}) {
+  const cg: BloodPerTestGroup | undefined = test.groups[cancerType];
+  const bg: BloodPerTestGroup | undefined = test.groups["Benign"];
+
+  const traces: Plotly.Data[] = [];
+  if (cg) {
+    traces.push({
+      type: "box",
+      name: cancerType,
+      x: [cancerType],
+      q1: [cg.q1],
+      median: [cg.median],
+      q3: [cg.q3],
+      lowerfence: [cg.p10],
+      upperfence: [cg.p90],
+      marker: { color: C_CANCER },
+      line: { color: C_CANCER },
+      fillcolor: `${C_CANCER}33`,
+      boxpoints: false,
+    } as Plotly.Data);
+  }
+  if (bg) {
+    traces.push({
+      type: "box",
+      name: "Benign",
+      x: ["Benign"],
+      q1: [bg.q1],
+      median: [bg.median],
+      q3: [bg.q3],
+      lowerfence: [bg.p10],
+      upperfence: [bg.p90],
+      marker: { color: C_BENIGN },
+      line: { color: C_BENIGN },
+      fillcolor: `${C_BENIGN}33`,
+      boxpoints: false,
+    } as Plotly.Data);
+  }
+
+  const shapes: Partial<Plotly.Shape>[] = [];
+  if (test.ref_low != null) {
+    shapes.push({
+      type: "line",
+      xref: "paper",
+      x0: 0, x1: 1,
+      y0: test.ref_low, y1: test.ref_low,
+      line: { color: "#16A34A", width: 1.5, dash: "dash" },
+    } as Partial<Plotly.Shape>);
+  }
+  if (test.ref_high != null) {
+    shapes.push({
+      type: "line",
+      xref: "paper",
+      x0: 0, x1: 1,
+      y0: test.ref_high, y1: test.ref_high,
+      line: { color: "#16A34A", width: 1.5, dash: "dash" },
+    } as Partial<Plotly.Shape>);
+  }
+
+  const nLabel = [
+    cg ? `cancer n=${cg.n}` : null,
+    bg ? `benign n=${bg.n}` : null,
+  ].filter(Boolean).join(" · ");
+
+  return (
+    <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1 }}>
+      <Typography variant="caption" sx={{ fontWeight: 600, display: "block", lineHeight: 1.3 }}>
+        {cleanTestLabel(test.label)}
+      </Typography>
+      <Typography variant="caption" color="text.disabled" sx={{ display: "block", mb: 0.25, fontSize: "0.65rem" }}>
+        {test.unit || ""}{test.unit ? " · " : ""}{nLabel}
+      </Typography>
+      <Plot
+        data={traces}
+        layout={{
+          height: 190,
+          margin: { t: 4, b: 28, l: 42, r: 4 },
+          paper_bgcolor: "transparent",
+          plot_bgcolor: "transparent",
+          showlegend: false,
+          shapes,
+          yaxis: { tickfont: { size: 9 }, gridcolor: "#F3F4F6" },
+          xaxis: { tickfont: { size: 10 } },
+          font: { family: "inherit" },
+        }}
+        config={{ displayModeBar: false, responsive: true }}
+        style={{ width: "100%" }}
+        useResizeHandler
+      />
+    </Box>
+  );
+}
 
 
 // ---------------------------------------------------------------------------
@@ -511,6 +609,8 @@ function PatientCombinationsDialog({
 function PerTestDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [data, setData] = useState<BloodPerTestResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [viewTab, setViewTab] = useState(0); // 0 = Table, 1 = Box plots
+  const [selectedCancerType, setSelectedCancerType] = useState("");
 
   useEffect(() => {
     if (!open || data.length) return;
@@ -529,10 +629,21 @@ function PerTestDialog({ open, onClose }: { open: boolean; onClose: () => void }
     return Array.from(types).sort();
   }, [data]);
 
+  useEffect(() => {
+    if (cancerTypes.length > 0 && !selectedCancerType) {
+      setSelectedCancerType(cancerTypes[0]);
+    }
+  }, [cancerTypes, selectedCancerType]);
+
   const fmt = (v: number | null | undefined) => {
     if (v == null) return "—";
     return Number.isInteger(v) ? String(v) : v.toFixed(2);
   };
+
+  const boxTests = useMemo(
+    () => (selectedCancerType ? data.filter((t) => t.groups[selectedCancerType] != null) : []),
+    [data, selectedCancerType],
+  );
 
   return (
     <Dialog
@@ -545,11 +656,19 @@ function PerTestDialog({ open, onClose }: { open: boolean; onClose: () => void }
       <DialogTitle>
         Per Test Ranges by Cancer Type
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-          Interquartile range (Q1–Q3) of actual values recorded in the 12 months before referral,
-          against NHS reference ranges. Intended to inform lab and GP thresholds.
+          Most-recent result per patient in the 12 months before referral, against NHS reference ranges.
         </Typography>
       </DialogTitle>
-      <DialogContent sx={{ pt: 1 }}>
+      <DialogContent sx={{ pt: 0 }}>
+        <Tabs
+          value={viewTab}
+          onChange={(_: React.SyntheticEvent, v: number) => setViewTab(v)}
+          sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
+        >
+          <Tab label="Table" />
+          <Tab label="Box plots" />
+        </Tabs>
+
         {loading && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 4 }}>
             <CircularProgress size={20} />
@@ -563,7 +682,8 @@ function PerTestDialog({ open, onClose }: { open: boolean; onClose: () => void }
           </Typography>
         )}
 
-        {!loading && cancerTypes.map((cancerType) => {
+        {/* ---- Table view ---- */}
+        {!loading && viewTab === 0 && cancerTypes.map((cancerType) => {
           const rows = data.filter((t) => t.groups[cancerType] != null);
           if (!rows.length) return null;
           return (
@@ -620,6 +740,61 @@ function PerTestDialog({ open, onClose }: { open: boolean; onClose: () => void }
             </Box>
           );
         })}
+
+        {/* ---- Box plot view ---- */}
+        {!loading && viewTab === 1 && cancerTypes.length > 0 && (
+          <Box>
+            {/* Cancer type selector */}
+            <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+                Cancer type:
+              </Typography>
+              {cancerTypes.map((ct) => (
+                <Chip
+                  key={ct}
+                  label={ct}
+                  onClick={() => setSelectedCancerType(ct)}
+                  size="small"
+                  sx={{
+                    cursor: "pointer",
+                    bgcolor: selectedCancerType === ct ? C_CANCER : undefined,
+                    color: selectedCancerType === ct ? "#fff" : undefined,
+                    "&:hover": {
+                      bgcolor: selectedCancerType === ct ? "#B91C1C" : undefined,
+                    },
+                  }}
+                />
+              ))}
+            </Box>
+
+            {/* Legend */}
+            <Box sx={{ display: "flex", gap: 2.5, mb: 2, alignItems: "center", flexWrap: "wrap" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Box sx={{ width: 14, height: 14, bgcolor: C_CANCER, borderRadius: 0.5, opacity: 0.8 }} />
+                <Typography variant="caption">{selectedCancerType || "Cancer"}</Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Box sx={{ width: 14, height: 14, bgcolor: C_BENIGN, borderRadius: 0.5, opacity: 0.8 }} />
+                <Typography variant="caption">Benign</Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Box sx={{ width: 22, borderTop: "2px dashed #16A34A" }} />
+                <Typography variant="caption">NHS ref range</Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary">
+                Box = Q1-Q3 · line = median · whiskers = P10/P90
+              </Typography>
+            </Box>
+
+            <Grid container spacing={1.5}>
+              {boxTests.map((t) => (
+                <Grid key={t.key} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <PerTestBoxChart test={t} cancerType={selectedCancerType} />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>

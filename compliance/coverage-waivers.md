@@ -452,6 +452,15 @@ fully cleared and removed from the open list:
 
 ---
 
+## NG12 fixtures sprint traceability (2026-05-12)
+
+- **Scope**: NG12 branch fixtures (348 rows), bitmap harness policy, extraction
+  and SBAR scenario tests under `tests/test_ng12_scenario_*.py`.
+- **Atlas gate**: Read `tests/fixtures/ng12_scenarios/ATLAS_TRACEABILITY.md`
+  before Class B changes to evaluator, extraction contracts, or SBAR prompts.
+- **Owner**: Engineering Lead (close when new VT runs are recorded for any
+  Class B test file touched in this track).
+
 ## Review cadence
 
 - **Per-release**: Engineering Lead inspects W-004 / W-007 /

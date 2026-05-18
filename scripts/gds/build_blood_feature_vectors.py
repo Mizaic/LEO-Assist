@@ -2,11 +2,12 @@
 """Build blood feature vectors and run GDS-based cancer signal analysis.
 
 Computes per-test z-scores for each episode/patient in the study across a
-window of 12 months before referral + 28 days after. Stores results on
-EpisodeOfCare nodes (cancer + benign episodes) and BloodPanel nodes
-(no-episode FTR patients). Then runs GDS kNN and computes Pearson
-correlations (feature importance). Also performs Python-side k-means
-clustering and writes cluster assignments back.
+window of 12 months before referral + 28 days after. For each patient and
+each test, only the single most-recent result in the window is used (not an
+average). Stores results on EpisodeOfCare nodes (cancer + benign episodes)
+and BloodPanel nodes (no-episode FTR patients). Then runs GDS kNN and
+computes Pearson correlations (feature importance). Also performs Python-side
+k-means clustering and writes cluster assignments back.
 
 Cohort:
   cancer -- EpisodeOfCare with diagnosis_confirmed milestone, bf_label=1
@@ -128,9 +129,10 @@ WHERE obs.name = $test_name
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date($anchor_date) - duration({years: 1})
   AND date(enc.date) <= date($anchor_date) + duration({days: 28})
-WITH toFloat(toString(d.value)) AS v
+WITH toFloat(toString(d.value)) AS v, enc.date AS enc_date
 WHERE v IS NOT NULL
-RETURN avg(v) AS mean_val, count(v) AS n
+ORDER BY enc_date DESC
+RETURN head(collect(v)) AS latest_val, count(v) AS n
 """
 
 _CANCER_EPISODES_Q = """
@@ -277,9 +279,10 @@ def _get_global_stats(session, test_name: str) -> tuple[float, float]:
     return mean, std
 
 
-def _get_patient_test_mean(
+def _get_patient_test_latest(
     session, patient_id: str, anchor_date: str, test_name: str
 ) -> float | None:
+    """Return the single most-recent result for this test in the 12-month window."""
     row = session.run(
         _EPISODE_TEST_VALUES_Q,
         patient_id=patient_id,
@@ -288,7 +291,7 @@ def _get_patient_test_mean(
     ).single()
     if not row or row["n"] == 0:
         return None
-    return float(row["mean_val"])
+    return float(row["latest_val"])
 
 
 def _build_feature_row(
@@ -312,7 +315,7 @@ def _build_feature_row(
     features_vec: list[float] = []
     for prop_key, test_name in BLOOD_FEATURES.items():
         mean, std = global_stats[prop_key]
-        raw = _get_patient_test_mean(session, patient_id, anchor_date, test_name)
+        raw = _get_patient_test_latest(session, patient_id, anchor_date, test_name)
         z = round((raw - mean) / std, 4) if raw is not None else 0.0
         row[prop_key] = z
         features_vec.append(z)

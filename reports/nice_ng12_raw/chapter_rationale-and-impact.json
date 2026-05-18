@@ -1,0 +1,65 @@
+{
+  "Content": "<div class=\"chapter\" title=\"Rationale and impact\" id=\"ng12-rationale-and-impact\" xmlns=\"http://www.w3.org/1999/xhtml\">\r\n  <h2 class=\"title\" id=\"rationale-and-impact\">Rationale and impact</h2>\r\n  <p>These sections briefly explain why the committee made the recommendations and how they might affect practice. </p>\r\n</div>",
+  "GuidanceNumber": "NG12",
+  "MetadataApplicationProfile": {
+    "AlternativeTitle": null,
+    "Audiences": [],
+    "Creator": "NICE",
+    "Description": null,
+    "Identifier": "tag:api.nice.org.uk,2015-06-23:/services/guidance/documents/NG12/rationale-and-impact",
+    "Language": null,
+    "Modified": "/Date(1776237435079+0100)/",
+    "Issued": "/Date(1435014000000+0100)/",
+    "Publisher": "NICE",
+    "Title": "Rationale and impact",
+    "Types": [],
+    "Subjects": [],
+    "Contributors": [],
+    "Source": "NICE",
+    "ParentSection": null,
+    "Breadcrumb": null
+  },
+  "Resources": [
+    {
+      "Rel": "self",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/rationale-and-impact",
+      "Title": "Rationale and impact",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/rationale-and-impact/age-and-serum-ca125-thresholds-for-detecting-ovarian-cancer",
+      "Title": "Age and serum CA125 thresholds for detecting ovarian cancer",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/rationale-and-impact/unscheduled-bleeding-on-hrt",
+      "Title": "Unscheduled bleeding on HRT",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/rationale-and-impact/prostate-specific-antigen-testing-for-prostate-cancer",
+      "Title": "Prostate-specific antigen testing for prostate cancer",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/rationale-and-impact/unexplained-weight-loss-as-a-non-site-specific-symptom-in-adults-in-primary-care",
+      "Title": "Unexplained weight loss as a non-site-specific symptom in adults in primary care",
+      "TitleContent": null
+    },
+    {
+      "Rel": "alternate",
+      "Type": "application/xhtml+xml",
+      "Uri": "https://publications.nice.org.uk/NG12/rationale-and-impact",
+      "Title": "Rationale and impact",
+      "TitleContent": null
+    }
+  ],
+  "LastModified": "/Date(1776237435079+0100)/",
+  "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/rationale-and-impact",
+  "Title": "Rationale and impact",
+  "TitleContent": null
+}

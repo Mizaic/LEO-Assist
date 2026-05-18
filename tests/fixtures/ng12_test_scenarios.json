@@ -1,0 +1,314 @@
+{
+  "_meta": {
+    "guideline_id": "NG12",
+    "guideline_title": "Suspected cancer: recognition and referral",
+    "source": "NICE API + knowledge graph surface forms",
+    "note": "SNOMED codes, preferred terms, and surface forms sourced directly from the knowledge graph at 2026-05-12. Three rules are active; 22 are pending_review.",
+    "active_rule_ids": [
+      "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+      "rule:NG12:v1:CH002:SEC002:R002:3b6a24e5:edit:308ce725",
+      "rule:NG12:v1:CH002:SEC002:R004:1e614d35:edit:b242528c"
+    ]
+  },
+
+  "bitmap_scenarios": [
+    {
+      "id": "NG12-BMP-001",
+      "label": "Ex-smoker with 8-week cough aged 55 -- mesothelioma CXR rule fires",
+      "description": "Patient is 55 (>=40), ex-smoker plus one NG12 respiratory symptom (cough). Logic path: age-gate AND (smoker-branch: smoker-seed matches + AT_LEAST(1) symptom matches).",
+      "encounter_note": "55 yr male. Ex-smoker, stopped 5 years ago. Persistent cough x 8 weeks. No haemoptysis. Sats 96%.",
+      "patient_snomed_codes": ["8517006", "49727002"],
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "expected_fired_rule_ids": [
+        "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59"
+      ],
+      "must_not_fire_rule_ids": [
+        "rule:NG12:v1:CH002:SEC002:R004:1e614d35:edit:b242528c",
+        "rule:NG12:v1:CH002:SEC002:R002:3b6a24e5:edit:308ce725"
+      ]
+    },
+    {
+      "id": "NG12-BMP-002",
+      "label": "67yo non-smoker with weight loss and fatigue -- mesothelioma CXR rule fires",
+      "description": "Patient is 67 (>=40), never smoked, two NG12 respiratory symptoms. Logic path: age-gate AND AT_LEAST(2) branch.",
+      "encounter_note": "67 yr female. Non-smoker. Unexplained weight loss 5 kg over 2 months, fatigue. No fever. Appetite down.",
+      "patient_snomed_codes": ["262285001", "84229001"],
+      "patient_age": 67.0,
+      "patient_sex": null,
+      "expected_fired_rule_ids": [
+        "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59"
+      ],
+      "must_not_fire_rule_ids": [
+        "rule:NG12:v1:CH002:SEC002:R004:1e614d35:edit:b242528c",
+        "rule:NG12:v1:CH002:SEC002:R002:3b6a24e5:edit:308ce725"
+      ]
+    },
+    {
+      "id": "NG12-BMP-003",
+      "label": "72yo with rectal mass on DRE -- colorectal referral rule fires",
+      "description": "Patient is 72 (>=18), finding of rectal mass on digital rectal exam. No smoking history.",
+      "encounter_note": "72 yr female. Presented with change in bowel habit. DRE: rectal mass palpable. Referred 2WW colorectal.",
+      "patient_snomed_codes": ["248523006"],
+      "patient_age": 72.0,
+      "patient_sex": null,
+      "expected_fired_rule_ids": [
+        "rule:NG12:v1:CH002:SEC002:R004:1e614d35:edit:b242528c"
+      ],
+      "must_not_fire_rule_ids": [
+        "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+        "rule:NG12:v1:CH002:SEC002:R002:3b6a24e5:edit:308ce725"
+      ]
+    },
+    {
+      "id": "NG12-BMP-004",
+      "label": "FIT kit declined -- FIT safety netting rule fires",
+      "description": "Patient declined the FIT kit. Safety netting rule fires regardless of age/demographics.",
+      "encounter_note": "65 yr male. Bowel cancer screening FIT kit declined by patient. Safety netting in place per NG12 1.3.3.",
+      "patient_snomed_codes": ["149441000000102"],
+      "patient_age": 65.0,
+      "patient_sex": null,
+      "expected_fired_rule_ids": [
+        "rule:NG12:v1:CH002:SEC002:R002:3b6a24e5:edit:308ce725"
+      ],
+      "must_not_fire_rule_ids": [
+        "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+        "rule:NG12:v1:CH002:SEC002:R004:1e614d35:edit:b242528c"
+      ]
+    },
+    {
+      "id": "NG12-BMP-005",
+      "label": "35yo smoker with cough and fatigue -- age gate blocks mesothelioma rule",
+      "description": "Patient is 35 (<40 age threshold). Two respiratory symptoms and smoking history but age gate must prevent the mesothelioma rule from firing.",
+      "encounter_note": "35 yr male smoker. Cough and fatigue for 4 weeks. Chest clear on auscultation.",
+      "patient_snomed_codes": ["77176002", "49727002", "84229001"],
+      "patient_age": 35.0,
+      "patient_sex": null,
+      "expected_fired_rule_ids": [],
+      "must_not_fire_rule_ids": [
+        "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+        "rule:NG12:v1:CH002:SEC002:R004:1e614d35:edit:b242528c",
+        "rule:NG12:v1:CH002:SEC002:R002:3b6a24e5:edit:308ce725"
+      ]
+    },
+    {
+      "id": "NG12-BMP-006",
+      "label": "Hypertension and type 2 diabetes -- no NG12 rules fire",
+      "description": "Patient codes have no overlap with any NG12 active rule criteria. Confirms the evaluator does not produce false positives.",
+      "encounter_note": "65 yr female. Type 2 diabetes review. HbA1c 58. Hypertension on ramipril. BP 136/82.",
+      "patient_snomed_codes": ["73211009", "38341003"],
+      "patient_age": 65.0,
+      "patient_sex": null,
+      "expected_fired_rule_ids": [],
+      "must_not_fire_rule_ids": [
+        "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+        "rule:NG12:v1:CH002:SEC002:R004:1e614d35:edit:b242528c",
+        "rule:NG12:v1:CH002:SEC002:R002:3b6a24e5:edit:308ce725"
+      ]
+    }
+  ],
+
+  "extraction_scenarios": [
+    {
+      "id": "NG12-EXT-001",
+      "label": "Visible haematuria -- surface form resolves to Frank hematuria",
+      "encounter_note": "68 yr male. Visible haematuria x 3 weeks, no dysuria, no UTI symptoms. MSU sent. Referred 2WW urology.",
+      "llm_response_terms": [
+        {
+          "sentence_id": "s1",
+          "text": "visible haematuria",
+          "lookup_term": "visible haematuria",
+          "semantic_tag": "finding",
+          "confidence": 0.95,
+          "modifiers": {}
+        }
+      ],
+      "expected_entities": [
+        {
+          "text": "visible haematuria",
+          "lookup_term": "visible haematuria",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "expected_snomed_concept_id": "197941005",
+          "expected_fsn": "Frank hematuria (disorder)"
+        }
+      ],
+      "surface_forms_in_graph": [
+        {"form": "visible haematuria", "concept_id": "197941005"}
+      ]
+    },
+    {
+      "id": "NG12-EXT-002",
+      "label": "Dysphagia -- surface form resolves to Dysphagia disorder",
+      "encounter_note": "55 yr female. Dysphagia for 6 weeks, difficulty swallowing solids more than liquids. No weight loss yet. Referred for UGI endoscopy.",
+      "llm_response_terms": [
+        {
+          "sentence_id": "s1",
+          "text": "dysphagia",
+          "lookup_term": "dysphagia",
+          "semantic_tag": "disorder",
+          "confidence": 1.0,
+          "modifiers": {}
+        }
+      ],
+      "expected_entities": [
+        {
+          "text": "dysphagia",
+          "lookup_term": "dysphagia",
+          "semantic_tag": "disorder",
+          "assertion": "present",
+          "expected_snomed_concept_id": "40739000",
+          "expected_fsn": "Dysphagia (disorder)"
+        }
+      ],
+      "surface_forms_in_graph": [
+        {"form": "dysphagia", "concept_id": "40739000"}
+      ]
+    },
+    {
+      "id": "NG12-EXT-003",
+      "label": "Haemoptysis plus smoking history -- both entities extracted",
+      "encounter_note": "45 yr female smoker. Haemoptysis x 2 weeks, small volumes, no pleuritic pain. CXR arranged. 2WW lung cancer referral.",
+      "llm_response_terms": [
+        {
+          "sentence_id": "s1",
+          "text": "haemoptysis",
+          "lookup_term": "haemoptysis",
+          "semantic_tag": "finding",
+          "confidence": 1.0,
+          "modifiers": {}
+        },
+        {
+          "sentence_id": "s1",
+          "text": "smoker",
+          "lookup_term": "smoker",
+          "semantic_tag": "finding",
+          "confidence": 0.90,
+          "modifiers": {}
+        }
+      ],
+      "expected_entities": [
+        {
+          "text": "haemoptysis",
+          "lookup_term": "haemoptysis",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "expected_snomed_concept_id": "66857006",
+          "expected_fsn": "Hemoptysis (finding)"
+        },
+        {
+          "text": "smoker",
+          "lookup_term": "smoker",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "expected_snomed_concept_id": "77176002",
+          "expected_fsn": "Smoker (finding)"
+        }
+      ],
+      "surface_forms_in_graph": [
+        {"form": "haemoptysis", "concept_id": "66857006"},
+        {"form": "Haemoptysis", "concept_id": "66857006"}
+      ]
+    },
+    {
+      "id": "NG12-EXT-004",
+      "label": "Unexplained weight loss and rectal bleeding -- both entities extracted",
+      "encounter_note": "64 yr male. Unexplained weight loss 6 kg over 3 months. Rectal bleeding x 4 weeks, bright red. FIT test organised.",
+      "llm_response_terms": [
+        {
+          "sentence_id": "s1",
+          "text": "unexplained weight loss",
+          "lookup_term": "unexplained weight loss",
+          "semantic_tag": "finding",
+          "confidence": 1.0,
+          "modifiers": {}
+        },
+        {
+          "sentence_id": "s2",
+          "text": "rectal bleeding",
+          "lookup_term": "rectal bleeding",
+          "semantic_tag": "finding",
+          "confidence": 0.98,
+          "modifiers": {}
+        }
+      ],
+      "expected_entities": [
+        {
+          "text": "unexplained weight loss",
+          "lookup_term": "unexplained weight loss",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "expected_snomed_concept_id": "422868009",
+          "expected_fsn": "Unexplained weight loss (finding)"
+        },
+        {
+          "text": "rectal bleeding",
+          "lookup_term": "rectal bleeding",
+          "semantic_tag": "finding",
+          "assertion": "present",
+          "expected_snomed_concept_id": "405729008",
+          "expected_fsn": "Hematochezia (finding)"
+        }
+      ],
+      "surface_forms_in_graph": [
+        {"form": "unexplained weight loss", "concept_id": "422868009"},
+        {"form": "rectal bleeding", "concept_id": "405729008"}
+      ]
+    }
+  ],
+
+  "sbar_scenarios": [
+    {
+      "id": "NG12-SBAR-001",
+      "label": "Mesothelioma CXR rule fires -- SBAR recommends urgent chest X-ray within 2 weeks",
+      "situation_md": "55-year-old ex-smoker presenting with 8-week cough.",
+      "background_md": "No haemoptysis. Oxygen saturation 96%. No prior respiratory investigations.",
+      "assessment_md": "NG12 rule 1.1.5 fired: ex-smoker aged 40+ with 1 unexplained respiratory symptom.",
+      "assessment_rules": [
+        {
+          "rule_id": "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+          "name": "1.1.5 Offer an urgent chest X-ray (within 2 weeks) to assess for mesothelioma",
+          "strength": "offer",
+          "guideline_id": "NG12",
+          "recommendation_verbatim": "Offer an urgent chest X-ray (to be done within 2 weeks) to assess for mesothelioma in people aged 40 and over."
+        }
+      ],
+      "guideline_titles": ["NG12 Suspected cancer: recognition and referral"],
+      "guidelines": ["NG12"],
+      "expected_sbar_keywords": ["chest X-ray", "2 week"],
+      "expected_min_action_count": 1
+    },
+    {
+      "id": "NG12-SBAR-002",
+      "label": "Rectal mass rule fires -- SBAR recommends colorectal cancer referral",
+      "situation_md": "72-year-old female with change in bowel habit and palpable rectal mass on DRE.",
+      "background_md": "No rectal bleeding reported. No prior bowel investigations. DRE confirms rectal mass.",
+      "assessment_md": "NG12 rule 1.3.5 fired: adult with rectal mass consistent with colorectal cancer.",
+      "assessment_rules": [
+        {
+          "rule_id": "rule:NG12:v1:CH002:SEC002:R004:1e614d35:edit:b242528c",
+          "name": "1.3.5 Consider a suspected cancer pathway referral for colorectal cancer in adults with a rectal mass",
+          "strength": "refer",
+          "guideline_id": "NG12",
+          "recommendation_verbatim": "Consider a suspected cancer pathway referral for colorectal cancer in adults with a rectal mass."
+        }
+      ],
+      "guideline_titles": ["NG12 Suspected cancer: recognition and referral"],
+      "guidelines": ["NG12"],
+      "expected_sbar_keywords": ["referral", "colorectal"],
+      "expected_min_action_count": 1
+    },
+    {
+      "id": "NG12-SBAR-003",
+      "label": "No NG12 rules fire -- SBAR recommendation contains no 2WW actions",
+      "situation_md": "65-year-old female presenting for routine hypertension review.",
+      "background_md": "On ramipril 5mg. BP 136/82. HbA1c 58 (stable). No respiratory or bowel symptoms.",
+      "assessment_md": "No NG12 suspected cancer rules fired for this encounter.",
+      "assessment_rules": [],
+      "guideline_titles": [],
+      "guidelines": [],
+      "expected_sbar_keywords": [],
+      "expected_max_action_count": 0
+    }
+  ]
+}

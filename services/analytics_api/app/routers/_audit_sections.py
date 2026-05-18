@@ -1346,9 +1346,15 @@ WHERE obs.name = $test_name
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
-WITH toFloat(toString(d.value)) AS v, d.referenceRange AS ref_range, d.unit AS unit,
-     ep.bf_cohort_label AS cohort
+WITH ep, ep.bf_cohort_label AS cohort, enc.date AS enc_date,
+     toFloat(toString(d.value)) AS v,
+     d.referenceRange AS ref_range, d.unit AS unit
 WHERE v IS NOT NULL
+ORDER BY enc_date DESC
+WITH ep, cohort,
+     head(collect(v))          AS v,
+     head(collect(ref_range))  AS ref_range,
+     head(collect(unit))       AS unit
 RETURN cohort,
        percentileCont(v, 0.1)  AS p10,
        percentileCont(v, 0.25) AS q1,
@@ -1370,8 +1376,15 @@ WHERE obs.name = $test_name
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(bp.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(bp.bf_anchor_date) + duration({days: 28})
-WITH toFloat(toString(d.value)) AS v, d.referenceRange AS ref_range, d.unit AS unit
+WITH bp, enc.date AS enc_date,
+     toFloat(toString(d.value)) AS v,
+     d.referenceRange AS ref_range, d.unit AS unit
 WHERE v IS NOT NULL
+ORDER BY enc_date DESC
+WITH bp,
+     head(collect(v))          AS v,
+     head(collect(ref_range))  AS ref_range,
+     head(collect(unit))       AS unit
 RETURN percentileCont(v, 0.1)  AS p10,
        percentileCont(v, 0.25) AS q1,
        percentileCont(v, 0.5)  AS median,
@@ -1394,10 +1407,12 @@ WHERE obs.name = $test_name
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
-WITH ep.episode_id AS id, ep.bf_cohort_label AS cohort,
-     ep.bf_cancer_type AS cancer_type, toFloat(toString(d.value)) AS v
+WITH ep, enc.date AS enc_date, toFloat(toString(d.value)) AS v
 WHERE v IS NOT NULL
-RETURN id, cohort, cancer_type, avg(v) AS value
+ORDER BY enc_date DESC
+WITH ep.episode_id AS id, ep.bf_cohort_label AS cohort,
+     ep.bf_cancer_type AS cancer_type, head(collect(v)) AS value
+RETURN id, cohort, cancer_type, value
 """
 
 _BLOOD_VALUES_BP_Q = """
@@ -1409,10 +1424,12 @@ WHERE obs.name = $test_name
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(bp.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(bp.bf_anchor_date) + duration({days: 28})
-WITH bp.patient_id AS id, 'benign' AS cohort, null AS cancer_type,
-     toFloat(toString(d.value)) AS v
+WITH bp, enc.date AS enc_date, toFloat(toString(d.value)) AS v
 WHERE v IS NOT NULL
-RETURN id, cohort, cancer_type, avg(v) AS value
+ORDER BY enc_date DESC
+WITH bp.patient_id AS id, 'benign' AS cohort, null AS cancer_type,
+     head(collect(v)) AS value
+RETURN id, cohort, cancer_type, value
 """
 
 
@@ -1513,11 +1530,15 @@ WHERE d.value IS NOT NULL
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
-RETURN cancer_type,
-       obs.name AS test_name,
-       toFloat(toString(d.value)) AS value,
-       collect(DISTINCT toString(d.referenceRange))[0] AS ref_range,
-       collect(DISTINCT toString(d.unit))[0] AS unit
+WITH ep, cancer_type, obs.name AS test_name, enc.date AS enc_date,
+     toFloat(toString(d.value)) AS v,
+     toString(d.referenceRange) AS ref_range, toString(d.unit) AS unit
+ORDER BY enc_date DESC
+WITH ep, cancer_type, test_name,
+     head(collect(v))          AS value,
+     head(collect(ref_range))  AS ref_range,
+     head(collect(unit))       AS unit
+RETURN cancer_type, test_name, value, ref_range, unit
 """
 
 _BENIGN_VALS_RAW_Q = """
@@ -1531,10 +1552,15 @@ WHERE d.value IS NOT NULL
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
-RETURN obs.name AS test_name,
-       toFloat(toString(d.value)) AS value,
-       collect(DISTINCT toString(d.referenceRange))[0] AS ref_range,
-       collect(DISTINCT toString(d.unit))[0] AS unit
+WITH ep, obs.name AS test_name, enc.date AS enc_date,
+     toFloat(toString(d.value)) AS v,
+     toString(d.referenceRange) AS ref_range, toString(d.unit) AS unit
+ORDER BY enc_date DESC
+WITH ep, test_name,
+     head(collect(v))          AS value,
+     head(collect(ref_range))  AS ref_range,
+     head(collect(unit))       AS unit
+RETURN test_name, value, ref_range, unit
 """
 
 
@@ -1731,12 +1757,14 @@ WHERE d.value IS NOT NULL
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
-WITH ep.episode_id AS episode_id,
-     cancer_type,
-     obs.name AS test_name,
-     avg(toFloat(toString(d.value))) AS mean_value,
-     collect(DISTINCT toString(d.referenceRange))[0] AS ref_range,
-     collect(DISTINCT toString(d.unit))[0] AS unit
+WITH ep, cancer_type, obs.name AS test_name, enc.date AS enc_date,
+     toFloat(toString(d.value)) AS v,
+     toString(d.referenceRange) AS ref_range, toString(d.unit) AS unit
+ORDER BY enc_date DESC
+WITH ep.episode_id AS episode_id, cancer_type, test_name,
+     head(collect(v))          AS mean_value,
+     head(collect(ref_range))  AS ref_range,
+     head(collect(unit))       AS unit
 RETURN episode_id, cancer_type, test_name, mean_value, ref_range, unit
 ORDER BY cancer_type, episode_id, test_name
 """
@@ -1754,9 +1782,15 @@ WHERE d.value IS NOT NULL
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(ep.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(ep.bf_anchor_date) + duration({days: 28})
-WITH obs.name AS test_name,
+WITH ep, obs.name AS test_name, enc.date AS enc_date,
      toFloat(toString(d.value)) AS v,
      d.referenceRange AS ref_range, d.unit AS unit
+ORDER BY enc_date DESC
+WITH ep, test_name,
+     head(collect(v))          AS v,
+     head(collect(ref_range))  AS ref_range,
+     head(collect(unit))       AS unit
+WITH test_name, v, ref_range, unit
 RETURN test_name,
        avg(v) AS mean_v, stDev(v) AS std_v,
        percentileCont(v, 0.5) AS median_v,
@@ -1774,9 +1808,15 @@ WHERE d.value IS NOT NULL
   AND toFloat(toString(d.value)) IS NOT NULL
   AND date(enc.date) >= date(bp.bf_anchor_date) - duration({years: 1})
   AND date(enc.date) <= date(bp.bf_anchor_date) + duration({days: 28})
-WITH obs.name AS test_name,
+WITH bp, obs.name AS test_name, enc.date AS enc_date,
      toFloat(toString(d.value)) AS v,
      d.referenceRange AS ref_range, d.unit AS unit
+ORDER BY enc_date DESC
+WITH bp, test_name,
+     head(collect(v))          AS v,
+     head(collect(ref_range))  AS ref_range,
+     head(collect(unit))       AS unit
+WITH test_name, v, ref_range, unit
 RETURN test_name,
        avg(v) AS mean_v, stDev(v) AS std_v,
        percentileCont(v, 0.5) AS median_v,

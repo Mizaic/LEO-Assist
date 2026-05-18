@@ -1,15 +1,22 @@
 # setup_atlas_mcp_token.ps1
-# Runs the Atlas device-code flow, writes the access token into
-# ~/.cursor/mcp.json, and saves the refresh token for later reuse.
+# Legacy Atlas bearer-token helper.
+#
+# The active Cursor MCP configuration uses https://atlas-mcp.healthcarecopilot.ai/mcp
+# with X-MCP-Api-Key. This script is disabled by default because the old
+# device-code flow rewrites ~/.cursor/mcp.json back to the deprecated
+# https://atlas.healthcarecopilot.ai/mcp bearer-token endpoint.
 #
 # Usage:
 #   .\scripts\setup_atlas_mcp_token.ps1
+#     Prints the current API-key MCP guidance and exits without changing files.
 #
-# To refresh an expired token without re-authenticating:
-#   .\scripts\setup_atlas_mcp_token.ps1 -Refresh
+# Legacy bearer-token flow, only if deliberately needed:
+#   .\scripts\setup_atlas_mcp_token.ps1 -LegacyBearerAuth
+#   .\scripts\setup_atlas_mcp_token.ps1 -Refresh -LegacyBearerAuth
 
 param(
-    [switch]$Refresh
+    [switch]$Refresh,
+    [switch]$LegacyBearerAuth
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,6 +26,16 @@ $MCP_CONFIG = "$env:USERPROFILE\.cursor\mcp.json"
 $TOKEN_FILE = "$env:USERPROFILE\.cursor\atlas_refresh_token.txt"
 $POLL_SECS  = 10
 $MAX_WAIT   = 300   # 5 minutes before giving up
+
+if (-not $LegacyBearerAuth) {
+    Write-Host "This legacy script no longer updates ~/.cursor/mcp.json by default." -ForegroundColor Yellow
+    Write-Host "Use the Atlas MCP API-key config instead:"
+    Write-Host "  url: https://atlas-mcp.healthcarecopilot.ai/mcp"
+    Write-Host "  header: X-MCP-Api-Key"
+    Write-Host ""
+    Write-Host "To deliberately run the old bearer-token flow, pass -LegacyBearerAuth." -ForegroundColor Yellow
+    exit 1
+}
 
 # ---------------------------------------------------------------------------
 # Helpers
