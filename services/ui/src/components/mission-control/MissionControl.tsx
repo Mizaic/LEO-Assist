@@ -11,6 +11,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CommandBar from "./CommandBar";
 import KPIStrip from "./KPIStrip";
@@ -27,8 +29,21 @@ import { useAnalyticsDateFilter } from "@/context/AnalyticsDateFilterContext";
 import {
   DEFAULT_FILTERS,
   deserialiseFilters,
+  type LifecycleBucket,
   type MissionControlFilters,
 } from "@/lib/missionControlFilters";
+
+// Plain-language labels for the lifecycle buckets carried from the
+// dashboard cohort summary (DI-105A4EC7 + DI-CA1B4C6E). Used by the
+// active filter chip below the Mission Control heading so reviewers
+// can see (and remove) the lifecycle bucket they arrived with.
+const LIFECYCLE_BUCKET_LABELS: Record<Exclude<LifecycleBucket, "all">, string> = {
+  active: "Active",
+  in_review: "In Review",
+  cancer_excluded: "Cancer Excluded",
+  confirmed_cancer: "Confirmed Cancer",
+  no_pathway: "No pathway yet",
+};
 
 const USER_EMAIL_PLACEHOLDER = "auditor@nhs.net";
 const ACTIVE_REBUILD_STATUSES = new Set(["queued", "running"]);
@@ -296,6 +311,12 @@ export default function MissionControl() {
     setSelectedPatient(null);
   };
 
+  const handleClearLifecycleBucket = useCallback(() => {
+    setDraft((prev) => ({ ...prev, lifecycleBucket: "all" }));
+    setApplied((prev) => ({ ...prev, lifecycleBucket: "all" }));
+    setPage(1);
+  }, []);
+
   const handleOpenPatient = useCallback(
     (patient: MissionPatient, tab: DrawerTab = "overview") => {
       setDrawerTab(tab);
@@ -333,6 +354,38 @@ export default function MissionControl() {
           Find, review, and validate cancer pathway episodes before decisions are made on
           this data.
         </Typography>
+        {applied.lifecycleBucket !== "all" && (
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ mt: 1.5 }}
+            aria-label="Active lifecycle filter"
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", fontWeight: 600 }}
+            >
+              Lifecycle:
+            </Typography>
+            <Chip
+              label={LIFECYCLE_BUCKET_LABELS[applied.lifecycleBucket]}
+              color="primary"
+              variant="outlined"
+              onDelete={handleClearLifecycleBucket}
+              aria-label={`Remove lifecycle filter: ${LIFECYCLE_BUCKET_LABELS[applied.lifecycleBucket]}`}
+              sx={{ fontWeight: 600 }}
+            />
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary" }}
+            >
+              {applied.lifecycleBucket === "no_pathway"
+                ? "Showing patients with no cancer pathway yet (from the dashboard cohort summary). Remove to see every patient."
+                : `Showing ${LIFECYCLE_BUCKET_LABELS[applied.lifecycleBucket]} pathways from the dashboard hero cards. Remove to see every pathway.`}
+            </Typography>
+          </Stack>
+        )}
       </Box>
 
       {/* Filters */}

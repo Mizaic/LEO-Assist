@@ -1,5 +1,10 @@
 """Pipeline Worker service — dual-mode: HTTP server + message bus consumer.
 
+Atlas trace:
+  DO: DO-C2F6CA16
+  DI: DI-06CB6881
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-C2F6CA16")
+
 The HTTP server (FastAPI/uvicorn on PIPELINE_WORKER_PORT, default 8006)
 exposes endpoints that require SSE streaming back to a browser:
   POST /test-run/batch  — interactive batch dry-run against TrainingCandidates

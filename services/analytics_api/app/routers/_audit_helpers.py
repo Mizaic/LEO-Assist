@@ -58,6 +58,54 @@ def _episode_base(org_id: Optional[str], scope: CallerScope) -> tuple[str, dict]
     )
 
 
+def _episode_base_all_cohort(
+    org_id: Optional[str], scope: CallerScope
+) -> tuple[str, dict]:
+    """Like _episode_base but does not exclude admin-only EpisodeOfCare nodes.
+
+    Used by the dashboard "Cohort" summary card so the
+    patient-with-pathway / episode totals reflect every EpisodeOfCare,
+    including admin-only ones (status merged / closed_phantom /
+    closed_related). The four MECE hero cards continue to exclude
+    those statuses, so any discrepancy is rendered as a footnote on
+    the dashboard. See DI-105A4EC7.
+    """
+    base, params = _episode_base(org_id, scope)
+    return base.replace(_EPISODE_EXCLUDE, "true "), params
+
+
+def _patient_base(
+    org_id: Optional[str], scope: CallerScope
+) -> tuple[str, dict]:
+    """Return (match_clause, params) for ALL Patient nodes in scope.
+
+    Unlike _episode_base / _episode_base_all_cohort, this does NOT
+    require the patient to have any EpisodeOfCare. Used by the
+    dashboard "Cohort" summary card so the headline patient count
+    matches Mission Control's cohort denominator (which also counts
+    every patient in scope, including those for whom the Episode
+    Engine has not yet produced a pathway). See DI-CA1B4C6E and
+    R-D32A2AC2 (cohort-denominator parity between dashboard and
+    Mission Control).
+    """
+    effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
+    if effective_org:
+        return (
+            "MATCH (_scope:Organization {id: $org}) "
+            "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+            "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+            "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) ",
+            {"org": effective_org},
+        )
+    if scope.is_admin:
+        return "MATCH (p:Patient) WHERE true ", {}
+    return (
+        "MATCH (p:Patient) "
+        f"WHERE {ORG_PATIENT_FILTER} ",
+        scope.to_query_params(),
+    )
+
+
 def _add_date_filters(
     base: str, params: dict, date_from: Optional[str], date_to: Optional[str]
 ) -> tuple[str, dict]:

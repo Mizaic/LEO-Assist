@@ -1,5 +1,10 @@
 """Resolve LEO roles from the Entra `groups` claim and sync HAS_ROLE edges.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Covers the runtime side of DI-D9D4BA02. The seeder side lives in
 ``scripts/seed_roles_and_groups.py``.
 

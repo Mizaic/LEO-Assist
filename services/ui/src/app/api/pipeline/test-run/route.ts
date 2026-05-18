@@ -4,6 +4,11 @@
  * Forwards to the Pipeline Worker so that LLM/NLP work does not run on the
  * Core API process. The response is JSON (not SSE), so no special streaming
  * setup is needed — the worker may still take 30–60 s for a full pipeline run.
+ *
+ * Atlas trace:
+ *   DO: DO-19BBE973
+ *   DI: DI-B746E19E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { type NextRequest, NextResponse } from "next/server";
 

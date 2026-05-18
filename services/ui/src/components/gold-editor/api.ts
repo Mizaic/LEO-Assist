@@ -6,6 +6,11 @@
  *   - createGoldLabelFromDryRun -> Evaluate-stage seed (DI-LEO-AI-222).
  *   - createGoldLabelFromEncounter -> /care surfaces seed (DI-LEO-AI-220).
  *   - syncCodedLinksFromGold    -> /care surfaces dual save (DI-LEO-AI-221).
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
  */
 import type { GoldLabel, SavedGoldEntity } from "./types";
 

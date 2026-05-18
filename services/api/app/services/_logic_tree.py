@@ -1,5 +1,10 @@
 """Shared walker for AppropriatenessRule.logicJson trees.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 The v2 guidance schema persists every concept criterion and demographic
 constraint as a nested JSON tree on ``rule.logicJson``. There are no
 ``:CriteriaGroup`` nodes or ``:APPLIES_TO`` relationships in the live

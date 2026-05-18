@@ -1,5 +1,10 @@
 """Resolve SBAR Situation/Background inputs into text + SNOMED codes.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 This module is the single source of truth for fetching the raw material
 that the SBAR LLM prompts and the deterministic Assessment formatter
 consume. It hides Neo4j details from the orchestrator so that the

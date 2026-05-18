@@ -1,5 +1,10 @@
 """ModelPreset API — named, reusable pipeline configuration presets.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Presets are stored in the Knowledge Graph as ModelPreset nodes.
 Pathway designers pick a preset name when building a pipeline step;
 the preset provides the full routing config at runtime.

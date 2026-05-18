@@ -11,9 +11,10 @@ Uses proper FHIR and Neo4j terminology; the UI maps to display labels.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 
+from libs.auth.service_auth import verify_service_token
 from libs.neo4j_client.client import (
     KnowledgeGraphClient,
     PatientGraphClient,
@@ -21,6 +22,30 @@ from libs.neo4j_client.client import (
 )
 
 router = APIRouter()
+
+_SAMPLE_NODE_LABEL_ALLOWLIST = frozenset(
+    {
+        "Encounter",
+        "EncounterCandidate",
+        "Patient",
+        "EpisodeOfCare",
+        "SafetyNetAlert",
+        "Document",
+        "Observation",
+        "Condition",
+        "MedicationRequest",
+        "MedicationStatement",
+        "Procedure",
+        "DiagnosticReport",
+        "AllergyIntolerance",
+        "Immunization",
+        "Concept",
+        "ConceptDescription",
+        "ValueSetMember",
+        "GuidelineRule",
+    }
+)
+_SAMPLE_NODE_GRAPH_ALLOWLIST = frozenset({"patient", "knowledge"})
 
 # Curated aggregation targets for measures
 AGGREGATION_TARGETS = [
@@ -186,7 +211,7 @@ def get_distinct_filter_values(
         )
 
 
-@router.get("/schema/sample-node")
+@router.get("/schema/sample-node", dependencies=[Depends(verify_service_token)])
 def get_sample_node(
     node_label: str = Query(
         ..., description="Node label to sample (e.g. EncounterCandidate)"
@@ -196,15 +221,28 @@ def get_sample_node(
     ),
     text_property: str = Query(
         "text",
-        description="Property that holds the main text — highlighted in the preview",
+        description="Property that holds the main text - highlighted in the preview",
     ),
 ):
     """Return one sample node of the given label so users can verify field names.
 
-    Returns a sanitised dict of property names → truncated values. Long text
+    Returns a sanitised dict of property names -> truncated values. Long text
     fields are truncated to 300 characters so the preview stays readable.
     Sensitive fields (e.g. NHS number, DOB) are redacted.
+
+    Auth: requires the internal service token. node_label is validated
+    against an allowlist before being substituted into the Cypher MATCH.
     """
+    if graph not in _SAMPLE_NODE_GRAPH_ALLOWLIST:
+        raise HTTPException(
+            status_code=400,
+            detail="graph must be 'patient' or 'knowledge'",
+        )
+    if node_label not in _SAMPLE_NODE_LABEL_ALLOWLIST:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported node_label",
+        )
     _REDACT = {
         "nhs_number",
         "date_of_birth",
@@ -237,7 +275,7 @@ def get_sample_node(
             if k.lower() in _REDACT:
                 return "***redacted***"
             if isinstance(v, str) and len(v) > _MAX_TEXT:
-                return v[:_MAX_TEXT] + "…"
+                return v[:_MAX_TEXT] + "..."
             # Neo4j datetime / date objects
             if hasattr(v, "iso_format"):
                 return v.iso_format()
@@ -257,5 +295,10 @@ def get_sample_node(
             "properties": ordered,
         }
 
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"detail": str(e)})
+    except HTTPException:
+        raise
+    except Exception:
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "sample-node lookup failed"},
+        )

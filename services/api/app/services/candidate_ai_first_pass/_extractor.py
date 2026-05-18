@@ -1,5 +1,10 @@
 """Haiku-based AI re-extraction of TrainingCandidate entities.
 
+Atlas trace:
+  DO: DO-D7005C41
+  DI: DI-0FFA05BB
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D7005C41")
+
 DI-LEO-AI-208 / DO-LEO-AI-205.
 
 Calls Haiku 4.5 (tier='small' via libs.llm_client.factory.create_llm)

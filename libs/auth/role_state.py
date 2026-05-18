@@ -1,5 +1,10 @@
 """Role state helpers for the Wave D role-first shell.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Reads and writes Practitioner.selected_role + allowed_roles, and emits an
 append-only (:RoleSwitch) audit node on every switch. See DI-LEO-AI-129.
 """

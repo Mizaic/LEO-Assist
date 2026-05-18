@@ -1,5 +1,10 @@
 """AI first-pass endpoints (DI-LEO-AI-209 / DO-LEO-AI-206).
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Mounts onto the existing /training router via register_ai_first_pass_routes.
 Keeps services/api/app/routers/training.py from growing further.
 

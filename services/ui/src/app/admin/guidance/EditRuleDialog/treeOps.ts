@@ -17,6 +17,7 @@
  */
 import type {
   EditableLogicNode,
+  EditableObservationPayload,
   LogicCriterion,
   LogicNodeKind,
   LogicSeed,
@@ -69,6 +70,7 @@ const KIND_MAP: Record<string, LogicNodeKind> = {
   ATLEAST: "AT_LEAST",
   CONCEPT: "CONCEPT",
   DEMOGRAPHIC: "DEMOGRAPHIC",
+  OBSERVATION: "OBSERVATION",
 };
 
 function normaliseKind(raw: string | undefined): LogicNodeKind {
@@ -155,7 +157,54 @@ export function stripNodeIds(node: EditableLogicNode): Record<string, unknown> {
   if (node.value !== undefined && node.value !== null) out.value = node.value;
   if (node.unit !== undefined && node.unit !== null) out.unit = node.unit;
   if (node.min !== undefined) out.min = node.min;
+  // Phase 2: keep the pathway name when it's a non-empty string. Empty
+  // strings drop so the BE's ``model_config = {"extra": "forbid"}``
+  // Pydantic model never sees an empty ``name`` field.
+  if (typeof node.name === "string" && node.name.trim()) {
+    out.name = node.name.trim();
+  }
+  // Phase 6a: round-trip the OBSERVATION payload verbatim. The BE
+  // Pydantic model accepts the flat shape directly so no field
+  // translation is needed. Mode specs that are null / undefined are
+  // dropped entirely because Pydantic's ``model_config =
+  // {"extra": "forbid"}`` rejects keys it has not declared for the
+  // currently-active mode.
+  if (node.kind === "OBSERVATION" && node.observation) {
+    out.observation = stripObservation(node.observation);
+  }
   if (node.children?.length) out.children = node.children.map(stripNodeIds);
+  return out;
+}
+
+/**
+ * Serialise an OBSERVATION payload for the BE.
+ *
+ * - Drops mode-spec keys that are null or undefined so the Pydantic
+ *   model never sees a null where the schema expects "field absent".
+ * - Drops an empty ``observable_term`` because the BE derives a
+ *   fallback from the SNOMED PT at validation time.
+ * - Leaves the active mode spec fully intact so temporal /
+ *   reference_range / trend / aggregation rules authored in Advanced
+ *   mode or from ingest round-trip unchanged.
+ */
+function stripObservation(
+  obs: EditableObservationPayload,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {
+    kind: "OBSERVATION",
+    observable_id: obs.observable_id,
+    operator: obs.operator,
+    value: obs.value,
+    unit: obs.unit,
+  };
+  if (obs.observable_term && obs.observable_term.trim()) {
+    out.observable_term = obs.observable_term.trim();
+  }
+  if (typeof obs.within_days === "number") out.within_days = obs.within_days;
+  if (obs.temporal) out.temporal = obs.temporal;
+  if (obs.reference_range) out.reference_range = obs.reference_range;
+  if (obs.trend) out.trend = obs.trend;
+  if (obs.aggregation) out.aggregation = obs.aggregation;
   return out;
 }
 
@@ -387,6 +436,38 @@ export function applyUpdate(
           ? appendChild(n, makeDemographicNode())
           : n,
       );
+    case "add_observation":
+      return mapNode(root, (n) =>
+        n.node_id === update.parentNodeId && canHaveChildren(n.kind)
+          ? appendChild(n, makeObservationNode())
+          : n,
+      );
+    case "set_observation":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId && n.kind === "OBSERVATION"
+          ? { ...n, observation: { ...update.observation } }
+          : n,
+      );
+    case "set_name": {
+      // Only group nodes may carry a plain-English name. Silent no-op
+      // on leaves so a stale handler wired to a CONCEPT / DEMOGRAPHIC
+      // / OBSERVATION chip cannot smuggle an unsupported field into
+      // the persisted tree.
+      const trimmed = update.name.trim();
+      return mapNode(root, (n) => {
+        if (n.node_id !== update.nodeId) return n;
+        if (!canHaveChildren(n.kind)) return n;
+        if (!trimmed) {
+          // Clearing the name: drop the property so ``stripNodeIds``
+          // never emits an empty string.
+          if (n.name === undefined) return n;
+          const { name: _drop, ...rest } = n;
+          void _drop;
+          return rest as EditableLogicNode;
+        }
+        return { ...n, name: trimmed };
+      });
+    }
     case "add_seed":
       return mapNode(root, (n) =>
         n.node_id === update.nodeId ? addSeed(n, update.seed) : n,
@@ -419,9 +500,33 @@ export function applyUpdate(
       return mapNode(root, (n) =>
         n.node_id === update.nodeId ? removeExcluded(n, update.conceptId) : n,
       );
+    case "set_name":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId && canHaveChildren(n.kind)
+          ? renameGroup(n, update.name)
+          : n,
+      );
     default:
       return root;
   }
+}
+
+/**
+ * Update a group node's optional plain-English ``name`` (Phase 2).
+ * Empty / whitespace-only input clears the name so the read-only view
+ * falls back to the positional "Pathway A/B/C" label.
+ */
+function renameGroup(
+  node: EditableLogicNode,
+  name: string,
+): EditableLogicNode {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    const next = { ...node };
+    delete next.name;
+    return next;
+  }
+  return { ...node, name: trimmed };
 }
 
 function canHaveChildren(kind: LogicNodeKind): boolean {
@@ -476,6 +581,28 @@ function makeDemographicNode(): EditableLogicNode {
 }
 
 /**
+ * Blank OBSERVATION leaf the reviewer can fill in. ``observable_id``
+ * and ``unit`` start empty so ``findValidationError`` surfaces a
+ * friendly message until the reviewer picks an observable and unit
+ * via the concept-search popover (Phase 6b).
+ */
+function makeObservationNode(): EditableLogicNode {
+  return {
+    node_id: freshNodeId(),
+    kind: "OBSERVATION",
+    observation: {
+      kind: "OBSERVATION",
+      observable_id: "",
+      observable_term: "",
+      operator: ">=",
+      value: 0,
+      unit: "",
+      within_days: 365,
+    },
+  };
+}
+
+/**
  * Walk the tree and return the first problem we find in plain English, or
  * null when the tree is valid. Mirrors the server-side validator so the user
  * gets immediate feedback before clicking Save. Messages follow the
@@ -514,6 +641,33 @@ export function findValidationError(node: EditableLogicNode | null): string | nu
     }
     if (node.value === undefined || node.value === null || node.value === "") {
       return "Add a number for this patient detail. For example: age 40.";
+    }
+    return null;
+  }
+  if (node.kind === "OBSERVATION") {
+    const obs = node.observation;
+    if (!obs) {
+      return "Pick a lab test or reading for the empty lab row.";
+    }
+    if (!obs.observable_id || !obs.observable_id.trim()) {
+      return "Pick a lab test or reading (for example: platelet count).";
+    }
+    if (!obs.unit || !obs.unit.trim()) {
+      return "Pick the unit for this lab test (for example: x10^9/L).";
+    }
+    if (obs.operator === "between") {
+      const pair = Array.isArray(obs.value) ? obs.value : null;
+      if (!pair || pair.length !== 2) {
+        return "'Is between' needs two numbers: a low and a high.";
+      }
+      if (!Number.isFinite(pair[0]) || !Number.isFinite(pair[1])) {
+        return "'Is between' needs two numbers.";
+      }
+      if (pair[0] > pair[1]) {
+        return "'Is between' needs the low number to be at most the high number.";
+      }
+    } else if (!Number.isFinite(obs.value as number)) {
+      return "Add a number for this lab test (for example: 400).";
     }
     return null;
   }

@@ -1,5 +1,10 @@
 """Per-run LLM usage accumulator scoped via contextvars.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Any orchestrator can wrap a logical run in
 ``with LLMUsageRecorder() as rec: ...`` and every nested
 ``invoke_llm_json`` call inside that block will be recorded into the

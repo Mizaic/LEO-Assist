@@ -1,5 +1,10 @@
 """Proxy endpoints: forward requests to FHIR API, Analytics API, and Core API with Bearer token.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Frontend calls /api/proxy/fhir/*, /api/proxy/benchmarks/*, /api/proxy/analytics/*,
 /api/proxy/pipeline/*, and /api/proxy/anchor-review/* with session cookie.
 Backend adds Authorization header and forwards to upstream services.

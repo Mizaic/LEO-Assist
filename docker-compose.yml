@@ -1,11 +1,16 @@
 services:
   # --- Local-only infrastructure ---
+  # All host port bindings are explicitly bound to 127.0.0.1 so the
+  # development stack is reachable only from the developer's own machine.
+  # Without the loopback prefix Docker would publish on 0.0.0.0 and any
+  # peer on the local network (corporate Wi-Fi, hotel Wi-Fi, conference
+  # network) could connect to Neo4j with the seeded dev credentials.
   neo4j-patient:
     image: neo4j:5-community
     container_name: pca-neo4j-patient
     ports:
-      - "7474:7474"
-      - "7687:7687"
+      - "127.0.0.1:7474:7474"
+      - "127.0.0.1:7687:7687"
     environment:
       NEO4J_AUTH: neo4j/patient-dev
       NEO4J_PLUGINS: '["apoc"]'
@@ -25,8 +30,8 @@ services:
     image: neo4j:5-community
     container_name: pca-neo4j-knowledge
     ports:
-      - "7475:7474"
-      - "7688:7687"
+      - "127.0.0.1:7475:7474"
+      - "127.0.0.1:7688:7687"
     environment:
       NEO4J_AUTH: neo4j/knowledge-dev
       NEO4J_PLUGINS: '["apoc"]'
@@ -46,7 +51,7 @@ services:
     image: redis:7-alpine
     container_name: pca-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -62,7 +67,7 @@ services:
       dockerfile: infra/dockerfiles/Dockerfile.core-api
     container_name: pca-core-api
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file: .env
     environment:
       NEO4J_URI: bolt://neo4j-patient:7687
@@ -89,7 +94,7 @@ services:
       dockerfile: infra/dockerfiles/Dockerfile.terminology-api
     container_name: pca-terminology-api
     ports:
-      - "8001:8001"
+      - "127.0.0.1:8001:8001"
     env_file: .env
     environment:
       KNOWLEDGE_GRAPH_NEO4J_URI: bolt://neo4j-knowledge:7687
@@ -140,7 +145,7 @@ services:
       dockerfile: infra/dockerfiles/Dockerfile.fhir-api
     container_name: pca-fhir-api
     ports:
-      - "8002:8002"
+      - "127.0.0.1:8002:8002"
     env_file: .env
     environment:
       NEO4J_URI: bolt://neo4j-patient:7687
@@ -164,7 +169,7 @@ services:
       dockerfile: infra/dockerfiles/Dockerfile.analytics-api
     container_name: pca-analytics-api
     ports:
-      - "8003:8003"
+      - "127.0.0.1:8003:8003"
     env_file: .env
     environment:
       NEO4J_URI: bolt://neo4j-patient:7687
@@ -191,7 +196,7 @@ services:
       dockerfile: infra/dockerfiles/Dockerfile.ui
     container_name: pca-ui
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
       NEXT_PUBLIC_TERMINOLOGY_API_URL: http://localhost:8001

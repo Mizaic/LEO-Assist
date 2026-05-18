@@ -1,6 +1,11 @@
 /**
  * Proxy agent interpret requests to the backend.
  * Frontend calls /api/agent/interpret; this forwards to the Core API.
+ *
+ * Atlas trace:
+ *   DO: DO-19BBE973
+ *   DI: DI-B746E19E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { NextRequest, NextResponse } from "next/server";
 

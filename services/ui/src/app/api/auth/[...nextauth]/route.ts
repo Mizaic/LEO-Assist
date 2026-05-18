@@ -4,6 +4,11 @@
  *
  * Must redirect same-origin to /auth/login so the browser never follows
  * INTERNAL_API_BASE (e.g. http://core-api), which is not reachable from clients.
+ *
+ * Atlas trace:
+ *   DO: DO-19BBE973
+ *   DI: DI-B746E19E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { NextRequest, NextResponse } from "next/server";
 

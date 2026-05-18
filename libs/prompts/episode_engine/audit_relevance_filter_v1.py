@@ -1,5 +1,10 @@
 """Audit Relevance Filter prompt (DI-LEO-AI-524).
 
+Atlas trace:
+  DO: DO-710D9EEB
+  DI: DI-CBCA6E2D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-710D9EEB")
+
 Cheap Haiku batched relevance triage for the encounters that the
 always-keep guards have NOT already kept. The model receives up to 20
 short encounter snippets at a time, plus the suspected cancer site, and

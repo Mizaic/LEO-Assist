@@ -1,5 +1,10 @@
 """Plain-English translator for SBAR LLM / API failures.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 The Bedrock Converse API surfaces failures as long, vendor-specific
 exception strings such as:
 

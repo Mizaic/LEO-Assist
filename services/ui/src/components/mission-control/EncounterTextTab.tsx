@@ -21,6 +21,8 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import type { MissionEpisode } from "@/lib/missionControlApi";
 import { fetchEncounterCodedLinks } from "@/lib/api";
+import { useEpisodeEncounterLocks } from "./useEpisodeEncounterLocks";
+import { padRange } from "./encounterTextRange";
 import type { CodedLink } from "@/lib/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { sortByIsoDateAsc } from "@/lib/dateSort";
@@ -43,31 +45,6 @@ interface MilestoneJump {
   date: string | null;
 }
 
-// Pads the episode-linked window by ~10% of the patient's full
-// history span on each side so the default brush opens with a bit of
-// "before / after" context visible. Clamped to the patient range.
-function padRange(
-  fromMs: number,
-  toMs: number,
-  fullMinMs: number,
-  fullMaxMs: number
-): { fromMs: number; toMs: number } | null {
-  if (
-    !Number.isFinite(fromMs) ||
-    !Number.isFinite(toMs) ||
-    !Number.isFinite(fullMinMs) ||
-    !Number.isFinite(fullMaxMs)
-  ) {
-    return null;
-  }
-  const span = Math.max(0, fullMaxMs - fullMinMs);
-  const pad = span > 0 ? span * 0.1 : 0;
-  return {
-    fromMs: Math.max(fullMinMs, fromMs - pad),
-    toMs: Math.min(fullMaxMs, toMs + pad),
-  };
-}
-
 export default function EncounterTextTab({ patientId, episode }: Props) {
   const { encounters, loading, error, refresh } = useEncounterLoad(patientId);
   const [codedOnly, setCodedOnly] = useState(false);
@@ -85,6 +62,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
     { fromMs: number; toMs: number } | null
   >(null);
   const encounterRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const encounterLocks = useEpisodeEncounterLocks(episode.episode_id);
 
   const loadedRef = useRef<Set<string>>(new Set());
   const loadingRef = useRef<Set<string>>(new Set());
@@ -370,6 +348,7 @@ export default function EncounterTextTab({ patientId, episode }: Props) {
         codingLoading={!!codingLoadingFor[encounterKey]}
         codingLinks={codedByEncounter[encounterKey] ?? []}
         codingError={codingErrorByEncounter[encounterKey]}
+        lockSummary={encounterLocks[encounterKey] ?? null}
         onToggle={() =>
           setCollapsedEncounters((prev) => ({ ...prev, [encounterKey]: isExpanded }))
         }

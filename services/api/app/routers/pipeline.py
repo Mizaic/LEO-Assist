@@ -3,7 +3,7 @@
 Atlas trace:
   DO: DO-245F62CB
   Also implements: DO-7B357FD6, DO-A26CD350, DO-B6E80BEE
-  DI: DI-091CBBAB, DI-176EA4FF, DI-693FFEEA, DI-705C806B, DI-B0A1E549, DI-B8674FBF, DO-41EF3F1D
+  DI: DI-091CBBAB, DI-176EA4FF, DI-693FFEEA, DI-705C806B, DI-B0A1E549, DI-B8674FBF
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-245F62CB")
 """
 
@@ -1223,6 +1223,14 @@ async def get_classification_disagreements(
 
     if patient_id and not scope.is_admin:
         _require_patients_in_scope(scope, [patient_id])
+    elif not patient_id and not scope.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Cross-tenant classification disagreements are admin-only. "
+                "Pass a patient_id to query a specific patient in your scope."
+            ),
+        )
 
     client = PatientGraphClient()
     try:
@@ -1266,6 +1274,26 @@ async def submit_classification_vote(
 
     model_a_was_correct = payload.model_a_type == payload.correct_type
     model_b_was_correct = payload.model_b_type == payload.correct_type
+
+    if not scope.is_admin:
+        from libs.neo4j_client.client import PatientGraphClient as LibPGClient
+
+        check_client = LibPGClient()
+        try:
+            rows = check_client.run(
+                "MATCH (e:Encounter {id: $eid}) "
+                "OPTIONAL MATCH (e)<-[:HAS_ENCOUNTER]-(p:Patient) "
+                "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+                "RETURN gp.id AS gp_id, p.id AS patient_id",
+                eid=payload.encounter_id,
+            )
+        finally:
+            check_client.close()
+        if not rows or rows[0].get("gp_id") not in scope.org_ids:
+            raise HTTPException(
+                status_code=404,
+                detail="Encounter not found",
+            )
 
     client = PatientGraphClient()
     try:
@@ -1644,7 +1672,15 @@ async def get_classification_report(
     Includes: overall accuracy, per-class precision/recall/F1 for each model,
     confusion breakdown, reviewer list, date range, and a complete audit trail
     of all human-reviewed disagreement cases.
+
+    Admin only: the report aggregates human-reviewed encounters across every
+    tenant and exposes reviewer identity. Non-admin callers are rejected.
     """
+    if not scope.is_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="Classification report is admin-only",
+        )
     from libs.cypher.classification_vote_queries import (
         GET_ALL_VOTED,
         GET_CONFUSION_BREAKDOWN,

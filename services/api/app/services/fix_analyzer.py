@@ -1,5 +1,10 @@
 """Fix Analyzer service.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Ported from VRB clinical-ai/app/agent/subagents/fix_analyzer.py.
 
 Takes a structured correction from HITL review and uses an LLM to determine

@@ -3,7 +3,7 @@
 Atlas trace:
   DO: DO-0A64F95A
   Also implements: DO-0DFA6961, DO-2340F614, DO-694875ED, DO-6C398363, DO-B7060F57, DO-FCF80123
-  DI: DI-080A2454, DI-37DDAADE, DI-4885D9FF, DI-6051F076, DO-B7FCDAFB
+  DI: DI-080A2454, DI-37DDAADE, DI-4885D9FF, DI-6051F076, DI-E3689657
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-0A64F95A")
 """
 from __future__ import annotations

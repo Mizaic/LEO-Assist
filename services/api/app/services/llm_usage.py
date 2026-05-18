@@ -1,5 +1,10 @@
 """LLM token usage tracking and cost calculation.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 DI-LEO-AI-519: this module is a thin re-export of ``libs.llm_usage`` so
 there is exactly one canonical implementation of ``LLMUsage`` and
 ``LLMCostConfig`` across the platform. The two previously diverged --

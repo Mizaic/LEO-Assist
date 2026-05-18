@@ -146,11 +146,131 @@ VT execution: 110 passed, 240 not_executed, 0 failed.
 - **Clear by**: never (not a defect; document as a "by design" stat
   in the Atlas dashboard).
 
+### W-009 -- 10 Class-A DIs without a Risk (`MITIGATES`)
+
+- **Scope**: 10 of 351 DIs have no `MITIGATES` edge from any Risk.
+- **Status**: accepted, by classification.
+- **Justification**: per the IEC 62304 Class A / B / C
+  proportionality rule, only Class B and Class C DIs require a
+  MITIGATES edge from a Risk. The 10 DIs below are Class A
+  (internal tooling, UI design system, dev infrastructure) and
+  carry no patient-safety hazard. They are excluded from the
+  `DI_NO_RISK` audit finding for this reason. If any of these DIs
+  later acquire a clinical or safety surface, they must be
+  reclassified and a Risk linked.
+- **Affected DIs**:
+  - `DI-21C63B6A` -- @leo/design-system workspace package (tokens,
+    primitives, motion, copy)
+  - `DI-61CB27B2` -- DM Sans typography via next/font for clinical
+    labels (cosmetic typography choice)
+  - `DI-39C53CDA` -- Centralised MUI theme factory (createLeoTheme)
+  - `DI-F0846E55` -- Role-first shell rollout cleanup (flag
+    removal, duplicates, lint)
+  - `DI-EB8642F4` -- DI-LEO-AI-096 (legacy ID stub; needs human
+    triage before reclassification)
+  - `DI-BCDC245C` -- Similar-candidates batch dialog highlighter
+    + match-rationale chips (UI affordance)
+  - `DI-37D1B7D7` -- In-memory message bus adapter for development
+    and tests (dev-only)
+  - `DI-20104031` -- ODS sync worker entry point (infrastructure
+    plumbing)
+  - `DI-21996926` -- LLM usage cost configuration module
+    (billing/ops, not safety)
+  - `DI-B884A243` -- Redis-backed checkpoint and rebuild status
+    (infrastructure plumbing)
+- **Evidence**: `compliance/atlas-migration-evidence/2026-04-20-`
+  `gap-remediation/di_no_risk_decisions.json`
+- **Owner**: QA / RA Lead.
+- **Clear by**: next quarterly design review (2026-07) -- confirm
+  Class A classification or upgrade to Class B with a MITIGATES
+  link.
+
+### W-010 -- 2 newly-created DIs without DOs/VTs
+
+- **Scope**: 2 of 351 DIs created during the 2026-04-20 gap-
+  remediation pass are net-new and lack `IMPLEMENTS` and
+  `VERIFIES` edges:
+  - `DI-93D89DC6` -- Multi-channel referral ingestion adapters with
+    unified queue and channel of origin (parent: `UN-653248E1`)
+  - `DI-58C55352` -- Continuous subscription audit with PPV
+    calculation across confirmed and excluded cancer referrals
+    (parent: `UN-90507468`)
+- **Status**: accepted, scheduled.
+- **Justification**: both DIs were created to close pre-existing
+  `UN_NO_DI` gaps (W-001 successor) where no parent DI existed.
+  They are Class B and have a MITIGATES link to an existing Risk
+  (`R-2183B9DC` and `R-732325CF` respectively). Their DOs and VTs
+  are scheduled in the next sprint.
+- **Owner**: Engineering Lead.
+- **Clear by**: next sprint (DO + VT shells with `record_`
+  `verification_run` evidence).
+
+### W-012 -- DI-740BE510 ACs 4-5 not yet implementation-covered
+
+- **Scope**: 2 of 5 ACs on `DI-740BE510` (SBAR source-encounter and
+  coded-entity provenance) are accepted by Atlas but not yet
+  implementation-covered:
+  - **AC4**: source-record provenance preserved in every export
+    pathway (FHIR Composition / DocumentReference, JSON export,
+    downstream API consumers) with a contract test for the round-
+    trip. The current implementation persists `background_parts`
+    on the `:Assessment` node and exposes it on
+    `GET /sbar/assessments/{id}`, but the FHIR export and any
+    downstream JSON export pathways have not been audited and no
+    round-trip contract test exists.
+  - **AC5**: portable / embeddable SBAR renderer SDK trust
+    boundary. The renderer is currently an internal React tree
+    (`services/ui/src/components/sbar-final`) consumed only inside
+    `services/ui`. There is no published web component, NPM
+    package, or iframe widget yet, so the "Shadow DOM / iframe
+    trust boundary that prevents the embedding host from
+    suppressing the source-record disclosure" requirement is not
+    yet exercisable.
+- **Status**: accepted, scheduled (in-scope for the portable-
+  renderer workstream initiated 2026-04-20).
+- **Justification**: ACs 1-3 (structured-data exposure end-to-end,
+  per-section disclosure defaulting to collapsed, no inline
+  source-ID HTML/markdown comments) are covered by `VT-9A9DAA2C`
+  with three recorded passes (jest `sbar-final-view` +
+  `sbar-playground-chrome`, pytest `tests/sbar/*`). ACs 4-5 are
+  the new requirements added when DI-740BE510 was re-scoped on
+  2026-04-20 to own the canonical SBAR provenance contract,
+  including the consuming-systems specification implicit in any
+  third-party renderer distribution.
+- **Owner**: Engineering Lead (renderer SDK), QA / RA Lead
+  (export contract).
+- **Clear by**:
+  - AC4 (export round-trip): next sprint - add a FHIR export
+    contract test under `tests/contracts/` that asserts
+    `background_parts` survives the round-trip and gate any new
+    export adapter on it.
+  - AC5 (renderer trust boundary): tracked in the portable-
+    renderer DO/VT shells once the renderer SDK design output is
+    created and the distribution channel is chosen
+    (web-component vs NPM React vs iframe). Target: design-review
+    sign-off before first external embedding.
+
+### W-011 -- DI created in parallel without VT
+
+- **Scope**: 1 DI created by another agent / team during the
+  2026-04-20 audit window:
+  - `DI-E3689657` -- Deterministic cancer-site dictionary and
+    text-path episode builder integration
+- **Status**: accepted, scheduled.
+- **Justification**: the DI was added by parallel Atlas activity
+  during the gap-remediation pass and carries clinical episode-
+  builder semantics. A MITIGATES link to `R-732325CF` was added
+  during the remediation sweep; the corresponding VT belongs to
+  the originating team.
+- **Owner**: Engineering Lead (originating team).
+- **Clear by**: next sprint (raise the VERIFIES link to an existing
+  episode-builder VT or create a new one).
+
 ## Review cadence
 
 - **Per-release**: Engineering Lead inspects W-002 / W-004 / W-007
-  via the CSO queue.
-- **Quarterly**: QA/RA Lead clears W-001 / W-003 / W-005 / W-006 in
-  the design review meeting; CSO signs off any residual.
+  / W-010 / W-011 via the CSO queue.
+- **Quarterly**: QA/RA Lead clears W-001 / W-003 / W-005 / W-006 /
+  W-009 in the design review meeting; CSO signs off any residual.
 - **Annually**: full re-baseline against Atlas stats; any waiver
   open for >12 months is escalated.

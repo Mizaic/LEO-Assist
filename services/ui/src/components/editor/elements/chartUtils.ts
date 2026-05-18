@@ -1,4 +1,10 @@
-/** Max characters before a tick label is truncated with "\u2026" */
+/** Max characters before a tick label is truncated with "\u2026"
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
+ */
 export const LABEL_MAX_CHARS = 28;
 
 /** Truncate a string to maxLen characters, appending "\u2026" if needed. */

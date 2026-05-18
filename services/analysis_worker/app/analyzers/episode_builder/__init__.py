@@ -135,7 +135,21 @@ from ._builder import (  # noqa: E402
     build_episodes,
 )
 
+# -- Lock guard (DI-C424BB44) -----------------------------------------------
+from ._lock_guard import (  # noqa: E402
+    EpisodeLockState,
+    filter_link_groups,
+    is_episode_fully_locked,
+    load_lock_state,
+    locked_anchors_for_episode,
+)
+
 __all__ = [
     "build_episodes",
     "EpisodeBuildResult",
+    "EpisodeLockState",
+    "filter_link_groups",
+    "is_episode_fully_locked",
+    "load_lock_state",
+    "locked_anchors_for_episode",
 ]

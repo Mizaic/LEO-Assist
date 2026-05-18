@@ -1,5 +1,10 @@
 """Runtime recovery of missing lab procedure / observable / finding triples.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 This module is the runtime counterpart to ``libs/training/lab_span_detector.py``.
 The training module proposes overlapping spans for gold-label backfill; this
 module produces the SAME span shapes at inference time so the spancat model

@@ -1,5 +1,10 @@
 """Deterministic Assessment narrative from /terminology/guidelines/evaluate.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 V1 deliberately avoids LLM interpretation of the matched rules. The
 Assessment section presents matched rules verbatim with structured
 attribution so the clinician can see exactly which guideline fired and

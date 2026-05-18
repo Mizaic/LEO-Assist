@@ -1,5 +1,10 @@
 """Stage 5 agent: reconcile candidate windows + milestones into final episodes.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Defaults to Sonnet (``tier="big"``) because reconciliation needs to reason
 across multiple windows. Spike data may show Haiku is sufficient; the chain
 allows the tier to be overridden.

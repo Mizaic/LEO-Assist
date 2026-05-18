@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-2E8544FD
+ *   DI: DI-C65FD45B
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2E8544FD")
+ */
 import React from 'react';
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 import PeopleOutlined from '@mui/icons-material/PeopleOutlined';

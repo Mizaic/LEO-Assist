@@ -1,5 +1,10 @@
 """Verification subgraph implementing extract-verify-retry pattern for NER quality.
 
+Atlas trace:
+  DO: DO-69F520C9
+  DI: DI-F22160C3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-69F520C9")
+
 Prompt resolution:
 1. ``prompt_config`` dict in state (typically loaded from Neo4j PromptConfig)
 2. ``libs.prompts.registry.get_prompt("verification", 1)`` from Neo4j

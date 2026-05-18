@@ -1,0 +1,6 @@
+operation,subject,result,note
+create_user_need,Cancer site recognition in unstructured oncology text,created,UN-AAD68DF5
+create_design_input,Deterministic cancer-site dictionary and text-path episode builder integration,created,DI-E3689657
+link_un_di,UN-AAD68DF5->DI-E3689657,created,HAS_DESIGN_INPUT
+link_do_di,DO-0DFA6961->DI-E3689657,created,IMPLEMENTS
+audit_reclassify,services/ui/src/app/care/encounters/page.tsx,fixed,DO-F78C84A6 moved from DI -> DO column

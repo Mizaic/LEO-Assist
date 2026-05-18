@@ -7,6 +7,11 @@
  *
  * Cookies are relayed via response.cookies.set() (not raw header append)
  * to ensure Next.js includes them on redirect responses.
+ *
+ * Atlas trace:
+ *   DO: DO-21936FDD
+ *   DI: DI-09DF0A10
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-21936FDD")
  */
 import { NextRequest, NextResponse } from "next/server";
 
@@ -70,19 +75,70 @@ export async function GET(request: NextRequest) {
   return response;
 }
 
-function _safeDestination(location: string | null, state: string, origin: string): URL {
+/**
+ * Build a redirect URL that is guaranteed to live on the UI origin.
+ *
+ * Why the strict checks:
+ *   - `URL` accepts scheme-relative inputs like `//evil.example/x` that
+ *     would otherwise route the browser off-origin if naively appended.
+ *   - The upstream `Location` header is attacker-influenceable via
+ *     redirect_uri / state on the OAuth callback, so we only honour it
+ *     when its scheme is http(s) AND its origin exactly matches the UI
+ *     origin. Localhost is never trusted in production, only in dev
+ *     (NODE_ENV !== "production").
+ *   - Any `state` string is forced to be an absolute UI path. We strip
+ *     leading slashes and rebuild from `origin` to defeat
+ *     `state=//evil.example/x` and `state=https://evil.example`.
+ */
+function _safeDestination(
+  location: string | null,
+  state: string,
+  origin: string,
+): URL {
   if (location) {
     try {
       const url = new URL(location);
-      if (url.origin === origin || url.hostname === "localhost") {
+      const isHttp = url.protocol === "http:" || url.protocol === "https:";
+      const isOrigin = url.origin === origin;
+      const isDevLocalhost =
+        process.env.NODE_ENV !== "production" &&
+        (url.hostname === "localhost" || url.hostname === "127.0.0.1");
+      if (isHttp && (isOrigin || isDevLocalhost)) {
         return new URL(url.pathname + url.search, origin);
       }
     } catch {
       // Ignore malformed location.
     }
   }
-  const dest = state.startsWith("/") ? state : `/${state}`;
-  return new URL(dest === "/sign-in" || dest === "/" ? "/care/dashboard" : dest, origin);
+  return _safeStatePath(state, origin);
+}
+
+function _safeStatePath(state: string, origin: string): URL {
+  const trimmed = (state || "").trim();
+  // Reject anything that could escape the origin: absolute URLs, schemes,
+  // backslashes (interpreted as separators by some browsers), or
+  // protocol-relative paths starting with "//".
+  const looksAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(trimmed);
+  const looksProtocolRelative = trimmed.startsWith("//") || trimmed.startsWith("\\\\");
+  if (!trimmed || looksAbsolute || looksProtocolRelative || trimmed.includes("\\")) {
+    return new URL("/care/dashboard", origin);
+  }
+  let dest = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  // Collapse any leading run of slashes to a single slash so /////evil
+  // cannot be reinterpreted as a host by URL().
+  dest = dest.replace(/^\/{2,}/, "/");
+  if (dest === "/sign-in" || dest === "/") {
+    dest = "/care/dashboard";
+  }
+  try {
+    const url = new URL(dest, origin);
+    if (url.origin !== origin) {
+      return new URL("/care/dashboard", origin);
+    }
+    return url;
+  } catch {
+    return new URL("/care/dashboard", origin);
+  }
 }
 
 /**

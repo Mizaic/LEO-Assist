@@ -1,5 +1,10 @@
 """Query understanding for encounter case-finding.
 
+Atlas trace:
+  DO: DO-31410049
+  DI: DI-F46494AE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-31410049")
+
 Provides:
 - deterministic normalization and typo handling
 - lexical fulltext query construction

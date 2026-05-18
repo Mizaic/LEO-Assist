@@ -1,5 +1,10 @@
 """Precision hardening rules for NER entity candidates.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 These rules gate or down-rank extracted entities to reduce false-positive
 rates, particularly for the cancer_types domain where body-part tokens
 frequently appear in non-malignant contexts.

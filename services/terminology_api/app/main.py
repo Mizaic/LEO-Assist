@@ -23,6 +23,7 @@ load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 load_keyvault_secrets()
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -67,12 +68,24 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_DEFAULT_CORS_ORIGINS = (
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000"
+)
+_cors_raw = os.getenv("TERMINOLOGY_CORS_ORIGINS", _DEFAULT_CORS_ORIGINS)
+_cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+if "*" in _cors_origins:
+    raise RuntimeError(
+        "TERMINOLOGY_CORS_ORIGINS must not contain '*'; the API uses "
+        "credentialed cookies and a wildcard origin would let any site "
+        "drive the API as the logged-in user."
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Service-Token"],
 )
 
 app.include_router(search_router, prefix="/terminology", tags=["search"])

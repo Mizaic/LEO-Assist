@@ -1,5 +1,10 @@
 """Background dual-model verification for TrainingLabel entities.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Runs AWS + Azure small models over included labels in Neo4j. Agreements are
 applied automatically; disagreements are pushed into LabelVerificationReview
 for human resolution.

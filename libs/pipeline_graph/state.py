@@ -1,5 +1,10 @@
 """Shared state definitions for pipeline subgraphs.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Each subgraph defines its own state TypedDict.  These shared types are
 used when subgraphs need to communicate through a parent graph.
 """

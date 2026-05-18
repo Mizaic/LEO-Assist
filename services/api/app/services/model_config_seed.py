@@ -1,5 +1,10 @@
 """Bootstrap ModelConfig nodes into the Knowledge Graph on first run.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Neo4j is the source of truth.  Env vars / hardcoded defaults are used
 **only** when no ModelConfig nodes exist yet (fresh instance or DR restore).
 If any nodes are found in the graph at startup the seed is skipped entirely.

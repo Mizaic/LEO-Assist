@@ -1,5 +1,10 @@
 """External event webhook endpoints and clinician action events.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Receives events from external systems (lab results, referral responses)
 and clinician UI actions, transforms them into PipelineJobMessages, and
 publishes to the pipeline-jobs Service Bus queue.
@@ -14,7 +19,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.deps import get_session_data
+from app.deps import get_caller_scope_from_request
+from libs.auth.org_scope import CallerScope, require_patient_in_scope
 from libs.auth.service_auth import verify_service_token
 
 logger = logging.getLogger(__name__)
@@ -121,10 +127,23 @@ async def receive_referral_response(
 @router.post("/clinician-action")
 async def receive_clinician_action(
     payload: ClinicianActionPayload,
-    _session: dict = Depends(get_session_data),
+    scope: CallerScope = Depends(get_caller_scope_from_request),
 ) -> dict[str, str]:
-    _ = _session
-    """Receive a clinician decision from the Primary Care UI."""
+    """Receive a clinician decision from the Primary Care UI.
+
+    Tenant scoping: the caller may only post actions against patients
+    whose registered GP is within the caller's org hierarchy. Admins
+    bypass the check. Out-of-scope requests return 404 to avoid
+    leaking the existence of patients in other tenants.
+    """
+    from libs.neo4j_client.client import PatientGraphClient as LibPGClient
+
+    client = LibPGClient()
+    try:
+        require_patient_in_scope(client, scope, payload.patient_id)
+    finally:
+        client.close()
+
     logger.info(
         "Clinician action: %s for patient %s",
         payload.action_type,

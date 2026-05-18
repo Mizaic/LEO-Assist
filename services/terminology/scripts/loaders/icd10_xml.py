@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-4D608335
+  DI: DI-760F5FB7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4D608335")
+
 Phase 6: Load NHS ICD-10 5th Edition XML into Neo4j.
 
 Source: TRUD pack 28, item 259 ("NHS ICD-10 5th Edition XML data files").

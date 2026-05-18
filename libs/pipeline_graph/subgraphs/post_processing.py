@@ -1,4 +1,10 @@
-"""Post-processing subgraph wrapping the canonical 9-layer pipeline."""
+"""Post-processing subgraph wrapping the canonical 9-layer pipeline.
+
+Atlas trace:
+  DO: DO-69F520C9
+  DI: DI-F22160C3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-69F520C9")
+"""
 
 from __future__ import annotations
 

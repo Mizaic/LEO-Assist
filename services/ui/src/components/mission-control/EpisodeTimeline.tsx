@@ -11,7 +11,11 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
-import type { MissionEpisode } from "@/lib/missionControlApi";
+import LockOutlined from "@mui/icons-material/LockOutlined";
+import type {
+  MissionEpisode,
+  VerificationLockSummary,
+} from "@/lib/missionControlApi";
 import { CLOSURE_REASON_STATUSES } from "@/lib/episodeStatus";
 
 // -- Milestone configuration --
@@ -73,6 +77,11 @@ function shortDate(iso: string | null): string {
 interface Props {
   episode: MissionEpisode;
   compact?: boolean;
+  /** Optional VerificationLocks for the episode. Each lock with
+   * entity_type=is_part_of_edge encodes "encounter:episode"; we surface
+   * a tiny lock glyph next to the matching milestone node so the
+   * reviewer sees at a glance which milestones are confirmed. */
+  locks?: VerificationLockSummary[];
 }
 
 interface ResolvedMilestone {
@@ -81,12 +90,16 @@ interface ResolvedMilestone {
   date: string | null;
   present: boolean;
   isClosure: boolean;
+  /** Encounter id linked to this milestone, used for lock matching. */
+  encounterId: string | null;
 }
 
 function resolveMilestones(episode: MissionEpisode): ResolvedMilestone[] {
   const dateMap: Record<string, string> = {};
+  const encMap: Record<string, string> = {};
   for (const m of episode.milestones ?? []) {
     dateMap[m.milestone_type] = m.date;
+    if (m.encounter_id) encMap[m.milestone_type] = m.encounter_id;
   }
   // Fallbacks when explicit milestone edges are missing in graph.
   if (!dateMap.gp_referral && episode.referral_date) {
@@ -114,11 +127,30 @@ function resolveMilestones(episode: MissionEpisode): ResolvedMilestone[] {
     date: dateMap[type] ?? null,
     present: Boolean(dateMap[type]),
     isClosure: type === "benign_closure",
+    encounterId: encMap[type] ?? null,
   }));
 }
 
-export default function EpisodeTimeline({ episode, compact = false }: Props) {
+function buildLockIndex(
+  episodeId: string,
+  locks: VerificationLockSummary[] | undefined
+): Set<string> {
+  const out = new Set<string>();
+  for (const lock of locks ?? []) {
+    if (lock.entity_type !== "is_part_of_edge") continue;
+    const [enc, ep] = lock.entity_id.split(":");
+    if (ep === episodeId && enc) out.add(enc);
+  }
+  return out;
+}
+
+export default function EpisodeTimeline({
+  episode,
+  compact = false,
+  locks,
+}: Props) {
   const milestones = resolveMilestones(episode);
+  const lockedEncounters = buildLockIndex(episode.episode_id, locks);
 
   return (
     <Box sx={{ overflowX: "auto", py: compact ? 0.5 : 1 }}>
@@ -176,25 +208,43 @@ export default function EpisodeTimeline({ episode, compact = false }: Props) {
               <Box
                 sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}
               >
-                <Tooltip
-                  title={m.date ? shortDate(m.date) : "Not yet recorded"}
-                  arrow
-                >
-                  <Box
-                    sx={{
-                      width: compact ? 10 : 14,
-                      height: compact ? 10 : 14,
-                      borderRadius: m.isClosure ? "3px" : "50%",
-                      border: m.present ? "none" : "2px dashed #bdbdbd",
-                      backgroundColor: m.present
-                        ? m.isClosure
-                          ? "#9e9e9e"
-                          : "#1F3A8A"
-                        : "transparent",
-                      flexShrink: 0,
-                    }}
-                  />
-                </Tooltip>
+                <Box sx={{ position: "relative", display: "inline-flex" }}>
+                  <Tooltip
+                    title={m.date ? shortDate(m.date) : "Not yet recorded"}
+                    arrow
+                  >
+                    <Box
+                      sx={{
+                        width: compact ? 10 : 14,
+                        height: compact ? 10 : 14,
+                        borderRadius: m.isClosure ? "3px" : "50%",
+                        border: m.present ? "none" : "2px dashed #bdbdbd",
+                        backgroundColor: m.present
+                          ? m.isClosure
+                            ? "#9e9e9e"
+                            : "#1F3A8A"
+                          : "transparent",
+                        flexShrink: 0,
+                      }}
+                    />
+                  </Tooltip>
+                  {m.encounterId && lockedEncounters.has(m.encounterId) && (
+                    <Tooltip title="Reviewer-confirmed milestone (locked)" arrow>
+                      <LockOutlined
+                        data-testid={`milestone-lock-${m.type}`}
+                        sx={{
+                          position: "absolute",
+                          right: -8,
+                          top: -8,
+                          fontSize: compact ? 10 : 12,
+                          color: "success.main",
+                          backgroundColor: "background.paper",
+                          borderRadius: "50%",
+                        }}
+                      />
+                    </Tooltip>
+                  )}
+                </Box>
                 {!compact && (
                   <>
                     <Typography

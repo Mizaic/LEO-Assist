@@ -1,5 +1,10 @@
 """Microsoft Graph mail service.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Uses client credentials (app-level token) so the backend can send and read
 mail as leo.support@healthcarecopilot.ai without a signed-in user.
 

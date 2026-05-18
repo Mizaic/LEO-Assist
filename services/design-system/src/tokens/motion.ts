@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-124AC2C4
+ *   DI: DI-613A48DA
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-124AC2C4")
+ */
 // Motion tokens. Consumed by the motion layer (MotionProvider / useMotion).
 // Durations are in milliseconds so they align with both CSS transitions and
 // framer-motion transition objects. See DI-LEO-AI-131.

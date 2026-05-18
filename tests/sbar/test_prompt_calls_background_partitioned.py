@@ -6,8 +6,10 @@ Verifies the new ``call_background`` flow:
     single-call flow: no part heading, no notice (TC-001).
   - Multi-partition path runs MAP per partition and stitches the
     partials deterministically into one Background, with one
-    ``### Part i of N -- records {a}-{b}`` heading per part and an
-    HTML ``<!-- sources: ... -->`` traceability comment (TC-002).
+    ``### Part i of N -- records {a}-{b}`` heading per part. Source
+    record ids are exposed via the structured ``parts`` field
+    (``part["source_ids"]``), NOT embedded as inline HTML comments
+    inside the rendered markdown body (TC-002).
   - Per-part failures are contained: surviving parts still land,
     the failed part renders as a placeholder pointing the reviewer
     at the errors panel, and the call returns
@@ -117,8 +119,17 @@ def test_multi_partition_stitches_deterministically_with_part_headings() -> None
     # Every per-part body lands under its heading.
     for i in range(1, n + 1):
         assert f"part-md-{i}" in md
-    # HTML traceability comment for at least one part.
-    assert "<!-- sources:" in md
+    # Source-record IDs MUST live on the structured ``parts`` field,
+    # not as inline HTML comments inside the rendered markdown.
+    # Markdown renderers (Tiptap with html=false) treat raw HTML
+    # comments as visible plain text, leaking record UUIDs into the
+    # user-facing view.
+    assert "<!-- sources" not in md
+    assert all("enc-" not in line for line in md.splitlines())
+    flat_source_ids = {
+        sid for p in result["parts"] for sid in (p.get("source_ids") or [])
+    }
+    assert len(flat_source_ids) >= 1
     assert "summarised them in" in (result["notice"] or "")
 
 
@@ -249,8 +260,11 @@ def test_progress_cb_is_called_per_part_with_no_reduce_phase() -> None:
         assert e["part_total"] == n
 
 
-def test_stitched_markdown_includes_records_range_and_source_ids() -> None:
-    """TC-007: stitched headings show 'records {a}-{b}' and source ids."""
+def test_stitched_markdown_includes_records_range_and_no_inline_source_ids() -> None:
+    """TC-007: stitched headings show 'records {a}-{b}'; source ids are
+    surfaced via the structured ``parts`` field, not as inline HTML
+    comments inside the rendered markdown.
+    """
     sources = _sources(12, text_len=4000)
 
     async def _invoker(system, user, **_kw):
@@ -270,7 +284,17 @@ def test_stitched_markdown_includes_records_range_and_source_ids() -> None:
     # At least one heading must show a record range like
     # "records 1-X" since N >= 2 partitions split the 12 inputs.
     assert "records 1" in md
-    # Every original source id must be referenced in some sources
-    # comment for traceability (no record dropped).
+    # The rendered markdown MUST NOT carry the legacy
+    # ``<!-- sources: ... -->`` HTML comments. Markdown renderers
+    # (Tiptap with html=false) treat those as visible text, leaking
+    # raw record UUIDs into the user-facing view.
+    assert "<!-- sources" not in md
     for i in range(12):
-        assert f"enc-{i}" in md
+        assert f"enc-{i}" not in md
+    # The source ids MUST instead live on the structured ``parts``
+    # field so the UI can render them in a separate disclosure.
+    parts = result["parts"]
+    assert isinstance(parts, list) and len(parts) >= 2
+    flat_source_ids = {sid for p in parts for sid in (p.get("source_ids") or [])}
+    for i in range(12):
+        assert f"enc-{i}" in flat_source_ids

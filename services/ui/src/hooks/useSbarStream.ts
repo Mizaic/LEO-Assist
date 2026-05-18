@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
+ */
 "use client";
 
 /**
@@ -52,6 +60,55 @@ export interface SbarStagePartProgress {
   errorCode: string | null;
 }
 
+/** Structured per-partition summary for the SBAR Background stage.
+ *  Mirrors libs.sbar.prompt_calls._build_part_summary. The UI uses
+ *  this to render a "Show source records" disclosure on the
+ *  Background section so the raw record UUIDs no longer leak into
+ *  the rendered Markdown body via embedded HTML comments. */
+export interface SbarBackgroundPart {
+  index: number;
+  total: number;
+  recordCount: number;
+  recordRange: [number, number];
+  sourceIds: string[];
+  status: "completed" | "failed";
+  errorCode: string | null;
+  errorMessage: string | null;
+}
+
+function toBackgroundPart(raw: unknown): SbarBackgroundPart | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const range = Array.isArray(o.record_range)
+    ? (o.record_range as unknown[])
+    : [0, 0];
+  const sourceIds = Array.isArray(o.source_ids)
+    ? (o.source_ids as unknown[]).filter(
+        (s): s is string => typeof s === "string",
+      )
+    : [];
+  const status =
+    o.status === "failed" || o.error_code ? "failed" : "completed";
+  return {
+    index: Number(o.index ?? 0),
+    total: Number(o.total ?? 0),
+    recordCount: Number(o.record_count ?? sourceIds.length),
+    recordRange: [Number(range[0] ?? 0), Number(range[1] ?? 0)],
+    sourceIds,
+    status,
+    errorCode: typeof o.error_code === "string" ? o.error_code : null,
+    errorMessage:
+      typeof o.error_message === "string" ? o.error_message : null,
+  };
+}
+
+function toBackgroundParts(raw: unknown): SbarBackgroundPart[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map(toBackgroundPart)
+    .filter((p): p is SbarBackgroundPart => p !== null);
+}
+
 /** Friendly per-stage error built by libs.sbar.error_messages on the
  *  pipeline worker. The `message` field is plain English at reading
  *  age 9-11 and is safe to render directly in the UI. Raw AWS /
@@ -79,6 +136,11 @@ export interface SbarStreamState {
   assessmentId: string | null;
   stages: Record<SbarStageName, SbarStageState>;
   finalContent: string | null;
+  /** Per-partition source-record summary for the Background stage,
+   *  populated from sbar_stage_completed and refreshed from the
+   *  GET /sbar/assessments/{id} response. Empty for legacy
+   *  Assessments and for runs with no Background sources. */
+  backgroundParts: SbarBackgroundPart[];
   /** Plain-English run errors aggregated on sbar_completed. */
   errors: SbarErrorDetail[];
   /** Plain-English notices aggregated on sbar_completed (e.g.
@@ -183,6 +245,7 @@ export function useSbarStream() {
     assessmentId: null,
     stages: initialStages(),
     finalContent: null,
+    backgroundParts: [],
     errors: [],
     notices: [],
   });
@@ -208,6 +271,7 @@ export function useSbarStream() {
       assessmentId,
       stages: initialStages(),
       finalContent: null,
+      backgroundParts: [],
       errors: [],
       notices: [],
     });
@@ -281,6 +345,8 @@ export function useSbarStream() {
       if (!STAGES.includes(stage)) return;
       const stageError = (d.error ?? null) as SbarErrorDetail | null;
       const stageNotice = (d.notice ?? null) as SbarNotice | null;
+      const stageParts =
+        stage === "background" ? toBackgroundParts(d.parts) : null;
       setState((s) => {
         const nextNotices = stageNotice
           ? [...s.notices, stageNotice]
@@ -289,6 +355,8 @@ export function useSbarStream() {
           ...s,
           status: `${stage} ready.`,
           notices: nextNotices,
+          backgroundParts:
+            stageParts !== null ? stageParts : s.backgroundParts,
           stages: {
             ...s.stages,
             [stage]: {
@@ -335,9 +403,12 @@ export function useSbarStream() {
           const res = await fetch(`/api/sbar/assessments/${encodeURIComponent(id)}`);
           if (res.ok) {
             const json = await res.json();
+            const parts = toBackgroundParts(json.background_parts);
             setState((s) => ({
               ...s,
               finalContent: typeof json.content === "string" ? json.content : null,
+              backgroundParts:
+                parts.length > 0 ? parts : s.backgroundParts,
             }));
           }
         }
@@ -392,6 +463,7 @@ export function useSbarStream() {
         assessmentId: null,
         stages: initialStages(),
         finalContent: null,
+        backgroundParts: [],
         errors: [],
         notices: [],
       });

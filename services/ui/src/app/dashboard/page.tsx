@@ -8,11 +8,13 @@
  */
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import NextLink from "next/link";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
+import CardActionArea from "@mui/material/CardActionArea";
 import CardContent from "@mui/material/CardContent";
 import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
@@ -31,6 +33,11 @@ import {
 import { useOrgId } from "@/context/OrgContext";
 import { useAnalyticsDateFilter } from "@/context/AnalyticsDateFilterContext";
 import { TAX_YEAR_PRESETS } from "@/lib/taxYearPresets";
+import {
+  DEFAULT_FILTERS,
+  serialiseFilters,
+  type LifecycleBucket,
+} from "@/lib/missionControlFilters";
 import KPICards from "@/components/dashboard/KPICards";
 import EpisodesByTypeChart from "@/components/dashboard/EpisodesByTypeChart";
 import DiagnosedByTypeChart from "@/components/dashboard/DiagnosedByTypeChart";
@@ -108,6 +115,10 @@ export default function DashboardPage() {
     in_review_episodes?: number;
     cancer_excluded_episodes?: number;
     confirmed_cancer_episodes?: number;
+    total_cohort_patients?: number;
+    total_cohort_patients_with_pathway?: number;
+    patients_without_pathway?: number;
+    total_cohort_episodes_all?: number;
   } | null>(null);
   const [kpis, setKpis] = useState<any>(null);
   const [alerts, setAlerts] = useState<Array<any>>([]);
@@ -147,6 +158,12 @@ export default function DashboardPage() {
           in_review_episodes: summaryResult.value.in_review_episodes,
           cancer_excluded_episodes: summaryResult.value.cancer_excluded_episodes,
           confirmed_cancer_episodes: summaryResult.value.confirmed_cancer_episodes,
+          total_cohort_patients: summaryResult.value.total_cohort_patients,
+          total_cohort_patients_with_pathway:
+            summaryResult.value.total_cohort_patients_with_pathway,
+          patients_without_pathway:
+            summaryResult.value.patients_without_pathway,
+          total_cohort_episodes_all: summaryResult.value.total_cohort_episodes_all,
         });
       } else {
         errors.summary = "Unable to load summary metrics.";
@@ -184,10 +201,38 @@ export default function DashboardPage() {
   }, []);
 
   const totalCohortEpisodes = summary?.total_cohort_episodes ?? summary?.total_episodes ?? 0;
+  const totalCohortEpisodesAll = summary?.total_cohort_episodes_all ?? totalCohortEpisodes;
+  const totalCohortPatients = summary?.total_cohort_patients ?? 0;
+  const patientsWithPathway =
+    summary?.total_cohort_patients_with_pathway ?? totalCohortPatients;
+  const patientsWithoutPathway = Math.max(
+    0,
+    summary?.patients_without_pathway ??
+      totalCohortPatients - patientsWithPathway,
+  );
   const activeLifecycle = summary?.active_lifecycle_episodes ?? 0;
   const inReview = summary?.in_review_episodes ?? 0;
   const cancerExcluded = summary?.cancer_excluded_episodes ?? 0;
   const confirmedCancer = summary?.confirmed_cancer_episodes ?? summary?.confirmed_cancers ?? 0;
+  const adminOnlyEpisodes = Math.max(0, totalCohortEpisodesAll - totalCohortEpisodes);
+
+  // Build a deep-link into Mission Control filtered by the chosen
+  // lifecycle bucket. Carries the dashboard's active date filter
+  // through, so the patient list opens with the same scope as the
+  // hero count it was launched from (DI-105A4EC7).
+  const lifecycleHref = useMemo(
+    () => (bucket: LifecycleBucket | "none") => {
+      const filters = {
+        ...DEFAULT_FILTERS,
+        orgId: orgId ?? "",
+        dateFrom: appliedFrom ?? "",
+        dateTo: appliedTo ?? "",
+        lifecycleBucket: bucket === "none" ? "all" : bucket,
+      } as const;
+      return `/patients?${serialiseFilters(filters).toString()}`;
+    },
+    [orgId, appliedFrom, appliedTo],
+  );
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3 }, overflowX: "hidden" }}>
@@ -310,11 +355,29 @@ export default function DashboardPage() {
         </Alert>
       )}
 
+      {/* -- Cohort summary card (DI-105A4EC7) -------------------------- */}
+      {/* Single wide card sitting above the four MECE hero cards. Shows  */}
+      {/* the all-cohort denominators (total patients + total cancer       */}
+      {/* pathways). Clicking it opens the unfiltered Mission Control     */}
+      {/* patient list with the dashboard date range applied.             */}
+      <Box component="section" aria-label="Cohort summary" sx={{ mb: 2 }}>
+        <CohortSummaryCard
+          patients={loading ? undefined : totalCohortPatients}
+          patientsWithPathway={loading ? undefined : patientsWithPathway}
+          patientsWithoutPathway={loading ? 0 : patientsWithoutPathway}
+          episodes={loading ? undefined : totalCohortEpisodesAll}
+          href={lifecycleHref("none")}
+          noPathwayHref={lifecycleHref("no_pathway")}
+          adminOnlyEpisodes={loading ? 0 : adminOnlyEpisodes}
+        />
+      </Box>
+
       {/* -- MECE lifecycle hero cards (DI-105A4EC7) ----------------- */}
       {/* Every cancer pathway in the cohort lands in exactly one of    */}
       {/* the four buckets, so the four numbers sum to the total cohort */}
-      {/* (currently 141 pathways). Hero row replaces the older         */}
-      {/* "Referrals / Active / Confirmed / Safety alerts" mix.         */}
+      {/* (currently 141 pathways). Each card links into Mission        */}
+      {/* Control filtered to the same lifecycle bucket so the headline */}
+      {/* number is always reproducible by the patient list it opens.   */}
       <Grid
         container
         spacing={2.5}
@@ -328,6 +391,8 @@ export default function DashboardPage() {
             description="Pathways still in progress, no decision yet."
             value={loading ? undefined : activeLifecycle}
             color="#0D7C6F"
+            href={lifecycleHref("active")}
+            linkLabel="View active patients"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -336,6 +401,8 @@ export default function DashboardPage() {
             description="Cases the engine flagged for clinician review."
             value={loading ? undefined : inReview}
             color="#92400E"
+            href={lifecycleHref("in_review")}
+            linkLabel="View in-review patients"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -344,6 +411,8 @@ export default function DashboardPage() {
             description="Pathways closed because cancer was ruled out."
             value={loading ? undefined : cancerExcluded}
             color="#475569"
+            href={lifecycleHref("cancer_excluded")}
+            linkLabel="View cancer-excluded patients"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -352,16 +421,21 @@ export default function DashboardPage() {
             description="Pathways where cancer has been confirmed."
             value={loading ? undefined : confirmedCancer}
             color="#15803D"
+            href={lifecycleHref("confirmed_cancer")}
+            linkLabel="View confirmed-cancer patients"
           />
         </Grid>
       </Grid>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ mb: 3, fontSize: "0.8rem" }}
-      >
-        {`${totalCohortEpisodes} cancer referral pathways across the cohort.`}
-      </Typography>
+      {adminOnlyEpisodes > 0 && (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mb: 3, fontSize: "0.75rem", fontStyle: "italic" }}
+          aria-label="Admin-only episode footnote"
+        >
+          {`${adminOnlyEpisodes} admin-only ${adminOnlyEpisodes === 1 ? "episode is" : "episodes are"} not shown in the four cards above.`}
+        </Typography>
+      )}
 
       {/* ── Charts row 1 ────────────────────────────────────────────── */}
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
@@ -468,63 +542,313 @@ export default function DashboardPage() {
   );
 }
 
+function CohortSummaryCard({
+  patients,
+  patientsWithPathway,
+  patientsWithoutPathway,
+  episodes,
+  href,
+  noPathwayHref,
+  adminOnlyEpisodes,
+}: {
+  patients: number | undefined;
+  patientsWithPathway: number | undefined;
+  patientsWithoutPathway: number;
+  episodes: number | undefined;
+  href: string;
+  noPathwayHref: string;
+  adminOnlyEpisodes: number;
+}) {
+  const ariaLabel =
+    patients === undefined || episodes === undefined
+      ? "Cohort summary loading"
+      : `Cohort: ${patientsWithPathway ?? patients} of ${patients} patients have a cancer pathway, ${episodes} cancer pathways in total. Open the full patient list.`;
+
+  return (
+    <Card
+      component="article"
+      sx={{
+        bgcolor: "primary.50",
+        border: "1px solid",
+        borderColor: "primary.100",
+        transition: "box-shadow 120ms ease-in-out, transform 120ms ease-in-out",
+        "&:hover": { boxShadow: 3, transform: "translateY(-1px)" },
+      }}
+    >
+      <CardActionArea
+        component={NextLink}
+        href={href}
+        aria-label={ariaLabel}
+        sx={{ display: "block" }}
+      >
+        <CardContent sx={{ py: 2.25 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={{ xs: 1.5, sm: 5 }}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+          >
+            <Box>
+              <Typography
+                variant="overline"
+                sx={{
+                  color: "primary.dark",
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                  fontSize: "0.7rem",
+                  display: "block",
+                }}
+              >
+                Cohort
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontSize: "0.75rem" }}
+              >
+                Click to open the full patient list.
+              </Typography>
+            </Box>
+            <CohortPatientStat
+              withPathway={patientsWithPathway}
+              total={patients}
+            />
+            <CohortStat
+              label="Cancer pathways"
+              value={episodes}
+              ariaSuffix="cancer pathways in cohort"
+            />
+            {adminOnlyEpisodes > 0 && (
+              <Chip
+                label={`${adminOnlyEpisodes} admin-only`}
+                size="small"
+                variant="outlined"
+                aria-label={`${adminOnlyEpisodes} admin-only episodes (not in the four cards below)`}
+                sx={{ fontWeight: 600 }}
+              />
+            )}
+          </Stack>
+        </CardContent>
+      </CardActionArea>
+      {patientsWithoutPathway > 0 && (
+        <Box sx={{ px: 2, pb: 1.5 }}>
+          <NextLink
+            href={noPathwayHref}
+            aria-label={`Show the ${patientsWithoutPathway} ${
+              patientsWithoutPathway === 1 ? "patient" : "patients"
+            } with no cancer pathway yet`}
+            style={{
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              color: "#92400E",
+              textDecoration: "none",
+            }}
+          >
+            {`${patientsWithoutPathway} ${
+              patientsWithoutPathway === 1 ? "patient has" : "patients have"
+            } no cancer pathway yet -> review`}
+          </NextLink>
+        </Box>
+      )}
+    </Card>
+  );
+}
+
+function CohortPatientStat({
+  withPathway,
+  total,
+}: {
+  withPathway: number | undefined;
+  total: number | undefined;
+}) {
+  return (
+    <Box>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          fontSize: "0.75rem",
+          fontWeight: 600,
+          display: "block",
+        }}
+      >
+        Patients
+      </Typography>
+      {withPathway === undefined || total === undefined ? (
+        <Skeleton width={120} height={32} aria-label="Loading" />
+      ) : (
+        <Typography
+          variant="h5"
+          aria-label={`${withPathway} of ${total} patients in cohort have a cancer pathway`}
+          sx={{
+            color: "primary.dark",
+            fontSize: "1.75rem",
+            fontWeight: 700,
+            lineHeight: 1.1,
+          }}
+        >
+          {`${withPathway} `}
+          <Box
+            component="span"
+            sx={{
+              fontSize: "1rem",
+              fontWeight: 500,
+              color: "text.secondary",
+            }}
+          >{`of ${total}`}</Box>
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function CohortStat({
+  label,
+  value,
+  ariaSuffix,
+}: {
+  label: string;
+  value: number | undefined;
+  ariaSuffix: string;
+}) {
+  return (
+    <Box>
+      <Typography
+        variant="caption"
+        sx={{
+          color: "text.secondary",
+          fontSize: "0.75rem",
+          fontWeight: 600,
+          display: "block",
+        }}
+      >
+        {label}
+      </Typography>
+      {value === undefined ? (
+        <Skeleton width={60} height={32} aria-label="Loading" />
+      ) : (
+        <Typography
+          variant="h5"
+          aria-label={`${value} ${ariaSuffix}`}
+          sx={{
+            color: "primary.dark",
+            fontSize: "1.75rem",
+            fontWeight: 700,
+            lineHeight: 1.1,
+          }}
+        >
+          {value}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
 function StatCard({
   label,
   description,
   value,
   color,
   badge,
+  href,
+  linkLabel,
 }: {
   label: string;
   description: string;
   value: number | string | undefined;
   color: string;
   badge?: string;
+  href?: string;
+  linkLabel?: string;
 }) {
-  return (
-    <Card
-      component="article"
-      aria-label={`${label}: ${value ?? "loading"}`}
-      sx={{ height: "100%" }}
-    >
-      <CardContent sx={{ py: 2.5 }}>
+  const ariaLabel = `${label}: ${value ?? "loading"}`;
+
+  const inner = (
+    <CardContent sx={{ py: 2.5 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: 0.25,
+          fontSize: "0.8125rem",
+          fontWeight: 600,
+        }}
+      >
+        {label}
+      </Typography>
+      {value === undefined ? (
+        <Skeleton width={80} height={36} aria-label="Loading" />
+      ) : (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+          <Typography
+            variant="h4"
+            aria-label={`${value} ${label.toLowerCase()}`}
+            sx={{ color, fontSize: "2rem", fontWeight: 700, lineHeight: 1 }}
+          >
+            {value}
+          </Typography>
+          {badge && (
+            <Chip
+              label={badge}
+              size="small"
+              color="error"
+              aria-label={badge}
+              sx={{ fontWeight: 600 }}
+            />
+          )}
+        </Box>
+      )}
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ mt: 0.75, display: "block", fontSize: "0.75rem" }}
+      >
+        {description}
+      </Typography>
+      {href && (
         <Typography
-          variant="body2"
+          variant="caption"
           sx={{
-            color: "text.secondary",
-            mb: 0.25,
-            fontSize: "0.8125rem",
+            mt: 0.75,
+            display: "block",
+            fontSize: "0.7rem",
             fontWeight: 600,
+            color,
           }}
         >
-          {label}
+          {linkLabel ?? "View patients"} {"->"}
         </Typography>
-        {value === undefined ? (
-          <Skeleton width={80} height={36} aria-label="Loading" />
-        ) : (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-            <Typography
-              variant="h4"
-              aria-label={`${value} ${label.toLowerCase()}`}
-              sx={{ color, fontSize: "2rem", fontWeight: 700, lineHeight: 1 }}
-            >
-              {value}
-            </Typography>
-            {badge && (
-              <Chip
-                label={badge}
-                size="small"
-                color="error"
-                aria-label={badge}
-                sx={{ fontWeight: 600 }}
-              />
-            )}
-          </Box>
-        )}
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: "block", fontSize: "0.75rem" }}>
-          {description}
-        </Typography>
-      </CardContent>
+      )}
+    </CardContent>
+  );
+
+  if (href) {
+    return (
+      <Card
+        component="article"
+        sx={{
+          height: "100%",
+          transition: "box-shadow 120ms ease-in-out, transform 120ms ease-in-out",
+          "&:hover": {
+            boxShadow: 4,
+            transform: "translateY(-1px)",
+          },
+        }}
+      >
+        <CardActionArea
+          component={NextLink}
+          href={href}
+          aria-label={ariaLabel}
+          sx={{ height: "100%", display: "block" }}
+        >
+          {inner}
+        </CardActionArea>
+      </Card>
+    );
+  }
+
+  return (
+    <Card component="article" aria-label={ariaLabel} sx={{ height: "100%" }}>
+      {inner}
     </Card>
   );
 }

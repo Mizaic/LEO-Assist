@@ -1,5 +1,10 @@
 """Admin endpoints for TRUD terminology sync.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 GET  /admin/terminology/status        - TRUD package versions + Neo4j counts
 GET  /admin/terminology/sync/stream   - SSE stream: download, extract, load
 """

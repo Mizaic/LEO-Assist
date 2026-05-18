@@ -1,50 +1,82 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *
+ * Phase 4 trace (debounced on-commit sandbox replay):
+ *   UN: UN-26E57FA1
+ *   DI: DI-D801A490
+ *   DO: DO-0D8619CE
+ *   Risk: R-8B052FB8
+ *   VT: VT-B668D256
+ */
 "use client";
 
 /**
- * Compact "Try it on real patients" panel embedded in the
- * EditRuleDialog.
+ * Sandbox-only Test Patients panel embedded in the EditRuleDialog.
  *
- * This is the rule editor's view onto the centralised Test Patient
- * library (Knowledge > Test Patients). It does NOT own its own data
- * model -- all reads and writes go through the central api.ts under
- *   services/ui/src/app/admin/knowledge/test-patients/
+ * Phase 1 redesign (April 2026):
+ *
+ *   The previous version offered TWO test surfaces -- a "Live" replay
+ *   against the production Redis bitmap, and a "Sandbox" replay against
+ *   a throwaway compile of the unsaved draft. The Live card was unsafe
+ *   by construction: when the reviewer is editing a rule, the live
+ *   bitmap still contains the OLD rule, so testing against it told
+ *   the reviewer how the OLD rule performs -- not how their unsaved
+ *   change performs. Worse, an auto-replay fired on every logic-tree
+ *   edit, so the misleading banner refreshed in real time.
+ *
+ *   This file now offers exactly one surface: the sandbox. It compiles
+ *   the unsaved draft into a throwaway bitmap (terminology
+ *   ``compile-draft`` physically refuses anything other than
+ *   ``scope_type='custom'``) and replays the saved test patients
+ *   through it. The sandbox keys are deleted in ``finally`` server-side.
+ *
+ *   The compile-time guideline-wide replay still exists, but it lives
+ *   on the Bitmap Lifecycle page where the reviewer makes the
+ *   "compile and push to live" decision.
  *
  * What the reviewer can do here:
  *   1. See how many saved test patients exercise this rule (counts
  *      both EXPECTED_RESULT-linked guideline patients AND
  *      ExpectedSBAR.matched_rule_ids-linked SBAR patients).
- *   2. Replay them against the live (production) ruleset.
- *   3. Replay them against the unsaved draft in a throwaway sandbox.
- *   4. Author a brand-new patient against this rule with AI -- opens
- *      the central ScaffoldFromRuleDialog with the rule pre-selected
- *      and locked.
- *   5. Jump to the central library pre-filtered to this rule for
+ *   2. Replay the unsaved draft against them in a sandbox.
+ *   3. Author a brand-new patient against this rule with AI.
+ *   4. Jump to the central library pre-filtered to this rule for
  *      bulk edits / deletes.
  *
  * Design controls: UN-50102672, DI-7625C251, DO-EE2C2EA1, R-8C0CC94B,
- * VT-5BDFE5F7. The legacy /admin/guidance/test-patients folder is
- * removed in this same change set.
+ * VT-5BDFE5F7. Phase 1 safety fix: DI-DD86CCBE, VT-D7B8FBA9 (see
+ * Atlas).
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import Divider from "@mui/material/Divider";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import LaunchOutlinedIcon from "@mui/icons-material/LaunchOutlined";
-import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 
 import {
-  getBitmapStatus,
   listTestPatients,
-  replay,
   sandboxReplay,
 } from "../../knowledge/test-patients/api";
 import type {
@@ -55,16 +87,59 @@ import ScaffoldFromRuleDialog from "../../knowledge/test-patients/ScaffoldFromRu
 import ReplayResultsDialog, {
   type RuleContext,
 } from "../../knowledge/test-patients/replay/ReplayResultsDialog";
-import RulesetNotCompiledBanner from "../../knowledge/test-patients/replay/RulesetNotCompiledBanner";
+import { SANDBOX_AUTORUN, SANDBOX_PANEL } from "./copy";
+
+/** Debounce window between the last draft edit and the auto-run
+ *  sandbox replay. 1.5s lines up with the wizard's perception of an
+ *  "edit pause" -- short enough that the reviewer feels the loop is
+ *  fast, long enough that a multi-keystroke edit only fires once. */
+const AUTORUN_DEBOUNCE_MS = 1500;
+
+/**
+ * Stable string signature of the draft rule. Used as the dependency
+ * for the auto-run debounce so semantically identical drafts (object
+ * identity changes but JSON shape unchanged) do not trigger an
+ * unnecessary sandbox compile.
+ */
+function draftSignature(draft: Record<string, unknown> | null | undefined): string {
+  if (!draft) return "";
+  try {
+    return JSON.stringify(draft);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * How many of the saved test patients fired the draft rule in this
+ * sandbox replay. We treat any pass row whose ``rule_id`` matches
+ * (or whose ``matched_as`` matches) as a fire so a re-saved rule
+ * with a new id is not reported as 0/N.
+ */
+function countFiringPatients(
+  report: ReplayReport,
+  ruleId: string,
+): number {
+  let count = 0;
+  for (const result of report.results) {
+    const fired = result.passes.some((p) => {
+      if (!p.fires) return false;
+      return p.rule_id === ruleId || p.matched_as === ruleId;
+    });
+    if (fired) count += 1;
+  }
+  return count;
+}
 
 interface Props {
+  /**
+   * The saved (predecessor) rule id used to look up which test
+   * patients exercise this rule. May be empty for a brand-new draft
+   * that has never been saved -- in that case we render the
+   * "save once before testing" empty state.
+   */
   ruleId: string;
   guidelineId?: string;
-  /**
-   * Bumped by the parent every time the rule's logic changes, so we
-   * auto-rerun the replay and show the latest banner.
-   */
-  ruleSignature?: string;
   /** Plain English name of the rule, used to label regressions in
    *  the Replay results dialog. */
   ruleName?: string;
@@ -73,50 +148,71 @@ interface Props {
   recommendationText?: string;
   /**
    * Snapshot of the rule the reviewer is currently editing. When set,
-   * the panel offers a "Test draft against library" button that
-   * compiles ``draftRule`` into a sandbox bitmap and replays the
-   * saved patients through it -- so the reviewer sees the impact of
+   * the panel offers a "Run sandbox test" button that compiles
+   * ``draftRule`` into a sandbox bitmap and replays the saved
+   * patients through it -- so the reviewer sees the impact of
    * unsaved edits BEFORE saving.
    */
   draftRule?: Record<string, unknown> | null;
+  /**
+   * Phase 4 wiring -- pushes the latest sandbox replay summary up
+   * to the parent so the SentenceCanvas can render an inline
+   * fire/no-fire badge per card. Called with ``null`` whenever the
+   * draft signature changes (the previous report is stale) so the
+   * parent never shows badges that disagree with the current draft.
+   */
+  onReportChange?: (
+    state: SandboxReportState | null,
+  ) => void;
+}
+
+/** Lightweight summary of the most recent sandbox run, surfaced to
+ *  ancestors so they can render inline impact badges next to the
+ *  sentence cards. The full ReplayReport is intentionally NOT
+ *  exposed so consumers cannot accidentally render per-patient
+ *  details outside the curated panel. */
+export interface SandboxReportState {
+  /** Status of the run that produced ``firingPatients``/``totalPatients``. */
+  status: "fresh" | "stale" | "running" | "empty";
+  firingPatients: number;
+  totalPatients: number;
+  /** Signature of the draft the badge corresponds to (for stale checks). */
+  signature: string;
 }
 
 export default function TestPatientsPanel({
   ruleId,
   guidelineId,
-  ruleSignature,
   ruleName,
   recommendationText,
   draftRule,
+  onReportChange,
 }: Props) {
   const router = useRouter();
 
   const [patients, setPatients] = useState<TestPatientRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [replaying, setReplaying] = useState(false);
   const [sandboxRunning, setSandboxRunning] = useState(false);
   const [scaffoldOpen, setScaffoldOpen] = useState(false);
   const [openReplay, setOpenReplay] = useState(false);
   const [report, setReport] = useState<ReplayReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [notCompiled, setNotCompiled] = useState(false);
-  // The platform compiles a single production bitmap at scope_type=
-  // "global" / scope_id="default" that holds rules for every guideline.
-  // Per-guideline scopes are only used by sandbox / draft compiles, so
-  // probing scope_type="guideline" gave false "no ruleset" warnings
-  // even when the global bitmap was loaded and contained the rule.
-  // We always check status + replay against global, then pass
-  // guideline_id through to scope the evaluation to just this
-  // guideline (the backend treats guideline_id as a pathway_filter).
-  const [scope, setScope] = useState<{ type: string; id: string }>({
-    type: "global",
-    id: "default",
-  });
-  const [reportSandbox, setReportSandbox] = useState(false);
+  const [sandboxNotCompiled, setSandboxNotCompiled] = useState(false);
+  const [autoRun, setAutoRun] = useState(true);
+  /** Signature of the draft the most recent ``report`` was produced
+   *  against. When the live signature drifts away from this we know
+   *  the report is stale and the badge must say so. */
+  const [reportSignature, setReportSignature] = useState<string>("");
+  const [autoRunPending, setAutoRunPending] = useState(false);
+
+  const liveSignature = useMemo(() => draftSignature(draftRule), [draftRule]);
 
   const fetchPatients = useCallback(() => {
-    if (!ruleId) return;
+    if (!ruleId) {
+      setPatients([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     listTestPatients({ rule_id: ruleId, aspect: "all" })
@@ -129,95 +225,128 @@ export default function TestPatientsPanel({
     fetchPatients();
   }, [fetchPatients, refreshKey]);
 
-  const runReplay = useCallback(async () => {
-    if (patients.length === 0) return null;
-    setReplaying(true);
-    setError(null);
-    setNotCompiled(false);
-    setReportSandbox(false);
-    const liveScope = { type: "global", id: "default" };
-    setScope(liveScope);
-    try {
-      const result = await replay({
-        patient_ids: patients.map((p) => p.id),
-        scope_type: liveScope.type,
-        scope_id: liveScope.id,
-        guideline_id: guidelineId,
-        persist_report: false,
-      });
-      setReport(result);
-      const looksUncompiled = (result.results || []).some((row) =>
-        (row.error || "").toLowerCase().includes("no active ruleset"),
-      );
-      setNotCompiled(looksUncompiled);
-      return result;
-    } catch (exc) {
-      const msg =
-        exc instanceof Error ? exc.message : "Could not replay the patients.";
-      if (msg.toLowerCase().includes("no active ruleset")) {
-        setNotCompiled(true);
-      } else {
-        setError(msg);
+  const runSandboxReplay = useCallback(
+    async (signatureAtCallTime: string) => {
+      if (!draftRule || patients.length === 0) return null;
+      setSandboxRunning(true);
+      setError(null);
+      setSandboxNotCompiled(false);
+      try {
+        const result = await sandboxReplay({
+          rules: [draftRule],
+          patient_ids: patients.map((p) => p.id),
+          guideline_id: guidelineId,
+        });
+        setReport(result.report);
+        setReportSignature(signatureAtCallTime);
+        const compiledZero = result.compile.rule_count === 0;
+        setSandboxNotCompiled(compiledZero);
+        return result.report;
+      } catch (exc) {
+        setError(
+          exc instanceof Error
+            ? exc.message
+            : "Could not test the draft against the library.",
+        );
+        return null;
+      } finally {
+        setSandboxRunning(false);
       }
-      return null;
-    } finally {
-      setReplaying(false);
-    }
-  }, [patients, guidelineId]);
+    },
+    [draftRule, patients, guidelineId],
+  );
 
-  const runSandboxReplay = useCallback(async () => {
-    if (!draftRule || patients.length === 0) return null;
-    setSandboxRunning(true);
-    setError(null);
-    setNotCompiled(false);
-    try {
-      const result = await sandboxReplay({
-        rules: [draftRule],
-        patient_ids: patients.map((p) => p.id),
-        guideline_id: guidelineId,
+  /**
+   * Phase 4 -- debounced auto-run on commit. After the draft tree
+   * stops changing for ``AUTORUN_DEBOUNCE_MS`` we re-run the
+   * sandbox so the inline impact badges stay fresh. The reviewer
+   * can opt out with the checkbox below; either way the explicit
+   * "Run now" button always works.
+   */
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    if (
+      !autoRun ||
+      !draftRule ||
+      patients.length === 0 ||
+      !liveSignature ||
+      liveSignature === reportSignature
+    ) {
+      setAutoRunPending(false);
+      return;
+    }
+    setAutoRunPending(true);
+    const sigAtSchedule = liveSignature;
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      setAutoRunPending(false);
+      void runSandboxReplay(sigAtSchedule);
+    }, AUTORUN_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, [
+    autoRun,
+    draftRule,
+    patients.length,
+    liveSignature,
+    reportSignature,
+    runSandboxReplay,
+  ]);
+
+  /**
+   * Phase 4 -- push the badge state up to the parent (EditRuleDialog
+   * -> Step1Who -> SentenceCanvas) on every state change. The badge
+   * is "fresh" only when the report's signature still matches the
+   * live draft; otherwise it is "stale" so the canvas can prompt the
+   * reviewer to re-run.
+   */
+  useEffect(() => {
+    if (!onReportChange) return;
+    const total = patients.length;
+    if (sandboxRunning) {
+      onReportChange({
+        status: "running",
+        firingPatients: 0,
+        totalPatients: total,
+        signature: liveSignature,
       });
-      const sandboxScope = {
-        type: result.compile.scope_type,
-        id: result.compile.scope_id,
-      };
-      setScope(sandboxScope);
-      setReportSandbox(true);
-      setReport(result.report);
-      const compiledZero = result.compile.rule_count === 0;
-      setNotCompiled(compiledZero);
-      return result.report;
-    } catch (exc) {
-      setError(
-        exc instanceof Error
-          ? exc.message
-          : "Could not test the draft against the library.",
-      );
-      return null;
-    } finally {
-      setSandboxRunning(false);
+      return;
     }
-  }, [draftRule, patients, guidelineId]);
-
-  const checkCompiledStatus = useCallback(async () => {
-    try {
-      const status = await getBitmapStatus("global", "default");
-      setNotCompiled(!status.active_version || status.rule_count === 0);
-    } catch {
-      // Best-effort: if status is unreachable, the replay-error path
-      // below still surfaces the missing ruleset.
+    if (!report || !ruleId) {
+      onReportChange({
+        status: "empty",
+        firingPatients: 0,
+        totalPatients: total,
+        signature: liveSignature,
+      });
+      return;
     }
-  }, []);
-
-  useEffect(() => {
-    checkCompiledStatus();
-  }, [checkCompiledStatus, refreshKey]);
-
-  // Auto-replay whenever the rule signature changes -- the parent flips
-  // this on every logic-tree edit so the banner is always fresh.
-  useEffect(() => {
-    if (!ruleSignature || patients.length === 0) return;
-    runReplay();
-  }, [ruleSignature, patients.length, runReplay]);
+    const firing = countFiringPatients(report, ruleId);
+    const stale =
+      reportSignature !== "" && reportSignature !== liveSignature;
+    onReportChange({
+      status: stale ? "stale" : "fresh",
+      firingPatients: firing,
+      totalPatients: total,
+      signature: reportSignature,
+    });
+  }, [
+    onReportChange,
+    report,
+    sandboxRunning,
+    reportSignature,
+    liveSignature,
+    patients.length,
+    ruleId,
+  ]);
 
   const regressionCount = report?.regressions_count ?? 0;
   const passCount = report?.passes_count ?? 0;
@@ -235,10 +364,36 @@ export default function TestPatientsPanel({
   const openInLibrary = useCallback(() => {
     const qs = new URLSearchParams({
       tab: "test-patients",
-      rule_id: ruleId,
+      ...(ruleId ? { rule_id: ruleId } : {}),
     });
     router.push(`/admin/knowledge?${qs.toString()}`);
   }, [router, ruleId]);
+
+  // Empty-state: brand-new rule that has never been saved. There is
+  // no rule_id to attach test patients to, and "saving once" is
+  // currently the only path to attach them.
+  if (!ruleId) {
+    return (
+      <Box
+        sx={{
+          p: 1.5,
+          borderRadius: 1,
+          bgcolor: "grey.50",
+          border: "1px solid",
+          borderColor: "grey.200",
+        }}
+        role="status"
+        aria-label={SANDBOX_PANEL.ruleNotSavedTitle}
+      >
+        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+          {SANDBOX_PANEL.ruleNotSavedTitle}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {SANDBOX_PANEL.ruleNotSavedBody}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -252,7 +407,7 @@ export default function TestPatientsPanel({
     >
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography variant="subtitle2" sx={{ flex: 1 }}>
-          Try it on real patients
+          {SANDBOX_PANEL.heading}
         </Typography>
         <Chip
           size="small"
@@ -276,10 +431,12 @@ export default function TestPatientsPanel({
         )}
       </Stack>
 
-      <Typography variant="caption" color="text.secondary">
-        Patients here run automatically every time you save changes, so
-        you spot any rule that quietly stops matching the way it
-        should. They live in the central Test Patient library.
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mt: 0.5 }}
+      >
+        {SANDBOX_PANEL.intro}
       </Typography>
 
       {error && (
@@ -288,17 +445,12 @@ export default function TestPatientsPanel({
         </Alert>
       )}
 
-      {notCompiled && (
-        <RulesetNotCompiledBanner
-          scopeType={scope.type}
-          scopeId={scope.id}
-          sandbox={reportSandbox}
-          onCompileRequested={() => {
-            setTimeout(() => {
-              checkCompiledStatus();
-            }, 4000);
-          }}
-        />
+      {sandboxNotCompiled && (
+        <Alert severity="warning" sx={{ mt: 1 }} role="status">
+          The draft sandbox could not be compiled (no rules in it). Check
+          that your draft has at least one symptom or sign with a SNOMED
+          code, then run the sandbox test again.
+        </Alert>
       )}
 
       {report && regressionCount > 0 && (
@@ -318,8 +470,7 @@ export default function TestPatientsPanel({
         >
           {regressionCount} test patient assertion
           {regressionCount === 1 ? "" : "s"} no longer match
-          {regressionCount === 1 ? "es" : ""} this rule against the
-          {reportSandbox ? " sandbox / unsaved draft" : " live ruleset"}.
+          {regressionCount === 1 ? "es" : ""} this rule in the sandbox.
           Open the report to see which patient
           {regressionCount === 1 ? "" : "s"} stopped matching.
         </Alert>
@@ -352,69 +503,68 @@ export default function TestPatientsPanel({
         {loading && <CircularProgress size={16} />}
       </Stack>
 
-      <Divider sx={{ mt: 1.5, mb: 1 }} />
-
-      <Box
-        sx={{
-          p: 1,
-          borderRadius: 1,
-          bgcolor: "success.50",
-          border: "1px solid",
-          borderColor: "success.100",
-        }}
-      >
-        <Stack direction="row" spacing={0.75} alignItems="center">
-          <PlayCircleOutlineIcon fontSize="small" color="success" />
-          <Typography variant="subtitle2" sx={{ flex: 1 }}>
-            Test against the live ruleset
-          </Typography>
-          <Chip
-            size="small"
-            color="success"
-            variant="outlined"
-            label="Live"
-          />
-        </Stack>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", mt: 0.25 }}
+      {patients.length === 0 && !loading && (
+        <Box
+          sx={{
+            mt: 1.5,
+            p: 1.25,
+            borderRadius: 1,
+            bgcolor: "background.paper",
+            border: "1px dashed",
+            borderColor: "grey.300",
+          }}
+          role="status"
+          aria-label={SANDBOX_PANEL.noPatientsTitle}
         >
-          Runs the saved patients against the rule that is already
-          deployed in production (the bitmap currently in Redis). Use
-          this to confirm the SAVED rule still behaves the way you
-          expect.
-        </Typography>
-        <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
+          <Typography variant="subtitle2" sx={{ mb: 0.25 }}>
+            {SANDBOX_PANEL.noPatientsTitle}
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 1, lineHeight: 1.5 }}
+          >
+            {SANDBOX_PANEL.noPatientsBody}
+          </Typography>
           <Button
             size="small"
             variant="contained"
-            color="success"
-            disabled={replaying || patients.length === 0}
-            onClick={() => {
-              runReplay().then((r) => {
-                if (r) setOpenReplay(true);
-              });
-            }}
-            startIcon={
-              replaying ? (
-                <CircularProgress size={14} color="inherit" />
-              ) : (
-                <PlayCircleOutlineIcon fontSize="small" />
-              )
-            }
-            aria-label="Test the saved rule against the production ruleset"
+            color="primary"
+            startIcon={<AutoAwesomeOutlinedIcon fontSize="small" />}
+            onClick={() => setScaffoldOpen(true)}
+            aria-label="Add the first test patient by authoring one with AI from this rule"
           >
-            {replaying ? "Testing live..." : "Test against live"}
+            Add a test patient
           </Button>
-        </Stack>
-      </Box>
+        </Box>
+      )}
 
-      {draftRule && (
+      {patients.length > 0 && !draftRule && (
         <Box
           sx={{
-            mt: 1,
-            p: 1,
+            mt: 1.5,
+            p: 1.25,
+            borderRadius: 1,
+            bgcolor: "background.paper",
+            border: "1px dashed",
+            borderColor: "grey.300",
+          }}
+          role="status"
+        >
+          <Typography variant="subtitle2" sx={{ mb: 0.25 }}>
+            {SANDBOX_PANEL.noDraftYetTitle}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {SANDBOX_PANEL.noDraftYetBody}
+          </Typography>
+        </Box>
+      )}
+
+      {draftRule && patients.length > 0 && (
+        <Box
+          sx={{
+            mt: 1.5,
+            p: 1.25,
             borderRadius: 1,
             bgcolor: "primary.50",
             border: "1px dashed",
@@ -424,7 +574,7 @@ export default function TestPatientsPanel({
           <Stack direction="row" spacing={0.75} alignItems="center">
             <ScienceOutlinedIcon fontSize="small" color="primary" />
             <Typography variant="subtitle2" sx={{ flex: 1 }}>
-              Test your unsaved draft (sandbox)
+              {SANDBOX_PANEL.draftCardTitle}
             </Typography>
             <Chip
               size="small"
@@ -438,19 +588,20 @@ export default function TestPatientsPanel({
             color="text.secondary"
             sx={{ display: "block", mt: 0.25 }}
           >
-            Compiles the rule you are editing right now into a
-            throwaway bitmap, runs the saved patients against it, and
-            discards the sandbox. Production is NOT touched. Use this
-            to see how a pending edit would behave BEFORE saving.
+            {SANDBOX_PANEL.draftCardCaption}
           </Typography>
-          <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ mt: 0.75, alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}
+          >
             <Button
               size="small"
               variant="contained"
               color="primary"
-              disabled={sandboxRunning || patients.length === 0}
+              disabled={sandboxRunning}
               onClick={() => {
-                runSandboxReplay().then((r) => {
+                runSandboxReplay(liveSignature).then((r) => {
                   if (r) setOpenReplay(true);
                 });
               }}
@@ -463,9 +614,68 @@ export default function TestPatientsPanel({
               }
               aria-label="Test the unsaved draft against the saved test patients in a sandbox"
             >
-              {sandboxRunning ? "Testing draft..." : "Test draft in sandbox"}
+              {sandboxRunning
+                ? SANDBOX_PANEL.testButtonRunning
+                : SANDBOX_PANEL.testButton}
             </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="primary"
+              disabled={sandboxRunning}
+              onClick={() => {
+                void runSandboxReplay(liveSignature);
+              }}
+              aria-label={
+                sandboxRunning
+                  ? SANDBOX_AUTORUN.runNowRunningAria
+                  : SANDBOX_AUTORUN.runNowAria
+              }
+            >
+              {SANDBOX_AUTORUN.runNowLabel}
+            </Button>
+            <Tooltip title={SANDBOX_AUTORUN.toggleHint}>
+              <FormControlLabel
+                sx={{ ml: 0.5, mr: 0 }}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={autoRun}
+                    onChange={(_e, checked) => setAutoRun(checked)}
+                    inputProps={{
+                      "aria-label": SANDBOX_AUTORUN.toggleLabel,
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="caption" color="text.secondary">
+                    {SANDBOX_AUTORUN.toggleLabel}
+                  </Typography>
+                }
+              />
+            </Tooltip>
+            {autoRunPending && (
+              <Chip
+                size="small"
+                color="info"
+                variant="outlined"
+                label={SANDBOX_AUTORUN.pendingDebounceLabel}
+                sx={{ height: 22, fontSize: "0.7rem" }}
+              />
+            )}
           </Stack>
+          {!autoRun &&
+            reportSignature !== "" &&
+            reportSignature !== liveSignature &&
+            !sandboxRunning && (
+              <Typography
+                variant="caption"
+                color="warning.dark"
+                sx={{ display: "block", mt: 0.5, lineHeight: 1.4 }}
+              >
+                {SANDBOX_AUTORUN.staleNotice}
+              </Typography>
+            )}
         </Box>
       )}
 
@@ -487,7 +697,7 @@ export default function TestPatientsPanel({
         report={report}
         patients={patients}
         rules={ruleLookup}
-        mode={reportSandbox ? "sandbox" : "live"}
+        mode="sandbox"
       />
     </Box>
   );

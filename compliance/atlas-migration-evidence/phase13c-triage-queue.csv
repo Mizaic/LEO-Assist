@@ -1,4 +1,1 @@
 path,category,owning_atlas_dis,owning_atlas_dos,legacy_ids_in_file,note
-services/analysis_worker/app/analyzers/cancer_site_terms.py,do-no-parent-di,,DO-0DFA6961,,Atlas DO has no parent DI in cache
-services/analysis_worker/app/analyzers/episode_builder/_site_resolution.py,do-no-parent-di,,DO-0DFA6961,DI-LEO-AI-155; DI-LEO-AI-159; DI-LEO-AI-200,Atlas DO has no parent DI in cache
-services/ui/src/app/care/encounters/page.tsx,di-only-no-child-do,DO-F78C84A6,,,DI resolved but cache shows no child DO

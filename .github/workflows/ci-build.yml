@@ -1,5 +1,16 @@
 name: CI - Build and Push Images
 
+# Atlas trace
+#   DO: DO-6036D724
+#   DI: DI-71087A9E
+#   Look up via: get_design_control(dc_type="design-output", dc_id="DO-6036D724")
+#
+# Hardening notes
+#   - Third-party / Microsoft-owned actions are pinned to immutable commit
+#     SHAs with the human-readable tag in a comment.
+#   - Webhook-derived values (github.event.before, etc.) are passed through
+#     `env:` to shell steps to defeat GHA template injection.
+
 on:
   push:
     branches: [main]
@@ -21,10 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.12"
           cache: pip
@@ -41,8 +52,14 @@ jobs:
         run: python3 scripts/atlas/check_atlas_trace_headers.py
 
       - name: Lint - flake8
+        env:
+          EVENT_BEFORE_SHA: ${{ github.event.before }}
         run: |
-          BASE_SHA="${{ github.event.before }}"
+          BASE_SHA="$EVENT_BEFORE_SHA"
+          if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{0,40}$ ]]; then
+            echo "Refusing to use non-hex BASE_SHA: $BASE_SHA"
+            exit 1
+          fi
           if [ -z "$BASE_SHA" ]; then
             BASE_SHA="$(git rev-list --max-count=1 HEAD^ || true)"
           fi
@@ -102,10 +119,10 @@ jobs:
         working-directory: services/ui
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
         with:
           node-version: "20"
           cache: npm
@@ -174,7 +191,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Debug OIDC subject
         run: |
@@ -192,7 +209,7 @@ jobs:
           "
 
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -200,23 +217,31 @@ jobs:
           audience: api://AzureADTokenExchange
 
       - name: Log in to ACR
-        run: az acr login --name ${{ env.ACR_NAME }}
+        run: az acr login --name "$ACR_NAME"
 
       - name: Build and push
+        env:
+          SERVICE: ${{ matrix.service }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
-          IMAGE=${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}
-          TAG=sha-${{ github.sha }}
+          IMAGE="${ACR_LOGIN_SERVER}/${SERVICE}"
+          TAG="sha-${GITHUB_SHA}"
           docker build \
-            --file ${{ matrix.dockerfile }} \
-            --tag $IMAGE:$TAG \
-            --tag $IMAGE:latest \
-            --cache-from $IMAGE:latest \
+            --file "$DOCKERFILE" \
+            --tag "${IMAGE}:${TAG}" \
+            --tag "${IMAGE}:latest" \
+            --cache-from "${IMAGE}:latest" \
             .
-          docker push $IMAGE:$TAG
-          docker push $IMAGE:latest
+          docker push "${IMAGE}:${TAG}"
+          docker push "${IMAGE}:latest"
 
       - name: Output image digest
-        run: docker inspect --format='{{index .RepoDigests 0}}' ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:sha-${{ github.sha }}
+        env:
+          SERVICE: ${{ matrix.service }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          docker inspect --format='{{index .RepoDigests 0}}' "${ACR_LOGIN_SERVER}/${SERVICE}:sha-${GITHUB_SHA}"
 
   build-push-ui:
     name: Build ui
@@ -225,7 +250,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
       - name: Debug OIDC subject
         run: |
@@ -243,7 +268,7 @@ jobs:
           "
 
       - name: Azure login (OIDC)
-        uses: azure/login@v2
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -251,20 +276,25 @@ jobs:
           audience: api://AzureADTokenExchange
 
       - name: Log in to ACR
-        run: az acr login --name ${{ env.ACR_NAME }}
+        run: az acr login --name "$ACR_NAME"
 
       - name: Build and push
+        env:
+          GITHUB_SHA: ${{ github.sha }}
         run: |
-          IMAGE=${{ env.ACR_LOGIN_SERVER }}/ui
-          TAG=sha-${{ github.sha }}
+          IMAGE="${ACR_LOGIN_SERVER}/ui"
+          TAG="sha-${GITHUB_SHA}"
           docker build \
             --file infra/dockerfiles/Dockerfile.ui \
-            --tag $IMAGE:$TAG \
-            --tag $IMAGE:latest \
-            --cache-from $IMAGE:latest \
+            --tag "${IMAGE}:${TAG}" \
+            --tag "${IMAGE}:latest" \
+            --cache-from "${IMAGE}:latest" \
             .
-          docker push $IMAGE:$TAG
-          docker push $IMAGE:latest
+          docker push "${IMAGE}:${TAG}"
+          docker push "${IMAGE}:latest"
 
       - name: Output image digest
-        run: docker inspect --format='{{index .RepoDigests 0}}' ${{ env.ACR_LOGIN_SERVER }}/ui:sha-${{ github.sha }}
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          docker inspect --format='{{index .RepoDigests 0}}' "${ACR_LOGIN_SERVER}/ui:sha-${GITHUB_SHA}"

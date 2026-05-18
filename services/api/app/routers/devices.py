@@ -1,5 +1,10 @@
 """Devices API — FHIR-aligned AI model catalog stored in the Knowledge Graph.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Routes
 ------
 GET  /devices                     List all Device nodes

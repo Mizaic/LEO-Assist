@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ */
 "use client";
 
 /**
@@ -16,6 +24,10 @@
  *                  R-LEO-AI-509 (v2), VT-LEO-AI-511 (v2).
  */
 
+import { useState } from "react";
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -23,9 +35,11 @@ import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import LogicTreeEditor from "../LogicTreeEditor";
-import { STEP_HELPERS, STEP_TITLES } from "../copy";
+import SentenceCanvas, { type SandboxImpactBadge } from "../SentenceCanvas";
+import { CANVAS_CARDS, STEP_HELPERS, STEP_TITLES } from "../copy";
 import type {
   EditableLogicNode,
   NodeUpdate,
@@ -52,6 +66,8 @@ interface Props {
   onRequestCoach: (nodeId: string, anchor: HTMLElement) => void;
   /** Trigger an empty-state +Add when the tree has no children yet. */
   onAddFirstSymptom: (anchor: HTMLElement) => void;
+  /** Phase 4 sandbox impact badge surfaced on each canvas card. */
+  sandboxBadge?: SandboxImpactBadge;
 }
 
 export default function Step1Who({
@@ -66,6 +82,7 @@ export default function Step1Who({
   onRequestAdd,
   onRequestCoach,
   onAddFirstSymptom,
+  sandboxBadge,
 }: Props) {
   const treeIsEmpty =
     !tree ||
@@ -139,20 +156,109 @@ export default function Step1Who({
       {treeIsEmpty ? (
         <EmptyTreeState onAddFirstSymptom={onAddFirstSymptom} />
       ) : (
-        <Box sx={{ minWidth: 0 }}>
-          {tree && (
-            <LogicTreeEditor
-              root={tree}
-              selectedNodeId={selectedNodeId}
-              onSelect={onSelectNode}
-              onUpdate={onUpdate}
-              onRequestAdd={onRequestAdd}
-              onRequestCoach={onRequestCoach}
-            />
-          )}
-        </Box>
+        tree && (
+          <CanvasAndAdvanced
+            tree={tree}
+            selectedNodeId={selectedNodeId}
+            onSelectNode={onSelectNode}
+            onUpdate={onUpdate}
+            onRequestAdd={onRequestAdd}
+            onRequestCoach={onRequestCoach}
+            sandboxBadge={sandboxBadge}
+          />
+        )
       )}
     </Stack>
+  );
+}
+
+/**
+ * Phase 3 layout: the SentenceCanvas is the primary editing surface.
+ * The operator-tree editor is demoted to an Advanced-view Accordion
+ * directly underneath; first-time reviewers never see it but power
+ * users can expand it to access kind selectors, deep nesting, or any
+ * shape the canvas reports as "unsupported".
+ *
+ * The Accordion auto-opens when the canvas reports it cannot render
+ * the current shape so the user is not stranded -- the canvas's
+ * "Open Advanced view" button calls into the same setter.
+ */
+function CanvasAndAdvanced({
+  tree,
+  selectedNodeId,
+  onSelectNode,
+  onUpdate,
+  onRequestAdd,
+  onRequestCoach,
+  sandboxBadge,
+}: Pick<
+  Props,
+  | "selectedNodeId"
+  | "onSelectNode"
+  | "onUpdate"
+  | "onRequestAdd"
+  | "onRequestCoach"
+  | "sandboxBadge"
+> & { tree: EditableLogicNode }) {
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <SentenceCanvas
+        tree={tree}
+        selectedNodeId={selectedNodeId}
+        onSelectNode={onSelectNode}
+        onUpdate={onUpdate}
+        onRequestAdd={onRequestAdd}
+        onRequestCoach={onRequestCoach}
+        onOpenAdvancedView={() => setAdvancedOpen(true)}
+        sandboxBadge={sandboxBadge}
+      />
+      <Accordion
+        expanded={advancedOpen}
+        onChange={(_e, expanded) => setAdvancedOpen(expanded)}
+        sx={{
+          mt: 2,
+          boxShadow: "none",
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 1.5,
+          "&:before": { display: "none" },
+          bgcolor: "grey.50",
+        }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon fontSize="small" />}
+          aria-label={CANVAS_CARDS.advancedAccordionTitle}
+          sx={{ minHeight: 44, "& .MuiAccordionSummary-content": { my: 0.75 } }}
+        >
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, color: "text.primary" }}
+            >
+              {CANVAS_CARDS.advancedAccordionTitle}
+            </Typography>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", lineHeight: 1.4 }}
+            >
+              {CANVAS_CARDS.advancedAccordionHint}
+            </Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <LogicTreeEditor
+            root={tree}
+            selectedNodeId={selectedNodeId}
+            onSelect={onSelectNode}
+            onUpdate={onUpdate}
+            onRequestAdd={onRequestAdd}
+            onRequestCoach={onRequestCoach}
+          />
+        </AccordionDetails>
+      </Accordion>
+    </Box>
   );
 }
 

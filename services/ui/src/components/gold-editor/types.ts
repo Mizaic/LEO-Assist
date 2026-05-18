@@ -4,6 +4,11 @@
  * Re-exports the canonical GoldLabel + Entity shapes so consumers
  * (Evaluate stage, /care/patients, /care/encounters, candidates tab)
  * import from one place.
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
  */
 export type {
   Entity,

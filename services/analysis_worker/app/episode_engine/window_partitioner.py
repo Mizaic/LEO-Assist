@@ -1,5 +1,10 @@
 """Window Partitioner safety net for the milestone extractor (DI-LEO-AI-525).
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Mirrors the SBAR Background partitioner architecture
 (``libs.sbar.background_partitioner``): split the focused encounter set
 into N <= ``max_parts`` partitions, run the milestone extractor once per

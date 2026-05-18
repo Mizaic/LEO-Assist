@@ -11,22 +11,45 @@ Used on internal-ingress services (terminology-api, fhir-api, analytics-api)
 as a second layer behind ACA internal network segmentation.
 
 The secret is read from SERVICE_AUTH_SECRET env var (populated from Key Vault).
-When SERVICE_AUTH_SECRET is not set the check is bypassed to allow local dev.
+- In local development (ENVIRONMENT=local) an empty secret bypasses the check
+  so engineers can run the stack with `docker compose up` without the secret
+  configured.
+- In every other environment (dev, staging, prod) an empty secret is treated
+  as a fail-closed condition: the dependency raises 503 so the service does
+  NOT silently accept anonymous traffic against mutating internal endpoints.
 """
 
 from __future__ import annotations
 
 import hmac
+import logging
 import os
 
 from fastapi import HTTPException, Request
 
+logger = logging.getLogger(__name__)
+
+
+def _is_local_env() -> bool:
+    return os.environ.get("ENVIRONMENT", "local").strip().lower() == "local"
+
 
 def verify_service_token(request: Request) -> None:
-    """FastAPI dependency -- raises 401 if the shared secret is wrong."""
-    expected = os.environ.get("SERVICE_AUTH_SECRET", "")
+    """FastAPI dependency -- raises 401/503 if the shared secret is wrong."""
+    expected = os.environ.get("SERVICE_AUTH_SECRET", "").strip()
+
     if not expected:
-        return
+        if _is_local_env():
+            return
+        logger.error(
+            "SERVICE_AUTH_SECRET is not configured in environment '%s'; "
+            "rejecting request to fail closed.",
+            os.environ.get("ENVIRONMENT", "<unset>"),
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Service auth not configured",
+        )
 
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):

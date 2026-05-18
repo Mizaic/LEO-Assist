@@ -1,5 +1,10 @@
 """Deterministic search term expansion (DI-LEO-AI-526).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Single source of truth for the typo correction and synonym map used to
 turn a reviewer's free-text query into the set of lower-case terms that
 both the host search (`/care/encounters`) and the dry-run review queue

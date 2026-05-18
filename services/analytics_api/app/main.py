@@ -2,7 +2,7 @@
 
 Atlas trace:
   DO: DO-9F3CD7DE
-  DI: DI-CF03E4EA, DO-F78C84A6
+  DI: DI-CF03E4EA
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-9F3CD7DE")
 
 Dashboard endpoints, pre-computed aggregation reads, IMD data retrieval,

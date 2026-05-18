@@ -8,8 +8,12 @@
  * Every UI component that compares an episode status MUST import the
  * helpers / constants from this file, never inline a string literal like
  * "active" or "closed_benign".
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
-
 // -- Engine output ---------------------------------------------------------
 
 export const STATUS_ACTIVE = "active";

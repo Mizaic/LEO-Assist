@@ -69,10 +69,10 @@ def fake_http():
         def __exit__(self, *a, **k):
             return False
 
-        def post(self, url, json=None):
+        def post(self, url, json=None, headers=None):
             return posts.get(url, _FakeResponse(500, {"error": "no stub"}))
 
-        def delete(self, url):
+        def delete(self, url, headers=None):
             return deletes.get(url, _FakeResponse(200, {"keys_deleted": 0}))
 
     with patch.object(svc.httpx, "Client", _Client):
@@ -314,7 +314,7 @@ class TestDeleteSandboxScope:
             def __exit__(self, *a, **k):
                 return False
 
-            def delete(self, url):
+            def delete(self, url, headers=None):
                 import httpx
 
                 raise httpx.ConnectError("nope")

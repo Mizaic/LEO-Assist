@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ */
 "use client";
 
 /**
@@ -21,6 +29,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import NotLiveYetBanner from "../NotLiveYetBanner";
 import { STEP_HELPERS, STEP_TITLES } from "../copy";
 
 interface Props {
@@ -80,14 +89,16 @@ export default function Step4Save({
         error={Boolean(reasonError) || reasonTooShort}
       />
 
+      <NotLiveYetBanner />
+
       <Typography
         variant="body2"
         color="text.secondary"
         sx={{ lineHeight: 1.5 }}
       >
         Use the <strong>Save changes</strong> button at the bottom of this
-        dialog when you are ready. You can still go back to any step using
-        the list on the left.
+        dialog when you are ready. You can still jump back to any earlier
+        step using the steps along the top.
       </Typography>
     </Stack>
   );

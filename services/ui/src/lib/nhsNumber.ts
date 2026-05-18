@@ -11,8 +11,12 @@
  * The NHS Modulus 11 check digit algorithm is implemented in `isValidNhsNumber`
  * to catch obvious typos, but validation is advisory — internal IDs that don't
  * follow the check-digit rule (e.g. synthetic test IDs) are still accepted.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
-
 /**
  * Strip whitespace and hyphens from a candidate string and return the raw
  * digits, or null if the result is not exactly 10 digits.

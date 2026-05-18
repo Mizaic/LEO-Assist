@@ -1,4 +1,10 @@
-"""FastAPI app for HITL training creator MVP."""
+"""FastAPI app for HITL training creator MVP.
+
+Atlas trace:
+  DO: DO-19FA25C3
+  DI: DI-727C94B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-19FA25C3")
+"""
 
 # aca-image: core-api build/deploy verification (no runtime effect).
 

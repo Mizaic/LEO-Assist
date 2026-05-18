@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-4D608335
+  DI: DI-760F5FB7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4D608335")
+
 Phase 2: Load SNOMED CT map refsets into Neo4j.
 
 ExtendedMap → (:Concept)-[:MAPS_TO_ICD10]->(:Icd10Code)

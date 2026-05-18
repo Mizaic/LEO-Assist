@@ -29,6 +29,9 @@ from typing import Any, Callable
 from pyroaring import BitMap
 
 from services.terminology_api.app.services.bitmap_store import BitmapStore
+from services.terminology_api.app.services.observation_evaluator import (
+    observation_matches,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +75,7 @@ class GuidelineEvaluator:
         scope_type: str | None = None,
         scope_id: str | None = None,
         ruleset_version: str | None = None,
+        patient_observations: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Evaluate patient SNOMED codes against the active bitmap ruleset.
 
@@ -135,7 +139,13 @@ class GuidelineEvaluator:
         for rule in rules:
             if pathway_filter and rule.get("guideline_id") != pathway_filter:
                 continue
-            if self._rule_matches(rule, patient_bitmap, patient_age, patient_sex):
+            if self._rule_matches(
+                rule,
+                patient_bitmap,
+                patient_age,
+                patient_sex,
+                patient_observations=patient_observations,
+            ):
                 matched_via = self._collect_matched_via(rule, patient_bitmap)
                 matches.append(_format_match(rule, matched_via=matched_via))
 
@@ -158,6 +168,7 @@ class GuidelineEvaluator:
         scope_type: str | None = None,
         scope_id: str | None = None,
         ruleset_version: str | None = None,
+        patient_observations: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any] | None:
         """Return per-node match diagnostics for ONE rule.
 
@@ -237,7 +248,11 @@ class GuidelineEvaluator:
         patient_bm = self._build_patient_bitmap(effective_codes)
 
         annotated, fires = self._annotate_rule(
-            rule, patient_bm, patient_age, patient_sex
+            rule,
+            patient_bm,
+            patient_age,
+            patient_sex,
+            patient_observations=patient_observations,
         )
 
         resolved_count = sum(
@@ -277,12 +292,18 @@ class GuidelineEvaluator:
         patient_bm: BitMap,
         patient_age: float | None,
         patient_sex: str | None,
+        *,
+        patient_observations: list[dict[str, Any]] | None = None,
     ) -> tuple[dict[str, Any] | None, bool]:
         """Return (annotated_tree, overall_fires) for any rule schema."""
         if int(rule.get("schema_version") or 1) == 2:
             tree = rule.get("logic_tree")
             annotated = self._annotate_logic_tree(
-                tree, patient_bm, patient_age, patient_sex
+                tree,
+                patient_bm,
+                patient_age,
+                patient_sex,
+                patient_observations=patient_observations,
             )
             fires = bool(annotated and annotated.get("matched"))
             return annotated, fires
@@ -345,6 +366,8 @@ class GuidelineEvaluator:
         patient_bm: BitMap,
         patient_age: float | None,
         patient_sex: str | None,
+        *,
+        patient_observations: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any] | None:
         if not node:
             return None
@@ -387,9 +410,35 @@ class GuidelineEvaluator:
                 "unit": node.get("unit"),
                 "matched": matched,
             }
+        if kind == "OBSERVATION":
+            matched = observation_matches(
+                node,
+                patient_observations,
+                patient_sex=patient_sex,
+                patient_age=patient_age,
+            )
+            return {
+                "kind": "OBSERVATION",
+                "node_id": node_id,
+                "observable_id": node.get("observable_id"),
+                "observable_term": node.get("observable_term"),
+                "operator": node.get("operator"),
+                "value": node.get("value"),
+                "unit": node.get("unit"),
+                "wire_unit": node.get("wire_unit"),
+                "within_days": node.get("within_days"),
+                "mode": _observation_mode(node),
+                "matched": matched,
+            }
         children_in = list(node.get("children") or [])
         children_out = [
-            self._annotate_logic_tree(c, patient_bm, patient_age, patient_sex)
+            self._annotate_logic_tree(
+                c,
+                patient_bm,
+                patient_age,
+                patient_sex,
+                patient_observations=patient_observations,
+            )
             for c in children_in
         ]
         children_out = [c for c in children_out if c is not None]
@@ -514,6 +563,8 @@ class GuidelineEvaluator:
         patient_bm: BitMap,
         patient_age: float | None = None,
         patient_sex: str | None = None,
+        *,
+        patient_observations: list[dict[str, Any]] | None = None,
     ) -> bool:
         """Return True if a compiled rule matches the patient bitmap.
 
@@ -539,7 +590,11 @@ class GuidelineEvaluator:
             if not logic_tree:
                 return False
             return self._logic_tree_matches(
-                logic_tree, patient_bm, patient_age, patient_sex
+                logic_tree,
+                patient_bm,
+                patient_age,
+                patient_sex,
+                patient_observations=patient_observations,
             )
 
         applies_to = rule.get("applies_to") or []
@@ -595,6 +650,8 @@ class GuidelineEvaluator:
         patient_bm: BitMap,
         patient_age: float | None,
         patient_sex: str | None,
+        *,
+        patient_observations: list[dict[str, Any]] | None = None,
     ) -> bool:
         if not node:
             return False
@@ -604,7 +661,7 @@ class GuidelineEvaluator:
             bm = self._store.get_bitmap(bitmap_id) if bitmap_id else None
             if bm is None:
                 logger.error(
-                    "Schema v2 bitmap %r for rule node %r is missing from Redis — failing CLOSED.",
+                    "Schema v2 bitmap %r for rule node %r is missing from Redis -- failing CLOSED.",
                     bitmap_id,
                     node.get("node_id"),
                 )
@@ -612,15 +669,34 @@ class GuidelineEvaluator:
             return len(bm & patient_bm) > 0
         if kind == "DEMOGRAPHIC":
             return _check_demographic_node(node, patient_age, patient_sex)
+        if kind == "OBSERVATION":
+            return observation_matches(
+                node,
+                patient_observations,
+                patient_sex=patient_sex,
+                patient_age=patient_age,
+            )
         children = list(node.get("children") or [])
         if kind == "AND":
             return all(
-                self._logic_tree_matches(child, patient_bm, patient_age, patient_sex)
+                self._logic_tree_matches(
+                    child,
+                    patient_bm,
+                    patient_age,
+                    patient_sex,
+                    patient_observations=patient_observations,
+                )
                 for child in children
             )
         if kind == "OR":
             return any(
-                self._logic_tree_matches(child, patient_bm, patient_age, patient_sex)
+                self._logic_tree_matches(
+                    child,
+                    patient_bm,
+                    patient_age,
+                    patient_sex,
+                    patient_observations=patient_observations,
+                )
                 for child in children
             )
         if kind == "NOT":
@@ -631,18 +707,46 @@ class GuidelineEvaluator:
                 )
                 return False
             return not self._logic_tree_matches(
-                children[0], patient_bm, patient_age, patient_sex
+                children[0],
+                patient_bm,
+                patient_age,
+                patient_sex,
+                patient_observations=patient_observations,
             )
         if kind == "AT_LEAST":
             threshold = int(node.get("min") or 1)
             count = sum(
                 1
                 for child in children
-                if self._logic_tree_matches(child, patient_bm, patient_age, patient_sex)
+                if self._logic_tree_matches(
+                    child,
+                    patient_bm,
+                    patient_age,
+                    patient_sex,
+                    patient_observations=patient_observations,
+                )
             )
             return count >= threshold
-        logger.error("Unknown schema v2 logic node kind %r — failing CLOSED.", kind)
+        logger.error("Unknown schema v2 logic node kind %r -- failing CLOSED.", kind)
         return False
+
+
+def _observation_mode(node: dict[str, Any]) -> str:
+    """Return which OBSERVATION evaluation mode is active in a compiled leaf.
+
+    Mirrors the priority order in libs.guidance_schema.observation_leaf
+    so the diagnose payload labels each leaf the same way the
+    schema validator does.
+    """
+    if node.get("temporal"):
+        return "temporal"
+    if node.get("reference_range"):
+        return "reference_range"
+    if node.get("trend"):
+        return "trend"
+    if node.get("aggregation"):
+        return "aggregate"
+    return "absolute"
 
 
 # Maps caller-supplied sex string to the SNOMED concept ID injected into

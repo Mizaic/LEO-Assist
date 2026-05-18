@@ -31,7 +31,7 @@
  * Mutations bubble up via ``onUpdate``; this component is otherwise pure.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
@@ -53,6 +53,8 @@ import {
   DEMOGRAPHIC_FIELD_LABELS,
   GROUP_KIND_LABELS,
   OPERATOR_LABELS,
+  PATHWAY_NAME,
+  atLeastClusterLabel,
   friendlyTerm,
 } from "./copy";
 import { detectVaguePhrase } from "./vaguePhrases";
@@ -373,7 +375,7 @@ function PathwayCardsView(props: PathwayCardsProps) {
           The rule fires if the patient matches any one of these
           pathways:
         </Typography>
-        <Tooltip title="Add another pathway">
+        <Tooltip title={ADD_BAR_LABELS.pathway}>
           <Chip
             icon={<AddIcon sx={{ fontSize: 14 }} />}
             label="Add pathway"
@@ -406,6 +408,7 @@ function PathwayCardsView(props: PathwayCardsProps) {
         {children.map((child, i) => {
           const accent = pathwayAccent(i);
           const letter = String.fromCharCode(65 + i);
+          const positional = `Pathway ${letter}`;
           return (
             <Box
               key={child.node_id}
@@ -439,7 +442,7 @@ function PathwayCardsView(props: PathwayCardsProps) {
               <Box sx={{ p: 1.5 }}>
                 <Stack
                   direction="row"
-                  alignItems="center"
+                  alignItems="flex-start"
                   spacing={0.75}
                   sx={{ mb: 1 }}
                 >
@@ -457,20 +460,27 @@ function PathwayCardsView(props: PathwayCardsProps) {
                       fontWeight: 700,
                       letterSpacing: 0.4,
                       textTransform: "uppercase",
+                      flexShrink: 0,
+                      mt: 0.4,
                     }}
                   >
-                    Pathway {letter}
+                    {letter}
                   </Box>
-                  <Box sx={{ flex: 1 }} />
+                  <PathwayNameInput
+                    node={child}
+                    positional={positional}
+                    onUpdate={onUpdate}
+                  />
                   <Tooltip title="Remove this pathway">
                     <IconButton
                       size="small"
-                      aria-label={`Remove pathway ${letter}`}
+                      aria-label={`Remove ${positional}`}
                       onClick={() =>
                         onUpdate({ kind: "remove", nodeId: child.node_id })
                       }
                       sx={{
                         color: "text.secondary",
+                        mt: 0.2,
                         "&:hover": { color: "error.main" },
                       }}
                     >
@@ -523,6 +533,85 @@ function PathwayCardsView(props: PathwayCardsProps) {
         })}
       </Stack>
     </Box>
+  );
+}
+
+/**
+ * Optional plain-English name for a pathway card (Phase 2 of the
+ * wizard redesign).
+ *
+ * Renders as an unobtrusive in-card text field that sits next to the
+ * positional letter chip. Empty values clear the name and let the
+ * read-only review view fall back to "Pathway A/B/C".
+ *
+ * Local state mirrors ``node.name`` so typing stays smooth without
+ * re-deriving the whole tree on every keystroke; commits happen on
+ * blur and on Enter so the editor's debounce / validation pipeline
+ * sees one update per intentional change.
+ */
+function PathwayNameInput({
+  node,
+  positional,
+  onUpdate,
+}: {
+  node: EditableLogicNode;
+  positional: string;
+  onUpdate: (u: NodeUpdate) => void;
+}) {
+  const initial = typeof node.name === "string" ? node.name : "";
+  const [draft, setDraft] = useState<string>(initial);
+  const inputId = `pathway-name-${node.node_id}`;
+
+  // Re-sync when the upstream tree replaces the node's name (undo,
+  // sibling reordering, programmatic clear). Skip the sync while the
+  // field is focused so we never clobber the user's in-progress
+  // typing in a debounced parent.
+  useEffect(() => {
+    if (typeof document !== "undefined" && document.activeElement?.id === inputId) {
+      return;
+    }
+    setDraft(initial);
+  }, [initial, inputId]);
+
+  const commit = (next: string) => {
+    const trimmed = next.trim();
+    const current = (node.name ?? "").trim();
+    if (trimmed === current) return;
+    onUpdate({ kind: "set_name", nodeId: node.node_id, name: trimmed });
+  };
+
+  return (
+    <TextField
+      id={`pathway-name-${node.node_id}`}
+      size="small"
+      variant="standard"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value.slice(0, PATHWAY_NAME.helperMaxChars))}
+      onBlur={(e) => commit(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      placeholder={PATHWAY_NAME.inputPlaceholder}
+      inputProps={{
+        "aria-label": PATHWAY_NAME.inputAriaTemplate(positional),
+        maxLength: PATHWAY_NAME.helperMaxChars,
+      }}
+      sx={{
+        flex: 1,
+        "& .MuiInput-input": {
+          fontSize: "0.82rem",
+          fontWeight: 600,
+          py: 0.25,
+        },
+        "& .MuiInput-underline:before": {
+          borderBottomStyle: "dashed",
+          borderBottomColor: "divider",
+        },
+      }}
+    />
   );
 }
 
@@ -711,13 +800,12 @@ function InlineAtLeastView({
           <Typography
             variant="caption"
             sx={{
-              fontWeight: 700,
-              letterSpacing: 0.4,
-              textTransform: "uppercase",
+              fontWeight: 600,
               color: "primary.dark",
             }}
+            aria-label={atLeastClusterLabel(node.min ?? 1)}
           >
-            At least
+            Any
           </Typography>
           <AtLeastCounter
             min={node.min ?? 1}
@@ -729,13 +817,11 @@ function InlineAtLeastView({
           <Typography
             variant="caption"
             sx={{
-              fontWeight: 700,
-              letterSpacing: 0.4,
-              textTransform: "uppercase",
+              fontWeight: 600,
               color: "text.secondary",
             }}
           >
-            of these
+            or more of these
           </Typography>
         </Stack>
         {(node.children ?? []).map((child) => (
@@ -959,9 +1045,7 @@ function AddChildBar({
 }) {
   const nextGroupKind = parentKind === "AND" ? "OR" : "AND";
   const groupLabel =
-    nextGroupKind === "OR"
-      ? "Add a choice (any of these)"
-      : "Add a sub-group (all of these)";
+    nextGroupKind === "OR" ? ADD_BAR_LABELS.choice : ADD_BAR_LABELS.subgroup;
   const addChipSx = {
     height: 26,
     fontSize: "0.72rem",

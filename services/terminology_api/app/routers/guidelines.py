@@ -23,10 +23,10 @@ from datetime import datetime, timezone
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from libs.auth.service_auth import get_service_auth_header
+from libs.auth.service_auth import get_service_auth_header, verify_service_token
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 from services.terminology_api.app.services.guideline_compiler import (
     CompileScope,
@@ -38,6 +38,30 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _compile_jobs: dict[str, dict] = {}
+
+
+class ObservationInstance(BaseModel):
+    """One numeric observation row on a patient.
+
+    Phase 5e -- consumed by OBSERVATION leaves in the logic tree. The
+    evaluator filters this list to the observable_id the leaf asks
+    about, then applies the leaf's recency window and mode.
+
+    Fields:
+      observable_id  SNOMED concept id of the observable (must match
+                     a leaf's ``observable_id``).
+      value          Numeric reading. The evaluator canonicalises via
+                     libs.units.observable_units before comparison.
+      unit           Wire unit string. May be the canonical unit or
+                     any registered alias.
+      observed_at    ISO-8601 datetime. Naive timestamps are treated
+                     as UTC by the evaluator.
+    """
+
+    observable_id: str
+    value: float
+    unit: str
+    observed_at: str
 
 
 class EvaluateRequest(BaseModel):
@@ -55,6 +79,10 @@ class EvaluateRequest(BaseModel):
     )
     scope_id: str = "default"
     ruleset_version: str | None = None
+    observations: list[ObservationInstance] | None = None
+    """Numeric observation history for the patient.  Required for
+    rules that contain OBSERVATION leaves; absent / empty payloads
+    fail those leaves CLOSED so the rule does not fire."""
 
 
 class CompileRequest(BaseModel):
@@ -99,6 +127,11 @@ def evaluate_patient(req: EvaluateRequest) -> dict:
         scope_type=req.scope_type,
         scope_id=req.scope_id,
         ruleset_version=req.ruleset_version,
+        patient_observations=(
+            [obs.model_dump() for obs in req.observations]
+            if req.observations
+            else None
+        ),
     )
 
 
@@ -114,6 +147,11 @@ class DiagnoseRequest(BaseModel):
     )
     scope_id: str = "default"
     ruleset_version: str | None = None
+    observations: list[ObservationInstance] | None = None
+    """Same shape as EvaluateRequest.observations -- needed when the
+    diagnosed rule contains OBSERVATION leaves so the per-leaf
+    annotated tree can show fire / no-fire instead of failing closed
+    silently."""
 
 
 @router.post("/guidelines/diagnose")
@@ -140,6 +178,11 @@ def diagnose_patient(req: DiagnoseRequest) -> dict:
         scope_type=req.scope_type,
         scope_id=req.scope_id,
         ruleset_version=req.ruleset_version,
+        patient_observations=(
+            [obs.model_dump() for obs in req.observations]
+            if req.observations
+            else None
+        ),
     )
     if result is None or result.get("rule_found") is False:
         raise HTTPException(
@@ -180,7 +223,11 @@ class CompileDraftRequest(BaseModel):
     ttl_seconds: int = 1800  # auto-expire abandoned sandboxes after 30 min
 
 
-@router.post("/guidelines/bitmap/compile-draft", status_code=200)
+@router.post(
+    "/guidelines/bitmap/compile-draft",
+    status_code=200,
+    dependencies=[Depends(verify_service_token)],
+)
 async def compile_draft_bitmap(body: CompileDraftRequest) -> dict:
     """Compile UNSAVED draft rules into a sandbox bitmap ruleset.
 
@@ -224,7 +271,10 @@ async def compile_draft_bitmap(body: CompileDraftRequest) -> dict:
     return summary
 
 
-@router.delete("/guidelines/scopes/{scope_type}/{scope_id}")
+@router.delete(
+    "/guidelines/scopes/{scope_type}/{scope_id}",
+    dependencies=[Depends(verify_service_token)],
+)
 def delete_scope(scope_type: str, scope_id: str) -> dict:
     """Drop every Redis key for a sandbox scope.
 
@@ -249,7 +299,11 @@ def delete_scope(scope_type: str, scope_id: str) -> dict:
     }
 
 
-@router.post("/guidelines/bitmap/compile", status_code=202)
+@router.post(
+    "/guidelines/bitmap/compile",
+    status_code=202,
+    dependencies=[Depends(verify_service_token)],
+)
 async def compile_bitmap(
     background_tasks: BackgroundTasks,
     body: CompileRequest | None = None,
@@ -335,7 +389,10 @@ def list_compiled(
     return {"scope_type": scope_type, "scope_id": scope_id, "versions": rows}
 
 
-@router.put("/guidelines/bitmap/versions/{version}/activate")
+@router.put(
+    "/guidelines/bitmap/versions/{version}/activate",
+    dependencies=[Depends(verify_service_token)],
+)
 def activate_version(version: str, body: ActivateRequest | None = None) -> dict:
     """Set the active bitmap version used for patient evaluation.
 
@@ -364,7 +421,10 @@ def activate_version(version: str, body: ActivateRequest | None = None) -> dict:
     }
 
 
-@router.post("/guidelines/bitmap/rollback")
+@router.post(
+    "/guidelines/bitmap/rollback",
+    dependencies=[Depends(verify_service_token)],
+)
 def rollback_version(body: ActivateRequest | None = None) -> dict:
     body = body or ActivateRequest()
     store = BitmapStore()

@@ -1,5 +1,10 @@
 """Token usage extraction and tracking utilities.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Provides provider-agnostic token counting from LLM responses and
 an async tracking hook that services can use to record usage.
 """

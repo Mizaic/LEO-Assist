@@ -1,0 +1,87 @@
+{
+  "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
+  "total_nodes": 1301,
+  "active_nodes": 1296,
+  "retired_nodes": 5,
+  "total_findings": 2382,
+  "affected_nodes": 1288,
+  "by_severity": {
+    "LIFECYCLE": 1075,
+    "MAJOR": 920,
+    "BLOCKER": 387
+  },
+  "by_dc_type": {
+    "user-need": 211,
+    "design-input": 720,
+    "design-output": 259,
+    "risk": 192,
+    "verification-test": 958,
+    "validation-test": 42
+  },
+  "by_code": {
+    "DESC_EMPTY": 382,
+    "DI_AC_UNCOVERED": 351,
+    "DI_NO_DO": 2,
+    "DI_NO_RISK": 13,
+    "DI_NO_VT": 3,
+    "REVIEW_CANDIDATE": 6,
+    "RISK_UNANALYSED": 183,
+    "STATUS_DRAFT_STUB": 1075,
+    "UN_AC_UNCOVERED": 104,
+    "UN_NO_VT": 2,
+    "VAL_NOT_PASSED": 21,
+    "VT_NOT_PASSED": 240
+  },
+  "node_totals": {
+    "design-input": 351,
+    "risk": 199,
+    "validation-test": 21,
+    "design-output": 259,
+    "user-need": 105,
+    "verification-test": 361
+  },
+  "node_clean": {
+    "risk": 7,
+    "verification-test": 1
+  },
+  "node_completeness_pct": {
+    "design-input": 0.0,
+    "risk": 3.5,
+    "validation-test": 0.0,
+    "design-output": 0.0,
+    "user-need": 0.0,
+    "verification-test": 0.3
+  },
+  "matrix_coverage": {
+    "userNeeds": {
+      "total": 107,
+      "covered": 107,
+      "percentage": 100
+    },
+    "designInputs": {
+      "total": 353,
+      "withDO": 351,
+      "percentage": 99
+    },
+    "verificationTests": {
+      "total": 361,
+      "passed": 121,
+      "percentage": 34
+    },
+    "validationTests": {
+      "total": 21,
+      "passed": 0,
+      "percentage": 0
+    },
+    "risks": {
+      "total": 200,
+      "mitigated": 200,
+      "percentage": 100
+    },
+    "doCoverage": {
+      "total": 259,
+      "withVt": 259,
+      "percentage": 100
+    }
+  }
+}

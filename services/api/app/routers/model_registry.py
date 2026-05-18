@@ -1,5 +1,10 @@
 """Model Registry API — full lifecycle management for NER models.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 All model lifecycle transitions (upload → validate → canary → promote → rollback)
 are exposed here so the frontend can drive the complete user journey without
 any CLI access.
@@ -1495,12 +1500,29 @@ async def reload_inference(
             resp.raise_for_status()
             data = resp.json()
     except httpx.HTTPStatusError as exc:
-        raise HTTPException(
-            status_code=502, detail=f"Inference service error: {exc.response.text}"
+        # Do not propagate the inference service's response body to the
+        # caller. It can include internal paths, stack traces, or model
+        # store details that an attacker could use to enumerate the
+        # backend. Log full details server-side only.
+        logger.warning(
+            "inference/reload: inference service returned %s for version=%s",
+            exc.response.status_code,
+            req.version,
+            exc_info=True,
         )
-    except Exception as exc:
         raise HTTPException(
-            status_code=502, detail=f"Could not reach inference service: {exc}"
+            status_code=502,
+            detail="Inference service rejected the reload request",
+        )
+    except Exception:
+        logger.warning(
+            "inference/reload: could not reach inference service for version=%s",
+            req.version,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Could not reach inference service",
         )
 
     # Best-effort: update Neo4j registry to reflect what is actually loaded.
