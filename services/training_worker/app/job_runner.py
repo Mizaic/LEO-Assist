@@ -435,6 +435,17 @@ def _phase_export(job: TrainingJob, store: TrainingJobStore, work_dir: Path) -> 
         f"Exported {result['total']} labels → "
         f"{result['train_count']} train / {result['dev_count']} dev",
     )
+    quality = result.get("training_quality") or {}
+    if quality and not quality.get("passed", True):
+        missing = ", ".join(quality.get("missing_expected_labels") or [])
+        low = quality.get("low_support_expected_labels") or {}
+        low_msg = ", ".join(f"{k}={v}" for k, v in low.items())
+        parts = [
+            f"missing: {missing}" if missing else "",
+            f"low support: {low_msg}" if low_msg else "",
+        ]
+        details = "; ".join(p for p in parts if p)
+        raise ValueError(f"Training export quality gate failed: {details}")
 
 
 def _phase_train(

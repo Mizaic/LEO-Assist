@@ -112,6 +112,14 @@ const PREFIX_RULES: PrefixRule[] = [
     rewrite: (r) => `${trainWorker()}/train/${r}`,
     serviceAuth: true,
   },
+  {
+    prefix: "/api/extraction-scenarios/",
+    rewrite: (r) => `${coreApi()}/extraction-scenarios/${r}`,
+  },
+  {
+    prefix: "/api/extraction-scenarios",
+    rewrite: () => `${coreApi()}/extraction-scenarios`,
+  },
   { prefix: "/api/analytics/", rewrite: (r) => `${coreApi()}/analytics/${r}` },
   { prefix: "/api/pricing/", rewrite: (r) => `${coreApi()}/pricing/${r}` },
   { prefix: "/api/pricing", rewrite: () => `${coreApi()}/pricing` },
@@ -217,6 +225,8 @@ export const config = {
     "/api/prompts/:path*",
     "/api/training/:path*",
     "/api/training-worker/:path*",
+    "/api/extraction-scenarios",
+    "/api/extraction-scenarios/:path*",
     "/api/analytics/:path*",
     "/api/pricing",
     "/api/pricing/:path*",

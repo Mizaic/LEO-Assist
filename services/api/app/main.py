@@ -76,6 +76,7 @@ from app.routers.reference_ranges import router as reference_ranges_router
 from app.routers.ncda_pathway_config import router as ncda_pathway_config_router
 from app.routers.audit_quality import router as audit_quality_router
 from app.routers.sbar import router as sbar_router
+from app.routers.extraction_scenarios import router as extraction_scenarios_router
 from app.routers.sdk_auth import router as sdk_auth_router
 from app.routers.sdk_governance import router as sdk_governance_router
 from app.routers.sdk_release import router as sdk_release_router
@@ -221,6 +222,21 @@ async def lifespan(app: object):
                 "[LoopConfig] Seed failed (non-fatal): %s", exc
             )
 
+    def _extraction_scenario_seed():
+        try:
+            from app.db.neo4j_client import CodingGraphClient
+            from scripts.seed_extraction_scenarios import seed_if_missing
+
+            client = CodingGraphClient()
+            seed_if_missing(client)
+            client.close()
+        except Exception as exc:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "[ExtractionScenarioSeed] Seed failed (non-fatal): %s", exc
+            )
+
     t1 = threading.Thread(target=_tenant_seed, daemon=True)
     t1.start()
     t2 = threading.Thread(target=_model_config_seed, daemon=True)
@@ -231,6 +247,8 @@ async def lifespan(app: object):
     t4.start()
     t5 = threading.Thread(target=_loop_config_seed, daemon=True)
     t5.start()
+    t6 = threading.Thread(target=_extraction_scenario_seed, daemon=True)
+    t6.start()
     yield
 
 
@@ -360,6 +378,7 @@ app.include_router(ncda_pathway_config_router)
 app.include_router(audit_quality_router)
 app.include_router(data_quality_router)
 app.include_router(sbar_router)
+app.include_router(extraction_scenarios_router)
 app.include_router(sdk_auth_router)
 app.include_router(sdk_telemetry_router)
 app.include_router(sdk_release_router)

@@ -59,6 +59,7 @@ from libs.training_ext.stratified_split import (
     SplitRatios,
     iterative_multilabel_split,
 )
+from libs.training_ext.training_quality import summarise_export_support
 
 _ORTH_VARIANTS_SOURCE = (
     Path(__file__).resolve().parents[3]
@@ -484,6 +485,7 @@ def export_labels(
         }
         for label in all_label_keys
     }
+    training_quality = summarise_export_support(per_label_counts_meta)
 
     balance_report_dict = balance_report.to_dict()
     (output_dir / "corpus_balance_report.json").write_text(
@@ -528,6 +530,7 @@ def export_labels(
         "excluded_assertions": sorted(excluded_assertions),
         "label_set": sorted(all_labels),
         "per_label_counts": per_label_counts_meta,
+        "training_quality": training_quality,
         "seed": seed,
         "schema_version": _SCHEMA_VERSION,
     }
@@ -582,6 +585,7 @@ def export_labels(
         "labels_found": sorted(all_labels),
         "label_set": sorted(all_labels),
         "per_label_counts": per_label_counts_meta,
+        "training_quality": training_quality,
         "exported_at": exported_at,
         "train_path": str(train_path),
         "dev_path": str(dev_path),

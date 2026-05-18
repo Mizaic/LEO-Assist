@@ -41,6 +41,7 @@ const TAB_WIDTH: Record<KnowledgeTabKey, KnowledgeLayoutWidth> = {
   terminology: "wide",
   "ai-summarisation": "wide",
   "test-patients": "wide",
+  "extraction-scenarios": "wide",
 };
 
 const GoldDatasetPage = dynamic(() => import("@/app/admin/gold-dataset/page"), { ssr: false });
@@ -59,6 +60,10 @@ const TestPatientsPage = dynamic(
   () => import("@/app/admin/knowledge/test-patients/page"),
   { ssr: false },
 );
+const ExtractionScenariosPage = dynamic(
+  () => import("@/app/admin/extraction-scenarios/page"),
+  { ssr: false },
+);
 
 // Canonical tab order per DI-LEO-AI-135. First five are the legacy
 // Knowledge tabs (reference data curated by staff + QA); last three are
@@ -75,6 +80,7 @@ export const TABS: Array<{ key: KnowledgeTabKey; label: string }> = [
   { key: "terminology", label: "Terminology" },
   { key: "ai-summarisation", label: "AI Summarisation" },
   { key: "test-patients", label: "Test Patients" },
+  { key: "extraction-scenarios", label: "Extraction Scenarios" },
 ];
 
 const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
@@ -88,6 +94,7 @@ const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
   terminology: TerminologyPage,
   "ai-summarisation": AiSummarisationPage,
   "test-patients": TestPatientsPage,
+  "extraction-scenarios": ExtractionScenariosPage,
 };
 
 function resolveRole(selectedRole: string | null): Role | null {

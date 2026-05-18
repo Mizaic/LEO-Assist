@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "not_run",
+  "reason": "Extraction pipeline scoring harness is implemented, but no live extraction run has been executed for this draft clinician-review corpus.",
+  "pass_threshold": {
+    "overall_phrase_f1": 0.95
+  },
+  "overall": null,
+  "by_case": []
+}

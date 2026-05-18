@@ -27,7 +27,8 @@ export type KnowledgeTabKey =
   | "domains"
   | "terminology"
   | "ai-summarisation"
-  | "test-patients";
+  | "test-patients"
+  | "extraction-scenarios";
 
 export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
   "training-data": {
@@ -357,6 +358,39 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       lede: "Which SNOMED edition is live and when the next refresh runs.",
       how: "Trigger a refresh or pin an edition per tenant.",
       what: "Refreshes pull new terms and retire superseded codes.",
+    },
+  },
+
+  "extraction-scenarios": {
+    default: {
+      title: "Extraction Scenarios",
+      lede: "Gold-standard test cases that check how well LEO reads clinical notes.",
+      how: "Open a scenario, check the expected phrases, and mark it approved.",
+      what: "Approved scenarios run in the validation check to score LEO's accuracy.",
+    },
+    clinician: {
+      title: "Extraction check cases",
+      lede: "Short clinical notes with the phrases LEO should pick out.",
+      how: "Open a case. Check the list of phrases. Click Approve if they look right.",
+      what: "Your approval means the case is used to grade LEO on real referrals.",
+    },
+    staff: {
+      title: "Extraction scenario review",
+      lede: "Test cases waiting for a clinician to check the expected phrases.",
+      how: "Open a case. Review the Markdown and the phrase list. Approve or flag.",
+      what: "Approved cases make the F1 score meaningful.",
+    },
+    qa_ra_lead: {
+      title: "Extraction gold set (evidence)",
+      lede: "Phrase-level ground truth used to score the extraction pipeline (VAL-87173594).",
+      how: "Review per-case F1 after a run. Sign off on the set before a release.",
+      what: "The F1 score and run record are required for IEC 62304 evidence.",
+    },
+    platform_admin: {
+      title: "Extraction scenario corpus",
+      lede: "80 synthetic scenarios seeded into Neo4j at deploy time.",
+      how: "Trigger a validation run to score the active extraction model.",
+      what: "Results are stored as :ExtractionValidationRun nodes and recorded in Atlas.",
     },
   },
 };

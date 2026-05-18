@@ -110,6 +110,8 @@ const nextConfig = {
       { source: "/admin/billing", destination: "/admin/platform?tab=billing", permanent: true },
       { source: "/admin/models", destination: "/admin/platform?tab=model-config", permanent: true },
       { source: "/admin/data-quality", destination: "/admin/platform?tab=data-quality", permanent: true },
+      // Extraction scenarios direct link
+      { source: "/admin/extraction-scenarios", destination: "/admin/knowledge?tab=extraction-scenarios", permanent: true },
     ];
   },
   // Proxying is handled at runtime by src/middleware.ts so the same

@@ -26,6 +26,8 @@ import os
 from pathlib import Path
 from typing import Callable, Optional
 
+from libs.training_ext.training_quality import evaluate_label_coverage
+
 logger = logging.getLogger(__name__)
 
 _MIN_PRECISION = float(os.getenv("MODEL_MIN_PRECISION", "0.80"))
@@ -502,10 +504,13 @@ def evaluate_model(
     spans_r = round(_first_numeric(scores, ("spans_sc_r", "ents_r")), 4)
     spans_f = round(_first_numeric(scores, ("spans_sc_f", "ents_f")), 4)
     per_label = _build_per_label(scores, support_counts)
+    label_coverage = evaluate_label_coverage(per_label)
+    macro_f1 = label_coverage["macro_f1"]
 
     passed = spans_p >= _MIN_PRECISION and spans_r >= _MIN_RECALL
 
     _log(f"Dev results: P={spans_p:.3f}  R={spans_r:.3f}  F1={spans_f:.3f}")
+    _log(f"Macro F1: {macro_f1:.3f}")
     _log(
         f"Gates: min_precision={_MIN_PRECISION}  min_recall={_MIN_RECALL}  "
         f"passed={passed}"
@@ -531,12 +536,18 @@ def evaluate_model(
         for msg in label_failures:
             _log(f"LABEL GATE FAILED — {msg}")
         passed = False
+    if label_coverage["failures"]:
+        for msg in label_coverage["failures"]:
+            _log(f"LABEL COVERAGE GATE FAILED — {msg}")
+        passed = False
 
     result: dict = {
         "precision": spans_p,
         "recall": spans_r,
         "f1": spans_f,
+        "macro_f1": macro_f1,
         "per_label": per_label,
+        "label_coverage": label_coverage,
         "passed_gates": passed,
         "label_gate_failures": label_failures,
         "label_gate_skips": label_gate_skips,
