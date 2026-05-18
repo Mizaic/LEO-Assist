@@ -1,4 +1,10 @@
-"""Episode status determination and specialist-letter inference."""
+"""Episode status determination and specialist-letter inference.
+
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+"""
 
 from __future__ import annotations
 

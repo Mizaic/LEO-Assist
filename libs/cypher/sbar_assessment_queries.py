@@ -1,5 +1,10 @@
 """Cypher queries for the :Assessment node (DI-LEO-AI-188).
 
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+
 Produced by the SBAR orchestrator. Each section is persisted as soon as
 it is generated so that a partial Assessment is recoverable if a later
 stage fails.
@@ -24,6 +29,7 @@ Relationships (incoming):
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 CREATE_ASSESSMENT = """
@@ -78,10 +84,18 @@ RETURN a.id AS id
 SET_BACKGROUND = """
 MATCH (a:Assessment {id: $assessment_id})
 SET a.background        = $background,
+    a.background_parts  = $background_parts,
     a.background_status = 'completed',
     a.updated_at        = datetime()
 RETURN a.id AS id
 """
+# ``background_parts`` is a JSON-encoded list of per-partition summaries
+# (one entry per LLM call) emitted by libs.sbar.prompt_calls.
+# _build_part_summary. Each entry carries ``index``, ``total``,
+# ``record_count``, ``record_range``, ``source_ids``, ``status``, and
+# any ``error_code``/``error_message``. The UI renders this as the
+# "Show source records" disclosure on the Background section so the
+# raw source UUIDs no longer leak into the rendered markdown body.
 
 SET_ASSESSMENT_NARRATIVE = """
 MATCH (a:Assessment {id: $assessment_id})
@@ -194,6 +208,7 @@ RETURN a.id                            AS id,
        a.guideline_ids                 AS guideline_ids,
        a.situation                     AS situation,
        a.background                    AS background,
+       a.background_parts              AS background_parts,
        a.assessment                    AS assessment,
        a.assessment_codes              AS assessment_codes,
        a.assessment_rules              AS assessment_rules,
@@ -209,6 +224,32 @@ RETURN a.id                            AS id,
        a.errors                        AS errors,
        p.id                            AS patient_id
 """
+
+
+def _decode_background_parts(raw: Any) -> list[dict[str, Any]]:
+    """Decode the JSON-encoded ``background_parts`` column.
+
+    Stored as a JSON string so the per-partition summary structure
+    (index, total, record_range, source_ids, status, error_*) survives
+    a round-trip through Neo4j without flattening. Tolerates legacy
+    rows where the column is missing or malformed by returning [].
+    """
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, (bytes, bytearray)):
+        try:
+            raw = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            return []
+    if not isinstance(raw, str):
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    return parsed if isinstance(parsed, list) else []
 
 
 def assessment_to_dict(record: Any) -> dict[str, Any]:
@@ -228,6 +269,7 @@ def assessment_to_dict(record: Any) -> dict[str, Any]:
         "patient_id": record["patient_id"],
         "situation": record["situation"],
         "background": record["background"],
+        "background_parts": _decode_background_parts(record["background_parts"]),
         "assessment": record["assessment"],
         "assessment_codes": record["assessment_codes"] or [],
         "assessment_rules": record["assessment_rules"] or [],

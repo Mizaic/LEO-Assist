@@ -46,8 +46,10 @@ from ._audit_helpers import (
     _add_date_filters,
     _ENGLAND_BASE,
     _episode_base,
+    _episode_base_all_cohort,
     _fetch_benchmark_metrics,
     _ORG_PATIENT_MATCH,
+    _patient_base,
     _run_multi_scope,
 )
 from ._audit_intervals import (
@@ -173,6 +175,52 @@ def audit_summary(
             if name in bucket_counts:
                 bucket_counts[name] = int(row.get("n") or 0)
 
+        # All-cohort totals for the "Cohort" summary card on the
+        # dashboard (DI-105A4EC7 + DI-CA1B4C6E). The patient denominator
+        # uses _patient_base (every Patient in scope, NO episode
+        # requirement) so the dashboard agrees with Mission Control's
+        # cohort denominator (R-D32A2AC2). The episode total uses
+        # _episode_base_all_cohort (every EpisodeOfCare including
+        # admin-only statuses) so the four MECE buckets always sum to
+        # <= total_episodes_all and a discrepancy is rendered as a
+        # footnote, not silently hidden.
+        cohort_patients_base, cohort_patients_params = _patient_base(
+            org_id, scope
+        )
+        cohort_patients_rows = client.run(
+            f"{cohort_patients_base}"
+            "RETURN count(DISTINCT p) AS total_patients, "
+            "       count(DISTINCT CASE WHEN EXISTS { "
+            "         (p)-[:HAS_EPISODE_OF_CARE]->(:EpisodeOfCare) "
+            "       } THEN p END) AS patients_with_pathway",
+            **cohort_patients_params,
+        )
+        cohort_patients_row = (cohort_patients_rows or [{}])[0]
+        total_cohort_patients = int(
+            cohort_patients_row.get("total_patients") or 0
+        )
+        patients_with_pathway = int(
+            cohort_patients_row.get("patients_with_pathway") or 0
+        )
+        patients_without_pathway = max(
+            0, total_cohort_patients - patients_with_pathway
+        )
+
+        all_cohort_base, all_cohort_params = _episode_base_all_cohort(
+            org_id, scope
+        )
+        all_cohort_base, all_cohort_params = _add_date_filters(
+            all_cohort_base, all_cohort_params, date_from, date_to
+        )
+        cohort_episodes_rows = client.run(
+            f"{all_cohort_base}"
+            "RETURN count(DISTINCT ep) AS total_episodes_all",
+            **all_cohort_params,
+        )
+        total_cohort_episodes_all = int(
+            (cohort_episodes_rows or [{}])[0].get("total_episodes_all") or 0
+        )
+
         # Canonical "no longer active" set, owned by libs/episodes/status.py
         # (DI-LEO-AI-529). Do NOT redefine inline -- the contract test
         # tests/contracts/test_episode_status_vocabulary.py asserts the
@@ -240,6 +288,10 @@ def audit_summary(
             # for backward compatibility (other endpoints still consume
             # them) but the dashboard now reads the new keys.
             "total_cohort_episodes": mece_total,
+            "total_cohort_patients": total_cohort_patients,
+            "total_cohort_patients_with_pathway": patients_with_pathway,
+            "patients_without_pathway": patients_without_pathway,
+            "total_cohort_episodes_all": total_cohort_episodes_all,
             "active_lifecycle_episodes": bucket_counts["active"],
             "in_review_episodes": bucket_counts["in_review"],
             "cancer_excluded_episodes": bucket_counts["cancer_excluded"],

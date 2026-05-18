@@ -1,8 +1,12 @@
 /**
  * Typed fetch helpers for /api/admin/* endpoints.
  * All require platform admin; session cookie is sent via credentials: 'include'.
+ *
+ * Atlas trace:
+ *   DO: DO-19BBE973
+ *   DI: DI-B746E19E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
-
 import { api, apiFetch } from './client';
 
 const ADMIN_BASE = '/api/admin';

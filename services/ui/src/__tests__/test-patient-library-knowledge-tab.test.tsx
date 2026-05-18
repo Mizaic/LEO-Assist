@@ -806,9 +806,10 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(panel).toContain(
       'from "../../knowledge/test-patients/replay/ReplayResultsDialog"',
     );
-    expect(panel).toContain(
-      'from "../../knowledge/test-patients/replay/RulesetNotCompiledBanner"',
-    );
+    // Phase 1 retired the in-panel live-replay flow that depended on
+    // RulesetNotCompiledBanner. The sandbox-only panel surfaces a
+    // local "draft sandbox could not be compiled" Alert instead.
+    expect(panel).toMatch(/draft sandbox could not be compiled/i);
     expect(panel).toMatch(/Author with AI from this rule/);
     expect(panel).toMatch(/Open in Test Patient Library/);
     expect(panel).toMatch(/lockedRuleId=\{ruleId\}/);

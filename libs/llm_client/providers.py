@@ -1,5 +1,10 @@
 """LLM provider management with Bedrock primary and Azure OpenAI fallback.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Ported from auditor_2 agent/core/models.py.
 Decoupled from agent-specific tool bindings.
 """

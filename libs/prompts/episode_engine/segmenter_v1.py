@@ -1,5 +1,10 @@
 """Stage 2 prompt: segment a patient timeline into candidate episode windows.
 
+Atlas trace:
+  DO: DO-710D9EEB
+  DI: DI-CBCA6E2D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-710D9EEB")
+
 Inputs (USER_TEMPLATE):
     patient_id    : str
     timeline_text : the trunk view from timeline_loader

@@ -66,13 +66,14 @@ function mockSearch(hits: unknown[] = []) {
 /**
  * The widescreen editor splits the form across four steps. Tests that
  * need fields from a later step (action chip on step 2, reason on
- * step 4) navigate via the left-hand rail.
+ * step 4) navigate via the horizontal stepper across the top of the
+ * dialog.
  */
 function goToStep(stepNumber: 1 | 2 | 3 | 4) {
-  const rail = screen.getAllByRole("button", {
+  const stepper = screen.getAllByRole("button", {
     name: new RegExp(`^Step ${stepNumber} of 4`, "i"),
   });
-  fireEvent.click(rail[0]);
+  fireEvent.click(stepper[0]);
 }
 
 function fillReason(text: string) {
@@ -243,19 +244,15 @@ describe("EditRuleDialog", () => {
     expect(
       screen.getByRole("button", { name: /save your changes/i })
     ).toBeInTheDocument();
-    // The live preview banner is always visible above the canvas
-    // and explains the rule in plain English on every step.
+    // Phase 3: the always-visible LivePreviewPane sits to the right of
+    // the canvas and explains the rule in plain English on every step.
+    // The previous LivePreviewBanner + drawer toggle was deleted.
     expect(
-      screen.getByRole("status", { name: /live one-line preview of this rule/i }),
+      screen.getByRole("region", { name: /live preview of this rule/i }),
     ).toBeInTheDocument();
-    // The banner shows the friendly strength label even before the
+    // The pane shows the friendly strength label even before the
     // reviewer opens step 2.
     expect(screen.getByText(/offer this test or referral/i)).toBeInTheDocument();
-    // The full preview drawer is reachable from the banner via the
-    // [See full preview] button.
-    expect(
-      screen.getByRole("button", { name: /see full live preview/i }),
-    ).toBeInTheDocument();
 
     // Step 2 owns the short-name and strength fields.
     goToStep(2);

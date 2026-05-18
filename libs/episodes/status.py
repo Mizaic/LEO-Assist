@@ -1,5 +1,10 @@
 """Canonical EpisodeOfCare status vocabulary (DI-LEO-AI-529).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Single source of truth for every status string an EpisodeOfCare node may
 carry. Importers MUST NOT reintroduce string literals like "active",
 "closed_benign", "completed" etc. anywhere in production code -- always

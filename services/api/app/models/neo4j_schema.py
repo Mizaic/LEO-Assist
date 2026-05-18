@@ -1,5 +1,10 @@
 """Neo4j schema and write/query templates for HITL MVP.
 
+Atlas trace:
+  DO: DO-19FA25C3
+  DI: DI-727C94B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-19FA25C3")
+
 Queries are now defined in libs/cypher/ and re-exported here for backward
 compatibility. New code should import from libs/cypher/ directly.
 """

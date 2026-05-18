@@ -6,8 +6,12 @@
  * firing) and Summarisation (SBAR handover). Per DI-7625C251 (Atlas)
  * the page is aspect-aware -- the QA lead picks an aspect and the
  * library only shows fixtures for that aspect.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
-
 export const ASPECT_VALUES = [
   "all",
   "nlp",

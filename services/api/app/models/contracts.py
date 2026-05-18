@@ -1,4 +1,10 @@
-"""Shared API and pipeline contracts for HITL training creator MVP."""
+"""Shared API and pipeline contracts for HITL training creator MVP.
+
+Atlas trace:
+  DO: DO-19FA25C3
+  DI: DI-727C94B4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-19FA25C3")
+"""
 
 from __future__ import annotations
 

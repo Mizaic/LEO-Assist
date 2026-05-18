@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-5312F884
+ *   DI: DI-AA1F5F5B
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5312F884")
+ */
 // Shared encounter search relevance helpers (DI-LEO-AI-520).
 //
 // Mirrors the deterministic part of the server's encounter query

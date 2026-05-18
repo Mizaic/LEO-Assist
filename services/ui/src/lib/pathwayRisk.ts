@@ -6,8 +6,12 @@
  *   - 2WW  (14 days): urgent GP referral -> first specialist appointment
  *   - FDS  (28 days): urgent GP referral -> diagnosis / ruling-out
  *   - RTT  (62 days): urgent GP referral -> first definitive treatment
+ *
+ * Atlas trace:
+ *   DO: DO-B5DB3744
+ *   DI: DI-C6700F52
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-B5DB3744")
  */
-
 // ── Types ──
 
 export interface Milestone {

@@ -10,13 +10,13 @@ libs/audit/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/audit/audit_emitter.py,stamped,DO-33C5C951,DI-B46AD5CE,,none,.py,
 libs/audit/escalation.py,stamped,DO-F1953D1C,DI-65975321,,none,.py,
 libs/audit/kg_verified_writeback.py,stamped,DO-F1953D1C,DI-65975321,,none,.py,
-libs/audit/security_log.py,stamped,DO-F1953D1C,DI-65975321,,atlas,.py,
+libs/audit/security_log.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
 libs/auth/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/auth/density_state.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/auth/entra_group_sync.py,unresolved,,,,atlas,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/auth/density_state.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
+libs/auth/entra_group_sync.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
 libs/auth/org_scope.py,stamped,DO-DB7F8D52,"DI-4DBE1A18, DI-87CCCB18",,none,.py,
 libs/auth/practitioner_org_context.py,stamped,DO-308DD1A6,DI-D49BCE55,,none,.py,
-libs/auth/role_state.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/auth/role_state.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
 libs/auth/service_auth.py,stamped,DO-175B815C,DI-5F978E36,,none,.py,
 libs/auth/tenant_context.py,stamped,DO-DB7F8D52,"DI-4DBE1A18, DI-87CCCB18",,none,.py,
 libs/azure/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
@@ -32,30 +32,30 @@ libs/cypher/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/cypher/admin_queries.py,stamped,DO-308DD1A6,DI-D49BCE55,,none,.py,
 libs/cypher/anchor_review_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/candidate_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
-libs/cypher/chunk_queries.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/chunk_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,legacy,.py,
 libs/cypher/classification_vote_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/cleanup_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/coding_decision_queries.py,stamped,DO-C7C1EBA2,DI-740BE510,,none,.py,
 libs/cypher/coding_review_queries.py,stamped,DO-2D2CE052,"DI-5E1BA369, DI-D2D0117E",,legacy,.py,
-libs/cypher/density_queries.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/density_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,legacy,.py,
 libs/cypher/device_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/documents_queries.py,stamped,DO-0DD91ACD,"DI-BB64E479, DI-E7AFFDA5",,legacy,.py,
-libs/cypher/entra_group_queries.py,unresolved,,,,atlas,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/entra_group_queries.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
 libs/cypher/exclusion_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
-libs/cypher/gold_label_queries.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/gold_label_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,legacy,.py,
 libs/cypher/golden_set_queries.py,stamped,DO-A35D2D57,DI-37B3DC71,,none,.py,
 libs/cypher/label_verification_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
-libs/cypher/model_config_queries.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/model_config_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,legacy,.py,
 libs/cypher/model_registry_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/phrase_consistency_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/post_processor_rule_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/preset_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
-libs/cypher/pricing_queries.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/pricing_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,none,.py,
 libs/cypher/prompt_config_queries.py,stamped,DO-83EBEE2C,DI-B954388C,,none,.py,
 libs/cypher/reference_range_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/remediation_queries.py,stamped,DO-C5890265,DI-09E26C1D,,none,.py,
-libs/cypher/role_queries.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/cypher/sbar_assessment_queries.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/cypher/role_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,legacy,.py,
+libs/cypher/sbar_assessment_queries.py,stamped,DO-F8EFEF89,DI-E47C3FC2,,legacy,.py,
 libs/cypher/schema_constraints.py,stamped,DO-E3885491,DI-3613871E,,legacy,.py,
 libs/cypher/service_config_queries.py,stamped,DO-BE96444E,DI-BAC284B4,,none,.py,
 libs/cypher/surface_form_task_queries.py,stamped,DO-B88D4941,DI-AF5A1668,,none,.py,
@@ -70,7 +70,7 @@ libs/deid/deid.py,stamped,DO-9BF76337,DI-8A943628,,none,.py,
 libs/domain_config/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/domain_config/registry.py,stamped,DO-2340F614,"DI-143F69EB, DI-1501326A, DI-4885D9FF, DI-6051F076, DI-A90B19EB, DI-ED3A89F5",,none,.py,
 libs/domains/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/domains/code_inventories.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/domains/code_inventories.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
 libs/domains/ncda_concept_sets.py,stamped,DO-7E1BAACC,"DI-143F69EB, DI-1501326A, DI-2AFF691F, DI-4C73DC01, DI-6079EC71",,none,.py,
 libs/dq/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/dq/_clients.py,stamped,DO-0998FAF5,DI-FC80B65A,,none,.py,
@@ -87,12 +87,15 @@ libs/dq/signal_patterns.py,stamped,DO-0998FAF5,DI-FC80B65A,,none,.py,
 libs/dq/terminology.py,stamped,DO-0998FAF5,DI-FC80B65A,,none,.py,
 libs/episodes/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/episodes/duplicate_resolver.py,stamped,DO-0C7A443A,"DI-FC264BBF, DI-FF9C74E2",,legacy,.py,
-libs/episodes/lifecycle.py,unresolved,,,,atlas,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/episodes/status.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/episodes/lifecycle.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
+libs/episodes/status.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
 libs/exclusion_detector/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/exclusion_detector/detector.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/exclusion_detector/detector.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
+libs/graph_client/client.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
+libs/graph_client/errors.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
+libs/graph_client/obo.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
 libs/keyvault/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/keyvault/loader.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/keyvault/loader.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/llm_client/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/llm_client/bedrock_retry.py,stamped,DO-7123C55A,DI-AE7680C0,,none,.py,
 libs/llm_client/cache.py,stamped,DO-7123C55A,DI-AE7680C0,,none,.py,
@@ -100,15 +103,15 @@ libs/llm_client/consensus.py,stamped,DO-4AB6D361,"DI-80DD8A47, DI-E1913514",,non
 libs/llm_client/disorder_verifier.py,stamped,DO-19EB27A0,"DI-3197332F, DI-9D967259",,none,.py,
 libs/llm_client/escalation.py,stamped,DO-4D563ADF,"DI-6A0B55A4, DI-E0D60B50",,none,.py,
 libs/llm_client/factory.py,stamped,DO-64BDC193,"DI-54D00E21, DI-66F1B177, DI-88C8BBCD, DI-B954388C",,legacy,.py,
-libs/llm_client/json_helper.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/llm_client/json_helper.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/llm_client/prompt_safety.py,stamped,DO-BBD3441A,DI-F66A7239,,none,.py,
-libs/llm_client/providers.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/llm_client/token_tracker.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/llm_client/usage_recorder.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/llm_usage.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/llm_client/providers.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
+libs/llm_client/token_tracker.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
+libs/llm_client/usage_recorder.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
+libs/llm_usage.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/message_bus/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/message_bus/azure_adapter.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/message_bus/base.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/message_bus/azure_adapter.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
+libs/message_bus/base.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/message_bus/factory.py,stamped,DO-245F62CB,"DI-091CBBAB, DI-176EA4FF",,none,.py,
 libs/message_bus/in_memory_adapter.py,stamped,DO-CAA9690F,DI-37D1B7D7,,none,.py,
 libs/metrics/__init__.py,excluded,,,,legacy,.py,__init__.py (no executable surface)
@@ -124,17 +127,17 @@ libs/neo4j_client/__init__.py,excluded,,,,none,.py,__init__.py (no executable su
 libs/neo4j_client/client.py,stamped,DO-448BFA1A,DI-84F44836,,none,.py,
 libs/ner/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/ner/context_detector.py,stamped,DO-170F0DEE,"DI-31126C6C, DI-3B3F7D4B",,none,.py,
-libs/ner/context_engine.py,unresolved,,,,atlas,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/context_engine.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
 libs/ner/deid_validator.py,stamped,DO-8EF2EC20,DI-2F963FC6,,none,.py,
 libs/ner/domain_loader.py,stamped,DO-8EF2EC20,DI-2F963FC6,,none,.py,
-libs/ner/extractor_contract.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/ner/lab_triple_recovery.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/ner/lab_value_guard.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/extractor_contract.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
+libs/ner/lab_triple_recovery.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
+libs/ner/lab_value_guard.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/ner/observable_post_processor.py,stamped,DO-8EF2EC20,DI-2F963FC6,,none,.py,
 libs/ner/post_processor_rules.py,stamped,DO-8EF2EC20,DI-2F963FC6,,none,.py,
-libs/ner/precision_gates.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/precision_gates.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/ner/relation_builder.py,stamped,DO-170F0DEE,"DI-31126C6C, DI-3B3F7D4B",,none,.py,
-libs/ner/schema_mapper.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/ner/schema_mapper.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/ner/scope_guard.py,stamped,DO-8620A68B,"DI-5A802C83, DI-B2512CB3",,none,.py,
 libs/ner/seed_ingester.py,stamped,DO-8EF2EC20,DI-2F963FC6,,none,.py,
 libs/ner/span_finder.py,stamped,DO-8EF2EC20,DI-2F963FC6,,none,.py,
@@ -146,7 +149,7 @@ libs/nlp/sentence_splitter.py,stamped,DO-1D5031E0,"DI-12015DBC, DI-5A802C83, DI-
 libs/ods/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/ods/client.py,stamped,DO-273A4EC4,DI-C978B245,,none,.py,
 libs/oncology/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/oncology/cancer_types.py,unresolved,,,,atlas,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/oncology/cancer_types.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
 libs/pipeline/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/pipeline/extraction_response_parse.py,stamped,DO-16CE412B,DI-FE1BC901,,none,.py,
 libs/pipeline/label_filter.py,stamped,DO-16CE412B,DI-FE1BC901,,none,.py,
@@ -154,38 +157,38 @@ libs/pipeline/outcome_inference.py,stamped,DO-11A2361E,DI-F46D7A68,,legacy,.py,
 libs/pipeline/post_processing.py,stamped,DO-16FFE9D3,"DI-04105500, DI-4247C7E5, DI-5A802C83, DI-6E6E985B, DI-6EFD68D0, DI-9D967259, DI-F0B8A7B0, DI-F298AE65",,none,.py,
 libs/pipeline_graph/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/pipeline_graph/registry.py,stamped,DO-14B332AB,"DI-30D95132, DI-5A802C83, DI-705C806B, DI-F2C18D2E",,none,.py,
-libs/pipeline_graph/state.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/state.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/pipeline_graph/subgraphs/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/pipeline_graph/subgraphs/_extractor.py,stamped,DO-0289F3A5,"DI-48AD06E5, DI-A0C90595, DI-B954388C, DI-F298AE65",,legacy,.py,
 libs/pipeline_graph/subgraphs/anchor.py,stamped,DO-2340F614,DI-4885D9FF,,none,.py,
-libs/pipeline_graph/subgraphs/compliance.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/compliance.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
 libs/pipeline_graph/subgraphs/encounter_coding_agent.py,stamped,DO-14B332AB,DI-30D95132,,none,.py,
 libs/pipeline_graph/subgraphs/encounter_loader.py,stamped,DO-A26CD350,DI-705C806B,,none,.py,
-libs/pipeline_graph/subgraphs/episode.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/pipeline_graph/subgraphs/episode_engine.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/episode.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
+libs/pipeline_graph/subgraphs/episode_engine.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
 libs/pipeline_graph/subgraphs/extraction.py,stamped,DO-1D5031E0,DI-702F4583,,none,.py,
-libs/pipeline_graph/subgraphs/guidance_rule_extraction.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/pipeline_graph/subgraphs/guidance_rule_extraction_v2_impl.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/guidance_rule_extraction.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
+libs/pipeline_graph/subgraphs/guidance_rule_extraction_v2_impl.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
 libs/pipeline_graph/subgraphs/hitl_coding_queue.py,stamped,DO-93E086B0,DI-F2C18D2E,,none,.py,
-libs/pipeline_graph/subgraphs/hitl_ner_queue.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/pipeline_graph/subgraphs/human_review_gate.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/hitl_ner_queue.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
+libs/pipeline_graph/subgraphs/human_review_gate.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
 libs/pipeline_graph/subgraphs/llm_check.py,stamped,DO-8620A68B,"DI-2D9F5064, DI-5A802C83, DI-F2C18D2E",,none,.py,
-libs/pipeline_graph/subgraphs/next_best_action.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/next_best_action.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
 libs/pipeline_graph/subgraphs/persist.py,stamped,DO-8620A68B,"DI-2D9F5064, DI-5A802C83, DI-F2C18D2E",,none,.py,
-libs/pipeline_graph/subgraphs/post_processing.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/pipeline_graph/subgraphs/quality_check.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/pipeline_graph/subgraphs/queue_publish.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/pipeline_graph/subgraphs/relation_linking.py,stamped,DO-236545C8,"DI-2D9F5064, DI-5A802C83",,atlas,.py,
-libs/pipeline_graph/subgraphs/rest_connector.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/post_processing.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
+libs/pipeline_graph/subgraphs/quality_check.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
+libs/pipeline_graph/subgraphs/queue_publish.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
+libs/pipeline_graph/subgraphs/relation_linking.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
+libs/pipeline_graph/subgraphs/rest_connector.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
 libs/pipeline_graph/subgraphs/safety_net.py,stamped,DO-B711D180,DI-CE0A08E5,,legacy,.py,
-libs/pipeline_graph/subgraphs/sbar.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/pipeline_graph/subgraphs/staging_enrichment.py,stamped,DO-6DFD03E0,"DI-23822663, DI-527848A8, DO-671C15BF",,legacy,.py,
+libs/pipeline_graph/subgraphs/sbar.py,stamped,DO-69F520C9,DI-F22160C3,,legacy,.py,
+libs/pipeline_graph/subgraphs/staging_enrichment.py,stamped,DO-6DFD03E0,"DI-23822663, DI-527848A8",,legacy,.py,
 libs/pipeline_graph/subgraphs/surface_form_validation.py,stamped,DO-B88D4941,DI-AF5A1668,,none,.py,
 libs/pipeline_graph/subgraphs/terminology.py,stamped,DO-16FFE9D3,"DI-04105500, DI-4247C7E5, DI-5A802C83",,none,.py,
 libs/pipeline_graph/subgraphs/tier_classify.py,stamped,DO-93E086B0,"DI-F0B8A7B0, DI-F298AE65, DI-F2C18D2E",,none,.py,
-libs/pipeline_graph/subgraphs/verification.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/subgraphs/verification.py,stamped,DO-69F520C9,DI-F22160C3,,none,.py,
 libs/pipeline_graph/utils/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/pipeline_graph/utils/deidentify.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/pipeline_graph/utils/deidentify.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/prompts/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/prompts/anchor_domain_review_examples.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.py,
 libs/prompts/anchor_domain_review_output_schema.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.py,
@@ -203,12 +206,12 @@ libs/prompts/episode_builder_examples.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.
 libs/prompts/episode_builder_output_schema.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.py,
 libs/prompts/episode_builder_v1.py,stamped,DO-B7060F57,DI-37DDAADE,,none,.py,
 libs/prompts/episode_engine/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/prompts/episode_engine/_shared.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/prompts/episode_engine/audit_relevance_filter_v1.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/prompts/episode_engine/classifier_v1.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/prompts/episode_engine/milestone_extractor_v1.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/prompts/episode_engine/reconciler_v1.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/prompts/episode_engine/segmenter_v1.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/episode_engine/_shared.py,stamped,DO-710D9EEB,DI-CBCA6E2D,,none,.py,
+libs/prompts/episode_engine/audit_relevance_filter_v1.py,stamped,DO-710D9EEB,DI-CBCA6E2D,,legacy,.py,
+libs/prompts/episode_engine/classifier_v1.py,stamped,DO-710D9EEB,DI-CBCA6E2D,,none,.py,
+libs/prompts/episode_engine/milestone_extractor_v1.py,stamped,DO-710D9EEB,DI-CBCA6E2D,,none,.py,
+libs/prompts/episode_engine/reconciler_v1.py,stamped,DO-710D9EEB,DI-CBCA6E2D,,none,.py,
+libs/prompts/episode_engine/segmenter_v1.py,stamped,DO-710D9EEB,DI-CBCA6E2D,,none,.py,
 libs/prompts/exclusion_detect_examples.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.py,
 libs/prompts/exclusion_detect_output_schema.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.py,
 libs/prompts/exclusion_detect_v1.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.py,
@@ -231,11 +234,11 @@ libs/prompts/label_verification_v2.py,stamped,DO-54397CCD,DI-6EFD68D0,,none,.py,
 libs/prompts/model_training_labels.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.py,
 libs/prompts/registry.py,stamped,DO-54397CCD,"DI-5A802C83, DI-66F1B177, DI-6EFD68D0",,none,.py,
 libs/prompts/relation_linking_v1.py,stamped,DO-8620A68B,DI-5A802C83,,none,.py,
-libs/prompts/sbar_background_reduce_v1.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/prompts/sbar_background_v1.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/prompts/sbar_output_schemas.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/prompts/sbar_recommendation_v1.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/prompts/sbar_situation_v1.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/prompts/sbar_background_reduce_v1.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
+libs/prompts/sbar_background_v1.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
+libs/prompts/sbar_output_schemas.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
+libs/prompts/sbar_recommendation_v1.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
+libs/prompts/sbar_situation_v1.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/prompts/synthetic_ner_sentences.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.py,
 libs/prompts/test_patient_scaffold_v1.py,excluded,,,,none,.py,"test_*.py (VT, not DO)"
 libs/prompts/test_patient_scenario_v1.py,excluded,,,,none,.py,"test_*.py (VT, not DO)"
@@ -245,23 +248,23 @@ libs/prompts/verification_v1.py,stamped,DO-BEFC4C67,DI-85AB13D7,,none,.py,
 libs/redis_client/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/redis_client/checkpoint.py,stamped,DO-412DE1A5,DI-B884A243,,none,.py,
 libs/redis_client/rebuild_status.py,stamped,DO-412DE1A5,DI-B884A243,,none,.py,
-libs/redis_client/session.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/redis_client/session.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,none,.py,
 libs/relations/policy.py,stamped,DO-236545C8,DI-2D9F5064,,none,.py,
 libs/sbar/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/sbar/assessment_formatter.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/sbar/background_partitioner.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/sbar/error_messages.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/sbar/events.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/sbar/prompt_calls.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-libs/sbar/source_resolver.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/sbar/assessment_formatter.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
+libs/sbar/background_partitioner.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
+libs/sbar/error_messages.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
+libs/sbar/events.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
+libs/sbar/prompt_calls.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
+libs/sbar/source_resolver.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
 libs/search/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/search/term_expansion.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/search/term_expansion.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
 libs/service_auth/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/service_auth/token_provider.py,stamped,DO-DB7F8D52,"DI-4DBE1A18, DI-87CCCB18",,none,.py,
 libs/service_auth/validator.py,stamped,DO-DB7F8D52,"DI-4DBE1A18, DI-87CCCB18",,none,.py,
 libs/staging/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/staging/engine.py,stamped,DO-A23404E0,"DI-23822663, DO-671C15BF",,none,.py,
-libs/staging/tnm_parser.py,stamped,DO-A23404E0,"DI-23822663, DO-671C15BF",,none,.py,
+libs/staging/engine.py,stamped,DO-A23404E0,DI-23822663,,none,.py,
+libs/staging/tnm_parser.py,stamped,DO-A23404E0,DI-23822663,,none,.py,
 libs/telemetry/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/telemetry/tracing.py,stamped,DO-5D032346,DI-A93499CE,,none,.py,
 libs/terminology/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
@@ -270,7 +273,7 @@ libs/terminology/preferred_terms.py,stamped,DO-8C497D0C,DI-82036B4D,,none,.py,
 libs/terminology/semantic_tag.py,stamped,DO-8C497D0C,DI-82036B4D,,none,.py,
 libs/terminology/surface_normalize.py,stamped,DO-8C497D0C,DI-82036B4D,,none,.py,
 libs/training/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-libs/training/lab_span_detector.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+libs/training/lab_span_detector.py,stamped,DO-AA3B7FCC,DI-9456E5BE,,legacy,.py,
 libs/utils/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 libs/utils/deidentify.py,stamped,DO-210CF040,"DI-AE477327, DI-E7AFFDA5",,none,.py,
 libs/utils/device_resolver.py,stamped,DO-89AF1CCE,DI-3717DFB0,,none,.py,
@@ -285,19 +288,19 @@ services/analysis_worker/__init__.py,excluded,,,,none,.py,__init__.py (no execut
 services/analysis_worker/app/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/analysis_worker/app/analyzers/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/analysis_worker/app/analyzers/abnormal_results.py,stamped,DO-6C694CF9,DI-21E93377,,none,.py,
-services/analysis_worker/app/analyzers/anchor_detector.py,stamped,DO-0A64F95A,"DI-080A2454, DI-37DDAADE, DI-4885D9FF, DI-6051F076, DO-B7FCDAFB",,legacy,.py,
-services/analysis_worker/app/analyzers/cancer_site_terms.py,triage,DO-0DFA6961,,,none,.py,Atlas DO has no parent DI in cache
+services/analysis_worker/app/analyzers/anchor_detector.py,stamped,DO-0A64F95A,"DI-080A2454, DI-37DDAADE, DI-4885D9FF, DI-6051F076, DI-E3689657",,legacy,.py,
+services/analysis_worker/app/analyzers/cancer_site_terms.py,stamped,DO-0DFA6961,DI-E3689657,,none,.py,
 services/analysis_worker/app/analyzers/episode_builder/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/analysis_worker/app/analyzers/episode_builder/_auto_close.py,stamped,DO-0C7A443A,"DI-FC264BBF, DI-FF9C74E2",,legacy,.py,
 services/analysis_worker/app/analyzers/episode_builder/_builder.py,stamped,DO-0C7A443A,"DI-080A2454, DI-6C5D77CA, DI-EE4E6477, DI-FC264BBF, DI-FF9C74E2",,legacy,.py,
-services/analysis_worker/app/analyzers/episode_builder/_config.py,stamped,DO-694875ED,"DI-080A2454, DO-B7FCDAFB",,legacy,.py,
+services/analysis_worker/app/analyzers/episode_builder/_config.py,stamped,DO-694875ED,DI-080A2454,,legacy,.py,
 services/analysis_worker/app/analyzers/episode_builder/_cypher.py,stamped,DO-0C7A443A,"DI-080A2454, DI-FC264BBF, DI-FF9C74E2",,legacy,.py,
 services/analysis_worker/app/analyzers/episode_builder/_first_presentation.py,stamped,DO-F2E2A70B,DI-5B694FBE,,none,.py,
-services/analysis_worker/app/analyzers/episode_builder/_grouping.py,stamped,DO-0C7A443A,"DI-FC264BBF, DI-FF9C74E2, DO-B7FCDAFB",,legacy,.py,
-services/analysis_worker/app/analyzers/episode_builder/_milestone_dedup.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/analyzers/episode_builder/_grouping.py,stamped,DO-0C7A443A,"DI-FC264BBF, DI-FF9C74E2",,legacy,.py,
+services/analysis_worker/app/analyzers/episode_builder/_milestone_dedup.py,stamped,DO-2C1A2392,DI-7FF67ECE,,legacy,.py,
 services/analysis_worker/app/analyzers/episode_builder/_persistence.py,stamped,DO-0C7A443A,"DI-080A2454, DI-FC264BBF, DI-FF9C74E2",,legacy,.py,
-services/analysis_worker/app/analyzers/episode_builder/_site_resolution.py,triage,DO-0DFA6961,,,legacy,.py,Atlas DO has no parent DI in cache
-services/analysis_worker/app/analyzers/episode_builder/_status.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/analyzers/episode_builder/_site_resolution.py,stamped,DO-0DFA6961,DI-E3689657,,legacy,.py,
+services/analysis_worker/app/analyzers/episode_builder/_status.py,stamped,DO-2C1A2392,DI-7FF67ECE,,legacy,.py,
 services/analysis_worker/app/analyzers/episode_builder/_types.py,stamped,DO-0C7A443A,"DI-080A2454, DI-FC264BBF, DI-FF9C74E2",,legacy,.py,
 services/analysis_worker/app/analyzers/kpi_calculator.py,stamped,DO-1F552BE1,"DI-1206D9E8, DI-EE4E6477, DI-F3FD2B63",,legacy,.py,
 services/analysis_worker/app/analyzers/quality_checker.py,stamped,DO-1F552BE1,"DI-1206D9E8, DI-F3FD2B63",,none,.py,
@@ -305,32 +308,32 @@ services/analysis_worker/app/analyzers/safety_net_detector.py,stamped,DO-6F3EE28
 services/analysis_worker/app/analyzers/safety_net_persistence.py,stamped,DO-B711D180,DI-CE0A08E5,,legacy,.py,
 services/analysis_worker/app/episode_engine/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/analysis_worker/app/episode_engine/agents/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/analysis_worker/app/episode_engine/agents/_common.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/agents/audit_guards.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/agents/audit_relevance_filter.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/agents/classifier.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/agents/milestone_extractor.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/agents/reconciler.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/agents/segmenter.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/chain.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/schemas.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/agents/_common.py,stamped,DO-2C1A2392,DI-7FF67ECE,,none,.py,
+services/analysis_worker/app/episode_engine/agents/audit_guards.py,stamped,DO-2C1A2392,DI-7FF67ECE,,legacy,.py,
+services/analysis_worker/app/episode_engine/agents/audit_relevance_filter.py,stamped,DO-2C1A2392,DI-7FF67ECE,,legacy,.py,
+services/analysis_worker/app/episode_engine/agents/classifier.py,stamped,DO-2C1A2392,DI-7FF67ECE,,none,.py,
+services/analysis_worker/app/episode_engine/agents/milestone_extractor.py,stamped,DO-2C1A2392,DI-7FF67ECE,,none,.py,
+services/analysis_worker/app/episode_engine/agents/reconciler.py,stamped,DO-2C1A2392,DI-7FF67ECE,,none,.py,
+services/analysis_worker/app/episode_engine/agents/segmenter.py,stamped,DO-2C1A2392,DI-7FF67ECE,,none,.py,
+services/analysis_worker/app/episode_engine/chain.py,stamped,DO-2C1A2392,DI-7FF67ECE,,legacy,.py,
+services/analysis_worker/app/episode_engine/schemas.py,stamped,DO-2C1A2392,DI-7FF67ECE,,legacy,.py,
 services/analysis_worker/app/episode_engine/state.py,stamped,DO-F2E2A70B,DI-5B694FBE,,none,.py,
-services/analysis_worker/app/episode_engine/timeline_loader.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/tracing.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/window_partitioner.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/analysis_worker/app/episode_engine/writer.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/episode_engine/timeline_loader.py,stamped,DO-2C1A2392,DI-7FF67ECE,,legacy,.py,
+services/analysis_worker/app/episode_engine/tracing.py,stamped,DO-2C1A2392,DI-7FF67ECE,,legacy,.py,
+services/analysis_worker/app/episode_engine/window_partitioner.py,stamped,DO-2C1A2392,DI-7FF67ECE,,legacy,.py,
+services/analysis_worker/app/episode_engine/writer.py,stamped,DO-2C1A2392,DI-7FF67ECE,,none,.py,
 services/analysis_worker/app/episode_engine/writer_rollups.py,stamped,DO-F2E2A70B,DI-5B694FBE,,none,.py,
 services/analysis_worker/app/services/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/analysis_worker/app/services/job_handler.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analysis_worker/app/services/job_handler.py,stamped,DO-2C1A2392,DI-7FF67ECE,,none,.py,
 services/analytics_api/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/analytics_api/app/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/analytics_api/app/main.py,stamped,DO-9F3CD7DE,"DI-CF03E4EA, DO-F78C84A6",,none,.py,
+services/analytics_api/app/main.py,stamped,DO-9F3CD7DE,DI-CF03E4EA,,none,.py,
 services/analytics_api/app/routers/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/analytics_api/app/routers/_audit_comorbidities.py,stamped,DO-D5B9FE5F,DI-6E1B71A4,,none,.py,
 services/analytics_api/app/routers/_audit_helpers.py,stamped,DO-D5B9FE5F,DI-6E1B71A4,,none,.py,
 services/analytics_api/app/routers/_audit_intervals.py,stamped,DO-A6D3FE39,DI-BA2C8F3E,,none,.py,
 services/analytics_api/app/routers/_audit_sections.py,stamped,DO-A6D3FE39,DI-BA2C8F3E,,legacy,.py,
-services/analytics_api/app/routers/audit.py,stamped,DO-11A2361E,"DI-23822663, DI-4885D9FF, DI-BA2C8F3E, DI-F46D7A68, DO-671C15BF",,atlas,.py,
+services/analytics_api/app/routers/audit.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
 services/analytics_api/app/routers/benchmarks.py,stamped,DO-11A2361E,"DI-94359E76, DI-F46D7A68",,none,.py,
 services/analytics_api/app/routers/cci.py,stamped,DO-1EB4FB1D,DI-3020D1C0,,none,.py,
 services/analytics_api/app/routers/cohorts.py,stamped,DO-1EB4FB1D,"DI-3020D1C0, DI-94359E76, DI-FE3FFE50",,legacy,.py,
@@ -338,16 +341,16 @@ services/analytics_api/app/routers/dashboards.py,stamped,DO-11A2361E,"DI-94359E7
 services/analytics_api/app/routers/domains.py,stamped,DO-2340F614,DI-4885D9FF,,none,.py,
 services/analytics_api/app/routers/imd.py,stamped,DO-D537B955,DI-94359E76,,none,.py,
 services/analytics_api/app/routers/mission_control.py,stamped,DO-9F3CD7DE,"DI-BA2C8F3E, DI-CF03E4EA",,legacy,.py,
-services/analytics_api/app/routers/mission_control_encounters.py,stamped,DO-9530152E,"DI-DD67ACFF, DO-F78C84A6",,none,.py,
+services/analytics_api/app/routers/mission_control_encounters.py,stamped,DO-9530152E,DI-DD67ACFF,,none,.py,
 services/analytics_api/app/routers/org_context.py,stamped,DO-D5B9FE5F,DI-6E1B71A4,,none,.py,
-services/analytics_api/app/routers/patient_finder.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analytics_api/app/routers/patient_finder.py,stamped,DO-31410049,DI-F46494AE,,legacy,.py,
 services/analytics_api/app/routers/research.py,stamped,DO-38C2D850,DI-58988BF2,,none,.py,
 services/analytics_api/app/services/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/analytics_api/app/services/algorithm_runner.py,stamped,DO-38C2D850,DI-58988BF2,,none,.py,
 services/analytics_api/app/services/algorithm_runner_condition.py,stamped,DO-D5B9FE5F,DI-6E1B71A4,,none,.py,
 services/analytics_api/app/services/algorithm_runner_helpers.py,stamped,DO-D5B9FE5F,DI-6E1B71A4,,none,.py,
 services/analytics_api/app/services/algorithm_runner_patient.py,stamped,DO-D5B9FE5F,DI-6E1B71A4,,none,.py,
-services/analytics_api/app/services/encounter_query_understanding.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/analytics_api/app/services/encounter_query_understanding.py,stamped,DO-31410049,DI-F46494AE,,none,.py,
 services/analytics_api/app/services/gds_projection_manager.py,stamped,DO-38C2D850,DI-58988BF2,,none,.py,
 services/analytics_api/app/services/headline_generator.py,stamped,DO-38C2D850,DI-58988BF2,,none,.py,
 services/analytics_api/tests/__init__.py,excluded,,,,none,.py,"tests directory (VT, not DO)"
@@ -363,92 +366,93 @@ services/api/app/config.py,stamped,DO-2D66F23B,DI-922114AE,,none,.py,
 services/api/app/db/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/api/app/db/neo4j_client.py,stamped,DO-448BFA1A,DI-84F44836,,none,.py,
 services/api/app/deps.py,stamped,DO-DB7F8D52,"DI-4DBE1A18, DI-87CCCB18",,legacy,.py,
-services/api/app/main.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/main.py,stamped,DO-19FA25C3,DI-727C94B4,,none,.py,
 services/api/app/models/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/api/app/models/contracts.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/models/neo4j_schema.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/models/contracts.py,stamped,DO-19FA25C3,DI-727C94B4,,none,.py,
+services/api/app/models/neo4j_schema.py,stamped,DO-19FA25C3,DI-727C94B4,,none,.py,
 services/api/app/routers/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/api/app/routers/_training_ai_first_pass.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/_training_askleo.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/admin.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/anchor_review.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/audit.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/_training_ai_first_pass.py,stamped,DO-EC41233C,DI-9D0DF618,,legacy,.py,
+services/api/app/routers/_training_askleo.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/admin.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/admin_entra.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
+services/api/app/routers/anchor_review.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/audit.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
 services/api/app/routers/audit_quality.py,stamped,DO-720CD183,DI-1126FFD1,,none,.py,
-services/api/app/routers/auth.py,stamped,DO-308DD1A6,DI-D49BCE55,,atlas,.py,
+services/api/app/routers/auth.py,already_atlas,,,,atlas,.py,canonical Atlas trace block present
 services/api/app/routers/data_quality.py,stamped,DO-86800C9B,DI-FC80B65A,,legacy,.py,
-services/api/app/routers/devices.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/events.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/exports.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/games.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/devices.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/events.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/exports.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/games.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
 services/api/app/routers/guidance_rules.py,stamped,DO-5B320DDC,"DI-69C29EEF, DI-A3107424",,legacy,.py,
-services/api/app/routers/mail_router.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/model_configs.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/model_registry.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/mail_router.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/model_configs.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/model_registry.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
 services/api/app/routers/nice_guidance.py,stamped,DO-24AA8840,DI-693FFEEA,,none,.py,
-services/api/app/routers/onboarding.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/onboarding.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
 services/api/app/routers/operations.py,stamped,DO-B70AF10E,DI-A90B19EB,,none,.py,
-services/api/app/routers/patients.py,stamped,DO-9530152E,"DI-DD67ACFF, DO-F78C84A6",,legacy,.py,
-services/api/app/routers/pipeline.py,stamped,DO-245F62CB,"DI-091CBBAB, DI-176EA4FF, DI-693FFEEA, DI-705C806B, DI-B0A1E549, DI-B8674FBF, DO-41EF3F1D",,none,.py,
-services/api/app/routers/presets.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/pricing.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/patients.py,stamped,DO-9530152E,DI-DD67ACFF,,legacy,.py,
+services/api/app/routers/pipeline.py,stamped,DO-245F62CB,"DI-091CBBAB, DI-176EA4FF, DI-693FFEEA, DI-705C806B, DI-B0A1E549, DI-B8674FBF",,none,.py,
+services/api/app/routers/presets.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/pricing.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
 services/api/app/routers/prompts.py,stamped,DO-83EBEE2C,DI-B954388C,,none,.py,
-services/api/app/routers/proxy.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/reference_ranges.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/proxy.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/reference_ranges.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
 services/api/app/routers/review.py,stamped,DO-3FC2C9D7,DI-8804DA01,,none,.py,
-services/api/app/routers/sbar.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/terminology.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/routers/terminology_admin.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/routers/sbar.py,stamped,DO-EC41233C,DI-9D0DF618,,legacy,.py,
+services/api/app/routers/terminology.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
+services/api/app/routers/terminology_admin.py,stamped,DO-EC41233C,DI-9D0DF618,,none,.py,
 services/api/app/routers/test_patients.py,excluded,,,,atlas,.py,"test_*.py (VT, not DO)"
 services/api/app/routers/training.py,stamped,DO-236545C8,"DI-2D9F5064, DI-37B3DC71, DI-3EA60D5A, DI-54D00E21, DI-6EFD68D0, DI-A0579B64, DI-AF5A1668, DI-D2D0117E",,legacy,.py,
 services/api/app/routers/work.py,stamped,DO-65BA6EA0,DI-C0AD09D2,,legacy,.py,
 services/api/app/services/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/api/app/services/_logic_tree.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/_logic_tree.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
 services/api/app/services/candidate_ai_first_pass/__init__.py,excluded,,,,legacy,.py,__init__.py (no executable surface)
-services/api/app/services/candidate_ai_first_pass/_coder.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/candidate_ai_first_pass/_extractor.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/candidate_ai_first_pass/_gold_pool.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/candidate_ai_first_pass/_job_runner.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/candidate_ai_first_pass/_types.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/candidate_ai_first_pass/_verdict.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/candidate_ai_first_pass/_writeback.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/candidate_prune.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/context_reconciler.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/encounter_classifier.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/entity_alignment.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/export_service.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/fix_analyzer.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/candidate_ai_first_pass/_coder.py,stamped,DO-D7005C41,DI-0FFA05BB,,legacy,.py,
+services/api/app/services/candidate_ai_first_pass/_extractor.py,stamped,DO-D7005C41,DI-0FFA05BB,,legacy,.py,
+services/api/app/services/candidate_ai_first_pass/_gold_pool.py,stamped,DO-D7005C41,DI-0FFA05BB,,legacy,.py,
+services/api/app/services/candidate_ai_first_pass/_job_runner.py,stamped,DO-D7005C41,DI-0FFA05BB,,legacy,.py,
+services/api/app/services/candidate_ai_first_pass/_types.py,stamped,DO-D7005C41,DI-0FFA05BB,,legacy,.py,
+services/api/app/services/candidate_ai_first_pass/_verdict.py,stamped,DO-D7005C41,DI-0FFA05BB,,legacy,.py,
+services/api/app/services/candidate_ai_first_pass/_writeback.py,stamped,DO-D7005C41,DI-0FFA05BB,,legacy,.py,
+services/api/app/services/candidate_prune.py,stamped,DO-92F92EFB,DI-88C1715A,,legacy,.py,
+services/api/app/services/context_reconciler.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/encounter_classifier.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/entity_alignment.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/export_service.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/fix_analyzer.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
 services/api/app/services/guidance_rule_edit.py,stamped,DO-D6CE2AA5,DI-A3107424,,legacy,.py,
 services/api/app/services/guidance_rule_generator.py,stamped,DO-5B320DDC,DI-69C29EEF,,legacy,.py,
-services/api/app/services/inference_service.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/label_verifier.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/llm_usage.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/loop_config_seed.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/mail.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/model_config_seed.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/inference_service.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/label_verifier.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/llm_usage.py,stamped,DO-92F92EFB,DI-88C1715A,,legacy,.py,
+services/api/app/services/loop_config_seed.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/mail.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/model_config_seed.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
 services/api/app/services/neo4j_store.py,stamped,DO-7E1BAACC,"DI-143F69EB, DI-1501326A",,none,.py,
 services/api/app/services/nice_api_client.py,stamped,DO-24AA8840,DI-693FFEEA,,none,.py,
 services/api/app/services/nice_graph_upserter.py,stamped,DO-24AA8840,DI-693FFEEA,,none,.py,
-services/api/app/services/patient_graph_writer.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/pipeline_service.py,stamped,DO-245F62CB,"DI-091CBBAB, DI-176EA4FF, DO-F78C84A6",,none,.py,
-services/api/app/services/reset_review_queue_service.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/reset_service.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/patient_graph_writer.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/pipeline_service.py,stamped,DO-245F62CB,"DI-091CBBAB, DI-176EA4FF",,none,.py,
+services/api/app/services/reset_review_queue_service.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/reset_service.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
 services/api/app/services/review_service.py,stamped,DO-3FC2C9D7,DI-8804DA01,,none,.py,
-services/api/app/services/service_config_seed.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/session_store.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/sync_service.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/tenant_seed.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/term_patcher.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/terminology_writeback_service.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/service_config_seed.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/session_store.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/sync_service.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/tenant_seed.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/term_patcher.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/terminology_writeback_service.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
 services/api/app/services/test_patient_clone.py,excluded,,,,atlas,.py,"test_*.py (VT, not DO)"
 services/api/app/services/test_patient_generator.py,excluded,,,,none,.py,"test_*.py (VT, not DO)"
 services/api/app/services/test_patient_redactor.py,excluded,,,,none,.py,"test_*.py (VT, not DO)"
 services/api/app/services/test_patient_scaffolder.py,excluded,,,,none,.py,"test_*.py (VT, not DO)"
 services/api/app/services/test_patient_scenario_scaffolder.py,excluded,,,,none,.py,"test_*.py (VT, not DO)"
 services/api/app/services/test_patient_service.py,excluded,,,,none,.py,"test_*.py (VT, not DO)"
-services/api/app/services/training_creator.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/api/app/services/trud_sync.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/app/services/training_creator.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
+services/api/app/services/trud_sync.py,stamped,DO-92F92EFB,DI-88C1715A,,none,.py,
 services/api/scripts/migrations/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/api/scripts/probe_nice_taxonomy.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/api/scripts/probe_nice_taxonomy.py,excluded,,,,none,.py,ad-hoc probe script (Class A)
 services/api/tests/conftest.py,excluded,,,,none,.py,"tests directory (VT, not DO)"
 services/api/tests/test_ai_first_pass_endpoint.py,excluded,,,,legacy,.py,"tests directory (VT, not DO)"
 services/api/tests/test_bedrock_retry.py,excluded,,,,none,.py,"tests directory (VT, not DO)"
@@ -491,33 +495,33 @@ services/api/tests/test_v3_patient_graph_writer.py,excluded,,,,none,.py,"tests d
 services/coding_worker/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/coding_worker/app/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/coding_worker/app/pipeline/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/coding_worker/app/pipeline/extractor_contract.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/coding_worker/app/pipeline/extractor_contract.py,stamped,DO-9488B454,DI-D46D83FA,,none,.py,
 services/coding_worker/app/pipeline/extractor_registry.py,stamped,DO-14B332AB,"DI-30D95132, DI-31126C6C, DI-3B3F7D4B",,none,.py,
 services/coding_worker/app/pipeline/llm_extractor.py,stamped,DO-0289F3A5,"DI-48AD06E5, DI-88C8BBCD, DI-A0579B64, DI-A0C90595, DI-F298AE65",,legacy,.py,
 services/coding_worker/app/pipeline/providers/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/coding_worker/app/pipeline/providers/llm_provider.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/coding_worker/app/pipeline/providers/llm_provider.py,stamped,DO-9488B454,DI-D46D83FA,,none,.py,
 services/coding_worker/app/pipeline/providers/model_provider.py,stamped,DO-1D5031E0,DI-702F4583,,none,.py,
-services/coding_worker/app/pipeline/sentence_splitter.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/coding_worker/app/pipeline/sentence_splitter.py,stamped,DO-9488B454,DI-D46D83FA,,none,.py,
 services/coding_worker/app/services/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/coding_worker/app/services/job_handler.py,stamped,DO-A26CD350,DI-705C806B,,none,.py,
-services/coding_worker/app/services/progress_publisher.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/coding_worker/app/services/progress_publisher.py,stamped,DO-9488B454,DI-D46D83FA,,none,.py,
 services/coding_worker/tests/test_job_handler_engine.py,excluded,,,,none,.py,"tests directory (VT, not DO)"
-services/design-system/src/copy/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/design-system/src/copy/readability.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/copy/index.ts,stamped,DO-124AC2C4,DI-613A48DA,,none,.ts,
+services/design-system/src/copy/readability.ts,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.ts,
 services/design-system/src/fonts/index.ts,stamped,DO-4A8227DD,DI-61CB27B2,,legacy,.ts,
 services/design-system/src/index.ts,stamped,DO-0AE8E53C,DI-21C63B6A,,none,.ts,
 services/design-system/src/motion/MotionProvider.tsx,stamped,DO-6DCC699A,DI-9DDC5471,,none,.tsx,
-services/design-system/src/motion/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/motion/index.ts,stamped,DO-124AC2C4,DI-613A48DA,,none,.ts,
 services/design-system/src/primitives/DataGridCard.tsx,stamped,DO-BCA9B190,DI-C5A523A7,,legacy,.tsx,
 services/design-system/src/primitives/FilterBar.tsx,stamped,DO-BCA9B190,DI-C5A523A7,,legacy,.tsx,
-services/design-system/src/primitives/IntroCard.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/design-system/src/primitives/KnowledgePageLayout.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/primitives/IntroCard.tsx,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.tsx,
+services/design-system/src/primitives/KnowledgePageLayout.tsx,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.tsx,
 services/design-system/src/primitives/MetricTile.tsx,stamped,DO-BCA9B190,DI-C5A523A7,,legacy,.tsx,
-services/design-system/src/primitives/NudgeStrip.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/design-system/src/primitives/PipelineRail.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/primitives/NudgeStrip.tsx,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.tsx,
+services/design-system/src/primitives/PipelineRail.tsx,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.tsx,
 services/design-system/src/primitives/ProgressStrip.tsx,stamped,DO-BCA9B190,DI-C5A523A7,,legacy,.tsx,
-services/design-system/src/primitives/ProgressiveReveal.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/design-system/src/primitives/PromptEditorCard.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/primitives/ProgressiveReveal.tsx,stamped,DO-124AC2C4,DI-613A48DA,,none,.tsx,
+services/design-system/src/primitives/PromptEditorCard.tsx,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.tsx,
 services/design-system/src/primitives/ReviewListCard.tsx,stamped,DO-BCA9B190,DI-C5A523A7,,legacy,.tsx,
 services/design-system/src/primitives/SegmentedTabs.tsx,stamped,DO-BCA9B190,DI-C5A523A7,,legacy,.tsx,
 services/design-system/src/primitives/StatHero.tsx,stamped,DO-BCA9B190,DI-C5A523A7,,legacy,.tsx,
@@ -525,19 +529,19 @@ services/design-system/src/primitives/TaskQueue.tsx,stamped,DO-65BA6EA0,DI-C0AD0
 services/design-system/src/primitives/ToolbarActions.tsx,stamped,DO-BCA9B190,DI-C5A523A7,,legacy,.tsx,
 services/design-system/src/primitives/index.ts,stamped,DO-BCA9B190,DI-C5A523A7,,none,.ts,
 services/design-system/src/roles/RoleContext.tsx,stamped,DO-10218528,DI-FAF97A8C,,legacy,.tsx,
-services/design-system/src/roles/RoleGate.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/roles/RoleGate.tsx,stamped,DO-124AC2C4,DI-613A48DA,,none,.tsx,
 services/design-system/src/roles/RolePicker.tsx,stamped,DO-10218528,DI-FAF97A8C,,none,.tsx,
 services/design-system/src/roles/RoleSwitcher.tsx,stamped,DO-10218528,DI-FAF97A8C,,none,.tsx,
-services/design-system/src/roles/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/roles/index.ts,stamped,DO-124AC2C4,DI-613A48DA,,none,.ts,
 services/design-system/src/roles/navMap.ts,stamped,DO-10218528,DI-FAF97A8C,,none,.ts,
-services/design-system/src/roles/types.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/roles/types.ts,stamped,DO-124AC2C4,DI-613A48DA,,none,.ts,
 services/design-system/src/theme/index.ts,stamped,DO-5DB895BF,DI-39C53CDA,,legacy,.ts,
-services/design-system/src/tokens/color.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/design-system/src/tokens/density.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/tokens/color.ts,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.ts,
+services/design-system/src/tokens/density.ts,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.ts,
 services/design-system/src/tokens/index.ts,stamped,DO-0AE8E53C,DI-21C63B6A,,none,.ts,
-services/design-system/src/tokens/motion.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/design-system/src/tokens/spacing.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/design-system/src/tokens/typography.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/design-system/src/tokens/motion.ts,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.ts,
+services/design-system/src/tokens/spacing.ts,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.ts,
+services/design-system/src/tokens/typography.ts,stamped,DO-124AC2C4,DI-613A48DA,,legacy,.ts,
 services/dq_mcp/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/dq_mcp/server.py,stamped,DO-0998FAF5,DI-FC80B65A,,legacy,.py,
 services/dq_mcp/tools.py,stamped,DO-0998FAF5,DI-FC80B65A,,legacy,.py,
@@ -583,25 +587,25 @@ services/neo4j_mcp/tools/patients.py,stamped,DO-5F438C17,DI-5700882E,,none,.py,
 services/neo4j_mcp/tools/query_pack_common.py,stamped,DO-5F438C17,DI-5700882E,,none,.py,
 services/neo4j_mcp/tools/query_pack_config.py,stamped,DO-5F438C17,DI-5700882E,,none,.py,
 services/neo4j_mcp/tools/query_pack_escalation.py,stamped,DO-5F438C17,DI-5700882E,,none,.py,
-services/neo4j_mcp/tools/query_pack_pathway.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/neo4j_mcp/tools/query_pack_safety.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/neo4j_mcp/tools/query_pack_pathway.py,stamped,DO-4D608335,DI-760F5FB7,,legacy,.py,
+services/neo4j_mcp/tools/query_pack_safety.py,stamped,DO-4D608335,DI-760F5FB7,,legacy,.py,
 services/neo4j_mcp/tools/query_pack_training_quality.py,stamped,DO-5F438C17,DI-5700882E,,none,.py,
 services/neo4j_mcp/tools/resets.py,stamped,DO-5F438C17,DI-5700882E,,none,.py,
 services/neo4j_mcp/tools/surface_forms.py,stamped,DO-5F438C17,DI-5700882E,,none,.py,
-services/neo4j_mcp/tools/training.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/neo4j_mcp/tools/training.py,stamped,DO-4D608335,DI-760F5FB7,,none,.py,
 services/ods_sync/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/ods_sync/app/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/ods_sync/app/circuit_breaker.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ods_sync/app/circuit_breaker.py,stamped,DO-31410049,DI-F46494AE,,legacy,.py,
 services/ods_sync/app/main.py,stamped,DO-05064452,DI-20104031,,none,.py,
-services/ods_sync/app/sync_service.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ods_sync/app/sync_service.py,stamped,DO-31410049,DI-F46494AE,,legacy,.py,
 services/pipeline_worker/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/pipeline_worker/app/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/pipeline_worker/app/graph/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
-services/pipeline_worker/app/graph/builder.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/pipeline_worker/app/main.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/pipeline_worker/app/services/guidance_rule_generator.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/pipeline_worker/app/services/label_verifier.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/pipeline_worker/app/services/sbar_orchestrator.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/pipeline_worker/app/graph/builder.py,stamped,DO-C2F6CA16,DI-06CB6881,,none,.py,
+services/pipeline_worker/app/main.py,stamped,DO-C2F6CA16,DI-06CB6881,,legacy,.py,
+services/pipeline_worker/app/services/guidance_rule_generator.py,stamped,DO-C2F6CA16,DI-06CB6881,,none,.py,
+services/pipeline_worker/app/services/label_verifier.py,stamped,DO-C2F6CA16,DI-06CB6881,,none,.py,
+services/pipeline_worker/app/services/sbar_orchestrator.py,stamped,DO-C2F6CA16,DI-06CB6881,,legacy,.py,
 services/research_worker/app/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/research_worker/app/job_runner.py,stamped,DO-38C2D850,DI-58988BF2,,none,.py,
 services/research_worker/app/job_store.py,stamped,DO-38C2D850,DI-58988BF2,,none,.py,
@@ -612,16 +616,16 @@ services/terminology/scripts/loaders/__init__.py,excluded,,,,none,.py,__init__.p
 services/terminology/scripts/loaders/__main__.py,stamped,DO-B63973E7,DI-B4D56E92,,none,.py,
 services/terminology/scripts/loaders/base.py,stamped,DO-B63973E7,DI-B4D56E92,,none,.py,
 services/terminology/scripts/loaders/dmd_drugs.py,stamped,DO-B63973E7,DI-B4D56E92,,none,.py,
-services/terminology/scripts/loaders/file_finder.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/terminology/scripts/loaders/icd10_xml.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/terminology/scripts/loaders/opcs4.py,unresolved,,,,legacy,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/terminology/scripts/loaders/run_all.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
-services/terminology/scripts/loaders/schema.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology/scripts/loaders/file_finder.py,stamped,DO-4D608335,DI-760F5FB7,,none,.py,
+services/terminology/scripts/loaders/icd10_xml.py,stamped,DO-4D608335,DI-760F5FB7,,legacy,.py,
+services/terminology/scripts/loaders/opcs4.py,stamped,DO-4D608335,DI-760F5FB7,,legacy,.py,
+services/terminology/scripts/loaders/run_all.py,stamped,DO-4D608335,DI-760F5FB7,,none,.py,
+services/terminology/scripts/loaders/schema.py,stamped,DO-4D608335,DI-760F5FB7,,none,.py,
 services/terminology/scripts/loaders/snomed_attribute_projection.py,stamped,DO-B63973E7,DI-B4D56E92,,none,.py,
 services/terminology/scripts/loaders/snomed_concept.py,stamped,DO-B63973E7,DI-B4D56E92,,none,.py,
 services/terminology/scripts/loaders/snomed_description.py,stamped,DO-B63973E7,DI-B4D56E92,,none,.py,
 services/terminology/scripts/loaders/snomed_language.py,stamped,DO-B63973E7,DI-B4D56E92,,none,.py,
-services/terminology/scripts/loaders/snomed_map.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology/scripts/loaders/snomed_map.py,stamped,DO-4D608335,DI-760F5FB7,,none,.py,
 services/terminology/scripts/loaders/snomed_relationship.py,stamped,DO-B63973E7,DI-B4D56E92,,none,.py,
 services/terminology_api/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/terminology_api/app/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
@@ -642,7 +646,7 @@ services/terminology_api/app/routers/writeback.py,stamped,DO-77A48DBC,"DI-4746A1
 services/terminology_api/app/services/__init__.py,excluded,,,,none,.py,__init__.py (no executable surface)
 services/terminology_api/app/services/bitmap_store.py,stamped,DO-E74B0605,DI-5E25E872,,none,.py,
 services/terminology_api/app/services/coding_resolver.py,stamped,DO-14D58359,DI-F8634363,,none,.py,
-services/terminology_api/app/services/conceptmap_service.py,unresolved,,,,none,.py,no resolvable Atlas DI/DO via Phase 13a evidence
+services/terminology_api/app/services/conceptmap_service.py,stamped,DO-77A48DBC,"DI-4746A178, DI-B7FEA996, DI-F8634363",,none,.py,
 services/terminology_api/app/services/guideline_compiler.py,stamped,DO-E74B0605,DI-5E25E872,,legacy,.py,
 services/terminology_api/app/services/guideline_evaluator.py,stamped,DO-E74B0605,DI-5E25E872,,legacy,.py,
 services/terminology_api/app/services/text_embedder.py,stamped,DO-1373B71F,DI-17B5738E,,none,.py,
@@ -686,12 +690,12 @@ services/ui/e2e/report-builder.spec.ts,excluded,,,,none,.ts,"e2e directory (VAL,
 services/ui/e2e/review-workflow.spec.ts,excluded,,,,none,.ts,"e2e directory (VAL, not DO)"
 services/ui/e2e/sbar-playground.spec.ts,excluded,,,,legacy,.ts,"e2e directory (VAL, not DO)"
 services/ui/e2e/shared-gold-editor.spec.ts,excluded,,,,legacy,.ts,"e2e directory (VAL, not DO)"
-services/ui/jest.config.js,unresolved,,,,none,.js,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/jest.setup.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/jest.config.js,excluded,,,,none,.js,jest config (test infra)
+services/ui/jest.setup.ts,excluded,,,,none,.ts,jest setup (test infra)
 services/ui/next-env.d.ts,excluded,,,,none,.ts,declaration-only .d.ts
-services/ui/playwright.config.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/__mocks__/fileMock.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/__mocks__/next/navigation.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/playwright.config.ts,excluded,,,,none,.ts,playwright config (test infra)
+services/ui/src/__mocks__/fileMock.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/__mocks__/next/navigation.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
 services/ui/src/__tests__/admin-url-audit.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/__tests__/ai-first-pass-dialog-chrome.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/__tests__/ai-first-pass-toolbar-id.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
@@ -786,35 +790,35 @@ services/ui/src/__tests__/training-data-search-rationale-chrome.test.ts,excluded
 services/ui/src/__tests__/ui-safety-static.test.ts,excluded,,,,legacy,.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/__tests__/use-sbar-stream-wire-format.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/__tests__/work-page-integration.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/ai-summarisation/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/billing/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/ai-summarisation/SbarPlayground.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/ai-summarisation/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/billing/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/console/page.tsx,stamped,DO-A59215DA,"DI-900CB621, DI-BE09736F",,legacy,.tsx,
-services/ui/src/app/admin/context-rules/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/data-quality/domain/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/data-quality/episodes/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/context-rules/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/data-quality/domain/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/data-quality/episodes/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/data-quality/page.tsx,stamped,DO-0998FAF5,DI-FC80B65A,,none,.tsx,
-services/ui/src/app/admin/data-quality/patient/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/data-quality/sitrep/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/data-quality/terminology/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/domains/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/domains/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/gold-dataset/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/data-quality/patient/[id]/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/data-quality/sitrep/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/data-quality/terminology/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/domains/[id]/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/domains/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/gold-dataset/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx,stamped,DO-E647765A,DI-0C8FBAF7,,none,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/ActionPanel.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/ChipSearchPopover.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/ConceptCoachPopover.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/ActionPanel.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/ChipSearchPopover.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/ConceptCoachPopover.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
 services/ui/src/app/admin/guidance/EditRuleDialog/ConceptSearchPanel.tsx,stamped,DO-D6CE2AA5,DI-A3107424,,none,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/HorizontalStepper.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewBanner.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewDrawer.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewPane.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/HorizontalStepper.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewBanner.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewDrawer.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/LivePreviewPane.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
 services/ui/src/app/admin/guidance/EditRuleDialog/LogicTreeEditor.tsx,stamped,DO-D6CE2AA5,DI-A3107424,,none,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/SeedDescendantsList.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/StepRail.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/SummaryCard.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/SynonymChipEditor.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/TestPatientsPanel.tsx,unresolved,,,,atlas,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/SeedDescendantsList.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/StepRail.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/SummaryCard.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/SynonymChipEditor.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/TestPatientsPanel.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
 services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.action.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.coach.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/EditRuleDialog.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
@@ -825,60 +829,60 @@ services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/copy.test.ts,exclude
 services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/treeOps.test.ts,excluded,,,,legacy,.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/treeToSentence.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/vaguePhrases.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
-services/ui/src/app/admin/guidance/EditRuleDialog/copy.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/copy.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.ts,
 services/ui/src/app/admin/guidance/EditRuleDialog/index.tsx,stamped,DO-D6CE2AA5,DI-A3107424,,legacy,.tsx,
-services/ui/src/app/admin/guidance/EditRuleDialog/namedSets.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step1Who.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step2Suggest.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step3Try.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step4Save.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/namedSets.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.ts,
+services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step1Who.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step2Suggest.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step3Try.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
+services/ui/src/app/admin/guidance/EditRuleDialog/steps/Step4Save.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
 services/ui/src/app/admin/guidance/EditRuleDialog/treeOps.ts,stamped,DO-D6CE2AA5,DI-A3107424,,legacy,.ts,
-services/ui/src/app/admin/guidance/EditRuleDialog/treeToSentence.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/types.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/EditRuleDialog/vaguePhrases.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/GuidelineSubgraphDrawer.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/guidance/LoadedGuidelinesPanel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/EditRuleDialog/treeToSentence.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.ts,
+services/ui/src/app/admin/guidance/EditRuleDialog/types.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.ts,
+services/ui/src/app/admin/guidance/EditRuleDialog/vaguePhrases.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.ts,
+services/ui/src/app/admin/guidance/GuidelineSubgraphDrawer.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/guidance/LoadedGuidelinesPanel.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/guidance/NiceLoaderSection.tsx,stamped,DO-E647765A,DI-0C8FBAF7,,none,.tsx,
 services/ui/src/app/admin/guidance/RuleReviewSection.tsx,stamped,DO-E647765A,DI-0C8FBAF7,,legacy,.tsx,
-services/ui/src/app/admin/guidance/TaxonomyBrowserDrawer.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/guidance/TaxonomyBrowserDrawer.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/guidance/__tests__/GuidancePage.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/guidance/__tests__/RuleReviewSection.merge.test.ts,excluded,,,,legacy,.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/guidance/page.tsx,stamped,DO-0A8B7188,"DI-0C8FBAF7, DI-AA9F5EDA",,legacy,.tsx,
-services/ui/src/app/admin/integrations/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/integrations/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/knowledge/page.tsx,stamped,DO-9A5C65AF,"DI-5E7E8CEF, DI-6424B6FC, DI-BE09736F",,legacy,.tsx,
-services/ui/src/app/admin/knowledge/test-patients/BuildPatientDialog.tsx,unresolved,,,,atlas,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/CopyFromRealDialog.tsx,unresolved,,,,atlas,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromRuleDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromScenarioDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/api.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/editor/EditTestPatientDrawer.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/editor/EncounterListEditor.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/editor/ExpectedSbarEditor.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/editor/RulePickerDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/editor/SnomedConceptPicker.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/page.tsx,unresolved,,,,atlas,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/replay/ReplayResultsDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/knowledge/test-patients/replay/RulesetNotCompiledBanner.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/BuildPatientDialog.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
+services/ui/src/app/admin/knowledge/test-patients/CopyFromRealDialog.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
+services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromRuleDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/knowledge/test-patients/ScaffoldFromScenarioDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/knowledge/test-patients/api.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.ts,
+services/ui/src/app/admin/knowledge/test-patients/editor/EditTestPatientDrawer.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/knowledge/test-patients/editor/EncounterListEditor.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/knowledge/test-patients/editor/ExpectedSbarEditor.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/knowledge/test-patients/editor/RulePickerDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/knowledge/test-patients/editor/SnomedConceptPicker.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/knowledge/test-patients/page.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
+services/ui/src/app/admin/knowledge/test-patients/replay/ReplayResultsDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/knowledge/test-patients/replay/RulesetNotCompiledBanner.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.tsx,
 services/ui/src/app/admin/knowledge/test-patients/replay/__tests__/ReplayResultsDialog.iso13485.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/knowledge/test-patients/replay/__tests__/RulesetNotCompiledBanner.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/app/admin/knowledge/test-patients/types.ts,unresolved,,,,atlas,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/models/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/knowledge/test-patients/types.ts,already_atlas,,,,atlas,.ts,canonical Atlas trace block present
+services/ui/src/app/admin/models/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/operations/__tests__/OperationsDashboard.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/operations/page.tsx,stamped,DO-89920463,DI-AF5A1668,,none,.tsx,
 services/ui/src/app/admin/operations/reviews/__tests__/ReviewsPage.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/admin/operations/reviews/page.tsx,stamped,DO-89920463,DI-AF5A1668,,none,.tsx,
-services/ui/src/app/admin/operations/run/page.tsx,stamped,DO-B6E80BEE,"DI-B8674FBF, DO-41EF3F1D",,none,.tsx,
-services/ui/src/app/admin/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/operations/run/page.tsx,stamped,DO-B6E80BEE,DI-B8674FBF,,none,.tsx,
+services/ui/src/app/admin/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/pathway-explorer/page.tsx,stamped,DO-3AD4D385,"DI-900CB621, DI-9DCBC4BA",,none,.tsx,
 services/ui/src/app/admin/pathways/PathwayCard.tsx,stamped,DO-11232EFB,DI-CD931485,,legacy,.tsx,
-services/ui/src/app/admin/pathways/[id]/editor/PathwayLoadError.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/pathways/[id]/editor/PathwaySaveBar.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/pathways/[id]/editor/PathwayToolbar.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/pathways/[id]/editor/dialogs/DeletePathwayDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/pathways/[id]/editor/dialogs/EdgeDeleteConfirm.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/pathways/[id]/editor/dialogs/PublishDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/pathways/[id]/editor/hooks/useDirtyGuard.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/pathways/[id]/editor/utils.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/pathways/[id]/editor/PathwayLoadError.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/pathways/[id]/editor/PathwaySaveBar.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/pathways/[id]/editor/PathwayToolbar.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/pathways/[id]/editor/dialogs/DeletePathwayDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/pathways/[id]/editor/dialogs/EdgeDeleteConfirm.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/pathways/[id]/editor/dialogs/PublishDialog.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/pathways/[id]/editor/hooks/useDirtyGuard.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.ts,
+services/ui/src/app/admin/pathways/[id]/editor/utils.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.ts,
 services/ui/src/app/admin/pathways/[id]/page.tsx,stamped,DO-5D885390,"DI-693FFEEA, DI-8CE01B3E, DI-B0A1E549",,none,.tsx,
 services/ui/src/app/admin/pathways/dialogs.tsx,stamped,DO-11232EFB,DI-CD931485,,legacy,.tsx,
 services/ui/src/app/admin/pathways/page.tsx,stamped,DO-11232EFB,DI-CD931485,,legacy,.tsx,
@@ -886,126 +890,126 @@ services/ui/src/app/admin/pathways/templates.ts,stamped,DO-11232EFB,DI-CD931485,
 services/ui/src/app/admin/pathways/types.ts,stamped,DO-11232EFB,DI-CD931485,,legacy,.ts,
 services/ui/src/app/admin/platform/page.tsx,stamped,DO-A59215DA,"DI-900CB621, DI-BE09736F",,none,.tsx,
 services/ui/src/app/admin/portal/page.tsx,stamped,DO-A59215DA,DI-900CB621,,none,.tsx,
-services/ui/src/app/admin/prompts/[id]/_components/ExampleCard.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/prompts/[id]/_components/IdentitySection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/prompts/[id]/_components/InputDisplay.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/prompts/[id]/_components/InstructionsTab.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/prompts/[id]/_components/OutputFormatTab.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/prompts/[id]/_components/OutputPreview.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/prompts/[id]/_components/SandboxCostTable.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/prompts/[id]/_components/SandboxTab.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/prompts/[id]/_components/TeachingExamplesTab.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/prompts/[id]/_components/types.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/prompts/[id]/_components/ExampleCard.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/prompts/[id]/_components/IdentitySection.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/prompts/[id]/_components/InputDisplay.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/prompts/[id]/_components/InstructionsTab.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/prompts/[id]/_components/OutputFormatTab.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/prompts/[id]/_components/OutputPreview.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/prompts/[id]/_components/SandboxCostTable.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/prompts/[id]/_components/SandboxTab.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/prompts/[id]/_components/TeachingExamplesTab.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/prompts/[id]/_components/types.ts,stamped,DO-2C03CA0E,DI-3F771AFB,,legacy,.ts,
 services/ui/src/app/admin/prompts/[id]/page.tsx,stamped,DO-83EBEE2C,DI-B954388C,,legacy,.tsx,
 services/ui/src/app/admin/prompts/page.tsx,stamped,DO-BCD21209,DI-553F50A2,,legacy,.tsx,
 services/ui/src/app/admin/support/page.tsx,stamped,DO-A59215DA,DI-900CB621,,none,.tsx,
-services/ui/src/app/admin/surface-forms/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/admin/terminology/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/admin/surface-forms/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
+services/ui/src/app/admin/terminology/page.tsx,stamped,DO-2C03CA0E,DI-3F771AFB,,none,.tsx,
 services/ui/src/app/admin/users/page.tsx,stamped,DO-A59215DA,DI-900CB621,,none,.tsx,
-services/ui/src/app/api/agent/executive-summary/route.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/api/agent/interpret/route.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/api/auth/[...nextauth]/route.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/api/pipeline/test-run/batch/route.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/api/pipeline/test-run/route.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/api/pipeline/test-run/stream/route.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/api/sbar/assessments/[assessmentId]/route.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/api/sbar/jobs/[runId]/events/route.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/api/sbar/jobs/route.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/api/training/candidates/ai-first-pass/jobs/[runId]/events/route.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/audit/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/auth/callback/route.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/auth/login/route.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/benchmarks/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/benchmarks/rules/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/benchmarks/rules/new/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/benchmarks/sets/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/benchmarks/upload/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/audit/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/benchmarks/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/benchmarks/rules/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/benchmarks/rules/new/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/benchmarks/sets/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/benchmarks/upload/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/cohorts/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/api/agent/executive-summary/route.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/app/api/agent/interpret/route.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/app/api/auth/[...nextauth]/route.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/app/api/pipeline/test-run/batch/route.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/app/api/pipeline/test-run/route.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/app/api/pipeline/test-run/stream/route.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/app/api/sbar/assessments/[assessmentId]/route.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/app/api/sbar/jobs/[runId]/events/route.ts,stamped,DO-19BBE973,DI-B746E19E,,legacy,.ts,
+services/ui/src/app/api/sbar/jobs/route.ts,stamped,DO-19BBE973,DI-B746E19E,,legacy,.ts,
+services/ui/src/app/api/training/candidates/ai-first-pass/jobs/[runId]/events/route.ts,stamped,DO-19BBE973,DI-B746E19E,,legacy,.ts,
+services/ui/src/app/audit/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/auth/callback/route.ts,stamped,DO-21936FDD,DI-09DF0A10,,none,.ts,
+services/ui/src/app/auth/login/route.ts,stamped,DO-21936FDD,DI-09DF0A10,,none,.ts,
+services/ui/src/app/benchmarks/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/benchmarks/rules/[id]/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/benchmarks/rules/new/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/benchmarks/sets/[id]/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/benchmarks/upload/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/care/audit/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/benchmarks/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/benchmarks/rules/[id]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/benchmarks/rules/new/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/benchmarks/sets/[id]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/benchmarks/upload/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/cohorts/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/app/care/dashboard/page.tsx,stamped,DO-A59215DA,DI-900CB621,,none,.tsx,
-services/ui/src/app/care/encounters/page.tsx,triage,,DO-F78C84A6,,none,.tsx,DI resolved but cache shows no child DO
-services/ui/src/app/care/measures/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/measures/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/pathways/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/patients/[patientId]/encounters/[encounterId]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/patients/[patientId]/encounters/view/[encounterId]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/patients/[patientId]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/patients/[patientId]/timeline/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/encounters/page.tsx,stamped,DO-F78C84A6,DI-D0FC22FE,,none,.tsx,
+services/ui/src/app/care/measures/[id]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/measures/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/pathways/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/patients/[patientId]/encounters/[encounterId]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/patients/[patientId]/encounters/view/[encounterId]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/patients/[patientId]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/patients/[patientId]/timeline/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/app/care/patients/page.tsx,stamped,DO-146D93D0,DI-6EA84931,,none,.tsx,
-services/ui/src/app/care/portal/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/reports/[id]/edit/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/reports/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/reports/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/safety-netting/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/care/wellbeing/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/cohorts/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/care/portal/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/reports/[id]/edit/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/reports/[id]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/reports/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/safety-netting/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/care/wellbeing/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/cohorts/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/app/dashboard/__tests__/DashboardPage.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/app/dashboard/page.tsx,stamped,DO-B1116B14,DI-35494904,,atlas,.tsx,
+services/ui/src/app/dashboard/page.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
 services/ui/src/app/error.tsx,stamped,DO-A2553F87,DI-425CA252,,none,.tsx,
-services/ui/src/app/games/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/games/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/app/global-error.tsx,stamped,DO-A2553F87,DI-425CA252,,none,.tsx,
-services/ui/src/app/gold-dataset/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/gold-dataset/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
 services/ui/src/app/layout.tsx,stamped,DO-4A8227DD,"DI-522BBCC4, DI-61CB27B2, DI-985976A3",,legacy,.tsx,
 services/ui/src/app/loading.tsx,stamped,DO-A2553F87,DI-425CA252,,none,.tsx,
-services/ui/src/app/mail/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/measures/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/measures/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/mail/page.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/app/measures/[id]/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/measures/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/app/not-found.tsx,stamped,DO-A2553F87,DI-425CA252,,none,.tsx,
-services/ui/src/app/onboarding/accept/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/operations/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/pathways/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/patients/[patientId]/encounters/[encounterId]/page.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/patients/[patientId]/encounters/view/[encounterId]/page.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/patients/[patientId]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/patients/[patientId]/timeline/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/patients/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/pipeline/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/portal/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/reports/[id]/edit/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/reports/[id]/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/reports/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/onboarding/accept/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/operations/page.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/app/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/pathways/page.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/app/patients/[patientId]/encounters/[encounterId]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,legacy,.tsx,
+services/ui/src/app/patients/[patientId]/encounters/view/[encounterId]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,legacy,.tsx,
+services/ui/src/app/patients/[patientId]/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/patients/[patientId]/timeline/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/patients/page.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/app/pipeline/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/portal/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/reports/[id]/edit/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/reports/[id]/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/app/reports/page.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/app/safety-netting/__tests__/SafetyNetAlertsPage.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/app/safety-netting/page.tsx,stamped,DO-B1116B14,DI-35494904,,none,.tsx,
 services/ui/src/app/settings/context-rules/page.tsx,stamped,DO-CFA1ED55,DI-340279C1,,legacy,.tsx,
 services/ui/src/app/settings/domains/[id]/page.tsx,stamped,DO-2340F614,DI-4885D9FF,,none,.tsx,
-services/ui/src/app/settings/domains/_components/ConfigureSubdomainDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/settings/domains/_components/CreateSubdomainDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/settings/domains/_components/DomainDetailChrome.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/settings/domains/_components/DomainSubdomainCards.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/settings/domains/_components/SubdomainConceptSearchPanel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/settings/domains/_components/domainConstants.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/settings/domains/_components/ConfigureSubdomainDialog.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/settings/domains/_components/CreateSubdomainDialog.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/settings/domains/_components/DomainDetailChrome.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/settings/domains/_components/DomainSubdomainCards.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/settings/domains/_components/SubdomainConceptSearchPanel.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/settings/domains/_components/domainConstants.ts,stamped,DO-21936FDD,DI-09DF0A10,,none,.ts,
 services/ui/src/app/settings/domains/page.tsx,stamped,DO-CFA1ED55,"DI-340279C1, DI-6424B6FC",,legacy,.tsx,
 services/ui/src/app/settings/page.tsx,stamped,DO-A59215DA,DI-900CB621,,none,.tsx,
-services/ui/src/app/settings/preferences/page.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/settings/preferences/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,legacy,.tsx,
 services/ui/src/app/settings/surface-forms/page.tsx,stamped,DO-CFA1ED55,DI-340279C1,,legacy,.tsx,
 services/ui/src/app/settings/terminology/page.tsx,stamped,DO-CFA1ED55,"DI-340279C1, DI-6424B6FC",,legacy,.tsx,
-services/ui/src/app/sign-in/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/app/tenant/page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/app/sign-in/page.tsx,stamped,DO-21936FDD,DI-09DF0A10,,none,.tsx,
+services/ui/src/app/tenant/page.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
 services/ui/src/app/work/page.tsx,stamped,DO-65BA6EA0,DI-C0AD09D2,,none,.tsx,
-services/ui/src/components/AppShell.tsx,stamped,DO-10218528,"DI-5E7E8CEF, DI-B0832A64, DI-BE09736F, DI-F0846E55, DI-FAF97A8C, DO-F78C84A6",,legacy,.tsx,
-services/ui/src/components/AreaIntro.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/AssertionChip.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/AuthProviderWrapper.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/CodedLinksSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/AppShell.tsx,stamped,DO-10218528,"DI-5E7E8CEF, DI-B0832A64, DI-BE09736F, DI-F0846E55, DI-FAF97A8C",,legacy,.tsx,
+services/ui/src/components/AreaIntro.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/AssertionChip.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/AuthProviderWrapper.tsx,stamped,DO-CD075278,DI-B5EEBC4C,,none,.tsx,
+services/ui/src/components/CodedLinksSection.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
 services/ui/src/components/ConfirmDialog.tsx,stamped,DO-C4EC82F9,DI-B0832A64,,legacy,.tsx,
-services/ui/src/components/CorrectionsLog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/EncounterList.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/CorrectionsLog.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/EncounterList.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/components/EntityCard.tsx,stamped,DO-F8631A82,DI-1B8AC856,,none,.tsx,
 services/ui/src/components/EntitySidebar.tsx,stamped,DO-F8631A82,DI-1B8AC856,,none,.tsx,
-services/ui/src/components/ManualEntityBanner.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/PatientList.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/PatientTimeline.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/ManualEntityBanner.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/PatientList.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
+services/ui/src/components/PatientTimeline.tsx,stamped,DO-5F9A50D8,DI-1D584D40,,none,.tsx,
 services/ui/src/components/ReviewView.tsx,stamped,DO-F8631A82,DI-1B8AC856,,none,.tsx,
 services/ui/src/components/RoleShellProvider.tsx,stamped,DO-8972ED05,DI-F0846E55,,legacy,.tsx,
 services/ui/src/components/TermSearch.tsx,stamped,DO-C4EC82F9,DI-B0832A64,,none,.tsx,
 services/ui/src/components/ThemeRegistry.tsx,stamped,DO-5DB895BF,DI-39C53CDA,,none,.tsx,
-services/ui/src/components/UnauthorizedScreen.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/UnauthorizedScreen.tsx,stamped,DO-CD075278,DI-B5EEBC4C,,none,.tsx,
 services/ui/src/components/__tests__/AppShell.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/__tests__/CodedLinksSection.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/__tests__/ConfirmDialog.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
@@ -1016,45 +1020,45 @@ services/ui/src/components/__tests__/ManualEntityBanner.test.tsx,excluded,,,,non
 services/ui/src/components/__tests__/PatientList.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/__tests__/ReviewView.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/__tests__/TermSearch.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/components/audit/AuditReportShell.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/AuditSnapshotView.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/AuditSummarySection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/AvoidableDelaysSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/BenchmarkLegend.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/CancerStageAccordion.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/CancerStageBulletChart.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/CancerStageSection.tsx,stamped,DO-A23404E0,"DI-23822663, DO-671C15BF",,none,.tsx,
-services/ui/src/components/audit/CancerTypeBenchmarkGrid.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/CancerTypeDumbbellChart.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/CancerTypeSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/ComparisonBarChart.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/ConsultationsSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/DemographicsSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/DiagnosticIntervalSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/DirectionChip.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/EmergencyReferralRoutesSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/IntervalStripPlot.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/InvestigationsSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/MultipleConsultationsSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/PlaceOfPresentationSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/PrimaryCareIntervalSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/ReferralsSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/SafetyNettingSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/SectionCard.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/audit/SummaryStatsRow.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/audit/AuditReportShell.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/AuditSnapshotView.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/AuditSummarySection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/AvoidableDelaysSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/BenchmarkLegend.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/CancerStageAccordion.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/CancerStageBulletChart.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/CancerStageSection.tsx,stamped,DO-A23404E0,DI-23822663,,none,.tsx,
+services/ui/src/components/audit/CancerTypeBenchmarkGrid.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/CancerTypeDumbbellChart.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/CancerTypeSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/ComparisonBarChart.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/ConsultationsSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/DemographicsSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/DiagnosticIntervalSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/DirectionChip.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/EmergencyReferralRoutesSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/IntervalStripPlot.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/InvestigationsSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/MultipleConsultationsSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/PlaceOfPresentationSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/PrimaryCareIntervalSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/ReferralsSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/SafetyNettingSection.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/SectionCard.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/audit/SummaryStatsRow.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/audit/__tests__/BenchmarkLegend.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/audit/__tests__/CancerTypeDumbbellChart.test.tsx,excluded,,,,legacy,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/audit/__tests__/CancerTypeSection.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/audit/__tests__/ComparisonBarChart.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/audit/__tests__/ConsultationsSection.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/audit/__tests__/SectionCard.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/components/benchmarks/BenchmarkRuleEditor.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/benchmarks/BenchmarkSetDetail.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/benchmarks/BenchmarkSetList.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/benchmarks/BenchmarkUploadWizard.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/benchmarks/BenchmarkRuleEditor.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/benchmarks/BenchmarkSetDetail.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/benchmarks/BenchmarkSetList.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/benchmarks/BenchmarkUploadWizard.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/benchmarks/__tests__/BenchmarkSetList.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/benchmarks/__tests__/BenchmarkUploadWizard.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/components/console/ConsoleStagePanel.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/console/ConsoleStagePanel.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
 services/ui/src/components/console/CurateStage.tsx,stamped,DO-0998FAF5,DI-BE09736F,,none,.tsx,
 services/ui/src/components/console/DeployStage.tsx,stamped,DO-0998FAF5,DI-BE09736F,,none,.tsx,
 services/ui/src/components/console/DiscoverStage.tsx,stamped,DO-0998FAF5,DI-BE09736F,,none,.tsx,
@@ -1062,129 +1066,129 @@ services/ui/src/components/console/EvaluateStage.tsx,stamped,DO-0998FAF5,DI-BE09
 services/ui/src/components/console/MonitorStage.tsx,stamped,DO-0998FAF5,DI-BE09736F,,none,.tsx,
 services/ui/src/components/console/TrainStage.tsx,stamped,DO-0998FAF5,DI-BE09736F,,none,.tsx,
 services/ui/src/components/console/useConsoleState.ts,stamped,DO-0998FAF5,DI-BE09736F,,legacy,.ts,
-services/ui/src/components/dashboard/DiagnosedByTypeChart.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/dashboard/EpisodesByTypeChart.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/dashboard/DiagnosedByTypeChart.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/dashboard/EpisodesByTypeChart.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/dashboard/KPICards.tsx,stamped,DO-11A2361E,"DI-35494904, DI-F46D7A68",,none,.tsx,
-services/ui/src/components/dashboard/LLMSpendPanel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/dashboard/SafetyAlertModal.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/dashboard/SafetyNetAlertsSummary.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/dashboard/LLMSpendPanel.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/dashboard/SafetyAlertModal.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/dashboard/SafetyNetAlertsSummary.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/dashboard/__tests__/EpisodesByTypeChart.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/dashboard/__tests__/KPICards.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/dashboard/__tests__/SafetyNetAlertsSummary.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/components/editor/CanvasArea.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/CohortFiltersDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/DataElementSettings.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/Element.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/ElementPalette.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/InterpretationSettings.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/MeasureSettings.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/Page.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/PageThumbnails.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/PropertiesPanel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/ReportEditor.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/ReportEditorDialogs.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/StatsElementSettings.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/TextElementSettings.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/Toolbar.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/agentTypes.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/BulletListElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/ChartElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/ChecklistElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/ComparisonBarsElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/ComplianceHeatmapElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/CoverElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/DividerElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/ExecutiveSummaryElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/HeadingElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/HeroStatsElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/ImageElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/InterpretationElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/KpiCardElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/MeasureElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/PathwayGanttElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/PopulationPyramidElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/SafetyNetMatchProgressionElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/TableElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/TableOfContentsElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/TextElement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/chartBoxPlot.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/chartRechartsTypes.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/chartRenderers.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/chartSankeyFunnel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/chartTickComponents.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/chartUtils.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/interpretationParsing.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/elements/useMeasureData.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/reportEditorHandlers.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/reportEditorHelpers.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/useElementDragResize.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/editor/useToolbarData.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/episodes/CaseloadStrip.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/editor/CanvasArea.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/CohortFiltersDialog.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/DataElementSettings.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/Element.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/ElementPalette.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/InterpretationSettings.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/MeasureSettings.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/Page.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/PageThumbnails.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/PropertiesPanel.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/ReportEditor.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/ReportEditorDialogs.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/StatsElementSettings.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/TextElementSettings.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/Toolbar.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/agentTypes.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/editor/elements/BulletListElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/ChartElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/ChecklistElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/ComparisonBarsElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/ComplianceHeatmapElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/CoverElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/DividerElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/ExecutiveSummaryElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/HeadingElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/HeroStatsElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/ImageElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/InterpretationElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/KpiCardElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/MeasureElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/PathwayGanttElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/PopulationPyramidElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/SafetyNetMatchProgressionElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/TableElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/TableOfContentsElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/TextElement.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/chartBoxPlot.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/editor/elements/chartRechartsTypes.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/chartRenderers.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/chartSankeyFunnel.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/chartTickComponents.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/editor/elements/chartUtils.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/editor/elements/index.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/editor/elements/interpretationParsing.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/editor/elements/useMeasureData.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/editor/reportEditorHandlers.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/editor/reportEditorHelpers.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/editor/useElementDragResize.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/editor/useToolbarData.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/episodes/CaseloadStrip.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/episodes/EpisodeList.tsx,stamped,DO-11A2361E,DI-F46D7A68,,none,.tsx,
 services/ui/src/components/episodes/EpisodeTimelineView.tsx,stamped,DO-B1116B14,DI-35494904,,none,.tsx,
-services/ui/src/components/episodes/PatientGroupList.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/episodes/PatientGroupList.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/episodes/__tests__/CaseloadStrip.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/episodes/__tests__/EpisodeList.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/episodes/__tests__/EpisodeTimelineView.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/episodes/__tests__/PatientGroupList.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/components/games/BreakoutGame.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/games/Leaderboard.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/games/LeaderboardTab.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/games/SnakeGame.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/games/SpaceInvaders.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/games/BreakoutGame.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/games/Leaderboard.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/games/LeaderboardTab.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/games/SnakeGame.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/games/SpaceInvaders.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/games/__tests__/SnakeGame.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
-services/ui/src/components/gold-dataset/AIFirstPassDialog.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/CandidatePruneDialog.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/CandidateReviewList.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/CandidateRowActions.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/DatasetHealthPanel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/EntityChipView.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/AIFirstPassDialog.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/gold-dataset/CandidatePruneDialog.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/gold-dataset/CandidateReviewList.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/gold-dataset/CandidateRowActions.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/gold-dataset/DatasetHealthPanel.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/gold-dataset/EntityChipView.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
 services/ui/src/components/gold-dataset/GoldDatasetPanel.tsx,stamped,DO-1E9BCC70,"DI-21946271, DI-2D9F5064, DI-3035F221, DI-6EFD68D0, DI-AF5A1668",,legacy,.tsx,
 services/ui/src/components/gold-dataset/GoldLabelDetailDialog/AddTermPopover.tsx,stamped,DO-1E9BCC70,DI-3035F221,,none,.tsx,
 services/ui/src/components/gold-dataset/GoldLabelDetailDialog/DeleteConfirmPanel.tsx,stamped,DO-1E9BCC70,DI-3035F221,,none,.tsx,
 services/ui/src/components/gold-dataset/GoldLabelDetailDialog/DialogActionsBar.tsx,stamped,DO-1E9BCC70,DI-3035F221,,none,.tsx,
 services/ui/src/components/gold-dataset/GoldLabelDetailDialog/DialogTitleStrip.tsx,stamped,DO-1E9BCC70,DI-3035F221,,legacy,.tsx,
 services/ui/src/components/gold-dataset/GoldLabelDetailDialog/SuggestionsPanel.tsx,stamped,DO-1E9BCC70,DI-3035F221,,legacy,.tsx,
-services/ui/src/components/gold-dataset/GoldLabelReviewList.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/GoldLabelRowActions.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/RelationRow.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/SimilarCandidatesBatch.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/SnomedInlineSearch.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/goldDatasetTypes.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/goldDatasetUtils.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/labSpanDetector.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-dataset/useKeyboardShortcuts.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-editor/GoldLabelEditorDialog.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-editor/api.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-editor/index.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-editor/types.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/gold-editor/useDualSaveAdapter.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/markdown-editor/MarkdownEditor.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/markdown-editor/Toolbar.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/markdown-editor/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/measures/LibraryPicker.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/measures/MeasureEditor.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/measures/MeasureList.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/measures/MeasurePickerDialog.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/measures/QueryBuilder.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/measures/measureCategoryUtils.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/gold-dataset/GoldLabelReviewList.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/gold-dataset/GoldLabelRowActions.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/gold-dataset/RelationRow.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/gold-dataset/SimilarCandidatesBatch.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/gold-dataset/SnomedInlineSearch.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/gold-dataset/goldDatasetTypes.ts,stamped,DO-30A82196,DI-85B110A5,,legacy,.ts,
+services/ui/src/components/gold-dataset/goldDatasetUtils.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/gold-dataset/labSpanDetector.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/gold-dataset/useKeyboardShortcuts.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/gold-editor/GoldLabelEditorDialog.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/gold-editor/api.ts,stamped,DO-30A82196,DI-85B110A5,,legacy,.ts,
+services/ui/src/components/gold-editor/index.ts,stamped,DO-30A82196,DI-85B110A5,,legacy,.ts,
+services/ui/src/components/gold-editor/types.ts,stamped,DO-30A82196,DI-85B110A5,,legacy,.ts,
+services/ui/src/components/gold-editor/useDualSaveAdapter.ts,stamped,DO-30A82196,DI-85B110A5,,legacy,.ts,
+services/ui/src/components/markdown-editor/MarkdownEditor.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/markdown-editor/Toolbar.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/markdown-editor/index.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/measures/LibraryPicker.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/measures/MeasureEditor.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/measures/MeasureList.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/measures/MeasurePickerDialog.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/measures/QueryBuilder.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
+services/ui/src/components/measures/measureCategoryUtils.ts,stamped,DO-2E8544FD,DI-C65FD45B,,none,.ts,
 services/ui/src/components/mission-control/AuditTrailTab.tsx,stamped,DO-146D93D0,DI-6EA84931,,none,.tsx,
 services/ui/src/components/mission-control/CodedDataTab.tsx,stamped,DO-146D93D0,DI-6EA84931,,none,.tsx,
 services/ui/src/components/mission-control/CommandBar.tsx,stamped,DO-EE78E305,DI-6EA84931,,none,.tsx,
-services/ui/src/components/mission-control/EncounterBatchBar.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/EncounterCard.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/EncounterCodesPanel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/EncounterKpiStrip.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/EncounterMissionControl.tsx,stamped,DO-9530152E,"DI-DD67ACFF, DO-F78C84A6",,legacy,.tsx,
-services/ui/src/components/mission-control/EncounterPreviewDialog.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/EncounterResultsTable.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/EncounterResultsTimeline.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/EncounterSearchPanel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterBatchBar.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,none,.tsx,
+services/ui/src/components/mission-control/EncounterCard.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/EncounterCodesPanel.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,none,.tsx,
+services/ui/src/components/mission-control/EncounterKpiStrip.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,none,.tsx,
+services/ui/src/components/mission-control/EncounterMissionControl.tsx,stamped,DO-9530152E,DI-DD67ACFF,,legacy,.tsx,
+services/ui/src/components/mission-control/EncounterPreviewDialog.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/EncounterResultsTable.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/EncounterResultsTimeline.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/EncounterSearchPanel.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,none,.tsx,
 services/ui/src/components/mission-control/EncounterTextTab.tsx,stamped,DO-146D93D0,DI-6EA84931,,legacy,.tsx,
-services/ui/src/components/mission-control/EncounterTimelineScrubber.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/EncounterTimelineScrubber.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
 services/ui/src/components/mission-control/EpisodeTimeline.tsx,stamped,DO-EE78E305,DI-6EA84931,,none,.tsx,
-services/ui/src/components/mission-control/HighlightedText.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/HighlightedText.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
 services/ui/src/components/mission-control/KPIStrip.tsx,stamped,DO-EE78E305,DI-6EA84931,,legacy,.tsx,
 services/ui/src/components/mission-control/MissionControl.tsx,stamped,DO-EE78E305,DI-6EA84931,,none,.tsx,
 services/ui/src/components/mission-control/OverviewTab.tsx,stamped,DO-146D93D0,DI-6EA84931,,none,.tsx,
@@ -1193,40 +1197,40 @@ services/ui/src/components/mission-control/PatientCaseRow.tsx,stamped,DO-146D93D
 services/ui/src/components/mission-control/PatientCaseTable.tsx,stamped,DO-EE78E305,DI-6EA84931,,none,.tsx,
 services/ui/src/components/mission-control/PatientDetailDrawer.tsx,stamped,DO-EE78E305,DI-6EA84931,,none,.tsx,
 services/ui/src/components/mission-control/ReviewActionsPanel.tsx,stamped,DO-EE78E305,DI-6EA84931,,none,.tsx,
-services/ui/src/components/mission-control/Score3DMap.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/ScoreHistogram.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/Score3DMap.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,none,.tsx,
+services/ui/src/components/mission-control/ScoreHistogram.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,none,.tsx,
 services/ui/src/components/mission-control/StatusBadge.tsx,stamped,DO-146D93D0,DI-6EA84931,,none,.tsx,
-services/ui/src/components/mission-control/TimelineBinPopover.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/TimelineHistogramBar.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/TimelineOverlays.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/TimelineRangeBrush.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/TrainingSetAdvisor.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/encounterFilters.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/encounterRecodeProgress.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/encounterRelevance.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/encounterStyles.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/encounterTextUtils.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/timelineBins.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/trainingAdvisorUtils.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/useEncounterBatch.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/useEncounterLoad.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/mission-control/useEncounterRecode.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/mission-control/TimelineBinPopover.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/TimelineHistogramBar.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/TimelineOverlays.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/TimelineRangeBrush.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/TrainingSetAdvisor.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,none,.tsx,
+services/ui/src/components/mission-control/encounterFilters.ts,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.ts,
+services/ui/src/components/mission-control/encounterRecodeProgress.ts,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.ts,
+services/ui/src/components/mission-control/encounterRelevance.ts,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.ts,
+services/ui/src/components/mission-control/encounterStyles.ts,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.ts,
+services/ui/src/components/mission-control/encounterTextUtils.tsx,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.tsx,
+services/ui/src/components/mission-control/timelineBins.ts,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.ts,
+services/ui/src/components/mission-control/trainingAdvisorUtils.ts,stamped,DO-5312F884,DI-AA1F5F5B,,none,.ts,
+services/ui/src/components/mission-control/useEncounterBatch.ts,stamped,DO-5312F884,DI-AA1F5F5B,,none,.ts,
+services/ui/src/components/mission-control/useEncounterLoad.ts,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.ts,
+services/ui/src/components/mission-control/useEncounterRecode.ts,stamped,DO-5312F884,DI-AA1F5F5B,,legacy,.ts,
 services/ui/src/components/operations/CaseCard.tsx,stamped,DO-1B7E7255,DI-EA432FDA,,none,.tsx,
-services/ui/src/components/operations/CaseCardLeoResult.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/operations/CaseCardSuppressForm.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/CaseCardLeoResult.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/components/operations/CaseCardSuppressForm.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
 services/ui/src/components/operations/CodingReviewCasesModal.tsx,stamped,DO-1B7E7255,"DI-1B8AC856, DI-EA432FDA",,none,.tsx,
-services/ui/src/components/operations/CodingReviewCasesModalTitle.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/CodingReviewCasesModalTitle.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
 services/ui/src/components/operations/EncounterContextPanel.tsx,stamped,DO-1B7E7255,DI-EA432FDA,,none,.tsx,
 services/ui/src/components/operations/LabelVerificationPanel.tsx,stamped,DO-A2553F87,DI-425CA252,,none,.tsx,
 services/ui/src/components/operations/ModelLifecyclePanel.tsx,stamped,DO-A2553F87,DI-425CA252,,none,.tsx,
 services/ui/src/components/operations/OperationsWorkspace.tsx,stamped,DO-2695BE52,"DI-3DFEE507, DI-B95A73E9",,none,.tsx,
-services/ui/src/components/operations/PipelineOverviewDiagram.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/PipelineOverviewDiagram.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
 services/ui/src/components/operations/QualitySection.tsx,stamped,DO-720CD183,DI-1126FFD1,,none,.tsx,
-services/ui/src/components/operations/RecordMindMap.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/RecordMindMap.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
 services/ui/src/components/operations/ReviewCard.tsx,stamped,DO-6CD07544,"DI-1B8AC856, DI-A0579B64",,none,.tsx,
 services/ui/src/components/operations/ReviewSection.tsx,stamped,DO-2D2CE052,"DI-5E1BA369, DI-D2D0117E",,none,.tsx,
-services/ui/src/components/operations/RunSection.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/operations/TabFlowDiagram.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/operations/RunSection.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/components/operations/TabFlowDiagram.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
 services/ui/src/components/operations/TrainSection.tsx,stamped,DO-2695BE52,"DI-3DFEE507, DI-425CA252",,none,.tsx,
 services/ui/src/components/operations/TrainingDataPanel.tsx,stamped,DO-94D87FA7,"DI-425CA252, DI-54D00E21",,none,.tsx,
 services/ui/src/components/operations/__tests__/OperationsWorkspace.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
@@ -1235,51 +1239,51 @@ services/ui/src/components/operations/__tests__/TrainSection.test.tsx,excluded,,
 services/ui/src/components/operations/codingReviewCopy.ts,stamped,DO-1B7E7255,DI-EA432FDA,,legacy,.ts,
 services/ui/src/components/operations/codingReviewUtils.ts,stamped,DO-1B7E7255,DI-EA432FDA,,none,.ts,
 services/ui/src/components/pathway/config/__tests__/subgraphs.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
-services/ui/src/components/pathway/config/subgraphs.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/config/triggers.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/config/types.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/context/PipelineTestContext.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/ProbeInspectorDrawer.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/ProbeMonitor.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorBanners.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorChanges.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorData.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorValidate.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/SemanticSection.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/TreeNode.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/diff.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/index.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/PortEdge/utils.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/probeStrategies.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/probes/_shared.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/probes/connectors.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/probes/extraction.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/probes/guidance.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/probes/persist.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/edges/probes/verification.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/hooks/usePathwayStore.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/hooks/usePredecessorIO.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/hooks/useValidation.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/ActionNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/ConditionNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/ConnectorNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/MergeNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/MiniHitlNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/OutputNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/ParallelNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/SourceNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/TransformNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/TriggerNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/_base/BaseNode.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/_base/NodeHandle.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/_base/NodeHeader.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/_base/NodeStatusStrip.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/_base/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/nodes/nodeTypes.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/panel/ConditionRuleBuilder.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/pathway/viewer/MiniHitlCard.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/reports/ReportList.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/pathway/config/subgraphs.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
+services/ui/src/components/pathway/config/triggers.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
+services/ui/src/components/pathway/config/types.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
+services/ui/src/components/pathway/context/PipelineTestContext.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
+services/ui/src/components/pathway/edges/PortEdge.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/ProbeInspectorDrawer.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitor.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorBanners.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorChanges.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorData.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/ProbeMonitorValidate.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/SemanticSection.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/TreeNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/diff.ts,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.ts,
+services/ui/src/components/pathway/edges/PortEdge/index.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/PortEdge/utils.ts,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.ts,
+services/ui/src/components/pathway/edges/probeStrategies.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/probes/_shared.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/probes/connectors.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/probes/extraction.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/probes/guidance.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/probes/persist.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/edges/probes/verification.tsx,stamped,DO-B5DB3744,DI-C6700F52,,legacy,.tsx,
+services/ui/src/components/pathway/hooks/usePathwayStore.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
+services/ui/src/components/pathway/hooks/usePredecessorIO.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
+services/ui/src/components/pathway/hooks/useValidation.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/ActionNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/ConditionNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/ConnectorNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/MergeNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/MiniHitlNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/OutputNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/ParallelNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/SourceNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/TransformNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/TriggerNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/_base/BaseNode.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/_base/NodeHandle.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/_base/NodeHeader.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/_base/NodeStatusStrip.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/nodes/_base/index.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
+services/ui/src/components/pathway/nodes/nodeTypes.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
+services/ui/src/components/pathway/panel/ConditionRuleBuilder.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/pathway/viewer/MiniHitlCard.tsx,stamped,DO-B5DB3744,DI-C6700F52,,none,.tsx,
+services/ui/src/components/reports/ReportList.tsx,stamped,DO-2E8544FD,DI-C65FD45B,,none,.tsx,
 services/ui/src/components/reports/__tests__/ReportList.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/components/research/GuidedNextSteps.tsx,stamped,DO-3AD4D385,DI-9DCBC4BA,,none,.tsx,
 services/ui/src/components/research/HeadlineResult.tsx,stamped,DO-3AD4D385,DI-9DCBC4BA,,none,.tsx,
@@ -1292,25 +1296,29 @@ services/ui/src/components/research/ResultsPanel.tsx,stamped,DO-3AD4D385,DI-9DCB
 services/ui/src/components/research/ResultsTable.tsx,stamped,DO-3AD4D385,DI-9DCBC4BA,,none,.tsx,
 services/ui/src/components/research/ScopingWizard.tsx,stamped,DO-3AD4D385,DI-9DCBC4BA,,none,.tsx,
 services/ui/src/components/research/useResearchState.ts,stamped,DO-3AD4D385,DI-9DCBC4BA,,none,.ts,
-services/ui/src/components/safety-netting/PathwayDetailPanel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/safety-netting/PathwayProgressBar.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/safety-netting/PathwayDetailPanel.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/safety-netting/PathwayProgressBar.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
 services/ui/src/components/safety-netting/PatientPathwayWorklist.tsx,stamped,DO-B1116B14,DI-35494904,,none,.tsx,
-services/ui/src/components/safety-netting/WorklistFilters.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/safety-netting/WorklistSummaryCards.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/sbar-final/SbarFinalView.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/sbar-final/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/sbar-playground/BackgroundSourcePicker.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/sbar-playground/GuidelinePicker.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/sbar-playground/PatientFinder.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/sbar-playground/SummarisationContextSelect.tsx,unresolved,,,,legacy,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/schema-builder/SchemaBuilder.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/tenant/AuthConfig.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/tenant/OrgDrawer.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/tenant/OrgGraph.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/tenant/OrgManagement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/tenant/SubOrgManagement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/tenant/SubscriptionPanel.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/components/tenant/UserManagement.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/safety-netting/WorklistFilters.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/safety-netting/WorklistSummaryCards.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/sbar-final/SbarFinalView.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/sbar-final/index.ts,stamped,DO-30A82196,DI-85B110A5,,none,.ts,
+services/ui/src/components/sbar-playground/BackgroundSourcePicker.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/sbar-playground/GuidelinePicker.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/sbar-playground/PatientFinder.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/sbar-playground/SummarisationContextSelect.tsx,stamped,DO-30A82196,DI-85B110A5,,legacy,.tsx,
+services/ui/src/components/schema-builder/SchemaBuilder.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/components/tenant/AuthConfig.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/components/tenant/BindGroupDialog.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
+services/ui/src/components/tenant/EntraGroupPicker.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
+services/ui/src/components/tenant/EntraIntegration.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
+services/ui/src/components/tenant/EntraUserPicker.tsx,already_atlas,,,,atlas,.tsx,canonical Atlas trace block present
+services/ui/src/components/tenant/OrgDrawer.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/components/tenant/OrgGraph.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/components/tenant/OrgManagement.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/components/tenant/SubOrgManagement.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/components/tenant/SubscriptionPanel.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
+services/ui/src/components/tenant/UserManagement.tsx,stamped,DO-CBE90D5D,DI-982CC3AD,,none,.tsx,
 services/ui/src/components/ui/CoachMark.tsx,stamped,DO-9539333E,DI-29EEE9C3,,legacy,.tsx,
 services/ui/src/components/ui/GlossaryTerm.tsx,stamped,DO-9539333E,DI-29EEE9C3,,legacy,.tsx,
 services/ui/src/components/ui/HealthBar.tsx,stamped,DO-0998FAF5,DI-BE09736F,,none,.tsx,
@@ -1321,17 +1329,17 @@ services/ui/src/components/ui/PageIntro.tsx,stamped,DO-9539333E,DI-29EEE9C3,,leg
 services/ui/src/components/ui/PhaseProgress.tsx,stamped,DO-0998FAF5,DI-BE09736F,,none,.tsx,
 services/ui/src/components/ui/StageCard.tsx,stamped,DO-0998FAF5,DI-BE09736F,,none,.tsx,
 services/ui/src/components/ui/StatusDot.tsx,stamped,DO-65E7BCF8,"DI-B0832A64, DI-B95A73E9, DI-BE09736F",,legacy,.tsx,
-services/ui/src/components/ui/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/context/AnalyticsDateFilterContext.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/context/AuditBenchmarkOverlayContext.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/components/ui/index.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/context/AnalyticsDateFilterContext.tsx,stamped,DO-CD075278,DI-B5EEBC4C,,none,.tsx,
+services/ui/src/context/AuditBenchmarkOverlayContext.tsx,stamped,DO-CD075278,DI-B5EEBC4C,,none,.tsx,
 services/ui/src/context/DensityContext.tsx,stamped,DO-5D525D34,DI-522BBCC4,,none,.tsx,
-services/ui/src/context/OrgContext.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/context/PipelineContext.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/context/OrgContext.tsx,stamped,DO-CD075278,DI-B5EEBC4C,,none,.tsx,
+services/ui/src/context/PipelineContext.tsx,stamped,DO-CD075278,DI-B5EEBC4C,,none,.tsx,
 services/ui/src/context/SnackbarContext.tsx,stamped,DO-A2553F87,DI-425CA252,,none,.tsx,
 services/ui/src/context/__tests__/OrgContext.test.tsx,excluded,,,,none,.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/hooks/__tests__/usePipelineStream.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
-services/ui/src/hooks/usePipelineStream.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/hooks/useSbarStream.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/hooks/usePipelineStream.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/hooks/useSbarStream.ts,stamped,DO-CD075278,DI-B5EEBC4C,,legacy,.ts,
 services/ui/src/lib/__tests__/analyticsApi.domains.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/lib/__tests__/analyticsApi.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/lib/__tests__/api.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
@@ -1340,62 +1348,62 @@ services/ui/src/lib/__tests__/dateSort.test.ts,excluded,,,,none,.ts,"ui __tests_
 services/ui/src/lib/__tests__/pathwayRisk.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/lib/__tests__/sortNatural.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/lib/__tests__/terminologyConfidence.test.ts,excluded,,,,none,.ts,"ui __tests__ (VT, not DO)"
-services/ui/src/lib/abbrev.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/analyticsApi.ts,stamped,DO-11A2361E,"DI-23822663, DI-F46D7A68, DO-671C15BF",,legacy,.ts,
-services/ui/src/lib/api/admin.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/agent.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/benchmarks.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/client.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/abbrev.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/analyticsApi.ts,stamped,DO-11A2361E,"DI-23822663, DI-F46D7A68",,legacy,.ts,
+services/ui/src/lib/api/admin.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/agent.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/benchmarks.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/client.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
 services/ui/src/lib/api/dq.ts,stamped,DO-0998FAF5,DI-FC80B65A,,none,.ts,
-services/ui/src/lib/api/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/legacy.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/libraries.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/mail.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/measureReports.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/measures.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/organizations.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/patients.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/api/schema.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/api/index.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/legacy.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/libraries.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/mail.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/measureReports.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/measures.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/organizations.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/patients.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/lib/api/schema.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
 services/ui/src/lib/areaCopy.ts,stamped,DO-A59215DA,DI-900CB621,,legacy,.ts,
-services/ui/src/lib/auditVisibleKeys.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/authContext.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/cancerTypeKeys.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/cancerTypes.ts,unresolved,,,,atlas,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/chartRecommendations.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/chartTheme.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/dateSort.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/entitySemanticLabels.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/episodeStatus.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/exportContextRulesPdf.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/fonts.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/auditVisibleKeys.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/authContext.tsx,stamped,DO-CD075278,DI-B5EEBC4C,,none,.tsx,
+services/ui/src/lib/cancerTypeKeys.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/cancerTypes.ts,already_atlas,,,,atlas,.ts,canonical Atlas trace block present
+services/ui/src/lib/chartRecommendations.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/chartTheme.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/dateSort.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/entitySemanticLabels.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/episodeStatus.ts,stamped,DO-CD075278,DI-B5EEBC4C,,legacy,.ts,
+services/ui/src/lib/exportContextRulesPdf.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/fonts.ts,stamped,DO-CD075278,DI-B5EEBC4C,,legacy,.ts,
 services/ui/src/lib/glossary.ts,stamped,DO-9539333E,DI-29EEE9C3,,legacy,.ts,
-services/ui/src/lib/knowledgeCopy.ts,unresolved,,,,atlas,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/measureData.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/missionControlApi.ts,stamped,DO-9530152E,"DI-6EA84931, DI-DD67ACFF, DO-F78C84A6",,none,.ts,
+services/ui/src/lib/knowledgeCopy.ts,already_atlas,,,,atlas,.ts,canonical Atlas trace block present
+services/ui/src/lib/measureData.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/missionControlApi.ts,stamped,DO-9530152E,"DI-6EA84931, DI-DD67ACFF",,none,.ts,
 services/ui/src/lib/missionControlFilters.ts,stamped,DO-EE78E305,DI-6EA84931,,none,.ts,
-services/ui/src/lib/nerAnnotation.tsx,unresolved,,,,none,.tsx,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/nhsNumber.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/nerAnnotation.tsx,stamped,DO-30A82196,DI-85B110A5,,none,.tsx,
+services/ui/src/lib/nhsNumber.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
 services/ui/src/lib/pathwayLabels.ts,stamped,DO-EE78E305,DI-6EA84931,,none,.ts,
-services/ui/src/lib/pathwayRisk.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/pathwayRisk.ts,stamped,DO-B5DB3744,DI-C6700F52,,none,.ts,
 services/ui/src/lib/readability.ts,stamped,DO-9539333E,DI-29EEE9C3,,legacy,.ts,
 services/ui/src/lib/researchApi.ts,stamped,DO-3AD4D385,DI-9DCBC4BA,,none,.ts,
-services/ui/src/lib/serverSession.ts,unresolved,,,,legacy,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/sortNatural.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/taxYearPresets.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/templates.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/serverSession.ts,stamped,DO-CD075278,DI-B5EEBC4C,,legacy,.ts,
+services/ui/src/lib/sortNatural.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/taxYearPresets.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/templates.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
 services/ui/src/lib/terminologyConfidence.ts,stamped,DO-F8631A82,DI-1B8AC856,,none,.ts,
-services/ui/src/lib/types.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/types/elementTypes.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/types/fhir.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/types/layout.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/useIdleLogout.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/lib/utils/toc.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/proxy.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/stores/editorStore/documentActions.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/stores/editorStore/elementActions.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/stores/editorStore/index.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/stores/editorStore/pageActions.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/stores/editorStore/types.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
-services/ui/src/stores/editorStore/utils.ts,unresolved,,,,none,.ts,no resolvable Atlas DI/DO via Phase 13a evidence
+services/ui/src/lib/types.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/types/elementTypes.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/types/fhir.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/types/layout.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/useIdleLogout.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/lib/utils/toc.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/proxy.ts,stamped,DO-19BBE973,DI-B746E19E,,none,.ts,
+services/ui/src/stores/editorStore/documentActions.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/stores/editorStore/elementActions.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/stores/editorStore/index.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/stores/editorStore/pageActions.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/stores/editorStore/types.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
+services/ui/src/stores/editorStore/utils.ts,stamped,DO-CD075278,DI-B5EEBC4C,,none,.ts,
 services/ui/src/theme/tokens.ts,stamped,DO-5D525D34,"DI-522BBCC4, DI-985976A3, DI-BE09736F",,legacy,.ts,
 services/ui/src/types/plotly-dist-min.d.ts,excluded,,,,none,.ts,declaration-only .d.ts

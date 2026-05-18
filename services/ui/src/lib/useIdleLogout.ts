@@ -7,6 +7,11 @@
  *
  * Call `keepAlive()` when the user acknowledges the warning to reset.
  * Set `idleMinutes` to 0 to disable entirely.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
 "use client";
 

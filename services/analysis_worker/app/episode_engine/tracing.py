@@ -1,5 +1,10 @@
 """Audit-grade trace recording for every episode-engine run.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Each chain run generates an ``EpisodeEngineTrace`` node in the patient
 graph holding:
   - trace_id (UUID per run)

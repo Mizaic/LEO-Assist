@@ -37,3 +37,14 @@ retire,DI-LEO-AI-530,DI-0A239B7D,0a239b7d-a050-448c-9e65-afccc29095dc,obsoleted,
 data_migration,2026_normalise_cancer_types.py,,,committed,Rewrote 141 EpisodeOfCare nodes across 32 distinct (cancer_type suspected_site) raw pairs; idempotency confirmed on second pass; final live-graph distribution = 16 canonical NCDA values summing to 141,2026-04-20T07:53:46Z
 verification_run,VT-24D944B2 run VERUN-24d944b2-8810-45e9-9333-03a22642786e-20260420075652,VT-24D944B2,24d944b2-8810-45e9-9333-03a22642786e,passed,25/25 Python (lifecycle + audit summary) + 14 UI MECE hero cards; live-graph evidence active=28 cancer_excluded=31 confirmed_cancer=45 in_review=37 sum=141,2026-04-20T07:56:52Z
 verification_run,VT-2202B852 run VERUN-2202b852-0366-479e-b7b6-2ab369eebbe9-20260420075735,VT-2202B852,2202b852-0366-479e-b7b6-2ab369eebbe9,passed,78/78 Python (oncology + cancer-type vocabulary contracts) + 29 UI cancer-type-options; migration committed and idempotent; final live-graph distribution = 16 canonical NCDA values,2026-04-20T07:57:35Z
+design_input,,DI-CA1B4C6E,ca1b4c6e-49d1-4ad4-aa22-0156f298da61,created,Hero card drill-through preserves cohort identity and surfaces all-cohort denominator (extends DI-105A4EC7),2026-04-20T13:56:55Z
+link,,DI-CA1B4C6E,,created,UN UN-B5BE2BD1 -[HAS_DESIGN_INPUT]-> DI DI-CA1B4C6E,2026-04-20T13:57:55Z
+design_output,,DO-C60D6F3C,c60d6f3c-ac35-48b1-bd1c-7e6bef5da6ec,created,Clickable hero cards + cohort summary card + lifecycle_bucket filter (UI + analytics API + parity contract),2026-04-20T13:57:22Z
+link,,DO-C60D6F3C,,created,DO DO-C60D6F3C -[IMPLEMENTS]-> DI DI-CA1B4C6E,2026-04-20T13:57:56Z
+verification_test,,VT-DB796727,db796727-af40-479f-9768-9f32fab05f45,created,Verify hero card drill-through cohort parity and all-cohort denominator,2026-04-20T13:57:38Z
+link,,VT-DB796727,,created,VT VT-DB796727 -[VERIFIES]-> DI DI-CA1B4C6E,2026-04-20T13:57:57Z
+link,,VT-DB796727,,created,VT VT-DB796727 -[TESTS]-> DO DO-C60D6F3C,2026-04-20T13:57:58Z
+risk,,R-D32A2AC2,d32a2ac2-5fe5-4df0-8822-dc7e7faa607c,created,Hero card drill-through opens a different cohort than the headline number leading clinicians to act on the wrong patient set,2026-04-20T13:57:51Z
+link,,R-D32A2AC2,,created,DI DI-CA1B4C6E -[MITIGATES]-> R R-D32A2AC2,2026-04-20T13:57:59Z
+link,,R-24C3AAED,,created,DI DI-CA1B4C6E -[MITIGATES]-> R R-24C3AAED,2026-04-20T13:58:00Z
+verification_run,VT-DB796727 run VERUN-db796727-af40-479f-9768-9f32fab05f45-20260420135817,VT-DB796727,db796727-af40-479f-9768-9f32fab05f45,passed,5/5 contract parity + 1/1 audit_summary cohort totals + 4/4 mission_control lifecycle filter + 14/14 UI dashboard-hero-mece (clickable MECE + cohort card + footnote) + 6/6 UI missionControlFilters lifecycle_bucket round-trip; live-graph spot check confirmed_cancer=45 episodes across 43 patients matches dashboard headline,2026-04-20T13:58:17Z

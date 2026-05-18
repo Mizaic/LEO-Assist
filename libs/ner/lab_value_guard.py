@@ -1,5 +1,10 @@
 """Defence-in-depth guard: suppress disorder entities inferred from lab values.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Clinical safety rule: lab results (eGFR, creatinine, HbA1c, etc.) are
 observations — the pipeline must NEVER infer a diagnosis from a numeric
 measurement.  If the LLM returns a disorder whose evidence text is a lab

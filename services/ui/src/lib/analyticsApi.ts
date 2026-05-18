@@ -5,7 +5,7 @@
  * Atlas trace:
  *   DO: DO-11A2361E
  *   Also implements: DO-A23404E0
- *   DI: DI-23822663, DI-F46D7A68, DO-671C15BF
+ *   DI: DI-23822663, DI-F46D7A68
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-11A2361E")
  */
 import type { TimelineEvent } from "@/lib/types";
@@ -847,6 +847,23 @@ export interface AuditSummary {
   confirmed_cancers: number;
   confirmed_cancers_via_2ww?: number;
   confirmed_cancers_via_2ww_pct?: number | null;
+  // MECE lifecycle decomposition (DI-105A4EC7). Sum of the four
+  // *_episodes fields equals total_cohort_episodes by construction.
+  total_cohort_episodes?: number;
+  active_lifecycle_episodes?: number;
+  in_review_episodes?: number;
+  cancer_excluded_episodes?: number;
+  confirmed_cancer_episodes?: number;
+  // All-cohort totals for the dashboard "Cohort" summary card.
+  // total_cohort_patients counts every Patient in scope (matches
+  // Mission Control's cohort denominator). patients_with_pathway
+  // counts those with at least one EpisodeOfCare. The difference is
+  // surfaced as patients_without_pathway and clickable to
+  // /care/patients?lifecycle_bucket=no_pathway. See DI-CA1B4C6E.
+  total_cohort_patients?: number;
+  total_cohort_patients_with_pathway?: number;
+  patients_without_pathway?: number;
+  total_cohort_episodes_all?: number;
   median_pci_days: number | null;
   median_di_days: number | null;
   avg_consultations: number | null;

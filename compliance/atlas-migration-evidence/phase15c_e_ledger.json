@@ -1,0 +1,828 @@
+{
+  "snapshot": {
+    "captured_at": "2026-04-20T12:50:26Z",
+    "dis_without_vt": [],
+    "dos_without_vt": [
+      {
+        "id": "2c03ca0e-10da-42a3-b8e8-ffc4f8a9f7c9",
+        "dcId": "DO-2C03CA0E",
+        "title": "Tenant admin portal UI implementation"
+      },
+      {
+        "id": "5f9a50d8-098d-4ed5-9e31-7d4784d2aebd",
+        "dcId": "DO-5F9A50D8",
+        "title": "Care portal patient and encounter UI implementation"
+      },
+      {
+        "id": "5312f884-4a1b-460f-a3d2-412c3183a9ae",
+        "dcId": "DO-5312F884",
+        "title": "Mission Control UI implementation"
+      },
+      {
+        "id": "b5db3744-ca24-4581-959e-416ca9bd3f8f",
+        "dcId": "DO-B5DB3744",
+        "title": "Pathway Explorer UI implementation"
+      },
+      {
+        "id": "30a82196-a87a-4223-af82-90ddd88b2f13",
+        "dcId": "DO-30A82196",
+        "title": "Document and gold-label editor UI implementation"
+      },
+      {
+        "id": "2e8544fd-a0fa-4600-a7d0-8a5afac5d4f6",
+        "dcId": "DO-2E8544FD",
+        "title": "Audit, dashboards, benchmarks and measures UI implementation"
+      },
+      {
+        "id": "cbe90d5d-f767-441b-96ab-ae91c95ffed8",
+        "dcId": "DO-CBE90D5D",
+        "title": "Operations console and tenant integration UI implementation"
+      },
+      {
+        "id": "21936fdd-a793-4f88-ac33-2c24498e9609",
+        "dcId": "DO-21936FDD",
+        "title": "Settings, auth and onboarding UI implementation"
+      },
+      {
+        "id": "19bbe973-9277-428c-9c0a-0be8fe2fd82f",
+        "dcId": "DO-19BBE973",
+        "title": "Frontend API client and Next.js proxy implementation"
+      },
+      {
+        "id": "cd075278-7808-4361-86eb-5fb66417e02c",
+        "dcId": "DO-CD075278",
+        "title": "Shared frontend libraries, hooks, contexts and stores"
+      },
+      {
+        "id": "124ac2c4-b981-4e8b-b60d-309e5fa4ad06",
+        "dcId": "DO-124AC2C4",
+        "title": "Mizaic design system primitives implementation"
+      },
+      {
+        "id": "ec41233c-ae65-4fa3-8867-f1337415a67e",
+        "dcId": "DO-EC41233C",
+        "title": "FastAPI router surface implementation"
+      },
+      {
+        "id": "d7005c41-3f84-491d-aa67-e0c50d588efc",
+        "dcId": "DO-D7005C41",
+        "title": "AI first-pass candidate generation service"
+      },
+      {
+        "id": "92f92efb-fce8-4945-a2d8-00e3d3ea9e3f",
+        "dcId": "DO-92F92EFB",
+        "title": "API service tier implementation"
+      },
+      {
+        "id": "19fa25c3-afa0-4ef0-ba8e-b5acec9dbb9f",
+        "dcId": "DO-19FA25C3",
+        "title": "API entrypoint and shared models implementation"
+      },
+      {
+        "id": "2c1a2392-6409-45f0-bf6d-13e35a18d22f",
+        "dcId": "DO-2C1A2392",
+        "title": "Analysis worker analyzers implementation"
+      },
+      {
+        "id": "69f520c9-5ee1-47b5-9e28-2f74e720784a",
+        "dcId": "DO-69F520C9",
+        "title": "Pipeline graph subgraphs implementation"
+      },
+      {
+        "id": "c2f6ca16-e89a-442d-832a-c6882524f1f4",
+        "dcId": "DO-C2F6CA16",
+        "title": "Pipeline worker entrypoints implementation"
+      },
+      {
+        "id": "9488b454-b526-419c-b1a6-f3d9c7b99b3d",
+        "dcId": "DO-9488B454",
+        "title": "Coding worker entrypoints implementation"
+      },
+      {
+        "id": "4d608335-26f5-4b28-8dbb-7785ec4a2c2d",
+        "dcId": "DO-4D608335",
+        "title": "Terminology tooling and Neo4j MCP tools implementation"
+      },
+      {
+        "id": "710d9eeb-d6f2-426c-960d-3bbb7c1b99b0",
+        "dcId": "DO-710D9EEB",
+        "title": "Episode engine prompt templates implementation"
+      },
+      {
+        "id": "31410049-222e-4ac7-9442-c04ffb7de627",
+        "dcId": "DO-31410049",
+        "title": "Analytics API and ODS sync workers implementation"
+      },
+      {
+        "id": "f8efef89-8656-48b7-868d-11ffbd17a273",
+        "dcId": "DO-F8EFEF89",
+        "title": "Cypher query helper modules"
+      },
+      {
+        "id": "aa3b7fcc-cf6b-4071-82e8-5c7896e9c645",
+        "dcId": "DO-AA3B7FCC",
+        "title": "Shared backend libraries implementation"
+      }
+    ],
+    "vts_without_di": []
+  },
+  "actions": [
+    {
+      "phase": "15d",
+      "target_id": "DO-2C03CA0E",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-2c03ca0e-admin-portal.test.ts"
+      ],
+      "vt_id": "VT-7CF407F0",
+      "details": "generated static-source VT covering 5 representative files of 101 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-5F9A50D8",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-5f9a50d8-care-portal.test.ts"
+      ],
+      "vt_id": "VT-F4179439",
+      "details": "generated static-source VT covering 5 representative files of 28 total under 2 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-5312F884",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-5312f884-mission-control.test.ts"
+      ],
+      "vt_id": "VT-A2B51A45",
+      "details": "generated static-source VT covering 2 representative files of 42 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-B5DB3744",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-b5db3744-pathway-explorer.test.ts"
+      ],
+      "vt_id": "VT-08945109",
+      "details": "generated static-source VT covering 5 representative files of 45 total under 2 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-30A82196",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-30a82196-editor-bucket.test.ts"
+      ],
+      "vt_id": "VT-9A9DAA2C",
+      "details": "generated static-source VT covering 5 representative files of 98 total under 9 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-2E8544FD",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-2e8544fd-analytics-bucket.test.ts"
+      ],
+      "vt_id": "VT-1EB0BF4A",
+      "details": "generated static-source VT covering 5 representative files of 52 total under 7 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-CBE90D5D",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-cbe90d5d-operations-tenant.test.ts"
+      ],
+      "vt_id": "VT-A5D08A6D",
+      "details": "generated static-source VT covering 3 representative files of 31 total under 2 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-21936FDD",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-21936fdd-auth-onboarding.test.ts"
+      ],
+      "vt_id": "VT-DCEE5332",
+      "details": "generated static-source VT covering 5 representative files of 18 total under 5 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-19BBE973",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-19bbe973-api-client-proxy.test.ts"
+      ],
+      "vt_id": "VT-50CBB047",
+      "details": "generated static-source VT covering 5 representative files of 24 total under 2 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-CD075278",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-cd075278-shared-frontend-libs.test.ts"
+      ],
+      "vt_id": "VT-5BFCD4F2",
+      "details": "generated static-source VT covering 5 representative files of 50 total under 4 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-124AC2C4",
+      "decision": "created_new",
+      "test_files": [
+        "services/ui/src/__tests__/atlas-do-124ac2c4-design-system.test.ts"
+      ],
+      "vt_id": "VT-D6FF7ADC",
+      "details": "generated static-source VT covering 5 representative files of 36 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-EC41233C",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_ec41233c_routers.py"
+      ],
+      "vt_id": "VT-81BC41B8",
+      "details": "generated static-source VT covering 2 representative files of 35 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-D7005C41",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_d7005c41_ai_first_pass.py"
+      ],
+      "vt_id": "VT-F3DC724A",
+      "details": "generated static-source VT covering 2 representative files of 8 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-92F92EFB",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_92f92efb_api_services.py"
+      ],
+      "vt_id": "VT-90DA2F3B",
+      "details": "generated static-source VT covering 2 representative files of 38 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-19FA25C3",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_19fa25c3_api_entrypoint.py"
+      ],
+      "vt_id": "VT-C673C74A",
+      "details": "generated static-source VT covering 2 representative files of 4 total under 2 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-2C1A2392",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_2c1a2392_analysis_worker.py"
+      ],
+      "vt_id": "VT-A758BCD8",
+      "details": "generated static-source VT covering 5 representative files of 40 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-69F520C9",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_69f520c9_pipeline_subgraphs.py"
+      ],
+      "vt_id": "VT-8CF850EF",
+      "details": "generated static-source VT covering 2 representative files of 29 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-C2F6CA16",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_c2f6ca16_pipeline_worker.py"
+      ],
+      "vt_id": "VT-F988F7BD",
+      "details": "generated static-source VT covering 3 representative files of 7 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-9488B454",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_9488b454_coding_worker.py"
+      ],
+      "vt_id": "VT-C34F0E78",
+      "details": "generated static-source VT covering 4 representative files of 12 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-4D608335",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_4d608335_terminology_mcp.py"
+      ],
+      "vt_id": "VT-2B00F853",
+      "details": "generated static-source VT covering 3 representative files of 32 total under 2 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-710D9EEB",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_710d9eeb_episode_engine_prompts.py"
+      ],
+      "vt_id": "VT-F95FE7F0",
+      "details": "generated static-source VT covering 2 representative files of 7 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-31410049",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_31410049_analytics_ods_sync.py"
+      ],
+      "vt_id": "VT-6D3789A9",
+      "details": "generated static-source VT covering 4 representative files of 31 total under 2 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-F8EFEF89",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_f8efef89_cypher.py"
+      ],
+      "vt_id": "VT-27904E30",
+      "details": "generated static-source VT covering 2 representative files of 37 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "DO-AA3B7FCC",
+      "decision": "created_new",
+      "test_files": [
+        "tests/atlas/test_atlas_do_aa3b7fcc_shared_backend_libs.py"
+      ],
+      "vt_id": "VT-E594813B",
+      "details": "generated static-source VT covering 5 representative files of 212 total under 1 prefix(es)",
+      "completed_at": "2026-04-20T13:01:55Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-7CF407F0",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-7CF407F0",
+      "details": "linked VT-7CF407F0 -> DI-3F771AFB (VERIFIES) and VT-7CF407F0 -> DO-2C03CA0E (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-7CF407F0",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-7CF407F0",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='7cf407f0-prior-batch-recorded', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-F4179439",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-F4179439",
+      "details": "linked VT-F4179439 -> DI-1D584D40 (VERIFIES) and VT-F4179439 -> DO-5F9A50D8 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-F4179439",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-F4179439",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='f4179439-ce4a-45f0-97b6-1e760b8ccdb8', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-A2B51A45",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-A2B51A45",
+      "details": "linked VT-A2B51A45 -> DI-AA1F5F5B (VERIFIES) and VT-A2B51A45 -> DO-5312F884 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-A2B51A45",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-A2B51A45",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='a2b51a45-dcd1-4157-8220-f8c7baea69d0', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-08945109",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-08945109",
+      "details": "linked VT-08945109 -> DI-C6700F52 (VERIFIES) and VT-08945109 -> DO-B5DB3744 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-08945109",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-08945109",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='08945109-4bfa-4039-82b2-9b09a259d41b', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-9A9DAA2C",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-9A9DAA2C",
+      "details": "linked VT-9A9DAA2C -> DI-85B110A5 (VERIFIES) and VT-9A9DAA2C -> DO-30A82196 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-9A9DAA2C",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-9A9DAA2C",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='9a9daa2c-c262-4408-915e-eae955d887a3', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-1EB0BF4A",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-1EB0BF4A",
+      "details": "linked VT-1EB0BF4A -> DI-C65FD45B (VERIFIES) and VT-1EB0BF4A -> DO-2E8544FD (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-1EB0BF4A",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-1EB0BF4A",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='1eb0bf4a-829f-446a-a9af-cb80deb69e19', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-A5D08A6D",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-A5D08A6D",
+      "details": "linked VT-A5D08A6D -> DI-982CC3AD (VERIFIES) and VT-A5D08A6D -> DO-CBE90D5D (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-A5D08A6D",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-A5D08A6D",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='a5d08a6d-8f94-4fae-b173-7a4410899256', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-DCEE5332",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-DCEE5332",
+      "details": "linked VT-DCEE5332 -> DI-09DF0A10 (VERIFIES) and VT-DCEE5332 -> DO-21936FDD (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-DCEE5332",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-DCEE5332",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='dcee5332-b589-406b-b8bb-606d6764d297', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-50CBB047",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-50CBB047",
+      "details": "linked VT-50CBB047 -> DI-B746E19E (VERIFIES) and VT-50CBB047 -> DO-19BBE973 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-50CBB047",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-50CBB047",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='50cbb047-4320-4503-b369-ef896332b13a', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-5BFCD4F2",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-5BFCD4F2",
+      "details": "linked VT-5BFCD4F2 -> DI-B5EEBC4C (VERIFIES) and VT-5BFCD4F2 -> DO-CD075278 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-5BFCD4F2",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-5BFCD4F2",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='5bfcd4f2-babe-464d-81b1-25512c46d630', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-D6FF7ADC",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-D6FF7ADC",
+      "details": "linked VT-D6FF7ADC -> DI-613A48DA (VERIFIES) and VT-D6FF7ADC -> DO-124AC2C4 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-D6FF7ADC",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-D6FF7ADC",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='d6ff7adc-2fa6-49db-8af0-a0f795bd800a', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-81BC41B8",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-81BC41B8",
+      "details": "linked VT-81BC41B8 -> DI-9D0DF618 (VERIFIES) and VT-81BC41B8 -> DO-EC41233C (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-81BC41B8",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-81BC41B8",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='81bc41b8-4173-43bc-9826-357b16b7b2da', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-F3DC724A",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-F3DC724A",
+      "details": "linked VT-F3DC724A -> DI-0FFA05BB (VERIFIES) and VT-F3DC724A -> DO-D7005C41 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-F3DC724A",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-F3DC724A",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='f3dc724a-757f-4e5e-bc06-8e9ffc636a41', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-90DA2F3B",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-90DA2F3B",
+      "details": "linked VT-90DA2F3B -> DI-88C1715A (VERIFIES) and VT-90DA2F3B -> DO-92F92EFB (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-90DA2F3B",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-90DA2F3B",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='90da2f3b-824d-4c5a-b6ff-81fc4f091472', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-C673C74A",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-C673C74A",
+      "details": "linked VT-C673C74A -> DI-727C94B4 (VERIFIES) and VT-C673C74A -> DO-19FA25C3 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-C673C74A",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-C673C74A",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='c673c74a-1cb4-4088-a2c6-11a5c65b0dc6', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-A758BCD8",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-A758BCD8",
+      "details": "linked VT-A758BCD8 -> DI-7FF67ECE (VERIFIES) and VT-A758BCD8 -> DO-2C1A2392 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-A758BCD8",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-A758BCD8",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='a758bcd8-6d27-43f8-80ea-5ee7fbd5cb59', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-8CF850EF",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-8CF850EF",
+      "details": "linked VT-8CF850EF -> DI-F22160C3 (VERIFIES) and VT-8CF850EF -> DO-69F520C9 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-8CF850EF",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-8CF850EF",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='8cf850ef-500f-43c4-b05c-2f726b87777f', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-F988F7BD",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-F988F7BD",
+      "details": "linked VT-F988F7BD -> DI-06CB6881 (VERIFIES) and VT-F988F7BD -> DO-C2F6CA16 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-F988F7BD",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-F988F7BD",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='f988f7bd-ddab-46ba-88fe-c1e8811c1ecb', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-C34F0E78",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-C34F0E78",
+      "details": "linked VT-C34F0E78 -> DI-D46D83FA (VERIFIES) and VT-C34F0E78 -> DO-9488B454 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-C34F0E78",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-C34F0E78",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='c34f0e78-a22f-4923-a58a-ce185dfdc52c', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-2B00F853",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-2B00F853",
+      "details": "linked VT-2B00F853 -> DI-760F5FB7 (VERIFIES) and VT-2B00F853 -> DO-4D608335 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-2B00F853",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-2B00F853",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='2b00f853-9079-4593-b69e-81b2ae549baf', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-F95FE7F0",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-F95FE7F0",
+      "details": "linked VT-F95FE7F0 -> DI-CBCA6E2D (VERIFIES) and VT-F95FE7F0 -> DO-710D9EEB (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-F95FE7F0",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-F95FE7F0",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='f95fe7f0-d120-4670-94a9-dc1a73c1887d', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-6D3789A9",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-6D3789A9",
+      "details": "linked VT-6D3789A9 -> DI-F46494AE (VERIFIES) and VT-6D3789A9 -> DO-31410049 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-6D3789A9",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-6D3789A9",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='6d3789a9-a6b8-40db-97a9-61f9042f242b', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-27904E30",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-27904E30",
+      "details": "linked VT-27904E30 -> DI-E47C3FC2 (VERIFIES) and VT-27904E30 -> DO-F8EFEF89 (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-27904E30",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-27904E30",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='27904e30-cae5-4b3f-890b-3a983c29b56a', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15d",
+      "target_id": "VT-E594813B",
+      "decision": "linked",
+      "test_files": [],
+      "vt_id": "VT-E594813B",
+      "details": "linked VT-E594813B -> DI-9456E5BE (VERIFIES) and VT-E594813B -> DO-AA3B7FCC (TESTS)",
+      "completed_at": "2026-04-20T13:17:58Z"
+    },
+    {
+      "phase": "15e",
+      "target_id": "VT-E594813B",
+      "decision": "ran_pass",
+      "test_files": [],
+      "vt_id": "VT-E594813B",
+      "details": "static-source bucket VT executed locally; recorded via record_verification_run(vt_id='e594813b-1329-404f-9a75-07c29305ecf9', result='pass', environment='local')",
+      "completed_at": "2026-04-20T13:17:58Z"
+    }
+  ],
+  "manual_review": []
+}

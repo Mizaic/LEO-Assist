@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ */
 "use client";
 
 /**
@@ -30,7 +38,18 @@ import {
   STEP_TITLES,
   type StepId,
 } from "./copy";
-import type { StepDescriptor, StepState } from "./StepRail";
+
+/**
+ * Per-step state machine. The previous (now-deleted) StepRail.tsx
+ * owned these types; they live here because the horizontal stepper
+ * is the only consumer post-Phase-1.
+ */
+export type StepState = "not_started" | "in_progress" | "ready";
+
+export interface StepDescriptor {
+  id: StepId;
+  state: StepState;
+}
 
 interface Props {
   steps: StepDescriptor[];

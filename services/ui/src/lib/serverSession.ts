@@ -11,6 +11,11 @@
  *
  * Traceability: DI-LEO-AI-218 (UI shell SSR session bootstrap and cache
  * strategy), VT-LEO-AI-218.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
 import { cookies, headers } from "next/headers";
 import type { Session, DensityPreference } from "@/lib/authContext";

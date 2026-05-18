@@ -1,0 +1,126 @@
+operation,bucket,subject,result,note
+update_design_output,existing-DO-77A48DBC,77A48DBC,error,"update_design_output: Error executing tool update_design_output: Resource not found: https://qms-graph-api.internal.thankfulhill-8d8d5854.uksouth.azurecontainerapps.io/api/v1/design-controls/design-outputs/77A48DBC: {""detail"":""DesignOutput not found""}"
+create_user_need,ui-admin-portal,Tenant admin portal surface for a tenant administrator,created,UN-26E57FA1
+create_design_input,ui-admin-portal,Admin portal SHALL expose self-service tenant configuration,created,DI-3F771AFB
+link_un_di,ui-admin-portal,UN-26E57FA1->DI-3F771AFB,linked,HAS_DESIGN_INPUT
+create_design_output,ui-admin-portal,Tenant admin portal UI implementation,created,DO-2C03CA0E
+link_do_di,ui-admin-portal,DO-2C03CA0E->DI-3F771AFB,linked,IMPLEMENTS
+create_user_need,ui-care-portal,Care portal surface for a clinician or oncology data nurse,error,"create_user_need: Error executing tool create_user_need: QMS Graph API returned 422: {'detail': 'stakeholderType must be one of: Administrator, AI Coding Agent, All Users, Clinical Safety Officer, Clinician, Developer, Engineering Lead, External Auditor, IT Admin, Knowledge Base Author, LMS Administ"
+create_design_input,ui-care-portal,Care portal SHALL provide patient and encounter navigation,created,DI-1D584D40
+create_design_output,ui-care-portal,Care portal patient and encounter UI implementation,created,DO-5F9A50D8
+link_do_di,ui-care-portal,DO-5F9A50D8->DI-1D584D40,linked,IMPLEMENTS
+create_user_need,ui-mission-control,Encounter Mission Control surface for a clinical reviewer,error,"create_user_need: Error executing tool create_user_need: QMS Graph API returned 422: {'detail': 'stakeholderType must be one of: Administrator, AI Coding Agent, All Users, Clinical Safety Officer, Clinician, Developer, Engineering Lead, External Auditor, IT Admin, Knowledge Base Author, LMS Administ"
+create_design_input,ui-mission-control,"Mission Control SHALL co-locate AI output, state, and actions",created,DI-AA1F5F5B
+create_design_output,ui-mission-control,Mission Control UI implementation,created,DO-5312F884
+link_do_di,ui-mission-control,DO-5312F884->DI-AA1F5F5B,linked,IMPLEMENTS
+create_user_need,ui-pathway-explorer,Pathway Explorer surface for a clinical safety lead,created,UN-CF625982
+create_design_input,ui-pathway-explorer,Pathway Explorer SHALL visualise pathways and edit rules,created,DI-C6700F52
+link_un_di,ui-pathway-explorer,UN-CF625982->DI-C6700F52,linked,HAS_DESIGN_INPUT
+create_design_output,ui-pathway-explorer,Pathway Explorer UI implementation,created,DO-B5DB3744
+link_do_di,ui-pathway-explorer,DO-B5DB3744->DI-C6700F52,linked,IMPLEMENTS
+create_user_need,ui-document-editor,Document and gold-label editor surface for a clinical reviewer or label author,error,"create_user_need: Error executing tool create_user_need: QMS Graph API returned 422: {'detail': 'stakeholderType must be one of: Administrator, AI Coding Agent, All Users, Clinical Safety Officer, Clinician, Developer, Engineering Lead, External Auditor, IT Admin, Knowledge Base Author, LMS Administ"
+create_design_input,ui-document-editor,Editor SHALL support clinical review and gold-label authoring,created,DI-85B110A5
+create_design_output,ui-document-editor,Document and gold-label editor UI implementation,created,DO-30A82196
+link_do_di,ui-document-editor,DO-30A82196->DI-85B110A5,linked,IMPLEMENTS
+create_user_need,ui-audit-and-analytics,"Audit, dashboards and benchmarks surface for a quality assurance lead",created,UN-B52F1F8C
+create_design_input,ui-audit-and-analytics,"Analytics SHALL render audit, benchmark, and measure surfaces",created,DI-C65FD45B
+link_un_di,ui-audit-and-analytics,UN-B52F1F8C->DI-C65FD45B,linked,HAS_DESIGN_INPUT
+create_design_output,ui-audit-and-analytics,"Audit, dashboards, benchmarks and measures UI implementation",created,DO-2E8544FD
+link_do_di,ui-audit-and-analytics,DO-2E8544FD->DI-C65FD45B,linked,IMPLEMENTS
+create_user_need,ui-operations-and-tenant,Operations console and tenant integration surface for a platform operator,created,UN-033A8658
+create_design_input,ui-operations-and-tenant,"Ops UI SHALL expose console, mail outbox, and tenant integration",created,DI-982CC3AD
+link_un_di,ui-operations-and-tenant,UN-033A8658->DI-982CC3AD,linked,HAS_DESIGN_INPUT
+create_design_output,ui-operations-and-tenant,Operations console and tenant integration UI implementation,created,DO-CBE90D5D
+link_do_di,ui-operations-and-tenant,DO-CBE90D5D->DI-982CC3AD,linked,IMPLEMENTS
+create_user_need,ui-settings-and-auth,"Settings, auth and onboarding surface for any authenticated user",created,UN-E811A9C1
+create_design_input,ui-settings-and-auth,Auth and settings SHALL provide consistent shell and onboarding,created,DI-09DF0A10
+link_un_di,ui-settings-and-auth,UN-E811A9C1->DI-09DF0A10,linked,HAS_DESIGN_INPUT
+create_design_output,ui-settings-and-auth,"Settings, auth and onboarding UI implementation",created,DO-21936FDD
+link_do_di,ui-settings-and-auth,DO-21936FDD->DI-09DF0A10,linked,IMPLEMENTS
+create_user_need,ui-frontend-api-client,Frontend API client and proxy surface for a frontend developer,created,UN-0AD182E4
+create_design_input,ui-frontend-api-client,Frontend SHALL use a typed API client and proxy backend traffic,created,DI-B746E19E
+link_un_di,ui-frontend-api-client,UN-0AD182E4->DI-B746E19E,linked,HAS_DESIGN_INPUT
+create_design_output,ui-frontend-api-client,Frontend API client and Next.js proxy implementation,created,DO-19BBE973
+link_do_di,ui-frontend-api-client,DO-19BBE973->DI-B746E19E,linked,IMPLEMENTS
+create_user_need,ui-shared-utilities,Shared frontend utilities surface for a frontend developer,created,UN-F4DD397E
+create_design_input,ui-shared-utilities,Frontend SHALL share cross-cutting utilities via libs/contexts/hooks,created,DI-B5EEBC4C
+link_un_di,ui-shared-utilities,UN-F4DD397E->DI-B5EEBC4C,linked,HAS_DESIGN_INPUT
+create_design_output,ui-shared-utilities,"Shared frontend libraries, hooks, contexts and stores",created,DO-CD075278
+link_do_di,ui-shared-utilities,DO-CD075278->DI-B5EEBC4C,linked,IMPLEMENTS
+create_user_need,design-system,Design system surface for a frontend developer,created,UN-6C1025FE
+create_design_input,design-system,Design system SHALL provide reusable primitives and tokens,created,DI-613A48DA
+link_un_di,design-system,UN-6C1025FE->DI-613A48DA,linked,HAS_DESIGN_INPUT
+create_design_output,design-system,Mizaic design system primitives implementation,created,DO-124AC2C4
+link_do_di,design-system,DO-124AC2C4->DI-613A48DA,linked,IMPLEMENTS
+create_user_need,api-routers,FastAPI router surface surface for an integrating service or the UI,created,UN-650351EB
+create_design_input,api-routers,API SHALL expose tenant-scoped routers for every capability,created,DI-9D0DF618
+link_un_di,api-routers,UN-650351EB->DI-9D0DF618,linked,HAS_DESIGN_INPUT
+create_design_output,api-routers,FastAPI router surface implementation,created,DO-EC41233C
+link_do_di,api-routers,DO-EC41233C->DI-9D0DF618,linked,IMPLEMENTS
+create_user_need,api-services-ai-first-pass,AI first-pass candidate generation surface for the coding worker pipeline,created,UN-23B49E70
+create_design_input,api-services-ai-first-pass,"AI first-pass SHALL generate, score, and queue candidate codes",created,DI-0FFA05BB
+link_un_di,api-services-ai-first-pass,UN-23B49E70->DI-0FFA05BB,linked,HAS_DESIGN_INPUT
+create_design_output,api-services-ai-first-pass,AI first-pass candidate generation service,created,DO-D7005C41
+link_do_di,api-services-ai-first-pass,DO-D7005C41->DI-0FFA05BB,linked,IMPLEMENTS
+create_user_need,api-services,API service tier surface for a FastAPI router,created,UN-D589BF05
+create_design_input,api-services,API service tier SHALL implement business logic outside routers,created,DI-88C1715A
+link_un_di,api-services,UN-D589BF05->DI-88C1715A,linked,HAS_DESIGN_INPUT
+create_design_output,api-services,API service tier implementation,created,DO-92F92EFB
+link_do_di,api-services,DO-92F92EFB->DI-88C1715A,linked,IMPLEMENTS
+create_user_need,api-models-and-main,API entrypoint and shared models surface for every API consumer,created,UN-66B79306
+create_design_input,api-models-and-main,API SHALL share one entrypoint and one schema contract,created,DI-727C94B4
+link_un_di,api-models-and-main,UN-66B79306->DI-727C94B4,linked,HAS_DESIGN_INPUT
+create_design_output,api-models-and-main,API entrypoint and shared models implementation,created,DO-19FA25C3
+link_do_di,api-models-and-main,DO-19FA25C3->DI-727C94B4,linked,IMPLEMENTS
+create_user_need,analysis-worker,Analysis worker analyzers surface for the pipeline worker,created,UN-E44A710A
+create_design_input,analysis-worker,Analysis worker SHALL turn extractions into structured episodes,created,DI-7FF67ECE
+link_un_di,analysis-worker,UN-E44A710A->DI-7FF67ECE,linked,HAS_DESIGN_INPUT
+create_design_output,analysis-worker,Analysis worker analyzers implementation,created,DO-2C1A2392
+link_do_di,analysis-worker,DO-2C1A2392->DI-7FF67ECE,linked,IMPLEMENTS
+create_user_need,pipeline-graph-subgraphs,Pipeline graph subgraphs surface for the pipeline orchestrator,created,UN-094D04DF
+create_design_input,pipeline-graph-subgraphs,Pipeline shall be composed from named LangGraph subgraphs,created,DI-F22160C3
+link_un_di,pipeline-graph-subgraphs,UN-094D04DF->DI-F22160C3,linked,HAS_DESIGN_INPUT
+create_design_output,pipeline-graph-subgraphs,Pipeline graph subgraphs implementation,created,DO-69F520C9
+link_do_di,pipeline-graph-subgraphs,DO-69F520C9->DI-F22160C3,linked,IMPLEMENTS
+create_user_need,pipeline-worker,Pipeline worker entrypoints surface for the platform scheduler,created,UN-9F04ACA4
+create_design_input,pipeline-worker,Pipeline worker SHALL bootstrap and dispatch work reliably,created,DI-06CB6881
+link_un_di,pipeline-worker,UN-9F04ACA4->DI-06CB6881,linked,HAS_DESIGN_INPUT
+create_design_output,pipeline-worker,Pipeline worker entrypoints implementation,created,DO-C2F6CA16
+link_do_di,pipeline-worker,DO-C2F6CA16->DI-06CB6881,linked,IMPLEMENTS
+create_user_need,coding-worker,Coding worker entrypoints surface for the platform scheduler,created,UN-0702F085
+create_design_input,coding-worker,Coding worker SHALL bootstrap and run the coding pipeline,created,DI-D46D83FA
+link_un_di,coding-worker,UN-0702F085->DI-D46D83FA,linked,HAS_DESIGN_INPUT
+create_design_output,coding-worker,Coding worker entrypoints implementation,created,DO-9488B454
+link_do_di,coding-worker,DO-9488B454->DI-D46D83FA,linked,IMPLEMENTS
+create_user_need,terminology-tools,Terminology tooling and Neo4j MCP tools surface for a terminology engineer or platform operator,created,UN-6670B2D6
+create_design_input,terminology-tools,Terminology tools SHALL provide import/maintenance + safe MCP read,created,DI-760F5FB7
+link_un_di,terminology-tools,UN-6670B2D6->DI-760F5FB7,linked,HAS_DESIGN_INPUT
+create_design_output,terminology-tools,Terminology tooling and Neo4j MCP tools implementation,created,DO-4D608335
+link_do_di,terminology-tools,DO-4D608335->DI-760F5FB7,linked,IMPLEMENTS
+create_user_need,prompts-episode-engine,Episode engine prompts surface for the episode engine maintainer,created,UN-AD5E5C81
+create_design_input,prompts-episode-engine,Episode engine prompts SHALL live under one versioned module,created,DI-CBCA6E2D
+link_un_di,prompts-episode-engine,UN-AD5E5C81->DI-CBCA6E2D,linked,HAS_DESIGN_INPUT
+create_design_output,prompts-episode-engine,Episode engine prompt templates implementation,created,DO-710D9EEB
+link_do_di,prompts-episode-engine,DO-710D9EEB->DI-CBCA6E2D,linked,IMPLEMENTS
+create_user_need,analytics-and-ods-sync,Analytics API and ODS sync surface for a quality assurance lead,created,UN-D4BC1356
+create_design_input,analytics-and-ods-sync,Analytics + ODS sync SHALL provide read API and scheduled sync,created,DI-F46494AE
+link_un_di,analytics-and-ods-sync,UN-D4BC1356->DI-F46494AE,linked,HAS_DESIGN_INPUT
+create_design_output,analytics-and-ods-sync,Analytics API and ODS sync workers implementation,created,DO-31410049
+link_do_di,analytics-and-ods-sync,DO-31410049->DI-F46494AE,linked,IMPLEMENTS
+create_user_need,libs-cypher-helpers,Cypher query helpers surface for every backend service that talks to Neo4j,created,UN-E98F792F
+create_design_input,libs-cypher-helpers,Backend services SHALL use libs/cypher/* for graph queries,created,DI-E47C3FC2
+link_un_di,libs-cypher-helpers,UN-E98F792F->DI-E47C3FC2,linked,HAS_DESIGN_INPUT
+create_design_output,libs-cypher-helpers,Cypher query helper modules,created,DO-F8EFEF89
+link_do_di,libs-cypher-helpers,DO-F8EFEF89->DI-E47C3FC2,linked,IMPLEMENTS
+create_user_need,libs-shared-utilities,Shared backend libraries surface for every backend service,created,UN-0FECD362
+create_design_input,libs-shared-utilities,Backend services SHALL share cross-cutting code via libs/*,created,DI-9456E5BE
+link_un_di,libs-shared-utilities,UN-0FECD362->DI-9456E5BE,linked,HAS_DESIGN_INPUT
+create_design_output,libs-shared-utilities,Shared backend libraries implementation,created,DO-AA3B7FCC
+link_do_di,libs-shared-utilities,DO-AA3B7FCC->DI-9456E5BE,linked,IMPLEMENTS
+update_design_output,existing-DO-77A48DBC,77A48DBC,error,"update_design_output: Error executing tool update_design_output: Resource not found: https://qms-graph-api.internal.thankfulhill-8d8d5854.uksouth.azurecontainerapps.io/api/v1/design-controls/design-outputs/77A48DBC: {""detail"":""DesignOutput not found""}"
+create_user_need,ui-care-portal,Care portal surface for a clinician or oncology data nurse,created,UN-43224AC9
+link_un_di,ui-care-portal,UN-43224AC9->DI-1D584D40,linked,HAS_DESIGN_INPUT
+create_user_need,ui-mission-control,Encounter Mission Control surface for a clinical reviewer,created,UN-0A3167F4
+link_un_di,ui-mission-control,UN-0A3167F4->DI-AA1F5F5B,linked,HAS_DESIGN_INPUT
+create_user_need,ui-document-editor,Document and gold-label editor surface for a clinical reviewer or label author,created,UN-9481FFEB
+link_un_di,ui-document-editor,UN-9481FFEB->DI-85B110A5,linked,HAS_DESIGN_INPUT

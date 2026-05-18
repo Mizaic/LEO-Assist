@@ -1,5 +1,10 @@
 """Next-best-action recommendation subgraph.
 
+Atlas trace:
+  DO: DO-69F520C9
+  DI: DI-F22160C3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-69F520C9")
+
 Generates clinical next-best-action recommendations by evaluating the
 current patient state against guidelines and the patient graph.
 """

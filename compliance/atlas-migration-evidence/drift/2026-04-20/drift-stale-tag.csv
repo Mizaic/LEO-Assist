@@ -1,0 +1,124 @@
+dc_id,title,n_paths
+DO-0289F3A5,"LLM extractor paths updated for span resolution, self-rated assertion, self-rated confidence, and clinical-qualifier preservation",3
+DO-05064452,ODS sync worker entry point (implementation),1
+DO-0A64F95A,Specialist outcome letter anchors and inferred benign episode closure,2
+DO-0A8B7188,Clinical Guidelines workflow rebuilt on the design-system,1
+DO-0AE8E53C,services/design-system as npm workspace package '@leo/design-system',4
+DO-0C7A443A,Episode builder fallback referral-claim and evidence-wins merge,8
+DO-0DD91ACD,Holdout Set Selection Script and Export Contamination Guard,2
+DO-0DFA6961,Gold-mined cancer-site dictionary and integration into the text-path episode builder,4
+DO-0F42967F,Model registry (Neo4j-backed) with manifest and training adapter (implementation),4
+DO-0F8F8E02,Surface Forms Management Router - Terminology API,4
+DO-0FB8F15D,Encounter classifier (NER + spaCy textcat) (implementation),2
+DO-10218528,Role-first shell primitives + feature flag,5
+DO-11232EFB,Pathways admin list rebuilt on the design-system,5
+DO-11A2361E,Post-specialist outcome inference engine and analytics integration,8
+DO-1373B71F,"Terminology API: text embedder, ValueSet and ConceptMap queries (implementation)",3
+DO-14B332AB,Unified Encounter Coding Agent,5
+DO-14D58359,SNOMED CT Resolution Service,2
+DO-16CE412B,Pipeline label filter and extraction-response parser (implementation),2
+DO-16FFE9D3,Post-SNOMED double-negation assertion correction,3
+DO-170F0DEE,NLP Entity Extraction Pipeline,4
+DO-175B815C,Service-to-service authentication helper (implementation),1
+DO-19EB27A0,Disorder verifier fail-closed with explicit GATE_FAILED verdict,2
+DO-1B7E7255,Coding review modal split and plain-language redesign,5
+DO-1D5031E0,NER-first extraction routing and deterministic pre-filtering,4
+DO-1E9BCC70,Gold-label review dialog: chrome sub-components,6
+DO-1EB4FB1D,Assertion-aware analytics queries for CCI and cohort filters,3
+DO-1F552BE1,Quality Checker and KPI Calculator,2
+DO-210CF040,deidentify_with_span Helper and DOCUMENTS Evidence Sentence Storage,2
+DO-2340F614,Domain-Driven Episode Detector,7
+DO-236545C8,"Canonical relation schema, policy validation, relation train/eval, and model-first runtime linking",8
+DO-245F62CB,Pipeline Orchestration Service,6
+DO-24AA8840,NICE Syndication API Client and Guideline Ingest Pipeline,5
+DO-25BFD246,Azure managed-identity credential resolver (implementation),1
+DO-2695BE52,Single-source GoldLabel training data and simplified operations workflow,5
+DO-273A4EC4,ODS (Organisation Data Service) lookup client (implementation),1
+DO-27B414B3,Appointment Header Filter and Resolver Input Normalisation,3
+DO-2D2CE052,Surface Form Revoke Endpoint with Cascade CodingReview Creation,3
+DO-2D66F23B,CodingMode Pipeline Routing,2
+DO-308DD1A6,"Practitioner.selected_role, allowed_roles, and (:RoleSwitch) audit",4
+DO-33C5C951,Audit Event System,2
+DO-34E24FA1,FHIR R4 API Service,6
+DO-36C09C0E,fix_polarity_encoded_findings guard in post_processing.py and terminology.py,2
+DO-38C2D850,Pathway Explorer research API and GDS services,7
+DO-3AD4D385,Pathway Explorer UI components,13
+DO-3BA98649,kpi_calculator wired into build_episodes with named-property persistence,2
+DO-3FC2C9D7,Review Service and Workflow,2
+DO-412DE1A5,Redis-backed checkpoint and rebuild status (implementation),2
+DO-448BFA1A,Dual Neo4j Database Architecture,2
+DO-4A8227DD,next/font DM Sans + subtitle1/2 un-monospaced,3
+DO-4AB6D361,Dual-Model Consensus Runner Module,1
+DO-4D563ADF,Ambiguous GP Abbreviation Disambiguation Rules,3
+DO-4F80FAD8,Training worker entry point and spaCy training CLI (implementation),3
+DO-54397CCD,"Multi-label NER - spancat component, layer 5 nesting refinement, prompt preservation",11
+DO-559095B5,Model artefact blob store (implementation),1
+DO-5B320DDC,LLM-Based AppropriatenessRule Authoring with HITL Review Queue,3
+DO-5D032346,OpenTelemetry tracing setup (implementation),1
+DO-5D525D34,DensityProvider and density-aware primitive resolution,3
+DO-5D885390,FHIR Workflow Engine,2
+DO-5DB895BF,createLeoTheme() factory in @leo/design-system consumed by services/ui ThemeRegistry,7
+DO-5F438C17,Neo4j MCP server for analyst and reviewer workflows (implementation),15
+DO-61EE87E0,FHIR-based agent configuration registry (implementation),3
+DO-622F6579,Overcoded CodingReview Creation with Urgent Queue and 48h SLA Alert,3
+DO-64BDC193,LLM Disambiguation Module,3
+DO-65BA6EA0,"/work unified task queue (Cypher UNION, FastAPI, Next.js page, design-system primitive)",5
+DO-65E7BCF8,Operations workspace inclusive redesign,2
+DO-68FDA1E0,Disorder Entity Verifier Module,1
+DO-694875ED,MIN_REFERRAL_TO_DIAG_DAYS + _RE_REFERRAL_PRISM + referral_subtype dedupe,3
+DO-6C398363,first_seen milestone: anchor detector + episode builder wiring,6
+DO-6C694CF9,Abnormal Result Detector,1
+DO-6CD07544,Three-Stream SurfaceFormTask Creation with Two-Reviewer Gate,4
+DO-6DCC699A,"MotionProvider, useMotion, and pre-canned transitions",3
+DO-6DFD03E0,libs/clinical_scoping specialty markers + staging subgraph integration,2
+DO-6F3EE289,Screening Gap Detection Module,2
+DO-70D4B1B8,Broadened breast specialty marker,1
+DO-7123C55A,LLM provider cache and Bedrock retry plumbing (implementation),2
+DO-720CD183,"SafetyNetAlert with Dedup, Escalation, and LoopConfig Kill Switch",3
+DO-77A48DBC,Terminology API Service,7
+DO-7B357FD6,Unified Pipeline Worker Service,5
+DO-7E1BAACC,Hybrid Encounter Retrieval Module,3
+DO-83EBEE2C,Smart Few-Shot Selection + Prompt Caching,6
+DO-8620A68B,Extraction quality LLM check before terminology,16
+DO-86800C9B,"Data Quality Toolkit -- Service Layer, API Router, MCP Server, and Admin UI",5
+DO-868C7881,Shared libs/metrics module for NCDA interval KPIs,4
+DO-88BE3CD9,Extended value-unit linker in post-processing Layer 6,1
+DO-8972ED05,Role-first rollout flag removed; duplicate primitives deleted; font @import removed; sx colour-literal lint rule added,6
+DO-89920463,Card-based Operations UX,2
+DO-89AF1CCE,Shared utilities: device resolver and structured logging setup (implementation),2
+DO-8C497D0C,"Terminology preferred-term, surface normalisation, semantic tags (implementation)",3
+DO-8CCC6230,_rescue_diagnosis_for_open_episode helper + _build_open_episode wiring,1
+DO-8EF2EC20,"NER post-processing, lab-triple recovery, and seed ingestion (implementation)",7
+DO-93E086B0,Coding quality LLM check and dual-target persistence routing,9
+DO-946F617D,Coding Verification Consensus Function,1
+DO-94D87FA7,Agentic Training Label Auditor with Terminology Tool-Use,8
+DO-94EAC337,Assertion-free LLM extraction output with post-processing as sole assertion authority,3
+DO-9530152E,Encounter-centric Mission Control and Batch Reset/Recode,4
+DO-9539333E,PageIntro + HelpPopover + CoachMark + ProgressiveReveal + GlossaryTerm + glossary.ts + readability.ts,7
+DO-95B6BBAB,"Per-semantic-tag tier thresholds, extractor confidence fusion, and assertion parity gating",3
+DO-9A5C65AF,Knowledge hub: merged admin Clinical + Knowledge pages,4
+DO-9BF76337,De-identification of clinical text before LLM submission (implementation),1
+DO-9CA0B5A8,"run_consensus: single-model default, optional dual-model consensus",1
+DO-9F3CD7DE,Mission Control Analytics API Router,2
+DO-A00CD165,Suggest-Aliases LLM Endpoint (Concepts Router) and Model Inference Reload Safeguard,4
+DO-A11695DB,Spinal-TNM scope guard and LLM prompt disambiguation rule,2
+DO-A15BFFE4,Training Data tab chrome composed from @leo/design-system,1
+DO-A23404E0,Stage-at-diagnosis enrichment modules and audit surfacing,7
+DO-A2553F87,"UI Safety, Accessibility, and Usability Remediation",12
+DO-A26CD350,Production Coding Worker WorkflowEngine Routing,8
+DO-A35D2D57,"Training pipeline quality - span realign, assertion filter, golden set, warm-start, active learning",7
+DO-A59215DA,Centralised area intro copy + KnowledgePageLayout rollout + feature flag default,10
+DO-A6D3FE39,libs/analytics/cohorts.py canonical NCDA cohort definition,7
+DO-B1116B14,Dashboard and Safety Netting UI,5
+DO-B3397C94,"FHIR API: ActivityDefinition, Library, PlanDefinition, Schema, Benchmark (implementation)",9
+DO-B4FC3B22,Benign Cancer Pathway Closure Detection,4
+DO-B63973E7,"Terminology loaders for SNOMED CT UK, dm+d, OPCS-4, ICD-10 (implementation)",8
+DO-B6E80BEE,Bulk Reset and Reprocess - Operations Run Flow,3
+DO-B7060F57,Anchor Detection and Episode Builder,4
+DO-B70AF10E,Programme Configuration Registry,2
+DO-B711D180,persist_safety_net_alerts module + dashboards alert_id cleanup,3
+DO-B88D4941,Surface-form validation and tasking,5
+DO-BA2B7A99,Admin Guard and ReDoS-Safe Regex Validation in Training Router,1
+DO-BBD3441A,LLM Prompt Safety Utilities Module,1
+DO-BCA9B190,"MetricTile, ProgressStrip, SegmentedTabs, FilterBar, ToolbarActions, ReviewListCard, DataGridCard, StatHero (framer-motion stagger)",9
+DO-BCD21209,AI Instructions list page on @leo/design-system primitives,1

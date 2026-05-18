@@ -1,5 +1,10 @@
 """End-to-end orchestrator for an SBAR generation job.
 
+Atlas trace:
+  DO: DO-C2F6CA16
+  DI: DI-06CB6881
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-C2F6CA16")
+
 Triggered from the pipeline-jobs queue with event_type='sbar_requested'.
 Persists the :Assessment incrementally so a partial Assessment is
 recoverable if a later stage fails. Publishes progress events to Redis
@@ -256,10 +261,12 @@ class SBAROrchestrator:
             )
             bg_notices = self._record_background_notices(bg_result, notices)
             self._record_background_part_errors(bg_result, errors, errors_detail)
+            background_parts = list(bg_result.get("parts") or [])
             session.run(
                 SET_BACKGROUND,
                 assessment_id=assessment_id,
                 background=background_md,
+                background_parts=json.dumps(background_parts),
             )
             self._emit(
                 run_id,
@@ -271,7 +278,7 @@ class SBAROrchestrator:
                     "error": bg_friendly,
                     "notice": bg_notices[0] if bg_notices else None,
                     "notices": bg_notices,
-                    "parts": list(bg_result.get("parts") or []),
+                    "parts": background_parts,
                 },
             )
 

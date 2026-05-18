@@ -5,8 +5,12 @@
  * Every page carries a branded header (LEO logo, title, filter, date, org)
  * and a footer (page X of Y, confidentiality notice).
  * Table column headers repeat automatically on each page via jspdf-autotable.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
-
 import jsPDF from "jspdf";
 import autoTable, { type CellHookData, type HookData } from "jspdf-autotable";
 

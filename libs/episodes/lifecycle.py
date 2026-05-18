@@ -1,5 +1,10 @@
 """Canonical MECE lifecycle classifier for hero-card metrics (DI-105A4EC7).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Every ``EpisodeOfCare`` falls into exactly one of four lifecycle buckets:
 
   - ``cancer_excluded``    status = closed_benign (cancer ruled out)
@@ -31,6 +36,7 @@ a round-trip to Python.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 
 from libs.episodes.status import EpisodeStatus
@@ -114,3 +120,58 @@ def build_hero_bucket_case(alias: str = "ep") -> str:
         "}"
     )
     return HERO_BUCKET_CASE.format(alias=alias, has_diag=has_diag)
+
+
+# -- Bucket-flip safety helper --------------------------------------------
+
+
+@dataclass(frozen=True)
+class BucketFlip:
+    """Result of comparing two lifecycle states for the same episode.
+
+    Used by:
+      - the reconcile API to refuse a write when the proposed actions
+        would silently move an episode into another hero bucket without
+        explicit reviewer confirmation; and
+      - the UI's bucket-flip warning banner so the reviewer is shown
+        exactly what is changing before they sign off.
+    """
+
+    current_bucket: HeroBucket
+    proposed_bucket: HeroBucket
+    flips: bool
+
+
+def would_flip_bucket(
+    *,
+    current_status: str | None,
+    current_has_diagnosis_milestone: bool,
+    current_letter_inferred_benign: bool = False,
+    proposed_status: str | None,
+    proposed_has_diagnosis_milestone: bool,
+    proposed_letter_inferred_benign: bool = False,
+) -> BucketFlip:
+    """Return the current and proposed bucket and whether they differ.
+
+    All three inputs come from the episode under review. ``current_*``
+    is the live state read from Neo4j; ``proposed_*`` is the state
+    that would result if every reconcile action in the request body
+    were applied. The reconcile API uses ``flips`` to decide whether
+    to require ``confirm_bucket_flip=True`` from the client.
+    """
+
+    current = classify_hero_bucket(
+        current_status,
+        current_has_diagnosis_milestone,
+        current_letter_inferred_benign,
+    )
+    proposed = classify_hero_bucket(
+        proposed_status,
+        proposed_has_diagnosis_milestone,
+        proposed_letter_inferred_benign,
+    )
+    return BucketFlip(
+        current_bucket=current,
+        proposed_bucket=proposed,
+        flips=current != proposed,
+    )

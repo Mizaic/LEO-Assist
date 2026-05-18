@@ -1,5 +1,10 @@
 """SBAR Situation system prompt -- INSTRUCTIONS ONLY.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 The Situation section answers: who is this patient, why are we summarising
 them now, and what is the immediate trigger? Output is short Markdown.
 

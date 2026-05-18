@@ -1,5 +1,10 @@
 """Simple threshold-based circuit breaker for the ODS nightly sync job.
 
+Atlas trace:
+  DO: DO-31410049
+  DI: DI-F46494AE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-31410049")
+
 The circuit breaker counts *consecutive* failures against the ODS API.
 When the threshold is reached it raises CircuitOpenError so the sync
 job can abort cleanly and emit an alert rather than continuing to

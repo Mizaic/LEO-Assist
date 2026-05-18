@@ -1,5 +1,10 @@
 """Stage 6: idempotent Neo4j writer for the episode engine.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Per-patient contract:
     1. DETACH DELETE every existing EpisodeOfCare for the patient (including
        its IS_PART_OF edges, DOCUMENTS_DISRUPTION edges and the

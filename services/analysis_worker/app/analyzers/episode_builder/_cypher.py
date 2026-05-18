@@ -84,7 +84,12 @@ MERGE_EPISODE = (
 
 LINK_ENCOUNTERS = (
     "MATCH (ep:EpisodeOfCare {episode_id: $episode_id}) "
-    "OPTIONAL MATCH (:Encounter)-[r_old:IS_PART_OF]->(ep) "
+    # DI-C424BB44 rebuild guard: do NOT delete IS_PART_OF edges whose
+    # source encounter is in $locked_encounter_ids. Those edges are
+    # protected by a :VerificationLock and the LLM/heuristic rebuild
+    # has already filtered the encounter out of $encounters upstream.
+    "OPTIONAL MATCH (enc_old:Encounter)-[r_old:IS_PART_OF]->(ep) "
+    "WHERE NOT enc_old.id IN coalesce($locked_encounter_ids, []) "
     "DELETE r_old "
     "WITH ep "
     "UNWIND $encounters AS e "

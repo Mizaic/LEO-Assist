@@ -3,6 +3,11 @@
  * filter settings that produce the clearest case-finding set.
  *
  * No side-effects, no React imports -- safe to unit-test in isolation.
+ *
+ * Atlas trace:
+ *   DO: DO-5312F884
+ *   DI: DI-AA1F5F5B
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5312F884")
  */
 import type { EncounterListItem } from "@/lib/missionControlApi";
 

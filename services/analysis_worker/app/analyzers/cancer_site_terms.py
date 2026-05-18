@@ -1,5 +1,10 @@
 """Cancer-site surface form dictionary.
 
+Atlas trace:
+  DO: DO-0DFA6961
+  DI: DI-E3689657
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0DFA6961")
+
 AUTO-GENERATED from GoldLabel entities and SurfaceForm-MAPS_TO-Concept
 edges in the knowledge graph by scripts/_mine_cancer_site_terms.py.
 

@@ -2,7 +2,7 @@
 
 Atlas trace:
   DO: DO-9530152E
-  DI: DI-DD67ACFF, DO-F78C84A6
+  DI: DI-DD67ACFF
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-9530152E")
 
 Provides org-scoped encounter listing, KPI summary, and hybrid search
@@ -19,7 +19,7 @@ import re
 import uuid
 from typing import Any, Optional
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from libs.auth.org_scope import ORG_PATIENT_FILTER, CallerScope, get_caller_scope
@@ -469,20 +469,30 @@ async def get_mission_control_encounters(
             "WITH p, node AS e, score "
             "WHERE trim(coalesce(e.text, '')) <> '' "
         )
-        fulltext_params = {
+        fulltext_params: dict[str, Any] = {
             "q_text": query_ctx.fulltext_query or text_q,
             "limit": min(max(max_results, page_size * 3), 1500),
         }
+        # Tenant scoping: the fulltext and vector legs hit Neo4j fulltext /
+        # vector indexes that are NOT scoped to the caller's org. We must
+        # re-apply the org filter on every leg, otherwise a non-admin caller
+        # who does not pass org_id would receive cross-tenant search hits.
+        # See SECURITY-FIX phase3-m2 (mission_control_encounters tenant
+        # isolation) and DI-... in Atlas.
+        effective_org = org_id if scope.is_admin else (org_id or scope.primary_org_id)
+        if not scope.is_admin and not effective_org:
+            raise HTTPException(
+                status_code=403,
+                detail="Caller has no organisation scope; cannot run case-finding search",
+            )
         where_chunks: list[str] = []
-        if "org" in params:
+        if effective_org:
             where_chunks.append(
                 "EXISTS { MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
                 "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(:Organization {id: $org}) "
                 "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(:Organization {id: $org}) }"
             )
-            fulltext_params["org"] = params["org"]
-        elif not scope.is_admin:
-            pass
+            fulltext_params["org"] = effective_org
         if date_from:
             where_chunks.append("toString(e.date) >= $date_from")
             fulltext_params["date_from"] = date_from
@@ -520,13 +530,13 @@ async def get_mission_control_encounters(
             "limit": min(max(max_results, page_size * 3), 1500),
         }
         vec_where: list[str] = []
-        if "org" in params:
+        if effective_org:
             vec_where.append(
                 "EXISTS { MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
                 "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(:Organization {id: $org}) "
                 "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(:Organization {id: $org}) }"
             )
-            vector_params["org"] = params["org"]
+            vector_params["org"] = effective_org
         if date_from:
             vec_where.append("toString(e.date) >= $date_from")
             vector_params["date_from"] = date_from

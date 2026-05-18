@@ -12,6 +12,11 @@
  * Keeps the destructive Reset action behind progressive disclosure so
  * the common case (reading the verified text) dominates the visual
  * weight of the row.
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
  */
 "use client";
 

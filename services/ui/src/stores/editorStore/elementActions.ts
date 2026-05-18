@@ -1,7 +1,11 @@
 /**
  * Element-level, selection, UI, and history actions for the editor store.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
-
 import { generateElementId } from '@/lib/types/layout';
 import type { LayoutElement } from '@/lib/types/layout';
 import type { EditorSet, EditorGet } from './types';

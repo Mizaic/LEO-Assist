@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-124AC2C4
+ *   DI: DI-613A48DA
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-124AC2C4")
+ */
 // Flesch-Kincaid Grade Level calculator. Identical formula to
 // services/ui/src/lib/readability.ts, relocated here so copy checks can run
 // without importing from the consuming app. See DI-LEO-AI-128 and

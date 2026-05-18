@@ -1,5 +1,32 @@
 {
   "design_inputs": {
+    "DI-06CB6881": {
+      "dcId": "DI-06CB6881",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-C2F6CA16"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-09DF0A10": {
+      "dcId": "DI-09DF0A10",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-21936FDD"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-0FFA05BB": {
+      "dcId": "DI-0FFA05BB",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-D7005C41"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
     "DI-17B5738E": {
       "dcId": "DI-17B5738E",
       "design_inputs": [],
@@ -8,6 +35,15 @@
       ],
       "risks": [],
       "title": "Terminology API: text embedder, ValueSet and ConceptMap queries"
+    },
+    "DI-1D584D40": {
+      "dcId": "DI-1D584D40",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-5F9A50D8"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
     },
     "DI-20104031": {
       "dcId": "DI-20104031",
@@ -69,6 +105,17 @@
       "risks": [],
       "title": "Training worker entry point and spaCy training CLI"
     },
+    "DI-31F4C232": {
+      "dcId": "DI-31F4C232",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-313A49AE"
+      ],
+      "risks": [
+        "R-5CE46392"
+      ],
+      "title": "/admin/entra/* SHALL provide Microsoft-Graph-backed domain, user, and group management using the signed-in admin's delegated token"
+    },
     "DI-3717DFB0": {
       "dcId": "DI-3717DFB0",
       "design_inputs": [],
@@ -102,6 +149,24 @@
       "risks": [],
       "title": "In-memory message bus adapter for development and tests"
     },
+    "DI-3F771AFB": {
+      "dcId": "DI-3F771AFB",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-2C03CA0E"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-4746A178": {
+      "dcId": "DI-4746A178",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-77A48DBC"
+      ],
+      "risks": [],
+      "title": "terminology DI"
+    },
     "DI-5700882E": {
       "dcId": "DI-5700882E",
       "design_inputs": [],
@@ -128,6 +193,17 @@
         "R-4D6F8C46"
       ],
       "title": "Research workspace single-action structured export with method metadata and no patient identifiers"
+    },
+    "DI-5A18A227": {
+      "dcId": "DI-5A18A227",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-313A49AE"
+      ],
+      "risks": [
+        "R-09A3F013"
+      ],
+      "title": "/admin/portal SHALL remain fully functional for tenants that have not granted Microsoft Graph admin consent"
     },
     "DI-5B694FBE": {
       "dcId": "DI-5B694FBE",
@@ -159,6 +235,15 @@
       ],
       "title": "Specialist outcome letter inference for benign episode closure"
     },
+    "DI-613A48DA": {
+      "dcId": "DI-613A48DA",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-124AC2C4"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
     "DI-65975321": {
       "dcId": "DI-65975321",
       "design_inputs": [],
@@ -178,6 +263,17 @@
       ],
       "risks": [],
       "title": "FHIR-based agent configuration registry"
+    },
+    "DI-6CF7FCE0": {
+      "dcId": "DI-6CF7FCE0",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-313A49AE"
+      ],
+      "risks": [
+        "R-5CE46392"
+      ],
+      "title": "/admin/entra/* Graph calls SHALL be OBO-only, tenant-scoped, and fully audited"
     },
     "DI-6E1B71A4": {
       "dcId": "DI-6E1B71A4",
@@ -245,6 +341,33 @@
       ],
       "title": "Production coding worker uses WorkflowEngine + encounter_loader subgraph"
     },
+    "DI-727C94B4": {
+      "dcId": "DI-727C94B4",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-19FA25C3"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-760F5FB7": {
+      "dcId": "DI-760F5FB7",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-4D608335"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-7FF67ECE": {
+      "dcId": "DI-7FF67ECE",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-2C1A2392"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
     "DI-81E8F4B8": {
       "dcId": "DI-81E8F4B8",
       "design_inputs": [],
@@ -272,6 +395,15 @@
       "risks": [],
       "title": "LLM prompt asset registry (templates, examples, output schemas)"
     },
+    "DI-85B110A5": {
+      "dcId": "DI-85B110A5",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-30A82196"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
     "DI-86A1E16F": {
       "dcId": "DI-86A1E16F",
       "design_inputs": [],
@@ -281,6 +413,15 @@
       "risks": [],
       "title": "Model registry (Neo4j-backed) with manifest and training adapter"
     },
+    "DI-88C1715A": {
+      "dcId": "DI-88C1715A",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-92F92EFB"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
     "DI-8A943628": {
       "dcId": "DI-8A943628",
       "design_inputs": [],
@@ -289,6 +430,33 @@
       ],
       "risks": [],
       "title": "De-identification of clinical text before LLM submission"
+    },
+    "DI-9456E5BE": {
+      "dcId": "DI-9456E5BE",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-AA3B7FCC"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-982CC3AD": {
+      "dcId": "DI-982CC3AD",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-CBE90D5D"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-9D0DF618": {
+      "dcId": "DI-9D0DF618",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-EC41233C"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
     },
     "DI-9DCBC4BA": {
       "dcId": "DI-9DCBC4BA",
@@ -312,6 +480,15 @@
       ],
       "risks": [],
       "title": "OpenTelemetry tracing setup"
+    },
+    "DI-AA1F5F5B": {
+      "dcId": "DI-AA1F5F5B",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-5312F884"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
     },
     "DI-AE7680C0": {
       "dcId": "DI-AE7680C0",
@@ -346,6 +523,33 @@
       "risks": [],
       "title": "Terminology loaders for SNOMED CT UK, dm+d, OPCS-4, ICD-10"
     },
+    "DI-B5EEBC4C": {
+      "dcId": "DI-B5EEBC4C",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-CD075278"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-B746E19E": {
+      "dcId": "DI-B746E19E",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-19BBE973"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-B7FEA996": {
+      "dcId": "DI-B7FEA996",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-77A48DBC"
+      ],
+      "risks": [],
+      "title": "terminology DI"
+    },
     "DI-B884A243": {
       "dcId": "DI-B884A243",
       "design_inputs": [],
@@ -378,6 +582,24 @@
       ],
       "title": "Unified Intelligence Console with stage health and next action"
     },
+    "DI-C65FD45B": {
+      "dcId": "DI-C65FD45B",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-2E8544FD"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-C6700F52": {
+      "dcId": "DI-C6700F52",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-B5DB3744"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
     "DI-C978B245": {
       "dcId": "DI-C978B245",
       "design_inputs": [],
@@ -386,6 +608,15 @@
       ],
       "risks": [],
       "title": "ODS (Organisation Data Service) lookup client"
+    },
+    "DI-CBCA6E2D": {
+      "dcId": "DI-CBCA6E2D",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-710D9EEB"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
     },
     "DI-CF03E4EA": {
       "dcId": "DI-CF03E4EA",
@@ -411,6 +642,64 @@
       "risks": [],
       "title": "Assertion inference helper"
     },
+    "DI-D0FC22FE": {
+      "dcId": "DI-D0FC22FE",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-F78C84A6"
+      ],
+      "risks": [
+        "R-732325CF"
+      ],
+      "title": "Encounter-centric Mission Control and Batch Recode"
+    },
+    "DI-D46D83FA": {
+      "dcId": "DI-D46D83FA",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-9488B454"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-E3689657": {
+      "dcId": "DI-E3689657",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-0DFA6961"
+      ],
+      "risks": [
+        "R-732325CF"
+      ],
+      "title": "Deterministic cancer-site dictionary and text-path episode builder integration"
+    },
+    "DI-E47C3FC2": {
+      "dcId": "DI-E47C3FC2",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-F8EFEF89"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-F22160C3": {
+      "dcId": "DI-F22160C3",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-69F520C9"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
+    "DI-F46494AE": {
+      "dcId": "DI-F46494AE",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-31410049"
+      ],
+      "risks": [],
+      "title": "phase14d bucket DI"
+    },
     "DI-F46D7A68": {
       "dcId": "DI-F46D7A68",
       "design_inputs": [],
@@ -421,6 +710,15 @@
         "R-1C482566"
       ],
       "title": "Post-specialist outcome inference engine for stale episodes"
+    },
+    "DI-F8634363": {
+      "dcId": "DI-F8634363",
+      "design_inputs": [],
+      "design_outputs": [
+        "DO-77A48DBC"
+      ],
+      "risks": [],
+      "title": "terminology DI"
     },
     "DI-FBCCD265": {
       "dcId": "DI-FBCCD265",
@@ -536,7 +834,9 @@
     },
     "DO-0DFA6961": {
       "dcId": "DO-0DFA6961",
-      "design_inputs": [],
+      "design_inputs": [
+        "DI-E3689657"
+      ],
       "design_outputs": [],
       "risks": [],
       "title": "Gold-mined cancer-site dictionary and integration into the text-path episode builder"
@@ -594,6 +894,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Post-specialist outcome inference engine and analytics integration"
+    },
+    "DO-124AC2C4": {
+      "dcId": "DO-124AC2C4",
+      "design_inputs": [
+        "DI-613A48DA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-1373B71F": {
       "dcId": "DO-1373B71F",
@@ -659,6 +968,15 @@
       "risks": [],
       "title": "Service-to-service authentication helper (implementation)"
     },
+    "DO-19BBE973": {
+      "dcId": "DO-19BBE973",
+      "design_inputs": [
+        "DI-B746E19E"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-19EB27A0": {
       "dcId": "DO-19EB27A0",
       "design_inputs": [
@@ -667,6 +985,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Disorder verifier fail-closed with explicit GATE_FAILED verdict"
+    },
+    "DO-19FA25C3": {
+      "dcId": "DO-19FA25C3",
+      "design_inputs": [
+        "DI-727C94B4"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-1B7E7255": {
       "dcId": "DO-1B7E7255",
@@ -722,6 +1049,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "deidentify_with_span Helper and DOCUMENTS Evidence Sentence Storage"
+    },
+    "DO-21936FDD": {
+      "dcId": "DO-21936FDD",
+      "design_inputs": [
+        "DI-09DF0A10"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-2340F614": {
       "dcId": "DO-2340F614",
@@ -797,6 +1133,24 @@
       "risks": [],
       "title": "Appointment Header Filter and Resolver Input Normalisation"
     },
+    "DO-2C03CA0E": {
+      "dcId": "DO-2C03CA0E",
+      "design_inputs": [
+        "DI-3F771AFB"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
+    "DO-2C1A2392": {
+      "dcId": "DO-2C1A2392",
+      "design_inputs": [
+        "DI-7FF67ECE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-2D2CE052": {
       "dcId": "DO-2D2CE052",
       "design_inputs": [
@@ -815,6 +1169,15 @@
       "risks": [],
       "title": "CodingMode Pipeline Routing"
     },
+    "DO-2E8544FD": {
+      "dcId": "DO-2E8544FD",
+      "design_inputs": [
+        "DI-C65FD45B"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-308DD1A6": {
       "dcId": "DO-308DD1A6",
       "design_inputs": [
@@ -823,6 +1186,35 @@
       "design_outputs": [],
       "risks": [],
       "title": "Practitioner.selected_role, allowed_roles, and (:RoleSwitch) audit"
+    },
+    "DO-30A82196": {
+      "dcId": "DO-30A82196",
+      "design_inputs": [
+        "DI-85B110A5"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
+    "DO-313A49AE": {
+      "dcId": "DO-313A49AE",
+      "design_inputs": [
+        "DI-31F4C232",
+        "DI-5A18A227",
+        "DI-6CF7FCE0"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "Admin portal Entra extension: graph_client, /admin/entra router, schema source-tag, and capability-driven UI"
+    },
+    "DO-31410049": {
+      "dcId": "DO-31410049",
+      "design_inputs": [
+        "DI-F46494AE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-33C5C951": {
       "dcId": "DO-33C5C951",
@@ -942,6 +1334,15 @@
       "risks": [],
       "title": "Ambiguous GP Abbreviation Disambiguation Rules"
     },
+    "DO-4D608335": {
+      "dcId": "DO-4D608335",
+      "design_inputs": [
+        "DI-760F5FB7"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-4F80FAD8": {
       "dcId": "DO-4F80FAD8",
       "design_inputs": [
@@ -950,6 +1351,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Training worker entry point and spaCy training CLI (implementation)"
+    },
+    "DO-5312F884": {
+      "dcId": "DO-5312F884",
+      "design_inputs": [
+        "DI-AA1F5F5B"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-54397CCD": {
       "dcId": "DO-54397CCD",
@@ -1025,6 +1435,15 @@
       "risks": [],
       "title": "Neo4j MCP server for analyst and reviewer workflows (implementation)"
     },
+    "DO-5F9A50D8": {
+      "dcId": "DO-5F9A50D8",
+      "design_inputs": [
+        "DI-1D584D40"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-61EE87E0": {
       "dcId": "DO-61EE87E0",
       "design_inputs": [
@@ -1095,6 +1514,15 @@
       "risks": [],
       "title": "MIN_REFERRAL_TO_DIAG_DAYS + _RE_REFERRAL_PRISM + referral_subtype dedupe"
     },
+    "DO-69F520C9": {
+      "dcId": "DO-69F520C9",
+      "design_inputs": [
+        "DI-F22160C3"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-6C398363": {
       "dcId": "DO-6C398363",
       "design_inputs": [
@@ -1158,6 +1586,15 @@
       "risks": [],
       "title": "Broadened breast specialty marker"
     },
+    "DO-710D9EEB": {
+      "dcId": "DO-710D9EEB",
+      "design_inputs": [
+        "DI-CBCA6E2D"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-7123C55A": {
       "dcId": "DO-7123C55A",
       "design_inputs": [
@@ -1180,12 +1617,12 @@
       "dcId": "DO-77A48DBC",
       "design_inputs": [
         "DI-4746A178",
-        "DI-F8634363",
-        "DI-B7FEA996"
+        "DI-B7FEA996",
+        "DI-F8634363"
       ],
       "design_outputs": [],
       "risks": [],
-      "title": "Terminology API Service"
+      "title": "ConceptMap CRUD service (with parent DIs)"
     },
     "DO-7B357FD6": {
       "dcId": "DO-7B357FD6",
@@ -1308,6 +1745,15 @@
       "risks": [],
       "title": "NER post-processing, lab-triple recovery, and seed ingestion (implementation)"
     },
+    "DO-92F92EFB": {
+      "dcId": "DO-92F92EFB",
+      "design_inputs": [
+        "DI-88C1715A"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-93E086B0": {
       "dcId": "DO-93E086B0",
       "design_inputs": [
@@ -1325,6 +1771,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Coding Verification Consensus Function"
+    },
+    "DO-9488B454": {
+      "dcId": "DO-9488B454",
+      "design_inputs": [
+        "DI-D46D83FA"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-94D87FA7": {
       "dcId": "DO-94D87FA7",
@@ -1489,6 +1944,15 @@
       "risks": [],
       "title": "libs/analytics/cohorts.py canonical NCDA cohort definition"
     },
+    "DO-AA3B7FCC": {
+      "dcId": "DO-AA3B7FCC",
+      "design_inputs": [
+        "DI-9456E5BE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-B1116B14": {
       "dcId": "DO-B1116B14",
       "design_inputs": [
@@ -1515,6 +1979,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Benign Cancer Pathway Closure Detection"
+    },
+    "DO-B5DB3744": {
+      "dcId": "DO-B5DB3744",
+      "design_inputs": [
+        "DI-C6700F52"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-B63973E7": {
       "dcId": "DO-B63973E7",
@@ -1633,6 +2106,15 @@
       "risks": [],
       "title": "LLM prompt asset registry (templates, examples, output schemas) (implementation)"
     },
+    "DO-C2F6CA16": {
+      "dcId": "DO-C2F6CA16",
+      "design_inputs": [
+        "DI-06CB6881"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-C4EC82F9": {
       "dcId": "DO-C4EC82F9",
       "design_inputs": [
@@ -1677,6 +2159,24 @@
       "design_outputs": [],
       "risks": [],
       "title": "SpanResolver -- absolute character-offset resolver for LLM-extracted terms"
+    },
+    "DO-CBE90D5D": {
+      "dcId": "DO-CBE90D5D",
+      "design_inputs": [
+        "DI-982CC3AD"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
+    "DO-CD075278": {
+      "dcId": "DO-CD075278",
+      "design_inputs": [
+        "DI-B5EEBC4C"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-CD6408D3": {
       "dcId": "DO-CD6408D3",
@@ -1731,6 +2231,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Editable rule review dialog with versioned write-back"
+    },
+    "DO-D7005C41": {
+      "dcId": "DO-D7005C41",
+      "design_inputs": [
+        "DI-0FFA05BB"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-DA9FD5E8": {
       "dcId": "DO-DA9FD5E8",
@@ -1796,6 +2305,15 @@
       "risks": [],
       "title": "Bitmap Store, Guideline Compiler, and Evaluator in Terminology API"
     },
+    "DO-EC41233C": {
+      "dcId": "DO-EC41233C",
+      "design_inputs": [
+        "DI-9D0DF618"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
+    },
     "DO-EDA32DB1": {
       "dcId": "DO-EDA32DB1",
       "design_inputs": [
@@ -1858,6 +2376,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Three-Tier Decision Engine Module"
+    },
+    "DO-F8EFEF89": {
+      "dcId": "DO-F8EFEF89",
+      "design_inputs": [
+        "DI-E47C3FC2"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "phase14d bucket DO"
     },
     "DO-FCF80123": {
       "dcId": "DO-FCF80123",

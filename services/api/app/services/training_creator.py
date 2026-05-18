@@ -1,5 +1,10 @@
 """Training data creator pipeline service for HITL MVP.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 .. deprecated::
     Superseded by the V3 consensus pipeline (services/api/app/services/v3/).
     Retained only for backward compatibility with pilot scripts.

@@ -11,31 +11,24 @@
 /**
  * Widescreen step editor for an AI-generated guidance rule.
  *
- * Layout (v2 -- April 2026 reflow for first-time reviewers):
+ * Layout (v3 -- Phase 3 of the wizard redesign):
  *
  *   +--- DialogTitle (guideline kicker + chapter caption) ---+
  *   +--- HorizontalStepper (4 jump-able steps, 56px tall) ---+
- *   +--- LivePreviewBanner (sticky one-line preview + drawer trigger) ---+
- *   |                                                                    |
- *   |                  CANVAS (full available width)                     |
- *   |                                                                    |
- *   +--- Sticky DialogActions (Cancel | Back | Next | Save) -------------+
+ *   |                          |                             |
+ *   |     CANVAS (~60%)        |   LivePreviewPane (~40%)    |
+ *   |                          |   always visible, no toggle |
+ *   |                          |                             |
+ *   +--- Sticky DialogActions (Cancel | Back | Next | Save) -+
  *
- *   On demand:
- *     - LivePreviewDrawer is an INLINE slide-in panel that shares the
- *       canvas row inside the dialog body. It is not a page-level
- *       Modal, so it can never appear beside or behind the dialog
- *       backdrop. When open it occupies ~380px on the right of the
- *       canvas; when closed the canvas reclaims the full width.
- *     - ChipSearchPopover anchors to the chip / +Add the reviewer
- *       just clicked, replacing the previous always-visible
- *       right-hand search column.
- *
- * The previous 3-column grid (StepRail | Canvas | LivePreviewPane)
- * left the canvas at ~320px on a typical laptop once a search panel
- * was open and trapped users in modes with no clear close
- * affordance. The new layout keeps the canvas as the single primary
- * surface and reserves screen real estate for the rule itself.
+ *   - The plain-English LivePreviewPane is the source of truth for
+ *     reviewers; it sits permanently on the right so the user always
+ *     knows what the rule means as they edit. The previous one-line
+ *     LivePreviewBanner + slide-in LivePreviewDrawer trade-off was
+ *     deleted in Phase 3.
+ *   - ChipSearchPopover still anchors to the chip / +Add element the
+ *     reviewer just clicked, so concept search appears in context
+ *     instead of in a separate column.
  *
  * Footer: sticky DialogActions with Back / Next / Save. Save is the
  * single primary action; it is gated on a >=3-character reason and a
@@ -72,10 +65,13 @@ import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
 import ChipSearchPopover from "./ChipSearchPopover";
-import HorizontalStepper from "./HorizontalStepper";
-import LivePreviewBanner from "./LivePreviewBanner";
-import LivePreviewDrawer from "./LivePreviewDrawer";
-import { type StepDescriptor, type StepState } from "./StepRail";
+import HorizontalStepper, {
+  type StepDescriptor,
+  type StepState,
+} from "./HorizontalStepper";
+import LivePreviewPane from "./LivePreviewPane";
+import type { SandboxImpactBadge } from "./SentenceCanvas";
+import type { SandboxReportState } from "./TestPatientsPanel";
 import Step1Who from "./steps/Step1Who";
 import Step2Suggest from "./steps/Step2Suggest";
 import Step3Try from "./steps/Step3Try";
@@ -165,7 +161,6 @@ export default function EditRuleDialog({
   const [searchTarget, setSearchTarget] = useState<SearchTarget>(IDLE_TARGET);
   const [showRecommendation, setShowRecommendation] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [previewDrawerOpen, setPreviewDrawerOpen] = useState(false);
   const [coach, setCoach] = useState<{
     nodeId: string;
     anchor: HTMLElement;
@@ -182,6 +177,15 @@ export default function EditRuleDialog({
   );
   const [actionDirty, setActionDirty] = useState(false);
   const [currentStepId, setCurrentStepId] = useState<StepId>("who");
+  /**
+   * Phase 4 -- latest sandbox replay summary, pushed up from
+   * TestPatientsPanel (via Step3Try) so the SentenceCanvas in
+   * Step1Who can render an inline fire/no-fire badge per card. Reset
+   * when the rule prop changes (different rule => previous badges
+   * are not for this rule).
+   */
+  const [sandboxReport, setSandboxReport] =
+    useState<SandboxReportState | null>(null);
 
   useEffect(() => {
     if (!rule) return;
@@ -197,13 +201,27 @@ export default function EditRuleDialog({
     setReason("");
     setSearchTarget(IDLE_TARGET);
     setShowRecommendation(false);
-    setPreviewDrawerOpen(false);
     setCoach(null);
     setAction(rule.action ?? null);
     setOriginalAction(rule.action ?? null);
     setActionDirty(false);
     setCurrentStepId("who");
+    setSandboxReport(null);
   }, [rule]);
+
+  /**
+   * Convert the panel's `SandboxReportState` (which carries the
+   * signature it was produced against) into the canvas-facing
+   * `SandboxImpactBadge`. The signature is intentionally stripped
+   * here -- the canvas only needs status + counts. */
+  const sandboxBadge: SandboxImpactBadge | undefined = useMemo(() => {
+    if (!sandboxReport) return undefined;
+    return {
+      status: sandboxReport.status,
+      firingPatients: sandboxReport.firingPatients,
+      totalPatients: sandboxReport.totalPatients,
+    };
+  }, [sandboxReport]);
 
   const summary = useMemo(() => treeToSentence(tree), [tree]);
   const beforeSummary = useMemo(
@@ -211,12 +229,6 @@ export default function EditRuleDialog({
     [originalTree],
   );
   const duplicates = useMemo(() => findDuplicateConceptGroups(tree), [tree]);
-  // Hash of the current tree -- used by TestPatientsPanel to auto-replay
-  // whenever the reviewer's edits could change which patients match.
-  const ruleSignature = useMemo(
-    () => (tree ? JSON.stringify(stripNodeIds(tree)) : ""),
-    [tree],
-  );
 
   // The chip-anchored search popover is open whenever there is an
   // active concept-picking target with an anchor element. The
@@ -550,19 +562,10 @@ export default function EditRuleDialog({
             currentStepId={currentStepId}
             onJump={handleJumpStep}
           />
-          <LivePreviewBanner
-            summary={summary}
-            strength={strength}
-            action={action}
-            showDiffMode={currentStepId === "save"}
-            previewOpen={previewDrawerOpen}
-            onOpenPreview={() => setPreviewDrawerOpen(true)}
-            onClosePreview={() => setPreviewDrawerOpen(false)}
-          />
           <Box
             sx={{
               display: "flex",
-              flexDirection: "row",
+              flexDirection: { xs: "column", md: "row" },
               flex: 1,
               minHeight: 0,
               minWidth: 0,
@@ -574,10 +577,8 @@ export default function EditRuleDialog({
               sx={{
                 p: { xs: 2, md: 3 },
                 minWidth: 0,
-                flex: 1,
-                maxWidth: previewDrawerOpen ? "none" : 1200,
-                width: "100%",
-                mx: previewDrawerOpen ? 0 : "auto",
+                flex: { xs: "1 1 auto", md: "0 0 60%" },
+                width: { xs: "100%", md: "60%" },
                 overflowY: "auto",
               }}
             >
@@ -605,6 +606,7 @@ export default function EditRuleDialog({
                 onRequestAdd={handleRequestAdd}
                 onRequestCoach={handleRequestCoach}
                 onAddFirstSymptom={handleAddFirstSymptom}
+                sandboxBadge={sandboxBadge}
               />
             )}
             {currentStepId === "suggest" && (
@@ -656,15 +658,25 @@ export default function EditRuleDialog({
                 )}
               </Stack>
             )}
-            {currentStepId === "try" && rule?.rule_id && (
+            {/* Step 3 stays mounted across all steps so the
+                debounced sandbox auto-run keeps producing inline
+                impact badges for Step 1 even while the reviewer is
+                still editing the canvas (Phase 4). The panel hides
+                its visual tree when the reviewer is not on the
+                "try" step but its replay loop continues. */}
+            <Box
+              sx={{
+                display: currentStepId === "try" ? "block" : "none",
+              }}
+              aria-hidden={currentStepId !== "try"}
+            >
               <Step3Try
-                ruleId={rule.rule_id}
-                guidelineId={rule.guideline_id}
-                ruleSignature={ruleSignature}
-                ruleName={name || rule.name}
-                recommendationText={rule.recommendation_text}
+                ruleId={rule?.rule_id ?? ""}
+                guidelineId={rule?.guideline_id}
+                ruleName={name || rule?.name}
+                recommendationText={rule?.recommendation_text}
                 draftRule={
-                  tree
+                  tree && rule?.rule_id
                     ? {
                         rule_id: rule.rule_id,
                         name: name || rule.name || "",
@@ -679,8 +691,9 @@ export default function EditRuleDialog({
                       }
                     : null
                 }
+                onSandboxReportChange={setSandboxReport}
               />
-            )}
+            </Box>
             {currentStepId === "save" && (
               <Step4Save
                 reason={reason}
@@ -694,17 +707,28 @@ export default function EditRuleDialog({
               />
             )}
             </Box>
-            <LivePreviewDrawer
-              open={previewDrawerOpen}
-              onClose={() => setPreviewDrawerOpen(false)}
-              summary={summary}
-              strength={strength}
-              action={action}
-              showBeforeAfter={currentStepId === "save"}
-              beforeSummary={beforeSummary}
-              beforeStrength={originalStrength}
-              beforeAction={originalAction}
-            />
+            <Box
+              sx={{
+                flex: { xs: "1 1 auto", md: "0 0 40%" },
+                width: { xs: "100%", md: "40%" },
+                borderTop: { xs: "1px solid", md: "none" },
+                borderLeft: { xs: "none", md: "1px solid" },
+                borderColor: "divider",
+                bgcolor: "grey.50",
+                overflowY: "auto",
+                minHeight: 0,
+              }}
+            >
+              <LivePreviewPane
+                summary={summary}
+                strength={strength}
+                action={action}
+                showBeforeAfter={currentStepId === "save"}
+                beforeSummary={beforeSummary}
+                beforeStrength={originalStrength}
+                beforeAction={originalAction}
+              />
+            </Box>
           </Box>
         </Box>
       </DialogContent>

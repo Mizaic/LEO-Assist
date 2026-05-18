@@ -1,5 +1,14 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-CBE90D5D
+ *   DI: DI-982CC3AD
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CBE90D5D")
+ */
 "use client";
 
+import DOMPurify from "dompurify";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
@@ -211,8 +220,18 @@ export default function MailPage() {
     if (!iframe || !selected?.body_html) return;
     const doc = iframe.contentDocument || iframe.contentWindow?.document;
     if (!doc) return;
+    // Sanitise inbound mail HTML before rendering. Mail bodies are
+    // attacker-controlled (any external sender can craft them) and the
+    // iframe shares no allow-scripts permission, but we still strip
+    // scripts/iframes/forms/event handlers as defence-in-depth in case the
+    // sandbox attribute is ever loosened in the future.
+    const safeHtml = DOMPurify.sanitize(selected.body_html, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "meta", "base"],
+      FORBID_ATTR: ["onerror", "onload", "onclick", "onfocus", "onblur"],
+    });
     doc.open();
-    doc.write(selected.body_html);
+    doc.write(safeHtml);
     doc.close();
   }, [selected?.body_html]);
 
@@ -687,7 +706,13 @@ export default function MailPage() {
             <Box sx={{ flex: 1, overflow: "hidden", bgcolor: "#fff" }}>
               <iframe
                 ref={iframeRef}
-                sandbox="allow-same-origin"
+                // No sandbox flags = maximum restriction (no scripts, no
+                // forms, no top-level navigation, opaque origin). Combined
+                // with DOMPurify on the HTML written into the document,
+                // this prevents reflected XSS from attacker-controlled
+                // mail bodies.
+                sandbox=""
+                referrerPolicy="no-referrer"
                 style={{ width: "100%", height: "100%", border: "none" }}
                 title="Email body"
               />

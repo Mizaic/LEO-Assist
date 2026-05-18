@@ -1,5 +1,10 @@
 """Cypher queries for the :Chunk node and :HAS_CHUNK relationship.
 
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+
 A :Chunk represents a sub-segment of a DocumentReference text body
 (typically a sentence or short paragraph) that can independently carry
 SNOMED concept evidence via :DOCUMENTS relationships:

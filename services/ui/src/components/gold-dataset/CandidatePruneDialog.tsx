@@ -15,8 +15,12 @@
  *   - The Dialog onClose handler is a no-op while loading is true.
  *   - Closing the dialog clears preview + confirmation so the next
  *     open starts from a clean slate.
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
  */
-
 import { useMemo, useState } from "react";
 import {
   Alert,

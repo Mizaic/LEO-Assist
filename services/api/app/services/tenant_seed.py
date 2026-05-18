@@ -1,5 +1,10 @@
 """Guardrailed startup seeding for tenant defaults.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Runs on every startup but each section is idempotent via MERGE / guarded counts.
 
 Seeded items

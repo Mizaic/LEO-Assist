@@ -1,4 +1,10 @@
-"""SBAR Background system prompt -- INSTRUCTIONS ONLY."""
+"""SBAR Background system prompt -- INSTRUCTIONS ONLY.
+
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+"""
 
 SBAR_BACKGROUND_SYSTEM_V1 = """\
 You are a clinical summarisation assistant integrated into an NHS EPR

@@ -1,40 +1,53 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ */
 "use client";
 
 /**
- * Step 3 -- "Try it on real patients".
+ * Step 3 -- "Test your change safely".
  *
- * Hosts the existing TestPatientsPanel unchanged. The panel handles
- * its own state (saved patients, replay reports, sandbox compile,
- * Build / Generate dialogs). The reason for moving it into its own
- * step is purely about focus -- the test-patients section dominates
- * vertical space and used to push the actual rule edit off screen.
+ * Hosts the sandbox-only TestPatientsPanel. Production is never
+ * touched from here -- the sandbox compiles the unsaved draft into
+ * a throwaway bitmap, replays the saved test patients through it,
+ * then deletes the sandbox keys.
  *
- * Design Controls: DI-LEO-AI-234, DO-LEO-AI-234, VT-LEO-AI-510.
+ * Design Controls: DI-LEO-AI-234, DO-LEO-AI-234, VT-LEO-AI-510;
+ * Phase 1 safety fix: DI-DD86CCBE, VT-D7B8FBA9 (see Atlas).
  */
 
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import TestPatientsPanel from "../TestPatientsPanel";
+import TestPatientsPanel, {
+  type SandboxReportState,
+} from "../TestPatientsPanel";
 import { STEP_HELPERS, STEP_TITLES } from "../copy";
 
 interface Props {
   ruleId: string;
   guidelineId?: string;
-  ruleSignature: string;
   ruleName?: string;
   recommendationText?: string;
   draftRule: Record<string, unknown> | null;
+  /** Phase 4 -- propagates sandbox replay summaries up to the
+   *  EditRuleDialog so the SentenceCanvas on Step 1 can render
+   *  inline impact badges. */
+  onSandboxReportChange?: (state: SandboxReportState | null) => void;
 }
 
 export default function Step3Try({
   ruleId,
   guidelineId,
-  ruleSignature,
   ruleName,
   recommendationText,
   draftRule,
+  onSandboxReportChange,
 }: Props) {
   return (
     <Stack spacing={2} sx={{ minWidth: 0 }}>
@@ -57,10 +70,10 @@ export default function Step3Try({
       <TestPatientsPanel
         ruleId={ruleId}
         guidelineId={guidelineId}
-        ruleSignature={ruleSignature}
         ruleName={ruleName}
         recommendationText={recommendationText}
         draftRule={draftRule}
+        onReportChange={onSandboxReportChange}
       />
     </Stack>
   );

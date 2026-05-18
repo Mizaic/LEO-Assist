@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-5312F884
+ *   DI: DI-AA1F5F5B
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5312F884")
+ */
 import { useCallback, useEffect, useState } from "react";
 import { fetchPatientEncounters } from "@/lib/missionControlApi";
 import type { EncounterCardData } from "./EncounterCard";

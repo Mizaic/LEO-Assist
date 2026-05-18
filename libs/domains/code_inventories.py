@@ -1,4 +1,10 @@
 """Curated Read/CTV3 code inventories for the stale-episode and
+
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 missed-cancer fixes.
 
 These inventories capture the explicit Read/CTV3 codes, free-text

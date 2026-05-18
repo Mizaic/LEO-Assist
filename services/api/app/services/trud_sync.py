@@ -1,5 +1,10 @@
 """TRUD terminology sync: download, extract, and load into Neo4j.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Orchestrates:
   1. Fetch latest release metadata from the TRUD API.
   2. Download the archive (streaming, with progress events).
@@ -16,6 +21,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import tempfile
 import time
 import urllib.request
@@ -276,17 +282,60 @@ def _download_file(url: str, dest: Path, emit: Emitter) -> None:
                         last_pct = pct
 
 
+def _safe_zip_target(dest_dir: Path, member_name: str) -> Path | None:
+    """Resolve the on-disk target for a zip member, rejecting path traversal.
+
+    Returns the resolved Path if it is contained within dest_dir, else None.
+    Defends against archives that contain absolute paths, '..' segments, or
+    Windows-style drive letters (Zip-Slip / CVE-2018-1002201 family).
+    """
+    if not member_name or member_name.startswith(("/", "\\")):
+        return None
+    if ":" in member_name and len(member_name) > 1 and member_name[1] == ":":
+        return None
+    candidate = (dest_dir / member_name).resolve()
+    base = dest_dir.resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError:
+        return None
+    return candidate
+
+
 def _extract_snomed(zip_path: Path, dest_dir: Path, emit: Emitter) -> None:
-    """Extract SNOMED zip, adding new dated directories alongside existing ones."""
+    """Extract SNOMED zip, adding new dated directories alongside existing ones.
+
+    Each member is path-normalised and verified to land inside dest_dir before
+    being written, so a hostile or corrupted archive cannot escape the
+    extraction root.
+    """
     emit({"type": "log", "msg": f"Extracting {zip_path.name} to {dest_dir.name}/"})
     dest_dir.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip_path) as zf:
-        zf.extractall(dest_dir)
+        for member in zf.infolist():
+            target = _safe_zip_target(dest_dir, member.filename)
+            if target is None:
+                logger.warning(
+                    "trud_sync: refusing to extract unsafe path %r from %s",
+                    member.filename,
+                    zip_path.name,
+                )
+                continue
+            if member.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with zf.open(member) as src, open(target, "wb") as dst:
+                    shutil.copyfileobj(src, dst)
     emit({"type": "log", "msg": "Extraction complete."})
 
 
 def _extract_dmd(zip_path: Path, dest_dir: Path, emit: Emitter) -> None:
-    """Extract dm+d zip, stripping the top-level wrapper directory."""
+    """Extract dm+d zip, stripping the top-level wrapper directory.
+
+    Like _extract_snomed, every resolved target is checked against dest_dir
+    so traversal payloads ('../etc/passwd', absolute paths) cannot escape.
+    """
     emit({"type": "log", "msg": f"Extracting {zip_path.name} to {dest_dir.name}/"})
     dest_dir.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(zip_path) as zf:
@@ -294,18 +343,25 @@ def _extract_dmd(zip_path: Path, dest_dir: Path, emit: Emitter) -> None:
         prefixes = {n.split("/")[0] for n in names if "/" in n}
         strip = prefixes.pop() if len(prefixes) == 1 else None
         for member in zf.infolist():
-            target = member.filename
-            if strip and target.startswith(strip + "/"):
-                target = target[len(strip) + 1 :]
-            if not target:
+            target_name = member.filename
+            if strip and target_name.startswith(strip + "/"):
+                target_name = target_name[len(strip) + 1 :]
+            if not target_name:
                 continue
-            out = dest_dir / target
+            out = _safe_zip_target(dest_dir, target_name)
+            if out is None:
+                logger.warning(
+                    "trud_sync: refusing to extract unsafe path %r from %s",
+                    member.filename,
+                    zip_path.name,
+                )
+                continue
             if member.is_dir():
                 out.mkdir(parents=True, exist_ok=True)
             else:
                 out.parent.mkdir(parents=True, exist_ok=True)
                 with zf.open(member) as src, open(out, "wb") as dst:
-                    dst.write(src.read())
+                    shutil.copyfileobj(src, dst)
     emit({"type": "log", "msg": "Extraction complete."})
 
 

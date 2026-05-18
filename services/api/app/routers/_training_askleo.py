@@ -1,5 +1,10 @@
 """Ask LEO endpoints -- extracted from training.py for file size compliance.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Contains: ask_leo_coding, ask_leo_rank_candidates, ask_leo_smart
 """
 

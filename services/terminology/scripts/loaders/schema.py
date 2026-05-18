@@ -1,4 +1,10 @@
-"""
+"""Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-4D608335
+  DI: DI-760F5FB7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4D608335")
+
 Neo4j schema setup: constraints, indexes, and fulltext indexes.
 
 Run once before loading data. Idempotent — safe to re-run.

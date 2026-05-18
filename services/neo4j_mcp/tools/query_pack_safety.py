@@ -1,4 +1,10 @@
-"""Safety-critical data quality query tools."""
+"""Safety-critical data quality query tools.
+
+Atlas trace:
+  DO: DO-4D608335
+  DI: DI-760F5FB7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4D608335")
+"""
 
 from __future__ import annotations
 

@@ -44,6 +44,12 @@ from typing import Any, Literal
 
 from neo4j import GraphDatabase
 
+from libs.units.observable_units import (
+    UnitConversionError,
+    UnknownObservableError,
+    canonicalise_value,
+    get_canonical_unit,
+)
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 
 logger = logging.getLogger(__name__)
@@ -1112,6 +1118,134 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             "seed_concept_ids": sorted_ids,
         }
 
+    def _compile_observation_leaf(
+        self, node: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Compile an OBSERVATION leaf into the evaluator wire shape.
+
+        Phase 5c. Two responsibilities:
+
+          1. Refuse to compile a leaf whose observable is not in the
+             unit registry (the evaluator could not decide what unit
+             the patient's reading is in).
+          2. Canonicalise the rule's threshold value(s) to the
+             observable's canonical unit so the evaluator only ever
+             compares like-with-like at runtime.
+
+        The leaf is excluded (returns None) on any registry / unit
+        error -- the parent rule will not be compiled, and the error
+        is logged for the operator. Fail-closed by default.
+        """
+        observation = dict(node.get("observation") or {})
+        if not observation:
+            logger.error(
+                "OBSERVATION leaf %r is missing the 'observation' payload "
+                "-- rule will be excluded from compilation.",
+                node.get("node_id"),
+            )
+            return None
+
+        observable_id = str(observation.get("observable_id") or "").strip()
+        if not observable_id:
+            logger.error(
+                "OBSERVATION leaf %r has no observable_id -- rule will be "
+                "excluded from compilation.",
+                node.get("node_id"),
+            )
+            return None
+
+        try:
+            canonical_unit = get_canonical_unit(observable_id)
+        except UnknownObservableError:
+            logger.error(
+                "OBSERVATION leaf %r references unknown observable %s -- "
+                "register it in libs.units.observable_units before "
+                "compiling rules that use it.",
+                node.get("node_id"),
+                observable_id,
+            )
+            return None
+
+        wire_unit = str(observation.get("unit") or "").strip()
+        if not wire_unit:
+            logger.error(
+                "OBSERVATION leaf %r missing unit string for observable "
+                "%s -- excluded.",
+                node.get("node_id"),
+                observable_id,
+            )
+            return None
+
+        operator = str(observation.get("operator") or "").strip()
+        try:
+            canonical_value = self._canonicalise_threshold(
+                observable_id,
+                operator,
+                observation.get("value"),
+                wire_unit,
+            )
+        except (UnitConversionError, ValueError) as exc:
+            logger.error(
+                "OBSERVATION leaf %r failed unit canonicalisation "
+                "(observable=%s, unit=%s): %s",
+                node.get("node_id"),
+                observable_id,
+                wire_unit,
+                exc,
+            )
+            return None
+
+        return {
+            "kind": "observation",
+            "node_id": node.get("node_id"),
+            "observable_id": observable_id,
+            "observable_term": observation.get("observable_term") or "",
+            "operator": operator,
+            "value": canonical_value,
+            "unit": canonical_unit,
+            "wire_unit": wire_unit,
+            "within_days": int(observation.get("within_days") or 365),
+            "temporal": observation.get("temporal"),
+            "reference_range": observation.get("reference_range"),
+            "trend": observation.get("trend"),
+            "aggregation": observation.get("aggregation"),
+        }
+
+    @staticmethod
+    def _canonicalise_threshold(
+        observable_id: str,
+        operator: str,
+        value: Any,
+        unit: str,
+    ) -> float | list[float]:
+        """Convert a leaf's threshold value(s) to the canonical unit.
+
+        Scalar operators (>=, <=, >, <, =) get a single canonicalised
+        float. The 'between' operator gets a [low, high] list of two
+        canonicalised floats. Raises ValueError on shape mismatches
+        and UnitConversionError on unknown / non-finite units.
+        """
+        if operator == "between":
+            if not isinstance(value, (list, tuple)) or len(value) != 2:
+                raise ValueError(
+                    "OBSERVATION 'between' operator requires a [low, "
+                    "high] value pair."
+                )
+            low = canonicalise_value(observable_id, float(value[0]), unit)
+            high = canonicalise_value(observable_id, float(value[1]), unit)
+            if low > high:
+                raise ValueError(
+                    "OBSERVATION 'between' canonicalised range is "
+                    f"inverted (low={low}, high={high})."
+                )
+            return [low, high]
+        if not isinstance(value, (int, float)):
+            raise ValueError(
+                f"OBSERVATION operator {operator!r} requires a scalar "
+                f"value; got {type(value).__name__}."
+            )
+        return canonicalise_value(observable_id, float(value), unit)
+
     def _compile_logic_tree_node(
         self,
         node: dict[str, Any] | None,
@@ -1142,6 +1276,8 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
                 "unit": node.get("unit"),
                 "raw_term": node.get("raw_term"),
             }
+        if kind == "observation":
+            return self._compile_observation_leaf(node)
 
         children = []
         for child in node.get("children") or []:

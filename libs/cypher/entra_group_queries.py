@@ -1,5 +1,10 @@
 """Cypher queries for Entra-group-driven role resolution.
 
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+
 Implements the Group -> Role binding catalogue used by core-api to translate
 Entra (Azure AD) security-group object IDs from the OIDC `groups` claim into
 LEO role names. See DI-D9D4BA02 (functional) and DI-3610585D (security) and

@@ -27,6 +27,11 @@ from ._grouping import (
     _claim_specialists_for_episodes,
     _detect_phantom_sites,
 )
+from ._lock_guard import (
+    filter_link_groups,
+    is_episode_fully_locked,
+    load_lock_state,
+)
 from ._milestone_dedup import collapse_same_day_referrals
 from ._persistence import (
     _benign_closure_for_episode,
@@ -175,14 +180,13 @@ def _first_seen_link_anchors(
     window_start = ref_date or date.min
     try:
         window_end = (
-            _parse_date(end_date) + timedelta(days=90)
-            if end_date
-            else date.max
+            _parse_date(end_date) + timedelta(days=90) if end_date else date.max
         )
     except Exception:  # noqa: BLE001
         window_end = date.max
     claimed = [
-        a for a in first_seen_anchors
+        a
+        for a in first_seen_anchors
         if _parse_date(str(a.get("encounter_date") or ""))
         and window_start
         <= _parse_date(str(a.get("encounter_date") or ""))  # type: ignore[operator]
@@ -191,9 +195,7 @@ def _first_seen_link_anchors(
     ]
     if not claimed:
         return [], None
-    first_date = min(
-        str(a.get("encounter_date") or "")[:10] for a in claimed
-    )
+    first_date = min(str(a.get("encounter_date") or "")[:10] for a in claimed)
     return claimed, first_date
 
 
@@ -242,9 +244,7 @@ def _care_obstruction_link_anchors(
     window_start = ref_date or date.min
     try:
         window_end = (
-            _parse_date(end_date) + timedelta(days=90)
-            if end_date
-            else date.max
+            _parse_date(end_date) + timedelta(days=90) if end_date else date.max
         )
     except Exception:  # noqa: BLE001
         window_end = date.max
@@ -430,9 +430,7 @@ def _build_closed_episode(
     # metric because 75 of 91 confirmed-cancer episodes in 2025 had
     # referral_date synthesised from the diagnosis date.
     referral_date: str | None = (
-        str(ref_anchors[0].get("encounter_date") or "") or None
-        if ref_anchors
-        else None
+        str(ref_anchors[0].get("encounter_date") or "") or None if ref_anchors else None
     )
     if not ref_anchors:
         referral_match_method = "none"
@@ -607,10 +605,19 @@ def _build_closed_episode(
     # duplicates so the timeline shows ONE referral milestone per
     # day per episode (highest-fidelity subtype kept).
     _closed_link_groups = collapse_same_day_referrals(_closed_link_groups)
+    # DI-C424BB44 rebuild guard: drop any (encounter, milestone) whose
+    # IS_PART_OF edge is locked, then forward the lock state so the
+    # LINK_ENCOUNTERS Cypher's WHERE NOT clause preserves the existing
+    # locked edges.
+    if ctx.lock_state is not None:
+        _closed_link_groups = filter_link_groups(
+            _closed_link_groups, episode_id=ep_id, lock_state=ctx.lock_state
+        )
     _link_encounters_to_episode(
         ctx.patient_client,
         ep_id,
         _closed_link_groups,
+        lock_state=ctx.lock_state,
     )
 
 
@@ -789,24 +796,26 @@ def _build_open_episode(
     if diag_link_anchors:
         link_groups.append((diag_link_anchors, diag_milestone_open))
     if status == "closed_benign":
-        bc_anchors = (
-            ctx.anchors.benign_closure_anchors if ctx.anchors else []
-        )
+        bc_anchors = ctx.anchors.benign_closure_anchors if ctx.anchors else []
         bc_link_anchors = _benign_closure_link_anchors(
             bc_anchors, benign_date or benign_qualifier_date, ref_date
         )
         if bc_link_anchors:
             link_groups.append((bc_link_anchors, "benign_closure"))
-    link_groups = _filter_unclaimed_link_groups(
-        link_groups, ctx.claimed_encounters
-    )
+    link_groups = _filter_unclaimed_link_groups(link_groups, ctx.claimed_encounters)
     # DI-LEO-AI-403 (Pattern N2): collapse same-day referral
     # duplicates on the open-episode path too.
     link_groups = collapse_same_day_referrals(link_groups)
+    # DI-C424BB44 rebuild guard (open path) -- see closed path above.
+    if ctx.lock_state is not None:
+        link_groups = filter_link_groups(
+            link_groups, episode_id=ep_id, lock_state=ctx.lock_state
+        )
     _link_encounters_to_episode(
         ctx.patient_client,
         ep_id,
         link_groups,
+        lock_state=ctx.lock_state,
     )
 
 
@@ -842,6 +851,11 @@ async def build_episodes(
     claims = _claim_specialists_for_episodes(anchors.specialist_visit_anchors, specs)
 
     episode_ids: list[str] = []
+    # DI-C424BB44 rebuild guard: read every VerificationLock on this
+    # patient's graph neighbourhood once at the start of the build so
+    # the per-episode builders can skip fully-locked episodes and
+    # preserve locked IS_PART_OF edges.
+    lock_state = load_lock_state(patient_id, patient_client)
     ctx = BuildContext(
         patient_id=patient_id,
         anchors=anchors,
@@ -850,6 +864,7 @@ async def build_episodes(
         result=result,
         episode_ids=episode_ids,
         phantom_sites=phantom_sites,
+        lock_state=lock_state,
     )
 
     for site_key, ref_anchors, diag_anchors, match_method in closed_groups:
@@ -865,6 +880,11 @@ async def build_episodes(
                 default="",
             ),
         )
+        if is_episode_fully_locked(ep_id, lock_state):
+            # Reviewer locked the episode end-to-end; respect their
+            # decision and skip the rebuild entirely.
+            result.episode_ids.append(ep_id)
+            continue
         _build_closed_episode(
             ctx,
             site_key,
@@ -878,6 +898,9 @@ async def build_episodes(
         ep_id = _episode_id(
             patient_id, site_key, str(group[0].get("encounter_date") or "")
         )
+        if is_episode_fully_locked(ep_id, lock_state):
+            result.episode_ids.append(ep_id)
+            continue
         _build_open_episode(ctx, site_key, group, claims[ep_id])
 
     _apply_auto_close_rules(patient_id, episode_ids, patient_client)

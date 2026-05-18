@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
+ */
 import { useCallback, useState, useRef, useEffect, type RefObject } from 'react';
 import { useEditorStore } from '@/stores/editorStore';
 import { LayoutElement, getPageDimensions } from '@/lib/types/layout';

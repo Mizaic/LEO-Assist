@@ -7,8 +7,12 @@
  * helpers cheap to reason about and unit-test.
  *
  * Design Controls: DI-LEO-AI-165, DO-LEO-AI-164, VT-LEO-AI-163.
+ *
+ * Atlas trace:
+ *   DO: DO-B5DB3744
+ *   DI: DI-C6700F52
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-B5DB3744")
  */
-
 export type PathSegment = string | number;
 export type SearchMatch = { path: PathSegment[]; preview: string };
 export type ProbeTab = "changes" | "data" | "validate";

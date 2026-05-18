@@ -12,8 +12,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from libs.auth.service_auth import verify_service_token
 from services.fhir_api.app.services import benchmark_service
 from services.fhir_api.app.services.benchmark_loader import (
     flatten_benchmarks,
@@ -35,7 +36,7 @@ def list_benchmark_sets(
     )
 
 
-@router.post("/sets")
+@router.post("/sets", dependencies=[Depends(verify_service_token)])
 def create_benchmark_set(body: Dict[str, Any]):
     """Create a benchmark set (manual)."""
     return benchmark_service.create_benchmark_set(body)
@@ -50,7 +51,11 @@ def get_benchmark_set(set_id: str):
     return s
 
 
-@router.delete("/sets/{set_id}", status_code=204)
+@router.delete(
+    "/sets/{set_id}",
+    status_code=204,
+    dependencies=[Depends(verify_service_token)],
+)
 def delete_benchmark_set(set_id: str):
     """Delete a benchmark set and all its values."""
     benchmark_service.delete_benchmark_set(set_id)
@@ -92,7 +97,10 @@ def get_benchmark_values(
     )
 
 
-@router.put("/sets/{set_id}/values/{value_id}")
+@router.put(
+    "/sets/{set_id}/values/{value_id}",
+    dependencies=[Depends(verify_service_token)],
+)
 def update_benchmark_value(set_id: str, value_id: str, body: Dict[str, Any]):
     """Update a benchmark value's numeric value."""
     new_val = body.get("value")
@@ -104,7 +112,11 @@ def update_benchmark_value(set_id: str, value_id: str, body: Dict[str, Any]):
     return result
 
 
-@router.delete("/sets/{set_id}/values/{value_id}", status_code=204)
+@router.delete(
+    "/sets/{set_id}/values/{value_id}",
+    status_code=204,
+    dependencies=[Depends(verify_service_token)],
+)
 def delete_benchmark_value(set_id: str, value_id: str):
     """Delete a single benchmark value by id."""
     deleted = benchmark_service.delete_benchmark_value(value_id)
@@ -118,7 +130,7 @@ def get_benchmark_comparison(set_id: str, metric_id: str):
     return benchmark_service.get_benchmark_comparison(set_id, metric_id)
 
 
-@router.post("/upload")
+@router.post("/upload", dependencies=[Depends(verify_service_token)])
 def upload_benchmarks(body: Dict[str, Any]):
     """Upload benchmark JSON with mapping. Creates BenchmarkSet and BenchmarkValues.
 
@@ -176,7 +188,7 @@ def list_benchmark_rules(
     return benchmark_service.list_benchmark_rules(limit=_count, offset=_offset)
 
 
-@router.post("/rules")
+@router.post("/rules", dependencies=[Depends(verify_service_token)])
 def create_benchmark_rule(body: Dict[str, Any]):
     """Create a benchmark rule."""
     return benchmark_service.create_benchmark_rule(body)
@@ -191,19 +203,23 @@ def get_benchmark_rule(rule_id: str):
     return r
 
 
-@router.put("/rules/{rule_id}")
+@router.put("/rules/{rule_id}", dependencies=[Depends(verify_service_token)])
 def update_benchmark_rule(rule_id: str, body: Dict[str, Any]):
     """Update a benchmark rule."""
     return benchmark_service.update_benchmark_rule(rule_id, body)
 
 
-@router.delete("/rules/{rule_id}", status_code=204)
+@router.delete(
+    "/rules/{rule_id}",
+    status_code=204,
+    dependencies=[Depends(verify_service_token)],
+)
 def delete_benchmark_rule(rule_id: str):
     """Delete a benchmark rule."""
     benchmark_service.delete_benchmark_rule(rule_id)
 
 
-@router.post("/rules/{rule_id}/run")
+@router.post("/rules/{rule_id}/run", dependencies=[Depends(verify_service_token)])
 def run_benchmark_rule(
     rule_id: str,
     org_id: Optional[str] = Query(default=None),

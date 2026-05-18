@@ -4,7 +4,7 @@
  * Atlas trace:
  *   DO: DO-10218528
  *   Also implements: DO-8972ED05, DO-9A5C65AF, DO-C4EC82F9
- *   DI: DI-5E7E8CEF, DI-B0832A64, DI-BE09736F, DI-F0846E55, DI-FAF97A8C, DO-F78C84A6
+ *   DI: DI-5E7E8CEF, DI-B0832A64, DI-BE09736F, DI-F0846E55, DI-FAF97A8C
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-10218528")
  */
 "use client";

@@ -3,8 +3,12 @@
  * editor. Extracted from prompts/[id]/page.tsx as part of Wave E Phase 4b
  * (DI-LEO-AI-170 / VT-LEO-AI-169) so the orchestrator drops below the
  * 300 LOC target.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
-
 export interface FewShotExample {
   id: string;
   input: string;

@@ -80,6 +80,7 @@ services/api/app/services/test_patient_scaffolder.py,"test_*.py (VT, not DO)"
 services/api/app/services/test_patient_scenario_scaffolder.py,"test_*.py (VT, not DO)"
 services/api/app/services/test_patient_service.py,"test_*.py (VT, not DO)"
 services/api/scripts/migrations/__init__.py,__init__.py (no executable surface)
+services/api/scripts/probe_nice_taxonomy.py,ad-hoc probe script (Class A)
 services/api/tests/conftest.py,"tests directory (VT, not DO)"
 services/api/tests/test_ai_first_pass_endpoint.py,"tests directory (VT, not DO)"
 services/api/tests/test_bedrock_retry.py,"tests directory (VT, not DO)"
@@ -178,7 +179,10 @@ services/ui/e2e/report-builder.spec.ts,"e2e directory (VAL, not DO)"
 services/ui/e2e/review-workflow.spec.ts,"e2e directory (VAL, not DO)"
 services/ui/e2e/sbar-playground.spec.ts,"e2e directory (VAL, not DO)"
 services/ui/e2e/shared-gold-editor.spec.ts,"e2e directory (VAL, not DO)"
+services/ui/jest.config.js,jest config (test infra)
+services/ui/jest.setup.ts,jest setup (test infra)
 services/ui/next-env.d.ts,declaration-only .d.ts
+services/ui/playwright.config.ts,playwright config (test infra)
 services/ui/src/__tests__/admin-url-audit.test.ts,"ui __tests__ (VT, not DO)"
 services/ui/src/__tests__/ai-first-pass-dialog-chrome.test.tsx,"ui __tests__ (VT, not DO)"
 services/ui/src/__tests__/ai-first-pass-toolbar-id.test.tsx,"ui __tests__ (VT, not DO)"

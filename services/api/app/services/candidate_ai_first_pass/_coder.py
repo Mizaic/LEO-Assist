@@ -1,5 +1,10 @@
 """Per-entity smart coder: validator + Haiku alt-query loop.
 
+Atlas trace:
+  DO: DO-D7005C41
+  DI: DI-0FFA05BB
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-D7005C41")
+
 DI-LEO-AI-208 / DO-LEO-AI-205.
 
 Mirrors the behaviour of the Ask-LEO smart endpoint

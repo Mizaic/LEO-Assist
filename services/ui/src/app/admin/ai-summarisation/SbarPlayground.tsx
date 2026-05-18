@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ */
 "use client";
 
 /**
@@ -553,6 +561,7 @@ export default function SbarPlayground() {
         open={finalDialogOpen && !!sbar.finalContent}
         onClose={() => setFinalDialogOpen(false)}
         markdown={sbar.finalContent ?? ""}
+        backgroundParts={sbar.backgroundParts}
         subtitle={
           [
             sbar.runId ? `run ${sbar.runId.slice(0, 8)}` : null,

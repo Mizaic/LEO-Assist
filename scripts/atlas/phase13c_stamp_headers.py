@@ -97,6 +97,12 @@ EXCLUDE_PATTERNS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"(^|/)__init__\.py$"), "__init__.py (no executable surface)"),
     (re.compile(r"\.d\.ts$"), "declaration-only .d.ts"),
     (re.compile(r"(^|/)conftest\.py$"), "pytest conftest (test infra)"),
+    (re.compile(r"(^|/)jest\.config\.(t|j)s$"), "jest config (test infra)"),
+    (re.compile(r"(^|/)jest\.setup\.(t|j)s$"), "jest setup (test infra)"),
+    (re.compile(r"(^|/)playwright\.config\.(t|j)s$"),
+     "playwright config (test infra)"),
+    (re.compile(r"(^|/)scripts/probe_[^/]+\.py$"),
+     "ad-hoc probe script (Class A)"),
 ]
 
 
@@ -244,7 +250,9 @@ def resolve_one(row: AuditRow, cache: dict) -> Resolution:
         di_union.update(rec.get("design_inputs") or [])
         risk_union.update(rec.get("risks") or [])
     # Also include DIs the audit found directly in case the cache is partial.
-    di_union.update(dis)
+    # Filter to DI-prefixed IDs only -- the audit sometimes mislabels DOs
+    # as DIs in the owning_atlas_dis column.
+    di_union.update(d for d in dis if d.startswith("DI-"))
     if not di_union:
         return Resolution(
             decision="triage",

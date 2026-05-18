@@ -5,6 +5,11 @@
  * Renders compact source -> [rel type] -> target triplets from entity
  * relations, plus a "No links" warning when linkable entity pairs exist
  * but no relation has been set.
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
  */
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";

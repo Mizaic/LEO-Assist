@@ -1,5 +1,10 @@
 """Canonical NCDA cancer-type vocabulary (DI-5CAC6D73).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Single source of truth for every cancer-site / cancer-type string the
 EpisodeOfCare nodes may carry on ``cancer_type`` or ``suspected_site``.
 Producers (the segmenter LLM and the writer) MUST emit a value from

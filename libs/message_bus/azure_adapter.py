@@ -1,5 +1,10 @@
 """Azure Service Bus adapter for production message bus.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Uses AutoLockRenewer so long-running jobs (30+ minutes) don't lose their
 message lock and get redelivered to another worker replica mid-processing.
 """

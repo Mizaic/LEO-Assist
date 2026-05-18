@@ -1,5 +1,10 @@
 """Confidence-gated TrainingCandidate pruning service.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Implements DI-LEO-AI-196 (UN-LEO-AI-083) -- a verdict ladder over
 non-completed TrainingCandidate nodes that re-runs the SNOMED proposal
 validator (DI-LEO-AI-186) over each candidate's persisted entities and

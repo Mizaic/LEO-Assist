@@ -1,5 +1,10 @@
 """SBAR Background REDUCE system prompt -- INSTRUCTIONS ONLY.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Used by the second pass of the partition + map + reduce strategy in
 ``libs.sbar.prompt_calls.call_background``. The model is given N
 partial Background sections (each already produced by the standard

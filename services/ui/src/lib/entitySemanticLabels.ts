@@ -1,4 +1,10 @@
-/** Canonical SNOMED CT semantic tag strings for NER entity types (training / gold UI). */
+/** Canonical SNOMED CT semantic tag strings for NER entity types (training / gold UI).
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
+ */
 export const VALID_ENTITY_SEMANTIC_LABELS = [
   "assessment_scale",
   "attribute",

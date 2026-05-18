@@ -6987,6 +6987,34 @@ def get_corpus_stats(
 # ── Source node sample preview ──────────────────────────────────────────────
 
 
+# Allowlist of source-configurator node labels the sample-node endpoint will
+# query. node_label flows directly into a Cypher MATCH clause, so we MUST
+# refuse anything that is not a known training-pipeline label. The list is
+# kept narrow on purpose -- training authors only need a handful of source
+# labels to design new pathways.
+_SAMPLE_NODE_LABEL_ALLOWLIST = frozenset(
+    {
+        "Encounter",
+        "EncounterCandidate",
+        "Patient",
+        "Document",
+        "Observation",
+        "Condition",
+        "MedicationRequest",
+        "MedicationStatement",
+        "Procedure",
+        "DiagnosticReport",
+        "AllergyIntolerance",
+        "Immunization",
+        "Concept",
+        "ConceptDescription",
+        "ValueSetMember",
+        "GuidelineRule",
+    }
+)
+_SAMPLE_NODE_GRAPH_ALLOWLIST = frozenset({"patient", "knowledge"})
+
+
 @router.get("/schema/sample-node")
 def get_sample_node(
     node_label: str = Query(
@@ -6998,15 +7026,30 @@ def get_sample_node(
     text_property: str = Query(
         "text", description="Property to highlight as the main text field"
     ),
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ):
     """Return one sample node so users can verify field names in the source configurator.
+
+    Admin-only: the source configurator inspects raw graph nodes and is
+    only used by training authors who already have admin scope. Restricting
+    here removes a Cypher-injection style surface from non-admin sessions.
 
     Sanitises the result: sensitive fields are redacted, long text is truncated to
     300 characters, and Neo4j datetime objects are converted to ISO strings.
     The selected text_property is surfaced first in the response.
     """
     _ = scope
+    if graph not in _SAMPLE_NODE_GRAPH_ALLOWLIST:
+        raise HTTPException(
+            status_code=400,
+            detail="graph must be 'patient' or 'knowledge'",
+        )
+    if node_label not in _SAMPLE_NODE_LABEL_ALLOWLIST:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported node_label",
+        )
+
     _REDACT = {
         "nhs_number",
         "date_of_birth",
@@ -7047,7 +7090,7 @@ def get_sample_node(
             if k.lower() in _REDACT:
                 return "***redacted***"
             if isinstance(v, str) and len(v) > _MAX_TEXT:
-                return v[:_MAX_TEXT] + "…"
+                return v[:_MAX_TEXT] + "..."
             if hasattr(v, "iso_format"):
                 return v.iso_format()
             return v
@@ -7065,8 +7108,13 @@ def get_sample_node(
             "properties": ordered,
         }
 
+    except HTTPException:
+        raise
     except Exception as exc:
         from fastapi.responses import JSONResponse as _JSONResponse
 
         logger.warning("sample-node error for %s/%s: %s", graph, node_label, exc)
-        return _JSONResponse(status_code=500, content={"detail": str(exc)})
+        return _JSONResponse(
+            status_code=500,
+            content={"detail": "sample-node lookup failed"},
+        )

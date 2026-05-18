@@ -1,5 +1,10 @@
 """SBAR generation subgraph (legacy heuristic).
 
+Atlas trace:
+  DO: DO-69F520C9
+  DI: DI-F22160C3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-69F520C9")
+
 This subgraph is kept for the pipeline canvas test-runs that wire SBAR
 in as a step. The PRODUCTION SBAR flow is the dedicated pub/sub
 orchestrator -- see ``services.pipeline_worker.app.services.sbar_orchestrator``

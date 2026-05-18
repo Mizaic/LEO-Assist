@@ -31,6 +31,7 @@ from pydantic import BaseModel
 
 from libs.analytics import confirmed_cancer_where
 from libs.auth.org_scope import ORG_PATIENT_FILTER, CallerScope, get_caller_scope
+from libs.episodes.lifecycle import HERO_BUCKETS, build_hero_bucket_case
 from libs.episodes.status import (
     ALWAYS_EXCLUDE_STATUSES,
     CLOSURE_REASON_STATUSES,
@@ -40,6 +41,14 @@ from libs.redis_client.rebuild_status import get_rebuild_status
 from services.analytics_api.app.routers._audit_helpers import (
     _add_date_filters,
     _episode_base,
+)
+from services.analytics_api.app.services.reconcile_pathway import (
+    BucketFlipNotConfirmedError,
+    EpisodeNotFoundError,
+    EpisodeSnapshot,
+    ReconcileRequest,
+    UnknownSlotError,
+    reconcile_episode,
 )
 
 logger = logging.getLogger(__name__)
@@ -94,6 +103,95 @@ def _apply_pathway_filter(
         exclude = ", ".join(f"'{s}'" for s in _ALWAYS_EXCLUDE)
         base = base.rstrip() + f" AND NOT ep.status IN [{exclude}] "
     return base, params
+
+
+# Allowed values for the lifecycle_bucket query parameter.
+# 'all' is the wildcard that disables the filter; the four canonical
+# MECE buckets reuse the same Cypher CASE expression as the dashboard
+# hero cards so the filtered patient list is exactly the cohort behind
+# the headline number (DI-105A4EC7 / R-24C3AAED). 'no_pathway' is the
+# fifth bucket surfaced by DI-CA1B4C6E: patients in the cohort for
+# whom the Episode Engine has not produced any EpisodeOfCare yet.
+NO_PATHWAY_BUCKET = "no_pathway"
+_LIFECYCLE_BUCKET_VALUES = ("all", NO_PATHWAY_BUCKET) + tuple(HERO_BUCKETS)
+LIFECYCLE_BUCKET_PATTERN = (
+    "^(all|" + NO_PATHWAY_BUCKET + "|" + "|".join(HERO_BUCKETS) + ")$"
+)
+
+
+def _apply_lifecycle_bucket_filter(
+    base: str, params: dict, lifecycle_bucket: str
+) -> tuple[str, dict]:
+    """Append a WHERE clause that matches only the given hero bucket.
+
+    Reuses ``libs.episodes.lifecycle.build_hero_bucket_case('ep')`` so
+    the patient list returned by Mission Control is the same cohort
+    that produced the four hero numbers on the dashboard. The
+    'no_pathway' bucket is structurally different (matches patients
+    with NO EpisodeOfCare) and is handled by a dedicated query path
+    in the patients/kpis endpoints, so this helper is a no-op for it.
+    """
+    if lifecycle_bucket not in HERO_BUCKETS:
+        return base, params
+    case_expr = build_hero_bucket_case("ep")
+    params = {**params, "lifecycle_bucket": lifecycle_bucket}
+    base = base.rstrip() + f" AND {case_expr} = $lifecycle_bucket "
+    return base, params
+
+
+def _no_pathway_scope_match(
+    org_id: Optional[str], scope: CallerScope
+) -> tuple[str, dict]:
+    """Return (match_clause, params) for patients-without-pathway.
+
+    Used by the lifecycle_bucket='no_pathway' deep-link from the
+    dashboard cohort summary card. Mirrors the org/scope predicates
+    used by Mission Control's cohort denominator so the deep-link
+    cohort exactly equals patients_without_pathway from
+    /audit/summary. See DI-CA1B4C6E.
+    """
+    no_episode = "NOT EXISTS { (p)-[:HAS_EPISODE_OF_CARE]->(:EpisodeOfCare) }"
+    if scope.is_admin and not org_id:
+        return f"MATCH (p:Patient) WHERE {no_episode} ", {}
+    effective_org = org_id or scope.primary_org_id
+    if effective_org:
+        return (
+            "MATCH (_scope:Organization {id: $org}) "
+            "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+            "WHERE ((gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+            "    OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope)) "
+            f"AND {no_episode} ",
+            {"org": effective_org},
+        )
+    return (
+        f"MATCH (p:Patient) WHERE {ORG_PATIENT_FILTER} AND {no_episode} ",
+        scope.to_query_params(),
+    )
+
+
+def _no_pathway_patients_cypher(
+    base: str, params: dict, skip: int, limit: int
+) -> tuple[str, str, dict]:
+    """Return (count_query, data_query, params) for the no-pathway list.
+
+    Returns each patient with episodes=[] - there are no
+    EpisodeOfCare nodes by definition for this bucket. See
+    DI-CA1B4C6E.
+    """
+    count_q = f"{base}RETURN count(DISTINCT p) AS total"
+    data_q = (
+        f"{base}"
+        "WITH p ORDER BY p.id ASC SKIP $skip LIMIT $limit "
+        "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
+        "RETURN "
+        "  p.id AS patient_id, "
+        "  p.gender AS gender, "
+        "  p.birthDate AS birth_date, "
+        "  gp.name AS practice_name, "
+        "  [] AS episodes"
+    )
+    params = {**params, "skip": skip, "limit": limit}
+    return count_q, data_q, params
 
 
 def _apply_cancer_type_filter(
@@ -260,11 +358,13 @@ def _build_filtered_base(
     closure_reasons: list[str],
     review_status: str,
     patient_id: Optional[str] = None,
+    lifecycle_bucket: str = "all",
 ) -> tuple[str, dict]:
     """Build full filtered match clause from all filter params."""
     base, params = _episode_base(org_id, scope)
     base, params = _add_date_filters(base, params, date_from, date_to)
     base, params = _apply_pathway_filter(base, params, pathway_filter)
+    base, params = _apply_lifecycle_bucket_filter(base, params, lifecycle_bucket)
     base, params = _apply_cancer_type_filter(base, params, cancer_types)
     base, params = _apply_closure_reason_filter(base, params, closure_reasons)
     base, params = _apply_review_filter(base, params, review_status)
@@ -471,10 +571,7 @@ def _cohort_denominator_cypher(
         )
         scope_params = {"org": effective_org}
     else:
-        scope_match = (
-            "MATCH (p:Patient) "
-            f"WHERE {ORG_PATIENT_FILTER} "
-        )
+        scope_match = "MATCH (p:Patient) " f"WHERE {ORG_PATIENT_FILTER} "
         scope_params = scope.to_query_params()
 
     # DI-LEO-AI-214: an episode is "in view" for the KPI strip when its
@@ -534,6 +631,16 @@ async def get_mission_control_patients(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
     pathway_filter: str = Query("all", pattern="^(confirmed|closures|all)$"),
+    lifecycle_bucket: str = Query(
+        "all",
+        pattern=LIFECYCLE_BUCKET_PATTERN,
+        description=(
+            "Lifecycle bucket from the dashboard cohort summary: "
+            "active, in_review, cancer_excluded, confirmed_cancer "
+            "(four MECE hero cards), no_pathway (patients in cohort "
+            "with no EpisodeOfCare), or all."
+        ),
+    ),
     cancer_types: Optional[str] = Query(
         None, description="Comma-separated cancer type keys"
     ),
@@ -560,22 +667,34 @@ async def get_mission_control_patients(
         [r.strip() for r in closure_reasons.split(",")] if closure_reasons else []
     )
 
-    base, params = _build_filtered_base(
-        org_id,
-        scope,
-        date_from,
-        date_to,
-        pathway_filter,
-        cancer_type_list,
-        closure_reason_list,
-        review_status,
-        patient_id,
-    )
-
     skip = (page - 1) * page_size
-    count_q, data_q, qparams = _patients_cypher(
-        base, params, sort_by, sort_dir, skip, page_size
-    )
+
+    # The 'no_pathway' bucket lists patients in scope who have NO
+    # EpisodeOfCare. The standard filtered-base joins through
+    # HAS_EPISODE_OF_CARE and would return zero rows, so we use a
+    # dedicated query path that returns each patient with episodes=[].
+    # See DI-CA1B4C6E.
+    if lifecycle_bucket == NO_PATHWAY_BUCKET:
+        np_base, np_params = _no_pathway_scope_match(org_id, scope)
+        count_q, data_q, qparams = _no_pathway_patients_cypher(
+            np_base, np_params, skip, page_size
+        )
+    else:
+        base, params = _build_filtered_base(
+            org_id,
+            scope,
+            date_from,
+            date_to,
+            pathway_filter,
+            cancer_type_list,
+            closure_reason_list,
+            review_status,
+            patient_id,
+            lifecycle_bucket=lifecycle_bucket,
+        )
+        count_q, data_q, qparams = _patients_cypher(
+            base, params, sort_by, sort_dir, skip, page_size
+        )
 
     client = PatientGraphClient()
     try:
@@ -586,7 +705,7 @@ async def get_mission_control_patients(
         patients = [_row_to_patient(r) for r in data_rows]
 
         pid = _normalise_mission_patient_id(patient_id)
-        if pid and total == 0:
+        if pid and total == 0 and lifecycle_bucket != NO_PATHWAY_BUCKET:
             fallback_q, fallback_params = _patient_only_query(scope, org_id, pid)
             fallback_rows = client.run(fallback_q, **fallback_params)
             if fallback_rows:
@@ -610,6 +729,16 @@ async def get_mission_control_kpis(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
     pathway_filter: str = Query("all", pattern="^(confirmed|closures|all)$"),
+    lifecycle_bucket: str = Query(
+        "all",
+        pattern=LIFECYCLE_BUCKET_PATTERN,
+        description=(
+            "Lifecycle bucket from the dashboard cohort summary: "
+            "active, in_review, cancer_excluded, confirmed_cancer "
+            "(four MECE hero cards), no_pathway (patients in cohort "
+            "with no EpisodeOfCare), or all."
+        ),
+    ),
     cancer_types: Optional[str] = Query(None),
     closure_reasons: Optional[str] = Query(None),
     review_status: str = Query("all", pattern="^(all|reviewed|unreviewed)$"),
@@ -628,28 +757,57 @@ async def get_mission_control_kpis(
         [r.strip() for r in closure_reasons.split(",")] if closure_reasons else []
     )
 
-    base, params = _build_filtered_base(
-        org_id,
-        scope,
-        date_from,
-        date_to,
-        pathway_filter,
-        cancer_type_list,
-        closure_reason_list,
-        review_status,
-        patient_id,
-    )
-
-    q, qparams = _kpis_cypher(base, params)
     cohort_q, cohort_params = _cohort_denominator_cypher(
         org_id, scope, date_from, date_to
     )
-    client = PatientGraphClient()
-    try:
-        rows = client.run(q, **qparams)
-        cohort_rows = client.run(cohort_q, **cohort_params)
-    finally:
-        client.close()
+
+    # The 'no_pathway' bucket has no EpisodeOfCare nodes by
+    # construction, so every episode-derived KPI is zero. We still
+    # compute the cohort denominator so the KPI strip can render
+    # "Showing N of <cohort> patients - <cohort - N> hidden". See
+    # DI-CA1B4C6E.
+    if lifecycle_bucket == NO_PATHWAY_BUCKET:
+        np_base, np_params = _no_pathway_scope_match(org_id, scope)
+        np_count_q = f"{np_base}RETURN count(DISTINCT p) AS no_pathway_patients"
+        client = PatientGraphClient()
+        try:
+            np_rows = client.run(np_count_q, **np_params)
+            cohort_rows = client.run(cohort_q, **cohort_params)
+        finally:
+            client.close()
+        np_patients = int((np_rows or [{}])[0].get("no_pathway_patients") or 0)
+        rows = [
+            {
+                "total_patients": np_patients,
+                "confirmed_cancer": 0,
+                "confirmed_cancer_patients": 0,
+                "pathway_closures": 0,
+                "pathway_closure_patients": 0,
+                "median_diagnostic_interval_days": None,
+                "safety_netting_rate": 0.0,
+                "needs_review_count": 0,
+            }
+        ]
+    else:
+        base, params = _build_filtered_base(
+            org_id,
+            scope,
+            date_from,
+            date_to,
+            pathway_filter,
+            cancer_type_list,
+            closure_reason_list,
+            review_status,
+            patient_id,
+            lifecycle_bucket=lifecycle_bucket,
+        )
+        q, qparams = _kpis_cypher(base, params)
+        client = PatientGraphClient()
+        try:
+            rows = client.run(q, **qparams)
+            cohort_rows = client.run(cohort_q, **cohort_params)
+        finally:
+            client.close()
 
     cohort = cohort_rows[0] if cohort_rows else {}
     cohort_block = {
@@ -659,9 +817,7 @@ async def get_mission_control_kpis(
         "excluded_missing_referral_date": int(
             cohort.get("excluded_missing_referral_date", 0) or 0
         ),
-        "excluded_outside_window": int(
-            cohort.get("excluded_outside_window", 0) or 0
-        ),
+        "excluded_outside_window": int(cohort.get("excluded_outside_window", 0) or 0),
     }
 
     if not rows:
@@ -896,3 +1052,164 @@ async def patch_episode_review(
         raise HTTPException(status_code=404, detail=f"Episode {episode_id!r} not found")
 
     return {"episode_id": episode_id, "status": "reviewed"}
+
+
+# ---------------------------------------------------------------------------
+# PATCH /mission-control/episodes/{episode_id}/reconcile
+# ---------------------------------------------------------------------------
+
+
+_RECONCILE_SNAPSHOT_QUERY = (
+    "MATCH (ep:EpisodeOfCare {episode_id: $episode_id}) "
+    "OPTIONAL MATCH (enc:Encounter)-[r:IS_PART_OF]->(ep) "
+    "WHERE r.milestone_type IS NOT NULL "
+    "WITH ep, collect(DISTINCT { "
+    "  slot: r.milestone_type, "
+    "  milestone_type: r.milestone_type, "
+    "  encounter_id: toString(enc.id) "
+    "}) AS slots "
+    "RETURN ep.episode_id AS episode_id, ep.status AS status, "
+    "  EXISTS { "
+    "    MATCH (e2:Encounter)-[r2:IS_PART_OF]->(ep) "
+    "    WHERE r2.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
+    "  } AS has_diagnosis_milestone, "
+    "  coalesce(ep.letter_inferred_benign, false) AS letter_inferred_benign, "
+    "  slots AS slots"
+)
+
+
+def _read_reconcile_snapshot(episode_id: str) -> Optional[EpisodeSnapshot]:
+    """Read live state of an episode for the reconcile flow."""
+    client = PatientGraphClient()
+    try:
+        rows = client.run(_RECONCILE_SNAPSHOT_QUERY, episode_id=episode_id)
+    finally:
+        client.close()
+    if not rows:
+        return None
+    row = rows[0]
+    return EpisodeSnapshot(
+        episode_id=row["episode_id"],
+        status=row.get("status"),
+        has_diagnosis_milestone=bool(row.get("has_diagnosis_milestone", False)),
+        letter_inferred_benign=bool(row.get("letter_inferred_benign", False)),
+        slots=[
+            {
+                "slot": s.get("slot"),
+                "milestone_type": s.get("milestone_type"),
+                "encounter_id": s.get("encounter_id"),
+            }
+            for s in (row.get("slots") or [])
+            if s and s.get("slot") is not None
+        ],
+    )
+
+
+@router.patch("/mission-control/episodes/{episode_id}/reconcile")
+async def patch_episode_reconcile(
+    episode_id: str,
+    body: ReconcileRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Apply reconcile actions and write a VerificationLock per slot.
+
+    Refuses with HTTP 412 ``Precondition Failed`` when the proposed
+    actions would silently move the episode into a different lifecycle
+    bucket and the client did not explicitly opt in via
+    ``confirm_bucket_flip=true``.
+    """
+    if not scope.email:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    eid = _normalise_mission_episode_id(episode_id)
+    if not eid:
+        raise HTTPException(status_code=400, detail="Invalid episode_id")
+
+    lock_client = PatientGraphClient()
+    try:
+        result = reconcile_episode(
+            episode_id=eid,
+            request=body,
+            snapshot_reader=_read_reconcile_snapshot,
+            lock_client=lock_client,
+        )
+    except EpisodeNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except UnknownSlotError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except BucketFlipNotConfirmedError as exc:
+        raise HTTPException(
+            status_code=412,
+            detail={
+                "message": str(exc),
+                "current_bucket": exc.flip.current_bucket.value,
+                "proposed_bucket": exc.flip.proposed_bucket.value,
+            },
+        ) from exc
+    finally:
+        lock_client.close()
+
+    return {
+        "episode_id": result.episode_id,
+        "bucket": result.bucket.value,
+        "flipped": result.flip.flips,
+        "current_bucket": result.flip.current_bucket.value,
+        "proposed_bucket": result.flip.proposed_bucket.value,
+        "locks": [
+            {
+                "slot": action.slot,
+                "lock_id": lock.lock_id,
+                "entity_type": lock.entity_type,
+                "entity_id": lock.entity_id,
+            }
+            for action, lock in zip(body.actions, result.locks)
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# GET /mission-control/episodes/{episode_id}/locks
+# ---------------------------------------------------------------------------
+
+
+@router.get("/mission-control/episodes/{episode_id}/locks")
+async def list_episode_locks(
+    episode_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return every VerificationLock attached to an episode.
+
+    The UI uses this to render lock chips on milestone nodes and
+    encounter cards inside the Reconcile Pathway drawer.
+    """
+    if not scope.email:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    eid = _normalise_mission_episode_id(episode_id)
+    if not eid:
+        raise HTTPException(status_code=400, detail="Invalid episode_id")
+
+    from libs.locks import list_locks_for_episode
+
+    client = PatientGraphClient()
+    try:
+        locks = list_locks_for_episode(client, episode_id=eid)
+    finally:
+        client.close()
+
+    return {
+        "episode_id": eid,
+        "locks": [
+            {
+                "lock_id": lock.lock_id,
+                "entity_type": lock.entity_type,
+                "entity_id": lock.entity_id,
+                "locked_by": lock.locked_by,
+                "locked_by_role": lock.locked_by_role,
+                "locked_at": lock.locked_at,
+                "lock_reason": lock.lock_reason,
+                "source": lock.source,
+            }
+            for lock in locks
+        ],
+    }

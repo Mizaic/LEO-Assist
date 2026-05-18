@@ -1,5 +1,10 @@
 """Shared helpers for episode-engine agents.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Wraps the common boilerplate of:
   - building Bedrock toolConfig from a JSON Schema
   - calling LLMClient.converse(...)

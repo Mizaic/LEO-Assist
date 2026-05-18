@@ -1,9 +1,0 @@
-SEVERITY SUMMARY
-========================================
-  encounters_with_issues         9
-  missing_critical               2
-  missing_high                   4
-  missing_low                    1
-  missing_medium                 4
-  overcoded                      9
-  wrong_assertion                2

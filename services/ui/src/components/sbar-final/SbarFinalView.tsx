@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
+ */
 "use client";
 
 /**
@@ -26,17 +34,19 @@
  */
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
+import Collapse from "@mui/material/Collapse";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
+import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor";
 
 export type SbarStageName =
@@ -79,6 +89,49 @@ export interface SbarSection {
 }
 
 /**
+ * Structured per-partition summary for the SBAR Background stage.
+ * Mirrors the wire shape returned by libs/sbar/prompt_calls.py
+ * ``_build_part_summary`` and persisted as ``background_parts`` on
+ * the :Assessment node. Passing this as a typed prop is the
+ * canonical way to populate the "Show source records" disclosure;
+ * callers should NOT try to parse source ids out of the markdown.
+ */
+export interface SbarBackgroundPart {
+  index: number;
+  total: number;
+  recordCount: number;
+  recordRange: [number, number];
+  sourceIds: string[];
+  status: "completed" | "failed";
+  errorCode?: string | null;
+  errorMessage?: string | null;
+}
+
+// Belt-and-braces strip for legacy ``<!-- sources: ... -->`` HTML
+// comments. The pipeline stopped emitting these in favour of the
+// structured ``backgroundParts`` prop, but :Assessment rows persisted
+// before that change still have them inline in ``a.background``. The
+// Tiptap markdown view runs with ``html: false`` so without this
+// cleanup the raw UUIDs would show up as visible text.
+const SOURCE_COMMENT_LINE_RE =
+  /^[ \t]*<!--\s*sources:\s*[^>]*?-->[ \t]*\r?\n?/gm;
+const SOURCE_COMMENT_INLINE_RE = /<!--\s*sources:\s*[^>]*?-->/g;
+
+/**
+ * Strip any legacy ``<!-- sources: ... -->`` HTML comments out of a
+ * SBAR markdown body. Kept exported so other markdown surfaces
+ * (e.g. side-by-side diff viewers) can use the same cleanup. New
+ * pipelines should not need this - they should pass
+ * ``backgroundParts`` instead.
+ */
+export function stripSourceComments(md: string): string {
+  if (!md) return md;
+  return md
+    .replace(SOURCE_COMMENT_LINE_RE, "")
+    .replace(SOURCE_COMMENT_INLINE_RE, "");
+}
+
+/**
  * Split a SBAR Markdown payload (``# SBAR\n## Situation\n...\n##
  * Background\n...``) into one entry per stage. Anything before the
  * first matched heading is dropped. Sections are returned in canonical
@@ -115,6 +168,12 @@ export function splitFinalSbar(md: string): SbarSection[] {
 export interface SbarFinalViewProps {
   /** SBAR Markdown payload from the pipeline. */
   markdown: string;
+  /** Per-partition Background source-record summaries (typically
+   *  threaded through from useSbarStream's ``backgroundParts`` or
+   *  the GET /sbar/assessments/{id} ``background_parts`` field).
+   *  When present, each entry feeds the per-section
+   *  "Show source records" disclosure on the Background card. */
+  backgroundParts?: SbarBackgroundPart[];
   /** Test-only banner. Defaults to true so embedders cannot
    *  accidentally present this view as an authoritative record. */
   testOnly?: boolean;
@@ -124,13 +183,131 @@ export interface SbarFinalViewProps {
   testIdPrefix?: string;
 }
 
+interface SectionSourcesPanelProps {
+  testIdPrefix: string;
+  stage: SbarStageName;
+  parts: SbarBackgroundPart[];
+  ink: string;
+}
+
+function _formatRecordRange(start: number, end: number): string {
+  if (start <= 0 || end <= 0) return "no records";
+  if (start === end) return `record ${start}`;
+  return `records ${start}-${end}`;
+}
+
+function _partLabel(part: SbarBackgroundPart): string {
+  const range = _formatRecordRange(
+    part.recordRange?.[0] ?? 0,
+    part.recordRange?.[1] ?? 0,
+  );
+  return `Part ${part.index} of ${part.total} -- ${range}`;
+}
+
+/**
+ * Per-section "Show source records" disclosure. The source IDs are
+ * audit-only metadata - reviewers only see them when they explicitly
+ * ask, so the panel starts collapsed and is hidden entirely when
+ * the section has no structured source data.
+ */
+function SectionSourcesPanel({
+  testIdPrefix,
+  stage,
+  parts,
+  ink,
+}: SectionSourcesPanelProps) {
+  const [open, setOpen] = useState(false);
+  if (parts.length === 0) return null;
+  const totalIds = parts.reduce((acc, p) => acc + p.sourceIds.length, 0);
+  if (totalIds === 0) return null;
+  return (
+    <Box
+      sx={{ px: 1.75, pb: 1, pt: 0.25 }}
+      data-testid={`${testIdPrefix}-section-${stage}-sources`}
+    >
+      <Link
+        component="button"
+        type="button"
+        underline="hover"
+        onClick={() => setOpen((v) => !v)}
+        sx={{
+          color: ink,
+          fontSize: "0.75rem",
+          fontWeight: 600,
+          letterSpacing: 0.2,
+        }}
+        aria-expanded={open}
+        data-testid={`${testIdPrefix}-section-${stage}-sources-toggle`}
+      >
+        {open
+          ? `Hide source records (${totalIds})`
+          : `Show source records (${totalIds})`}
+      </Link>
+      <Collapse in={open} unmountOnExit>
+        <Stack spacing={1} sx={{ mt: 1 }}>
+          {parts.map((p, i) => (
+            <Box
+              key={`${stage}-sources-${i}`}
+              data-testid={`${testIdPrefix}-section-${stage}-sources-part-${i}`}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  display: "block",
+                  mb: 0.5,
+                }}
+              >
+                {_partLabel(p)}
+                {p.status === "failed"
+                  ? " -- this part did not finish"
+                  : ""}
+              </Typography>
+              <Stack direction="row" flexWrap="wrap" gap={0.5}>
+                {p.sourceIds.map((id) => (
+                  <Chip
+                    key={id}
+                    size="small"
+                    variant="outlined"
+                    label={id}
+                    sx={{
+                      height: 20,
+                      fontSize: "0.65rem",
+                      fontFamily:
+                        "ui-monospace, SFMono-Regular, Menlo, monospace",
+                    }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          ))}
+        </Stack>
+      </Collapse>
+    </Box>
+  );
+}
+
 /**
  * Themed-card stack for the SBAR (final) Markdown payload. Pure
  * presentational - no network calls, no hooks beyond rendering the
  * MarkdownEditor in view mode.
+ *
+ * Source-record IDs are NOT parsed out of the markdown body. The
+ * pipeline used to embed ``<!-- sources: ... -->`` HTML comments
+ * after each ``### Part i of N`` heading; that leaked the raw UUIDs
+ * into the rendered output because the Tiptap markdown view runs
+ * with ``html: false``. Source IDs are now passed in as a typed
+ * ``backgroundParts`` prop (sourced from the SSE
+ * ``sbar_stage_completed.parts`` field or
+ * ``GET /sbar/assessments/{id}.background_parts``) and rendered
+ * behind an explicit "Show source records" disclosure on the
+ * Background card. ``stripSourceComments`` is still applied to the
+ * markdown so legacy persisted Assessments do not leak the comments
+ * either.
  */
 export function SbarFinalView({
   markdown,
+  backgroundParts = [],
   testOnly = true,
   dense = false,
   testIdPrefix = "sbar-final",
@@ -139,6 +316,11 @@ export function SbarFinalView({
   const fontSize = dense ? "0.85rem" : "0.9rem";
   const headerPadding = dense ? "6px 10px" : "8px 14px";
   const bodyPadding = dense ? "6px 10px" : "8px 14px";
+
+  const cleanedMarkdown = useMemo(
+    () => stripSourceComments(markdown ?? ""),
+    [markdown],
+  );
 
   return (
     <Box
@@ -166,13 +348,22 @@ export function SbarFinalView({
         >
           <MarkdownEditor
             mode="view"
-            initialContent={markdown}
+            initialContent={cleanedMarkdown}
             minHeight={0}
+          />
+          <SectionSourcesPanel
+            testIdPrefix={testIdPrefix}
+            stage="background"
+            parts={backgroundParts}
+            ink="#475569"
           />
         </Box>
       ) : (
         sections.map(({ stage, body }) => {
           const theme = STAGE_THEME[stage];
+          const cleanBody = stripSourceComments(body);
+          const partsForStage =
+            stage === "background" ? backgroundParts : [];
           return (
             <Box
               key={`final-${stage}`}
@@ -208,10 +399,16 @@ export function SbarFinalView({
               >
                 <MarkdownEditor
                   mode="view"
-                  initialContent={body}
+                  initialContent={cleanBody}
                   minHeight={0}
                 />
               </Box>
+              <SectionSourcesPanel
+                testIdPrefix={testIdPrefix}
+                stage={stage}
+                parts={partsForStage}
+                ink={theme.ink}
+              />
             </Box>
           );
         })

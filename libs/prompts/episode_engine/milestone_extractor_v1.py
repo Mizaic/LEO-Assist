@@ -1,4 +1,10 @@
 """Stage 4 prompt: extract canonical milestones from one cancer or
+
+Atlas trace:
+  DO: DO-710D9EEB
+  DI: DI-CBCA6E2D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-710D9EEB")
+
 multi-site window.
 
 Inputs (USER_TEMPLATE):

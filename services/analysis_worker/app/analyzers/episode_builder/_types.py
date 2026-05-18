@@ -112,6 +112,13 @@ class BuildContext:
     # ``closed_phantom`` -- they do not flow through the exclusive
     # claim set.
     claimed_encounters: set[str] = field(default_factory=set)
+    # Reviewer-verification lock state for the patient. Populated once at
+    # the start of build_episodes via _lock_guard.load_lock_state and
+    # consulted by _build_*_episode + _link_encounters_to_episode so the
+    # rebuild path never overwrites a confirmed milestone slot or coded
+    # link. Defaults to an empty state so unit tests that construct
+    # BuildContext directly still work.
+    lock_state: Any = None  # EpisodeLockState; Any to avoid import cycle
 
 
 def _parse_date(val: Any) -> date | None:

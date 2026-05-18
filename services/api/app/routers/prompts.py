@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.db.neo4j_client import CodingGraphClient
+from app.deps import require_admin
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.cypher.prompt_config_queries import (
     CREATE_PROMPT,
@@ -280,7 +281,7 @@ def get_prompt(prompt_id: str, scope: CallerScope = Depends(get_caller_scope)):
 
 @router.post("")
 def create_prompt(
-    body: PromptCreateRequest, scope: CallerScope = Depends(get_caller_scope)
+    body: PromptCreateRequest, scope: CallerScope = Depends(require_admin)
 ):
     prompt_id = str(uuid.uuid4())
     few_shot_json = json.dumps([e.model_dump() for e in body.fewShotExamples])
@@ -309,7 +310,7 @@ def create_prompt(
 def update_prompt(
     prompt_id: str,
     body: PromptUpdateRequest,
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ):
     few_shot_json = json.dumps([e.model_dump() for e in body.fewShotExamples])
     client = CodingGraphClient()
@@ -334,7 +335,7 @@ def update_prompt(
 
 
 @router.delete("/{prompt_id}")
-def delete_prompt(prompt_id: str, scope: CallerScope = Depends(get_caller_scope)):
+def delete_prompt(prompt_id: str, scope: CallerScope = Depends(require_admin)):
     client = CodingGraphClient()
     try:
         with client.session() as session:
@@ -624,7 +625,7 @@ def simulate_prompt(
 @router.post("/improve")
 async def improve_prompt(
     body: ImproveRequest,
-    scope: CallerScope = Depends(get_caller_scope),
+    scope: CallerScope = Depends(require_admin),
 ):
     """Use the MAX model to suggest improvements to a system prompt."""
     try:

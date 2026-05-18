@@ -1,5 +1,10 @@
 """Audit Relevance Filter (DI-LEO-AI-524).
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Two layers:
 
   1. ``apply_guards`` (deterministic, ``audit_guards.py``) marks every

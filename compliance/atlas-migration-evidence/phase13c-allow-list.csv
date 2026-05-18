@@ -1,9 +1,1 @@
 path,reason,added_at,added_by
-libs/graph_client/client.py,added after Phase 13a snapshot; references DI-31F4C232 + DI-6CF7FCE0 inline; needs manual triage to identify owning DO,2026-04-20,phase13c-closeout
-libs/graph_client/errors.py,added after Phase 13a snapshot; companion to client.py; needs manual triage,2026-04-20,phase13c-closeout
-libs/graph_client/obo.py,added after Phase 13a snapshot; OBO token exchange; references DI-6CF7FCE0 inline,2026-04-20,phase13c-closeout
-services/api/app/routers/admin_entra.py,added after Phase 13a snapshot; admin Entra router; needs owning DO,2026-04-20,phase13c-closeout
-services/ui/src/components/tenant/BindGroupDialog.tsx,added after Phase 13a snapshot; tenant Entra UI; needs owning DO,2026-04-20,phase13c-closeout
-services/ui/src/components/tenant/EntraGroupPicker.tsx,added after Phase 13a snapshot; tenant Entra UI; needs owning DO,2026-04-20,phase13c-closeout
-services/ui/src/components/tenant/EntraIntegration.tsx,added after Phase 13a snapshot; tenant Entra UI; needs owning DO,2026-04-20,phase13c-closeout
-services/ui/src/components/tenant/EntraUserPicker.tsx,added after Phase 13a snapshot; tenant Entra UI; needs owning DO,2026-04-20,phase13c-closeout
