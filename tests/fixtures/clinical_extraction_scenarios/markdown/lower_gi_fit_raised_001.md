@@ -1,8 +1,25 @@
-Dear colorectal service,
+Synthetic Practice 04
+synthetic.practice04@example.invalid
 
-Re: Synthetic Given 091 Synthetic Family 091 (1981-08-11), NHS SYN-NHS-000091
+Date: 2026-05-18
 
-I am referring because the patient has altered bowel habit, low ferritin and FIT raised on the current sample. The historical coded line says QFIT negative from 2024 and should not be treated as the active referral result.
+Dear Lower GI urgent suspected cancer team,
+
+Re: Synthetic Given 091 Synthetic Family 091, DOB 1981-08-11, NHS SYN-NHS-000091
+
+I am writing to refer this 44-year-old man under the 2WW lower GI pathway. He presents with a six-week history of intermittent rectal bleeding -- bright red, on the toilet paper and occasionally in the pan, occurring most days. He also reports a change in bowel habit with looser stools and increased urgency, and intermittent crampy lower abdominal discomfort relieved by defaecation. He has lost approximately 3kg.
+
+His faecal immunochemical test was sent on 2026-05-04 and the report from the regional pathology service reads: "FIT raised -- 116 ug Hb/g, above the 10 ug Hb/g referral threshold." The phrasing "FIT raised" is the local laboratory's terminology for a result above threshold and equates to a positive FIT for the purposes of 2WW referral. There has been no quantitative faecal immunochemical test result on this patient before today; in particular, a QFIT negative result documented in his SystmOne record dated 2022 was from a previous unrelated episode of self-limiting diarrhoea and is not the index test for this referral.
+
+Examination today: Abdomen soft, mild left iliac fossa tenderness, no palpable mass. DRE: no rectal mass, no haemorrhoids identifiable.
+
+Past medical history: well-controlled essential hypertension on ramipril 5mg OD. No family history of colorectal cancer. Non-smoker. BMI 24.
+
+He is fit for day-case investigation, has capacity to consent, and is aware that this is a suspected cancer referral. I have given safety-net advice.
+
+Kind regards,
+Dr Synthetic GP 02
+Decision to refer: 2026-05-18
 
 ## Blood Results (Last 2m)
 

@@ -1,20 +1,40 @@
-# Lower GI referral triage note
+# Lower GI suspected cancer referral
 
-Name: Synthetic Given 095 Synthetic Family 095
-DOB: 1985-12-15
-NHS number: SYN-NHS-000095
-Telephone: 07700 900095
-Practice: Synthetic Practice 08 (synthetic.practice08@example.invalid)
+## Patient details
+
+| Item | Entry |
+| --- | --- |
+| Name | Synthetic Given 095 Synthetic Family 095 |
+| Date of birth | 1985-12-15 |
+| NHS number | SYN-NHS-000095 |
+| Address | 95 Test Patient Street, Synthetic Town, ST9 5DD |
+| Telephone | 07700 900095 |
+
+## GP details
+
+Dr Synthetic GP 06, Synthetic Practice 08 (synthetic.practice08@example.invalid)
+Date of decision to refer: 2026-05-18
 
 ## Referral criteria and clinical information
 
-| Entry | Comment |
-| --- | --- |
-| FIT- | Current faecal immunochemical result |
-| Rectal bleeding | Patient reported on direct questioning |
-| FIT pos | Appears in generic pathway example only |
+| Criterion | Status | Notes |
+| --- | --- | --- |
+| Iron deficiency anaemia (aged 40+) | YES | Ferritin low, Hb borderline -- see bloods |
+| Change in bowel habit | YES | Looser, more frequent stools for 5 weeks |
+| Faecal immunochemical test | Reported | FIT- (below 10 ug Hb/g referral threshold) |
+| Referral on clinical grounds | YES | IDA pathway -- referring despite negative FIT |
 
-Free text: FIT- recorded today, but the referral concern is persistent rectal bleeding with low Hb.
+## Clinical justification
+
+This 40-year-old patient is being referred on the iron deficiency anaemia pathway under NICE NG12 with a borderline-low Hb (117.5 g/L) and a ferritin below the reference range on his recent panel. He has also had a five-week history of altered bowel habit with looser stools three to four times daily. He has had no overt rectal bleeding and no abdominal pain. He has lost 2kg in the same period.
+
+His faecal immunochemical test from 2026-04-29 returned as "FIT-" with a quantitative value of 4 ug Hb/g, which the pathology service reports as below the 10 ug Hb/g referral threshold. The trailing minus sign on FIT- is the local laboratory's notation for a result below threshold; the result was reviewed once and not repeated. This referral is therefore made on the basis of iron deficiency anaemia and altered bowel habit rather than on a positive FIT. To avoid confusion: the result is FIT-, not "FIT pos"; the laboratory naming convention should not be misread as a positive result.
+
+Examination: Soft, non-tender abdomen. No palpable abdominal mass. Digital rectal examination shows no rectal mass and no haemorrhoids identifiable.
+
+Past medical history: vegetarian diet for 15 years (potential contributor to iron deficiency but does not explain the bowel habit change), otherwise well. Non-smoker. No family history of bowel cancer.
+
+The patient is fit for day-case investigation, has capacity to consent, and is aware that this is a suspected cancer referral. Safety-net advice has been given.
 
 ## Blood Results (Last 2m)
 

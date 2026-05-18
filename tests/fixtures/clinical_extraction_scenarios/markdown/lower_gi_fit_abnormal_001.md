@@ -1,20 +1,39 @@
-# Lower GI USC referral - copied proforma
+# Lower GI suspected cancer referral
 
-Name: Synthetic Given 090 Synthetic Family 090
-DOB: 1980-07-10
-NHS number: SYN-NHS-000090
-Telephone: 07700 900090
-Practice: Synthetic Practice 03 (synthetic.practice03@example.invalid)
+## Patient details
+
+| Item | Entry |
+| --- | --- |
+| Name | Synthetic Given 090 Synthetic Family 090 |
+| Date of birth | 1980-07-10 |
+| NHS number | SYN-NHS-000090 |
+| Address | 90 Test Patient Street, Synthetic Town, ST9 0DD |
+| Telephone | 07700 900090 |
+
+## GP details
+
+Dr Synthetic GP 01, Synthetic Practice 03 (synthetic.practice03@example.invalid)
+Date of decision to refer: 2026-05-18
 
 ## Referral criteria and clinical information
 
-| Investigation | Result | Date |
+| Criterion | Status | Notes |
 | --- | --- | --- |
-| FIT | FIT abnormal | 2026-05-06 |
-| FBC | anaemia present | 2026-05-06 |
-| Previous FIT sample | sample rejected | 2026-04-19 |
+| Rectal bleeding (aged 40+) with abdominal pain | YES | Painless bleeding 5 weeks + LIF pain |
+| Change in bowel habit | YES | Looser stools, 4-5 per day, for 4 weeks |
+| Faecal immunochemical test | YES | FIT abnormal -- 132 ug Hb/g (above 10 ug/g threshold) |
 
-Clinical reason: FIT abnormal with tiredness and lower abdominal pain.
+## Clinical justification
+
+This 45-year-old patient has been referred under the 2WW lower GI pathway. He has a five-week history of painless fresh rectal bleeding mixed with stool, accompanied by a change in bowel habit (looser stools, four to five per day, from his baseline of one daily). He reports left iliac fossa cramping pain over the same period. He has not lost weight.
+
+His faecal immunochemical test was sent on 2026-05-06. The pathology report annotates the result as "FIT abnormal" with a numeric value of 132 ug Hb/g (the local laboratory uses the phrasing "FIT abnormal" interchangeably with "FIT positive" for values above the 10 ug/g referral threshold). The FIT abnormal result was reviewed and accepted by the lab without re-test; no sample rejected event has occurred at any stage of this episode.
+
+On examination the abdomen is soft. There is no palpable abdominal mass. Digital rectal examination shows no rectal mass and no haemorrhoids identifiable.
+
+Past medical history: type 2 diabetes mellitus on metformin 1g BD (last HbA1c stable), no family history of colorectal cancer.
+
+The patient is fit for day-case investigation, has capacity to consent, and is aware that this is a suspected cancer referral. Safety-net advice has been given.
 
 ## Blood Results (Last 2m)
 

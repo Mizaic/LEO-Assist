@@ -1,25 +1,39 @@
-# Lower GI suspected cancer referral form
+# Lower GI suspected cancer referral
 
 ## Patient details
 
-Name: Synthetic Given 087 Synthetic Family 087
-DOB: 1977-04-07
-NHS number: SYN-NHS-000087
-Telephone: 07700 900087
-Practice: Synthetic Practice 08 (synthetic.practice08@example.invalid)
+| Item | Entry |
+| --- | --- |
+| Name | Synthetic Given 087 Synthetic Family 087 |
+| Date of birth | 1977-04-07 |
+| NHS number | SYN-NHS-000087 |
+| Address | 87 Test Patient Street, Synthetic Town, ST8 7DD |
+| Telephone | 07700 900087 |
+
+## GP details
+
+Dr Synthetic GP 07, Synthetic Practice 08 (synthetic.practice08@example.invalid)
+Date of decision to refer: 2026-05-18
 
 ## Referral criteria and clinical information
 
-| Field | Response |
-| --- | --- |
-| Rectal bleeding | Yes |
-| Change in bowel habit | Yes |
-| FIT result | FIT positive |
-| Historic screening note | FOBT normal in 2021 |
+| Criterion | Status | Notes |
+| --- | --- | --- |
+| Rectal bleeding (aged 50+) | YES | Painless fresh rectal bleeding for 7 weeks, almost daily |
+| Change in bowel habit | YES | Looser, more frequent stools for 6 weeks |
+| Faecal immunochemical test | YES | FIT positive at 88 ug Hb/g (reported 2026-05-12, above 10 ug/g threshold) |
+| Abdominal mass | NO | Soft abdomen, no palpable mass |
+| Iron deficiency anaemia | Possible | See enclosed bloods -- borderline ferritin |
 
-## Clinical text
+## Clinical justification
 
-Ongoing rectal bleeding with new change in bowel habit. Current result is FIT positive.
+This 49-year-old patient presents with a seven-week history of painless fresh rectal bleeding, almost daily, mixed with stool. Over the same period her bowel habit has changed, with looser and more frequent stools (three to four per day from her baseline of one daily). She has lost approximately 3kg without intentional dietary change.
+
+Her faecal immunochemical test was sent on 2026-05-10 and the result has returned as FIT positive at 88 ug Hb/g, well above the local 10 ug/g referral threshold. Bowel screening history: her last NHS Bowel Cancer Screening Programme sample was 2024 and was reported by the screening hub as FOBT normal at that time (the screening hub still uses the older "FOBT" wording on its result letters). The 2024 screening result is historical and is not the index test for this referral; the current FIT positive result is the basis for this referral.
+
+On examination the abdomen is soft, non-tender, and without palpable mass. Digital rectal examination revealed no rectal mass and no haemorrhoids.
+
+She is fit for day-case endoscopic investigation. She has capacity to consent and is aware this is a suspected cancer referral.
 
 ## Blood Results (Last 2m)
 

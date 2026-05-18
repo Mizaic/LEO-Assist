@@ -1,10 +1,25 @@
 From: synthetic.practice01@example.invalid
-To: colorectal.referrals@example.invalid
-Subject: positive FIT and IDA - SYN-NHS-000088
+To: lower.gi.usc@example.invalid
+Subject: 2WW lower GI -- positive FIT result -- SYN-NHS-000088
 
-Please accept lower GI USC referral. The patient has iron deficiency anaemia and a positive FIT. The notes include an older BCSP FIT normal result from last year, but this referral is based on the new positive FIT.
+Dear Lower GI team,
 
-Patient: Synthetic Given 088 Synthetic Family 088, DOB 1978-05-08.
+Please can you accept Synthetic Given 088 Synthetic Family 088 (DOB 1978-05-08, NHS SYN-NHS-000088) onto the 2WW lower GI pathway. Decision to refer: 2026-05-18. Referring GP: Dr Synthetic GP 08, Synthetic Practice 01.
+
+She presents with a five-week history of fresh painless rectal bleeding and a change in bowel habit (looser, more frequent stools). She has not lost weight. There is no family history of bowel cancer.
+
+She returned a positive FIT result on 2026-05-09 -- the laboratory report uses the wording "positive FIT" with a numeric value of 78 ug Hb/g, above the referral threshold of 10 ug/g. This is the index test that prompts the current referral.
+
+Screening history: her most recent NHS Bowel Cancer Screening Programme test, from 2023, was reported by the screening hub as BCSP FIT normal. That historic screening result is included here for completeness; it is not relevant to the current symptomatic presentation, which is supported by the new positive FIT result.
+
+Examination today: soft abdomen, no palpable mass, DRE unremarkable, no haemorrhoids identified, no rectal mass.
+
+Past medical history: hypothyroidism on levothyroxine 75 micrograms OD, otherwise well. BMI 28. Non-smoker, alcohol within recommended limits.
+
+She is aware this is a suspected cancer referral, is fit for day-case investigation, and has capacity to consent. Safety-net advice given.
+
+Kind regards,
+Dr Synthetic GP 08
 
 ## Blood Results (Last 2m)
 

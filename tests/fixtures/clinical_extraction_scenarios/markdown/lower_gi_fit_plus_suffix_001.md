@@ -2,9 +2,23 @@ SystmOne consultation entry
 Date: 2026-05-18
 Patient: Synthetic Given 085 Synthetic Family 085 (1975-02-05) NHS SYN-NHS-000085
 
-Problem: lower GI 2WW discussion.
-History: patient reports rectal bleeding. Pathology comment copied as FIT+. New change in bowel habit over 7 weeks.
-Plan: lower GI referral completed today. Old occupational health text says fit for work, unrelated to faecal immunochemical testing.
+Practice: Synthetic Practice 06 (synthetic.practice06@example.invalid)
+Clinician: Dr Synthetic GP 05
+
+Problem: Suspected lower GI cancer -- positive faecal immunochemical test recorded as "FIT+" in lab feed; 2WW referral placed.
+
+History: 51-year-old man presents with an eight-week history of fresh rectal bleeding on most days, mixed with stool rather than on the paper. Bowel habit has changed -- previously formed once daily, now loose and three to four times daily. He reports vague crampy lower abdominal discomfort, worse after eating. Unintentional weight loss of 5kg in the last two months. Appetite reduced. No family history of colorectal cancer.
+
+Lab feed today: "FIT+" -- the local pathology platform truncates faecal immunochemical test results to the abbreviation FIT with a trailing "+" symbol when the value exceeds the referral threshold. The numeric value in the underlying record is 142 ug Hb/g.
+
+Background context (occupational health record, copied across at registration in 2018, not clinical):
+- 2017: "fit for work" assessment by previous employer's OH service after a knee operation. Returned to full duties without restriction. This is an employment-fitness statement and is not a bowel test result.
+
+Examination today: Soft abdomen with mild left iliac fossa tenderness. No palpable mass. DRE: no rectal mass, no external piles. Pulse 78 reg. BP 132/80.
+
+Plan: 2WW lower GI referral submitted via e-Referral Service today. Patient counselled this is a suspected cancer referral and given safety-net advice for worsening symptoms. Bloods (above) reviewed -- Hb borderline low for him. Iron studies arranged.
+
+Decision to refer: 2026-05-18.
 
 ## Blood Results (Last 2m)
 

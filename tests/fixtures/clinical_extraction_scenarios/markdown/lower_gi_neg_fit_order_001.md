@@ -1,8 +1,27 @@
-Dear gastroenterology triage team,
+Synthetic Practice 07
+synthetic.practice07@example.invalid
 
-Re: Synthetic Given 094 Synthetic Family 094 DOB 1984-11-14 NHS SYN-NHS-000094
+Date: 2026-05-18
 
-The working note says neg FIT. I am documenting it because the patient still has lower abdominal pain and microcytic anaemia. There is no positive FIT in this episode; the positive FIT wording appears only in pasted pathway guidance.
+Dear Lower GI urgent suspected cancer team,
+
+Re: Synthetic Given 094 Synthetic Family 094, DOB 1984-11-14, NHS SYN-NHS-000094
+
+I am writing to refer this 41-year-old woman under the 2WW lower GI pathway on clinical grounds despite a neg FIT result.
+
+She has a six-week history of new-onset rectal bleeding -- bright red, mixed with stool, on most days. Her bowel habit has changed: previously formed once daily, now loose and three times daily. She reports left iliac fossa discomfort and tenesmus. She has lost approximately 2kg over the past month. Family history: a sister was diagnosed with colorectal cancer at age 38, raising concern for a hereditary pattern.
+
+Her faecal immunochemical test from 2026-05-01 was reported as: "neg FIT, 5 ug Hb/g, below the 10 ug Hb/g referral threshold." Note that the laboratory reports the result with the word order "neg FIT" rather than "FIT neg"; both forms describe the same below-threshold value. To be clear, this is NOT a positive FIT -- the index test in this episode is unambiguously a neg FIT below threshold. I am referring on clinical grounds given the new symptoms, the change in bowel habit, and the strong family history of early-onset colorectal cancer.
+
+On examination the abdomen is soft with mild left iliac fossa tenderness. There is no palpable abdominal mass. DRE: no rectal mass; no haemorrhoids identifiable.
+
+Past medical history: type 2 diabetes (HbA1c 51 mmol/mol on metformin 1g BD), well-controlled. No prior bowel investigations.
+
+She is fit for day-case investigation, has capacity to consent, and is aware that this is a suspected cancer referral.
+
+Kind regards,
+Dr Synthetic GP 05
+Decision to refer: 2026-05-18
 
 ## Blood Results (Last 2m)
 

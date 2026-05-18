@@ -1,8 +1,26 @@
 From: synthetic.practice06@example.invalid
-To: lower.gi.advice@example.invalid
-Subject: -FIT but ongoing symptoms - SYN-NHS-000093
+To: lower.gi.usc@example.invalid
+Subject: 2WW Lower GI -- clinical judgement referral with -FIT result -- SYN-NHS-000093
 
-Please advise on referral for Synthetic Given 093 Synthetic Family 093. Source text says -FIT, but the patient has persistent change in bowel habit and anaemia. A previous message in the task list says FIT+ in a different patient and should not be copied into this case.
+Dear Lower GI team,
+
+Please can you accept Synthetic Given 093 Synthetic Family 093 (DOB 1983-10-13, NHS SYN-NHS-000093) onto the 2WW lower GI pathway. Decision to refer: 2026-05-18. Referring GP: Dr Synthetic GP 04, Synthetic Practice 06.
+
+He presents with a five-week history of intermittent fresh rectal bleeding on most days, mixed with stool rather than on the paper. Bowel habit has shifted from once daily to two to three loose stools per day. He reports no abdominal pain and has not lost weight. There is a strong family history of colorectal cancer (mother diagnosed at 51, maternal uncle at 56).
+
+Faecal immunochemical test result, copied verbatim from the regional pathology feed:
+"Result: -FIT (3 ug Hb/g) below 10 ug Hb/g referral threshold."
+
+The "-FIT" prefix is the local laboratory's shorthand for a result below the referral threshold, equivalent to a negative FIT. I am referring on clinical grounds because of the combination of new ongoing rectal bleeding, change in bowel habit, and a strong family history of early-onset colorectal cancer, in line with NG12 and our local pathway for strong family history. Although the result is -FIT, the clinical picture warrants endoscopic assessment. Please note this is NOT a "FIT+" result -- the lab reading is unambiguously below threshold.
+
+Examination: Abdomen soft, no organomegaly, no palpable mass. DRE: small internal haemorrhoid identified, no rectal mass.
+
+Past medical history: gastro-oesophageal reflux disease on omeprazole 20mg OD. No known IBD. Non-smoker.
+
+He is fit for day-case investigation, has capacity to consent, and is aware this is a suspected cancer referral. Safety-net advice given.
+
+Kind regards,
+Dr Synthetic GP 04
 
 ## Blood Results (Last 2m)
 

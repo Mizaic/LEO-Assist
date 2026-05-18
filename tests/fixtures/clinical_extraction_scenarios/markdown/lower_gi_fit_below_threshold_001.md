@@ -1,19 +1,40 @@
-# Lower GI suspected cancer referral proforma
+# Lower GI suspected cancer referral
 
-Name: Synthetic Given 096 Synthetic Family 096
-DOB: 1986-01-16
-NHS number: SYN-NHS-000096
-Telephone: 07700 900096
-Practice: Synthetic Practice 01 (synthetic.practice01@example.invalid)
+## Patient details
+
+| Item | Entry |
+| --- | --- |
+| Name | Synthetic Given 096 Synthetic Family 096 |
+| Date of birth | 1986-01-16 |
+| NHS number | SYN-NHS-000096 |
+| Address | 96 Test Patient Street, Synthetic Town, ST9 6DD |
+| Telephone | 07700 900096 |
+
+## GP details
+
+Dr Synthetic GP 07, Synthetic Practice 01 (synthetic.practice01@example.invalid)
+Date of decision to refer: 2026-05-18
 
 ## Referral criteria and clinical information
 
-| Test | Result | Interpretation copied by GP |
+| Criterion | Status | Notes |
 | --- | --- | --- |
-| QFIT | 7 ug/g | FIT below threshold |
-| FBC | see table below | iron deficiency pattern |
+| Rectal bleeding | YES | Intermittent for 6 weeks |
+| Change in bowel habit | YES | Looser stools, 4-5 per day |
+| Faecal immunochemical test result | Reported | FIT below threshold (5 ug Hb/g vs 10 ug Hb/g local cut-off) |
+| Strong family history of CRC | YES | Two first-degree relatives diagnosed under 50 |
 
-Clinical details: FIT below threshold, but ongoing rectal bleeding and iron deficiency anaemia. The phrase FIT above threshold is in the lab information leaflet only.
+## Clinical justification
+
+This 39-year-old patient is being referred on the 2WW lower GI pathway on clinical grounds, despite a faecal immunochemical test result that is FIT below threshold. She has a six-week history of intermittent fresh rectal bleeding mixed with stool, on most days. Over the same period her bowel habit has changed from one formed stool daily to four to five looser stools per day, with associated lower abdominal cramping. She has lost approximately 2.5kg.
+
+Her FIT result from 2026-04-28 was reported by the pathology service as "FIT below threshold" with a numeric value of 5 ug Hb/g, against the local 10 ug Hb/g cut-off. To be explicit: this is NOT a FIT above threshold result; the value is well under the cut-off. However, given the new symptoms and a strong family history (mother diagnosed at 47, brother at 44), I am referring on clinical grounds in line with NG12 and local guidance for young patients with strong family histories.
+
+Examination: Soft abdomen, mild left iliac fossa tenderness, no palpable abdominal mass. DRE: small internal haemorrhoids, no rectal mass identifiable.
+
+Past medical history: anxiety on sertraline 50mg OD, otherwise well. Non-smoker. BMI 22.
+
+The patient is fit for day-case investigation, has capacity to consent, and is aware that this is a suspected cancer referral.
 
 ## Blood Results (Last 2m)
 

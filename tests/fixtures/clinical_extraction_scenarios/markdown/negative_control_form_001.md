@@ -1,4 +1,4 @@
-# Lower GI suspected cancer referral proforma
+# Lower GI assessment -- routine clinical letter (not a 2WW referral)
 
 ## Patient details
 
@@ -13,21 +13,35 @@
 ## GP details
 
 Dr Synthetic GP 03, Synthetic Practice 02 (synthetic.practice02@example.invalid)
-Date of decision to refer: 2026-05-12
+Date of letter: 2026-05-12
 
 ## Referral criteria and clinical information
 
-| Criterion or copied field | Response | Notes |
-| --- | --- | --- |
-| abdominal pain | X | entered in referral narrative |
+| Item | Entry |
+| --- | --- |
+| Reason for letter | Routine review and primary-care management plan |
+| Pathway | Standard outpatient route (not 2WW) |
 
-## Free text from GP record
+## Clinical summary
 
-The clinical reason for referral is abdominal pain.
+Dear colleague,
 
-## Background and copied record context
+I am writing about Synthetic Given 030 Synthetic Family 030 (DOB 1970-07-04, NHS SYN-NHS-000030), who attended for review of abdominal pain. This is a routine letter and is NOT a 2WW lower GI suspected cancer referral.
 
-Copied background and non-current context: rectal bleeding; weight loss.
+The patient reports a four-week history of intermittent crampy abdominal pain in the lower abdomen, worse after meals and partly relieved by defaecation. Bowel habit has remained stable -- one formed stool per day, no diarrhoea, no constipation. She specifically denies any fresh blood per rectum and has had no episodes of rectal bleeding. There has been no unintentional weight loss. Appetite is preserved. No nocturnal symptoms.
+
+For context, her records from 2019 (five years ago, copied across at registration) include episodes of rectal bleeding and weight loss attributed to a self-limited haemorrhoidal flare and a deliberate dietary change respectively. Those past entries are historical and are NOT current symptoms. The current consultation specifically excludes both rectal bleeding and weight loss; she has not had either in this episode.
+
+Examination today: Abdomen soft with mild diffuse tenderness in the lower abdomen, no palpable mass, normal bowel sounds. Digital rectal examination unremarkable. Vital signs normal.
+
+Faecal immunochemical test not indicated at this stage given the absence of bleeding or change in bowel habit. Coeliac serology pending.
+
+Impression: Irritable bowel syndrome with abdominal pain as the predominant feature, in the absence of any NICE NG12 alarm features. The clinical picture does not meet 2WW criteria. Trial of dietary modification (low-FODMAP advice given) and antispasmodic (mebeverine 135mg TDS PRN). Safety-net advice given for new bleeding, weight loss, change in bowel habit, nocturnal symptoms, or worsening pain.
+
+Plan: Review in eight weeks in primary care. No specialist referral at present.
+
+Kind regards,
+Dr Synthetic GP 03
 
 ## Blood Results (Last 2m)
 
