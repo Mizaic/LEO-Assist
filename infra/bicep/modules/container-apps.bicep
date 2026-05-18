@@ -1,4 +1,10 @@
-// -- Container Apps Environment + 8 apps ---------------------------------
+// -- Container Apps Environment + all 9 apps ------------------------------
+//
+// Ingress policy (do not change without security review):
+//   Only core-api and ui use external ingress (public FQDN).
+//   All other Container Apps must stay internal (ACA env DNS only).
+//   CI enforces this in tests/test_infra_security.py (TestContainerAppsIngressPolicy).
+//
 param location string = resourceGroup().location
 param environment string
 param managedIdentityId string
@@ -36,6 +42,13 @@ param allowedOrigins string
 param cookieSecure string
 param sessionTtlHours string
 param frontendUrl string
+// Optional UI ingress custom domain (same hostname users open in the browser).
+// If set with uiManagedCertificateId, Bicep declares customDomains on each deploy so
+// GitHub Actions / az deployment group create does not drop a portal-only binding.
+param uiCustomHostname string = ''
+// ARM resource ID of the managed certificate in this Container Apps environment, e.g.
+// /subscriptions/.../managedEnvironments/leoai-dev-cae/managedCertificates/<name>
+param uiManagedCertificateId string = ''
 param snomedTerminologyServer string = ''
 
 // Optional UI hostname + env-scoped certificate (see ACA Custom domains blade).
@@ -80,13 +93,19 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-// -- Internal service URLs (resolved by ACA DNS within the environment) ---
-var termApiUrl = 'http://terminology-api'
-var fhirApiUrl = 'http://fhir-api'
-var analyticsApiUrl = 'http://analytics-api'
-var modelInferenceUrl = 'http://model-inference'
-var pipelineWorkerUrl = 'http://pipeline-worker'
-var researchWorkerUrl = 'http://research-worker'
+// -- Internal service URLs (same Container Apps environment) ---------------
+// Microsoft documents http://<app-name> for in-mesh calls, but short names can
+// fail to resolve or flake under load; full hostnames using the environment
+// defaultDomain are reliable (see ACA "Communicate between container apps").
+var acaDefaultDomain = cae.properties.defaultDomain
+var termApiUrl = 'http://terminology-api.${acaDefaultDomain}'
+var fhirApiUrl = 'http://fhir-api.${acaDefaultDomain}'
+var analyticsApiUrl = 'http://analytics-api.${acaDefaultDomain}'
+var modelInferenceUrl = 'http://model-inference.${acaDefaultDomain}'
+var pipelineWorkerUrl = 'http://pipeline-worker.${acaDefaultDomain}'
+var trainingWorkerUrl = 'http://training-worker.${acaDefaultDomain}'
+var researchWorkerUrl = 'http://research-worker.${acaDefaultDomain}'
+var coreApiInternalUrl = 'http://core-api.${acaDefaultDomain}'
 
 // -- Session namespace ----------------------------------------------------
 // Every backend service that calls libs/redis_client/session.py::load_session
@@ -108,6 +127,7 @@ var _frontendHostPart = split(
 var sessionKeyNamespace = split(_frontendHostPart, '.')[0]
 
 var hasUiTlsCustomDomain = !empty(uiCustomDomainHost) && !empty(uiIngressCertificateName)
+var hasUiManagedCustomDomain = !empty(uiCustomHostname) && !empty(uiManagedCertificateId)
 // Inner ternary: managed free cert vs uploaded / imported cert on the environment.
 var uiIngressCertificateResourceId = hasUiTlsCustomDomain
   ? uiIngressCertificateIsManaged
@@ -130,7 +150,15 @@ var uiIngressCustomDomains = hasUiTlsCustomDomain
         certificateId: uiIngressCertificateResourceId
       }
     ]
-  : []
+  : hasUiManagedCustomDomain
+      ? [
+          {
+            name: uiCustomHostname
+            bindingType: 'SniEnabled'
+            certificateId: uiManagedCertificateId
+          }
+        ]
+      : []
 
 // -- Shared env vars injected into every app -------------------------------
 var sharedEnv = [
@@ -404,9 +432,9 @@ resource ui 'Microsoft.App/containerApps@2024-03-01' = {
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/ui:${imageTag}'
         resources: { cpu: json('0.5'), memory: '1Gi' }
         env: union(sharedEnv, [
-          { name: 'INTERNAL_API_BASE', value: 'http://core-api' }
+          { name: 'INTERNAL_API_BASE', value: coreApiInternalUrl }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
-          { name: 'TRAINING_WORKER_URL', value: 'http://training-worker' }
+          { name: 'TRAINING_WORKER_URL', value: trainingWorkerUrl }
           { name: 'NODE_ENV', value: 'production' }
           // NextAuth needs the public base URL of this environment
           { name: 'AUTH_URL', value: frontendUrl }
@@ -824,3 +852,5 @@ resource researchWorker 'Microsoft.App/containerApps@2024-03-01' = {
 
 output coreApiFqdn string = coreApi.properties.configuration.ingress.fqdn
 output uiFqdn string = ui.properties.configuration.ingress.fqdn
+// Environment DNS suffix for in-mesh HTTP (e.g. proudriver-82c5b80a.uksouth.azurecontainerapps.io)
+output acaDefaultDomain string = cae.properties.defaultDomain

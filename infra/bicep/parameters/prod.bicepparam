@@ -44,3 +44,7 @@ param snomedTerminologyServer = 'https://ontology.nhs.uk/production1/fhir'
 
 // Public URL of the UI for this environment.
 param frontendUrl = 'https://leo-ai-audit.healthcarecopilot.ai'
+
+// Optional: bind UI custom domain in Bicep (hostname only + managed cert resource ID).
+param uiCustomHostname = ''
+param uiManagedCertificateId = ''
