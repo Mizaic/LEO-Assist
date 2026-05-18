@@ -27,17 +27,29 @@ def test_only_configured_sizes_are_emitted():
     assert lengths == {1, 3}
 
 
-def test_default_sizes_cover_completed_gold_lab_span_lengths():
-    """Default sizes cover nested lab spans found in completed GoldLabel data."""
+def test_default_sizes_exclude_middle_band_to_limit_false_positives():
+    """Default sizes avoid the full 1..24 negative-candidate blow-up."""
     suggester = build_clinical_ngram_suggester()
     doc = _make_doc(30)
     output = suggester([doc])
     rows = output.dataXd.tolist()
     lengths = {end - start for start, end in rows}
-    expected = set(range(1, 25))
+    expected = {1, 2, 3, 4, 5, 22, 23, 24}
     assert set(_DEFAULT_CLINICAL_SIZES) == expected
     assert lengths == expected
-    assert {15, 20, 21, 22, 24} <= lengths
+    assert not (set(range(6, 22)) & lengths)
+
+
+def test_short_multi_entity_sentence_candidates_are_still_emitted():
+    """Procedure, observable, and finding spans can coexist in one sentence."""
+    suggester = clinical_ngram_suggester_v1()
+    doc = _make_doc(12)
+    output = suggester([doc])
+    rows = {tuple(row) for row in output.dataXd.tolist()}
+
+    assert (0, 2) in rows
+    assert (4, 5) in rows
+    assert (7, 10) in rows
 
 
 def test_registry_entry_returns_callable():
