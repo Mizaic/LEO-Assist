@@ -19,6 +19,8 @@ import Typography from "@mui/material/Typography";
 import type { SafetyNetWorklistItem } from "@/lib/analyticsApi";
 import type { Milestone, PathwayRisk } from "@/lib/pathwayRisk";
 import PathwayProgressBar from "@/components/safety-netting/PathwayProgressBar";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskBirthDate, maskPatientId } from "@/lib/demoMode";
 
 export interface SafetyNetWorklistRow extends SafetyNetWorklistItem {
   risk: PathwayRisk;
@@ -85,6 +87,8 @@ export default function PatientPathwayWorklist({
   selectedEpisodeId: string | null;
   onSelect: (row: SafetyNetWorklistRow) => void;
 }) {
+  const { isDemoMode } = useDemoMode();
+
   if (rows.length === 0) {
     return (
       <Box sx={{ p: 4, textAlign: "center" }}>
@@ -191,14 +195,14 @@ export default function PatientPathwayWorklist({
                       lineHeight: 1.4,
                     }}
                   >
-                    {row.patient_id}
+                    {isDemoMode ? maskPatientId(row.patient_id) : row.patient_id}
                   </Typography>
                   <Typography
                     variant="caption"
                     color="text.secondary"
                     sx={{ fontSize: "0.72rem" }}
                   >
-                    {compactDate(row.birth_date)}
+                    {isDemoMode ? maskBirthDate(row.birth_date) : compactDate(row.birth_date)}
                   </Typography>
                 </TableCell>
                 <TableCell sx={{ py: 1.5 }}>

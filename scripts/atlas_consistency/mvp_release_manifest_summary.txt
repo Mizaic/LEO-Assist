@@ -1,0 +1,16 @@
+MVP UN count: 79
+MVP DI count: 270
+MVP DO count: 215
+MVP VT count: 290
+MVP Risk count: 202
+MVP VAL count: 1
+
+Total DCs to scope into release (8e5bb2c8-af34-4f26-997b-ab4781ad7b24):
+  978
+
+DIs by release wave:
+  R1: 50
+  R3: 118
+  R4: 41
+  R5: 55
+  R7: 6

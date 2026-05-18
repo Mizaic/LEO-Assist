@@ -1,14 +1,25 @@
 /**
- * Auto-stamped Atlas trace.
+ * Curator sign-off panel.
+ *
+ * Replaces the pre-verdict "Mark reviewed" + "Override pathway status"
+ * dual-path with a single verdict-driven sign-off (DI-E2498DF6).
+ *
+ * The curator picks ONE verdict -- confirm active / completed / benign /
+ * merged / rejected -- and clicks Save sign-off. The UI calls
+ * PATCH /mission-control/episodes/{id}/sign-off which records the
+ * verdict, the mapped status, and the reviewed_at / reviewed_by stamps
+ * in a single Cypher transaction, so the episode cannot be left in a
+ * "reviewed but status unchanged" or "closed but not reviewed" state.
  *
  * Atlas trace:
- *   DO: DO-EE78E305
- *   DI: DI-6EA84931
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-EE78E305")
+ *   DO: DO-2A124BA0
+ *   DI: DI-E2498DF6
+ *   VT: VT-2487F804
+ *   R:  R-2AA626E7
  */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -20,38 +31,14 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import CheckCircleOutline from "@mui/icons-material/CheckCircleOutline";
 import FlagOutlined from "@mui/icons-material/FlagOutlined";
-import LockOutlined from "@mui/icons-material/LockOutlined";
-import { useRole } from "@leo/design-system";
-import ConfirmDialog from "@/components/ConfirmDialog";
-import { getStatusLabel } from "@/lib/pathwayLabels";
-import type {
-  EpisodeLocksResponse,
-  MissionEpisode,
-  ReviewerRole,
-} from "@/lib/missionControlApi";
+import type { MissionEpisode } from "@/lib/missionControlApi";
+import { patchEpisodeSignOff } from "@/lib/missionControlApi";
 import {
-  listLocksForEpisode,
-  patchEpisodeReview,
-  patchEpisodeStatus,
-} from "@/lib/missionControlApi";
-import ReconcilePathwayDrawer from "./ReconcilePathwayDrawer";
-import type { SlotRowData } from "./MilestoneSlotRow";
-import {
-  STATUS_COMPLETED,
-  STATUS_CLOSED_BENIGN,
-  STATUS_STALE_NO_DIAGNOSIS,
-  STATUS_STALE_POST_SPECIALIST,
-  STATUS_IN_PROGRESS,
-  STATUS_REVIEW,
+  REVIEW_VERDICT_HELP,
+  REVIEW_VERDICT_LABELS,
+  REVIEW_VERDICT_VALUES,
 } from "@/lib/episodeStatus";
-
-const OVERRIDEABLE_STATUSES = [
-  STATUS_COMPLETED,
-  STATUS_CLOSED_BENIGN,
-  STATUS_STALE_NO_DIAGNOSIS,
-  STATUS_STALE_POST_SPECIALIST,
-  STATUS_IN_PROGRESS,
-];
+import { getStatusLabel } from "@/lib/pathwayLabels";
 
 interface Props {
   episode: MissionEpisode;
@@ -59,123 +46,127 @@ interface Props {
   onReviewed: (updated: Partial<MissionEpisode>) => void;
 }
 
-export default function ReviewActionsPanel({ episode, userEmail, onReviewed }: Props) {
+export default function ReviewActionsPanel({
+  episode,
+  userEmail,
+  onReviewed,
+}: Props) {
+  const isSignedOff = Boolean(episode.reviewed_at);
+  const [verdict, setVerdict] = useState<string>(
+    episode.review_verdict ?? "",
+  );
   const [notes, setNotes] = useState(episode.audit_notes ?? "");
   const [flagged, setFlagged] = useState(episode.audit_flag ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [overrideStatus, setOverrideStatus] = useState("");
-  const [confirmOverride, setConfirmOverride] = useState(false);
-  const [reconcileOpen, setReconcileOpen] = useState(false);
-  const [episodeLocks, setEpisodeLocks] = useState<EpisodeLocksResponse | null>(null);
 
-  const { selectedRole } = useRole();
-  const reviewerRole: ReviewerRole | null =
-    selectedRole === "clinician" || selectedRole === "qa_ra_lead"
-      ? selectedRole
-      : null;
-  const canReconcile =
-    episode.status === STATUS_REVIEW && reviewerRole !== null;
-
-  const isReviewed = Boolean(episode.reviewed_by);
-
-  // Pre-fetch the episode locks once (lightweight) so the drawer can
-  // mark already-confirmed milestones without a second round-trip.
   useEffect(() => {
-    if (!canReconcile) return;
-    let cancelled = false;
-    listLocksForEpisode(episode.episode_id)
-      .then((res) => {
-        if (!cancelled) setEpisodeLocks(res);
-      })
-      .catch(() => {
-        if (!cancelled) setEpisodeLocks(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [episode.episode_id, canReconcile]);
+    setVerdict(episode.review_verdict ?? "");
+    setNotes(episode.audit_notes ?? "");
+    setFlagged(episode.audit_flag ?? false);
+  }, [
+    episode.episode_id,
+    episode.review_verdict,
+    episode.audit_notes,
+    episode.audit_flag,
+  ]);
 
-  const slotRows = useMemo<SlotRowData[]>(() => {
-    const rows: SlotRowData[] = [];
-    for (const m of episode.milestones ?? []) {
-      rows.push({
-        slot: m.milestone_type,
-        label: m.milestone_type
-          .split("_")
-          .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-          .join(" "),
-        engineEncounterId: m.encounter_id,
-        engineMilestoneType: m.milestone_type,
-        rationale: null,
-      });
-    }
-    return rows;
-  }, [episode.milestones]);
-
-  const handleMarkReviewed = async () => {
+  const handleSignOff = async () => {
     setSaving(true);
     setError(null);
     try {
-      await patchEpisodeReview(episode.episode_id, {
+      const result = await patchEpisodeSignOff(episode.episode_id, {
+        verdict,
         reviewed_by: userEmail,
         audit_notes: notes,
         audit_flag: flagged,
       });
-      onReviewed({ reviewed_by: userEmail, reviewed_at: new Date().toISOString(), audit_notes: notes, audit_flag: flagged });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save review. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveNotes = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      await patchEpisodeReview(episode.episode_id, {
-        reviewed_by: episode.reviewed_by ?? userEmail,
+      onReviewed({
+        review_verdict: result.review_verdict,
+        status: result.status,
+        reviewed_by: result.reviewed_by,
+        reviewed_at: result.reviewed_at,
         audit_notes: notes,
         audit_flag: flagged,
       });
-      onReviewed({ audit_notes: notes, audit_flag: flagged });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save. Please try again.");
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Could not save sign-off. Please try again.",
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleConfirmOverride = async () => {
-    setConfirmOverride(false);
-    setSaving(true);
-    setError(null);
-    try {
-      await patchEpisodeStatus(episode.episode_id, overrideStatus, "Manual override by auditor");
-      onReviewed({ status: overrideStatus });
-      setOverrideStatus("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not change status. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const saveDisabled = saving || !verdict;
+  const verdictHelp = verdict ? REVIEW_VERDICT_HELP[verdict] : "";
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {/* Review status indicator */}
-      {isReviewed && (
+      {isSignedOff && episode.review_verdict ? (
         <Chip
           icon={<CheckCircleOutline />}
-          label={`Reviewed by ${episode.reviewed_by}`}
+          label={`${REVIEW_VERDICT_LABELS[episode.review_verdict] ?? episode.review_verdict} by ${episode.reviewed_by ?? "reviewer"}`}
           color="success"
           size="small"
           variant="outlined"
         />
-      )}
+      ) : null}
 
-      {/* Notes */}
+      {isSignedOff && !episode.review_verdict ? (
+        <Chip
+          icon={<CheckCircleOutline />}
+          label={`Reviewed by ${episode.reviewed_by ?? "reviewer"} (no verdict recorded)`}
+          color="warning"
+          size="small"
+          variant="outlined"
+        />
+      ) : null}
+
+      <Box>
+        <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
+          Your verdict
+        </Typography>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mb: 1 }}
+        >
+          Pick one. This records what you decided about the pathway and sets
+          the status in one step.
+        </Typography>
+        <TextField
+          select
+          size="small"
+          fullWidth
+          value={verdict}
+          onChange={(e) => setVerdict(e.target.value)}
+          label="Verdict"
+          inputProps={{ "aria-label": "Review verdict" }}
+        >
+          {REVIEW_VERDICT_VALUES.map((v) => (
+            <MenuItem key={v} value={v}>
+              {REVIEW_VERDICT_LABELS[v] ?? v}
+            </MenuItem>
+          ))}
+        </TextField>
+        {verdictHelp ? (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mt: 0.5 }}
+          >
+            {verdictHelp} (pathway status will become{" "}
+            {getStatusLabel(
+              REVIEW_VERDICT_VALUES.includes(verdict) ? verdict : episode.status,
+            )}
+            )
+          </Typography>
+        ) : null}
+      </Box>
+
       <Box>
         <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
           Audit notes
@@ -185,14 +176,13 @@ export default function ReviewActionsPanel({ episode, userEmail, onReviewed }: P
           rows={3}
           fullWidth
           size="small"
-          placeholder="Add notes about this pathway here..."
+          placeholder="Why did you pick this verdict? (optional)"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           inputProps={{ "aria-label": "Audit notes" }}
         />
       </Box>
 
-      {/* Flag toggle */}
       <FormControlLabel
         control={
           <Switch
@@ -204,130 +194,35 @@ export default function ReviewActionsPanel({ episode, userEmail, onReviewed }: P
         }
         label={
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <FlagOutlined fontSize="small" color={flagged ? "warning" : "disabled"} />
+            <FlagOutlined
+              fontSize="small"
+              color={flagged ? "warning" : "disabled"}
+            />
             <Typography variant="body2">Flag for follow-up</Typography>
           </Box>
         }
       />
 
-      {/* Error */}
-      {error && (
+      {error ? (
         <Typography variant="caption" color="error">
           {error}
         </Typography>
-      )}
-
-      {/* Actions */}
-      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-        {isReviewed ? (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleSaveNotes}
-            disabled={saving}
-          >
-            Save notes
-          </Button>
-        ) : (
-          <Button
-            size="small"
-            variant="contained"
-            onClick={handleMarkReviewed}
-            disabled={saving}
-            startIcon={<CheckCircleOutline />}
-            disableElevation
-          >
-            Mark as reviewed
-          </Button>
-        )}
-        {canReconcile && (
-          <Button
-            size="small"
-            variant="outlined"
-            color="primary"
-            startIcon={<LockOutlined />}
-            onClick={() => setReconcileOpen(true)}
-            data-testid="open-reconcile-drawer"
-          >
-            Reconcile pathway
-          </Button>
-        )}
-      </Box>
-
-      {canReconcile && reviewerRole && (
-        <ReconcilePathwayDrawer
-          open={reconcileOpen}
-          episode={episode}
-          rows={slotRows}
-          reviewerEmail={userEmail}
-          reviewerRole={reviewerRole}
-          locks={episodeLocks}
-          onReplaceClick={() => {
-            // The encounter picker is mounted by the patient drawer
-            // (see ui-mount task); emitting here would cross drawer
-            // boundaries, so the parent listens via onReviewed.
-          }}
-          onClose={() => setReconcileOpen(false)}
-          onSaved={() => {
-            // Refresh locks and let the parent refresh episode state.
-            listLocksForEpisode(episode.episode_id)
-              .then(setEpisodeLocks)
-              .catch(() => setEpisodeLocks(null));
-            onReviewed({});
-          }}
-        />
-      )}
+      ) : null}
 
       <Divider />
 
-      {/* Status override */}
-      <Box>
-        <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
-          Override pathway status
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-          Only use this when the pipeline status is clearly wrong. This is recorded in the audit trail.
-        </Typography>
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          <TextField
-            select
-            size="small"
-            value={overrideStatus}
-            onChange={(e) => setOverrideStatus(e.target.value)}
-            sx={{ minWidth: 200 }}
-            label="New status"
-            inputProps={{ "aria-label": "Override pathway status" }}
-          >
-            {OVERRIDEABLE_STATUSES
-              .filter((s) => s !== episode.status)
-              .map((s) => (
-                <MenuItem key={s} value={s}>
-                  {getStatusLabel(s)}
-                </MenuItem>
-              ))}
-          </TextField>
-          <Button
-            size="small"
-            variant="outlined"
-            color="warning"
-            disabled={!overrideStatus || saving}
-            onClick={() => setConfirmOverride(true)}
-          >
-            Override
-          </Button>
-        </Box>
+      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Button
+          size="small"
+          variant="contained"
+          onClick={handleSignOff}
+          disabled={saveDisabled}
+          startIcon={<CheckCircleOutline />}
+          disableElevation
+        >
+          {isSignedOff ? "Update sign-off" : "Save sign-off"}
+        </Button>
       </Box>
-
-      {confirmOverride && (
-        <ConfirmDialog
-          title="Override pathway status?"
-          body={`You are changing this pathway to "${getStatusLabel(overrideStatus)}". This action will be recorded in the audit trail and cannot be undone automatically.`}
-          confirmLabel="Yes, override"
-          variant="danger"
-          onConfirm={handleConfirmOverride}
-          onCancel={() => setConfirmOverride(false)}
-        />
-      )}
     </Box>
   );
 }

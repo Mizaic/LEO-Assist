@@ -133,7 +133,7 @@ def main():
                r.source AS source
         ORDER BY enc.date
         """
-        stale_pids = [4203796334, 4921442355, 4940120139, 6261656266]
+        stale_pids = [9990002010, 9990003002, 9990002011, 9990002012]
         with pg.session() as s:
             rows = s.run(_Q_STALE_ASSERTIONS, pids=stale_pids).data()
         for r in rows:

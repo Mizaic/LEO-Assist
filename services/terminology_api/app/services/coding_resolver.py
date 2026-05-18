@@ -1,4 +1,4 @@
-"""Hybrid SNOMED/Read code resolution.
+"""Lexical SNOMED/Read code resolution.
 
 Atlas trace:
   DO: DO-14D58359
@@ -6,20 +6,31 @@ Atlas trace:
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-14D58359")
 
 Ported from PCA services/api/app/services/v3/coding_resolver.py.
-Runs three retrieval branches (exact, fulltext, vector) and fuses scores.
+Runs two retrieval branches (exact surface-form, fulltext) and fuses scores.
+
+Vector branch removed
+~~~~~~~~~~~~~~~~~~~~~
+Vector (embedding) lookup was removed because it produced wrong SNOMED codes
+when a span's surface tokens semantically overlapped with a different concept.
+The concrete failure mode: "Haemoglobin A1c level ... Outside reference range"
+(a finding) resolved to "Mean corpuscular haemoglobin outside reference range"
+because the vector for "haemoglobin" is closer to MCH than HbA1c.
+
+Lexical retrieval is deterministic and traceable. When neither exact surface
+form nor fulltext match succeeds, the resolver returns an empty list, and the
+calling pipeline can escalate to Haiku for disambiguation rather than silently
+returning a wrong concept.
 
 Batch optimization
 ~~~~~~~~~~~~~~~~~~
 ``resolve_candidates`` uses batched UNWIND queries so that resolving N terms
-costs ~4 round trips to Neo4j regardless of N, instead of the previous
-N × 8-12 sequential round trips.  The individual ``_resolve_single`` method
-is preserved for backwards compatibility and single-term lookups.
+costs ~3 round trips to Neo4j regardless of N.
 
 Short-circuit
 ~~~~~~~~~~~~~
 If a term is fully resolved by the exact branch (Term + SurfaceForm both
-return results at score >= 1.0), the fulltext and vector branches are skipped
-for that term, cutting 6-8 round trips per already-known term.
+return results at score >= 1.0), the fulltext branch is skipped for that
+term, cutting 3-5 round trips per already-known term.
 
 Lab-domain enrichment
 ~~~~~~~~~~~~~~~~~~~~~
@@ -28,19 +39,15 @@ is ``observable entity``, ``procedure``, or ``finding``, the resolver can
 optionally traverse the SNOMED ontology family via ``get_related_concepts`` to
 return the full cluster of related concepts (INTERPRETS / HAS_COMPONENT /
 HAS_ASSOCIATED_FINDING edges materialised by the phase-3 loader).
-
-This lets the pipeline emit compound lab entities (observable_entity +
-qualifier_value + finding) without LLM disambiguation.
 """
 
 from __future__ import annotations
 
 import logging
-import os
 import re
 import time
 from dataclasses import dataclass, field, replace
-from typing import Any, Sequence
+from typing import Any
 
 from libs.terminology.surface_normalize import TOKEN_RE, normalize_surface
 from services.terminology_api.app.queries.terminology import (
@@ -52,8 +59,6 @@ from services.terminology_api.app.queries.terminology import (
     FULLTEXT_QUERY,
     FULLTEXT_SURFACE_FORM_QUERY,
     RELATED_CONCEPTS_QUERY,
-    VECTOR_QUERY,
-    VECTOR_SURFACE_FORM_QUERY,
 )
 
 logger = logging.getLogger(__name__)
@@ -114,12 +119,6 @@ _TAG_PENALTY = 0.5
 # of a long phrase).
 _MIN_SCORE = 0.15
 
-# When both lexical and vector signals fire, the smaller signal earns a
-# bonus on top of the larger signal. Keeps absolute interpretation
-# (score is roughly P(correct mapping)) while rewarding agreement
-# between two independent retrieval branches.
-_AGREEMENT_BONUS = 0.10
-
 # Tags that are never clinically meaningful as a primary coding result.
 # These are hard-blocked when an expected clinical tag is provided,
 # and soft-excluded (score floor raised to 0.5) even without an expected tag.
@@ -155,8 +154,6 @@ _CLINICAL_GROUPS: frozenset[str] = frozenset(
     }
 )
 
-# Maximum number of tokens before we skip the raw (non-phrase) fulltext query.
-# Long phrases produce dangerous partial word matches (e.g. "see" -> Holy See).
 _MAX_TOKENS_FOR_RAW_QUERY = 5
 
 _LUCENE_SPECIAL = re.compile(r'([+\-!(){}[\]^"~*?:\\/])')
@@ -235,42 +232,6 @@ def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -
     elif branch == "lexical_exact":
         base["lexical_raw"] = max(base["lexical_raw"], score)
         base["had_exact_match"] = True
-    elif branch == "vector":
-        base["vector_raw"] = max(base["vector_raw"], score)
-
-
-def _has_lexical_candidates(merged: dict[str, dict[str, Any]]) -> bool:
-    """Return True once exact/fulltext produced at least one candidate."""
-    return any(
-        float(candidate.get("lexical_raw", 0.0)) > 0.0 for candidate in merged.values()
-    )
-
-
-def _top_lexical_score(merged: dict[str, dict[str, Any]]) -> float:
-    """Return the maximum raw lexical score across all current candidates."""
-    if not merged:
-        return 0.0
-    return max(float(c.get("lexical_raw", 0.0)) for c in merged.values())
-
-
-# Minimum top lexical score above which the vector branch is skipped.
-# Set via TERMINOLOGY_VECTOR_SKIP_SCORE. Previously the vector branch was
-# skipped whenever any lexical hit existed (score > 0), which caused weak
-# partial-token matches (a chronic failure mode for multi-token phrases) to
-# suppress the embedding branch entirely. A 0.7 threshold preserves the
-# cost/latency win for unambiguous exact-match terms while ensuring hybrid
-# retrieval actually runs when lexical is weak.
-_DEFAULT_VECTOR_SKIP_SCORE = 0.7
-
-
-def _vector_skip_score() -> float:
-    try:
-        value = float(os.getenv("TERMINOLOGY_VECTOR_SKIP_SCORE", ""))
-    except (TypeError, ValueError):
-        return _DEFAULT_VECTOR_SKIP_SCORE
-    if value < 0.0 or value > 1.0:
-        return _DEFAULT_VECTOR_SKIP_SCORE
-    return value
 
 
 def _parse_related_concepts_row(row: dict[str, Any]) -> list[dict[str, str]]:
@@ -322,9 +283,8 @@ class CodingCandidate:
     #   lexical_raw    -- max raw lexical score across exact + fulltext
     #     branches. Exact = 1.0/1.2; fulltext = Lucene BM25-style
     #     (typically 0-15).
-    #   vector_raw     -- cosine similarity from the embedding branch
-    #     (0.0 - 1.0). >= 0.85 typically indicates strong semantic
-    #     match even when token overlap is low.
+    #   vector_raw     -- always 0.0 (vector branch removed; field kept
+    #     for API backward compatibility).
     had_exact_match: bool = False
     lexical_raw: float = 0.0
     vector_raw: float = 0.0
@@ -337,29 +297,20 @@ class CodingCandidate:
 def _calibrate_confidence(c: dict[str, Any]) -> float:
     """Compute calibrated absolute confidence in [0.0, 1.0] for one candidate.
 
-    See ``CodingResolver._fuse_and_rank`` docstring for the full design
-    rationale. Pulled out as a free function so tests and downstream
-    consumers can replicate the calibration logic without instantiating
-    a resolver.
+    Pulled out as a free function so tests and downstream consumers can
+    replicate the calibration logic without instantiating a resolver.
+
+    Lexical signal mapping:
+      - Exact branch (Term / SurfaceForm exact match) -> 1.0
+      - Fulltext (Lucene BM25) -> bm25 / (bm25 + 1)
+        Saturating: BM25=1 -> 0.5, BM25=5 -> 0.83, BM25=10 -> 0.91.
     """
     if c.get("had_exact_match"):
-        lex_signal = 1.0
-    else:
-        lex_raw = float(c.get("lexical_raw", 0.0) or 0.0)
-        lex_signal = lex_raw / (lex_raw + 1.0) if lex_raw > 0 else 0.0
-    vec_signal = float(c.get("vector_raw", 0.0) or 0.0)
-    if vec_signal < 0.0:
-        vec_signal = 0.0
-    if vec_signal > 1.0:
-        vec_signal = 1.0
-
-    if lex_signal > 0.0 and vec_signal > 0.0:
-        confidence = max(lex_signal, vec_signal) + (
-            _AGREEMENT_BONUS * min(lex_signal, vec_signal)
-        )
-    else:
-        confidence = max(lex_signal, vec_signal)
-    return min(1.0, confidence)
+        return 1.0
+    lex_raw = float(c.get("lexical_raw", 0.0) or 0.0)
+    if lex_raw <= 0.0:
+        return 0.0
+    return min(1.0, lex_raw / (lex_raw + 1.0))
 
 
 def _apply_tag_adjustment(
@@ -389,30 +340,16 @@ def _apply_tag_adjustment(
 
 
 class CodingResolver:
-    """Hybrid term -> SNOMED resolver using exact + fulltext + vector retrieval."""
+    """Lexical term -> SNOMED resolver using exact surface-form + fulltext retrieval."""
 
     def __init__(
         self,
         *,
         k_exact: int = 30,
         k_fulltext: int = 40,
-        k_vector: int = 40,
-        w_lexical: float = 0.6,
-        w_vector: float = 0.4,
-        vector_index_name: str = "term_embedding_idx",
-        surface_form_vector_index_name: str = "surface_form_embedding_idx",
-        embedder: Any | None = None,
     ) -> None:
         self.k_exact = k_exact
         self.k_fulltext = k_fulltext
-        self.k_vector = k_vector
-        self.w_lexical = w_lexical
-        self.w_vector = w_vector
-        self.vector_index_name = vector_index_name
-        self.surface_form_vector_index_name = surface_form_vector_index_name
-        self._embedder = embedder
-        self._vector_index_ok: bool | None = None
-        self._surface_form_vector_ok: bool | None = None
         self._surface_form_fulltext_ok: bool | None = None
         self._surface_form_exact_ok: bool | None = None
 
@@ -485,14 +422,7 @@ class CodingResolver:
         t0 = time.perf_counter()
         unique_texts = list(dict.fromkeys(term_texts))
 
-        # Compute embeddings for all terms in one batch (GPU/CPU SentenceTransformer)
-        embeddings = self._embed(unique_texts)
-        t_embed = time.perf_counter()
-        logger.debug(
-            "[resolver] embed  terms=%d  elapsed=%.3fs", len(unique_texts), t_embed - t0
-        )
-
-        # merged[term][concept_id] = {lexical_raw, vector_raw, ...}
+        # merged[term][concept_id] = {lexical_raw, ...}
         merged_all: dict[str, dict[str, dict[str, Any]]] = {t: {} for t in unique_texts}
 
         # ── Batch exact branch (Term + SurfaceForm, 1 round trip) ──────────────
@@ -505,7 +435,7 @@ class CodingResolver:
             "[resolver] exact  terms=%d  hits=%d  elapsed=%.3fs",
             len(unique_texts),
             len(exact_hit_terms),
-            t_exact - t_embed,
+            t_exact - t0,
         )
 
         # ── Batch fulltext branch (1-3 round trips total) ──────────────────────
@@ -521,37 +451,6 @@ class CodingResolver:
             t_fulltext - t_exact,
         )
 
-        # ── Vector branch (1-2 round trips per term, run after exact+fulltext) ──
-        # Run vector UNLESS the top lexical score is already strong enough
-        # (see _DEFAULT_VECTOR_SKIP_SCORE). Previously vector was skipped when
-        # ANY lexical hit existed (score > 0), which suppressed the embedding
-        # branch precisely when weak fulltext token matches returned spurious
-        # partial-word candidates for multi-token phrases -- the biggest known
-        # driver of misresolved NG12 terms.
-        # Set TERMINOLOGY_ENABLE_VECTOR=false to disable entirely (e.g. eval
-        # runs where AuraDB vector index latency would dominate request time).
-        vector_enabled = (
-            os.getenv("TERMINOLOGY_ENABLE_VECTOR", "true").lower() != "false"
-        )
-        skip_score = _vector_skip_score()
-        vector_needed = [
-            t for t in unique_texts if _top_lexical_score(merged_all[t]) < skip_score
-        ]
-        if embeddings and vector_needed and vector_enabled:
-            for text in vector_needed:
-                idx = unique_texts.index(text)
-                self._run_vector_for_term(
-                    text, embeddings[idx], neo4j_session, merged_all[text]
-                )
-        t_vector = time.perf_counter()
-        if embeddings:
-            logger.debug(
-                "[resolver] vector  terms_needed=%d  skipped=%d  elapsed=%.3fs",
-                len(vector_needed),
-                len(unique_texts) - len(vector_needed),
-                t_vector - t_fulltext,
-            )
-
         # ── Score fusion and candidate ranking (pure Python, no I/O) ───────────
         results: dict[str, list[CodingCandidate]] = {}
         for text in unique_texts:
@@ -559,20 +458,14 @@ class CodingResolver:
             results[text] = self._fuse_and_rank(merged_all[text], expected_tag=tag)
 
         resolved = sum(1 for v in results.values() if v)
-        branches = "exact+fulltext"
-        if self._vector_index_ok or self._surface_form_vector_ok:
-            branches += "+vector"
         t_fuse = time.perf_counter()
         logger.info(
-            "[resolver] %s  terms=%d  resolved=%d  embed=%.3fs  exact=%.3fs  fulltext=%.3fs  vector=%.3fs  fuse=%.3fs  total=%.3fs",
-            branches,
+            "[resolver] exact+fulltext  terms=%d  resolved=%d  exact=%.3fs  fulltext=%.3fs  fuse=%.3fs  total=%.3fs",
             len(unique_texts),
             resolved,
-            t_embed - t0,
-            t_exact - t_embed,
+            t_exact - t0,
             t_fulltext - t_exact,
-            t_vector - t_fulltext,
-            t_fuse - t_vector,
+            t_fuse - t_fulltext,
             t_fuse - t0,
         )
 
@@ -734,43 +627,6 @@ class CodingResolver:
                     except Exception:
                         pass
 
-    def _run_vector_for_term(
-        self,
-        term: str,
-        embedding: list[float],
-        session,
-        merged: dict[str, dict[str, Any]],
-    ) -> None:
-        """Run vector queries for a single term (Neo4j vector index is not UNWIND-batchable)."""
-        if self._vector_index_ok is not False:
-            try:
-                for rec in session.run(
-                    VECTOR_QUERY,
-                    index_name=self.vector_index_name,
-                    k=self.k_vector,
-                    embedding=embedding,
-                ):
-                    _push(merged, dict(rec), "vector")
-                if self._vector_index_ok is None:
-                    self._vector_index_ok = True
-            except Exception as exc:
-                if "no such vector schema index" in str(exc).lower():
-                    self._vector_index_ok = False
-
-        if self._surface_form_vector_ok is not False:
-            try:
-                for rec in session.run(
-                    VECTOR_SURFACE_FORM_QUERY,
-                    index_name=self.surface_form_vector_index_name,
-                    k=self.k_vector,
-                    embedding=embedding,
-                ):
-                    _push(merged, dict(rec), "vector")
-                if self._surface_form_vector_ok is None:
-                    self._surface_form_vector_ok = True
-            except Exception as exc:
-                if "no such vector schema index" in str(exc).lower():
-                    self._surface_form_vector_ok = False
 
     def _fuse_and_rank(
         self,
@@ -793,22 +649,18 @@ class CodingResolver:
         consumers (coder gates, surface-form validators, the SNOMED
         proposal validator) could not tell strong from weak matches.
 
-        The new scheme produces a calibrated absolute confidence:
+        Calibrated absolute confidence mapping:
 
           1. Lexical signal in [0, 1]:
              - Exact branch (Term/SurfaceForm) -> 1.0  (strongest possible)
              - Fulltext (Lucene BM25) -> bm25 / (bm25 + 1)
-               Saturating curve: BM25 of 1 -> 0.5, 5 -> 0.83, 10 -> 0.91.
-          2. Vector signal in [0, 1]: cosine similarity (already absolute).
-          3. Combine: max(lex, vec) + 0.10 * min(lex, vec), capped at 1.0.
-             Strongest single branch wins; agreement between branches
-             earns a small bonus.
-          4. Tag adjustment:
+               Saturating curve: BM25=1 -> 0.5, BM25=5 -> 0.83, BM25=10 -> 0.91.
+          2. Tag adjustment:
              - exact tag match     -> +0.10 (additive boost, capped at 1.0)
              - compatible group    -> no change
              - cross-group         -> *0.5 (penalty)
              - non-clinical no-tag -> capped at 0.4
-          5. Hard cull: scores below ``_MIN_SCORE`` (0.15) are dropped.
+          3. Hard cull: scores below ``_MIN_SCORE`` (0.15) are dropped.
 
         Sort order: confidence DESC. Tag-matching wins ties via the +0.10
         additive boost (no implicit "tag always wins" tier).
@@ -857,33 +709,19 @@ class CodingResolver:
                 semantic_tag=c.get("semantic_tag"),
                 read_code=(c.get("read_codes") or [None])[0],
                 score=round(confidence, 4),
-                source="hybrid",
+                source="lexical",
                 surface_form_status=c.get("surface_form_status", ""),
                 had_exact_match=bool(c.get("had_exact_match", False)),
                 lexical_raw=round(float(c.get("lexical_raw", 0.0)), 4),
-                vector_raw=round(float(c.get("vector_raw", 0.0)), 4),
+                vector_raw=0.0,
             )
             for confidence, c in scored
         ]
-
-    def _embed(self, texts: Sequence[str]) -> list[list[float]] | None:
-        if not self._embedder:
-            return None
-        try:
-            return self._embedder.encode(texts)
-        except Exception:
-            if getattr(self._embedder, "resolved_device", "") == "mps" and os.getenv(
-                "VECTOR_MPS_FAIL_FAST", "true"
-            ).lower() in ("1", "true", "yes"):
-                raise
-            logger.warning("Embedding failed — vector branch disabled", exc_info=True)
-            return None
 
     def _resolve_single(
         self,
         mention: str,
         session,
-        embedding: list[float] | None,
         expected_tag: str | None = None,
     ) -> list[CodingCandidate]:
         """Resolve a single term using sequential per-term queries.
@@ -941,9 +779,5 @@ class CodingResolver:
                 except Exception as exc:
                     if "no such fulltext schema index" in str(exc).lower():
                         self._surface_form_fulltext_ok = False
-
-        # Branch 3 & 4: vector
-        if embedding and _top_lexical_score(merged) < _vector_skip_score():
-            self._run_vector_for_term(mention, embedding, session, merged)
 
         return self._fuse_and_rank(merged, expected_tag=expected_tag)

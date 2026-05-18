@@ -1,0 +1,596 @@
+source: synthetic_rare_label_remediation_20260428
+verified_by: gpt-5.5-remediation
+quality_score: 0.90
+records:
+  - tag: regime_therapy_001
+    text: "Plan: start pelvic floor exercises while awaiting continence clinic review."
+    entities:
+      - text: "pelvic floor exercises"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Pelvic floor exercises (regime/therapy)"
+        assertion: planned
+  - tag: regime_therapy_002
+    text: "Advice: continue home blood pressure monitoring for two weeks."
+    entities:
+      - text: "home blood pressure monitoring"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Blood pressure monitoring (regime/therapy)"
+        assertion: present
+  - tag: regime_therapy_003
+    text: "Plan: trial bladder training and review symptoms after practice nurse appointment."
+    entities:
+      - text: "bladder training"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Bladder training (regime/therapy)"
+        assertion: planned
+  - tag: regime_therapy_004
+    text: "Physio letter recommends graded exercise programme for persistent fatigue."
+    entities:
+      - text: "graded exercise programme"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Graded exercise therapy (regime/therapy)"
+        assertion: present
+  - tag: regime_therapy_005
+    text: "Plan: safety netting advice given and active monitoring agreed."
+    entities:
+      - text: "active monitoring"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Active monitoring (regime/therapy)"
+        assertion: planned
+  - tag: regime_therapy_006
+    text: "Cancer team advised watchful waiting after benign prostate assessment."
+    entities:
+      - text: "watchful waiting"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Watchful waiting (regime/therapy)"
+        assertion: present
+  - tag: regime_therapy_007
+    text: "Plan: compression hosiery trial for dependent ankle swelling."
+    entities:
+      - text: "compression hosiery"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Compression therapy (regime/therapy)"
+        assertion: planned
+  - tag: regime_therapy_008
+    text: "Respiratory nurse started smoking cessation support and inhaler review."
+    entities:
+      - text: "smoking cessation support"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Smoking cessation therapy (regime/therapy)"
+        assertion: present
+  - tag: regime_therapy_009
+    text: "Plan: low residue diet until colorectal review."
+    entities:
+      - text: "low residue diet"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Low residue diet (regime/therapy)"
+        assertion: planned
+  - tag: regime_therapy_010
+    text: "Advice: continue conservative management unless pain worsens."
+    entities:
+      - text: "conservative management"
+        label: regime_therapy
+        semantic_tag: regime_therapy
+        snomed_term: "Conservative management (regime/therapy)"
+        assertion: present
+  - tag: morphologic_abnormality_001
+    text: "Histology reported tubular adenoma with low grade dysplasia."
+    entities:
+      - text: "tubular adenoma"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Tubular adenoma (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_002
+    text: "Biopsy result shows squamous metaplasia but no invasive malignancy."
+    entities:
+      - text: "squamous metaplasia"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Squamous metaplasia (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_003
+    text: "Dermatology noted junctional naevus on excision histology."
+    entities:
+      - text: "junctional naevus"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Junctional nevus (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_004
+    text: "Report describes fibroadenoma in the left breast sample."
+    entities:
+      - text: "fibroadenoma"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Fibroadenoma (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_005
+    text: "Previous colonoscopy found hyperplastic polyp only."
+    entities:
+      - text: "hyperplastic polyp"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Hyperplastic polyp (morphologic abnormality)"
+        assertion: historical
+  - tag: morphologic_abnormality_006
+    text: "Histology confirms basal cell carcinoma with clear margins."
+    entities:
+      - text: "basal cell carcinoma"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Basal cell carcinoma (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_007
+    text: "Cervical sample showed koilocytosis and mild dyskaryosis."
+    entities:
+      - text: "koilocytosis"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Koilocytosis (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_008
+    text: "Ultrasound report mentions simple cyst in upper pole."
+    entities:
+      - text: "simple cyst"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Simple cyst (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_009
+    text: "Pathology letter records invasive ductal carcinoma."
+    entities:
+      - text: "invasive ductal carcinoma"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Invasive ductal carcinoma (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_010
+    text: "Scan noted osteophyte formation at the lower cervical spine."
+    entities:
+      - text: "osteophyte formation"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Osteophyte (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_011
+    text: "MRI describes meniscal tear in the medial compartment."
+    entities:
+      - text: "meniscal tear"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Tear (morphologic abnormality)"
+        assertion: present
+  - tag: morphologic_abnormality_012
+    text: "Biopsy confirms granuloma without evidence of malignancy."
+    entities:
+      - text: "granuloma"
+        label: morphologic_abnormality
+        semantic_tag: morphologic_abnormality
+        snomed_term: "Granuloma (morphologic abnormality)"
+        assertion: present
+  - tag: record_artifact_001
+    text: "Surgery: [PERSON] \nOncology letter filed after outpatient review."
+    entities:
+      - text: "Oncology letter"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Outpatient clinic letter (record artifact)"
+        assertion: present
+  - tag: record_artifact_002
+    text: "Breast clinic discharge summary received and scanned."
+    entities:
+      - text: "Breast clinic discharge summary"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Discharge summary (record artifact)"
+        assertion: present
+  - tag: record_artifact_003
+    text: "Colorectal MDT outcome document added to notes."
+    entities:
+      - text: "Colorectal MDT outcome document"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Multidisciplinary team meeting report (record artifact)"
+        assertion: present
+  - tag: record_artifact_004
+    text: "Radiology report reviewed and no further action required."
+    entities:
+      - text: "Radiology report"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Diagnostic imaging report (record artifact)"
+        assertion: present
+  - tag: record_artifact_005
+    text: "Two week wait referral form completed for breast symptoms."
+    entities:
+      - text: "Two week wait referral form"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Referral form (record artifact)"
+        assertion: present
+  - tag: record_artifact_006
+    text: "Histology report uploaded following skin lesion excision."
+    entities:
+      - text: "Histology report"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Histopathology report (record artifact)"
+        assertion: present
+  - tag: record_artifact_007
+    text: "Endoscopy letter states repeat colonoscopy is not required."
+    entities:
+      - text: "Endoscopy letter"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Endoscopy report (record artifact)"
+        assertion: present
+  - tag: record_artifact_008
+    text: "Hospital clinic note confirms benign breast assessment."
+    entities:
+      - text: "Hospital clinic note"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Clinic note (record artifact)"
+        assertion: present
+  - tag: record_artifact_009
+    text: "Safety netting leaflet sent by text message."
+    entities:
+      - text: "Safety netting leaflet"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Patient information leaflet (record artifact)"
+        assertion: present
+  - tag: record_artifact_010
+    text: "Pathology addendum report requested for receptor status."
+    entities:
+      - text: "Pathology addendum report"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Pathology report (record artifact)"
+        assertion: planned
+  - tag: record_artifact_011
+    text: "Referral rejection letter received from dermatology."
+    entities:
+      - text: "Referral rejection letter"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Referral response letter (record artifact)"
+        assertion: present
+  - tag: record_artifact_012
+    text: "Screening programme result letter filed as normal."
+    entities:
+      - text: "Screening programme result letter"
+        label: record_artifact
+        semantic_tag: record_artifact
+        snomed_term: "Screening report (record artifact)"
+        assertion: present
+  - tag: qualifier_value_001
+    text: "Examination: breast lump mobile and non tender."
+    entities:
+      - text: "mobile"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Mobile (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_002
+    text: "Examination: lymph node is fixed and hard."
+    entities:
+      - text: "fixed"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Fixed (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_003
+    text: "Skin lesion described as irregular but not ulcerated."
+    entities:
+      - text: "irregular"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Irregular (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_004
+    text: "Mole is symmetrical with uniform colour."
+    entities:
+      - text: "symmetrical"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Symmetrical (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_005
+    text: "Breast screening result recorded as normal."
+    entities:
+      - text: "normal"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Normal (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_006
+    text: "Cervical screening result recorded as abnormal."
+    entities:
+      - text: "abnormal"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Abnormal (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_007
+    text: "Pain described as intermittent and sharp."
+    entities:
+      - text: "intermittent"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Intermittent (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_008
+    text: "Symptoms are persistent despite antibiotics."
+    entities:
+      - text: "persistent"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Persistent (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_009
+    text: "Discharge is blood stained but not offensive."
+    entities:
+      - text: "blood stained"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Blood-stained (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_010
+    text: "Swelling is unilateral and increasing."
+    entities:
+      - text: "unilateral"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Unilateral (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_011
+    text: "Headache is progressive over recent weeks."
+    entities:
+      - text: "progressive"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Progressive (qualifier value)"
+        assertion: present
+  - tag: qualifier_value_012
+    text: "Mass is palpable on the right side."
+    entities:
+      - text: "palpable"
+        label: qualifier_value
+        semantic_tag: qualifier_value
+        snomed_term: "Palpable (qualifier value)"
+        assertion: present
+  - tag: medicinal_product_001
+    text: "Medication: letrozole 2.5mg tablets issued by oncology."
+    entities:
+      - text: "letrozole 2.5mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing letrozole (medicinal product)"
+        assertion: present
+  - tag: medicinal_product_002
+    text: "Medication review: tamoxifen 20mg tablets continued."
+    entities:
+      - text: "tamoxifen 20mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing tamoxifen (medicinal product)"
+        assertion: present
+  - tag: medicinal_product_003
+    text: "Prescription request for anastrozole 1mg tablets."
+    entities:
+      - text: "anastrozole 1mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing anastrozole (medicinal product)"
+        assertion: present
+  - tag: medicinal_product_004
+    text: "Plan: start ferrous fumarate 210mg tablets for iron deficiency."
+    entities:
+      - text: "ferrous fumarate 210mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing ferrous fumarate (medicinal product)"
+        assertion: planned
+  - tag: medicinal_product_005
+    text: "Medication list includes metformin 500mg tablets twice daily."
+    entities:
+      - text: "metformin 500mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing metformin (medicinal product)"
+        assertion: present
+  - tag: medicinal_product_006
+    text: "New prescription issued for ramipril 5mg capsules."
+    entities:
+      - text: "ramipril 5mg capsules"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing ramipril (medicinal product)"
+        assertion: present
+  - tag: medicinal_product_007
+    text: "Medication reconciliation added apixaban 5mg tablets."
+    entities:
+      - text: "apixaban 5mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing apixaban (medicinal product)"
+        assertion: present
+  - tag: medicinal_product_008
+    text: "Repeat issued for omeprazole 20mg capsules."
+    entities:
+      - text: "omeprazole 20mg capsules"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing omeprazole (medicinal product)"
+        assertion: present
+  - tag: medicinal_product_009
+    text: "Hospital started bisoprolol 2.5mg tablets after admission."
+    entities:
+      - text: "bisoprolol 2.5mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing bisoprolol (medicinal product)"
+        assertion: present
+  - tag: medicinal_product_010
+    text: "Patient stopped naproxen 500mg tablets due to indigestion."
+    entities:
+      - text: "naproxen 500mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing naproxen (medicinal product)"
+        assertion: historical
+  - tag: medicinal_product_011
+    text: "Prescription changed to atorvastatin 40mg tablets."
+    entities:
+      - text: "atorvastatin 40mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing atorvastatin (medicinal product)"
+        assertion: present
+  - tag: medicinal_product_012
+    text: "Chemotherapy premedication includes ondansetron 8mg tablets."
+    entities:
+      - text: "ondansetron 8mg tablets"
+        label: medicinal_product
+        semantic_tag: medicinal_product
+        snomed_term: "Product containing ondansetron (medicinal product)"
+        assertion: present
+  - tag: body_structure_001
+    text: "Examination: palpable lump in left breast upper outer quadrant."
+    entities:
+      - text: "left breast upper outer quadrant"
+        label: body_structure
+        semantic_tag: body_structure
+        snomed_term: "Upper outer quadrant of left breast structure (body structure)"
+        assertion: present
+  - tag: body_structure_002
+    text: "Ultrasound requested for right axilla swelling."
+    entities:
+      - text: "right axilla"
+        label: body_structure
+        semantic_tag: body_structure
+        snomed_term: "Right axillary region structure (body structure)"
+        assertion: present
+  - tag: body_structure_003
+    text: "Pain localised to left iliac fossa on examination."
+    entities:
+      - text: "left iliac fossa"
+        label: body_structure
+        semantic_tag: body_structure
+        snomed_term: "Left iliac fossa structure (body structure)"
+        assertion: present
+  - tag: body_structure_004
+    text: "Endoscopy referral for lesion at gastro oesophageal junction."
+    entities:
+      - text: "gastro oesophageal junction"
+        label: body_structure
+        semantic_tag: body_structure
+        snomed_term: "Gastroesophageal junction structure (body structure)"
+        assertion: present
+  - tag: body_structure_005
+    text: "MRI describes abnormality in the pancreatic head."
+    entities:
+      - text: "pancreatic head"
+        label: body_structure
+        semantic_tag: body_structure
+        snomed_term: "Head of pancreas structure (body structure)"
+        assertion: present
+  - tag: body_structure_006
+    text: "Examination: tenderness over right lower rib cage."
+    entities:
+      - text: "right lower rib cage"
+        label: body_structure
+        semantic_tag: body_structure
+        snomed_term: "Right rib cage structure (body structure)"
+        assertion: present
+  - tag: body_structure_007
+    text: "Dermatology lesion noted on posterior scalp."
+    entities:
+      - text: "posterior scalp"
+        label: body_structure
+        semantic_tag: body_structure
+        snomed_term: "Posterior scalp structure (body structure)"
+        assertion: present
+  - tag: body_structure_008
+    text: "Swelling extends into left supraclavicular fossa."
+    entities:
+      - text: "left supraclavicular fossa"
+        label: body_structure
+        semantic_tag: body_structure
+        snomed_term: "Left supraclavicular fossa structure (body structure)"
+        assertion: present
+  - tag: situation_001
+    text: "Fast track referral for suspected colorectal cancer completed."
+    entities:
+      - text: "suspected colorectal cancer"
+        label: situation
+        semantic_tag: situation
+        snomed_term: "Malignant neoplasm of colon and rectum suspected (situation)"
+        assertion: present
+  - tag: situation_002
+    text: "History: family history of breast cancer in first degree relative."
+    entities:
+      - text: "family history of breast cancer"
+        label: situation
+        semantic_tag: situation
+        snomed_term: "Family history of malignant neoplasm of breast (situation)"
+        assertion: family
+  - tag: situation_003
+    text: "Plan: patient awaiting outpatient appointment for head and neck two week wait."
+    entities:
+      - text: "patient awaiting outpatient appointment"
+        label: situation
+        semantic_tag: situation
+        snomed_term: "Awaiting appointment (situation)"
+        assertion: present
+  - tag: situation_004
+    text: "Screening: bowel cancer screening declined by patient."
+    entities:
+      - text: "bowel cancer screening declined"
+        label: situation
+        semantic_tag: situation
+        snomed_term: "Cancer screening declined (situation)"
+        assertion: declined
+  - tag: situation_005
+    text: "Breast clinic confirmed no evidence of recurrence."
+    entities:
+      - text: "no evidence of recurrence"
+        label: situation
+        semantic_tag: situation
+        snomed_term: "No evidence of recurrence of cancer (situation)"
+        assertion: present
+  - tag: situation_006
+    text: "Plan: chemotherapy completed and surveillance mammogram requested."
+    entities:
+      - text: "chemotherapy completed"
+        label: situation
+        semantic_tag: situation
+        snomed_term: "Treatment completed (situation)"
+        assertion: present
+  - tag: situation_007
+    text: "Referral cancelled because symptoms resolved before appointment."
+    entities:
+      - text: "Referral cancelled"
+        label: situation
+        semantic_tag: situation
+        snomed_term: "Referral cancelled (situation)"
+        assertion: cancelled
+  - tag: situation_008
+    text: "Possible ovarian cancer discussed and urgent scan requested."
+    entities:
+      - text: "Possible ovarian cancer"
+        label: situation
+        semantic_tag: situation
+        snomed_term: "Malignant neoplasm of ovary suspected (situation)"
+        assertion: possible

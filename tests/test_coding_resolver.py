@@ -319,7 +319,8 @@ class TestCalibratedScoring:
         candidates = resolver._fuse_and_rank(merged)
         assert 0.80 <= candidates[0].score <= 0.86
 
-    def test_high_vector_only_scores_at_cosine(self):
+    def test_no_lexical_signal_returns_empty(self):
+        """Without the vector branch, a candidate with only vector_raw evidence produces no results."""
         from services.terminology_api.app.services.coding_resolver import (
             CodingResolver,
         )
@@ -338,9 +339,10 @@ class TestCalibratedScoring:
             }
         }
         candidates = resolver._fuse_and_rank(merged)
-        assert 0.91 <= candidates[0].score <= 0.93
+        assert candidates == [], "No lexical signal means no result (vector branch removed)"
 
-    def test_lex_and_vector_agreement_earns_small_bonus(self):
+    def test_exact_match_alone_scores_1_0(self):
+        """Exact match gives 1.0 regardless of any vector_raw field in the candidate dict."""
         from services.terminology_api.app.services.coding_resolver import (
             CodingResolver,
         )
@@ -349,17 +351,16 @@ class TestCalibratedScoring:
         merged = {
             "c1": {
                 "concept_id": "c1",
-                "fsn": "Lex+vec hit",
+                "fsn": "Exact surface-form hit",
                 "semantic_tag": "finding",
                 "read_codes": [],
                 "lexical_raw": 0.0,
                 "vector_raw": 0.80,
-                "had_exact_match": True,  # lex_signal = 1.0
+                "had_exact_match": True,
                 "surface_form_status": "",
             }
         }
         candidates = resolver._fuse_and_rank(merged)
-        # max(1.0, 0.80) + 0.10 * min(1.0, 0.80) = 1.0 + 0.08 = capped to 1.0
         assert candidates[0].score == 1.0
 
     def test_cross_group_tag_penalty_halves_score(self):
@@ -651,54 +652,53 @@ class TestBatchRelatedConcepts:
         assert result == {}
 
 
-class TestVectorBranchGate:
-    def test_top_lexical_score_zero_for_empty(self):
-        from services.terminology_api.app.services.coding_resolver import (
-            _top_lexical_score,
-        )
+class TestLexicalOnlyResolver:
+    """Tests confirming the resolver operates on exact + fulltext branches only.
 
-        assert _top_lexical_score({}) == 0.0
+    The vector branch (_run_vector_for_term, _top_lexical_score, _vector_skip_score)
+    was removed. These tests verify the lexical-only invariants that replaced it.
+    """
 
-    def test_top_lexical_score_returns_max(self):
-        from services.terminology_api.app.services.coding_resolver import (
-            _top_lexical_score,
-        )
+    def test_resolver_has_no_embedder_attribute(self):
+        from services.terminology_api.app.services.coding_resolver import CodingResolver
 
+        r = CodingResolver()
+        assert not hasattr(r, "_embedder"), "embedder should be gone"
+        assert not hasattr(r, "k_vector"), "k_vector should be gone"
+
+    def test_vector_raw_always_zero_in_output(self):
+        from services.terminology_api.app.services.coding_resolver import CodingResolver
+
+        resolver = CodingResolver()
         merged = {
-            "c1": {"lexical_raw": 0.3},
-            "c2": {"lexical_raw": 0.8},
-            "c3": {"lexical_raw": 0.5},
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Some finding",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "lexical_raw": 5.0,
+                "vector_raw": 0.99,
+                "had_exact_match": False,
+                "surface_form_status": "",
+            }
         }
-        assert _top_lexical_score(merged) == 0.8
+        candidates = resolver._fuse_and_rank(merged)
+        assert candidates[0].vector_raw == 0.0, "vector_raw should always be 0.0"
 
-    def test_vector_skip_score_defaults_to_0_7(self, monkeypatch):
-        from services.terminology_api.app.services.coding_resolver import (
-            _vector_skip_score,
-        )
+    def test_zero_lexical_signal_returns_empty(self):
+        from services.terminology_api.app.services.coding_resolver import CodingResolver
 
-        monkeypatch.delenv("TERMINOLOGY_VECTOR_SKIP_SCORE", raising=False)
-        assert _vector_skip_score() == 0.7
-
-    def test_vector_skip_score_respects_env_override(self, monkeypatch):
-        from services.terminology_api.app.services.coding_resolver import (
-            _vector_skip_score,
-        )
-
-        monkeypatch.setenv("TERMINOLOGY_VECTOR_SKIP_SCORE", "0.85")
-        assert _vector_skip_score() == 0.85
-
-    def test_vector_skip_score_falls_back_on_out_of_range(self, monkeypatch):
-        from services.terminology_api.app.services.coding_resolver import (
-            _vector_skip_score,
-        )
-
-        monkeypatch.setenv("TERMINOLOGY_VECTOR_SKIP_SCORE", "1.4")
-        assert _vector_skip_score() == 0.7
-
-    def test_vector_skip_score_falls_back_on_invalid(self, monkeypatch):
-        from services.terminology_api.app.services.coding_resolver import (
-            _vector_skip_score,
-        )
-
-        monkeypatch.setenv("TERMINOLOGY_VECTOR_SKIP_SCORE", "not-a-number")
-        assert _vector_skip_score() == 0.7
+        resolver = CodingResolver()
+        merged = {
+            "c1": {
+                "concept_id": "c1",
+                "fsn": "Vector-only hit",
+                "semantic_tag": "finding",
+                "read_codes": [],
+                "lexical_raw": 0.0,
+                "vector_raw": 0.95,
+                "had_exact_match": False,
+                "surface_form_status": "",
+            }
+        }
+        assert resolver._fuse_and_rank(merged) == []

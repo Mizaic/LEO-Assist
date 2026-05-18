@@ -97,6 +97,9 @@ def _patch_clients(monkeypatch, *, patient_rows, kg_rows):
 
 
 def test_export_labels_reads_gold_label_source(monkeypatch, tmp_path: Path):
+    # Disable the corpus balancer's tier-1 minimum so a 2-record fixture
+    # (orthogonal to the rebalancer) still exercises the Neo4j read path.
+    monkeypatch.setenv("TRAINING_CORPUS_MIN_PER_LABEL", "0")
     monkeypatch.setattr(
         label_exporter.os,
         "getenv",
@@ -143,6 +146,9 @@ def test_export_labels_reads_gold_label_source(monkeypatch, tmp_path: Path):
 
 
 def test_export_labels_blocks_when_gold_count_below_min(monkeypatch, tmp_path: Path):
+    # Bypass the corpus balancer so this test exercises only the legacy
+    # min-record-count guard (the balancer has its own dedicated tests).
+    monkeypatch.setenv("TRAINING_CORPUS_MIN_PER_LABEL", "0")
     monkeypatch.setattr(
         label_exporter.os,
         "getenv",
@@ -171,4 +177,6 @@ def test_export_labels_blocks_when_gold_count_below_min(monkeypatch, tmp_path: P
         label_exporter.export_labels(tmp_path, train_ratio=0.8, seed=1)
         raise AssertionError("Expected ValueError for below-minimum GoldLabel count")
     except ValueError as exc:
-        assert "Only 1 GoldLabel records" in str(exc)
+        message = str(exc)
+        assert "1 GoldLabel records" in message
+        assert "minimum is 3" in message

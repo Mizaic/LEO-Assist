@@ -86,6 +86,28 @@ export interface CriterionResult {
   excluded_concept_ids?: string[];
 }
 
+/**
+ * Read-only shape of an OBSERVATION leaf's payload (Phase 6a).
+ *
+ * The wire type is a permissive superset of the editor's
+ * EditableObservationPayload. This view only reads top-level fields
+ * plus a ``mode`` discriminator that, when present, tells the reader
+ * the row uses an advanced temporal / reference-range / trend /
+ * aggregate shape and should be summarised softly.
+ */
+export interface ObservationLeafResult {
+  observable_id?: string | null;
+  observable_term?: string | null;
+  operator?: string | null;
+  value?: number | [number, number] | null;
+  unit?: string | null;
+  within_days?: number | null;
+  temporal?: Record<string, unknown> | null;
+  reference_range?: Record<string, unknown> | null;
+  trend?: Record<string, unknown> | null;
+  aggregation?: Record<string, unknown> | null;
+}
+
 export interface LogicTreeNode {
   kind: string;
   node_id?: string;
@@ -103,6 +125,13 @@ export interface LogicTreeNode {
    * positional letter so legacy guidelines still render.
    */
   name?: string;
+  /**
+   * Optional OBSERVATION leaf payload (Phase 6a). Present only on
+   * nodes with ``kind == "OBSERVATION"``. Missing fields are tolerated
+   * so legacy rules without a canonicalised threshold still render
+   * without crashing the review UI.
+   */
+  observation?: ObservationLeafResult;
 }
 
 export interface RuleForLogicView {
@@ -366,6 +395,10 @@ export function LogicNodePanel({
     );
   }
 
+  if (kind === "OBSERVATION") {
+    return <ObservationLeafChip node={node} />;
+  }
+
   if (isPathwaySplit(node, depth)) {
     return <PathwayCardsView node={node} depth={depth} />;
   }
@@ -415,6 +448,148 @@ export function LogicNodePanel({
       </Box>
     </Box>
   );
+}
+
+// -- Observation leaf chip (Phase 6a) --------------------------------------
+
+/**
+ * Read-only renderer for an OBSERVATION leaf.
+ *
+ * Renders as a single plain-English chip so the reviewer view stays
+ * compact and scannable. Four cases:
+ *
+ *  - Missing payload entirely -> warning chip "Lab value not filled in".
+ *  - Advanced mode (temporal / reference_range / trend / aggregation)
+ *    -> info chip summarising the mode without the numeric threshold,
+ *    because these modes don't reduce cleanly to a single number.
+ *  - Between -> "Platelet count between 150 and 400 x10*9/L in the last year".
+ *  - Anything else -> "Platelet count at least 400 x10*9/L in the last year".
+ *
+ * The ``within_days`` recency window falls back to "in the last year"
+ * if the wire value is missing or out of range, matching the editor's
+ * default so read-only and edit views stay in sync.
+ */
+function ObservationLeafChip({ node }: { node: LogicTreeNode }) {
+  const obs = node.observation;
+  if (!obs) {
+    return (
+      <Chip
+        label="Lab value not filled in"
+        size="small"
+        color="warning"
+        variant="outlined"
+        sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
+      />
+    );
+  }
+  const term = (obs.observable_term ?? "lab value").trim() || "lab value";
+  const mode = pickObservationMode(obs);
+  if (mode !== "absolute") {
+    const label = `${term} -- ${observationModeShortLabel(mode)}`;
+    return (
+      <Tooltip
+        title="Open the rule in the editor's Advanced view to see this timing rule"
+        arrow
+      >
+        <Chip
+          label={label}
+          size="small"
+          color="info"
+          variant="outlined"
+          sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
+        />
+      </Tooltip>
+    );
+  }
+  const opWord = observationOpWord(obs.operator ?? ">=");
+  const unit = obs.unit ? ` ${obs.unit}` : "";
+  let valueText: string;
+  if (Array.isArray(obs.value)) {
+    valueText = `${obs.value[0]} and ${obs.value[1]}${unit}`;
+  } else if (obs.value != null) {
+    valueText = `${obs.value}${unit}`;
+  } else {
+    valueText = "?" + unit;
+  }
+  const recency = observationRecencyLabel(obs.within_days);
+  const resolved = Boolean(obs.observable_id);
+  const label = `${term} ${opWord} ${valueText} ${recency}`.replace(
+    /\s+/g,
+    " ",
+  );
+  return (
+    <Tooltip
+      title={resolved ? `Observable code: ${obs.observable_id}` : "No canonical observable code"}
+      arrow
+    >
+      <Chip
+        label={label}
+        size="small"
+        color={resolved ? "success" : "warning"}
+        variant={resolved ? "filled" : "outlined"}
+        sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
+      />
+    </Tooltip>
+  );
+}
+
+type ObservationMode =
+  | "absolute"
+  | "temporal"
+  | "reference_range"
+  | "trend"
+  | "aggregate";
+
+function pickObservationMode(obs: ObservationLeafResult): ObservationMode {
+  if (obs.temporal) return "temporal";
+  if (obs.reference_range) return "reference_range";
+  if (obs.trend) return "trend";
+  if (obs.aggregation) return "aggregate";
+  return "absolute";
+}
+
+function observationModeShortLabel(mode: ObservationMode): string {
+  switch (mode) {
+    case "temporal":
+      return "timing rule";
+    case "reference_range":
+      return "out of expected range";
+    case "trend":
+      return "trend check";
+    case "aggregate":
+      return "average check";
+    default:
+      return "value check";
+  }
+}
+
+function observationOpWord(op: string): string {
+  switch (op) {
+    case ">=":
+      return "at least";
+    case "<=":
+      return "at most";
+    case ">":
+      return "more than";
+    case "<":
+      return "less than";
+    case "=":
+      return "exactly";
+    case "between":
+      return "between";
+    default:
+      return op;
+  }
+}
+
+function observationRecencyLabel(days?: number | null): string {
+  if (days == null) return "in the last year";
+  if (days <= 7) return "in the last 7 days";
+  if (days <= 30) return "in the last 30 days";
+  if (days <= 90) return "in the last 90 days";
+  if (days <= 180) return "in the last 180 days";
+  if (days <= 365) return "in the last year";
+  return "in the last 2 years";
 }
 
 // -- Inline AT LEAST card (mirrors LogicTreeEditor.InlineAtLeastView) ------

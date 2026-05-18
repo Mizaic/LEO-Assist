@@ -90,4 +90,41 @@ test.describe("a11y baseline (VT-LEO-AI-115)", () => {
       ).toEqual([]);
     },
   );
+
+  test(
+    "guidance admin page passes WCAG 2.1 AA (rule-edit wizard host, DI-061AD3D1)",
+    async ({ page }) => {
+      // The guidance admin page hosts the rule-edit wizard. Auditing
+      // it on load exercises the page chrome, the loaded-guidelines
+      // panel, and the rule review section -- the surfaces a reviewer
+      // sees before opening EditRuleDialog. The opened dialog itself
+      // is exercised by the per-component static-source guard rails
+      // in services/ui/src/app/admin/guidance/EditRuleDialog/__tests__/
+      // Phase7A11yStatic.test.ts.
+      await page.goto("/admin/guidance");
+      await page.waitForLoadState("networkidle");
+
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+
+      const blockers = results.violations.filter(
+        (v) => v.impact === "critical" || v.impact === "serious",
+      );
+
+      expect(
+        blockers,
+        JSON.stringify(
+          blockers.map((v) => ({
+            id: v.id,
+            impact: v.impact,
+            help: v.help,
+            nodes: v.nodes.map((n) => n.target).flat(),
+          })),
+          null,
+          2,
+        ),
+      ).toEqual([]);
+    },
+  );
 });

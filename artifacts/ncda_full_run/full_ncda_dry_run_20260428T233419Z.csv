@@ -1,0 +1,60 @@
+patient_id,pathway_index,cohort,site,diagnosis_route,route_rationale,ftr_date,seen_date,dx_date,dx_outcome,treatment_date,gap_ftr_dx_days,gap_ftr_seen_days,gap_dx_treatment_days,confidence,notes,n_encounters,n_labelled_non_none
+4187508279,1,1a,breast,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-03-10,2025-04-05,2025-04-14,cancer_found,2025-05-06,35,26,22,1.0,Simple same-site linker: breast within 35d,274,18
+4200186896,1,3,skin,fast_track_clinic_referral_missing,seen_2ww_clinic_text_without_linked_gp_ftr,,,2025-05-12,cancer_found,2025-05-12,,,0,0.9,Cancer-found Dx with no FTR within window,11,3
+4200779633,4,3,,external_or_unknown_route,cohort_3_no_clear_gp_or_emergency_evidence,,,2024-07-10,cancer_found,2024-07-11,,,1,0.9,Cancer-found Dx with no FTR within window,333,45
+4200779633,1,1b,breast,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-04-28,2025-05-20,2025-05-20,cancer_excluded,,22,22,,1.0,Simple same-site linker: breast within 22d,333,45
+4200797127,1,1a,haematological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-12-05,,2024-12-09,cancer_found,,4,,,1.0,Simple same-site linker: haematological within 4d,499,12
+4469113522,1,1a,lower_gi,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-01-23,,2025-05-12,cancer_found,2025-06-03,109,,22,1.0,Simple same-site linker: lower_gi within 109d,238,39
+4505618269,1,1b,skin,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-02-28,2024-03-15,2024-03-20,cancer_excluded,,21,16,,1.0,Simple same-site linker: skin within 21d,443,14
+4505618269,4,3,urological,emergency_or_urgent_care,emergency_within_90_days_before_dx,,,2024-05-21,cancer_found,,,,,0.9,Cancer-found Dx with no FTR within window,443,14
+4505618269,5,3,lung,emergency_or_urgent_care,emergency_within_90_days_before_dx,,,2024-08-21,cancer_found,,,,,0.9,Cancer-found Dx with no FTR within window,443,14
+4505618269,2,1b,lower_gi,screening,screening_read_code_or_screening_phrase_on_ftr,2025-01-17,,2025-07-14,cancer_excluded,,178,,,1.0,Simple same-site linker: lower_gi within 178d,443,14
+4560488509,1,1a,skin,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-06-17,2024-07-17,2024-09-23,cancer_found,,98,30,,1.0,Simple same-site linker: skin within 98d,211,8
+4562218347,1,1a,breast,screening,screening_read_code_or_screening_phrase_on_ftr,2024-04-24,,2024-05-31,cancer_found,2024-05-31,37,,0,1.0,Simple same-site linker: breast within 37d,315,18
+4563591157,1,1a,nss,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-09-12,2024-09-26,2024-10-18,cancer_found,2024-10-29,36,14,11,1.0,Simple same-site linker: nss within 36d,727,30
+4563591157,2,1a,skin,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-09-12,2024-09-26,2025-02-14,cancer_found,2025-04-01,155,14,46,1.0,Simple same-site linker: skin within 155d,727,30
+4563591157,8,3,lung,screening,screening_evidence_before_dx_no_linked_ftr,,,2025-12-19,cancer_found,,,,,0.9,Cancer-found Dx with no FTR within window,727,30
+4563706582,2,3,upper_gi,emergency_or_urgent_care,emergency_within_90_days_before_dx,,,2025-01-14,cancer_found,2025-06-24,,,161,0.9,Cancer-found Dx with no FTR within window,769,8
+4587069337,2,3,breast,emergency_or_urgent_care,emergency_within_90_days_before_dx,,,2024-05-31,cancer_found,2024-07-04,,,34,0.9,Cancer-found Dx with no FTR within window,342,28
+4587070033,2,1a,urological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-05-21,2024-05-24,2024-07-22,cancer_found,2024-07-22,62,3,0,1.0,Simple same-site linker: urological within 62d,376,55
+4587343129,1,1b,breast,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-05-30,2025-06-18,2025-06-18,cancer_excluded,,19,19,,1.0,Simple same-site linker: breast within 19d,272,9
+4640519532,1,1a,lower_gi,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-08-16,,2025-01-15,cancer_found,,152,,,1.0,Simple same-site linker: lower_gi within 152d,500,9
+4742236882,2,3,breast,emergency_or_urgent_care,emergency_within_90_days_before_dx,,,2025-03-14,cancer_found,2025-04-03,,,20,0.9,Cancer-found Dx with no FTR within window,382,49
+4802241127,1,1a,gynaecological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-02-07,2025-02-13,2025-03-10,cancer_found,2025-05-27,31,6,78,1.0,Simple same-site linker: gynaecological within 31d,255,26
+4802241127,7,3,head_neck,screening,screening_evidence_before_dx_no_linked_ftr,,,2025-11-26,cancer_found,,,,,0.9,Cancer-found Dx with no FTR within window,255,26
+4802297327,1,1a,head_neck,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-12-11,2025-01-09,2025-02-07,cancer_found,2025-02-26,58,29,19,1.0,Simple same-site linker: head_neck within 58d,355,34
+4802297327,4,3,,screening,screening_evidence_before_dx_no_linked_ftr,,,2025-02-12,cancer_found,2025-02-26,,,14,0.9,Cancer-found Dx with no FTR within window,355,34
+4802892365,1,1a,breast,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-03-26,,2025-03-26,cancer_found,2025-05-02,0,,37,1.0,Simple same-site linker: breast within 0d,300,37
+4821512173,1,1b,breast,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-02-26,2025-03-13,2025-03-13,cancer_excluded,,15,15,,1.0,Simple same-site linker: breast within 15d,173,31
+4822977102,1,1a,lower_gi,screening,screening_read_code_or_screening_phrase_on_ftr,2024-03-20,,2024-03-20,cancer_found,2024-06-08,0,,80,1.0,Simple same-site linker: lower_gi within 0d,388,10
+4845533782,2,3,urological,external_or_unknown_route,cohort_3_no_clear_gp_or_emergency_evidence,,,2025-02-25,cancer_found,2025-05-14,,,78,0.9,Cancer-found Dx with no FTR within window,410,10
+4867552062,1,1a,urological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-04-11,2025-05-12,2025-06-20,cancer_found,2025-07-25,70,31,35,1.0,Simple same-site linker: urological within 70d,338,20
+4920262426,1,1a,breast,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-08-12,2025-09-11,2025-09-18,cancer_found,,37,30,,1.0,Simple same-site linker: breast within 37d,316,14
+4921442355,1,1a,skin,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-11-01,2024-11-13,2025-01-28,cancer_found,2025-04-01,88,12,63,1.0,Simple same-site linker: skin within 88d,606,27
+4926916703,8,3,head_neck,emergency_or_urgent_care,emergency_within_90_days_before_dx,,,2024-10-23,cancer_found,2024-10-25,,,2,0.9,Cancer-found Dx with no FTR within window,1442,67
+4926940965,2,1a,urological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-07-15,2024-08-16,2024-12-11,cancer_found,2025-02-06,149,32,57,1.0,Simple same-site linker: urological within 149d,500,13
+4926975998,1,1a,breast,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-03-14,2024-04-08,2024-04-15,cancer_found,2024-06-10,32,25,56,1.0,Simple same-site linker: breast within 32d,366,37
+4926975998,3,1b,breast,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-05-01,,2025-07-07,cancer_excluded,,67,,,1.0,Simple same-site linker: breast within 67d,366,37
+4940120139,1,1a,skin,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-03-01,2024-03-21,2024-03-27,cancer_found,,26,20,,1.0,Simple same-site linker: skin within 26d,420,14
+4940120139,2,1a,lung,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-06-27,2025-07-22,2025-07-22,cancer_found,2025-12-01,25,25,132,1.0,Simple same-site linker: None within 25d,420,14
+4940120139,3,1a,upper_gi,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-06-27,2025-07-22,2025-10-24,cancer_found,2025-12-01,119,25,38,1.0,Simple same-site linker: upper_gi within 119d,420,14
+4940144844,2,3,urological,secondary_care_surgical,major_surgery_phrase_before_dx,,,2025-05-20,cancer_found,,,,,0.9,Cancer-found Dx with no FTR within window,48,3
+6040304227,1,1a,skin,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-09-26,2024-10-15,2024-11-13,cancer_found,2025-03-03,48,19,110,1.0,Simple same-site linker: skin within 48d,500,17
+6040304227,3,1b,urological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-10-01,,2025-03-04,cancer_excluded,,154,,,1.0,Simple same-site linker: urological within 154d,500,17
+6044092682,2,1a,urological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-08-18,2025-08-26,2025-09-06,cancer_found,2025-09-16,19,8,10,1.0,Simple same-site linker: urological within 19d,313,24
+6044092682,1,1a,lower_gi,screening,screening_read_code_or_screening_phrase_on_ftr,2025-06-14,,2025-10-13,cancer_found,2025-10-31,121,,18,1.0,Simple same-site linker: lower_gi within 121d,313,24
+6142203497,2,1a,urological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-07-11,2024-07-23,2024-07-29,cancer_found,2024-07-30,18,12,1,1.0,Simple same-site linker: urological within 18d,395,73
+6220044894,2,1a,gynaecological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-05-07,2024-05-16,2024-06-18,cancer_found,2024-09-01,42,9,75,1.0,Simple same-site linker: gynaecological within 42d,59,10
+6243439488,1,1a,lower_gi,screening,screening_read_code_or_screening_phrase_on_ftr,2024-06-14,2024-06-24,2024-08-13,cancer_found,2024-08-13,60,10,0,1.0,Simple same-site linker: lower_gi within 60d,407,18
+6243439488,2,1a,lower_gi,screening,screening_read_code_or_screening_phrase_on_ftr,2024-09-11,,2025-01-22,cancer_found,2025-01-30,133,,8,1.0,Simple same-site linker: lower_gi within 133d,407,18
+6261656266,1,1a,lower_gi,screening,screening_read_code_or_screening_phrase_on_ftr,2025-05-08,,2025-07-21,cancer_found,2025-09-12,74,,53,1.0,Simple same-site linker: lower_gi within 74d,500,23
+6282779235,1,1a,urological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-08-04,2025-08-22,2025-09-01,cancer_found,2025-10-13,28,18,42,1.0,Simple same-site linker: urological within 28d,298,13
+6283876811,1,1a,gynaecological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-10-04,2024-10-10,2024-12-19,cancer_found,2025-01-06,76,6,18,1.0,Simple same-site linker: gynaecological within 76d,395,9
+6309359401,4,1b,nss,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-06-14,,2024-07-03,cancer_excluded,,19,,,1.0,Simple same-site linker: nss within 19d,500,38
+6309359401,2,1a,urological,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-04-30,2024-06-05,2024-10-08,cancer_found,2024-12-17,161,36,70,1.0,Simple same-site linker: urological within 161d,500,38
+6310920987,1,1a,lower_gi,screening,screening_read_code_or_screening_phrase_on_ftr,2024-02-09,,2024-05-24,cancer_found,2024-06-13,105,,20,1.0,Simple same-site linker: lower_gi within 105d,499,13
+6310920987,2,1b,breast,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-11-21,2024-12-05,2024-12-05,cancer_excluded,,14,14,,1.0,Simple same-site linker: breast within 14d,499,13
+6310920987,5,3,gynaecological,emergency_or_urgent_care,emergency_within_90_days_before_dx,,,2025-07-28,cancer_found,2025-10-17,,,81,0.9,Cancer-found Dx with no FTR within window,499,13
+7306752529,1,1a,head_neck,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2024-03-07,,2024-06-12,cancer_found,2024-07-03,97,,21,1.0,Simple same-site linker: head_neck within 97d,379,12
+7324271383,2,1a,skin,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-04-14,2025-04-30,2025-08-29,cancer_found,,137,16,,1.0,Simple same-site linker: skin within 137d,151,21
+7324271383,3,1a,skin,gp_surgery_fast_track,linked_ftr_and_dx_default_gp_fast_track,2025-08-22,2025-08-29,2025-09-05,cancer_found,,14,7,,1.0,Simple same-site linker: skin within 14d,151,21

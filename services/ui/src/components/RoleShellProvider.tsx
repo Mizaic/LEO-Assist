@@ -25,10 +25,15 @@ import { useAuth } from "@/lib/authContext";
 function toRoleState(
   selectedRole: string | null,
   allowedRoles: string[],
+  needsSessionRoleChoice: boolean,
 ): RoleState {
   const allowed = allowedRoles.filter(isRole) as Role[];
   const selected = isRole(selectedRole) ? (selectedRole as Role) : null;
-  return { selectedRole: selected, allowedRoles: allowed };
+  return {
+    selectedRole: selected,
+    allowedRoles: allowed,
+    needsSessionRoleChoice,
+  };
 }
 
 export default function RoleShellProvider({
@@ -36,15 +41,25 @@ export default function RoleShellProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { session, status } = useAuth();
+  const { session, status, refetch: refetchAuth } = useAuth();
   const initial = toRoleState(
     session?.selectedRole ?? null,
     session?.allowedRoles ?? [],
+    session?.needsRoleChoice ?? false,
   );
   const gateEnabled = status === "authenticated";
+  const roleProviderKey = [
+    session?.user?.email ?? "",
+    String(session?.needsRoleChoice ?? false),
+    (session?.allowedRoles ?? []).slice().sort().join(","),
+  ].join("|");
   return (
     <MotionProvider>
-      <RoleProvider initialState={initial}>
+      <RoleProvider
+        key={roleProviderKey}
+        initialState={initial}
+        onSessionRoleSynced={refetchAuth}
+      >
         <RoleGate enabled={gateEnabled}>{children}</RoleGate>
       </RoleProvider>
     </MotionProvider>

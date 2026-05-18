@@ -18,7 +18,6 @@ from libs.terminology.client import (
     _ABBREV_BLOCKED_CONCEPTS,
     _ALWAYS_IGNORE_TERMS,
     _filter_abbrev_noise,
-    _filter_observable_without_value,
 )
 from libs.prompts.extraction_v1 import EXTRACTION_SYSTEM_V1
 from libs.llm_client.escalation import _CANDIDATES_SYSTEM
@@ -208,74 +207,6 @@ class TestFilterPolymorphism:
         r = _make_term("38341003", "disorder")
         result = _filter_abbrev_noise("hypertension", [r])
         assert result == [r]
-
-
-class TestObservableNeedsValue:
-    def test_observable_removed_without_value(self) -> None:
-        obs = ResolvedTerm(
-            text="ABPI - ankle brachial pressure index",
-            concept_id="446841001",
-            term="Ankle brachial pressure index",
-            semantic_tag="observable_entity",
-            score=1.0,
-        )
-        proc = ResolvedTerm(
-            text="ABPI - ankle brachial pressure index",
-            concept_id="401221002",
-            term="Ankle brachial pressure index",
-            semantic_tag="procedure",
-            score=0.9,
-        )
-        filtered = _filter_observable_without_value(
-            "ABPI - ankle brachial pressure index performed at previous clinic",
-            [obs, proc],
-        )
-        assert len(filtered) == 1
-        assert filtered[0].semantic_tag == "procedure"
-
-    def test_observable_kept_with_numeric_value(self) -> None:
-        obs = ResolvedTerm(
-            text="ABPI 0.72",
-            concept_id="446841001",
-            term="Ankle brachial pressure index",
-            semantic_tag="observable_entity",
-            score=1.0,
-        )
-        filtered = _filter_observable_without_value("ABPI 0.72", [obs])
-        assert len(filtered) == 1
-        assert filtered[0].semantic_tag == "observable_entity"
-
-    def test_observable_reference_range_phrase_removed_without_blood_context(
-        self,
-    ) -> None:
-        obs = ResolvedTerm(
-            text="ABPI",
-            concept_id="446841001",
-            term="Ankle brachial pressure index",
-            semantic_tag="observable_entity",
-            score=1.0,
-        )
-        filtered = _filter_observable_without_value(
-            "ABPI is out of reference range on repeat measurement",
-            [obs],
-        )
-        assert len(filtered) == 0
-
-    def test_observable_reference_range_phrase_removed_even_with_blood_context(
-        self,
-    ) -> None:
-        obs = ResolvedTerm(
-            text="serum potassium",
-            concept_id="446841001",
-            term="Potassium level",
-            semantic_tag="observable_entity",
-            score=1.0,
-        )
-        filtered = _filter_observable_without_value(
-            "Serum potassium is out of reference range on repeat blood test",
-            [obs],
-        )
-        assert len(filtered) == 0
 
 
 # ---------------------------------------------------------------------------

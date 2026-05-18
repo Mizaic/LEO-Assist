@@ -1,0 +1,9 @@
+core-api -> core-api--0000035
+training-worker -> training-worker--0000023
+terminology-api -> terminology-api--0000019
+analytics-api -> analytics-api--0000027
+fhir-api -> fhir-api--0000026
+model-inference -> model-inference--0000025
+ui -> ui--0000050
+pipeline-worker -> pipeline-worker--0000014
+research-worker -> research-worker--0000004

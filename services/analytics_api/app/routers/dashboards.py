@@ -23,8 +23,11 @@ from pydantic import BaseModel
 
 from libs.analytics import confirmed_cancer_where
 from libs.auth.org_scope import CallerScope, ORG_PATIENT_FILTER, get_caller_scope
+from libs.episodes.status import EpisodeStatus
 from libs.neo4j_client.client import PatientGraphClient
 from libs.oncology.cancer_types import normalise_cancer_type
+
+from ._episode_crud_helpers import MILESTONE_TYPES
 
 router = APIRouter()
 
@@ -81,49 +84,52 @@ async def rebuild_patient_episodes(
     """Rebuild episodes for a single patient. Runs anchor detection and episode building.
     Optionally deletes existing episodes first."""
     scope = _coerce_scope(scope)
+    import anyio
+
     from libs.auth.org_scope import require_patient_in_scope
+    from libs.domain_config.registry import DomainRegistry
+    from libs.pipeline_graph.subgraphs.staging_enrichment import enrich_staging
+    from services.analysis_worker.app.analyzers.anchor_detector import (
+        detect_anchors,
+    )
+    from services.analysis_worker.app.analyzers.episode_builder import (
+        build_episodes,
+    )
 
     client = PatientGraphClient()
     try:
-        require_patient_in_scope(client, scope, body.patient_id)
-        if body.delete_existing:
-            client.run(
-                "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-                "WHERE toString(p.id) = $pid "
-                "DETACH DELETE ep",
-                pid=body.patient_id,
+
+        def _prep_anchors():
+            require_patient_in_scope(client, scope, body.patient_id)
+            if body.delete_existing:
+                client.run(
+                    "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+                    "WHERE toString(p.id) = $pid "
+                    "DETACH DELETE ep",
+                    pid=body.patient_id,
+                )
+            registry = DomainRegistry.from_defaults()
+            return detect_anchors(
+                patient_id=body.patient_id,
+                start_date="2000-01-01",
+                end_date="2030-12-31",
+                patient_client=client,
+                registry=registry,
             )
 
-        from libs.domain_config.registry import DomainRegistry
-        from libs.pipeline_graph.subgraphs.staging_enrichment import enrich_staging
-        from services.analysis_worker.app.analyzers.anchor_detector import (
-            detect_anchors,
-        )
-        from services.analysis_worker.app.analyzers.episode_builder import (
-            build_episodes,
-        )
-
-        registry = DomainRegistry.from_defaults()
-        anchors = detect_anchors(
-            patient_id=body.patient_id,
-            start_date="2000-01-01",
-            end_date="2030-12-31",
-            patient_client=client,
-            registry=registry,
-        )
+        anchors = await anyio.to_thread.run_sync(_prep_anchors)
         result = await build_episodes(
             patient_id=body.patient_id,
             anchors=anchors,
             patient_client=client,
         )
-        # Ensure rebuild path also re-derives stage-at-diagnosis fields so
-        # audit cancer-stage section stays populated after manual reruns.
-        enrich_state = enrich_staging(
+        enrich_state = await anyio.to_thread.run_sync(
+            enrich_staging,
             {
                 "patient_id": body.patient_id,
                 "episode_ids": result.episode_ids,
                 "errors": [],
-            }
+            },
         )
         return {
             "success": True,
@@ -145,9 +151,16 @@ def close_episode(
     body: EpisodeStatusRequest,
     scope: CallerScope = Depends(get_caller_scope),
 ):
-    """Close or archive an episode. Sets status, completed_at, completed_by."""
+    """Close or archive an episode (DI-C4CEFA32).
+
+    Writes both legacy ``needs_review`` and canonical
+    ``needs_human_review`` to keep the two parallel fields in lockstep.
+    Accepted statuses are ``closed`` and ``completed`` -- both already
+    canonical EpisodeStatus values.
+    """
     scope = _coerce_scope(scope)
-    if body.status not in ("closed", "completed"):
+    allowed = {EpisodeStatus.CLOSED.value, EpisodeStatus.COMPLETED.value}
+    if body.status not in allowed:
         raise HTTPException(
             status_code=400, detail="status must be 'closed' or 'completed'"
         )
@@ -166,7 +179,9 @@ def close_episode(
             "MATCH (ep:EpisodeOfCare {episode_id: $eid}) "
             "SET ep.status = $status, ep.completed_at = datetime(), "
             "    ep.completed_by = 'manual', ep.agent_reasoning = $reason, "
-            "    ep.status_updated_at = datetime(), ep.needs_review = false "
+            "    ep.status_updated_at = datetime(), "
+            "    ep.needs_review = false, "
+            "    ep.needs_human_review = false "
             "RETURN ep.episode_id AS episode_id",
             eid=episode_id,
             status=body.status,
@@ -221,12 +236,15 @@ def merge_episodes_endpoint(
         client.run(
             "UNWIND $sids AS sec_id "
             "MATCH (ep:EpisodeOfCare {episode_id: sec_id}) "
-            "SET ep.status = 'merged', ep.merged_into = $pid, "
+            "SET ep.status = $merged_status, ep.merged_into = $pid, "
             "    ep.merged_at = datetime(), ep.merge_reasoning = $reasoning, "
-            "    ep.needs_review = false, ep.status_updated_at = datetime()",
+            "    ep.needs_review = false, "
+            "    ep.needs_human_review = false, "
+            "    ep.status_updated_at = datetime()",
             pid=body.primary_episode_id,
             sids=body.secondary_episode_ids,
             reasoning=body.reason,
+            merged_status=EpisodeStatus.MERGED.value,
         )
         client.run(
             "MATCH (primary:EpisodeOfCare {episode_id: $pid}) "
@@ -258,30 +276,17 @@ def edit_milestone(
     body: MilestoneUpdateRequest,
     scope: CallerScope = Depends(get_caller_scope),
 ):
-    """Update the milestone type for an encounter linked to an episode."""
+    """Update the milestone type for an encounter linked to an episode.
+
+    Validates against the canonical MILESTONE_TYPES allow-list shared
+    with episode_crud.py (see _episode_crud_helpers.MILESTONE_TYPES);
+    pinned by VT-900E2453.
+    """
     scope = _coerce_scope(scope)
-    valid_types = {
-        "first_presentation",
-        "presentation",
-        "referral",
-        "referral_sent",
-        "specialist_visit",
-        "first_clinic_visit",
-        "clinic_visit",
-        "first_clinic",
-        "investigation",
-        "diagnosis",
-        "diagnosis_confirmed",
-        "treatment_decision",
-        "treatment",
-        "treatment_started",
-        "first_treatment",
-        "related",
-    }
-    if body.milestone_type not in valid_types:
+    if body.milestone_type not in MILESTONE_TYPES:
         raise HTTPException(
             status_code=400,
-            detail=f"milestone_type must be one of: {sorted(valid_types)}",
+            detail=f"milestone_type must be one of: {sorted(MILESTONE_TYPES)}",
         )
     client = PatientGraphClient()
     try:
@@ -306,13 +311,31 @@ def edit_milestone(
             raise HTTPException(
                 status_code=404, detail="Encounter or episode not found"
             )
+        # Re-derive episode dates and status when a slot type changes
+        # (e.g. relabelling a referral as diagnosis_confirmed must
+        # close the rail and bump status to completed). DI-3A19BE12.
+        from ._episode_crud_helpers import (
+            recompute_episode_dates as _recompute_dates,
+            recompute_episode_status as _recompute_status,
+        )
+
+        derived = _recompute_dates(client, episode_id)
+        status_change = _recompute_status(client, episode_id)
         return {
             "success": True,
             "encounter_id": encounter_id,
             "milestone_type": body.milestone_type,
+            "derived_dates": derived,
+            "status_change": status_change,
         }
     finally:
         client.close()
+
+
+# Manual EpisodeOfCare CRUD endpoints live in episode_crud.py to keep this
+# file inside the 500 LOC hard limit. They are mounted on the same /analytics
+# prefix in main.py, so the URL surface (POST/PATCH/DELETE /episodes/...) is
+# identical to what the patient drawer expects.
 
 
 def _normalise_row_field(rows: list, key: str) -> list:

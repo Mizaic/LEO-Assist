@@ -1,0 +1,16 @@
+Total DIs in product: 399
+DIs in MVP scope (R1/R3/R4/R5/R7): 270
+DIs unmapped to any UN: 0
+
+MVP-scope gap counts by release x gap:
+  R1         no_gaps                        51
+  R3         missing_risk_for_class_b       7
+  R3         no_gaps                        111
+  R4         missing_risk_for_class_b       1
+  R4         no_gaps                        40
+  R5         missing_risk_for_class_b       9
+  R5         no_gaps                        45
+  R7         missing_vt                     6
+
+MVP-scope DIs with no_gaps:
+  247

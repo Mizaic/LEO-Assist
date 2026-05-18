@@ -1,0 +1,59 @@
+{
+  "Content": "<div class=\"chapter\" title=\"Recommendations on patient support, safety netting and the diagnostic process\" id=\"ng12-recommendations-on-patient-support-safety-netting-and-the-diagnostic-process\" xmlns=\"http://www.w3.org/1999/xhtml\">\r\n  <h2 class=\"title\" id=\"recommendations-on-patient-support-safety-netting-and-the-diagnostic-process\">Recommendations on patient support, safety netting and the diagnostic process</h2>\r\n  <div class=\"panel panel--primary\">\r\n    <p>Use this guideline to guide referrals. If still uncertain about whether a referral is needed, consider contacting a specialist (see the <a class=\"link\" href=\"recommendations-on-patient-support-safety-netting-and-the-diagnostic-process#the-diagnostic-process\" target=\"_top\" rel=\"internal\" data-chapter=\"recommendations-on-patient-support-safety-netting-and-the-diagnostic-process\" data-original-url=\"#the-diagnostic-process\">recommendations on the diagnostic process</a>). Consider a review for people with any symptom associated with increased cancer risk who do not meet the criteria for referral or investigative action (see the <a class=\"link\" href=\"recommendations-on-patient-support-safety-netting-and-the-diagnostic-process#safety-netting\" target=\"_top\" rel=\"internal\" data-chapter=\"recommendations-on-patient-support-safety-netting-and-the-diagnostic-process\" data-original-url=\"#safety-netting\">recommendations on safety netting</a>).</p>\r\n  </div>\r\n</div>",
+  "GuidanceNumber": "NG12",
+  "MetadataApplicationProfile": {
+    "AlternativeTitle": null,
+    "Audiences": [],
+    "Creator": "NICE",
+    "Description": null,
+    "Identifier": "tag:api.nice.org.uk,2015-06-23:/services/guidance/documents/NG12/recommendations-on-patient-support-safety-netting-and-the-diagnostic-process",
+    "Language": null,
+    "Modified": "/Date(1776237435079+0100)/",
+    "Issued": "/Date(1435014000000+0100)/",
+    "Publisher": "NICE",
+    "Title": "Recommendations on patient support, safety netting and the diagnostic process",
+    "Types": [],
+    "Subjects": [],
+    "Contributors": [],
+    "Source": "NICE",
+    "ParentSection": null,
+    "Breadcrumb": null
+  },
+  "Resources": [
+    {
+      "Rel": "self",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/recommendations-on-patient-support-safety-netting-and-the-diagnostic-process",
+      "Title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/recommendations-on-patient-support-safety-netting-and-the-diagnostic-process/patient-information-and-support",
+      "Title": "1.14 Patient information and support",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/recommendations-on-patient-support-safety-netting-and-the-diagnostic-process/safety-netting",
+      "Title": "1.15 Safety netting",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/recommendations-on-patient-support-safety-netting-and-the-diagnostic-process/the-diagnostic-process",
+      "Title": "1.16 The diagnostic process",
+      "TitleContent": null
+    },
+    {
+      "Rel": "alternate",
+      "Type": "application/xhtml+xml",
+      "Uri": "https://publications.nice.org.uk/NG12/recommendations-on-patient-support-safety-netting-and-the-diagnostic-process",
+      "Title": "Recommendations on patient support, safety netting and the diagnostic process",
+      "TitleContent": null
+    }
+  ],
+  "LastModified": "/Date(1776237435079+0100)/",
+  "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/recommendations-on-patient-support-safety-netting-and-the-diagnostic-process",
+  "Title": "Recommendations on patient support, safety netting and the diagnostic process",
+  "TitleContent": null
+}

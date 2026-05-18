@@ -43,6 +43,11 @@ except Exception:  # pragma: no cover - unit tests may run without langgraph ins
 
 
 from libs.terminology.client import ResolvedTerm, TerminologyClient, get_runtime_config
+from libs.units.observable_units import (
+    canonicalise_value,
+    get_canonical_unit,
+    is_known_observable,
+)
 
 from libs.pipeline_graph.subgraphs.verification import (
     _build_tool_result_block,
@@ -1058,7 +1063,66 @@ def _normalise_logic_node(node: dict[str, Any]) -> dict[str, Any] | None:
         return out
     if kind == "CONCEPT":
         return {"kind": "concept", "term": _make_term_obj(node.get("term") or node)}
+    if kind == "OBSERVATION":
+        return _normalise_observation_node(node)
     return None
+
+
+def _normalise_observation_node(node: dict[str, Any]) -> dict[str, Any] | None:
+    """Normalise a Phase 6c observation leaf from the LLM output.
+
+    Shape coming from the LLM mirrors the prompt example:
+
+        {"kind":"observation","term":{"text":"Platelet count","search_terms":[...]},
+         "operator":">=","value":400,"unit":"10*9/L","within_days":365}
+
+    We preserve everything; downstream terminology resolution treats an
+    observation leaf as a concept leaf (it needs a SNOMED code for the
+    observable). At assembly time, ``_finalise_observations`` checks
+    the resolved SNOMED id against the canonical-unit registry and
+    either (a) emits a full OBSERVATION leaf with canonical unit or
+    (b) downgrades to a CONCEPT leaf so the rule stays a presence
+    check.
+
+    Returns None when the LLM emitted an observation leaf without the
+    minimum fields (term + operator + value + unit). This is a fail-
+    closed posture: a partial observation is less safe than dropping
+    the leaf, because the rule would compile but never fire.
+    """
+    term = _make_term_obj(node.get("term") or node)
+    operator = str(node.get("operator") or "").strip()
+    value = node.get("value")
+    unit = node.get("unit")
+    if (
+        not term.get("text")
+        or operator not in {">=", "<=", ">", "<", "=", "between"}
+        or value is None
+        or not isinstance(unit, str)
+        or not unit.strip()
+    ):
+        return None
+    within = node.get("within_days")
+    within_days = int(within) if isinstance(within, (int, float)) and within else 365
+    if operator == "between":
+        if not (isinstance(value, list) and len(value) == 2):
+            return None
+        try:
+            value = [float(value[0]), float(value[1])]
+        except (TypeError, ValueError):
+            return None
+    else:
+        try:
+            value = float(value)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return None
+    return {
+        "kind": "observation",
+        "term": term,
+        "operator": operator,
+        "value": value,
+        "unit": unit.strip(),
+        "within_days": within_days,
+    }
 
 
 def _normalise_to_logic_tree(data: dict[str, Any]) -> dict[str, Any] | None:
@@ -1423,7 +1487,7 @@ def _expand_leaves_in_logic_tree(
 ) -> None:
     if not node:
         return
-    if node.get("kind") == "concept":
+    if node.get("kind") in _CONCEPT_LIKE_KINDS:
         term = dict(node.get("term") or {})
         text = str(term.get("text") or "")
         category = _classify_leaf_difficulty(text)
@@ -1726,13 +1790,23 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         return {"raw_criteria": None, "errors": errors, "llm_tokens": prior_tokens}
 
 
+#: Kinds that carry a SNOMED-backed ``term`` and flow through the
+#: terminology-resolution pipeline identically. Phase 6c adds
+#: ``observation``: an observation leaf still needs its observable name
+#: resolved to a SNOMED code so the runtime evaluator can look up
+#: readings; the numeric threshold and unit ride along on the node
+#: until ``_finalise_observations`` splits OBSERVATION from CONCEPT
+#: based on canonical-unit registry membership.
+_CONCEPT_LIKE_KINDS = frozenset({"concept", "observation"})
+
+
 def _collect_concept_targets(
     node: dict[str, Any] | None, out: dict[str, dict[str, Any]]
 ) -> None:
     if not node:
         return
     kind = node.get("kind")
-    if kind == "concept":
+    if kind in _CONCEPT_LIKE_KINDS:
         out[node["node_id"]] = dict(node.get("term") or {})
         return
     for child in node.get("children") or []:
@@ -1926,7 +2000,7 @@ def _annotate_candidate_tree(
     if not node:
         return None
     out = dict(node)
-    if out.get("kind") == "concept":
+    if out.get("kind") in _CONCEPT_LIKE_KINDS:
         term = dict(out.get("term") or {})
         out["criterion"] = {
             "node_id": out.get("node_id", ""),
@@ -1997,7 +2071,7 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         def _annotate_meta(node: dict[str, Any] | None) -> None:
             if not node:
                 return
-            if node.get("kind") == "concept":
+            if node.get("kind") in _CONCEPT_LIKE_KINDS:
                 criterion = dict(node.get("criterion") or {})
                 meta = leaf_meta.get(str(criterion.get("node_id") or ""), {})
                 criterion["resolver_turns"] = int(meta.get("resolver_turns") or 0)
@@ -2089,7 +2163,7 @@ def _collect_leaf_payloads(
 ) -> None:
     if not node:
         return
-    if node.get("kind") == "concept":
+    if node.get("kind") in _CONCEPT_LIKE_KINDS:
         criterion = dict(node.get("criterion") or {})
         out.append(
             {
@@ -2180,7 +2254,7 @@ def _apply_leaf_decisions(
         return None, []
     errors: list[str] = []
     out = dict(node)
-    if out.get("kind") == "concept":
+    if out.get("kind") in _CONCEPT_LIKE_KINDS:
         criterion = dict(out.get("criterion") or {})
         node_id = str(criterion.get("node_id") or "")
         decision = decisions.get(node_id) or {}
@@ -2232,7 +2306,7 @@ def _rerun_requested_searches(
     def _leaf_term_lookup(node: dict[str, Any] | None, out: dict[str, str]) -> None:
         if not node:
             return
-        if node.get("kind") == "concept":
+        if node.get("kind") in _CONCEPT_LIKE_KINDS:
             criterion = dict(node.get("criterion") or {})
             out[str(criterion.get("node_id") or "")] = str(criterion.get("term") or "")
             return
@@ -2527,7 +2601,7 @@ def _rerun_requested_searches(
     def _inject(node: dict[str, Any] | None) -> None:
         if not node:
             return
-        if node.get("kind") == "concept":
+        if node.get("kind") in _CONCEPT_LIKE_KINDS:
             criterion = dict(node.get("criterion") or {})
             node_id = str(criterion.get("node_id") or "")
             extra_terms = retry_terms.get(node_id) or []
@@ -2842,7 +2916,7 @@ def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     def _walk(node: dict[str, Any] | None) -> None:
         if not node:
             return
-        if node.get("kind") == "concept":
+        if node.get("kind") in _CONCEPT_LIKE_KINDS:
             criterion = dict(node.get("criterion") or {})
             candidates = list(criterion.get("candidates") or [])
             if _needs_agentic_retry(candidates) and not bool(
@@ -2944,7 +3018,7 @@ def _build_partial_from_candidates(
         if not node:
             return None
         out = dict(node)
-        if out.get("kind") == "concept":
+        if out.get("kind") in _CONCEPT_LIKE_KINDS:
             criterion = dict(out.get("criterion") or {})
             cands = list(criterion.get("candidates") or [])
             best = cands[0] if cands else None
@@ -3028,7 +3102,7 @@ def _derive_hitl_terms_from_errors(
     def _walk(node: dict[str, Any] | None) -> None:
         if not node:
             return
-        if node.get("kind") == "concept":
+        if node.get("kind") in _CONCEPT_LIKE_KINDS:
             criterion = dict(node.get("criterion") or {})
             if criterion.get("needs_human_review"):
                 hitl_terms.append(
@@ -3175,6 +3249,108 @@ def _apply_authoring_gate(
     return out
 
 
+def _finalise_observations(
+    node: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, list[tuple[str, str]]]:
+    """Validate observation leaves against the canonical-unit registry.
+
+    Walk the resolved logic tree and, for every leaf with
+    ``kind == "observation"``:
+
+    - If the resolved SNOMED ``snomed_concept_id`` is known to
+      ``libs.units.observable_units`` AND the authored threshold can be
+      canonicalised from the LLM-emitted unit into the registry's
+      canonical unit, keep the node as an OBSERVATION leaf and store
+      the canonicalised value / unit on the node so the runtime
+      evaluator does not have to re-parse the LLM's unit string.
+
+    - Otherwise, downgrade the leaf to a CONCEPT leaf (drop the
+      operator / value / unit / within_days fields) and record the
+      (node_id, snomed_concept_id) pair on the downgrade list. This is
+      a fail-safe choice: a downgraded leaf still fires as a presence
+      check on the SNOMED code, which is strictly less sensitive than
+      a threshold but never misfires on a unit the registry cannot
+      interpret.
+
+    Returns ``(finalised_tree, downgrades)``. Non-observation leaves
+    and compound nodes are returned unchanged structurally; only the
+    leaf-kind may flip.
+    """
+    if not node:
+        return node, []
+    out = dict(node)
+    downgrades: list[tuple[str, str]] = []
+
+    kind = out.get("kind")
+    if kind == "observation":
+        criterion = dict(out.get("criterion") or {})
+        concept_id = str(criterion.get("snomed_concept_id") or "")
+        node_id = str(criterion.get("node_id") or "")
+        unit = out.get("unit")
+        value = out.get("value")
+        operator = out.get("operator")
+        keep_as_observation = False
+        canonical_value: float | list[float] | None = None
+        canonical_unit: str | None = None
+        if (
+            concept_id
+            and isinstance(unit, str)
+            and unit.strip()
+            and is_known_observable(concept_id)
+        ):
+            try:
+                canonical_unit = get_canonical_unit(concept_id)
+                if isinstance(value, list) and len(value) == 2:
+                    canonical_value = [
+                        canonicalise_value(concept_id, float(value[0]), unit),
+                        canonicalise_value(concept_id, float(value[1]), unit),
+                    ]
+                elif isinstance(value, (int, float)):
+                    canonical_value = canonicalise_value(
+                        concept_id, float(value), unit
+                    )
+                keep_as_observation = canonical_value is not None and operator in {
+                    ">=",
+                    "<=",
+                    ">",
+                    "<",
+                    "=",
+                    "between",
+                }
+            except Exception:
+                logger.exception(
+                    "Observation leaf %s: failed to canonicalise %r %s against %s; "
+                    "downgrading to CONCEPT",
+                    node_id,
+                    value,
+                    unit,
+                    concept_id,
+                )
+                keep_as_observation = False
+        if keep_as_observation:
+            out["value"] = canonical_value
+            out["unit"] = canonical_unit
+            return out, []
+        downgrades.append((node_id, concept_id))
+        out["kind"] = "concept"
+        for drop in ("operator", "value", "unit", "within_days"):
+            out.pop(drop, None)
+        return out, downgrades
+
+    children = out.get("children") or []
+    if children:
+        new_children: list[dict[str, Any]] = []
+        for child in children:
+            if not isinstance(child, dict):
+                continue
+            new_child, child_downgrades = _finalise_observations(child)
+            downgrades.extend(child_downgrades)
+            if new_child is not None:
+                new_children.append(new_child)
+        out["children"] = new_children
+    return out, downgrades
+
+
 def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     verified = verify_codes(state)
     if verified.get("coded_criteria") is not None:
@@ -3188,6 +3364,23 @@ def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 "Authoring gate failed; preserving coded criteria and routing to HITL."
             )
             coded["needs_human_review"] = True
+        # Phase 6c: split observation leaves into OBSERVATION (when the
+        # resolved SNOMED code is in the canonical-unit registry) vs.
+        # CONCEPT (when it is not). Downgraded leaves still work as
+        # presence checks; keeping them as OBSERVATION would cause
+        # fail-closed misses because the evaluator cannot canonicalise
+        # a threshold it does not know about.
+        tree = coded.get("logic_tree")
+        if tree is not None:
+            coded["logic_tree"], downgrades = _finalise_observations(tree)
+            if downgrades:
+                logger.info(
+                    "Downgraded %d observation leaf/leaves to CONCEPT because "
+                    "the observable SNOMED code is not in the canonical-unit "
+                    "registry: %s",
+                    len(downgrades),
+                    ", ".join(f"{nid}({cid})" for nid, cid in downgrades),
+                )
         verified["coded_criteria"] = coded
         return verified
 

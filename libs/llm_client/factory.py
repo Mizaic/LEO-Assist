@@ -33,6 +33,7 @@ import os
 import random
 import time
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -188,10 +189,13 @@ class LLMClient:
         from botocore.config import Config
 
         cfg = Config(
-            connect_timeout=60,
-            read_timeout=300,
-            retries={"max_attempts": 3, "mode": "standard"},
-        )
+            connect_timeout=30,
+            read_timeout=90,    # Haiku ~200 tok/s → 8192 tokens ≈ 41s; 90s gives 2× headroom.
+                                # ReadTimeoutError is NOT retried (see bedrock_retry._is_retryable),
+                                # so a hung call fails in 90s and the encounter is recorded as ERROR.
+            retries={"max_attempts": 1, "mode": "standard"},  # our own retry loop handles backoff
+            tcp_keepalive=True,  # prevents NAT gateway (350s idle timeout) from silently dropping
+        )                        # the TCP connection and causing indefinite SSL read hangs
         return boto3.client(
             "bedrock-runtime",
             region_name=self.region or os.getenv("AWS_DEFAULT_REGION", "eu-west-2"),
@@ -758,7 +762,7 @@ def create_llm(
         else _AZURE_REASONING_EFFORT
     )
 
-    return LLMClient(
+    return _cached_llm_client(
         provider=provider,
         model_id=model_id,
         tier=tier,
@@ -767,3 +771,38 @@ def create_llm(
         reasoning_budget=budget,
         azure_reasoning_effort=effort,
     )
+
+
+@lru_cache(maxsize=64)
+def _cached_llm_client(
+    *,
+    provider: str,
+    model_id: str,
+    tier: str,
+    region: str | None,
+    use_reasoning: bool,
+    reasoning_budget: int,
+    azure_reasoning_effort: str,
+) -> LLMClient:
+    """Process-wide cache of LLMClient wrappers.
+
+    The underlying boto3 / AzureOpenAI clients hold connection pools and
+    TLS sessions that are expensive to set up but cheap to share across
+    callers. Caching by (provider, tier, model_id, region, reasoning
+    flags) means a worker that processes thousands of records reuses
+    the same SDK client instead of creating one per call.
+    """
+    return LLMClient(
+        provider=provider,
+        model_id=model_id,
+        tier=tier,
+        region=region,
+        use_reasoning=use_reasoning,
+        reasoning_budget=reasoning_budget,
+        azure_reasoning_effort=azure_reasoning_effort,
+    )
+
+
+def reset_llm_cache() -> None:
+    """Clear the cached LLMClient wrappers (test hook)."""
+    _cached_llm_client.cache_clear()

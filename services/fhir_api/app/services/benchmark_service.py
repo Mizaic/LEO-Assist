@@ -83,28 +83,47 @@ def list_benchmark_sets(
     limit: int = 100,
     offset: int = 0,
 ) -> List[Dict[str, Any]]:
-    """List BenchmarkSets with optional filter."""
+    """List BenchmarkSets in a single round-trip (no per-row N+1)."""
+    fields = (
+        "RETURN s.id AS id, s.name AS name, s.source AS source, "
+        "s.audit_year AS audit_year, s.effective_from AS effective_from, "
+        "s.effective_to AS effective_to, s.metadata AS metadata, "
+        "s.created_at AS created_at, s.updated_at AS updated_at "
+        "ORDER BY s.name SKIP $offset LIMIT $limit"
+    )
     client = KnowledgeGraphClient()
     try:
         if source:
             rows = client.run(
-                "MATCH (s:BenchmarkSet) WHERE s.source = $source "
-                "RETURN s.id AS id ORDER BY s.name SKIP $offset LIMIT $limit",
+                "MATCH (s:BenchmarkSet) WHERE s.source = $source " + fields,
                 source=source,
                 offset=offset,
                 limit=limit,
             )
         else:
             rows = client.run(
-                "MATCH (s:BenchmarkSet) RETURN s.id AS id ORDER BY s.name SKIP $offset LIMIT $limit",
+                "MATCH (s:BenchmarkSet) " + fields,
                 offset=offset,
                 limit=limit,
             )
         result = []
         for r in rows:
-            s = get_benchmark_set(r["id"])
-            if s:
-                result.append(s)
+            meta = r.get("metadata")
+            result.append(
+                {
+                    "id": r["id"],
+                    "name": r["name"],
+                    "source": r["source"],
+                    "audit_year": r["audit_year"],
+                    "effective_from": r["effective_from"],
+                    "effective_to": r["effective_to"],
+                    "metadata": (
+                        json.loads(meta) if isinstance(meta, str) else meta
+                    ),
+                    "created_at": _serialize_datetime(r.get("created_at")),
+                    "updated_at": _serialize_datetime(r.get("updated_at")),
+                }
+            )
         return result
     finally:
         client.close()
@@ -141,36 +160,56 @@ def delete_benchmark_values_by_metric_ids(audit_id: str, metric_ids: List[str]) 
 
 
 def upsert_benchmark_values(audit_id: str, values: List[Dict[str, Any]]) -> int:
-    """Batch MERGE BenchmarkValue nodes. Returns count upserted."""
+    """Batch MERGE BenchmarkValue nodes via UNWIND. Returns count upserted.
+
+    Previously this issued one Cypher round-trip per value; benchmark
+    sets routinely contain 500+ values, which meant 500+ Bolt requests
+    and the same number of write transactions. The UNWIND form does
+    the whole batch in a single transaction.
+    """
     if not values:
         return 0
+    rows: List[Dict[str, Any]] = []
+    for v in values:
+        v_audit = v.get("audit_id", audit_id)
+        v_metric = v.get("metric_id", "")
+        v_scope = v.get("scope_id", "")
+        value_json = v.get("value_json")
+        value_json_str = (
+            json.dumps(value_json) if value_json is not None else None
+        )
+        rows.append(
+            {
+                "id": f"{v_audit}_{v_metric}_{v_scope}",
+                "audit_id": v_audit,
+                "metric_id": v_metric,
+                "scope_type": v.get("scope_type", ""),
+                "scope_id": v_scope,
+                "scope_name": v.get("scope_name", ""),
+                "value": v.get("value"),
+                "value_json": value_json_str,
+                "unit": v.get("unit") or "",
+                "label": v.get("label", ""),
+                "category": v.get("category", ""),
+                "source": v.get("source", ""),
+                "sample_size": v.get("sample_size"),
+            }
+        )
     client = KnowledgeGraphClient()
     try:
-        for v in values:
-            vid = f"{v.get('audit_id', audit_id)}_{v.get('metric_id', '')}_{v.get('scope_id', '')}"
-            value_json = v.get("value_json")
-            value_json_str = json.dumps(value_json) if value_json is not None else None
-            client.run(
-                "MERGE (b:BenchmarkValue {id: $id}) "
-                "SET b.audit_id = $audit_id, b.metric_id = $metric_id, b.scope_type = $scope_type, "
-                "b.scope_id = $scope_id, b.scope_name = $scope_name, b.value = $value, "
-                "b.value_json = $value_json, b.unit = $unit, b.label = $label, b.category = $category, "
-                "b.source = $source, b.sample_size = $sample_size, b.updated_at = datetime()",
-                id=vid,
-                audit_id=v.get("audit_id", audit_id),
-                metric_id=v.get("metric_id", ""),
-                scope_type=v.get("scope_type", ""),
-                scope_id=v.get("scope_id", ""),
-                scope_name=v.get("scope_name", ""),
-                value=v.get("value"),
-                value_json=value_json_str,
-                unit=v.get("unit") or "",
-                label=v.get("label", ""),
-                category=v.get("category", ""),
-                source=v.get("source", ""),
-                sample_size=v.get("sample_size"),
-            )
-        return len(values)
+        client.run(
+            "UNWIND $rows AS row "
+            "MERGE (b:BenchmarkValue {id: row.id}) "
+            "SET b.audit_id = row.audit_id, b.metric_id = row.metric_id, "
+            "b.scope_type = row.scope_type, b.scope_id = row.scope_id, "
+            "b.scope_name = row.scope_name, b.value = row.value, "
+            "b.value_json = row.value_json, b.unit = row.unit, "
+            "b.label = row.label, b.category = row.category, "
+            "b.source = row.source, b.sample_size = row.sample_size, "
+            "b.updated_at = datetime()",
+            rows=rows,
+        )
+        return len(rows)
     finally:
         client.close()
 
@@ -403,15 +442,41 @@ def get_benchmark_rule(rule_id: str) -> Optional[Dict[str, Any]]:
 
 
 def list_benchmark_rules(limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-    """List BenchmarkRules."""
+    """List BenchmarkRules in a single round-trip (no per-row N+1)."""
     client = KnowledgeGraphClient()
     try:
         rows = client.run(
-            "MATCH (r:BenchmarkRule) RETURN r.id AS id ORDER BY r.name SKIP $offset LIMIT $limit",
+            "MATCH (r:BenchmarkRule) "
+            "RETURN r.id AS id, r.name AS name, "
+            "r.query_definition AS query_definition, r.scope AS scope, "
+            "r.output_metric_id AS output_metric_id, "
+            "r.benchmark_set_id AS benchmark_set_id, "
+            "r.last_run_at AS last_run_at, r.last_run_status AS last_run_status, "
+            "r.created_at AS created_at, r.updated_at AS updated_at "
+            "ORDER BY r.name SKIP $offset LIMIT $limit",
             offset=offset,
             limit=limit,
         )
-        return [r for r in (get_benchmark_rule(row["id"]) for row in rows) if r]
+        out: List[Dict[str, Any]] = []
+        for r in rows:
+            qd = r.get("query_definition")
+            out.append(
+                {
+                    "id": r["id"],
+                    "name": r["name"],
+                    "query_definition": (
+                        json.loads(qd) if isinstance(qd, str) else qd
+                    ),
+                    "scope": r["scope"],
+                    "output_metric_id": r["output_metric_id"],
+                    "benchmark_set_id": r["benchmark_set_id"],
+                    "last_run_at": _serialize_datetime(r.get("last_run_at")),
+                    "last_run_status": r.get("last_run_status"),
+                    "created_at": _serialize_datetime(r.get("created_at")),
+                    "updated_at": _serialize_datetime(r.get("updated_at")),
+                }
+            )
+        return out
     finally:
         client.close()
 

@@ -68,8 +68,8 @@ class TestReferralSubtypeRank:
 class TestCollapseSameDayReferrals:
     """VT-403-TC-006 .. TC-021 collapse helper behaviour."""
 
-    def test_canonical_4802892365_three_referrals_collapse_to_prism(self) -> None:
-        """The exact patient 4802892365 2025-03-26 case: prism +
+    def test_canonical_9990003001_three_referrals_collapse_to_prism(self) -> None:
+        """The exact patient 9990003001 2025-03-26 case: prism +
         text_generic + text_generic -> keep the prism one."""
         link_groups = [
             (

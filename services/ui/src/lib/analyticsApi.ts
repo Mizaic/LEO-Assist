@@ -364,15 +364,45 @@ export async function createCohort(
   description: string,
   filters: CohortFilter,
 ): Promise<Cohort> {
-  return fetchJson<Cohort>(`${ANALYTICS_BASE}/analytics/cohorts`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, description, filters }),
-  });
+  const created = await fetchJson<Cohort>(
+    `${ANALYTICS_BASE}/analytics/cohorts`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description, filters }),
+    },
+  );
+  invalidateCohortCache();
+  return created;
 }
 
+// In-flight + short-TTL cache for the cohort list. Patient finder dialogs
+// call fetchCohorts() on every mount; without caching this becomes one
+// extra round-trip every time a clinician opens the picker.
+const _COHORT_TTL_MS = 60 * 1000;
+let _cohortCache: { fetchedAt: number; rows: Cohort[] } | null = null;
+let _cohortInflight: Promise<Cohort[]> | null = null;
+
 export async function fetchCohorts(): Promise<Cohort[]> {
-  return fetchJson<Cohort[]>(`${ANALYTICS_BASE}/analytics/cohorts`);
+  const now = Date.now();
+  if (_cohortCache && now - _cohortCache.fetchedAt < _COHORT_TTL_MS) {
+    return _cohortCache.rows;
+  }
+  if (_cohortInflight) return _cohortInflight;
+  _cohortInflight = (async () => {
+    try {
+      const rows = await fetchJson<Cohort[]>(`${ANALYTICS_BASE}/analytics/cohorts`);
+      _cohortCache = { fetchedAt: Date.now(), rows };
+      return rows;
+    } finally {
+      _cohortInflight = null;
+    }
+  })();
+  return _cohortInflight;
+}
+
+export function invalidateCohortCache(): void {
+  _cohortCache = null;
 }
 
 export async function resolveCohort(cohortId: string): Promise<CohortPatients> {
@@ -382,10 +412,12 @@ export async function resolveCohort(cohortId: string): Promise<CohortPatients> {
 }
 
 export async function deleteCohort(cohortId: string): Promise<{ success: boolean }> {
-  return fetchJson<{ success: boolean }>(
+  const result = await fetchJson<{ success: boolean }>(
     `${ANALYTICS_BASE}/analytics/cohorts/${cohortId}`,
     { method: "DELETE" },
   );
+  invalidateCohortCache();
+  return result;
 }
 
 export async function previewCohort(
@@ -847,6 +879,14 @@ export interface AuditSummary {
   confirmed_cancers: number;
   confirmed_cancers_via_2ww?: number;
   confirmed_cancers_via_2ww_pct?: number | null;
+  confirmed_cancers_screening_programme?: number;
+  confirmed_cancers_excluding_screening?: number;
+  confirmed_cancers_via_2ww_excluding_screening?: number;
+  confirmed_cancers_via_2ww_excluding_screening_pct?: number | null;
+  // NCDA cohort breakdown from ncda_detector.
+  cohort_1a_n?: number;
+  cohort_1b_n?: number;
+  cohort_3_n?: number;
   // MECE lifecycle decomposition (DI-105A4EC7). Sum of the four
   // *_episodes fields equals total_cohort_episodes by construction.
   total_cohort_episodes?: number;
@@ -867,7 +907,74 @@ export interface AuditSummary {
   median_pci_days: number | null;
   median_di_days: number | null;
   avg_consultations: number | null;
+  // Headline Section 8 rate: confirmed-cancer episodes with a
+  // strong (free-text "safety netted" / "safety net advice" OR Y281b
+  // Read code) OR medium (PRISM "Advice if worsens" template field)
+  // safety-netting record. Denominator is the canonical
+  // confirmed-cancer cohort. See libs/oncology/safety_netting.py.
   safety_netting_pct: number | null;
+  /** Numerator behind safety_netting_pct (strong + medium hits). */
+  safety_netting_recorded_n?: number;
+  /** Strict subset: free-text safety-net OR Y281b code only. */
+  safety_netting_strong_pct?: number | null;
+  safety_netting_strong_n?: number;
+  /** Per-signal breakdown for the tooltip ("X strong, Y PRISM-only, Z generic advice, W none"). */
+  safety_netting_signal_counts?: {
+    strong: number;
+    medium: number;
+    advice_only: number;
+    none: number;
+  };
+  /** Confirmed-cancer denominator behind every safety_netting_* field. */
+  safety_netting_denominator?: number;
+  /** Legacy field — referral-gated subset / total_episodes. Do NOT
+   * surface as the headline; kept for backwards-compat with older
+   * snapshot tests that still assert the old denominator. */
+  safety_netting_legacy_pct?: number | null;
+  // ---- Care obstructions (rejected referrals, DNAs, cancellations) ----
+  // Headline rate of confirmed-cancer episodes whose milestone window
+  // contains a rejected referral (XaQgL), DNA (XacSG / XaF81 / Xa1kG),
+  // cancellation or softer access barrier. Denominator is the canonical
+  // confirmed-cancer cohort (matches safety-netting). See
+  // libs/oncology/care_obstruction.py for the signal hierarchy.
+  care_obstruction_pct?: number | null;
+  /** Numerator behind care_obstruction_pct (any non-none signal). */
+  care_obstruction_recorded_n?: number;
+  /** Severe subset: rejection + dna only — events that hard-stop the workup. */
+  care_obstruction_severe_pct?: number | null;
+  care_obstruction_severe_n?: number;
+  /** Per-signal breakdown for the tooltip + breakdown dialog. */
+  care_obstruction_signal_counts?: {
+    rejection: number;
+    dna: number;
+    cancellation: number;
+    access_barrier: number;
+    none: number;
+  };
+  /** Confirmed-cancer denominator behind every care_obstruction_* field. */
+  care_obstruction_denominator?: number;
+  // ---- Pathway-relatedness telemetry --------------------------------
+  // Care obstruction events go through a corpus-driven relatedness
+  // classifier (see libs/oncology/care_obstruction.py) that drops
+  // clearly-unrelated services (midwife / district nurse / phlebotomy
+  // / urgent treatment centre / cardiac rehab / etc.) from the
+  // headline.  Episodes are flagged "confirmed" when at least one
+  // recorded obstruction matched an explicit cancer-pathway marker
+  // (2WW, FTR, oncology, MDT, or the site-specific specialty).
+  /** Number of confirmed-cancer episodes with at least one
+   *  pathway-confirmed obstruction (subset of recorded_n). */
+  care_obstruction_confirmed_n?: number;
+  /** care_obstruction_confirmed_n / denominator * 100. */
+  care_obstruction_confirmed_pct?: number | null;
+  /** Total event count whose text contained an explicit cancer-
+   *  pathway marker — informational, not used for the headline. */
+  care_obstruction_confirmed_events?: number;
+  /** Total event count that tripped an obstruction phrase but was
+   *  filtered as clearly non-cancer (midwife, district nurse, UTC,
+   *  cardiac rehab, etc.) and so is NOT in the headline.  Surfaced
+   *  in the tooltip + dialog footer so the auditor can see how
+   *  aggressive the filter is. */
+  care_obstruction_unrelated_filtered_events?: number;
 }
 
 export interface AuditCancerTypeRow {
@@ -887,7 +994,12 @@ export interface AuditCancerStageSummary {
   by_stage_group: AuditCancerStageRow[];
   by_system: Array<{ staging_system: string; n: number }>;
   by_source: Array<{ staging_source: string; n: number }>;
-  by_stage_group_detail: Array<{ cancer_stage_group: string; n: number }>;
+  by_stage_group_detail: Array<{
+    cancer_stage_group: string;
+    staging_value?: string;
+    stage_group?: "early" | "late" | "unknown";
+    n: number;
+  }>;
   by_cancer_type: Array<{
     cancer_type: string;
     stage_group: "early" | "late" | "unknown";
@@ -904,6 +1016,30 @@ export interface AuditDemographics {
   age_bands: Array<{ age_band: string; n: number; pct: number }>;
   median_age: number | null;
   ethnicity: Array<{ ethnicity: string; n: number; pct: number }>;
+  // DI-87D92943: age x sex cross-tab so the demographics evolution view
+  // can render a true population pyramid per calendar-year window. `pct`
+  // is percentage of the total demographic population for that window
+  // (not row-stochastic by gender), so cards stay directly comparable.
+  age_band_by_sex: Array<{
+    gender: string;
+    age_band: string;
+    n: number;
+    pct: number;
+  }>;
+  /** Distinct patients per NCDA ethnicity SNOMED (DOCUMENTS domain ethnicity). */
+  ethnicity_by_snomed: Array<{
+    snomed: string;
+    benchmark_key: string;
+    preferred_term: string;
+    n: number;
+    pct: number;
+  }>;
+  /** Sum of sex-tab rows; cohort size for ethnicity radar denominators. */
+  demographics_cohort_n: number;
+  /** Distinct patients with at least one coded ethnicity link in the NCDA SNOMED set. */
+  patients_with_ethnicity_snomed_n: number;
+  /** patients_with_ethnicity_snomed_n as % of demographics_cohort_n; null when cohort is empty. */
+  ethnicity_snomed_coverage_pct: number | null;
 }
 
 export interface AuditPlaceRow {
@@ -912,15 +1048,88 @@ export interface AuditPlaceRow {
   pct: number;
 }
 
+/** Per-episode evidence row -- drives the evidence accordion in
+ *  MultipleConsultationsSection.  `evidence_quotes` is null until the
+ *  detector persists per-factor quotes (see plan "Out of scope"). */
+export interface AuditConsultationEpisodeEvidence {
+  episode_id: string;
+  cancer_type: string;
+  n: number | null;
+  factors: string[];
+  evidence_quotes: null;
+}
+
+/** NCDA Section 7 -- Haiku-enriched consultation data.
+ *  Powered by ep.prior_consultations_* properties.
+ *  NCDA-native polarity: `three_or_more_*` is the headline. */
 export interface AuditConsultations {
-  fewer_than_3_pct: number;
+  /** NCDA-native polarity: % with 3+ cancer-related consultations. */
   three_or_more_pct: number;
-  fewer_than_3_n: number;
   three_or_more_n: number;
+  /** Kept for benchmark-overlay compatibility. */
+  fewer_than_3_pct: number;
+  fewer_than_3_n: number;
   total_episodes: number;
+  /** Episodes the Haiku enrichment has classified. */
+  enriched_n: number;
+  enriched_pct: number;
+  /** Median + IQR from the per-episode prior_consultations_n distribution. */
   median_consultations: number | null;
   iqr_low: number | null;
   iqr_high: number | null;
+  /** Consultation-count distribution -- drives the breakdown dialog histogram.
+   *  Buckets 3-4, 5-7, 8+ are in NCDA "multiple consultations" territory (>= 3). */
+  buckets?: {
+    "0": number;
+    "1": number;
+    "2": number;
+    "3-4": number;
+    "5-7": number;
+    "8+": number;
+  };
+  buckets_pct?: {
+    "0": number;
+    "1": number;
+    "2": number;
+    "3-4": number;
+    "5-7": number;
+    "8+": number;
+  };
+  /** Mean cancer-related contacts per enriched episode by contact type. */
+  mean_per_episode?: {
+    total: number;
+    f2f: number;
+    phone: number;
+    nurse: number;
+    email: number;
+    specialist_clinic: number;
+    home_visit: number;
+    phlebotomy: number;
+    result_review: number;
+  };
+  total_consultations?: number;
+  unrelated_filtered_total?: number;
+  /** Top NCDA factor codes ranked by frequency -- drives the "why" bar chart. */
+  top_factors?: Array<{ factor: string; n: number }>;
+  /** Per-cancer-type factor breakdown -- drives the heatmap.
+   *  `{ "Breast": { "different_initial_diagnosis": 3, ... }, ... }` */
+  factors_by_cancer_type?: Record<string, Record<string, number>>;
+  /** Per-episode evidence list -- drives the evidence drawer. */
+  episode_evidence?: AuditConsultationEpisodeEvidence[];
+  /** Live breakdown by tumour site -- drives the cancer-type table. */
+  by_cancer_type_live?: Array<{
+    cancer_type: string;
+    n_total: number;
+    n_three_or_more: number;
+    n_enriched: number;
+    three_or_more_pct: number | null;
+    mean_consultations: number | null;
+  }>;
+  /** Aggregated Claude Haiku 4.5 telemetry. */
+  llm_cost_usd?: number;
+  llm_input_tokens?: number;
+  llm_output_tokens?: number;
+  llm_calls?: number;
 }
 
 export interface AuditInvestigations {
@@ -928,6 +1137,7 @@ export interface AuditInvestigations {
   no_investigation_pct: number;
   total_episodes: number;
   types: Array<{ type: string; n: number; pct: number }>;
+  top_procedures: Array<{ name: string; n: number; pct: number }>;
 }
 
 export interface AuditReferralRow {
@@ -936,12 +1146,32 @@ export interface AuditReferralRow {
   pct: number;
 }
 
+export interface AuditFastTrackReferralRow {
+  referral_site: string;
+  concept_id: string;
+  n: number;
+  pct: number;
+}
+
+export interface AuditNSSOutcomeItem {
+  outcome: string;
+  n: number;
+}
+
+export interface AuditNSSOutcomes {
+  total_nss: number;
+  cancer_diagnosed_n: number;
+  outcomes: AuditNSSOutcomeItem[];
+}
+
 export interface AuditIntervalsPatient {
   episode_id: string;
+  patient_id?: string | null;
   cancer_type?: string | null;
   pci_days?: number | null;
   di_days?: number | null;
   diag_is_inferred?: boolean | null;
+  is_benign?: boolean | null;
 }
 
 export interface AuditIntervalStats {
@@ -952,9 +1182,20 @@ export interface AuditIntervalStats {
   q3: number | null;
 }
 
+export interface AuditIntervalSplitStats {
+  n: number;
+  median: number | null;
+  q1: number | null;
+  q3: number | null;
+}
+
 export interface AuditIntervals {
   pci: AuditIntervalStats;
+  pci_cancer: AuditIntervalSplitStats;
+  pci_benign: AuditIntervalSplitStats;
   di: AuditIntervalStats;
+  di_cancer: AuditIntervalSplitStats;
+  di_benign: AuditIntervalSplitStats;
   patients: AuditIntervalsPatient[];
 }
 
@@ -963,7 +1204,74 @@ export interface AuditSafetyNetting {
   recorded_n: number;
   recorded_pct: number;
   not_recorded_pct: number;
+  /** Per-signal counts (strong > medium > advice_only > none) — see
+   * libs/oncology/safety_netting.py for the hierarchy. Drives the
+   * Safety Netting "Open detail" dialog. */
+  signal_counts?: {
+    strong: number;
+    medium: number;
+    advice_only: number;
+    none: number;
+  };
+  signal_pct?: {
+    strong: number;
+    medium: number;
+    advice_only: number;
+    none: number;
+  };
+  /** Strict subset (strong only): free-text "safety netted" / "safety
+   * net advice" or Read code Y281b only — surfaced in the dialog
+   * alongside the headline strong+medium rate. */
+  strong_n?: number;
+  strong_pct?: number;
 }
+
+/** Care-obstruction section result — mirrors AuditSafetyNetting shape. */
+export interface AuditCareObstruction {
+  total_episodes: number;
+  recorded_n: number;
+  recorded_pct: number;
+  not_recorded_pct: number;
+  /** Total number of obstruction events across all episodes — sum of
+   * `care_obstruction_evidence_count` across the cohort. Useful for
+   * the dialog footer ("X obstructions across Y episodes"). */
+  total_events?: number;
+  /** Per-signal counts (rejection > dna > cancellation > access_barrier
+   * > none) — see libs/oncology/care_obstruction.py for the
+   * hierarchy. Drives the Care Obstructions "Open detail" dialog. */
+  signal_counts?: {
+    rejection: number;
+    dna: number;
+    cancellation: number;
+    access_barrier: number;
+    none: number;
+  };
+  signal_pct?: {
+    rejection: number;
+    dna: number;
+    cancellation: number;
+    access_barrier: number;
+    none: number;
+  };
+  /** Severe subset (rejection + dna): events that hard-stop the
+   * workup. Surfaced in the dialog header alongside the headline. */
+  severe_n?: number;
+  severe_pct?: number;
+  // ---- Pathway-relatedness telemetry --------------------------------
+  // Same definition as the AuditSummary fields above — see
+  // libs/oncology/care_obstruction.py.
+  /** Episodes with at least one pathway-confirmed obstruction. */
+  confirmed_n?: number;
+  confirmed_pct?: number;
+  /** Total event count whose text contained an explicit cancer-pathway
+   *  marker (informational; not used for the headline). */
+  confirmed_events?: number;
+  /** Total events filtered as clearly non-cancer (midwife / district
+   *  nurse / phlebotomy / UTC / cardiac rehab / etc.) and so are
+   *  NOT in the headline.  Surfaced in the dialog footer. */
+  unrelated_filtered_events?: number;
+}
+
 
 export interface AuditComorbidityRow {
   condition: string;
@@ -973,9 +1281,123 @@ export interface AuditComorbidityRow {
   benchmark_key?: string;
 }
 
+/** Registry order radar axes (same SNOMED rollup as bar chart). */
+export interface AuditComorbidityRadarRow {
+  condition: string;
+  n: number;
+  pct: number | null;
+  benchmark_key?: string | null;
+}
+
 export interface AuditComorbidities {
   comorbidities: AuditComorbidityRow[];
+  /** Stable-order axes for multimorbidity radar (may be omitted by older APIs). */
+  radar?: AuditComorbidityRadarRow[];
   total_patients: number;
+}
+
+export interface AuditComorbidityBreakdownSlice {
+  slice_key: string;
+  slice_label: string;
+  cohort_n: number;
+  rows: AuditComorbidityRow[];
+}
+
+export interface AuditComorbiditiesDrilldown {
+  total_patients: number;
+  by_age_band: AuditComorbidityBreakdownSlice[];
+  by_gender: AuditComorbidityBreakdownSlice[];
+  by_referral_outcome: AuditComorbidityBreakdownSlice[];
+}
+
+// ---------------------------------------------------------------------------
+// Symptoms (DO-D5B9FE5F / DI-6E1B71A4)
+// ---------------------------------------------------------------------------
+
+/** Stable axis entry for the symptoms heatmap and tables. */
+export interface AuditSymptomAxisEntry {
+  key: string;
+  symptom: string;
+}
+
+/** Overall row for the leading bar/heatmap visualisation. */
+export interface AuditSymptomRow {
+  symptom: string;
+  n: number;
+  pct: number;
+}
+
+/**
+ * Long-format heatmap cell. ``cohort_n`` is the denominator of patients
+ * inside ``bucket_label`` (e.g. cancer-type bucket). ``pct`` is the
+ * symptom prevalence within that bucket.
+ */
+export interface AuditSymptomHeatmapCell {
+  bucket_key: string;
+  bucket_label: string;
+  cohort_n: number;
+  symptom: string;
+  n: number;
+  pct: number;
+}
+
+/**
+ * Clinical PPV row: for a given (suspected cancer type, symptom) pair,
+ * how many patients had the feature and how many of those got diagnosed.
+ *
+ * PPV = patients_with_cancer / patients_with_feature.
+ */
+export interface AuditSymptomPpvRow {
+  cancer_type: string;
+  symptom: string;
+  patients_with_feature: number;
+  patients_with_cancer: number;
+  ppv_pct: number;
+}
+
+/**
+ * Referral-cohort PPV row by suspected cancer type. ``provisional`` is
+ * true when the cohort still contains unresolved or following-year
+ * diagnoses.
+ */
+export interface AuditPpvByCancerTypeRow {
+  cancer_type: string;
+  referrals_n: number;
+  diagnosed_in_year_n: number;
+  no_cancer_in_year_n: number;
+  diagnosed_following_year_n: number;
+  unresolved_n: number;
+  ppv_pct: number | null;
+  provisional: boolean;
+}
+
+export interface AuditSymptoms {
+  total_referrals: number;
+  cohort_n: number;
+  /**
+   * Clinical PPV table: cancer_type × symptom, sorted by cancer type then
+   * patients_with_feature descending. Only rows where
+   * patients_with_feature > 0 are included.
+   */
+  rows: AuditSymptomPpvRow[];
+  /** Referral-cohort PPV per suspected cancer type (for hero cards). */
+  ppv_by_suspected_cancer_type: AuditPpvByCancerTypeRow[];
+}
+
+export interface AuditSymptomBreakdownSlice {
+  slice_key: string;
+  slice_label: string;
+  cohort_n: number;
+  rows: AuditSymptomRow[];
+}
+
+export interface AuditSymptomsDrilldown {
+  total_patients: number;
+  symptom_axis: AuditSymptomAxisEntry[];
+  by_age_band: AuditSymptomBreakdownSlice[];
+  by_gender: AuditSymptomBreakdownSlice[];
+  by_suspected_cancer_type: AuditSymptomBreakdownSlice[];
+  by_diagnosed_cancer_type: AuditSymptomBreakdownSlice[];
 }
 
 export interface AuditAvoidableDelays {
@@ -1060,6 +1482,18 @@ export async function fetchAuditReferrals(
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/referrals${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
 }
 
+export async function fetchAuditFastTrackReferrals(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditFastTrackReferralRow[]>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/fast-track-referrals${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditNSSOutcomes(
+  orgId?: string, dateFrom?: string, dateTo?: string,
+): Promise<AuditNSSOutcomes> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/fast-track-referrals/nss-outcomes${_auditParams(orgId, dateFrom, dateTo)}`);
+}
+
 export async function fetchAuditIntervals(
   orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
 ): Promise<AuditSectionResult<AuditIntervals>> {
@@ -1072,6 +1506,13 @@ export async function fetchAuditSafetyNetting(
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/safety-netting${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
 }
 
+export async function fetchAuditCareObstructions(
+  orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
+): Promise<AuditSectionResult<AuditCareObstruction>> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/care-obstructions${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+
 export async function fetchAuditAvoidableDelays(
   orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
 ): Promise<AuditSectionResult<AuditAvoidableDelays>> {
@@ -1082,6 +1523,171 @@ export async function fetchAuditComorbidities(
   orgId?: string, dateFrom?: string, dateTo?: string, benchmarkSetId?: string,
 ): Promise<AuditSectionResult<AuditComorbidities>> {
   return fetchJson(`${ANALYTICS_BASE}/analytics/audit/comorbidities${_auditParams(orgId, dateFrom, dateTo, benchmarkSetId)}`);
+}
+
+export async function fetchAuditComorbiditiesDrilldown(
+  orgId?: string,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<AuditComorbiditiesDrilldown> {
+  return fetchJson(
+    `${ANALYTICS_BASE}/analytics/audit/comorbidities/drilldown${_auditParams(orgId, dateFrom, dateTo)}`,
+  );
+}
+
+export async function fetchAuditSymptoms(
+  orgId?: string,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<AuditSymptoms> {
+  return fetchJson(
+    `${ANALYTICS_BASE}/analytics/audit/symptoms${_auditParams(orgId, dateFrom, dateTo)}`,
+  );
+}
+
+export async function fetchAuditSymptomsDrilldown(
+  orgId?: string,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<AuditSymptomsDrilldown> {
+  return fetchJson(
+    `${ANALYTICS_BASE}/analytics/audit/symptoms/drilldown${_auditParams(orgId, dateFrom, dateTo)}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Blood Signal (GDS enrichment)
+// ---------------------------------------------------------------------------
+
+export interface BloodFeatureVector {
+  id: string;
+  cohort_label: "cancer" | "benign";
+  cancer_type: string | null;
+  cluster: number | null;
+  features: Record<string, number | null>;
+}
+
+export interface AuditBloodSignal {
+  episodes: BloodFeatureVector[];
+  feature_keys: string[];
+  feature_labels: Record<string, string>;
+  correlations: Record<string, number>;
+  cancer_n: number;
+  benign_n: number;
+  total_n: number;
+  updated_at: string | null;
+}
+
+export async function fetchAuditBloodSignal(): Promise<AuditBloodSignal> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal`);
+}
+
+export interface BloodBoxStats {
+  n: number;
+  p10: number;
+  q1: number;
+  median: number;
+  q3: number;
+  p90: number;
+  min: number;
+  max: number;
+  mean: number;
+}
+
+export interface BloodTestDistribution {
+  key: string;
+  label: string;
+  unit: string;
+  ref_low: number | null;
+  ref_high: number | null;
+  ref_raw: string | null;
+  cancer: BloodBoxStats | null;
+  benign: BloodBoxStats | null;
+}
+
+export async function fetchAuditBloodSignalDistributions(): Promise<BloodTestDistribution[]> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal/distributions`);
+}
+
+export interface BloodRawValue {
+  id: string;
+  cohort_label: "cancer" | "benign";
+  cancer_type: string | null;
+  value: number;
+}
+
+export async function fetchAuditBloodSignalValues(testKey: string): Promise<BloodRawValue[]> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal/values?test_key=${encodeURIComponent(testKey)}`);
+}
+
+export interface HeatmapCell {
+  cancer_type: string;
+  test_key: string;
+  n_with_data: number;
+  n_total: number;
+  /** Standardised effect size vs benign median; null = no readings */
+  effect_size: number | null;
+  pct_high: number | null;
+  pct_low: number | null;
+  median_value: number | null;
+  benign_median: number;
+  ref_range_raw: string | null;
+}
+
+export interface PatientFlagRow {
+  label: string;
+  cancer_type: string;
+  episode_id: string;
+  /** Flag per test key: "high" | "low" | "normal" | "no_data" */
+  flags: Record<string, "high" | "low" | "normal" | "no_data">;
+  /** Raw per-patient mean value per test key; null = no reading */
+  values: Record<string, number | null>;
+}
+
+export interface BloodTestMeta {
+  key: string;
+  label: string;
+}
+
+export interface BloodCancerTypeMatrix {
+  cancer_types: string[];
+  tests: BloodTestMeta[];
+  heatmap_cells: HeatmapCell[];
+  patient_flags: PatientFlagRow[];
+}
+
+export async function fetchAuditBloodSignalCancerTypeMatrix(): Promise<BloodCancerTypeMatrix> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal/cancer-type-matrix`);
+}
+
+export interface BloodPerTestGroup {
+  n: number;
+  p10: number;
+  q1: number;
+  median: number;
+  q3: number;
+  p90: number;
+  mean: number;
+  n_above_ref?: number;
+  pct_above_ref?: number;
+  n_below_ref?: number;
+  pct_below_ref?: number;
+}
+
+export interface BloodPerTestResult {
+  key: string;
+  label: string;
+  unit: string;
+  ref_low: number | null;
+  ref_high: number | null;
+  n_cancer: number;
+  n_benign: number;
+  /** keys: "Benign" + cancer type names e.g. "Breast", "Prostate" */
+  groups: Record<string, BloodPerTestGroup>;
+}
+
+export async function fetchAuditBloodSignalPerTest(): Promise<BloodPerTestResult[]> {
+  return fetchJson(`${ANALYTICS_BASE}/analytics/audit/blood-signal/per-test-by-cancer-type`);
 }
 
 export async function batchAddConceptsToSubdomain(
@@ -1098,3 +1704,32 @@ export async function batchAddConceptsToSubdomain(
     },
   );
 }
+
+// ---------------------------------------------------------------------------
+// Manual EpisodeOfCare CRUD - DI-3A19BE12, DI-F4C06C92, DI-B35DCA0F,
+// DI-41B71BF8 / DOs DO-0792E2CB, DO-BDBEDA43, DO-13EA9B93, DO-CFB91205.
+// Re-exported from missionControlApi.ts so the patient drawer can import
+// the manual-CRUD helpers from the same module as closeEpisode /
+// mergeEpisodes / editMilestone.
+// ---------------------------------------------------------------------------
+
+export {
+  createEpisode,
+  updateEpisode,
+  deleteEpisode,
+  attachEncounterToEpisode,
+  detachEncounterFromEpisode,
+} from "@/lib/missionControlApi";
+
+export type {
+  EpisodeEncounterAttachment,
+  EpisodeCreateBody,
+  EpisodeUpdateBody,
+  EpisodeDeleteBody,
+  EpisodeDerivedDates,
+  EpisodeCreateResponse,
+  EpisodeUpdateResponse,
+  EpisodeDeleteResponse,
+  EpisodeAttachResponse,
+  EpisodeDetachResponse,
+} from "@/lib/missionControlApi";

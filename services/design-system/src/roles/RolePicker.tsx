@@ -71,8 +71,14 @@ const primaryButton: React.CSSProperties = {
 };
 
 export function RolePicker({ pinned = false, onConfirm }: RolePickerProps) {
-  const { selectedRole, allowedRoles, switchRole, loading } = useRole();
-  const [choice, setChoice] = useState<Role | null>(null);
+  const { selectedRole, allowedRoles, needsSessionRoleChoice, switchRole, loading } =
+    useRole();
+  const [choice, setChoice] = useState<Role | null>(() => {
+    if (selectedRole != null && allowedRoles.includes(selectedRole)) {
+      return selectedRole;
+    }
+    return null;
+  });
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -83,7 +89,16 @@ export function RolePicker({ pinned = false, onConfirm }: RolePickerProps) {
     first?.focus();
   }, []);
 
-  const shouldRender = pinned || selectedRole == null;
+  useEffect(() => {
+    if (!needsSessionRoleChoice) return;
+    if (choice != null) return;
+    if (selectedRole != null && allowedRoles.includes(selectedRole)) {
+      setChoice(selectedRole);
+    }
+  }, [needsSessionRoleChoice, selectedRole, allowedRoles, choice]);
+
+  const shouldRender =
+    pinned || selectedRole == null || needsSessionRoleChoice;
   if (!shouldRender) return null;
   if (allowedRoles.length === 0) return null;
 

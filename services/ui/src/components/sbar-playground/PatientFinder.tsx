@@ -63,6 +63,13 @@ import {
   type CohortFilter,
   type PatientFinderRow,
 } from "@/lib/analyticsApi";
+import { useDemoMode } from "@/context/DemoModeContext";
+import {
+  maskBirthDate,
+  maskGpName,
+  maskNhsNumber,
+  maskPatientId,
+} from "@/lib/demoMode";
 
 // -- Types ----------------------------------------------------------------
 
@@ -564,6 +571,8 @@ function ResultsList({
   density: "compact" | "comfortable";
   emptyMessage: string;
 }) {
+  const { isDemoMode } = useDemoMode();
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
@@ -587,50 +596,65 @@ function ResultsList({
   }
   return (
     <List dense={density === "compact"} disablePadding>
-      {rows.map((r) => (
-        <ListItem key={r.id} disablePadding>
-          <ListItemButton
-            onClick={() =>
-              onSelect({
-                id: r.id,
-                displayName: r.display_name ?? null,
-                dob: r.dob ?? null,
-                nhsNumber: r.nhs_number ?? null,
-              })
-            }
-            data-testid={`patient-finder-row-${r.id}`}
-          >
-            <ListItemText
-              primary={
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" fontWeight={600}>
-                    {r.display_name || "(no recorded name)"}
-                  </Typography>
-                  <Chip
-                    size="small"
-                    label={`NHS: ${r.nhs_number || "unknown"}`}
-                    variant="outlined"
-                    data-testid={`patient-finder-row-${r.id}-nhs`}
-                  />
-                  <Chip
-                    size="small"
-                    label={`DOB: ${r.dob || "unknown"}`}
-                    variant="outlined"
-                    data-testid={`patient-finder-row-${r.id}-dob`}
-                  />
-                </Stack>
+      {rows.map((r) => {
+        const displayName = isDemoMode
+          ? maskPatientId(r.id)
+          : r.display_name || "(no recorded name)";
+        const nhsLabel = isDemoMode
+          ? maskNhsNumber(r.nhs_number)
+          : r.nhs_number || "unknown";
+        const dobLabel = isDemoMode
+          ? maskBirthDate(r.dob)
+          : r.dob || "unknown";
+        const secondary = [
+          r.gender ? `Sex: ${r.gender}` : null,
+          r.registered_org_id
+            ? `GP: ${isDemoMode ? maskGpName(r.registered_org_id) : r.registered_org_id}`
+            : null,
+          `Local id: ${isDemoMode ? maskPatientId(r.id) : r.id}`,
+        ]
+          .filter(Boolean)
+          .join("  -  ");
+
+        return (
+          <ListItem key={r.id} disablePadding>
+            <ListItemButton
+              onClick={() =>
+                onSelect({
+                  id: r.id,
+                  displayName: r.display_name ?? null,
+                  dob: r.dob ?? null,
+                  nhsNumber: r.nhs_number ?? null,
+                })
               }
-              secondary={[
-                r.gender ? `Sex: ${r.gender}` : null,
-                r.registered_org_id ? `GP: ${r.registered_org_id}` : null,
-                `Local id: ${r.id}`,
-              ]
-                .filter(Boolean)
-                .join("  -  ")}
-            />
-          </ListItemButton>
-        </ListItem>
-      ))}
+              data-testid={`patient-finder-row-${r.id}`}
+            >
+              <ListItemText
+                primary={
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="body2" fontWeight={600}>
+                      {displayName}
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={`NHS: ${nhsLabel}`}
+                      variant="outlined"
+                      data-testid={`patient-finder-row-${r.id}-nhs`}
+                    />
+                    <Chip
+                      size="small"
+                      label={`DOB: ${dobLabel}`}
+                      variant="outlined"
+                      data-testid={`patient-finder-row-${r.id}-dob`}
+                    />
+                  </Stack>
+                }
+                secondary={secondary}
+              />
+            </ListItemButton>
+          </ListItem>
+        );
+      })}
     </List>
   );
 }

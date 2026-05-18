@@ -26,8 +26,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any
 
@@ -59,6 +61,7 @@ _MAX_RETRIES = int(os.environ.get("ODS_SYNC_MAX_RETRIES", "3"))
 _DELAY_MS = int(os.environ.get("ODS_SYNC_DELAY_MS", "1000"))
 _CIRCUIT_THRESHOLD = int(os.environ.get("ODS_SYNC_CIRCUIT_THRESHOLD", "5"))
 _BATCH_SIZE = int(os.environ.get("ODS_SYNC_BATCH_SIZE", "500"))
+_CONCURRENCY = max(1, int(os.environ.get("ODS_SYNC_CONCURRENCY", "8")))
 
 # Maps LEO org label → type string (for discrepancy comparison)
 _LABEL_TO_TYPE: dict[str, str] = {
@@ -121,6 +124,9 @@ class SyncService:
         self._closure_count: int = 0
         self._error_count: int = 0
         self._relabel_count: int = 0
+        # Protects the counters, batch buffer and circuit breaker when
+        # process_org is called from multiple worker threads.
+        self._state_lock = threading.Lock()
 
     def run(self) -> None:
         """Run the full ODS sync cycle.
@@ -136,16 +142,33 @@ class SyncService:
         logger.info("[ODS Sync] %d organisations to check", len(orgs))
 
         aborted = False
-        for org in orgs:
-            if not org.get("ods_code"):
-                continue  # guard: skip orgs without ODS code (should be excluded by query)
+        eligible = [o for o in orgs if o.get("ods_code")]
+
+        # Run ODS lookups in parallel. Each call is a remote HTTP request
+        # bounded by ODS_SYNC_CONCURRENCY (default 8). The shared counters
+        # and circuit breaker are protected by self._state_lock; Neo4j
+        # writes go through a thread-safe driver pool.
+        def _worker(org: dict[str, Any]) -> bool:
+            """Return True on success, False on circuit breaker open."""
             try:
                 self.process_org(org, run_id=self._run_id)
-                self._processed_count += 1
+                with self._state_lock:
+                    self._processed_count += 1
+                return True
             except CircuitOpenError:
-                logger.error("[ODS Sync] Circuit breaker opened — aborting run")
-                aborted = True
-                break
+                return False
+
+        with ThreadPoolExecutor(max_workers=_CONCURRENCY) as pool:
+            futures = [pool.submit(_worker, o) for o in eligible]
+            for fut in as_completed(futures):
+                if not fut.result():
+                    logger.error(
+                        "[ODS Sync] Circuit breaker opened -- aborting run"
+                    )
+                    aborted = True
+                    for pending in futures:
+                        pending.cancel()
+                    break
 
         # Flush no-change batch
         if self._batch_no_change:
@@ -188,9 +211,11 @@ class SyncService:
 
         try:
             ods_org = self._fetch_with_retry(ods_code)
-            self._cb.record_success()
+            with self._state_lock:
+                self._cb.record_success()
         except OdsNotFoundError:
-            self._cb.record_success()  # 404 is a valid (non-connection) response
+            with self._state_lock:
+                self._cb.record_success()  # 404 is a valid (non-connection) response
             self._flag_closed(
                 org_id=org_id,
                 org_name=leo_name,
@@ -199,25 +224,26 @@ class SyncService:
                 ods_parent_ods_code=None,
                 ods_address=None,
             )
-            self._closure_count += 1
+            with self._state_lock:
+                self._closure_count += 1
             return
         except OdsAccessError as exc:
-            # 403 — ODS restricts access to this org type (e.g. commissioning regions).
-            # Not a connection failure; skip without flagging or tripping the circuit breaker.
-            self._cb.record_success()
+            with self._state_lock:
+                self._cb.record_success()
             logger.info("[ODS Sync] Skipping restricted org %s: %s", ods_code, exc)
             return
         except OdsRateLimitError as exc:
-            # Exhausted retries for this org — mark as error and continue (not a connection failure)
             logger.warning("[ODS Sync] Rate limit exhausted for %s: %s", ods_code, exc)
             self._write_error(org_id=org_id, run_id=run_id, error=str(exc))
-            self._error_count += 1
+            with self._state_lock:
+                self._error_count += 1
             return
         except OdsApiError as exc:
             logger.warning("[ODS Sync] ODS API error for %s: %s", ods_code, exc)
             self._write_error(org_id=org_id, run_id=run_id, error=str(exc))
-            self._error_count += 1
-            self._cb.record_failure()  # connection-level failure → circuit breaker
+            with self._state_lock:
+                self._error_count += 1
+                self._cb.record_failure()  # connection-level failure -> CB
             return
 
         # Compare ODS data to LEO record
@@ -232,7 +258,8 @@ class SyncService:
                 ods_parent_ods_code=ods_org.part_of_ods,
                 ods_address=ods_org.address,
             )
-            self._closure_count += 1
+            with self._state_lock:
+                self._closure_count += 1
             return
 
         # ODS stores names in UPPERCASE; compare case-insensitively to avoid spurious mismatches
@@ -263,19 +290,22 @@ class SyncService:
                 ods_parent_ods_code=ods_org.part_of_ods,
                 ods_address=ods_org.address,
             )
-            self._mismatch_count += 1
+            with self._state_lock:
+                self._mismatch_count += 1
         else:
-            # No change — add to batch for efficient bulk write
-            self._batch_no_change.append(
-                {
-                    "id": org_id,
-                    "checked_at": datetime.now(timezone.utc).isoformat(),
-                    "run_id": run_id,
-                    "ods_parent_ods_code": ods_org.part_of_ods,
-                    "ods_address": _to_json(ods_org.address),
-                }
-            )
-            if len(self._batch_no_change) >= _BATCH_SIZE:
+            should_flush = False
+            with self._state_lock:
+                self._batch_no_change.append(
+                    {
+                        "id": org_id,
+                        "checked_at": datetime.now(timezone.utc).isoformat(),
+                        "run_id": run_id,
+                        "ods_parent_ods_code": ods_org.part_of_ods,
+                        "ods_address": _to_json(ods_org.address),
+                    }
+                )
+                should_flush = len(self._batch_no_change) >= _BATCH_SIZE
+            if should_flush:
                 self._flush_batch()
 
     def _fetch_with_retry(self, ods_code: str) -> OdsOrg:
@@ -370,11 +400,14 @@ class SyncService:
 
     def _flush_batch(self) -> None:
         """Flush the no-change batch using UNWIND Cypher for efficiency (R-LEO-AI-045)."""
-        if not self._batch_no_change:
-            return
-        # Split into chunks of _BATCH_SIZE to avoid overwhelming Neo4j
-        for i in range(0, len(self._batch_no_change), _BATCH_SIZE):
-            chunk = self._batch_no_change[i : i + _BATCH_SIZE]
+        # Move pending rows out from under the lock so Neo4j writes do
+        # not block other workers adding to the batch.
+        with self._state_lock:
+            if not self._batch_no_change:
+                return
+            pending = self._batch_no_change
+            self._batch_no_change = []
+        for i in range(0, len(pending), _BATCH_SIZE):
+            chunk = pending[i : i + _BATCH_SIZE]
             self._neo.run(BATCH_UPDATE_ODS_CHECKED, orgs=chunk)
             logger.debug("[ODS Sync] Flushed %d no-change orgs to Neo4j", len(chunk))
-        self._batch_no_change = []

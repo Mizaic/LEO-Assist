@@ -22,6 +22,7 @@ export interface TrainingJob {
   recall?: number | null;
   per_label_f1?: Record<string, { precision: number; recall: number; f1: number }>;
   passed_gates?: boolean | null;
+  label_gate_failures?: string[];
   golden_f1?: number | null;
   golden_passed?: boolean | null;
   model_version?: string;
@@ -35,6 +36,7 @@ export interface TrainingJob {
   export_total?: number | null;
   export_assertion_filtered?: number | null;
   export_span_misaligned?: number | null;
+  export_per_label_counts?: Record<string, { train: number; dev: number }>;
 }
 
 export interface ConsoleState {
@@ -68,6 +70,13 @@ async function fetchWithTimeout(
   }
 }
 
+// Adaptive polling cadence: when a training run is active we want
+// near-realtime updates, but when the console is idle we should not
+// hammer five backend endpoints every 10 seconds. The intervals scale
+// roughly 6x between active and idle.
+const ACTIVE_POLL_MS = 10_000;
+const IDLE_POLL_MS = 60_000;
+
 export function useConsoleState(): ConsoleState {
   const [jobs, setJobs] = useState<TrainingJob[]>([]);
   const [goldStats, setGoldStats] = useState<ConsoleState["goldStats"]>(null);
@@ -76,6 +85,7 @@ export function useConsoleState(): ConsoleState {
   const [promotedVersion, setPromotedVersion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const pollInFlightRef = useRef(false);
+  const jobsRef = useRef<TrainingJob[]>([]);
 
   const fetchAll = useCallback(async () => {
     if (pollInFlightRef.current) {
@@ -93,7 +103,9 @@ export function useConsoleState(): ConsoleState {
 
       if (jobsRes.status === "fulfilled" && jobsRes.value.ok) {
         const data = await jobsRes.value.json();
-        setJobs(data.jobs ?? data ?? []);
+        const next = (data.jobs ?? data ?? []) as TrainingJob[];
+        jobsRef.current = next;
+        setJobs(next);
       }
       if (goldRes.status === "fulfilled" && goldRes.value.ok) {
         setGoldStats(await goldRes.value.json());
@@ -117,9 +129,53 @@ export function useConsoleState(): ConsoleState {
   }, []);
 
   useEffect(() => {
-    fetchAll();
-    const id = setInterval(fetchAll, 10000);
-    return () => clearInterval(id);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const isActive = () =>
+      jobsRef.current.some(
+        (j) =>
+          j.status === "running" ||
+          j.status === "evaluating" ||
+          j.status === "uploading",
+      );
+
+    const schedule = () => {
+      if (cancelled) return;
+      const visible =
+        typeof document === "undefined" || !document.hidden;
+      const interval = !visible
+        ? IDLE_POLL_MS
+        : isActive()
+          ? ACTIVE_POLL_MS
+          : IDLE_POLL_MS;
+      timer = setTimeout(async () => {
+        if (cancelled) return;
+        if (typeof document === "undefined" || !document.hidden) {
+          await fetchAll();
+        }
+        schedule();
+      }, interval);
+    };
+
+    fetchAll().finally(() => schedule());
+
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        if (timer) clearTimeout(timer);
+        fetchAll().finally(() => schedule());
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibility);
+    }
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
+    };
   }, [fetchAll]);
 
   const latestJob = jobs[0] ?? null;

@@ -349,3 +349,159 @@ export const NOT_LIVE_YET_BANNER = {
     "Save records your change. To make it live for real patients, open Bitmap Lifecycle and compile the ruleset.",
   actionLabel: "Open Bitmap Lifecycle",
 } as const;
+
+/**
+ * Copy for the Phase 7 confirm dialogs.
+ *
+ * Two destructive edits are wrapped in a confirm step:
+ *
+ *   - Changing a root group's kind (AND <-> OR <-> NOT). This flips
+ *     the meaning of the whole rule. The dialog shows the before /
+ *     after sentence rendered by ``treeToSentence`` so the reviewer
+ *     sees the impact in plain English before committing.
+ *   - Flipping an OBSERVATION leaf operator across the threshold
+ *     direction (e.g. less-than -> greater-than). This typically
+ *     inverts clinical meaning of the whole leaf.
+ *
+ * Both dialogs follow the same shape so screen-reader users hear a
+ * consistent pattern.
+ */
+export const CONFIRM_KIND_CHANGE = {
+  title: "Change the meaning of this rule?",
+  body:
+    "You are about to change a top-level group. This usually changes which patients the rule fires for. Read the before and after below before you commit.",
+  beforeLabel: "Now reads as",
+  afterLabel: "Will read as",
+  confirmLabel: "Yes, change it",
+  cancelLabel: "Cancel",
+  ariaLabel: "Confirm changing the meaning of this rule",
+} as const;
+
+export const CONFIRM_OBSERVATION_FLIP = {
+  title: "Flip the lab value direction?",
+  body:
+    "You are about to switch this lab value from a less-than test to a greater-than test (or the other way round). This usually inverts which patients the rule fires for.",
+  beforeLabel: "Now reads as",
+  afterLabel: "Will read as",
+  confirmLabel: "Yes, flip it",
+  cancelLabel: "Cancel",
+  ariaLabel: "Confirm flipping the lab value direction",
+} as const;
+
+/**
+ * Plain-English phrase fragment for an OBSERVATION operator (Phase 7).
+ *
+ * Used by the operator-flip confirm dialog to render a one-line
+ * before / after sentence without dragging in the full
+ * ``treeToSentence`` machinery. Mirrors ``OPERATOR_LABELS`` but
+ * keyed by the typed ``ObservationOperator`` so the picker stays
+ * type-safe.
+ */
+export const OBSERVATION_OPERATOR_PHRASES: Record<string, string> = {
+  ">=": "is at least",
+  "<=": "is at most",
+  ">": "is more than",
+  "<": "is less than",
+  "=": "is exactly",
+  between: "is between",
+};
+
+/**
+ * Returns true when an OBSERVATION leaf operator change crosses the
+ * threshold direction (e.g. ``<`` -> ``>``). Includes ``=`` and
+ * ``between`` flips because they also change the rule semantics
+ * meaningfully (presence vs. range vs. cutoff).
+ */
+export function isObservationOperatorFlip(
+  before: string,
+  after: string,
+): boolean {
+  if (before === after) return false;
+  const lt = new Set(["<", "<="]);
+  const gt = new Set([">", ">="]);
+  if (lt.has(before) && gt.has(after)) return true;
+  if (gt.has(before) && lt.has(after)) return true;
+  // = and between are clinically distinct enough that swapping them
+  // for a directional comparator (or vice versa) deserves a confirm.
+  if (before === "=" && (lt.has(after) || gt.has(after))) return true;
+  if (after === "=" && (lt.has(before) || gt.has(before))) return true;
+  if (before === "between" || after === "between") return true;
+  return false;
+}
+
+/**
+ * Returns true when a group-node kind change is destructive enough
+ * that the editor SHOULD confirm before applying it. Phase 7 scopes
+ * this to root-level changes between AND, OR, NOT, AT_LEAST -- those
+ * change the meaning of the whole rule; deeper nodes are usually
+ * being authored from scratch and the confirm would be noise.
+ */
+export function isDestructiveRootKindChange(
+  before: LogicNodeKind,
+  after: LogicNodeKind,
+): boolean {
+  if (before === after) return false;
+  const groups = new Set<LogicNodeKind>(["AND", "OR", "NOT", "AT_LEAST"]);
+  return groups.has(before) && groups.has(after);
+}
+
+/**
+ * Centralised dialog chrome (Phase 7c).
+ *
+ * Lifts the previously-inline DialogTitle and a handful of nearby
+ * strings out of ``index.tsx`` so QA / health-literacy reviewers can
+ * tweak the wording without grepping the React tree.
+ */
+export const DIALOG_CHROME = {
+  title: "Change this rule",
+  closeAria: "Close the rule editor",
+} as const;
+
+/**
+ * Centralised duplicate-symptom-set alert copy (Phase 7c).
+ *
+ * Phase 1 wrote this inline in ``Step1Who``. Lifting it here keeps
+ * the editor's reading-age sweep in one file. The function form
+ * keeps the count and the example list out of the copy module.
+ */
+export const DUPLICATE_SETS_ALERT = {
+  ariaLabel: "Repeated symptom set warning",
+  oneSetLead: "This rule has the",
+  oneSetMid: "in two places:",
+  oneSetTail:
+    "Keeping duplicates is fine, but you can remove one to keep the rule shorter.",
+  oneSetStrong: "same symptom set",
+  manySetLead: "This rule has",
+  manySetTail: "Removing duplicates keeps the rule easier to read.",
+  manySetStrong: (count: number) =>
+    `${count} repeated symptom sets`,
+} as const;
+
+/**
+ * Centralised ConceptSearchPanel headings + helper copy (Phase 7c).
+ *
+ * Phase 6b kept these inline in the panel; Phase 7 lifts them so
+ * the four headings (replace_action, replace, add, idle) live next
+ * to all the other reviewer-facing strings.
+ */
+export const SEARCH_PANEL = {
+  headings: {
+    replace_action: "Swap the recommended procedure",
+    replace: "Swap a symptom or sign",
+    add: "Add a symptom or sign",
+    idle: "Find a symptom or sign",
+  },
+  searchLabel: "Search clinical terms",
+  searchPlaceholder: "Type a word, like cough or weight loss",
+  searchAriaLabel: "Search clinical terms",
+  resultsAriaLabel: "Search results",
+  searchingAriaLabel: "Searching clinical terms",
+  noResults: (q: string) =>
+    `No clinical terms match "${q}". Try a shorter word or a different spelling.`,
+  idleHintLead: "Click a green pill on the left to swap that symptom for a",
+  idleHintMid: "different one, or use one of the",
+  idleHintStrong: "+ Add a symptom",
+  idleHintTail: "buttons inside a group.",
+  loadError: "Could not search the clinical terms. Please try again.",
+} as const;
+

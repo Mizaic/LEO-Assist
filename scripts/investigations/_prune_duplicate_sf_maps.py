@@ -3,7 +3,7 @@ Delete competing MAPS_TO edges where the same SurfaceForm.normalized maps to
 multiple concepts. Keep the intended target for NG12 guideline coding.
 
 Pruned in this run:
-- chest x ray findings suggestive of mesothelioma: keep 1290960005, drop 60046008
+- chest x ray findings suggestive of mesothelioma: keep 9990010014, drop 60046008
 - chest signs compatible with pleural disease: keep 272016000, drop 88075009
 """
 
@@ -30,7 +30,7 @@ pwd = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
 # (phrase, keep_cid, drop_cid)
 PRUNES = [
-    ("chest X-ray findings suggestive of mesothelioma", "1290960005", "60046008"),
+    ("chest X-ray findings suggestive of mesothelioma", "9990010014", "60046008"),
     ("chest signs compatible with pleural disease", "272016000", "88075009"),
 ]
 

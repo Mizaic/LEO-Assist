@@ -60,6 +60,7 @@ from libs.training.lab_span_detector import (
     _READ_CODE_RE,
     _UNIT_RE,
     _VALUE_RE,
+    _looks_like_name_only_lab_procedure,
     _looks_like_medical_unit,
     _looks_like_prose,
 )
@@ -116,6 +117,7 @@ class _LineHit:
     interpretation_end: int
     has_interpretation: bool
     has_read_code: bool
+    has_value_unit: bool = True
 
 
 # ---------------------------------------------------------------------------
@@ -139,22 +141,33 @@ def recover_lab_triples(
     if not encounter_text:
         return list(entities)
 
-    hits = _scan_lab_lines(encounter_text)
-    if not hits:
+    proposals = propose_lab_triples(encounter_text)
+    if not proposals:
         return list(entities)
 
     existing_index = _index_existing_lab_spans(entities)
     additions: list[dict[str, Any]] = []
 
-    for hit in hits:
-        for proposed in _propose_for_hit(encounter_text, hit):
-            if not _is_duplicate(proposed, existing_index):
-                additions.append(proposed)
-                _register(proposed, existing_index)
+    for proposed in proposals:
+        if not _is_duplicate(proposed, existing_index):
+            additions.append(proposed)
+            _register(proposed, existing_index)
 
     if not additions:
         return list(entities)
     return [*entities, *additions]
+
+
+def propose_lab_triples(encounter_text: str) -> list[dict[str, Any]]:
+    """Return deterministic lab-triple proposals for every lab hit."""
+
+    if not encounter_text:
+        return []
+    hits = _scan_lab_lines(encounter_text)
+    proposals: list[dict[str, Any]] = []
+    for hit in hits:
+        proposals.extend(_propose_for_hit(encounter_text, hit))
+    return proposals
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +197,9 @@ def _scan_lab_lines(encounter_text: str) -> list[_LineHit]:
     for line_start, line_end, line_text in _iter_line_spans(encounter_text):
         if not line_text.strip():
             continue
+        if _READ_CODE_RE.search(line_text):
+            hits.extend(_scan_read_code_hits(line_start, line_end, line_text))
+            continue
         if (line_end - line_start) > _MAX_LINE_LENGTH:
             continue
         hit = _try_parse_line(line_start, line_end, line_text)
@@ -192,9 +208,37 @@ def _scan_lab_lines(encounter_text: str) -> list[_LineHit]:
     return hits
 
 
-def _try_parse_line(
-    line_start: int, line_end: int, line_text: str
-) -> _LineHit | None:
+def _scan_read_code_hits(
+    line_start: int,
+    line_end: int,
+    line_text: str,
+) -> list[_LineHit]:
+    """Scan every Read-code observation inside a possibly long line."""
+
+    matches = list(_READ_CODE_RE.finditer(line_text))
+    hits: list[_LineHit] = []
+    boundary = 0
+    for index, match in enumerate(matches):
+        segment_end = (
+            matches[index + 1].start() if index + 1 < len(matches) else len(line_text)
+        )
+        hit = _parse_with_read_code(
+            line_start,
+            line_end,
+            line_text,
+            match,
+            name_boundary=boundary,
+            segment_end=segment_end,
+        )
+        if hit is None:
+            boundary = max(boundary, match.end())
+            continue
+        hits.append(hit)
+        boundary = max(boundary, hit.value_unit_end - line_start)
+    return hits
+
+
+def _try_parse_line(line_start: int, line_end: int, line_text: str) -> _LineHit | None:
     """Return a _LineHit if *line_text* looks like a lab result, else None."""
     code_match = _READ_CODE_RE.search(line_text)
     if code_match is not None:
@@ -207,31 +251,51 @@ def _parse_with_read_code(
     line_end: int,
     line_text: str,
     code_match: re.Match[str],
+    *,
+    name_boundary: int = 0,
+    segment_end: int | None = None,
 ) -> _LineHit | None:
     """Parse a line with a Read/CTV3 code (the strict, high-precision path)."""
     code_start = code_match.start()
     code_end = code_match.end()
 
-    name_str = line_text[:code_start].rstrip(" -:;,\t")
+    name_start_in_line, name_str = _extract_read_code_name(
+        line_text, name_boundary, code_start
+    )
     if not name_str or _looks_like_prose(name_str):
         return None
     if len(name_str) > _MAX_NAME_LENGTH:
         return None
 
-    name_start_in_line = len(line_text[:code_start]) - len(
-        line_text[:code_start].lstrip()
-    )
     name_start = line_start + name_start_in_line
     name_end = name_start + len(name_str)
 
     value_unit_end = _scan_value_unit(line_text, code_end)
     if value_unit_end is None:
+        if _looks_like_name_only_lab_procedure(name_str):
+            return _LineHit(
+                line_start=line_start,
+                line_end=line_start + code_end,
+                text=line_text,
+                name_start=name_start,
+                name_end=name_end,
+                value_unit_end=line_start + code_end,
+                interpretation_end=line_start + code_end,
+                has_interpretation=False,
+                has_read_code=True,
+                has_value_unit=False,
+            )
         return None
-    interp_end, has_interp = _scan_interpretation(line_text, value_unit_end)
+    end_limit = segment_end if segment_end is not None else len(line_text)
+    if value_unit_end > end_limit:
+        return None
+    interp_end, has_interp = _scan_interpretation(
+        line_text, value_unit_end, segment_end=end_limit
+    )
 
     return _LineHit(
         line_start=line_start,
-        line_end=line_end,
+        line_end=line_start + min(line_end - line_start, end_limit),
         text=line_text,
         name_start=name_start,
         name_end=name_end,
@@ -240,6 +304,46 @@ def _parse_with_read_code(
         has_interpretation=has_interp,
         has_read_code=True,
     )
+
+
+def _extract_read_code_name(
+    line_text: str,
+    boundary: int,
+    code_start: int,
+) -> tuple[int, str]:
+    """Return the best lab-name suffix before a Read code."""
+
+    raw = line_text[boundary:code_start]
+    leading = len(raw) - len(raw.lstrip(" \t-:;,"))
+    name_start = boundary + leading
+    name = raw[leading:].rstrip(" -:;,\t")
+    offset, trimmed = _trim_lab_name_prefix(name)
+    return name_start + offset, trimmed
+
+
+def _trim_lab_name_prefix(name: str) -> tuple[int, str]:
+    """Remove appointment/prose prefixes while keeping the lab name."""
+
+    stripped = name.strip()
+    outer_offset = len(name) - len(name.lstrip())
+    lowered = stripped.lower()
+    for prefix in ("examination:", "objective:", "auto-filed"):
+        idx = lowered.rfind(prefix)
+        if idx != -1:
+            start = idx + len(prefix)
+            local = start + len(stripped[start:]) - len(stripped[start:].lstrip())
+            return outer_offset + local, stripped[local:]
+    double_space = list(re.finditer(r"\s{2,}", stripped))
+    if double_space:
+        local = double_space[-1].end()
+        return outer_offset + local, stripped[local:]
+    weight_note = re.match(r"\(\?[^)]{1,40}\)\s+", stripped)
+    if weight_note is not None:
+        return outer_offset + weight_note.end(), stripped[weight_note.end() :]
+    oe_match = re.search(r"\bO/E\s+-\s+", stripped)
+    if oe_match and oe_match.start() > 0:
+        return outer_offset + oe_match.start(), stripped[oe_match.start() :]
+    return outer_offset, stripped
 
 
 def _parse_lenient_no_code(
@@ -327,15 +431,20 @@ def _scan_value_unit(line_text: str, start_at: int) -> int | None:
 
     tail = line_text[cursor:]
     range_ws = len(tail) - len(tail.lstrip(" \t"))
-    range_match = _RANGE_RE.match(line_text[cursor + range_ws:])
+    range_match = _RANGE_RE.match(line_text[cursor + range_ws :])
     if range_match is not None:
         cursor += range_ws + range_match.end()
     return cursor
 
 
-def _scan_interpretation(line_text: str, start_at: int) -> tuple[int, bool]:
+def _scan_interpretation(
+    line_text: str,
+    start_at: int,
+    *,
+    segment_end: int | None = None,
+) -> tuple[int, bool]:
     """Return (line-relative end, matched) just past the interpretation phrase."""
-    tail = line_text[start_at:]
+    tail = line_text[start_at:segment_end]
     match = _INTERP_RE.search(tail)
     if match is None:
         return start_at, False
@@ -347,9 +456,7 @@ def _scan_interpretation(line_text: str, start_at: int) -> tuple[int, bool]:
 # ---------------------------------------------------------------------------
 
 
-def _propose_for_hit(
-    encounter_text: str, hit: _LineHit
-) -> list[dict[str, Any]]:
+def _propose_for_hit(encounter_text: str, hit: _LineHit) -> list[dict[str, Any]]:
     """Return [procedure, observable_entity, finding?] for a single hit.
 
     The three spans are nested by design (see annotation guideline rules
@@ -361,15 +468,15 @@ def _propose_for_hit(
     """
     proposals: list[dict[str, Any]] = []
 
-    name_text = encounter_text[hit.name_start:hit.name_end]
+    name_text = encounter_text[hit.name_start : hit.name_end]
     if name_text:
         proposals.append(
             _build_entity(LABEL_PROCEDURE, hit.name_start, hit.name_end, name_text)
         )
 
     obs_end = min(hit.value_unit_end, hit.line_end)
-    obs_text = encounter_text[hit.name_start:obs_end].rstrip()
-    if obs_text and obs_end > hit.name_end:
+    obs_text = encounter_text[hit.name_start : obs_end].rstrip()
+    if obs_text and obs_end > hit.name_end and hit.has_value_unit:
         proposals.append(
             _build_entity(
                 LABEL_OBSERVABLE,
@@ -381,7 +488,7 @@ def _propose_for_hit(
 
     if hit.has_interpretation:
         finding_end = min(hit.interpretation_end, hit.line_end)
-        finding_text = encounter_text[hit.name_start:finding_end].rstrip()
+        finding_text = encounter_text[hit.name_start : finding_end].rstrip()
         if finding_text:
             proposals.append(
                 _build_entity(
@@ -395,9 +502,7 @@ def _propose_for_hit(
     return proposals
 
 
-def _build_entity(
-    label: str, start: int, end: int, text: str
-) -> dict[str, Any]:
+def _build_entity(label: str, start: int, end: int, text: str) -> dict[str, Any]:
     return {
         "text": text,
         "label": label,
@@ -422,9 +527,7 @@ def _index_existing_lab_spans(
     entities: list[dict[str, Any]],
 ) -> dict[str, set[tuple[int, int]]]:
     """Map label -> set of (start, end) spans already present."""
-    index: dict[str, set[tuple[int, int]]] = {
-        label: set() for label in _LAB_LABELS
-    }
+    index: dict[str, set[tuple[int, int]]] = {label: set() for label in _LAB_LABELS}
     for ent in entities:
         label = _normalise_label(str(ent.get("label", "")))
         if label not in _LAB_LABELS:
@@ -461,6 +564,7 @@ def _register(
 
 
 __all__ = [
+    "propose_lab_triples",
     "recover_lab_triples",
 ]
 

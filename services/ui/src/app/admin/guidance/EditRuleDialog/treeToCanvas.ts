@@ -141,6 +141,9 @@ export function rowFor(node: EditableLogicNode): SentenceRowModel {
   if (node.kind === "DEMOGRAPHIC") {
     return { nodeId: node.node_id, variant: "demographic", node };
   }
+  if (node.kind === "OBSERVATION") {
+    return { nodeId: node.node_id, variant: "observation", node };
+  }
   if (node.kind === "AT_LEAST") {
     const kids = node.children ?? [];
     const allConcepts = kids.length > 0 && kids.every((c) => c.kind === "CONCEPT");
@@ -190,6 +193,7 @@ function pathwayCardFor(
   if (
     child.kind === "CONCEPT" ||
     child.kind === "DEMOGRAPHIC" ||
+    child.kind === "OBSERVATION" ||
     child.kind === "AT_LEAST" ||
     child.kind === "NOT"
   ) {
@@ -317,6 +321,7 @@ export function treeToCanvas(root: EditableLogicNode): CanvasModel {
   if (
     root.kind === "CONCEPT" ||
     root.kind === "DEMOGRAPHIC" ||
+    root.kind === "OBSERVATION" ||
     root.kind === "AT_LEAST"
   ) {
     const r = rowFor(root);

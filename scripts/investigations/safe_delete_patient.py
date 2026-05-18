@@ -10,8 +10,8 @@ Shared concept nodes (Disease, Situation, Clinical_finding, etc.) are
 intentionally left intact -- they are referenced by many patients.
 
 Usage (dry-run first, always):
-    python safe_delete_patient.py --patient-id 6230411040
-    python safe_delete_patient.py --patient-id 6230411040 --apply
+    python safe_delete_patient.py --patient-id 9990002013
+    python safe_delete_patient.py --patient-id 9990002013 --apply
 """
 
 from __future__ import annotations

@@ -59,15 +59,16 @@ def _count_episodes(client: PatientGraphClient) -> int:
 
 
 def _collect_issue_rows(client: PatientGraphClient) -> list[list[dict[str, Any]]]:
-    return [
-        client.run("MATCH (ep:EpisodeOfCare) RETURN ep LIMIT 0"),
-        client.run("MATCH (ep:EpisodeOfCare) RETURN ep LIMIT 0"),
-        client.run("MATCH (ep:EpisodeOfCare) RETURN ep LIMIT 0"),
-        client.run("MATCH (ep:EpisodeOfCare) RETURN ep LIMIT 0"),
-        client.run("MATCH (ep:EpisodeOfCare) RETURN ep LIMIT 0"),
-        client.run("MATCH (ep:EpisodeOfCare) RETURN ep LIMIT 0"),
-        client.run("MATCH (ep:EpisodeOfCare) RETURN ep LIMIT 0"),
-    ]
+    """Collect quality-issue row sets in a single round-trip.
+
+    The previous implementation issued seven sequential LIMIT 0 queries
+    (one per check category placeholder) which together added 7x Bolt
+    round-trip latency for what is logically one query. Until the real
+    per-category checks are wired in, run a single empty query and
+    return seven empty buckets.
+    """
+    client.run("MATCH (ep:EpisodeOfCare) RETURN ep LIMIT 0")
+    return [[] for _ in range(7)]
 
 
 def run_quality_checks() -> QualityReport:

@@ -39,7 +39,13 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import LogicTreeEditor from "../LogicTreeEditor";
 import SentenceCanvas, { type SandboxImpactBadge } from "../SentenceCanvas";
-import { CANVAS_CARDS, STEP_HELPERS, STEP_TITLES } from "../copy";
+import {
+  CANVAS_CARDS,
+  DUPLICATE_SETS_ALERT,
+  STEP_HELPERS,
+  STEP_TITLES,
+} from "../copy";
+import { useConfirmEdits } from "../useConfirmEdits";
 import type {
   EditableLogicNode,
   NodeUpdate,
@@ -89,6 +95,11 @@ export default function Step1Who({
     !Array.isArray(tree.children) ||
     tree.children.length === 0;
 
+  const { wrappedOnUpdate, confirmDialogs } = useConfirmEdits({
+    tree,
+    onUpdate,
+  });
+
   return (
     <Stack spacing={2} sx={{ minWidth: 0 }}>
       <StepHeader />
@@ -97,26 +108,31 @@ export default function Step1Who({
         <Alert
           severity="info"
           role="status"
-          aria-label="Repeated symptom set warning"
+          aria-label={DUPLICATE_SETS_ALERT.ariaLabel}
           sx={{ py: 0.5 }}
         >
           {duplicates.length === 1 ? (
             <>
-              This rule has the <strong>same symptom set</strong> in two
-              places: {duplicates[0].preview.join(", ")}
-              {duplicates[0].preview.length < 3 ? "" : ", ..."}. Keeping
-              duplicates is fine, but you can remove one to keep the rule
-              shorter.
+              {DUPLICATE_SETS_ALERT.oneSetLead}{" "}
+              <strong>{DUPLICATE_SETS_ALERT.oneSetStrong}</strong>{" "}
+              {DUPLICATE_SETS_ALERT.oneSetMid}{" "}
+              {duplicates[0].preview.join(", ")}
+              {duplicates[0].preview.length < 3 ? "" : ", ..."}.{" "}
+              {DUPLICATE_SETS_ALERT.oneSetTail}
             </>
           ) : (
             <>
-              This rule has{" "}
-              <strong>{duplicates.length} repeated symptom sets</strong>.
-              Removing duplicates keeps the rule easier to read.
+              {DUPLICATE_SETS_ALERT.manySetLead}{" "}
+              <strong>
+                {DUPLICATE_SETS_ALERT.manySetStrong(duplicates.length)}
+              </strong>
+              . {DUPLICATE_SETS_ALERT.manySetTail}
             </>
           )}
         </Alert>
       )}
+
+      {confirmDialogs}
 
       {recommendationText && (
         <Box>
@@ -161,7 +177,7 @@ export default function Step1Who({
             tree={tree}
             selectedNodeId={selectedNodeId}
             onSelectNode={onSelectNode}
-            onUpdate={onUpdate}
+            onUpdate={wrappedOnUpdate}
             onRequestAdd={onRequestAdd}
             onRequestCoach={onRequestCoach}
             sandboxBadge={sandboxBadge}

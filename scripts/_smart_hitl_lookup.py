@@ -1638,7 +1638,7 @@ KNOWLEDGE: dict[str, tuple[str, str | None, str | None, str | None, bool]] = {
     "coughing": ("cough", "49727002", "Cough (finding)", "finding", False),
     "mood + affect": (
         "mood and affect",
-        "1155968006",
+        "9990010002",
         "Mood (observable entity)",
         "observable_entity",
         False,
@@ -1991,7 +1991,7 @@ KNOWLEDGE: dict[str, tuple[str, str | None, str | None, str | None, bool]] = {
     ),
     "radiotherapy": (
         "radiotherapy",
-        "1287742003",
+        "9990010012",
         "Radiotherapy (procedure)",
         "procedure",
         False,
@@ -2692,14 +2692,14 @@ KNOWLEDGE: dict[str, tuple[str, str | None, str | None, str | None, bool]] = {
     ),
     "Xray c spine": (
         "cervical spine x-ray",
-        "1286742007",
+        "9990010011",
         "Plain X-ray of cervical spine (procedure)",
         "procedure",
         False,
     ),
     "chest xray requested": (
         "chest x-ray requested",
-        "1295419007",
+        "9990010015",
         "Plain X-ray of chest requested (situation)",
         "situation",
         False,
@@ -2804,7 +2804,7 @@ KNOWLEDGE: dict[str, tuple[str, str | None, str | None, str | None, bool]] = {
     ),
     "Radiotherapy 40Gy in 15 fractions": (
         "radiotherapy",
-        "1287742003",
+        "9990010012",
         "Radiotherapy (procedure)",
         "procedure",
         False,

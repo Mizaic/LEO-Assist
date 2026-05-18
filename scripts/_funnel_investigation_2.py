@@ -4,7 +4,7 @@
    distribution, or is the site-classifier producing it almost everywhere?
 2. Every sample has referral_route='other'. Is route detection working at all?
 3. PRISM 2WW questionnaire encounters appear to be missing from referral
-   anchors -- check the patient who showed this in Q3 (4203796334).
+   anchors -- check the patient who showed this in Q3 (9990002010).
 4. Treatment-before-diagnosis pattern: are treatment anchors firing on
    non-cancer medications? Pull the encounter text for the offending dates.
 5. Q4 bucketing was confusing -- re-run with the proper buckets:
@@ -77,12 +77,12 @@ def q2_referral_route(c) -> None:
 
 
 def q3_prism_check(c) -> None:
-    header("FU-3. patient 4203796334 -- PRISM 2WW dermatology not detected as referral?")
+    header("FU-3. patient 9990002010 -- PRISM 2WW dermatology not detected as referral?")
     print("Show every encounter for this patient with PRISM-2WW or fast-track text.")
     show(
         c.run(
             """
-            MATCH (p:Patient {id: '4203796334'})-[:HAS_ENCOUNTER]->(e:Encounter)
+            MATCH (p:Patient {id: '9990002010'})-[:HAS_ENCOUNTER]->(e:Encounter)
             WHERE toLower(e.text) CONTAINS 'prism'
                OR toLower(e.text) CONTAINS 'fast track'
                OR toLower(e.text) CONTAINS 'fast-track'
@@ -100,7 +100,7 @@ def q3_prism_check(c) -> None:
     show(
         c.run(
             """
-            MATCH (ep:EpisodeOfCare {patient_id: '4203796334'})
+            MATCH (ep:EpisodeOfCare {patient_id: '9990002010'})
             OPTIONAL MATCH (e_ref:Encounter)-[:IS_PART_OF {milestone_type: 'referral'}]->(ep)
             WITH ep, min(date(e_ref.date)) AS d_referral
             OPTIONAL MATCH (e_fs:Encounter)-[:IS_PART_OF {milestone_type: 'first_seen'}]->(ep)

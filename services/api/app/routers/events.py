@@ -137,12 +137,16 @@ async def receive_clinician_action(
     leaking the existence of patients in other tenants.
     """
     from libs.neo4j_client.client import PatientGraphClient as LibPGClient
+    import anyio
 
-    client = LibPGClient()
-    try:
-        require_patient_in_scope(client, scope, payload.patient_id)
-    finally:
-        client.close()
+    def _check_scope() -> None:
+        client = LibPGClient()
+        try:
+            require_patient_in_scope(client, scope, payload.patient_id)
+        finally:
+            client.close()
+
+    await anyio.to_thread.run_sync(_check_scope)
 
     logger.info(
         "Clinician action: %s for patient %s",

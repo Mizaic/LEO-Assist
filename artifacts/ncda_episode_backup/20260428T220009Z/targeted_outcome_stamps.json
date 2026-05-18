@@ -1,0 +1,40 @@
+[
+  {
+    "pid": "6310920987",
+    "suffix": "4174",
+    "date": "2024-05-24",
+    "marker": "Malignant lymphoma",
+    "before": [
+      {
+        "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1173217389744006395",
+        "outcome": null,
+        "encounter_id": "5a10e746-8707-444c-a698-e36982f03ab4",
+        "text": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Chronic lymphoid leukaemia (B641.) (New Episode)\nMajor: Malignant lymphoma - small lymphocytic (Xa99l) (New Episode)\nBiopsy of axillary lymph node (X20AR) - Core (New Episode)\nChronic lymphoid leukaemia (B641.)\nMalignant lymphoma - small lymphocytic (Xa99l)"
+      }
+    ],
+    "after": {
+      "encounter_id": "5a10e746-8707-444c-a698-e36982f03ab4",
+      "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1173217389744006395",
+      "outcome": "cancer_found"
+    }
+  },
+  {
+    "pid": "4920262426",
+    "suffix": "13485",
+    "date": "2025-09-18",
+    "marker": "Intraductal carcinoma in situ",
+    "before": [
+      {
+        "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1170965589930288703",
+        "outcome": null,
+        "encounter_id": "33b3f3cf-5fcf-4f26-8336-4a3808aa56b6",
+        "text": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Intraductal carcinoma in situ of breast (X78WW) - Left (New Episode)\nIntraductal carcinoma in situ of breast (X78WW) - Left"
+      }
+    ],
+    "after": {
+      "encounter_id": "33b3f3cf-5fcf-4f26-8336-4a3808aa56b6",
+      "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1170965589930288703",
+      "outcome": "cancer_found"
+    }
+  }
+]

@@ -1,0 +1,1205 @@
+{
+  "patient_id": "4187508279",
+  "row_count": 17,
+  "rows": [
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Situation"
+          ],
+          "name": "Malignant neoplasm of breast suspected (situation)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Fast track referral for suspected breast cancer (procedure)"
+        }
+      ],
+      "encounter_id": "3bea758b-0949-447d-becf-954e682c85e8",
+      "encounter_properties": {
+        "date": "2025-03-10",
+        "flags": "Face to face\nLinked to Appointment",
+        "id": "3bea758b-0949-447d-becf-954e682c85e8",
+        "processed_at": "2025-12-08T10:22:50.560377",
+        "text": "14:13 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) \nHistory: F2F review. Breast lump.\n\nNoticed lump on left side last week.\nChecks self every fews. First time finding a lump.\nNo FHx breast cancer.\nMild discomfort.\nNo nipple discharge / change.\nNo skin change.\nMild weight loss 5kg due to reduced appetite recently (attributed to stress).\nNever smoked tobacco (XE0oh)\nMinimal alcohol.\nExamination: Examination with chaperone (Tracey Wright) and consent.\nNo skin / nipple changes BL.\nRight breast / axilla normal.\nLeft breast 1cm irregular lump at 2o'clock position of breast. Mobile. Normal axilla.\nDiagnosis: Breast lump ? cause.\nPlan: 2ww breast referral.\nContact us if not heard in 2 weeks.\n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 10 Mar 2025 14:13)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "14:13 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) History: F2F review. Breast lump. Noticed lump on left side last week. Checks self every fews. First time finding a lump. No FHx breast cancer. Mild discomfort. No ni",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "first_presentation",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Situation"
+          ],
+          "name": "Malignant neoplasm of breast suspected (situation)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Fast track referral for suspected breast cancer (procedure)"
+        }
+      ],
+      "encounter_id": "3bea758b-0949-447d-becf-954e682c85e8",
+      "encounter_properties": {
+        "date": "2025-03-10",
+        "flags": "Face to face\nLinked to Appointment",
+        "id": "3bea758b-0949-447d-becf-954e682c85e8",
+        "processed_at": "2025-12-08T10:22:50.560377",
+        "text": "14:13 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role) \nHistory: F2F review. Breast lump.\n\nNoticed lump on left side last week.\nChecks self every fews. First time finding a lump.\nNo FHx breast cancer.\nMild discomfort.\nNo nipple discharge / change.\nNo skin change.\nMild weight loss 5kg due to reduced appetite recently (attributed to stress).\nNever smoked tobacco (XE0oh)\nMinimal alcohol.\nExamination: Examination with chaperone (Tracey Wright) and consent.\nNo skin / nipple changes BL.\nRight breast / axilla normal.\nLeft breast 1cm irregular lump at 2o'clock position of breast. Mobile. Normal axilla.\nDiagnosis: Breast lump ? cause.\nPlan: 2ww breast referral.\nContact us if not heard in 2 weeks.\n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 10 Mar 2025 14:13)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "14:13 - surgery: horne, jonathan (dr) (clinical practitioner access role)  history: f2f review. breast lump.  noticed lump on left side last week. checks self every fews. first time finding a lump. no fhx breast cancer. mild discomfort. no ",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "referral"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Situation"
+          ],
+          "name": "Malignant neoplasm of breast suspected (situation)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Situation"
+          ],
+          "name": "Malignant neoplastic disease suspected (situation)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Fast track referral for suspected breast cancer (procedure)"
+        }
+      ],
+      "encounter_id": "642f5f7d-fd3e-40b1-8b7d-ce0299b42cbc",
+      "encounter_properties": {
+        "date": "2025-03-10",
+        "flags": "Administration Event",
+        "id": "642f5f7d-fd3e-40b1-8b7d-ce0299b42cbc",
+        "processed_at": "2025-12-08T10:22:51.681709",
+        "text": "16:34 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track referral for suspected breast cancer\n2WW Breast Female PRISM to Unknown \nHospital Fast track referral for suspected breast cancer updated: Waiting For Information\nPatient awaiting OPD appt. (9R52.) - 2ww breast",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Hospital Fast track referral for suspected breast cancer updated: Waiting For Information",
+        "linked_at": "2026-04-25T15:37:41.299000000+00:00",
+        "linked_by": "manual_agent_correction",
+        "milestone_type": "referral_sent",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "ad2738b2-50b8-4b16-8848-55e564f23fd5",
+      "encounter_properties": {
+        "date": "2025-03-10",
+        "flags": "Face to face\nLinked to Appointment",
+        "id": "ad2738b2-50b8-4b16-8848-55e564f23fd5",
+        "processed_at": "2025-12-08T10:22:51.528182",
+        "text": "14:42 - Surgery: WRIGHT, Tracey (Mrs) (Receptionist Access Role) \n Chaperone\n   Chaperone: Yes\n   Concerns?: No (Y0428)\n   Examination:  Breast examination\nChaperone present (XaEir)\nNo (Y0428)\nPresence of chaperone (XaEip) - Breast examination",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Same-day chaperoned breast examination as part of first presentation",
+        "linked_at": "2026-04-25T15:37:45.764000000+00:00",
+        "linked_by": "manual_agent_correction",
+        "milestone_type": "first_presentation",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "0cfdab58-55b5-4468-8708-6f925e8a0237",
+      "encounter_properties": {
+        "date": "2025-04-05",
+        "flags": "Letter\nThis event was back-dated and entered on: 15 Apr 2025 09:34",
+        "id": "0cfdab58-55b5-4468-8708-6f925e8a0237",
+        "processed_at": "2025-12-08T10:22:52.869723",
+        "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nBreast Surgeon to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) Breast Surgeon to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Clinical_finding"
+          ],
+          "name": "Seen in fast track suspected breast cancer clinic (finding)"
+        }
+      ],
+      "encounter_id": "5818bb28-4293-4417-980e-ec81e87b8404",
+      "encounter_properties": {
+        "date": "2025-04-05",
+        "flags": "Administration Event\nThis event was back-dated and entered on: 30 Apr 2025 14:59",
+        "id": "5818bb28-4293-4417-980e-ec81e87b8404",
+        "processed_at": "2025-12-08T10:22:52.777337",
+        "text": "00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "00:00 - surgery: silk-moore, karen (mrs) (receptionist access role)  seen in fast track suspected breast cancer clinic (xapyq)",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "first_seen",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Clinical_finding"
+          ],
+          "name": "Seen in fast track suspected breast cancer clinic (finding)"
+        }
+      ],
+      "encounter_id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+      "encounter_properties": {
+        "date": "2025-04-05",
+        "flags": "Administration Event\nThis event was back-dated and entered on: 08 Apr 2025 13:23",
+        "id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+        "processed_at": "2025-12-08T10:22:52.777337",
+        "text": "00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "00:00 - surgery: silk-moore, karen (mrs) (receptionist access role)  seen in fast track suspected breast cancer clinic (xapyq)",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "first_seen",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Mammography (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Core needle biopsy using stereotactic guidance (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Ultrasonography of breast (procedure)"
+        }
+      ],
+      "encounter_id": "bbdabfe0-21fd-4c1c-8883-dd71be9a218b",
+      "encounter_properties": {
+        "date": "2025-04-05",
+        "flags": "This event was back-dated and entered on: 25 Apr 2025 15:23",
+        "id": "bbdabfe0-21fd-4c1c-8883-dd71be9a218b",
+        "processed_at": "2025-12-08T10:22:53.128321",
+        "text": "Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) , Entered By: HORNE, Jonathan (Dr)\nMammogram (537..) (New Episode)\nUS scan of breast (585C.) (New Episode)\nStereotactically guided core needle biopsy of breast (XS9or) (New Episode)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) , Entered By: HORNE, Jonathan (Dr) Mammogram (537..) (New Episode) US scan of breast (585C.) (New Episode) Stereotactically guided core needle biopsy of breast (XS9or) (New Episode",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "specialist_diagnostics",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Biopsy of breast (procedure)"
+        }
+      ],
+      "encounter_id": "c25adcc7-14fd-4e89-bc6b-ac623d67f414",
+      "encounter_properties": {
+        "date": "2025-04-05",
+        "flags": "This event was back-dated and entered on: 04 Aug 2025 08:55",
+        "id": "c25adcc7-14fd-4e89-bc6b-ac623d67f414",
+        "processed_at": "2025-12-08T10:22:52.671530",
+        "text": "Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) \nBiopsy of breast (7135.) (New Episode)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) Biopsy of breast (7135.) (New Episode)",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "specialist_diagnostics",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Clinical_finding"
+          ],
+          "name": "Seen in fast track suspected breast cancer clinic (finding)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Situation"
+          ],
+          "name": "Malignant neoplastic disease suspected (situation)"
+        }
+      ],
+      "encounter_id": "f6139ca1-7309-4ac3-9c04-846ca7aa85f6",
+      "encounter_properties": {
+        "date": "2025-04-08",
+        "flags": "Administration Event",
+        "id": "f6139ca1-7309-4ac3-9c04-846ca7aa85f6",
+        "processed_at": "2025-12-08T10:22:53.289421",
+        "text": "13:20 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 05 Apr 2025",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "13:20 - surgery: silk-moore, karen (mrs) (receptionist access role)   2ww    seen in 2ww clinic?: seen in fast track suspected breast cancer clinic (xapyq) 05 apr 2025",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "first_seen",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "SnomedConcept"
+          ],
+          "name": "Left breast structure (body structure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Malignant neoplasm of breast (disorder)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Clinical_finding"
+          ],
+          "name": "Nottingham Combined Grade II: 6-7 points (finding)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Disease"
+          ],
+          "name": "Malignant neoplasm of breast (disorder)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Disease"
+          ],
+          "name": "Estrogen receptor positive tumor (disorder)"
+        }
+      ],
+      "encounter_id": "08d9ea07-81a7-48cf-aac1-f6dcab0ce890",
+      "encounter_properties": {
+        "date": "2025-04-14",
+        "flags": "This event was back-dated and entered on: 22 May 2025 10:09",
+        "id": "08d9ea07-81a7-48cf-aac1-f6dcab0ce890",
+        "processed_at": "2025-12-08T10:22:53.457129",
+        "text": "Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) , Entered By: NOBLE, Ben (Dr)\nMajor: Malignant tumour of breast (X78WM) - L, grade 2 ductal, ER+ve (New Episode)\nMalignant tumour of breast (X78WM) - L, grade 2 ductal, ER+ve",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "surgery: brown, nicola (admin/clinical support access role) , entered by: noble, ben (dr) major: malignant tumour of breast (x78wm) - l, grade 2 ductal, er+ve (new episode) malignant tumour of breast (x78wm) - l, grade 2 ductal, er+ve",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "diagnosis_confirmed",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "fc765141-925a-46a0-a8dc-31aafd4ad433",
+      "encounter_properties": {
+        "date": "2025-04-14",
+        "flags": "Letter\nThis event was back-dated and entered on: 16 May 2025 14:07",
+        "id": "fc765141-925a-46a0-a8dc-31aafd4ad433",
+        "processed_at": "2025-12-08T10:22:53.361555",
+        "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nBreast to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) Breast to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "SnomedConcept"
+          ],
+          "name": "Left breast structure (body structure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Clinical_finding"
+          ],
+          "name": "Seen by psychotherapy service (finding)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Surgical procedure (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Disease"
+          ],
+          "name": "Malignant neoplasm of breast (disorder)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Disease"
+          ],
+          "name": "Generalized anxiety disorder (disorder)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Disease"
+          ],
+          "name": "Estrogen receptor positive tumor (disorder)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Situation"
+          ],
+          "name": "History of malignant neoplasm of breast (situation)"
+        }
+      ],
+      "encounter_id": "23c6b2e1-dd1b-468c-a3c2-e7eec782d075",
+      "encounter_properties": {
+        "date": "2025-04-15",
+        "flags": "Face to face\nLinked to Appointment",
+        "id": "23c6b2e1-dd1b-468c-a3c2-e7eec782d075",
+        "processed_at": "2025-12-08T10:22:53.707315",
+        "text": "09:11 - Surgery: NOBLE, Ben (Dr) (Clinical Practitioner Access Role) \nProblem: Generalised anxiety disorder (E2002)\nProblem: Malignant tumour of breast (X78WM) - L, grade 2 ductal, ER+ve\nHistory: Diagnosed with Ca breast yesterday, has surgery booked on 13th May.\nDoing much better with mental health, managing her anxiety better, finding sertraline helpful.\nHas had a couple of sessions of therapy and benefitted from this. \nPlan: Seems to be managing the diagnosis well and pragmatically.\nContinue sertraline and review after surgery in about 8 weeks for ongoing support.",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "linked_at": "2026-04-25T15:55:31.676000000+00:00",
+        "linked_by": "manual_attach",
+        "milestone_type": "related_gp_visit"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Clinical_finding"
+          ],
+          "name": "Seen in fast track suspected breast cancer clinic (finding)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Situation"
+          ],
+          "name": "Malignant neoplastic disease suspected (situation)"
+        }
+      ],
+      "encounter_id": "eea195f7-e215-41df-a46d-75fdd4ec336c",
+      "encounter_properties": {
+        "date": "2025-04-30",
+        "flags": "Administration Event",
+        "id": "eea195f7-e215-41df-a46d-75fdd4ec336c",
+        "processed_at": "2025-12-08T10:22:54.140353",
+        "text": "14:54 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 05 Apr 2025\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "14:54 - surgery: silk-moore, karen (mrs) (receptionist access role)   2ww    seen in 2ww clinic?: seen in fast track suspected breast cancer clinic (xapyq) 05 apr 2025 summary care record update - this patient's preference is for only core ",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "first_seen",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "39e6eb3c-aa41-4254-b33f-31830458a406",
+      "encounter_properties": {
+        "date": "2025-05-06",
+        "flags": "This event was back-dated and entered on: 06 Jun 2025 17:03",
+        "id": "39e6eb3c-aa41-4254-b33f-31830458a406",
+        "processed_at": "2025-12-08T10:22:54.310776",
+        "text": "Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) , Entered By: KHATRI, Anjli\nMajor: Wide local excision of breast lesion (X40EC) (New Episode)\nBiopsy of sentinel lymph node (XaF83) (New Episode)\nWide local excision of breast lesion (X40EC)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "surgery: brown, nicola (admin/clinical support access role) , entered by: khatri, anjli major: wide local excision of breast lesion (x40ec) (new episode) biopsy of sentinel lymph node (xaf83) (new episode) wide local excision of breast lesi",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "treatment_started",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "7f83e8ed-adce-4fa9-9d10-1d40cc6a3f43",
+      "encounter_properties": {
+        "date": "2025-06-04",
+        "flags": "Letter\nThis event was back-dated and entered on: 10 Jun 2025 10:12\nThis consultation was hidden from the Online Patient Record when created.",
+        "id": "7f83e8ed-adce-4fa9-9d10-1d40cc6a3f43",
+        "processed_at": "2025-12-08T10:22:54.961344",
+        "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nBreast Surgeon to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) Breast Surgeon to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "e82d56d8-2450-409f-bf85-a90053c72e7b",
+      "encounter_properties": {
+        "date": "2025-10-27",
+        "flags": "Administration Event",
+        "id": "e82d56d8-2450-409f-bf85-a90053c72e7b",
+        "processed_at": "2025-12-08T10:23:02.996283",
+        "text": "16:04 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) \neMED3 (2010) new statement issued, not fit for work (XaX1E)\nPNG Image: MED3Statement.png\nNew MED3 statement issued: Not fit for work - Valid from 23 Oct 2025 to 22 Nov 2025\r\nDiagnosis: Breast cancer\nChemotherapy side effects",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "dates_updated_at": "2026-04-25T15:55:39.339000000+00:00",
+        "detector_version": "v2",
+        "diagnostic_interval_days": 35,
+        "end_date": "2025-10-27",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-eec5f0def7c967b4",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "primary_care_interval_days": 0,
+        "referral_date": "2025-03-10",
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-10",
+        "status": "completed",
+        "status_source": "manual_milestone_recompute",
+        "status_updated_at": "2026-04-25T15:55:31.814000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4187508279",
+      "patient_properties": {
+        "birthDate": "1978-03-10",
+        "created_at": "2025-12-08T10:21:42.874000000+00:00",
+        "gender": "female",
+        "id": "4187508279"
+      },
+      "relationship_properties": {
+        "evidence_quote": "16:04 - surgery: amin, kunal (dr) (clinical practitioner access role)  emed3 (2010) new statement issued, not fit for work (xax1e) png image: med3statement.png new med3 statement issued: not fit for work - valid from 23 oct 2025 to 22 nov 2",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "treatment_started",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    }
+  ],
+  "snapshot_created_at": "20260425T155710Z"
+}

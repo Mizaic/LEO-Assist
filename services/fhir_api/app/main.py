@@ -52,6 +52,20 @@ logger = logging.getLogger("fhir-api")
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("FHIR API starting")
+    # Lift the anyio threadpool ceiling so sync `def` endpoints (and sync I/O
+    # called via `to_thread`) do not bottleneck on Starlette's default 40
+    # tokens. See plan: backend-concurrency-overhaul Phase 0.
+    try:
+        import os as _os
+
+        import anyio
+
+        _limiter = anyio.to_thread.current_default_thread_limiter()
+        _tokens = int(_os.getenv("ANYIO_THREADPOOL_TOKENS", "200"))
+        _limiter.total_tokens = _tokens
+        logger.info("anyio threadpool ceiling set to %d", _tokens)
+    except Exception as exc:
+        logger.warning("Failed to lift anyio threadpool ceiling: %s", exc)
     import threading
 
     def _seed_plan_definitions():
@@ -90,6 +104,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from libs.observability import ServerTimingMiddleware  # noqa: E402
+
+app.add_middleware(ServerTimingMiddleware)
 
 app.include_router(audit_event_router, prefix="/fhir", tags=["AuditEvent"])
 app.include_router(benchmark_router, prefix="/benchmarks", tags=["Benchmarks"])

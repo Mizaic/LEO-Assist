@@ -1,0 +1,168 @@
+{
+  "concepts": [
+    {
+      "concept_id": "162572001",
+      "snomed_term": "Malignant neoplastic disease suspected (situation)",
+      "count": 11,
+      "examples": [
+        "Fast track cancer referral",
+        "suspected cancer due to non-site-specific symptoms",
+        "suspected cancer",
+        "Feels could be cancer",
+        "2ww referral",
+        "referral to 2ww",
+        "Refer to 2WW",
+        "suspicious for malignancy",
+        "Referred on a two-week wait pathway",
+        "Ca will need ruling out"
+      ]
+    },
+    {
+      "concept_id": "315273002",
+      "snomed_term": "Malignant neoplasm of upper gastrointestinal tract suspected (situation)",
+      "count": 11,
+      "examples": [
+        "suspected upper GI cancer",
+        "suspected upper GI cancer",
+        "suspected upper GI cancer",
+        "2WW referral for upper GI",
+        "? HPB Ca",
+        "Suggested upper GI referral. Explained risk of cancer.",
+        "Upper GI 2ww referral",
+        "Fast track referral for suspected upper GI cancer (XaMeJ)",
+        "Fast track referral for suspected upper GI cancer (XaMeJ)",
+        "Upper GI 2WW"
+      ]
+    },
+    {
+      "concept_id": "134405005",
+      "snomed_term": "Malignant neoplasm of breast suspected (situation)",
+      "count": 10,
+      "examples": [
+        "suspected breast cancer",
+        "suspected breast cancer",
+        "2WW Breast",
+        "2ww breast",
+        "2ww breast review",
+        "2ww breast",
+        "PRISM 2WW Breast Female",
+        "Fast track referral for suspected breast cancer (XaMeC)",
+        "2WW Breast Female",
+        "2WW breast referral"
+      ]
+    },
+    {
+      "concept_id": "397657005",
+      "snomed_term": "Malignant neoplasm of urinary system suspected (situation)",
+      "count": 9,
+      "examples": [
+        "suspected urological cancer",
+        "urology 2ww",
+        "2WW Urology",
+        "2 ww urgent urology referral",
+        "PRISM 2WW Urology",
+        "2ww urology",
+        "2WW urology",
+        "2WW urology referral",
+        "Urgent urology 2WW"
+      ]
+    },
+    {
+      "concept_id": "315276005",
+      "snomed_term": "Malignant neoplasm of skin suspected (situation)",
+      "count": 7,
+      "examples": [
+        "suspected skin cancer",
+        "suspected skin cancer",
+        "ould be early signs of skin cancer",
+        "suspected skin cancer clinic",
+        "Suspected skin cancer",
+        "2WW Dermatology",
+        "dermatology 2WW - query melanoma"
+      ]
+    },
+    {
+      "concept_id": "315277001",
+      "snomed_term": "Malignant neoplasm of head and/or neck suspected (situation)",
+      "count": 7,
+      "examples": [
+        "2ww head and neck pathway",
+        "suspected head and neck cancer",
+        "2ww head and neck",
+        "Referred to head and neck 2WW",
+        "2WW head and neck referral",
+        "2WW head and neck",
+        "2WW head and neck"
+      ]
+    },
+    {
+      "concept_id": "397682005",
+      "snomed_term": "Malignant neoplasm of female genital organ suspected (situation)",
+      "count": 6,
+      "examples": [
+        "suspected gynaecological cancer",
+        "2ww gynae",
+        "2ww gynae",
+        "2ww Gynaecology",
+        "2WW Gynaecology",
+        "vaginal malignancy suspected"
+      ]
+    },
+    {
+      "concept_id": "162573006",
+      "snomed_term": "Malignant neoplasm of lung suspected (situation)",
+      "count": 4,
+      "examples": [
+        "suspected lung cancer",
+        "Exclude lung lesion pls",
+        "query lung malignancy",
+        "Chest clinic 2WW"
+      ]
+    },
+    {
+      "concept_id": "315274008",
+      "snomed_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+      "count": 3,
+      "examples": [
+        "suspected colorectal cancer",
+        "suspected lower GI cancer",
+        "2WW lower GI pathway"
+      ]
+    },
+    {
+      "concept_id": "315268008",
+      "snomed_term": "Malignant neoplasm of prostate suspected (situation)",
+      "count": 3,
+      "examples": [
+        "suspicion of prostate cancer",
+        "suggest prostate malig",
+        "repeat psa high will need 2ww"
+      ]
+    },
+    {
+      "concept_id": "315264005",
+      "snomed_term": "Malignant lymphoma suspected (situation)",
+      "count": 2,
+      "examples": [
+        "concerning for lymphoma",
+        "Lymphoma suspected"
+      ]
+    },
+    {
+      "concept_id": "868252007",
+      "snomed_term": "Malignant neoplasm of gastrointestinal tract suspected (situation)",
+      "count": 1,
+      "examples": [
+        "2WW referral to bowel cancer"
+      ]
+    },
+    {
+      "concept_id": "315275009",
+      "snomed_term": "Hematological malignancy suspected (situation)",
+      "count": 1,
+      "examples": [
+        "Urgent haematology 2WW"
+      ]
+    }
+  ]
+}

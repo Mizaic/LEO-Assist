@@ -44,7 +44,15 @@ def _get_error_code(exc: BaseException) -> str:
 
 
 def _is_retryable(exc: BaseException) -> bool:
-    return _get_error_code(exc) in _THROTTLE_CODES
+    if _get_error_code(exc) in _THROTTLE_CODES:
+        return True
+    # ConnectTimeoutError is transient (can't reach Bedrock endpoint) — retry.
+    # ReadTimeoutError is NOT retried here: tcp_keepalive=True prevents silent
+    # NAT drops, so a read timeout means Bedrock is genuinely slow/overloaded.
+    # Retrying just burns another read_timeout worth of wall time and pushes the
+    # encounter into the graph-level wall-clock timeout. Let it fail fast instead.
+    exc_type = type(exc).__name__
+    return exc_type in {"ConnectTimeoutError"}
 
 
 def converse_with_retry(
@@ -53,7 +61,7 @@ def converse_with_retry(
     model_id: str,
     max_retries: int = 8,
     base_delay: float = 1.0,
-    max_delay: float = 60.0,
+    max_delay: float = 30.0,
     jitter: float = 0.5,
     **converse_kwargs: Any,
 ) -> dict[str, Any]:

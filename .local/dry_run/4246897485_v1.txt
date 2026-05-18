@@ -1,0 +1,31 @@
+[dry-run] v1 rulebooks installed for: breast, lung, prostate_urological, upper_gi
+==============================================================================
+Episode Detector v2 dry-run for patient 4246897485
+==============================================================================
+Timeline events loaded:          429
+Auto-published episodes:         1
+Review-required candidates:      1
+Encounters linked (auto):        5
+Suppressed write Cypher count:   2
+
+Proposed AUTO episodes (would persist):
+  [1] site=breast               tier=auto    status=closed_benign  start=2025-07-24 end=2025-09-01
+       episode_id=ep-v2-7868152d6e0a5575
+       encounters=5
+
+Proposed REVIEW / SUGGEST episodes (would NOT persist):
+  [1] site=prostate_urological  tier=review  status=open           intent=suspected  start=2025-07-24 end=None
+       episode_id=ep-v2-54d525a483c184fc
+       encounters=2
+       review_reasons=['insufficient_consensus', 'single_channel_evidence', 'single_generator_vote']
+       encounter_ids=['d6293621-d9e0-40ef-b27f-2f3c0c1e239c', 'fab36c79-935f-4920-8980-578656ae0cca']
+
+AUTO episode encounter IDs:
+  ep-v2-7868152d6e0a5575 -> ['d6293621-d9e0-40ef-b27f-2f3c0c1e239c', 'fab36c79-935f-4920-8980-578656ae0cca', '61aceb67-3dcc-4f30-91d6-0a1712da43e4', 'a2eb9753-ae00-474f-adb3-43e69723854f', 'aed8defa-40fb-4b43-9d1b-3f08a61baea7']
+
+Coverage report:
+  total encounters:               429
+  in_episodes:                    5
+  adjacent_to_active_episode:     0
+  no_signal:                      424
+  unaccounted (review needed):    0

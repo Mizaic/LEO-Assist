@@ -66,17 +66,14 @@ describe("phase3-m1: mail iframe sanitisation", () => {
     expect(source).toContain('import DOMPurify from "dompurify"');
   });
 
-  it("sanitises body_html before writing into the iframe", () => {
+  it("sanitises body_html before rendering in the iframe", () => {
     expect(source).toContain("DOMPurify.sanitize(selected.body_html");
   });
 
-  it("does not call doc.write on raw body_html", () => {
-    // The only doc.write call must reference the sanitised variable.
-    const writeMatches = source.match(/doc\.write\([^)]+\)/g) || [];
-    expect(writeMatches.length).toBeGreaterThan(0);
-    for (const call of writeMatches) {
-      expect(call).toContain("safeHtml");
-    }
+  it("passes only sanitised HTML into the iframe via srcDoc", () => {
+    expect(source).toContain("srcDoc={safeHtml}");
+    expect(source).not.toMatch(/srcDoc=\{[^}]*body_html/);
+    expect(source).not.toContain("doc.write");
   });
 
   it("strips dangerous tags via the FORBID_TAGS option", () => {

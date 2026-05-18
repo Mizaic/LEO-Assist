@@ -15,7 +15,9 @@
     "head_imaging_added": "2025-12-07",
     "head_imaging_note": "Added CT and MRI of head for brain cancer pathway",
     "us_scan_enriched": "2025-12-07",
-    "us_scan_note": "Added 'US scan' and 'US scan of' to ultrasound synonyms"
+    "us_scan_note": "Added 'US scan' and 'US scan of' to ultrasound synonyms",
+    "pathway_expansion_added": "2026-04-30",
+    "pathway_expansion_note": "Added skin, breast, urology, gynaecology and microbiology investigations seen in patient graph FTR episodes"
   },
   "mappings": {
     "Colonoscopy": {
@@ -320,6 +322,207 @@
       ],
       "guideline_synonym_count": 10,
       "guideline_name": "Magnetic resonance imaging of head (procedure)"
+    },
+    "Mammography": {
+      "concept_id": 71651007,
+      "preferred_term": "Mammography (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Breast cancer pathway - IS_A covers bilateral, screening and diagnostic variants",
+      "guideline_synonyms": [
+        "Mammography",
+        "Mammography (procedure)",
+        "Mammogram",
+        "Breast X-ray",
+        "Bilateral mammography",
+        "Screening mammography",
+        "Diagnostic mammography"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Mammography (procedure)"
+    },
+    "Cystoscopy": {
+      "concept_id": 142505009,
+      "preferred_term": "Cystoscopy (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Urology cancer pathway - IS_A covers flexible and rigid cystoscopy variants",
+      "guideline_synonyms": [
+        "Cystoscopy",
+        "Cystoscopy (procedure)",
+        "Flexible cystoscopy",
+        "Rigid cystoscopy",
+        "Cystourethroscopy",
+        "Bladder scope"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Cystoscopy (procedure)"
+    },
+    "Hysteroscopy": {
+      "concept_id": 233545006,
+      "preferred_term": "Hysteroscopy (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Gynaecology cancer pathway",
+      "guideline_synonyms": [
+        "Hysteroscopy",
+        "Hysteroscopy (procedure)",
+        "Uterine endoscopy",
+        "Womb endoscopy"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Hysteroscopy (procedure)"
+    },
+    "Sigmoidoscopy": {
+      "concept_id": 24420007,
+      "preferred_term": "Sigmoidoscopy (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Lower GI cancer pathway - IS_A covers flexible and rigid sigmoidoscopy",
+      "guideline_synonyms": [
+        "Sigmoidoscopy",
+        "Sigmoidoscopy (procedure)",
+        "Flexible sigmoidoscopy",
+        "Rigid sigmoidoscopy",
+        "Flexi sig",
+        "Sig scope"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Sigmoidoscopy (procedure)"
+    },
+    "Dermoscopy": {
+      "concept_id": 446078004,
+      "preferred_term": "Dermoscopic photography (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Skin cancer pathway - IS_A covers optical and digital dermatoscopy variants",
+      "guideline_synonyms": [
+        "Dermoscopy",
+        "Dermatoscopy",
+        "Dermoscopic photography",
+        "Optical dermatoscopy",
+        "Digital dermatoscopy",
+        "Dermatoscopic examination",
+        "Skin dermatoscopy",
+        "Epiluminescence microscopy"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Dermoscopic photography (procedure)"
+    },
+    "Skin lesion photography": {
+      "concept_id": 252983000,
+      "preferred_term": "Skin lesion photography (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Skin cancer pathway",
+      "guideline_synonyms": [
+        "Skin lesion photography",
+        "Skin lesion photography (procedure)",
+        "Clinical photography of skin lesion",
+        "Photography of skin lesion"
+      ],
+      "guideline_synonym_count": 4,
+      "guideline_name": "Skin lesion photography (procedure)"
+    },
+    "Examination of breast": {
+      "concept_id": 46662001,
+      "preferred_term": "Examination of breast (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Breast cancer pathway - clinical breast examination",
+      "guideline_synonyms": [
+        "Examination of breast",
+        "Examination of breast (procedure)",
+        "Breast examination",
+        "Clinical breast examination",
+        "CBE - Clinical breast examination"
+      ],
+      "guideline_synonym_count": 5,
+      "guideline_name": "Examination of breast (procedure)"
+    },
+    "Microscopy, culture and sensitivities": {
+      "concept_id": 168132005,
+      "preferred_term": "Microscopy, culture and sensitivities (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Urology cancer pathway - urine MC+S",
+      "guideline_synonyms": [
+        "Microscopy, culture and sensitivities",
+        "Microscopy, culture and sensitivities (procedure)",
+        "MC+S",
+        "MCS",
+        "Urine MC+S",
+        "Urine microscopy culture and sensitivity",
+        "Micro culture sensitivity"
+      ],
+      "guideline_synonym_count": 7,
+      "guideline_name": "Microscopy, culture and sensitivities (procedure)"
+    },
+    "Biopsy of skin": {
+      "concept_id": 240977001,
+      "preferred_term": "Biopsy of skin (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Skin cancer pathway - IS_A covers punch biopsy, shave biopsy variants",
+      "guideline_synonyms": [
+        "Biopsy of skin",
+        "Biopsy of skin (procedure)",
+        "Skin biopsy",
+        "Punch biopsy of skin",
+        "Shave biopsy",
+        "Skin lesion biopsy"
+      ],
+      "guideline_synonym_count": 6,
+      "guideline_name": "Biopsy of skin (procedure)"
+    },
+    "Urinalysis": {
+      "concept_id": 27171005,
+      "preferred_term": "Urinalysis (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Urology cancer pathway - IS_A covers urine dipstick and microscopy variants",
+      "guideline_synonyms": [
+        "Urinalysis",
+        "Urinalysis (procedure)",
+        "Urine dipstick",
+        "Urine analysis",
+        "Urine dip",
+        "UA - Urinalysis",
+        "Urine test",
+        "Urine testing"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Urinalysis (procedure)"
+    },
+    "PSA": {
+      "concept_id": 63476009,
+      "preferred_term": "Prostate specific antigen measurement (procedure)",
+      "semantic_tag": "Procedure",
+      "score": 1,
+      "llm_disambiguated": false,
+      "note": "Urology cancer pathway - PSA blood test",
+      "guideline_synonyms": [
+        "PSA",
+        "PSA test",
+        "PSA blood test",
+        "Prostate specific antigen",
+        "Prostate specific antigen measurement",
+        "Prostate specific antigen measurement (procedure)",
+        "PSA level",
+        "PSA check"
+      ],
+      "guideline_synonym_count": 8,
+      "guideline_name": "Prostate specific antigen measurement (procedure)"
     }
   }
 }

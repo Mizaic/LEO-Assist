@@ -1,0 +1,54 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 24px;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.page-header h1 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+}
+
+.page-header p {
+  max-width: 720px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.page-main {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.patient-card,
+.leo-frame {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.patient-card h2,
+.leo-frame h2 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.patient-card ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+.leo-status {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #475569;
+}

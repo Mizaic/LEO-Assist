@@ -76,7 +76,13 @@ import Step1Who from "./steps/Step1Who";
 import Step2Suggest from "./steps/Step2Suggest";
 import Step3Try from "./steps/Step3Try";
 import Step4Save from "./steps/Step4Save";
-import { GROUP_KIND_SHORT, STEP_IDS, friendlyTerm, type StepId } from "./copy";
+import {
+  DIALOG_CHROME,
+  GROUP_KIND_SHORT,
+  STEP_IDS,
+  friendlyTerm,
+  type StepId,
+} from "./copy";
 import {
   applyUpdate,
   assignNodeIds,
@@ -427,6 +433,27 @@ export default function EditRuleDialog({
     }
   }
 
+  /**
+   * Phase 6b: reviewer picked "Compare value..." on an observable hit.
+   * Only meaningful in "add" mode (inserting a new leaf under a
+   * group). The seeded OBSERVATION leaf carries the SNOMED code and
+   * term; the reviewer fills in the operator / threshold / unit in
+   * the canvas inline.
+   */
+  function handlePickObservation(seed: {
+    observable_id: string;
+    observable_term?: string;
+    unit?: string;
+  }) {
+    if (searchTarget.mode !== "add" || !searchTarget.parentNodeId) return;
+    handleUpdate({
+      kind: "add_observation",
+      parentNodeId: searchTarget.parentNodeId,
+      seed,
+    });
+    setSearchTarget(IDLE_TARGET);
+  }
+
   function handleClosePopover() {
     setSearchTarget(IDLE_TARGET);
   }
@@ -501,7 +528,7 @@ export default function EditRuleDialog({
                 mt: rule?.guideline_id ? 0.25 : 0,
               }}
             >
-              Change this rule
+              {DIALOG_CHROME.title}
             </Typography>
             {rule?.chapter_title && (
               <Typography
@@ -743,6 +770,7 @@ export default function EditRuleDialog({
         focusLabel={searchTarget.focusLabel}
         initialQuery={searchTarget.initialQuery}
         onPick={handlePick}
+        onPickObservation={handlePickObservation}
         onClose={handleClosePopover}
       />
       <DialogActions

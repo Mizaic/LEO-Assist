@@ -511,15 +511,39 @@ def _unauth_session_payload() -> dict:
         "organizations": [],
         "selected_role": None,
         "allowed_roles": [],
+        "needs_role_choice": False,
         "entra_roles": [],
         "density_preference": None,
     }
 
 
+def _needs_role_choice(session_data: dict, allowed_roles: list[str]) -> bool:
+    """Multi-role users must confirm a UI role once per login session.
+
+    Stored in Redis as ``ui_role_confirmed`` (set after PATCH
+    ``/auth/session/role``). Single-role users bypass the picker.
+    """
+    if len(allowed_roles) <= 1:
+        return False
+    return not bool(session_data.get("ui_role_confirmed"))
+
+
+def _mark_session_role_confirmed(session_id: str) -> None:
+    """Persist that this browser session has completed the role gate."""
+    data = load_session(session_id)
+    if not data:
+        return
+    data["ui_role_confirmed"] = True
+    session_ttl_secs, _, _ = _get_session_config()
+    save_session(session_id, data, ttl_seconds=session_ttl_secs)
+
+
 @router.get("/session")
 def get_session(request: Request):
     """Return current session (user info, orgs, role). Used by frontend.
-    Returns 200 with user: null when not authenticated (avoids 401/CORS issues).
+
+    Returns 200 with user: null when not authenticated
+    (avoids 401/CORS issues).
     """
     session_id = request.cookies.get(COOKIE_NAME)
     if not session_id:
@@ -530,6 +554,7 @@ def get_session(request: Request):
     email = (data.get("email") or "").lower().strip()
     role_state = fetch_role_state(email) if email else None
     density_pref = fetch_density(email) if email else None
+    allowed = list(role_state.allowed_roles) if role_state else []
     return {
         "user": {
             "email": data.get("email"),
@@ -539,7 +564,8 @@ def get_session(request: Request):
         "organizations": data.get("organizations", []),
         "idleTimeoutMinutes": data.get("idle_timeout_minutes", 30),
         "selected_role": role_state.selected_role if role_state else None,
-        "allowed_roles": list(role_state.allowed_roles) if role_state else [],
+        "allowed_roles": allowed,
+        "needs_role_choice": _needs_role_choice(data, allowed),
         "entra_roles": list(data.get("roles") or []),
         "density_preference": density_pref,
     }
@@ -574,9 +600,11 @@ async def patch_session_role(request: Request):
     except Exception as exc:
         logger.warning("role_switch.failed email=%s err=%s", email, exc)
         raise HTTPException(status_code=500, detail="role_switch_failed")
+    _mark_session_role_confirmed(session_id)
     return {
         "selected_role": new_state.selected_role,
         "allowed_roles": list(new_state.allowed_roles),
+        "needs_role_choice": False,
     }
 
 

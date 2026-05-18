@@ -44,6 +44,7 @@ _EPISODES_PREVIEW_Q = """
 MATCH (ep:EpisodeOfCare)
 WHERE ($status IS NULL OR ep.status = $status)
   AND ($site IS NULL OR ep.cancer_type = $site)
+  AND (NOT $unreviewed_only OR ep.reviewed_at IS NULL)
 RETURN count(ep) AS ep_count
 """
 
@@ -51,6 +52,7 @@ _EPISODES_DELETE_Q = """
 MATCH (ep:EpisodeOfCare)
 WHERE ($status IS NULL OR ep.status = $status)
   AND ($site IS NULL OR ep.cancer_type = $site)
+  AND (NOT $unreviewed_only OR ep.reviewed_at IS NULL)
 DETACH DELETE ep
 RETURN count(*) AS deleted
 """
@@ -114,12 +116,27 @@ def delete_episodes(
     client: Any,
     status: str | None = None,
     site: str | None = None,
+    *,
+    unreviewed_only: bool = False,
     dry_run: bool = True,
 ) -> RemediationResult:
-    """Delete episodes matching filters. Always dry_run=True by default."""
+    """Delete episodes matching filters. Always dry_run=True by default.
+
+    When ``unreviewed_only`` is True, only episodes with no curator sign-off
+    (``reviewed_at IS NULL``) are matched; see ``libs.episodes.lifecycle.is_reviewed``.
+
+    Combinable filters: optional ``status`` / ``site`` (cancer_type) with
+    ``unreviewed_only`` to narrow the delete set.
+    """
     from libs.neo4j_client.client import run_with_retry
 
-    preview = run_with_retry(client, _EPISODES_PREVIEW_Q, status=status, site=site)
+    preview = run_with_retry(
+        client,
+        _EPISODES_PREVIEW_Q,
+        status=status,
+        site=site,
+        unreviewed_only=unreviewed_only,
+    )
     ep_count = int((preview[0] or {}).get("ep_count") or 0) if preview else 0
 
     if dry_run:
@@ -127,17 +144,40 @@ def delete_episodes(
             operation="delete_episodes",
             dry_run=True,
             affected_count=ep_count,
-            affected_items=[{"status_filter": status, "site_filter": site}],
+            affected_items=[
+                {
+                    "status_filter": status,
+                    "site_filter": site,
+                    "unreviewed_only": unreviewed_only,
+                }
+            ],
             message=f"DRY RUN: would delete {ep_count} episodes",
         )
 
-    logger.warning("Deleting episodes status=%s site=%s", status, site)
-    run_with_retry(client, _EPISODES_DELETE_Q, status=status, site=site)
+    logger.warning(
+        "Deleting episodes status=%s site=%s unreviewed_only=%s",
+        status,
+        site,
+        unreviewed_only,
+    )
+    run_with_retry(
+        client,
+        _EPISODES_DELETE_Q,
+        status=status,
+        site=site,
+        unreviewed_only=unreviewed_only,
+    )
     return RemediationResult(
         operation="delete_episodes",
         dry_run=False,
         affected_count=ep_count,
-        affected_items=[{"status_filter": status, "site_filter": site}],
+        affected_items=[
+            {
+                "status_filter": status,
+                "site_filter": site,
+                "unreviewed_only": unreviewed_only,
+            }
+        ],
         message=f"Deleted {ep_count} episodes",
     )
 

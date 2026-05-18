@@ -2,9 +2,11 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-5312F884
+ *   DO: DO-5312F884  (Mission Control UI implementation)
+ *   DO: DO-90004103  (Multi-term chip search in EncounterTextTab)
  *   DI: DI-AA1F5F5B
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5312F884")
+ *   DI: DI-B12A48EA  (Multi-term chip search with AND logic)
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-90004103")
  */
 import { inMsRange } from "./encounterTextUtils";
 import { expandSearchTerms, hasAnyExpandedHit } from "./encounterRelevance";
@@ -34,7 +36,17 @@ export interface FilterableEncounter {
 
 export interface CommonFilterArgs {
   codedOnly: boolean;
-  search: string;
+  linkedOnly?: boolean;
+  linkedEncounterIds?: Set<string>;
+  /** Legacy single-string search path (BackgroundSourcePicker). */
+  search?: string;
+  /**
+   * Multi-term chip path (EncounterTextTab -- DI-B12A48EA).
+   * When present and non-empty, takes precedence over `search`.
+   * Encounter must match ALL chips (AND logic); each chip is
+   * independently expanded via the typo/synonym vocabulary.
+   */
+  searchTerms?: string[];
   timelineRange: { fromMs: number; toMs: number } | null;
 }
 
@@ -42,11 +54,28 @@ export function applyCommonFilters<E extends FilterableEncounter>(
   items: E[],
   args: CommonFilterArgs
 ): E[] {
-  const expandedTerms = expandSearchTerms(args.search);
+  // Multi-chip path takes precedence; fall back to the legacy
+  // single-string path so BackgroundSourcePicker is unaffected.
+  const chips: string[] =
+    args.searchTerms && args.searchTerms.length > 0
+      ? args.searchTerms
+      : args.search
+      ? [args.search]
+      : [];
+
   return items.filter((e) => {
     if (args.codedOnly && (e.coded_count ?? 0) <= 0) return false;
-    if (expandedTerms.length && !hasAnyExpandedHit(e.text, expandedTerms)) {
+    if (
+      args.linkedOnly &&
+      !args.linkedEncounterIds?.has(String(e.encounter_id))
+    ) {
       return false;
+    }
+    for (const chip of chips) {
+      const expandedTerms = expandSearchTerms(chip);
+      if (expandedTerms.length && !hasAnyExpandedHit(e.text, expandedTerms)) {
+        return false;
+      }
     }
     if (args.timelineRange) {
       if (!inMsRange(e.date, args.timelineRange.fromMs, args.timelineRange.toMs)) {

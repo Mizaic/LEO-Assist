@@ -1,0 +1,47 @@
+{
+  "Content": "<div class=\"chapter\" title=\"Overview\" id=\"ng12-overview\" xmlns=\"http://www.w3.org/1999/xhtml\">\r\n  <h2 class=\"title\" id=\"overview\">Overview</h2>\r\n  <p>This guideline covers identifying children, young people and adults with symptoms that could be caused by cancer. It outlines appropriate investigations in primary care, and selection of people to refer for a specialist opinion. It aims to help people understand what to expect if they have symptoms that may suggest cancer.</p>\r\n</div>",
+  "GuidanceNumber": "NG12",
+  "MetadataApplicationProfile": {
+    "AlternativeTitle": null,
+    "Audiences": [],
+    "Creator": "NICE",
+    "Description": null,
+    "Identifier": "tag:api.nice.org.uk,2015-06-23:/services/guidance/documents/NG12/overview",
+    "Language": null,
+    "Modified": "/Date(1776237435079+0100)/",
+    "Issued": "/Date(1435014000000+0100)/",
+    "Publisher": "NICE",
+    "Title": "Overview",
+    "Types": [],
+    "Subjects": [],
+    "Contributors": [],
+    "Source": "NICE",
+    "ParentSection": null,
+    "Breadcrumb": null
+  },
+  "Resources": [
+    {
+      "Rel": "self",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/overview",
+      "Title": "Overview",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/overview/who-is-it-for",
+      "Title": "Who is it for?",
+      "TitleContent": null
+    },
+    {
+      "Rel": "alternate",
+      "Type": "application/xhtml+xml",
+      "Uri": "https://publications.nice.org.uk/NG12/overview",
+      "Title": "Overview",
+      "TitleContent": null
+    }
+  ],
+  "LastModified": "/Date(1776237435079+0100)/",
+  "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/overview",
+  "Title": "Overview",
+  "TitleContent": null
+}

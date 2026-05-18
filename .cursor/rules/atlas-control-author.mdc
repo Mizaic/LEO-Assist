@@ -1,0 +1,65 @@
+---
+description: Entry point that routes design-control work (UN, DI, DO, Risk, VT, VAL) into the Atlas authoring skills under `.cursor/skills/`. Use when the user asks to add, update, retire, or audit design controls, wire traceability, or check a change against IEC 62304 / ISO 14971.
+alwaysApply: false
+---
+
+# Atlas Control Author Entry
+
+Design controls in this repo live exclusively in the Atlas MCP
+server `user-atlas-design-controls`. The end-to-end authoring
+workflow is encoded as Cursor Skills under `.cursor/skills/`.
+
+This rule routes you into the right skill.
+
+## Triggers
+
+Pick the right skill based on the request:
+
+| Request                                                | Skill                                |
+|--------------------------------------------------------|--------------------------------------|
+| "Audit this code / PR for design controls"             | `atlas-codebase-audit`               |
+| "Add / update / retire a UN, DI, DO, Risk, VT, VAL"    | `atlas-control-author`               |
+| "Wire traceability" or "record a verification run"     | `atlas-control-author`               |
+| "Map this DO to code" or "ground design outputs"       | `atlas-do-mapper`                    |
+| "Rewrite for clinicians" or "check for scope drift"    | `atlas-language-and-scope-review`    |
+
+## Default orchestration
+
+For non-trivial requests, the default flow is:
+
+1. `atlas-codebase-audit` produces the evidence map.
+2. `atlas-control-author` runs the decision engine, search-before-create,
+   atomic write plan, and audit report.
+3. `atlas-do-mapper` grounds DOs in real code.
+4. `atlas-language-and-scope-review` runs the wording gate.
+
+## Hard constraints (inherited)
+
+These rules still apply and are not duplicated here:
+
+- `.cursor/rules/atlas-design-controls-first.mdc`
+- `.cursor/rules/atlas-design-controls-validation.mdc`
+- `.cursor/rules/atlas-vt-enforcement.mdc`
+- `.cursor/rules/atlas-do-implementation-mapping.mdc`
+- `.cursor/rules/health-literacy.mdc`
+
+In short:
+
+- Atlas MCP is the only store. No local `design-controls/` YAMLs.
+- New artefacts use the 8-hex dcId format only.
+- Class C is not permitted in this product without prior CSO and
+  QA/RA escalation.
+- Class B DIs MUST link to at least one Risk and at least one
+  VT with a recorded `pass` run.
+- VT and VAL runs MUST be recorded via
+  `record_verification_run` / `record_validation_run`.
+
+## Reference files
+
+The skills share these references; read them before drafting:
+
+- `.cursor/skills/atlas-references/artefact-templates.md`
+- `.cursor/skills/atlas-references/decision-engine.md`
+- `.cursor/skills/atlas-references/atlas-mcp-workflow.md`
+- `.cursor/skills/atlas-references/vocabulary.md`
+- `.cursor/skills/atlas-references/audit-report-format.md`

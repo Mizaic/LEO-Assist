@@ -5192,14 +5192,12 @@ def get_gold_label_distribution(
         counter: Counter = Counter()
         total_records = 0
         with client.session() as session:
-            rows = session.run(
-                """
+            rows = session.run("""
                 MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
                 WHERE c.status = 'completed'
                   AND g.entities_json IS NOT NULL
                 RETURN g.entities_json AS entities_json
-                """
-            )
+                """)
             for row in rows:
                 total_records += 1
                 entities = _json.loads(row["entities_json"] or "[]")
@@ -5216,8 +5214,7 @@ def get_gold_label_distribution(
         "total_records": total_records,
         "total_entities": sum(counter.values()),
         "distribution": [
-            {"label": lbl, "count": cnt}
-            for lbl, cnt in counter.most_common()
+            {"label": lbl, "count": cnt} for lbl, cnt in counter.most_common()
         ],
     }
 
@@ -5390,7 +5387,9 @@ def _build_phrase_conflict_entry(
         "distinct_labels": len({item["label"] for item in items}),
         "distinct_assertions": len({item["assertion"] for item in items}),
         "primary_label": primary_label,
-        "outlier_count": len({item["label_id"] for item in items if item["label"] != primary_label}),
+        "outlier_count": len(
+            {item["label_id"] for item in items if item["label"] != primary_label}
+        ),
         "outlier_examples": outlier_examples,
         "signature_counts": [
             {
@@ -5430,7 +5429,9 @@ def _extract_phrase_conflicts(
                 assertion_only_variants += 1
             continue
         if _is_approved_multilabel_phrase_with_policy(phrase, labels, active_policy):
-            approved_multilabel.append(_build_phrase_conflict_entry(phrase, items, max_examples))
+            approved_multilabel.append(
+                _build_phrase_conflict_entry(phrase, items, max_examples)
+            )
             continue
         conflicts.append(_build_phrase_conflict_entry(phrase, items, max_examples))
 
@@ -5477,7 +5478,11 @@ def upsert_phrase_multilabel_approval(
     if not phrase_norm:
         raise HTTPException(status_code=422, detail="phrase must be non-empty")
     labels = sorted(
-        {_normalise_label_name(label) for label in body.allowed_labels if str(label).strip()}
+        {
+            _normalise_label_name(label)
+            for label in body.allowed_labels
+            if str(label).strip()
+        }
     )
     if len(labels) < 2:
         raise HTTPException(
@@ -5533,10 +5538,7 @@ def get_gold_label_phrase_consistency(
     try:
         with client.session() as session:
             policy, policy_rows = _load_phrase_multilabel_policy(session)
-            rows = [
-                dict(r)
-                for r in session.run(
-                    """
+            rows = [dict(r) for r in session.run("""
                     MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
                     WHERE c.status = 'completed'
                       AND g.entities_json IS NOT NULL
@@ -5546,9 +5548,7 @@ def get_gold_label_phrase_consistency(
                       g.entities_json AS entities_json,
                       g.source AS source
                     ORDER BY g.updated_at DESC
-                    """
-                )
-            ]
+                    """)]
     finally:
         client.close()
     return _extract_phrase_conflicts(
@@ -5644,64 +5644,62 @@ def repair_gold_label_spans(
     whitespace changes after editing), this re-derives the offsets from the
     entity surface text using find_span's normalised matching pass.
 
-    Entities that genuinely cannot be found (e.g. template placeholders that
-    no longer match any substring) are dropped from the gold label.
+    Entities that genuinely cannot be found are reported and left unchanged so
+    bulk cleanup never silently deletes review work.
 
     Returns:
-        repaired  -- entities whose offsets were updated
-        dropped   -- entities removed because the surface text was not found
-        remaining -- entities kept (including already-valid ones)
+        repaired     -- entities whose text or offsets were updated
+        unchanged    -- entities already aligned
+        unrepairable -- entities whose surface text was not found
+        ambiguous    -- entities with multiple candidate spans
     """
-    import json as _json
-    from libs.ner.span_finder import find_span
-    from libs.cypher.gold_label_queries import GET_GOLD_LABEL_BY_ID, SET_GOLD_LABEL_ENTITIES
+    from libs.pipeline.label_filter import repair_entity_spans
 
     client = KnowledgeGraphClient()
     try:
         with client.session() as session:
             row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
         if not row:
-            raise HTTPException(status_code=404, detail=f"GoldLabel {label_id!r} not found")
+            raise HTTPException(
+                status_code=404, detail=f"GoldLabel {label_id!r} not found"
+            )
     finally:
         client.close()
 
     text = str(row.get("text") or "")
-    entities = _json.loads(row.get("entities_json") or "[]")
+    entities = json.loads(row.get("entities_json") or "[]")
 
-    repaired, dropped, kept = _repair_entities(text, entities, find_span)
+    repair = repair_entity_spans(text, entities)
+    kept = repair["entities"]
+    changed = bool(repair["repaired"])
 
-    updated = _json.dumps(kept)
-    client2 = KnowledgeGraphClient()
-    try:
-        with client2.session() as session:
-            session.run(SET_GOLD_LABEL_ENTITIES, label_id=label_id, entities_json=updated)
-    finally:
-        client2.close()
+    if changed:
+        updated = json.dumps(kept)
+        client2 = KnowledgeGraphClient()
+        try:
+            with client2.session() as session:
+                session.run(
+                    UPDATE_GOLD_LABEL_ENTITIES,
+                    label_id=label_id,
+                    entities_json=updated,
+                )
+        finally:
+            client2.close()
 
-    return {"label_id": label_id, "repaired": repaired, "dropped": dropped, "remaining": len(kept)}
-
-
-def _repair_entities(
-    text: str,
-    entities: list[dict],
-    find_span_fn,
-) -> tuple[int, int, list[dict]]:
-    """Re-align entity spans; return (repaired_count, dropped_count, kept_list)."""
-    repaired = 0
-    dropped = 0
-    kept: list[dict] = []
-    for ent in entities:
-        surface = str(ent.get("text", "")).strip()
-        result = find_span_fn(text, surface)
-        if result is None:
-            dropped += 1
-            continue
-        start, end = result
-        if start != ent.get("start") or end != ent.get("end"):
-            ent = {**ent, "start": start, "end": end}
-            repaired += 1
-        kept.append(ent)
-    return repaired, dropped, kept
+    return {
+        "label_id": label_id,
+        "repaired": len(repair["repaired"]),
+        "unchanged": len(repair["unchanged"]),
+        "unrepairable": len(repair["unrepairable"]),
+        "ambiguous": len(repair["ambiguous"]),
+        "remaining": len(kept),
+        "updated": changed,
+        "details": {
+            "repaired": repair["repaired"],
+            "unrepairable": repair["unrepairable"],
+            "ambiguous": repair["ambiguous"],
+        },
+    }
 
 
 @router.get("/gold-labels/{label_id}")
@@ -5771,9 +5769,7 @@ def ensure_gold_label_for_candidate(
             ai_audit = {
                 "ai_first_pass_run_id": candidate_row.get("ai_first_pass_run_id"),
                 "ai_first_pass_at": candidate_row.get("ai_first_pass_at"),
-                "entities_json_original": candidate_row.get(
-                    "entities_json_original"
-                ),
+                "entities_json_original": candidate_row.get("entities_json_original"),
             }
 
             row = session.run(
@@ -5841,9 +5837,9 @@ def _ner_label_for_semantic_tag(semantic_tag: str | None) -> str:
         return "concept"
     if key in _SNOMED_TAG_TO_LABEL:
         return _SNOMED_TAG_TO_LABEL[key]
-    sanitised = "".join(
-        ch if ch.isalnum() else "_" for ch in key
-    ).strip("_") or "concept"
+    sanitised = (
+        "".join(ch if ch.isalnum() else "_" for ch in key).strip("_") or "concept"
+    )
     return sanitised
 
 
@@ -5987,9 +5983,7 @@ def candidate_from_dry_run(
 
     raw_text = (payload.encounter_text or "").strip()
     if not raw_text:
-        raise HTTPException(
-            status_code=400, detail="encounter_text must not be empty"
-        )
+        raise HTTPException(status_code=400, detail="encounter_text must not be empty")
 
     deidentified = deidentify_text(raw_text, ner=True).strip()
     if not deidentified:
@@ -6052,9 +6046,7 @@ def candidate_from_dry_run(
             # ensure_gold_label_for_candidate does so the AI-suggested
             # chip / show-original toggle work for dry-run rows that
             # were already touched by an AI first pass.
-            label_row = session.run(
-                GET_GOLD_LABEL_BY_ID, label_id=label_id
-            ).single()
+            label_row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
             if not label_row:
                 raise HTTPException(
                     status_code=500, detail="Failed to load draft GoldLabel"
@@ -6062,9 +6054,7 @@ def candidate_from_dry_run(
             ai_audit: dict[str, Any] = {}
             if candidate_row is not None:
                 ai_audit = {
-                    "ai_first_pass_run_id": candidate_row.get(
-                        "ai_first_pass_run_id"
-                    ),
+                    "ai_first_pass_run_id": candidate_row.get("ai_first_pass_run_id"),
                     "ai_first_pass_at": candidate_row.get("ai_first_pass_at"),
                     "entities_json_original": candidate_row.get(
                         "entities_json_original"
@@ -6205,9 +6195,7 @@ def gold_label_from_encounter(
                     schema_version="v4",
                 )
 
-            label_row = session.run(
-                GET_GOLD_LABEL_BY_ID, label_id=label_id
-            ).single()
+            label_row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
             if not label_row:
                 raise HTTPException(
                     status_code=500, detail="Failed to load draft GoldLabel"
@@ -6215,15 +6203,28 @@ def gold_label_from_encounter(
             ai_audit: dict[str, Any] = {}
             if candidate_row is not None:
                 ai_audit = {
-                    "ai_first_pass_run_id": candidate_row.get(
-                        "ai_first_pass_run_id"
-                    ),
+                    "ai_first_pass_run_id": candidate_row.get("ai_first_pass_run_id"),
                     "ai_first_pass_at": candidate_row.get("ai_first_pass_at"),
                     "entities_json_original": candidate_row.get(
                         "entities_json_original"
                     ),
                 }
-            gold_label = {**dict(label_row), **ai_audit}
+            # Always mirror the current live :DOCUMENTS state into the
+            # returned entities_json. The stored GoldLabel can carry
+            # stale entities from a prior coding of this encounter
+            # (since reset and recoded) or from a different encounter
+            # that shares the same de-identified text. Returning the
+            # stored gold entities would open the editor pre-populated
+            # against an uncoded encounter, making it look like the
+            # encounter is already coded and letting a silent save
+            # push those stale terms onto the live record. Dual save
+            # on :DOCUMENTS sync overwrites the gold mirror, so no
+            # stored gold data is lost without an explicit save.
+            gold_label = {
+                **dict(label_row),
+                "entities_json": entities_json,
+                **ai_audit,
+            }
     finally:
         kg_client.close()
 
@@ -6257,9 +6258,7 @@ def approve_dry_run_extraction_as_gold(
 
     raw_text = (payload.encounter_text or "").strip()
     if not raw_text:
-        raise HTTPException(
-            status_code=400, detail="encounter_text must not be empty"
-        )
+        raise HTTPException(status_code=400, detail="encounter_text must not be empty")
 
     deidentified = deidentify_text(raw_text, ner=True).strip()
     if not deidentified:
@@ -6365,13 +6364,8 @@ def lookup_per_encounter_weights(
                 job
                 for job in _canary_jobs.values()
                 if job.get("status") == "completed"
-                and (
-                    payload.version is None
-                    or job.get("version") == payload.version
-                )
-                and isinstance(
-                    (job.get("metrics") or {}).get("per_document"), list
-                )
+                and (payload.version is None or job.get("version") == payload.version)
+                and isinstance((job.get("metrics") or {}).get("per_document"), list)
             ),
             key=lambda j: float(j.get("completed_at") or 0.0),
             reverse=True,
@@ -6470,11 +6464,7 @@ def update_gold_label_entities(
                 if "snomed_concept_id" in ent
                 else {}
             ),
-            **(
-                {"semantic_tag": ent["semantic_tag"]}
-                if "semantic_tag" in ent
-                else {}
-            ),
+            **({"semantic_tag": ent["semantic_tag"]} if "semantic_tag" in ent else {}),
             **({"snomed_term": ent["snomed_term"]} if "snomed_term" in ent else {}),
             **({"body_site": ent["body_site"]} if "body_site" in ent else {}),
             **(
@@ -6497,7 +6487,9 @@ def update_gold_label_entities(
     for idx, entity in enumerate(validated):
         raw_relations = list(entity.get("relations") or [])
         # Legacy single-site fields are mirrored to finding_site relation.
-        legacy_site_text = str(entity.get("body_site_term") or entity.get("body_site") or "").strip()
+        legacy_site_text = str(
+            entity.get("body_site_term") or entity.get("body_site") or ""
+        ).strip()
         if legacy_site_text:
             target_idx = None
             for j, target in enumerate(validated):
@@ -6521,7 +6513,9 @@ def update_gold_label_entities(
         for rel in canonical_relations:
             target_idx = int(rel["target_idx"])
             allowed, severity = is_relation_allowed(
-                source_label=str(entity.get("label") or entity.get("semantic_tag") or ""),
+                source_label=str(
+                    entity.get("label") or entity.get("semantic_tag") or ""
+                ),
                 target_label=str(
                     validated[target_idx].get("label")
                     or validated[target_idx].get("semantic_tag")
@@ -6727,18 +6721,14 @@ def _fetch_label_counts_for_scoring() -> dict[str, int]:
     kg = KnowledgeGraphClient()
     try:
         with kg.session() as session:
-            rows = session.run(
-                """
+            rows = session.run("""
                 MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
                 WHERE c.status = 'completed' AND g.entities_json IS NOT NULL
                 RETURN g.entities_json AS entities_json
-                """
-            )
+                """)
             for row in rows:
                 for ent in _json.loads(row["entities_json"] or "[]"):
-                    raw = str(
-                        ent.get("label") or ent.get("semantic_tag") or ""
-                    ).upper()
+                    raw = str(ent.get("label") or ent.get("semantic_tag") or "").upper()
                     if raw:
                         counter[raw] += 1
     finally:

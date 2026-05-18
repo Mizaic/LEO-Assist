@@ -1,0 +1,22 @@
+{
+  "generated_at": "20260428T230630Z",
+  "mode": "dry_run_no_graph_writes",
+  "window_days": 180,
+  "diagnosis_patient_count": 1,
+  "episode_candidate_count": 1,
+  "raw_pathway_count": 1,
+  "open_referral_count": 0,
+  "patients_with_no_pathways": 0,
+  "route_counts": {
+    "fast_track_clinic_referral_missing": 1
+  },
+  "cohort_counts": {
+    "3": 1
+  },
+  "raw_cohort_counts": {
+    "3": 1
+  },
+  "site_counts": {
+    "skin": 1
+  }
+}

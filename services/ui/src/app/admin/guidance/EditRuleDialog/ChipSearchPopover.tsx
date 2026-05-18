@@ -41,7 +41,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 
-import ConceptSearchPanel from "./ConceptSearchPanel";
+import ConceptSearchPanel, { type ObservationSeed } from "./ConceptSearchPanel";
 import type { LogicCriterion } from "./types";
 
 interface Props {
@@ -51,6 +51,14 @@ interface Props {
   focusLabel: string | null;
   initialQuery: string;
   onPick: (criterion: LogicCriterion) => void;
+  /**
+   * Phase 6b: forwarded to ConceptSearchPanel. When the popover is in
+   * "add" mode (i.e. inserting a new leaf under a group) the parent
+   * may pass a handler that inserts an OBSERVATION leaf instead of a
+   * CONCEPT when the reviewer picks "Compare value..." on an
+   * observable-looking hit.
+   */
+  onPickObservation?: (seed: ObservationSeed) => void;
   onClose: () => void;
 }
 
@@ -61,6 +69,7 @@ export default function ChipSearchPopover({
   focusLabel,
   initialQuery,
   onPick,
+  onPickObservation,
   onClose,
 }: Props) {
   const heading =
@@ -138,6 +147,7 @@ export default function ChipSearchPopover({
           focusLabel={null}
           initialQuery={initialQuery}
           onPick={onPick}
+          onPickObservation={mode === "add" ? onPickObservation : undefined}
         />
       </Box>
     </Popover>

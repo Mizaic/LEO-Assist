@@ -93,12 +93,12 @@ from typing import Pattern
 # (configs/read codes/readcode.md) and the deep-read of stale dumps.
 MALIGNANCY_READ_CODES: dict[str, str] = {
     # -- corpus-confirmed in deep-read --
-    "X78WM": "breast",  # Malignant tumour of breast (pid 4709023328)
-    "X78XO": "endometrial",  # Endometrial carcinoma (pid 6220044894)
-    "BB5j2": "endometrial",  # Endometrioid carcinoma (pid 6220044894)
+    "X78WM": "breast",  # Malignant tumour of breast
+    "X78XO": "endometrial",  # Endometrial carcinoma
+    "BB5j2": "endometrial",  # Endometrioid carcinoma
     # -- corpus-confirmed in 2025 closed_benign audit (DI-LEO-AI-171) --
     "X78Y6": "prostate",  # Carcinoma of prostate (eps a6c093d2702d379f, e7c8b99ad0ae77ab)
-    "Ya0ln": "breast",  # Invasive carcinoma of breast (eps 1ecfb55618c2a6d2)
+    "Ya0ln": "breast",  # Invasive carcinoma of breast (corpus)
     # -- high-confidence siblings from Read code appendix --
     "B00..": "head_and_neck",  # Malignant neoplasm of lip
     "B01..": "head_and_neck",  # Malignant neoplasm of tongue
@@ -189,9 +189,8 @@ MALIGNANCY_READ_CODES: dict[str, str] = {
     "XaBAw": "melanoma",  # Malignant blue naevus of skin
     "XaCIv": "melanoma",  # Malignant melanoma of back
     "Xa0CD": "skin",  # Malignant tumour of skin with pilar differentiation
-    # -- DI-LEO-AI-175: skin / melanoma vocabulary (2026-04-17 audit
-    #    of patient 4921442355 - Lentigo maligna melanoma silently
-    #    filed closed_benign because none of these were mapped) --
+    # -- DI-LEO-AI-175: skin / melanoma vocabulary (2026-04-17 audit;
+    #    lentigo maligna case had filed closed_benign until codes mapped) --
     "Xa99Y": "melanoma",  # Lentigo maligna melanoma
     # B32.. family - Malignant melanoma of skin (sourced verbatim
     # from configs/read codes/readcode.md). All map to "melanoma"
@@ -204,7 +203,7 @@ MALIGNANCY_READ_CODES: dict[str, str] = {
     "B3220": "melanoma",  # Malignant melanoma of skin of ear
     "B3221": "melanoma",  # Malignant melanoma of skin of external auditory canal
     "B323.": "melanoma",  # Malignant melanoma of skin of other and unspecified parts of face
-    "B3230": "melanoma",  # Malignant melanoma of skin of cheek (Mr Allwyn's site)
+    "B3230": "melanoma",  # Malignant melanoma of skin of cheek
     "B3231": "melanoma",  # Malignant melanoma of chin
     "B324.": "melanoma",  # Malignant melanoma of scalp and neck
     "B3240": "melanoma",  # Malignant melanoma of scalp
@@ -252,7 +251,7 @@ CANCER_TREATMENT_PROCEDURE_CODES: set[str] = {
     # an end-to-end milestone chain (referral -> first_seen ->
     # diagnosis -> treatment_started). --
     # Breast surgery
-    "XacLJ",  # Mastectomy of right breast (pid 4802892365)
+    "XacLJ",  # Mastectomy of right breast
     "XacLK",  # Mastectomy of left breast (sibling code)
     "X40EC",  # Wide local excision of breast lesion
     "7H601",  # Block dissection of axillary lymph nodes
@@ -603,38 +602,38 @@ ADJUVANT_THERAPY_ISSUE_MARKERS: Pattern[str] = re.compile(
 # window. Outside the window they are irrelevant comorbidity.
 BENIGN_EXPLANATION_READ_CODES: set[str] = {
     # -- head & neck pathway --
-    "XaK99",  # Laryngopharyngeal reflux  (pid 4842019832)
-    "F5801",  # Presbyacusis              (pid 4866803525)
+    "XaK99",  # Laryngopharyngeal reflux
+    "F5801",  # Presbyacusis
     "X40Gg",  # Thyroid nodule (benign)
     "XE104",  # Thyrotoxicosis
     "XE0Xx",  # Chronic rhinitis
     # -- breast pathway --
-    "XaYQ7",  # Cyst of breast            (pid 4246627143, 6509504022)
-    "Xa4ib",  # Lesion of breast (benign) (pid 7322946243)
-    "XE0Tg",  # Other viral warts         (pid 7322946243)
+    "XaYQ7",  # Cyst of breast
+    "Xa4ib",  # Lesion of breast (benign)
+    "XE0Tg",  # Other viral warts
     "1A8..",  # Breast lump symptom (without malignancy)
     # -- urological pathway --
-    "K276.",  # Balanitis xerotica obliterans (pid 4644882798)
-    "XE0e0",  # Urinary tract infection      (pid 7313758405)
-    "XaFqt",  # Suspected UTI                (pid 4822020479)
+    "K276.",  # Balanitis xerotica obliterans
+    "XE0e0",  # Urinary tract infection
+    "XaFqt",  # Suspected UTI
     "K1A..",  # Benign prostatic hyperplasia (BPH)
     # -- colorectal / lower GI pathway --
-    "J5105",  # Diverticulosis of the colon (pid 4822020479)
-    "Xa98X",  # Tubular adenoma (benign polyp) (pid 4822020479)
+    "J5105",  # Diverticulosis of the colon
+    "Xa98X",  # Tubular adenoma (benign polyp)
     "J5701",  # Rectal polyp (benign)
-    "XE0ag",  # Ulcerative colitis          (pid 4246428337)
-    "G84..",  # Haemorrhoid                 (pid 4926887169, 6519712760)
+    "XE0ag",  # Ulcerative colitis
+    "G84..",  # Haemorrhoid
     # -- renal / urological --
-    "PD10.",  # Single renal cyst           (pid 4926887169)
+    "PD10.",  # Single renal cyst
     # -- gynae --
-    "X406j",  # Ovarian cyst (benign)       (pid 7039607018)
-    "Xa6Yg",  # Atrophy of vagina           (pid 4245132175)
+    "X406j",  # Ovarian cyst (benign)
+    "Xa6Yg",  # Atrophy of vagina
     # -- general lymphadenopathy / non-malignant --
-    "Xa0Vr",  # Lymphadenopathy (NAD on 2WW) (pid 7343840665)
+    "Xa0Vr",  # Lymphadenopathy (NAD on 2WW)
     # -- screening normal --
-    "68620",  # Breast neoplasm screening normal (pid 6220044894)
-    "XaPkd",  # BCSP faecal occult blood test normal (pid 4587360686)
-    "XaPVj",  # BCSP faecal occult blood result normal (pid 4587360686)
+    "68620",  # Breast neoplasm screening normal
+    "XaPkd",  # BCSP faecal occult blood test normal
+    "XaPVj",  # BCSP faecal occult blood result normal
 }
 
 # ---------------------------------------------------------------------------
@@ -1136,8 +1135,7 @@ def find_cancer_treatment_procedure_code(text: str) -> str | None:
 # the cancer / oncology / melanoma keyword to avoid firing on referral
 # text like "fast track for suspected skin cancer".
 #
-# Sourced from the 2026-04-17 audit of patient 4921442355 (UHL
-# Dermatology "Skin Cancer Follow Up" template).
+# Sourced from 2026-04-17 skin/melanoma audit (Dermatology follow-up template).
 CANCER_FOLLOW_UP_PHRASES: list[tuple[Pattern[str], str]] = [
     (re.compile(r"\bskin cancer follow[- ]?up\b", re.I), "melanoma"),
     (re.compile(r"\bmelanoma follow[- ]?up\b", re.I), "melanoma"),
@@ -1252,8 +1250,8 @@ def text_has_cancer_pathway_context(text: str) -> bool:
 # vaccination, repeat prescription, sick-note request, hot flushes
 # without cancer context, etc.), incidental cancer mentions in the
 # History/Plan body must NOT fire cancer-pathway milestones such as
-# care_obstruction. The classic failure mode is patient 4802892365's
-# 2025-07-01 MMR/Mexico travel-vaccine encounter, whose body contained
+# care_obstruction. The classic failure mode is a 2025-07-01
+# MMR / Mexico travel-vaccine encounter whose body contained
 # "unable to attend for vaccine ... Scheduled for mastectomy on
 # 29.07.25". The care_obstruction regex matched "unable to attend" and
 # emitted a phantom obstruction milestone on the breast pathway, when
@@ -1578,13 +1576,10 @@ def encounter_diagnosis_is_narrative_restatement(text: str) -> bool:
 # active_cancer_care_code) fires diagnosis_confirmed on routine annual
 # cancer-care-review encounters whose only "evidence" is the GP keeping
 # the problem list current and writing a narrative that restates the
-# already-known cancer history. The 2025-09-24 encounter for patient
-# 4802892365 ("Cancer care review and general catch up given recent
-# events. Referred by me on 2ww earlier this year, confirmed breast
-# cancer. Post mastectomy recovery review.") attached a phantom
-# diagnosis_confirmed anchor to the REAL referral-anchored episode
-# 1ecfb55618c2a6d2 -- polluting the timeline with a duplicate
-# diagnosis event five months after the genuine mid-May diagnosis.
+# already-known cancer history. A 2025-09-24 cancer-care-review
+# encounter (restatement only, no new diagnosis) attached a phantom
+# diagnosis_confirmed to the real referral-anchored episode, polluting
+# the timeline with a duplicate diagnosis months after the genuine one.
 #
 # N1 only protects against FLOATING phantom episodes built entirely
 # from restatements. N4 sits one layer deeper and stops the

@@ -1,0 +1,59 @@
+{
+  "summary": {
+    "gold_labels_scanned": 2849,
+    "entity_occurrences": 8715,
+    "unique_phrases": 3430,
+    "conflicting_phrases": 1,
+    "assertion_only_variants": 74,
+    "approved_multilabel_variants": 28
+  },
+  "conflicts": [
+    {
+      "phrase": "prostate-specific antigen level",
+      "occurrences": 34,
+      "distinct_labels": 2,
+      "distinct_assertions": 1,
+      "signature_counts": {
+        "PROCEDURE | present": 33,
+        "OBSERVABLE_ENTITY | present": 1
+      },
+      "examples": [
+        {
+          "signature": "PROCEDURE | present",
+          "label_id": "GL-ab6c08a05d1102e1",
+          "source": "lab_coder_v1",
+          "span_length": "31",
+          "sentence_preview": "08:13 - Surgery: Auto-filed   Prostate-specific antigen level (XE25C) 1.8 ng/ml [0 - 4.5] PSA values are typically elevated following UTI: P"
+        },
+        {
+          "signature": "PROCEDURE | present",
+          "label_id": "GL-97667a47911989f2",
+          "source": "lab_coder_v1",
+          "span_length": "31",
+          "sentence_preview": "08:41 - Surgery: Auto-filed   Prostate-specific antigen level (XE25C) 5.3 ng/ml [0 - 3.5] Outside reference range; PSA values are typically "
+        },
+        {
+          "signature": "PROCEDURE | present",
+          "label_id": "GL-94b7461be9708eca",
+          "source": "lab_coder_v1",
+          "span_length": "31",
+          "sentence_preview": "12:45 - Surgery: Auto-filed   Prostate-specific antigen level (XE25C) 2.8 ng/ml [0 - 20] PSA values are typically elevated following UTI: Pl"
+        },
+        {
+          "signature": "PROCEDURE | present",
+          "label_id": "GL-165187489c11adeb",
+          "source": "lab_coder_v1",
+          "span_length": "31",
+          "sentence_preview": "14:59 - Surgery: Auto-filed   Prostate-specific antigen level (XE25C) 8 ng/ml [0 - 4.5] Outside reference range; PSA values are typically el"
+        },
+        {
+          "signature": "PROCEDURE | present",
+          "label_id": "GL-b6a0c99a8dd3fcb8",
+          "source": "lab_coder_v1",
+          "span_length": "31",
+          "sentence_preview": "11:37 - Surgery: Auto-filed   Prostate-specific antigen level (XE25C) 17 ng/ml [0 - 6.5] Outside reference range; PSA values are typically e"
+        }
+      ]
+    }
+  ]
+}

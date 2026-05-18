@@ -74,9 +74,11 @@ class TrainingJob:
             "per_label_f1": ner_metrics.get("per_label", {}),
             "dev_doc_count": ner_metrics.get("dev_doc_count"),
             "passed_gates": ner_metrics.get("passed_gates"),
+            "label_gate_failures": ner_metrics.get("label_gate_failures", []),
             "export_total": export_metrics.get("total"),
             "export_assertion_filtered": export_metrics.get("assertion_filtered"),
             "export_span_misaligned": export_metrics.get("span_misaligned"),
+            "export_per_label_counts": export_metrics.get("per_label_counts", {}),
             "artifact_uri": self.artifact_uri,
             "model_version": self.model_version,
             "error": self.error,
@@ -130,10 +132,21 @@ class TrainingJobStore:
         with self._lock:
             return self._jobs.get(job_id)
 
-    def list_all(self, *, log_tail: int = 25) -> list[dict[str, Any]]:
+    def list_all(
+        self, *, log_tail: int = 25, running_log_tail: int = 300
+    ) -> list[dict[str, Any]]:
+        """Return all jobs sorted newest-first.
+
+        Running jobs get a larger ``running_log_tail`` so the UI training-curve
+        chart can see the full step history without a separate per-job fetch.
+        """
         with self._lock:
             return [
-                j.to_dict(log_tail=log_tail)
+                j.to_dict(
+                    log_tail=running_log_tail
+                    if j.status in {"running", "evaluating", "uploading"}
+                    else log_tail
+                )
                 for j in sorted(
                     self._jobs.values(), key=lambda j: j.created_at, reverse=True
                 )

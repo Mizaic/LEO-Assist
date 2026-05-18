@@ -28,7 +28,8 @@ COPY services/coding_worker/ /app/services/coding_worker/
 # Shared with terminology API: queries + writeback helpers (routers import these)
 COPY services/terminology_api/ /app/services/terminology_api/
 WORKDIR /app
-ENV PYTHONPATH=/app:/app/services/api
+ENV PYTHONPATH=/app:/app/services/api \
+    UVICORN_WORKERS=4
 USER appuser
 EXPOSE 8000
 ENTRYPOINT ["/venv/bin/uvicorn", "services.api.app.main:app", \

@@ -26,8 +26,10 @@ def run(
     window_start: str,
     window_end: str,
     window_full_text: str,
+    context_hints: str = "",
     max_tokens: int = 4096,
 ) -> tuple[MilestoneExtractorResult, StageTrace]:
+    hints_block = "\n\n" + context_hints if context_hints.strip() else ""
     user = milestone_extractor_v1.USER_TEMPLATE.format(
         patient_id=patient_id,
         window_id=window_id,
@@ -35,6 +37,7 @@ def run(
         window_start=window_start,
         window_end=window_end or "open",
         window_full_text=window_full_text,
+        context_hints_block=hints_block,
     )
     return call_stage(
         stage="milestone_extractor",

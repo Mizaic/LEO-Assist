@@ -161,7 +161,11 @@ VALUESET_RESOURCES = [
         "Observable entity measurements",
         semantic_tags=["observable entity"],
     ),
-    _make_valueset("ethnicity", "Ethnicity codes", semantic_tags=["ethnic group"]),
+    _make_valueset(
+        "ethnicity",
+        "NCDA ethnicity (SNOMED CT UK census-aligned)",
+        semantic_tags=["Clinical finding", "Ethnic group"],
+    ),
     _make_valueset(
         "housebound_status", "Housebound status", semantic_tags=["situation"]
     ),

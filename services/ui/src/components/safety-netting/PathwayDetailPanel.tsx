@@ -24,6 +24,8 @@ import type { SafetyNetAlert } from "@/lib/analyticsApi";
 import type { PathwayRisk } from "@/lib/pathwayRisk";
 import type { SafetyNetWorklistRow } from "@/components/safety-netting/PatientPathwayWorklist";
 import { daysBetween } from "@/lib/pathwayRisk";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskBirthDate, maskPatientId } from "@/lib/demoMode";
 
 const SEVERITY_COLORS: Record<string, "error" | "warning" | "info"> = {
   critical: "error",
@@ -89,6 +91,7 @@ export default function PathwayDetailPanel({
   onActionAlert: (alertId: string, actioned: boolean) => void;
   actionLoading: boolean;
 }) {
+  const { isDemoMode } = useDemoMode();
   const outstanding = row.alerts.filter((a) => !a.actioned);
   const worst = outstanding[0] ?? row.alerts[0];
   const activeStep = completedStepCount(row.risk);
@@ -118,7 +121,7 @@ export default function PathwayDetailPanel({
         }}
       >
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-          {row.patient_id}
+          {isDemoMode ? maskPatientId(row.patient_id) : row.patient_id}
         </Typography>
         <IconButton aria-label="Close" size="small" onClick={onClose}>
           <CloseIcon fontSize="small" />
@@ -127,7 +130,9 @@ export default function PathwayDetailPanel({
 
       <Box sx={{ p: 2, overflow: "auto", flex: 1 }}>
         <Typography variant="caption" color="text.secondary">
-          {`DOB: ${safeDate(row.birth_date)} ${row.gender ? `· ${row.gender}` : ""}`}
+          {`DOB: ${
+            isDemoMode ? maskBirthDate(row.birth_date) : safeDate(row.birth_date)
+          } ${row.gender ? `· ${row.gender}` : ""}`}
         </Typography>
 
         {worst && (

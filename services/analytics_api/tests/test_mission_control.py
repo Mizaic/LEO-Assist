@@ -17,6 +17,7 @@ import pytest
 
 from libs.auth.org_scope import CallerScope
 from services.analytics_api.app.routers.mission_control import (
+    _all_patients_cypher,
     LIFECYCLE_BUCKET_PATTERN,
     NO_PATHWAY_BUCKET,
     ReviewRequest,
@@ -27,6 +28,8 @@ from services.analytics_api.app.routers.mission_control import (
     _patient_only_query,
     _apply_pathway_filter,
     _apply_review_filter,
+    _episode_list_predicate,
+    _has_episode_bound_filters,
     _kpis_cypher,
     _no_pathway_patients_cypher,
     _no_pathway_scope_match,
@@ -194,9 +197,7 @@ def test_no_pathway_bucket_treated_as_no_op_by_episode_filter():
     The endpoint dispatches to _no_pathway_scope_match instead.
     """
     base_before = BASE
-    base, params = _apply_lifecycle_bucket_filter(
-        BASE, {}, NO_PATHWAY_BUCKET
-    )
+    base, params = _apply_lifecycle_bucket_filter(BASE, {}, NO_PATHWAY_BUCKET)
     assert base == base_before
     assert "lifecycle_bucket" not in params
 
@@ -278,14 +279,14 @@ def test_review_filter_all_no_change():
 
 def test_patient_id_filter_adds_to_string_clause():
     """Valid patient_id adds parameterised toString(p.id) predicate."""
-    base, params = _apply_patient_id_filter(BASE, {}, "4181221113")
+    base, params = _apply_patient_id_filter(BASE, {}, "9990001006")
     assert "toString(p.id) = $patient_id" in base
-    assert params["patient_id"] == "4181221113"
+    assert params["patient_id"] == "9990001006"
 
 
 def test_patient_id_filter_whitespace_trimmed():
-    base, params = _apply_patient_id_filter(BASE, {}, "  4181221113  ")
-    assert params["patient_id"] == "4181221113"
+    base, params = _apply_patient_id_filter(BASE, {}, "  9990001006  ")
+    assert params["patient_id"] == "9990001006"
 
 
 def test_patient_id_filter_empty_ignored():
@@ -309,10 +310,10 @@ def test_patient_only_query_scopes_exact_id():
         scope_type="gp",
         primary_org_id="org-1",
     )
-    q, params = _patient_only_query(scope, "org-1", "4181221113")
+    q, params = _patient_only_query(scope, "org-1", "9990001006")
     assert "toString(p.id) = $patient_id" in q
     assert "LIMIT 1" in q
-    assert params["patient_id"] == "4181221113"
+    assert params["patient_id"] == "9990001006"
 
 
 @pytest.mark.asyncio
@@ -331,7 +332,7 @@ async def test_patients_endpoint_falls_back_to_patient_without_episodes(monkeypa
             if "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]" in query:
                 return [
                     {
-                        "patient_id": "4181221113",
+                        "patient_id": "9990001006",
                         "gender": "female",
                         "birth_date": "1985-01-01",
                         "practice_name": "Woodbrook Medical Centre",
@@ -360,7 +361,7 @@ async def test_patients_endpoint_falls_back_to_patient_without_episodes(monkeypa
         cancer_types=None,
         closure_reasons=None,
         review_status="all",
-        patient_id="4181221113",
+        patient_id="9990001006",
         sort_by="referral_date",
         sort_dir="DESC",
         page=1,
@@ -369,7 +370,7 @@ async def test_patients_endpoint_falls_back_to_patient_without_episodes(monkeypa
     )
     assert result["total"] == 1
     assert len(result["patients"]) == 1
-    assert result["patients"][0]["patient_id"] == "4181221113"
+    assert result["patients"][0]["patient_id"] == "9990001006"
     assert result["patients"][0]["episodes"] == []
 
 
@@ -410,6 +411,48 @@ def test_patients_query_collects_distinct_episodes():
     """VT-091-TC-005: patient episode list de-duplicates repeated episode rows."""
     _, data_q, _ = _patients_cypher(BASE, {}, "referral_date", "DESC", 0, 25)
     assert "collect(DISTINCT ep) AS episodes" in data_q
+
+
+def test_default_patient_list_does_not_require_episode_match():
+    """Default /mission-control/patients must include patients with no pathway."""
+    predicate, params = _episode_list_predicate(
+        date_from=None,
+        date_to=None,
+        pathway_filter="all",
+        cancer_types=[],
+        closure_reasons=[],
+        review_status="all",
+        lifecycle_bucket="all",
+        params={},
+    )
+    count_q, data_q, qparams = _all_patients_cypher(
+        "MATCH (p:Patient) WHERE true ",
+        params,
+        predicate,
+        _has_episode_bound_filters(None, None, "all", [], [], "all", "all"),
+        "referral_date",
+        "DESC",
+        0,
+        25,
+    )
+    assert "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->" in count_q
+    assert "WHERE size(episodes) > 0" not in count_q
+    assert "WHERE size(episodes) > 0" not in data_q
+    assert qparams["skip"] == 0
+    assert qparams["limit"] == 25
+
+
+def test_episode_filters_still_require_matching_episode():
+    """Explicit episode filters should not return every patient in scope."""
+    assert _has_episode_bound_filters(
+        "2024-01-01",
+        None,
+        "all",
+        [],
+        [],
+        "all",
+        "all",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -505,6 +548,108 @@ def test_pipeline_events_query_falls_back_when_episode_missing():
 
 
 # ---------------------------------------------------------------------------
+# DI-3A19BE12 -- manual-events endpoint surfaces EpisodeManual* AuditEvents
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_manual_events_returns_starts_with_episode_manual():
+    """The query MUST filter to EpisodeManual* event_type values so
+    PipelineRun rows do not bleed into the Human edits section."""
+    from services.analytics_api.app.routers.mission_control import (
+        get_patient_manual_events,
+    )
+    import inspect
+
+    source = inspect.getsource(get_patient_manual_events)
+    assert "STARTS WITH 'EpisodeManual'" in source
+    assert "ORDER BY ae.created_at DESC" in source
+
+
+@pytest.mark.asyncio
+async def test_manual_events_returns_curator_rows():
+    """End-to-end shape: the endpoint maps Cypher rows to the
+    ManualAuditEvent JSON schema the UI expects (event_type, actor,
+    notes, created_at)."""
+    from unittest.mock import patch
+    from libs.auth.org_scope import CallerScope
+    from services.analytics_api.app.routers.mission_control import (
+        get_patient_manual_events,
+    )
+
+    fake_rows = [
+        {
+            "id": "ae-1",
+            "event_type": "EpisodeManualAttach",
+            "subtype": "episode_manual_edit",
+            "created_at": "2026-04-22T09:00:00",
+            "actor_email": "rob@example.com",
+            "actor_role": "qa_ra_lead",
+            "episode_id": "ep-001",
+            "patient_id": "P-1",
+            "notes": "Attached encounter=enc-1 as milestone=diagnosis_confirmed",
+            "before_json": "",
+            "after_json": "",
+        }
+    ]
+
+    with patch(
+        "services.analytics_api.app.routers.mission_control.PatientGraphClient"
+    ) as MockPG:
+        client = MockPG.return_value
+        client.run.return_value = fake_rows
+
+        scope = CallerScope(email="x@y", is_admin=True, org_ids=[])
+        result = await get_patient_manual_events(
+            patient_id="P-1",
+            org_id=None,
+            episode_id=None,
+            limit=40,
+            scope=scope,
+        )
+
+    assert result["patient_id"] == "P-1"
+    assert len(result["events"]) == 1
+    ev = result["events"][0]
+    assert ev["event_type"] == "EpisodeManualAttach"
+    assert ev["actor_email"] == "rob@example.com"
+    assert ev["actor_role"] == "qa_ra_lead"
+    assert "diagnosis_confirmed" in ev["notes"]
+
+
+@pytest.mark.asyncio
+async def test_manual_events_filters_to_episode_when_specified():
+    """When episode_id is supplied the Cypher must add the
+    `ae.episode_id = $episode_id OR coalesce(ae.episode_id, '') = ''`
+    clause so each episode tab only shows its own audit trail (plus
+    the patient-wide create event for that episode)."""
+    from unittest.mock import patch
+    from libs.auth.org_scope import CallerScope
+    from services.analytics_api.app.routers.mission_control import (
+        get_patient_manual_events,
+    )
+
+    with patch(
+        "services.analytics_api.app.routers.mission_control.PatientGraphClient"
+    ) as MockPG:
+        client = MockPG.return_value
+        client.run.return_value = []
+
+        scope = CallerScope(email="x@y", is_admin=True, org_ids=[])
+        await get_patient_manual_events(
+            patient_id="P-1",
+            org_id=None,
+            episode_id="ep-001",
+            limit=40,
+            scope=scope,
+        )
+
+        cypher = client.run.call_args[0][0]
+        assert "ae.episode_id = $episode_id" in cypher
+        assert client.run.call_args.kwargs["episode_id"] == "ep-001"
+
+
+# ---------------------------------------------------------------------------
 # TC-008: unauthenticated access
 # ---------------------------------------------------------------------------
 
@@ -570,8 +715,150 @@ async def test_patient_rebuild_status_returns_estimates(monkeypatch):
         scope_type="gp",
         primary_org_id="org-1",
     )
-    result = await get_patient_rebuild_status("4181221113", "org-1", scope)
+    result = await get_patient_rebuild_status("9990001006", "org-1", scope)
     assert result["status"] == "queued"
     assert result["queue_depth"] == 12
     assert result["queue_position_estimate"] == 11
     assert result["eta_seconds_estimate"] is not None
+
+
+# ---------------------------------------------------------------------------
+# VT-2487F804: PATCH /sign-off writes verdict + status atomically
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_signoff_writes_verdict_status_and_review_stamp(monkeypatch):
+    """Verdict + mapped status + reviewed_* flags are in one Cypher call."""
+    from services.analytics_api.app.routers import mission_control as mc
+    from services.analytics_api.app.routers.mission_control import (
+        SignOffRequest,
+        patch_episode_sign_off,
+    )
+
+    captured: dict = {}
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            captured["query"] = query
+            captured["params"] = kwargs
+            return [
+                {
+                    "episode_id": kwargs["episode_id"],
+                    "review_verdict": kwargs["review_verdict"],
+                    "status": kwargs["status"],
+                    "reviewed_at": "2026-04-22T09:00:00",
+                    "reviewed_by": kwargs["reviewed_by"],
+                }
+            ]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(mc, "PatientGraphClient", _FakeClient)
+
+    scope = CallerScope(
+        email="qa@example.com",
+        is_admin=True,
+        org_ids=[],
+    )
+    body = SignOffRequest(
+        verdict="confirmed_benign",
+        reviewed_by="qa@example.com",
+        audit_notes="Ruled out on biopsy",
+    )
+    result = await patch_episode_sign_off("ep-1", body, scope=scope)
+
+    assert result["review_verdict"] == "confirmed_benign"
+    # closed_benign is the canonical status for confirmed_benign.
+    assert result["status"] == "closed_benign"
+    # The endpoint MUST write the verdict, status, reviewed stamp and
+    # both review flags in a single MATCH.
+    cy = captured["query"]
+    assert "ep.review_verdict = $review_verdict" in cy
+    assert "ep.status = $status" in cy
+    assert "ep.reviewed_at = datetime()" in cy
+    assert "ep.needs_human_review = false" in cy
+    assert "ep.needs_review = false" in cy
+    params = captured["params"]
+    assert params["review_verdict"] == "confirmed_benign"
+    assert params["status"] == "closed_benign"
+    assert params["reviewed_by"] == "qa@example.com"
+    assert params["audit_notes"] == "Ruled out on biopsy"
+
+
+@pytest.mark.asyncio
+async def test_signoff_rejects_unknown_verdict():
+    """VT-2487F804: unknown verdict -> HTTP 400 with helpful message."""
+    from fastapi import HTTPException
+    from services.analytics_api.app.routers.mission_control import (
+        SignOffRequest,
+        patch_episode_sign_off,
+    )
+
+    scope = CallerScope(email="qa@example.com", is_admin=True, org_ids=[])
+    body = SignOffRequest(verdict="maybe_cancer", reviewed_by="qa@example.com")
+    with pytest.raises(HTTPException) as exc_info:
+        await patch_episode_sign_off("ep-1", body, scope=scope)
+    assert exc_info.value.status_code == 400
+    assert "verdict must be one of" in str(exc_info.value.detail)
+
+
+@pytest.mark.asyncio
+async def test_signoff_unauthenticated_returns_401():
+    """VT-2487F804: no caller email -> HTTP 401."""
+    from fastapi import HTTPException
+    from services.analytics_api.app.routers.mission_control import (
+        SignOffRequest,
+        patch_episode_sign_off,
+    )
+
+    class EmptyScope:
+        email = None
+        is_admin = False
+        org_ids = []
+        primary_org_id = None
+
+        def to_query_params(self):
+            return {}
+
+    body = SignOffRequest(
+        verdict="confirmed_active",
+        reviewed_by="qa@example.com",
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        await patch_episode_sign_off(
+            "ep-1",
+            body,
+            scope=EmptyScope(),  # type: ignore[arg-type]
+        )
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_signoff_returns_404_when_episode_missing(monkeypatch):
+    """Unknown episode_id -> HTTP 404."""
+    from fastapi import HTTPException
+    from services.analytics_api.app.routers import mission_control as mc
+    from services.analytics_api.app.routers.mission_control import (
+        SignOffRequest,
+        patch_episode_sign_off,
+    )
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            return []
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(mc, "PatientGraphClient", _FakeClient)
+
+    scope = CallerScope(email="qa@example.com", is_admin=True, org_ids=[])
+    body = SignOffRequest(
+        verdict="confirmed_active",
+        reviewed_by="qa@example.com",
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        await patch_episode_sign_off("ep-missing", body, scope=scope)
+    assert exc_info.value.status_code == 404

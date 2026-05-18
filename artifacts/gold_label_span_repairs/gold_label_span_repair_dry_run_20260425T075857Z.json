@@ -1,0 +1,4445 @@
+{
+  "applied_labels": 0,
+  "apply": false,
+  "items": [
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 8,
+              "start": 3,
+              "text": "chest"
+            },
+            {
+              "end": 136,
+              "start": 131,
+              "text": "chest"
+            }
+          ],
+          "entity_text": "chest",
+          "index": 4,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "c857438ecf0a9de3155cb59d945d59db20db2a16e6fc37d79be42e959748c935",
+      "label_id": "603d53909e843c40eade7968d02a97dceb9c362738f814cd4668164b8e6bed82",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "pipeline_gold",
+      "unchanged_count": 4,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 199,
+              "start": 193,
+              "text": "biopsy"
+            },
+            {
+              "end": 236,
+              "start": 230,
+              "text": "biopsy"
+            }
+          ],
+          "entity_text": "biopsy",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "424a8f4d0eb0cfa121753f75f9c1a5780abe3ab8a85acd29a5e464fa87243e4d",
+      "label_id": "dd9d1add256ea1f9b6878c9620a28a0d1d036533fe674865fc8a84d16978c90c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "pipeline_gold",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 21,
+              "start": 13,
+              "text": "hip pain"
+            },
+            {
+              "end": 50,
+              "start": 42,
+              "text": "hip pain"
+            }
+          ],
+          "entity_text": "hip pain",
+          "index": 0,
+          "label": "finding",
+          "old_end": 349,
+          "old_start": 341,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "5f013285e3dabba7b2f18a82e8966f6aefb444c2e96faaec202b808c46d77b82",
+      "label_id": "manual-6860bcd7949645f39a3b90fc87d60985",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 22,
+              "start": 0,
+              "text": "MRI Head with contrast"
+            },
+            {
+              "end": 46,
+              "start": 24,
+              "text": "MRI Head with contrast"
+            }
+          ],
+          "entity_text": "MRI Head with contrast",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "db487fc5592dd341754ffe9509d20cc8cb826fa4e3834167c1e0f0782909b823",
+      "label_id": "manual-2382b009ffca428291f9b62f5885875c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "cef19e3714cbb7814ba1eb49a82da97472be4b9e7831367b0621c83f9ec58db8",
+      "label_id": "manual-caac19f39f8440ada908787d09dded0a",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [
+        {
+          "entity_text": "normal",
+          "index": 1,
+          "label": "qualifier_value",
+          "old_end": null,
+          "old_start": null,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 57,
+              "start": 51,
+              "text": "normal"
+            },
+            {
+              "end": 132,
+              "start": 126,
+              "text": "normal"
+            },
+            {
+              "end": 182,
+              "start": 176,
+              "text": "normal"
+            }
+          ],
+          "entity_text": "normal",
+          "index": 3,
+          "label": "qualifier_value",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "5e0c15e76d9212dc3b98cfe1dffe6ff9610cb83b2df80706a1c17883c54218d1",
+      "label_id": "manual-02d51d7bc50e45d1bac9cfd47e59141d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 62,
+              "start": 50,
+              "text": "radiotherapy"
+            },
+            {
+              "end": 129,
+              "start": 117,
+              "text": "radiotherapy"
+            }
+          ],
+          "entity_text": "radiotherapy",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 49,
+              "start": 41,
+              "text": "prostate"
+            },
+            {
+              "end": 96,
+              "start": 88,
+              "text": "prostate"
+            }
+          ],
+          "entity_text": "prostate",
+          "index": 2,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "8ee137cd3f4eea9ffea0db67a7f1660d37f2717498a6171046baa568f6e0590f",
+      "label_id": "manual-b79a3ebea5e84f948ec9689f02832284",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 20,
+              "start": 0,
+              "text": "Upper abdominal pain"
+            },
+            {
+              "end": 42,
+              "start": 22,
+              "text": "Upper abdominal pain"
+            }
+          ],
+          "entity_text": "Upper abdominal pain",
+          "index": 0,
+          "label": "finding",
+          "old_end": 3573,
+          "old_start": 3553,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "5941b29c7a8194e6a5ea20a5c0836f2bd5aef9d189ff1b4dfb015f7356240e8e",
+      "label_id": "manual-8750bf1f9bdc491da0646d27c92aba33",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 46,
+              "start": 41,
+              "text": "vulva"
+            },
+            {
+              "end": 130,
+              "start": 125,
+              "text": "vulva"
+            }
+          ],
+          "entity_text": "vulva",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "d1f2636668637384e8b9305b765f9352518a7eb22c6e7f6ba4b190b73d3ffcdb",
+      "label_id": "manual-3765ba02205d4000bee5d40e378cbbff",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 82,
+              "start": 75,
+              "text": "thyroid"
+            },
+            {
+              "end": 144,
+              "start": 137,
+              "text": "thyroid"
+            },
+            {
+              "end": 185,
+              "start": 178,
+              "text": "thyroid"
+            }
+          ],
+          "entity_text": "thyroid",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "d8d6ed4e650dbdee07f664f680d31c2c53be4050000760df0a7b0ad6536f4054",
+      "label_id": "manual-6ddd511b54ed4b2390f99f0ecd699902",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 236,
+              "start": 232,
+              "text": "pain"
+            },
+            {
+              "end": 322,
+              "start": 318,
+              "text": "pain"
+            }
+          ],
+          "entity_text": "pain",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 184,
+              "start": 175,
+              "text": "right arm"
+            },
+            {
+              "end": 386,
+              "start": 377,
+              "text": "Right arm"
+            },
+            {
+              "end": 437,
+              "start": 428,
+              "text": "right arm"
+            }
+          ],
+          "entity_text": "right arm",
+          "index": 2,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "a5b00004b0afa8d477b1b6da159a67fda442ad4f109aecb3a7ee3937dae18218",
+      "label_id": "manual-8f231cb633054ab791dd3bb9d9aa9e4d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 6,
+          "candidates": [
+            {
+              "end": 330,
+              "start": 325,
+              "text": "scalp"
+            },
+            {
+              "end": 400,
+              "start": 395,
+              "text": "scalp"
+            },
+            {
+              "end": 610,
+              "start": 605,
+              "text": "scalp"
+            },
+            {
+              "end": 719,
+              "start": 714,
+              "text": "scalp"
+            },
+            {
+              "end": 790,
+              "start": 785,
+              "text": "scalp"
+            },
+            {
+              "end": 979,
+              "start": 974,
+              "text": "scalp"
+            }
+          ],
+          "entity_text": "scalp",
+          "index": 0,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 477,
+              "start": 462,
+              "text": "lymphadenopathy"
+            },
+            {
+              "end": 867,
+              "start": 852,
+              "text": "lymphadenopathy"
+            }
+          ],
+          "entity_text": "lymphadenopathy",
+          "index": 1,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 236,
+              "start": 215,
+              "text": "Skin Cancer Follow Up"
+            },
+            {
+              "end": 261,
+              "start": 240,
+              "text": "Skin Cancer Follow Up"
+            }
+          ],
+          "entity_text": "Skin Cancer Follow Up",
+          "index": 2,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 400,
+              "start": 365,
+              "text": "Extensive erosions across the scalp"
+            },
+            {
+              "end": 790,
+              "start": 755,
+              "text": "Extensive erosions across the scalp"
+            }
+          ],
+          "entity_text": "Extensive erosions across the scalp",
+          "index": 3,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 440,
+              "start": 402,
+              "text": "No evidence of infection or malignancy"
+            },
+            {
+              "end": 830,
+              "start": 792,
+              "text": "No evidence of infection or malignancy"
+            }
+          ],
+          "entity_text": "No evidence of infection or malignancy",
+          "index": 4,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 5,
+      "candidate_id": "839dff752d070552164af8dcc9712e97bf47332fdef558407765b81ea4b7f978",
+      "label_id": "manual-f05c788e9ab14b9eaa570e574635afa4",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 546,
+              "start": 529,
+              "text": "epigastric hernia"
+            },
+            {
+              "end": 670,
+              "start": 653,
+              "text": "Epigastric hernia"
+            },
+            {
+              "end": 724,
+              "start": 707,
+              "text": "epigastric hernia"
+            }
+          ],
+          "entity_text": "Epigastric hernia",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 681,
+              "start": 672,
+              "text": "Dyspepsia"
+            },
+            {
+              "end": 960,
+              "start": 951,
+              "text": "dyspepsia"
+            }
+          ],
+          "entity_text": "Dyspepsia",
+          "index": 1,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "1a26fb6140d1f5833166fce40c4337e5dcfe6ac6131d8ea493add3ef3b04a629",
+      "label_id": "manual-d2143d75c0454b6d9531afaa8bf96c20",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 231,
+              "start": 222,
+              "text": "dysphagia"
+            },
+            {
+              "end": 446,
+              "start": 437,
+              "text": "dysphagia"
+            }
+          ],
+          "entity_text": "dysphagia",
+          "index": 1,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "c0fb6d495e18f1af7325e982c3c4eaaae52cdb1a90501375ad62a024b01d37ce",
+      "label_id": "manual-9f45614c2d774d27b4f364fa48d8bc8d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 4,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 84,
+              "start": 78,
+              "text": "Smoker"
+            },
+            {
+              "end": 282,
+              "start": 276,
+              "text": "Smoker"
+            }
+          ],
+          "entity_text": "Smoker",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "2cbbb16a84590c079ae4d17be727589280451a9050b39451dc5176ea08d0ebaf",
+      "label_id": "manual-c2b250c0d58a47218e26449b3c001e9a",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 167,
+              "start": 157,
+              "text": "dysphagia."
+            },
+            {
+              "end": 503,
+              "start": 493,
+              "text": "dysphagia."
+            }
+          ],
+          "entity_text": "dysphagia.",
+          "index": 1,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "1c7b6223028c15e947684973d9a2467322664b0e74264b7403d74094a17a3557",
+      "label_id": "manual-3fea82b91bed478dba16a8eb86f28257",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 4,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 51,
+              "start": 30,
+              "text": "Haemoglobin A1c level"
+            },
+            {
+              "end": 248,
+              "start": 227,
+              "text": "Haemoglobin A1c level"
+            }
+          ],
+          "entity_text": "Haemoglobin A1c level",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "21a21075c261667eb691b924bc2070e0bad2ffd3efed2f89204a3f7d71231ca2",
+      "label_id": "manual-e03bad22f4894c0788803b28f0d51f7b",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 116,
+              "start": 98,
+              "text": "Breast examination"
+            },
+            {
+              "end": 499,
+              "start": 481,
+              "text": "Breast examination"
+            }
+          ],
+          "entity_text": "Breast examination",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "21e0dddd248ce619d89b893bb4b317c67fdae8400f86ba8bbf8ccb776e69593d",
+      "label_id": "manual-7ba88a6cdc614b5e95052c967ee9465f",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 7,
+          "candidates": [
+            {
+              "end": 526,
+              "start": 516,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 600,
+              "start": 590,
+              "text": "2ww breast"
+            },
+            {
+              "end": 685,
+              "start": 675,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 896,
+              "start": 886,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 947,
+              "start": 937,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 1027,
+              "start": 1017,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 1058,
+              "start": 1048,
+              "text": "2WW Breast"
+            }
+          ],
+          "entity_text": "2ww breast",
+          "index": 2,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 7,
+          "candidates": [
+            {
+              "end": 526,
+              "start": 516,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 600,
+              "start": 590,
+              "text": "2ww breast"
+            },
+            {
+              "end": 685,
+              "start": 675,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 896,
+              "start": 886,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 947,
+              "start": 937,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 1027,
+              "start": 1017,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 1058,
+              "start": 1048,
+              "text": "2WW Breast"
+            }
+          ],
+          "entity_text": "2ww breast",
+          "index": 3,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "751d7b0ca6d3ba7e647b40a43333a8dbda1670c7aeaeb88c301bd0735db59a0f",
+      "label_id": "manual-cdb6b2ed99224990838ced0dd04eeb12",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 95,
+              "start": 48,
+              "text": "Intraductal carcinoma in situ of breast (X78WW)"
+            },
+            {
+              "end": 164,
+              "start": 117,
+              "text": "Intraductal carcinoma in situ of breast (X78WW)"
+            }
+          ],
+          "entity_text": "Intraductal carcinoma in situ of breast (X78WW)",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 102,
+              "start": 81,
+              "text": "breast (X78WW) - Left"
+            },
+            {
+              "end": 171,
+              "start": 150,
+              "text": "breast (X78WW) - Left"
+            }
+          ],
+          "entity_text": "breast (X78WW) - Left",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "b42493031d296f5d279fd12c85e1ca059762cb5ce41a09ba7847873eb0021add",
+      "label_id": "manual-0487e84148784437a521765af962c434",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 67,
+              "start": 50,
+              "text": "Pathology Request"
+            },
+            {
+              "end": 143,
+              "start": 126,
+              "text": "Pathology Request"
+            }
+          ],
+          "entity_text": "Pathology Request",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "1efcf39e0ab22e919d48f86960c301eb9e90dc397fd0484be7c6b281afecb157",
+      "label_id": "manual-8a433d281493460db88a461ab1c3b508",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 149,
+              "start": 102,
+              "text": "Heavy cigarette smoker (20-39 cigs/day) (1375.)"
+            },
+            {
+              "end": 197,
+              "start": 150,
+              "text": "Heavy cigarette smoker (20-39 cigs/day) (1375.)"
+            }
+          ],
+          "entity_text": "Heavy cigarette smoker (20-39 cigs/day) (1375.)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "37333458682cdd936bea442616460fc81d1863936a34381ed89d4cfd52ee771e",
+      "label_id": "manual-ffae5ac1a0724810984c61d52f6b7e76",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 203,
+              "start": 186,
+              "text": "enlarged prostate"
+            },
+            {
+              "end": 681,
+              "start": 664,
+              "text": "enlarged prostate"
+            }
+          ],
+          "entity_text": "enlarged prostate",
+          "index": 1,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 540,
+              "start": 523,
+              "text": "PRISM 2WW Urology"
+            },
+            {
+              "end": 895,
+              "start": 878,
+              "text": "PRISM 2WW Urology"
+            },
+            {
+              "end": 1229,
+              "start": 1212,
+              "text": "PRISM 2WW Urology"
+            }
+          ],
+          "entity_text": "PRISM 2WW Urology",
+          "index": 4,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 540,
+              "start": 523,
+              "text": "PRISM 2WW Urology"
+            },
+            {
+              "end": 895,
+              "start": 878,
+              "text": "PRISM 2WW Urology"
+            },
+            {
+              "end": 1229,
+              "start": 1212,
+              "text": "PRISM 2WW Urology"
+            }
+          ],
+          "entity_text": "PRISM 2WW Urology",
+          "index": 5,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 3,
+      "candidate_id": "543425d86d9f1f56e183062ed621e935bc9b0779894eb7f62035e0ef3000e427",
+      "label_id": "manual-d54203747c204143a53e93ff0afd0e0f",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 198,
+              "start": 187,
+              "text": "2ww urology"
+            },
+            {
+              "end": 402,
+              "start": 391,
+              "text": "2ww urology"
+            }
+          ],
+          "entity_text": "2ww urology",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 198,
+              "start": 187,
+              "text": "2ww urology"
+            },
+            {
+              "end": 402,
+              "start": 391,
+              "text": "2ww urology"
+            }
+          ],
+          "entity_text": "2ww urology",
+          "index": 1,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "977463fb837bfe98c995700eb00ffe2361d1d6d7e27c1a18f24fad31bdee654c",
+      "label_id": "manual-e76186eb25d643e3aa9a4ba63422ba16",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 131,
+              "start": 109,
+              "text": "follow up after biopsy"
+            },
+            {
+              "end": 518,
+              "start": 496,
+              "text": "follow up after biopsy"
+            }
+          ],
+          "entity_text": "follow up after biopsy",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "50629817cd028f1067c73663375ce773508db4e8a0574534daa4e6af9ddf1c58",
+      "label_id": "manual-89ad105ab36144eeba9362f68305ca76",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 111,
+              "start": 75,
+              "text": "Malignant tumour of prostate (B46..)"
+            },
+            {
+              "end": 1006,
+              "start": 970,
+              "text": "Malignant tumour of prostate (B46..)"
+            },
+            {
+              "end": 1164,
+              "start": 1128,
+              "text": "Malignant tumour of prostate (B46..)"
+            }
+          ],
+          "entity_text": "Malignant tumour of prostate (B46..)",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 5,
+          "candidates": [
+            {
+              "end": 103,
+              "start": 95,
+              "text": "prostate"
+            },
+            {
+              "end": 148,
+              "start": 140,
+              "text": "prostate"
+            },
+            {
+              "end": 837,
+              "start": 829,
+              "text": "prostate"
+            },
+            {
+              "end": 998,
+              "start": 990,
+              "text": "prostate"
+            },
+            {
+              "end": 1156,
+              "start": 1148,
+              "text": "prostate"
+            }
+          ],
+          "entity_text": "prostate",
+          "index": 2,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "5e0a275743e4c709b4e840b4bed5525c1a0118a582ecc31856ca5f67ff123a06",
+      "label_id": "manual-742de58c8c64474bb22088860cdf0d81",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 79,
+              "start": 48,
+              "text": "Ischaemic heart disease (XE2uV)"
+            },
+            {
+              "end": 125,
+              "start": 94,
+              "text": "Ischaemic heart disease (XE2uV)"
+            }
+          ],
+          "entity_text": "Ischaemic heart disease (XE2uV)",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "3fa64177ea3e8c5fa3a2a2534ce53e2438cd9335c625fceef7a106697e08b675",
+      "label_id": "manual-c9c3109a5f4b4818bfd2f4759b3a1305",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 165,
+              "start": 151,
+              "text": "urology letter"
+            },
+            {
+              "end": 396,
+              "start": 382,
+              "text": "Urology letter"
+            }
+          ],
+          "entity_text": "Urology letter",
+          "index": 2,
+          "label": "record_artifact",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "18f7449d648e9d777757faf9c2c173c6295d419c50a48875b07c22858a6543d2",
+      "label_id": "manual-f14f8c85a5c14638915584223c501122",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 204,
+              "start": 194,
+              "text": "suprapubic"
+            },
+            {
+              "end": 223,
+              "start": 213,
+              "text": "suprapubic"
+            },
+            {
+              "end": 272,
+              "start": 262,
+              "text": "Suprapubic"
+            },
+            {
+              "end": 574,
+              "start": 564,
+              "text": "Suprapubic"
+            }
+          ],
+          "entity_text": "suprapubic",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 936,
+              "start": 910,
+              "text": "Trimethoprim 200mg tablets"
+            },
+            {
+              "end": 1094,
+              "start": 1068,
+              "text": "Trimethoprim 200mg tablets"
+            }
+          ],
+          "entity_text": "Trimethoprim 200mg tablets",
+          "index": 4,
+          "label": "medicinal_product",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "771d91097306effd718502ef3f833d821ff65211e435e96584aafac1b714c40f",
+      "label_id": "manual-bfa470034b3349d7ae7de3a7ba5e995d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 159,
+              "start": 151,
+              "text": "bloating"
+            },
+            {
+              "end": 564,
+              "start": 556,
+              "text": "bloating"
+            },
+            {
+              "end": 2635,
+              "start": 2627,
+              "text": "bloating"
+            },
+            {
+              "end": 3040,
+              "start": 3032,
+              "text": "bloating"
+            }
+          ],
+          "entity_text": "bloating",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 1324,
+              "start": 1272,
+              "text": "Family hx: Great aunt (paternal) died of cervical CA"
+            },
+            {
+              "end": 3800,
+              "start": 3748,
+              "text": "Family hx: Great aunt (paternal) died of cervical CA"
+            }
+          ],
+          "entity_text": "Family hx: Great aunt (paternal) died of cervical CA",
+          "index": 1,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 1873,
+              "start": 1846,
+              "text": "? infective gastroenteritis"
+            },
+            {
+              "end": 4371,
+              "start": 4344,
+              "text": "? infective gastroenteritis"
+            }
+          ],
+          "entity_text": "? infective gastroenteritis",
+          "index": 3,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 1952,
+              "start": 1913,
+              "text": "Stool sample requested for microbiology"
+            },
+            {
+              "end": 4450,
+              "start": 4411,
+              "text": "Stool sample requested for microbiology"
+            }
+          ],
+          "entity_text": "Stool sample requested for microbiology",
+          "index": 4,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 4,
+      "candidate_id": "099ccdf1d61d237aad5b5a8df5a5ae2ee0e075ff5fed5b0f7de26b092124e3e2",
+      "label_id": "manual-d61882402b3a4ec186d7281e309601a8",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 75,
+              "start": 56,
+              "text": "Breast lump (K3171)"
+            },
+            {
+              "end": 474,
+              "start": 455,
+              "text": "Breast lump (K3171)"
+            },
+            {
+              "end": 521,
+              "start": 502,
+              "text": "Breast lump (K3171)"
+            }
+          ],
+          "entity_text": "Breast lump (K3171)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 134,
+              "start": 122,
+              "text": "right breast"
+            },
+            {
+              "end": 205,
+              "start": 193,
+              "text": "Right breast"
+            }
+          ],
+          "entity_text": "right breast",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "e9c7caf4ef3714b8eb75b49e23d2145e4ceb4a830990452ddde9a42db8c73c7e",
+      "label_id": "manual-79595a59328344189a5209d2ceabd654",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 331,
+              "start": 313,
+              "text": "lump in the breast"
+            },
+            {
+              "end": 2848,
+              "start": 2830,
+              "text": "lump in the breast"
+            }
+          ],
+          "entity_text": "lump in the breast",
+          "index": 2,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "66d3d10ec89e710c1a75fa7edba7fbfd4518c7d281261a93d2095d11ed35bb75",
+      "label_id": "manual-03418b86023345fdaf539467029dc6e0",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 869,
+              "start": 852,
+              "text": "2WW Breast Female"
+            },
+            {
+              "end": 1041,
+              "start": 1024,
+              "text": "2WW Breast Female"
+            },
+            {
+              "end": 1216,
+              "start": 1199,
+              "text": "2WW Breast Female"
+            },
+            {
+              "end": 1247,
+              "start": 1230,
+              "text": "2WW Breast Female"
+            }
+          ],
+          "entity_text": "2WW Breast Female",
+          "index": 4,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "4f3d7482c883ede615f922582e846813133089b5e20c9a4a72349740c994c064",
+      "label_id": "manual-c420f72edc2e4c3894586cf43a4576fd",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 4,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 141,
+              "start": 119,
+              "text": "Full blood count - FBC"
+            },
+            {
+              "end": 2104,
+              "start": 2082,
+              "text": "Full blood count - FBC"
+            }
+          ],
+          "entity_text": "Full blood count - FBC",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "15b087e4e22df1cc7988f2085fd2c5acbfc3dc4c7f07d22be5d002b81cf5722f",
+      "label_id": "manual-e3a531f650134fee9841abb58fe8d508",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 823,
+              "start": 811,
+              "text": "Hypertension"
+            },
+            {
+              "end": 871,
+              "start": 859,
+              "text": "Hypertension"
+            },
+            {
+              "end": 2394,
+              "start": 2382,
+              "text": "Hypertension"
+            },
+            {
+              "end": 2460,
+              "start": 2448,
+              "text": "Hypertension"
+            }
+          ],
+          "entity_text": "Hypertension",
+          "index": 3,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "b5689e7828862cdc3f242fab7310475b3aa7db6d413019584f09f94e45aa8a95",
+      "label_id": "manual-2d420f57b0584123932a6c4e39b1ca3c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 271,
+              "start": 260,
+              "text": "Lymphoedema"
+            },
+            {
+              "end": 333,
+              "start": 322,
+              "text": "Lymphoedema"
+            }
+          ],
+          "entity_text": "Lymphoedema",
+          "index": 2,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "da3ffdd3a60f19ccf3d273bb1d92e8169c53617f091b2929228d52a2b1090fbe",
+      "label_id": "manual-26e2658b816d4bf783a904d9aa6131ff",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 221,
+              "start": 170,
+              "text": "White British - ethnic category 2001 census (XaQEa)"
+            },
+            {
+              "end": 461,
+              "start": 410,
+              "text": "White British - ethnic category 2001 census (XaQEa)"
+            }
+          ],
+          "entity_text": "White British - ethnic category 2001 census (XaQEa)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "70fa8a418e622e2f632336845846aad3a094d96fe84748209d83dd3ef3bd1ead",
+      "label_id": "manual-0dac99f3cb2d4125b3df54ba0d097a45",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 484,
+              "start": 433,
+              "text": "White British - ethnic category 2001 census (XaQEa)"
+            },
+            {
+              "end": 962,
+              "start": 911,
+              "text": "White British - ethnic category 2001 census (XaQEa)"
+            }
+          ],
+          "entity_text": "White British - ethnic category 2001 census (XaQEa)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "424c10351c477be8b1ca7d9ad38f950a582153234ecde640c5ce03ef4a56bfb9",
+      "label_id": "manual-020d996dd72547b19b4caf9912a80686",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 121,
+              "start": 110,
+              "text": "breast pain"
+            },
+            {
+              "end": 603,
+              "start": 592,
+              "text": "breast pain"
+            },
+            {
+              "end": 759,
+              "start": 748,
+              "text": "Breast Pain"
+            }
+          ],
+          "entity_text": "breast pain",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "3adbd762b34117b9b0c04b1ad5df305f8b3dff561c6560ef9ace3fc1d0b3013a",
+      "label_id": "manual-4e860b39daa148db99b7de7ec0f0c04a",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 89,
+              "start": 72,
+              "text": "Mastalgia (X40Fi)"
+            },
+            {
+              "end": 727,
+              "start": 710,
+              "text": "Mastalgia (X40Fi)"
+            }
+          ],
+          "entity_text": "Mastalgia (X40Fi)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "8cf3dad84f1694c7490b3fea527603a5433fea41068c1e20b0450c64dba3c0aa",
+      "label_id": "manual-a5cb5ad993344f9a9c8ab64506988870",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 32,
+              "start": 9,
+              "text": "Iron deficiency anaemia"
+            },
+            {
+              "end": 66,
+              "start": 43,
+              "text": "Iron deficiency anaemia"
+            }
+          ],
+          "entity_text": "Iron deficiency anaemia",
+          "index": 0,
+          "label": "disorder",
+          "old_end": 108,
+          "old_start": 85,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "a8740fb399ed6fecf58e87b930a7f9eaa080da499239608a418be9d5d811733d",
+      "label_id": "manual-7ee448f68be24fcc92c21e12b8941722",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 18,
+              "start": 14,
+              "text": "Xray"
+            },
+            {
+              "end": 31,
+              "start": 27,
+              "text": "Xray"
+            }
+          ],
+          "entity_text": "Xray",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "c7453c3bbcd29cf697445f42674760e2edf25d4ff6fe5a29daf6d0fe69b81730",
+      "label_id": "manual-7905101060524e2fb2b4884deb368f15",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "e73baf8e01e9a80e27b2c5dbfc03482011f93adb9f7f145a727b15d0fe5c6220",
+      "label_id": "GL-52a9c9ed625d79c9",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 2,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "31e0023a6de0de58950f23bc9eec94d95457824911e92ae1040c1ebb5e640d24",
+      "label_id": "GL-6b9473eddb0750a6",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.32 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "c9350b19c01d1cc617385022a36dbf8efa88b274a9f65a71b8e04b23521558c1",
+      "label_id": "GL-c6c4d4495f5a9969",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Body mass index - observation 39.84 Kg/m\u00b2",
+          "index": 7,
+          "label": "observable_entity",
+          "old_end": 371,
+          "old_start": 323,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "85063618a2fb6fffff42e9083e236e191106875a6ef2e13271c8a81984f84749",
+      "label_id": "GL-5a5930cc06dcb90c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 3,
+      "unrepairable": [
+        {
+          "entity_text": "Body mass index - observation 31.25 Kg/m\u00b2",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 42,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "dfc691e4741ac9d301cf2de52a81f1bcf80661d71d0202712eecd38fc218882d",
+      "label_id": "GL-6955f153bdd42952",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.21 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "7b78d0a32f6b79126807d96b5e80853cab49ddbd5bb310cec20e0cbf7fc45293",
+      "label_id": "GL-a423a1b29a86cbc0",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 12,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 184 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 47,
+          "old_start": 0,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "537d1b19461b4687bed8a1a1d1e5ec9493678955fcda03373f3dedf5f8453a37",
+      "label_id": "GL-a3ba5d4a1f630f31",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 9,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.22 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.05 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "4af29acb50151da21bb9f70878772951907b812b58dc64b9f4813d17e3764185",
+      "label_id": "GL-fdad22e12f5f9bb3",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.44 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.14 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "28e977d238b6745a35f7f1ecbeccbce9b319bf045ee117b1d90736d58c070588",
+      "label_id": "GL-1a88b18f166537b1",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 1,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.06 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "5b988383fbc42ade24dac5e6e87fa392d085f64323b7cc0545f12316589d9779",
+      "label_id": "GL-9140fcfb7113b00c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 216 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "01b3e977f21129d1c5747a54f71ccec44e3b114331530f3282fad0b7f979c01f",
+      "label_id": "GL-f963c1839666bed9",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 1,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.29 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "3fe23c570511621209bef4d12ceb3d92efc97fd65907b2d300daf8102c517c6f",
+      "label_id": "GL-b3995cb373b45a77",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 9,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.84 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.35 10^9/L",
+          "index": 4,
+          "label": "observable_entity",
+          "old_end": 180,
+          "old_start": 117,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "211b55f38c9e8c59a848b175419a21f36af35251dad248d49f3fbd3e09447f5f",
+      "label_id": "GL-af6bfb0c5f9356e0",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.3 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 92,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "6e09c2b2ae5b203fcef608079f52018a65ab0154bb6599e00bdc7e5338eca61b",
+      "label_id": "GL-c981b2f0aeb0f2bd",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 197 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "c771dc54e3bdc2cc88c48047822d37335c1a74c7e54bed86aa7de3e4c31171ad",
+      "label_id": "GL-d220ca82bf0fc633",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 20,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.23 10^9/L",
+          "index": 5,
+          "label": "observable_entity",
+          "old_end": 172,
+          "old_start": 109,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "047a9177affb8518af4a57a219a7a4c958ce158457ed0a0a36300dfb8a40a2a2",
+      "label_id": "GL-ddda249acea0f06c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 239 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "7e88c09ced957b476350ac6d0c9b21870d97ebc76a7aac20f26fabc4cac98c0a",
+      "label_id": "GL-1fdc48db16c2be31",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 2,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.19 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "93e0510102822a5cc48088c03165aeea36235cd85277d705fabf67d2f4600f01",
+      "label_id": "GL-b599933bef223c10",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 2,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.68 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "d96d503bec917a2ac2716af98f4f36c1b7717e82925ffacef1591bc884928431",
+      "label_id": "GL-104fe41df19ac91c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 205 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "4cedc5287f954fb604390add5e65326cf4b835f9266da2363544dcbe24f39120",
+      "label_id": "GL-593401398e488cfa",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.3 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 92,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "d35b4066d596ba4f042f75679e25b6b28b24ee70db16fdff5f215375de54613f",
+      "label_id": "GL-1d82174375266247",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.24 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "c6709d2549afb37c4ad2a3f21ee92d8f6b7367cdefe9ed8f0c28559674e166e6",
+      "label_id": "GL-84bcc01a536c1732",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.27 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "78021b9799398c3239d10a6df7346488c4f25b85185fe1a7400ceaf617ae556d",
+      "label_id": "GL-35997b0a29d9309f",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.04 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "e112021d189fb2a598b545385cc62e0802cac8cd731643e4769f4a6fc43e9f54",
+      "label_id": "GL-c96ee4a7503d2026",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 1,
+      "unrepairable": [
+        {
+          "entity_text": "Reticulocyte count 62 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "7c195742e95c4a7441a36ccdcf325b81b9268535d9c8b239137050de98aaff97",
+      "label_id": "GL-88dc3579729d7327",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.26 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.07 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "583a7596510cf07806fe66df388502cb9eac33035abcd3b63ae50125bc18a842",
+      "label_id": "GL-0529c4b30e5a8ceb",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.15 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "37e4704194a60041fb7efd8b1b6f5153b981afd728d2d851cbb86c069232e1e1",
+      "label_id": "GL-b7f3b620d07cf6f7",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 334 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "1e11b0f0a37586443084f9244a4a6a7662f6ba11223817a9c71ffe4809d2541e",
+      "label_id": "GL-8b55c65001d171b4",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 2,
+      "unrepairable": [
+        {
+          "entity_text": "Reticulocyte count 100 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 91,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "242a98af7e9ba64f62a8db87d2969ede370dc8af2756fa4fa7de16e8ed27b6f2",
+      "label_id": "GL-a9357de932966805",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 2,
+      "unrepairable": [
+        {
+          "entity_text": "Reticulocyte count 96 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "e52a119392de43e70e4cea84a3643d617e388f4b2b9c08e37054acde059aa808",
+      "label_id": "GL-b2def9ff9e1b4b98",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.42 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.06 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "1b6bcabf5f043f521557cb4599b2737090188eea7ac6f94bc1d6960293bf656f",
+      "label_id": "GL-08d1d73d97300a8a",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 3,
+      "unrepairable": [
+        {
+          "entity_text": "Body mass index - observation (22K..) 30.86 Kg/m\u00b2",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 42,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "16916f6c83a5ab52309f26c9e0a0511301894ba9c3f9dea0d0712dfa4ebc3af6",
+      "label_id": "GL-c1158c7e6781f8c3",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 255 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "8587f5f99c1480b4e43f7542e8fba1e5013e0d5367178722e73839aa34d4fa44",
+      "label_id": "GL-c5117ea67b214667",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.1 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 92,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "7cdcccd76a8e44f3e4e9071479959ea940595a20e90675c9fcff94fb7b06e5e7",
+      "label_id": "GL-6459701e9644b50d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 2,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 2.39 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "5cf4324b3a1ef8311cbd37d6aac3f35c450f6226f2343e1c219a598c1517eb1b",
+      "label_id": "GL-220e633f0380edc5",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 311 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "a447d771dade37da6ba3de01627d85d9057bedab9604e425947f029b88e50f1b",
+      "label_id": "GL-746838e806028c04",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.41 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.14 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "3db6550251333b082c9ab48e721e81f5c97ae5daf5dec119e2eb09de26a38016",
+      "label_id": "GL-05c00aac1780d092",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 14,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 254 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 143,
+          "old_start": 84,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "bf011cc4f68c98cb01200a9da560a260bf5957293c9bda2627f6dbfd4af5710a",
+      "label_id": "GL-40d3e469d99f2954",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.06 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "a0d10cc5017f70c27c631cb8dbd5dccaf6a34c3ae9fb177c59fb9f3457e1c2d1",
+      "label_id": "GL-b1700854603083f2",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 15,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 287 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 59,
+          "old_start": 0,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "e1a28b211f13eba559e4c0c50452fe0053e769dedbc10a37e26ce7d22d4d3970",
+      "label_id": "GL-9283795be7a4177b",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 1,
+      "unrepairable": [
+        {
+          "entity_text": "Reticulocyte count 77 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "1a65383adb03c33286bfaaa1f15ae3089f59dc7a7bc8cae13a1702d6ffe5bc2b",
+      "label_id": "GL-1650824db822d062",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 14,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 136 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "241810b7d865d12f33062b7a436f4d28c7b8de7465b01acfed6160a9eb2f97ed",
+      "label_id": "GL-9c1782cb04b6d1a2",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.16 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "9b817e516d9f7e11c7c0a305ba9013acb07c70f8260452a18ef63bb3123ce9dc",
+      "label_id": "GL-9c397d4d5f0e4df2",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 9,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.11 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "04279e61c76cc60e6bd3b0d56f7dd9fcbddea0b710984247c2ab299244c7b220",
+      "label_id": "GL-52dfab286dd0e1de",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 1,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.2 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "11b4a92ecfdf3162f2267007405a6b55559fc07688c3cfb9440ea38237a067ca",
+      "label_id": "GL-21ed5703e716141d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 9,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.16 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.14 10^9/L",
+          "index": 4,
+          "label": "observable_entity",
+          "old_end": 180,
+          "old_start": 117,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "1df0e88cbe9711c5d2fdb9ffc3134c0e03128a42d65d671c1ee69e3c7d2edfd2",
+      "label_id": "GL-138484fc40e5cea7",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 17,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 254 10^9/L",
+          "index": 5,
+          "label": "observable_entity",
+          "old_end": 184,
+          "old_start": 125,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "bc69718b0e1a0d8bb3ad911904e119f8be18edccdba380aa2e12cc9247e03f7b",
+      "label_id": "GL-9ff1720665b9c4c2",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 9,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.16 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "0d1ae8dbc8d84f73cd5b5abd6b0a496fc99f904cffd762884540b4e6121c596c",
+      "label_id": "GL-04441e26ca25772b",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.53 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.23 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "b340d9e9f4d8e4fc4b5ae90ea2360b0563806a95f78a9a4867cf1debad1df8ad",
+      "label_id": "GL-56608ee3bd4111d5",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.34 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.12 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 25,
+              "start": 19,
+              "text": "weight"
+            },
+            {
+              "end": 60,
+              "start": 54,
+              "text": "weight"
+            }
+          ],
+          "entity_text": "weight",
+          "index": 0,
+          "label": "procedure",
+          "old_end": 25,
+          "old_start": 0,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "edc84b546588d3eea3a896b6544946bde55844e76fb83d70440c46f09fa14667",
+      "label_id": "GL-b77ce64599e59b84",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "c98f4c9a1695380d96253c5e3baf0167eb238eb2a32fb99d9365730756bea6d7",
+      "label_id": "GL-a4cddba09ba4d6ed",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.67 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.3 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 153,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "c119edd0faa78c3c32e507a1cb466db1102aa273adf6bd604eb4f8aad3d6d36e",
+      "label_id": "GL-b5fad31da78a3a61",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.2 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 92,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "581714880675cc564c5002086178f6e3d81554f204fe6f5f9491d5057eec2d3b",
+      "label_id": "GL-9ee7cf41b11130e1",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.12 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "ec5a54d727a16af3ddabd15987c7769177dc3101c4042f19cc1955e14647a402",
+      "label_id": "GL-b8d6bd2e8c06f2b1",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.28 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "e8e4ca3aa49ab5e1190b916e79d1d7f4a40d7f679bc1baf4d3688903045af4e7",
+      "label_id": "GL-73ebf1f31863883d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.51 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.16 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "400f965f47d5995b0d0d65d8e2aa4a8a4e797a07cb054af9f9b54b48f7346e21",
+      "label_id": "GL-99cc10358fc6cc07",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 201 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "f66d623113599c076146478f48cb923cff2c81d6da5e740498e221bb18b290bc",
+      "label_id": "GL-28e680c0c4b0c458",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 11,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.23 10^9/L",
+          "index": 5,
+          "label": "observable_entity",
+          "old_end": 203,
+          "old_start": 140,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "0ca7bde9342ff6ad009b312197a72e2b2c235fdadb70c8ad0eb45a809ef11018",
+      "label_id": "GL-3fba69e0402a1fc4",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 14,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 174 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 143,
+          "old_start": 84,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "46fbbb42a8ec0637d7dd62f8864d0f15dffb518673e67be58124df2d6bce143c",
+      "label_id": "GL-b16a0a665aebad3f",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 11,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.6 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 138,
+          "old_start": 79,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 622,
+              "start": 597,
+              "text": "pulse rate (242..) 92 bpm"
+            },
+            {
+              "end": 1182,
+              "start": 1157,
+              "text": "Pulse rate (X773s) 92 bpm"
+            }
+          ],
+          "entity_text": "Pulse rate 92 bpm",
+          "index": 7,
+          "label": "observable_entity",
+          "old_end": 1182,
+          "old_start": 1157,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "07fafafac5ccf36a98bd560db30b17e7355a382e2806b90dad9639c06e943285",
+      "label_id": "GL-7c1db54763c4ae51",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 10,
+      "unrepairable": [
+        {
+          "entity_text": "Body mass index - observation (22K..) 22.89 Kg/m\u00b2",
+          "index": 2,
+          "label": "observable_entity",
+          "old_end": 88,
+          "old_start": 40,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "030910bf4fcf5e9832f50a931ce51ca9e8a00034dd43706888f1e2b0b8f51951",
+      "label_id": "GL-6c2aefd767c90139",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 14,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 185 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "3d8d775a888bb3e21c6150f5deafde048e797cf95ba3537f5538685602748212",
+      "label_id": "GL-4979e6694da2ed9e",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 19,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 184 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 113,
+          "old_start": 54,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "cb6f936ef3b404c690c51fadea9d0ff2d983fa231bf57b102f8186fda9b0f7c9",
+      "label_id": "GL-e46fed7f6d4befc8",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 323 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "0864a1be059f1c5028902724c280ee2390cd878f58853796fa0ddcb1bd849441",
+      "label_id": "GL-41990e3d7611d362",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 17,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 264 10^9/L",
+          "index": 4,
+          "label": "observable_entity",
+          "old_end": 139,
+          "old_start": 80,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "495cbfb7c7d331c1b5bb56861a99146f67dbde3f7296566ba25f741c84e00f5d",
+      "label_id": "GL-06128105248796ab",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.07 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "a61427d339022cac3b5cb0a012650297a3acddcc190118db6d4df52cb2077094",
+      "label_id": "GL-d9a59fea4f7ce59e",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.23 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "620cb3aac31746eb78684920b8e9310551fe08f568ada845e8ef99cb9df8758e",
+      "label_id": "GL-40dd0e3e9eaa7755",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 18,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 204 10^9/L",
+          "index": 4,
+          "label": "observable_entity",
+          "old_end": 139,
+          "old_start": 80,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "cafbb06acd4c982ae78e494687612e4ec9cdb203e8946d40a65e157408c5445e",
+      "label_id": "GL-067bc6de80a38a03",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.55 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.21 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "d8374993f86a790230cb7549d0a7d14b76c8280d94d11b2050e91893306a101a",
+      "label_id": "GL-57377a4110fbffd4",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 10,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.18 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.04 10^9/L",
+          "index": 4,
+          "label": "observable_entity",
+          "old_end": 180,
+          "old_start": 117,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "e2cace75123aa7719b81267ee3a2cc4a7c5c4f7da3cf8a53109f39078c83ef24",
+      "label_id": "GL-9d34974765fe6b16",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 13,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 229 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "936cd85edc58b3ffe4f5b7b52acb7a17fd9097ebad6440fee69ae5b26cf40653",
+      "label_id": "GL-bfbdbe0bf24b7e97",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 12,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.17 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 138,
+          "old_start": 78,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "3e423eb0b91a9802ef84b72473a0865207628becfc1e9fe413cfdd11f4c8b2f6",
+      "label_id": "GL-6bb552de619e79ae",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.18 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "2d1607ebedd2724521e39d062eae2b8571482c2fa2a8e6df011d5044660bb0e8",
+      "label_id": "GL-cac8d5cb8ddbf45b",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.61 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "3af374fe1c3cfd2343a8260346b0d2897d9b55705ccb374be89d668da9859ec9",
+      "label_id": "GL-94bf20da6e5094f3",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 11,
+      "unrepairable": [
+        {
+          "entity_text": "Body mass index - observation (22K..) 23.85 Kg/m\u00b2",
+          "index": 11,
+          "label": "observable_entity",
+          "old_end": 248,
+          "old_start": 200,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "0afa8572533d18f353795947031cf05c5a6244b3e843b10bc5b1866002aa0a74",
+      "label_id": "GL-84e162a5ee8fa2d1",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.17 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "3b620f1c59ce881b86185cf97927a15b52c42f9b66d41a34126595724172e314",
+      "label_id": "GL-d14af8e6ebee8390",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 6,
+      "unrepairable": [
+        {
+          "entity_text": "Serum LH level 8.7 - 76.3 iu/L",
+          "index": 2,
+          "label": "observable_entity",
+          "old_end": 170,
+          "old_start": 135,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Serum LH level 0.5 - 16.9 iu/L",
+          "index": 4,
+          "label": "observable_entity",
+          "old_end": 206,
+          "old_start": 171,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Serum follicle stimulating hormone level <0.5 iu/L",
+          "index": 7,
+          "label": "observable_entity",
+          "old_end": 442,
+          "old_start": 407,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 3
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "bfec0b8be789086d187f4a0587f6e9d96ad4c5fecbb9afc06e0ebe4b996e9911",
+      "label_id": "GL-640fa84818177f34",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 10,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.05 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "93c88dbbb520e793c1e6c62c4883bb33b06a87e131d45ef2a9a58c330b98291e",
+      "label_id": "GL-7ae9b8b4f7b08da7",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 1,
+      "unrepairable": [
+        {
+          "entity_text": "Serum total 25-hydroxy vitamin D level 90 nmol/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 67,
+          "old_start": 0,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "16ffc31a1763f68f5ed4bbf7c358b1f46850fe4a66d05fecdec2d5b1a56abb5c",
+      "label_id": "GL-ad5f70fd28eda65a",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 10,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.2 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.03 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 153,
+          "old_start": 90,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "6dc0c0c95284a5181768a8e5dbe69fc6e202abc67f4fe9c87d3f5706df776e54",
+      "label_id": "GL-7b9dc263c0f2581c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 17,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 227 10^9/L",
+          "index": 5,
+          "label": "observable_entity",
+          "old_end": 182,
+          "old_start": 123,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "bfc027d1cf400bbc9fa623c5df4c5187fc9b355db982ffffd3511595947e8bb1",
+      "label_id": "GL-8fc3afc09181918c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 8,
+      "unrepairable": [
+        {
+          "entity_text": "Monocyte count 0.66 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        },
+        {
+          "entity_text": "Eosinophil count 0.34 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 154,
+          "old_start": 91,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 2
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "e60f445ccea365f0c8d4b9f66721f077909039ef48ca7c7948b22781522dd912",
+      "label_id": "GL-97c07c1b942cd682",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 19,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 204 10^9/L",
+          "index": 3,
+          "label": "observable_entity",
+          "old_end": 113,
+          "old_start": 54,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "3024807f113039ddf82b61032c5da234ea96fbb3c5b02138dd53a8f1c236a1e8",
+      "label_id": "GL-af383bd425d07e45",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.06 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "6d2e8f96fc74c93ee70b7e7f0c8afcd766f0c4a9af67c8feeaa68a7b08a7550f",
+      "label_id": "GL-dd5f14824b8dfba2",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 6,
+      "unrepairable": [
+        {
+          "entity_text": "Body mass index - observation (22K..) 27.73 Kg/m\u00b2",
+          "index": 6,
+          "label": "observable_entity",
+          "old_end": 182,
+          "old_start": 134,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "06379f31e4e1a2ebab3a86726ea2eabab66b6cba2e11296c59cdb65a78cb9878",
+      "label_id": "GL-f12c40a432dfec38",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 14,
+      "unrepairable": [
+        {
+          "entity_text": "Platelet count 262 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 89,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "f63be701f531e266304c31af5871e96c0ffe6a1a93b33d076600ff11ad7d102c",
+      "label_id": "GL-b5cb116dbaf17663",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Body mass index - observation (22K..) 30.39 Kg/m\u00b2",
+          "index": 4,
+          "label": "observable_entity",
+          "old_end": 130,
+          "old_start": 82,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "2d925f1c85c9c50252556327187d7ecf0584cc13ca668b2fcb26d813da2cb5e2",
+      "label_id": "GL-e295fb2418a2bb17",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 2,
+      "unrepairable": [
+        {
+          "entity_text": "Reticulocyte count 88 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 90,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "8dbb0ef5ac4745ca21a55646c42410f51697987cb342d349189a3f5b83589ab0",
+      "label_id": "GL-86b84ed3baddd779",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.3 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 92,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "186900f84b9be08e6b01f680af331e74315787f2a71f56a635d6bcd01b99bfcc",
+      "label_id": "GL-82734a89f93adee7",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 7,
+      "unrepairable": [
+        {
+          "entity_text": "Eosinophil count 0.23 10^9/L",
+          "index": 1,
+          "label": "observable_entity",
+          "old_end": 93,
+          "old_start": 30,
+          "reason": "surface_not_found",
+          "status": "unrepairable"
+        }
+      ],
+      "unrepairable_count": 1
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 84,
+              "start": 30,
+              "text": "eGFR using creatinine (CKD-EPI) per 1.73 square metres"
+            },
+            {
+              "end": 535,
+              "start": 481,
+              "text": "eGFR using creatinine (CKD-EPI) per 1.73 square metres"
+            }
+          ],
+          "entity_text": "eGFR using creatinine (CKD-EPI) per 1.73 square metres",
+          "index": 1,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "231b0254930104e66abfaea0c5c50a280a139db4b9c7e0fafaa0f892214195b1",
+      "label_id": "manual-231b0254930104e66abfaea0c5c50a28",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 3,
+              "start": 2,
+              "text": "l"
+            },
+            {
+              "end": 30,
+              "start": 29,
+              "text": "L"
+            },
+            {
+              "end": 46,
+              "start": 45,
+              "text": "l"
+            }
+          ],
+          "entity_text": "L",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "tc-b2d54070f6eba815c3f51e63b0544ba6",
+      "label_id": "manual-f0828fd0f22a4187fddb4122b340a750",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 1,
+              "start": 0,
+              "text": "L"
+            },
+            {
+              "end": 17,
+              "start": 16,
+              "text": "l"
+            },
+            {
+              "end": 47,
+              "start": 46,
+              "text": "L"
+            },
+            {
+              "end": 59,
+              "start": 58,
+              "text": "l"
+            }
+          ],
+          "entity_text": "L",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "tc-9db9fb2fc0649063dc1c690c383dce6d",
+      "label_id": "manual-f4b57b2c7269b078d77814549659b756",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 167,
+              "start": 163,
+              "text": "hard"
+            },
+            {
+              "end": 226,
+              "start": 222,
+              "text": "hard"
+            }
+          ],
+          "entity_text": "hard",
+          "index": 1,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "TC-c2e14174a77c8a67",
+      "label_id": "GL-c2e14174a77c8a67",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "encounter_4c190ee8",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 148,
+              "start": 143,
+              "text": "vulva"
+            },
+            {
+              "end": 249,
+              "start": 244,
+              "text": "vulva"
+            }
+          ],
+          "entity_text": "vulva",
+          "index": 3,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "TC-5980bcbee6e89595",
+      "label_id": "GL-5980bcbee6e89595",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "encounter_91384838",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 50,
+              "start": 37,
+              "text": "vaginal ulcer"
+            },
+            {
+              "end": 193,
+              "start": 180,
+              "text": "vaginal ulcer"
+            }
+          ],
+          "entity_text": "vaginal ulcer",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "TC-43e9048611a377f3",
+      "label_id": "GL-43e9048611a377f3",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "synthetic",
+      "unchanged_count": 5,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 41,
+              "start": 32,
+              "text": "lower lip"
+            },
+            {
+              "end": 193,
+              "start": 184,
+              "text": "lower lip"
+            }
+          ],
+          "entity_text": "lower lip",
+          "index": 2,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "TC-a197f1e86322b4fc",
+      "label_id": "GL-a197f1e86322b4fc",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "synthetic",
+      "unchanged_count": 5,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    }
+  ],
+  "limit": null,
+  "source": null,
+  "summary": {
+    "entities_ambiguous": 68,
+    "entities_repaired": 0,
+    "entities_unrepairable": 106,
+    "labels_scanned": 2849,
+    "labels_with_repairs": 0
+  }
+}

@@ -28,22 +28,22 @@ def normalize(text: str) -> str:
     return " ".join(_TOKEN_RE.findall(text.lower()))
 
 
-# 1290960005 = Plain X-ray of chest abnormal (finding) -- best broad code for
+# 9990010014 = Plain X-ray of chest abnormal (finding) -- best broad code for
 #              'suggestive of' CXR language; does not commit to a diagnosis
 FORMS = [
-    ("chest X-ray findings suggestive of mesothelioma", "1290960005"),
-    ("chest X-ray findings consistent with mesothelioma", "1290960005"),
-    ("chest X-ray findings that suggest mesothelioma", "1290960005"),
-    ("CXR findings suggestive of mesothelioma", "1290960005"),
-    ("chest X-ray abnormal mesothelioma", "1290960005"),
-    ("abnormal chest X-ray mesothelioma", "1290960005"),
-    ("chest radiograph findings mesothelioma", "1290960005"),
-    ("pleural abnormality on chest X-ray", "1290960005"),
-    ("abnormal pleural imaging finding", "1290960005"),
-    ("chest X-ray pleural finding", "1290960005"),
-    ("thoracic imaging abnormality", "1290960005"),
-    ("pleural mass on chest X-ray", "1290960005"),
-    ("pleural thickening on chest X-ray", "1290960005"),
+    ("chest X-ray findings suggestive of mesothelioma", "9990010014"),
+    ("chest X-ray findings consistent with mesothelioma", "9990010014"),
+    ("chest X-ray findings that suggest mesothelioma", "9990010014"),
+    ("CXR findings suggestive of mesothelioma", "9990010014"),
+    ("chest X-ray abnormal mesothelioma", "9990010014"),
+    ("abnormal chest X-ray mesothelioma", "9990010014"),
+    ("chest radiograph findings mesothelioma", "9990010014"),
+    ("pleural abnormality on chest X-ray", "9990010014"),
+    ("abnormal pleural imaging finding", "9990010014"),
+    ("chest X-ray pleural finding", "9990010014"),
+    ("thoracic imaging abnormality", "9990010014"),
+    ("pleural mass on chest X-ray", "9990010014"),
+    ("pleural thickening on chest X-ray", "9990010014"),
 ]
 
 _UPSERT = """

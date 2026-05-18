@@ -1,0 +1,4649 @@
+{
+  "summary": {
+    "generated_at": "20260428T222120Z",
+    "mode": "dry_run_no_graph_writes",
+    "window_days": 180,
+    "diagnosis_patient_count": 16,
+    "pathway_count": 104,
+    "patients_with_no_pathways": 0,
+    "route_counts": {
+      "emergency_or_urgent_care": 17,
+      "gp_surgery_fast_track": 40,
+      "routine_gp_investigation": 2,
+      "screening": 2,
+      "unknown": 43
+    },
+    "cohort_counts": {
+      "1a": 27,
+      "1b": 15,
+      "2": 43,
+      "3": 19
+    },
+    "site_counts": {
+      "breast": 17,
+      "gynaecological": 10,
+      "head_neck": 7,
+      "lower_gi": 19,
+      "lung": 6,
+      "nss": 2,
+      "skin": 6,
+      "unknown": 12,
+      "upper_gi": 2,
+      "urological": 23
+    }
+  },
+  "pathways": [
+    {
+      "patient_id": "4187508279",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 35d"
+      ],
+      "gap_ftr_dx_days": 35,
+      "gap_ftr_seen_days": 26,
+      "gap_dx_treatment_days": 22,
+      "ftr": {
+        "encounter_id": "3bea758b-0949-447d-becf-954e682c85e8",
+        "encounter_date": "2025-03-10",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "14:13 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: F2F review. Breast lump.\n\nNoticed lump on left side last week.\nChecks self every fews. First time finding a lump.\nNo FHx breast cancer.\nMild discomfort.\nNo nipple discha"
+      },
+      "seen": {
+        "encounter_id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+        "encounter_date": "2025-04-05",
+        "role": "seen",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+      },
+      "dx": {
+        "encounter_id": "08d9ea07-81a7-48cf-aac1-f6dcab0ce890",
+        "encounter_date": "2025-04-14",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Malignant tumour of breast (X78WM) - L, grade 2 ductal, ER+ve (New Episode)\nMalignant tumour of breast (X78WM) - L, grade 2 ductal, ER+ve"
+      },
+      "treatment": {
+        "encounter_id": "39e6eb3c-aa41-4254-b33f-31830458a406",
+        "encounter_date": "2025-05-06",
+        "role": "treatment",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Wide local excision of breast lesion (X40EC) (New Episode)\nBiopsy of sentinel lymph node (XaF83) (New Episode)\nWide local excision of breast lesion (X40EC)"
+      },
+      "n_encounters": 274,
+      "n_labelled_non_none": 19,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4187508279",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 86d"
+      ],
+      "gap_ftr_dx_days": 86,
+      "gap_ftr_seen_days": 26,
+      "gap_dx_treatment_days": 2,
+      "ftr": {
+        "encounter_id": "642f5f7d-fd3e-40b1-8b7d-ce0299b42cbc",
+        "encounter_date": "2025-03-10",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "16:34 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast t"
+      },
+      "seen": {
+        "encounter_id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+        "encounter_date": "2025-04-05",
+        "role": "seen",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+      },
+      "dx": {
+        "encounter_id": "9747df99-dedd-476a-87fa-5fda20cc7b3d",
+        "encounter_date": "2025-06-04",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Biopsy of sentinel lymph node (XaF83) (Ongoing Episode)\nMajor: Metastasis to lymph node (Xa980) - macrometastasis (New Episode)\nMetastasis to lymph node (Xa"
+      },
+      "treatment": {
+        "encounter_id": "079df76b-eed5-4fab-94d7-a591fabb036b",
+        "encounter_date": "2025-06-06",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "16:58 - Surgery: [STAFF] (Pharmacist) \n Drug Review\n   Reconciliation\n      Reconcilliation source:  Hospital discharge letter 06/05/25\n      Medication reconcilliation: Yes\n      Relevant other current medication:  Had surgery and was give"
+      },
+      "n_encounters": 274,
+      "n_labelled_non_none": 19,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4187508279",
+      "pathway_index": 3,
+      "cohort": "1b",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 26d"
+      ],
+      "gap_ftr_dx_days": 26,
+      "gap_ftr_seen_days": 26,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "ad2738b2-50b8-4b16-8848-55e564f23fd5",
+        "encounter_date": "2025-03-10",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "14:42 - Surgery: [STAFF] (Receptionist Access Role) \n Chaperone\n   Chaperone: Yes\n   Concerns?: No (Y0428)\n   Examination:  Breast examination\nChaperone present (XaEir)\nNo (Y0428)\nPresence of chaperone (XaEip) - Breast examination"
+      },
+      "seen": {
+        "encounter_id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+        "encounter_date": "2025-04-05",
+        "role": "seen",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+      },
+      "dx": {
+        "encounter_id": "c25adcc7-14fd-4e89-bc6b-ac623d67f414",
+        "encounter_date": "2025-04-05",
+        "role": "dx",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nBiopsy of breast (7135.) (New Episode)"
+      },
+      "treatment": null,
+      "n_encounters": 274,
+      "n_labelled_non_none": 19,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4200779633",
+      "pathway_index": 1,
+      "cohort": "1b",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 22d"
+      ],
+      "gap_ftr_dx_days": 22,
+      "gap_ftr_seen_days": 22,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "879cfb1d-b2a9-4d0e-adad-3d36474b0f29",
+        "encounter_date": "2025-04-28",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "17:59 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 28 Apr 2025 17:59)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n - PRISM "
+      },
+      "seen": {
+        "encounter_id": "dcb25a95-3878-4574-9db4-ca7b902f78bd",
+        "encounter_date": "2025-05-20",
+        "role": "seen",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ) (Ongoing Episode)"
+      },
+      "dx": {
+        "encounter_id": "79444321-fbaa-4f28-a806-b3b277b5a86d",
+        "encounter_date": "2025-05-20",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nUS scan of breast (585C.) - normal glandular breast tissue (New Episode)"
+      },
+      "treatment": null,
+      "n_encounters": 333,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4200779633",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 157d"
+      ],
+      "gap_ftr_dx_days": 157,
+      "gap_ftr_seen_days": 21,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "2ce59e3c-af18-42cb-bbcf-a08a206d4d09",
+        "encounter_date": "2025-04-29",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "15:26 - Surgery: [STAFF] (Receptionist Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast track "
+      },
+      "seen": {
+        "encounter_id": "dcb25a95-3878-4574-9db4-ca7b902f78bd",
+        "encounter_date": "2025-05-20",
+        "role": "seen",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ) (Ongoing Episode)"
+      },
+      "dx": {
+        "encounter_id": "914c200d-82f0-4394-9096-418fc71cdd0d",
+        "encounter_date": "2025-10-03",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "breast",
+        "text_preview": "08:42 - Surgery: [STAFF] (Pharmacist) \nProblem: Gastro-oesophageal reflux disease with oesophagitis (XE0aL)\nProblem: Mixed anxiety and depressive disorder (X00Sb)\nProblem: Malignant tumour of breast (X78WM) - Right; 28mm grade 3; mixed duct"
+      },
+      "treatment": null,
+      "n_encounters": 333,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4200779633",
+      "pathway_index": 3,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "38f3ba68-b592-4760-a920-fe6757be80a4",
+        "encounter_date": "2025-05-23",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Medical Secretary Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 333,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4200779633",
+      "pathway_index": 4,
+      "cohort": "3",
+      "site": null,
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 1,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "56f252de-ee2d-4425-86c5-c5b8263b933f",
+        "encounter_date": "2024-07-10",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Metastasis to lymph node (Xa980) (Ongoing Episode)\nMetastasis to lymph node (Xa980)"
+      },
+      "treatment": {
+        "encounter_id": "eb988eae-a4e0-4143-9db9-ef520410f4fe",
+        "encounter_date": "2024-07-11",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nMajor: Date chemotherapy completed (XaKI1) (New Episode)\nDate chemotherapy completed (XaKI1)"
+      },
+      "n_encounters": 333,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4200779633",
+      "pathway_index": 5,
+      "cohort": "3",
+      "site": null,
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 0,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "9f6a2c66-b9d5-4da0-a6f1-04118dcad597",
+        "encounter_date": "2024-09-09",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "17:15 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will "
+      },
+      "treatment": {
+        "encounter_id": "3aaaef1f-b667-4cff-ad78-411b52e2c199",
+        "encounter_date": "2024-09-09",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "08:19 - Surgery: [STAFF] (Receptionist Access Role) \n(R) Ibuprofen 10% gel - 100 gram - ay tds\n(R) Letrozole 2.5mg tablets - 56 tablet - take one once daily\nETP2 FP10: Not Yet Printed - Signed\nSummary Care Record Update - This patient's pre"
+      },
+      "n_encounters": 333,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4505618269",
+      "pathway_index": 1,
+      "cohort": "1b",
+      "site": "skin",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: skin within 21d"
+      ],
+      "gap_ftr_dx_days": 21,
+      "gap_ftr_seen_days": 16,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "babca43c-585e-4321-9ebc-ef3b2f6487bc",
+        "encounter_date": "2024-02-28",
+        "role": "ftr",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "09:27 - Surgery: [STAFF] (Health Professional Access Role) \n- PRISM 2WW Dermatology -  questionnaire started - (finalised: 28 Feb 2024 09:27)\nFast track referral for suspected skin cancer (XaMeA) - (Added from Questionnaire)\n Consultation\n "
+      },
+      "seen": {
+        "encounter_id": "d317a432-d4ce-4ee3-a430-c2cce349e338",
+        "encounter_date": "2024-03-15",
+        "role": "seen",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected skin cancer clinic (XaPyd)"
+      },
+      "dx": {
+        "encounter_id": "486f8c6f-2e28-4126-bfa8-b6cc16e57eda",
+        "encounter_date": "2024-03-20",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": "skin",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nDermoscopy (Y0785) (New Episode)"
+      },
+      "treatment": null,
+      "n_encounters": 443,
+      "n_labelled_non_none": 18,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4505618269",
+      "pathway_index": 2,
+      "cohort": "1b",
+      "site": "lower_gi",
+      "diagnosis_route": "screening",
+      "route_rationale": [
+        "screening_read_code_or_screening_phrase_on_ftr"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: lower_gi within 178d"
+      ],
+      "gap_ftr_dx_days": 178,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "7957026f-572e-44a9-ac28-43e6de5853c1",
+        "encounter_date": "2025-01-17",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "1f3fc6e2-262f-4c7f-a521-bf0d2e16add6",
+        "encounter_date": "2025-07-14",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": null,
+        "text_preview": "09:39 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: [D]Tremor NOS (R0103)\nHistory: new resting tremor in left hand - 2 months, progressively worsening. \ngradual onset. \nno weakness, no numbness in arm. \nOccurs with rest. "
+      },
+      "treatment": null,
+      "n_encounters": 443,
+      "n_labelled_non_none": 18,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4505618269",
+      "pathway_index": 3,
+      "cohort": "2",
+      "site": "skin",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "e0eef40e-e1a9-42cc-824f-f6a8009bf94b",
+        "encounter_date": "2024-02-28",
+        "role": "ftr",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "10:23 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected skin cancer (XaMeA)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes skin\nHospital Fast track ref"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 443,
+      "n_labelled_non_none": 18,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4505618269",
+      "pathway_index": 4,
+      "cohort": "2",
+      "site": "urological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "122a4dff-451a-4706-9a7b-1a5348a9200e",
+        "encounter_date": "2025-01-02",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "19:18 - Surgery: [STAFF] (Clinical Practitioner Access Role) Entered at: Carillon PCN\n- PRISM Scrotal Swelling -  questionnaire started - (finalised: 02 Jan 2025 19:18)\nReferral to medical service (XaAcN) - (Added from Questionnaire)\n PRISM"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 443,
+      "n_labelled_non_none": 18,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4505618269",
+      "pathway_index": 5,
+      "cohort": "2",
+      "site": "urological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "a03c1602-f643-4b4e-bfe7-e582abe25b3c",
+        "encounter_date": "2025-01-03",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "12:08 - Surgery: [STAFF] (Medical Secretary Access Role) \nReferral to urology service (XaAeI)\nChoice and booking enhanced services administration (XaMJa)\n WMC Medical Secretary Template\n WMC Referrals\n   Patient has been referred to urology"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 443,
+      "n_labelled_non_none": 18,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4505618269",
+      "pathway_index": 6,
+      "cohort": "2",
+      "site": "urological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "475a20e3-de6c-485b-bf8b-3a7d761fceee",
+        "encounter_date": "2025-07-14",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "11:54 - Surgery: [STAFF] (Medical Secretary Access Role) \nReferral to neurology service (8H46.)\nChoice and booking enhanced services administration (XaMJa)\n WMC Medical Secretary Template\n WMC Referrals\n   Patient has been referred to neuro"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 443,
+      "n_labelled_non_none": 18,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4505618269",
+      "pathway_index": 7,
+      "cohort": "3",
+      "site": "urological",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "812133cf-ed23-4534-a8f5-38a0d5365135",
+        "encounter_date": "2024-05-21",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "urological",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Malignant tumour of prostate (B46..) (New Episode)\nMalignant tumour of prostate (B46..)"
+      },
+      "treatment": null,
+      "n_encounters": 443,
+      "n_labelled_non_none": 18,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4505618269",
+      "pathway_index": 8,
+      "cohort": "3",
+      "site": "lung",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "d5582704-dc1f-4bea-954d-d4b5314291f6",
+        "encounter_date": "2024-08-21",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "lung",
+        "text_preview": "13:22 - GP Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Malignant tumour of prostate (B46..)\nHistory: F2F appt - confirmed ID \n\nPC - Poor stream of urine (1A33.) \nRecently diagnosed with malignant tumour of prostate under "
+      },
+      "treatment": null,
+      "n_encounters": 443,
+      "n_labelled_non_none": 18,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4505618269",
+      "pathway_index": 9,
+      "cohort": "3",
+      "site": "urological",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "2a279640-3058-4a98-b594-f74d2b35cc8a",
+        "encounter_date": "2024-09-23",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "urological",
+        "text_preview": "14:52 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nSummary Care Record Update\nProblem Header Marked in Error: Merging Problem\n21 Aug 2024, Malignant tumour of prostate (B46..), 21 Aug 2024 - Ongoing, Major\nProblem Item Marked in "
+      },
+      "treatment": null,
+      "n_encounters": 443,
+      "n_labelled_non_none": 18,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "4587069337",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: None within 0d"
+      ],
+      "gap_ftr_dx_days": 0,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 32,
+      "ftr": {
+        "encounter_id": "809182ae-55ef-4bd6-b09e-6c0cf19e0b82",
+        "encounter_date": "2024-09-20",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "10:29 - Surgery: [STAFF] (Medical Secretary Access Role) \nHistory: Patient has been referred to the gastroenterology service as per [PERSON]. Letter sent to patient with details of an appointment.\nReferral to gastroenterology service (8H48."
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "1b4906a2-9eaf-47f0-8969-02b2ea614930",
+        "encounter_date": "2024-09-20",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "breast",
+        "text_preview": "09:57 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem - whole event: Type II diabetes mellitus (X40J5)\nProblem - whole event: Essential hypertension (XE0Uc)\nProblem - whole event: Metastasis to lymph node (Xa980) - Ipsilater"
+      },
+      "treatment": {
+        "encounter_id": "dc75297a-bed1-4d4c-8455-fea4aec4e5d7",
+        "encounter_date": "2024-10-22",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Chemotherapy started (XaKwV) (New Episode)\nChemotherapy started (XaKwV)"
+      },
+      "n_encounters": 342,
+      "n_labelled_non_none": 31,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4587069337",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: None within 50d"
+      ],
+      "gap_ftr_dx_days": 50,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 5,
+      "ftr": {
+        "encounter_id": "2a893658-8f41-432b-8603-2ffe4079cdda",
+        "encounter_date": "2025-07-02",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "14:09 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nLOROS Hospice PRISM pathway accessed\n- PRISM LOROS Hospice -  questionnaire started - (finalised: 02 Jul 2025 14:09)\nReferral to medical service (XaAcN) - (Added from Questionnai"
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "50584a65-4f83-4ff9-9630-74e4cb6c4f2e",
+        "encounter_date": "2025-08-21",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "breast",
+        "text_preview": "12:57 - Lymphoedema Clinic: [PERSON] Entered at: LOROS Hospice\n Lymphoedema Outcomes\n   Outcome of Assessment\n      Outcome of assessment:  Diagnosis/problem  Lymphoedema to left arm and hand following treatment for Breast cancer.\n\nThankyou"
+      },
+      "treatment": {
+        "encounter_id": "0a4f1265-c202-4b2a-aad6-4e7d9bcbfceb",
+        "encounter_date": "2025-08-26",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "09:47 - Surgery: [STAFF] (Receptionist Access Role) \n(R) Atorvastatin 40mg tablets - 28 tablet - take one tablet daily at night\n(R) Ezetimibe 10mg tablets - 28 tablet - take one tablet daily\n(R) Letrozole 2.5mg tablets - 28 tablet - take on"
+      },
+      "n_encounters": 342,
+      "n_labelled_non_none": 31,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4587069337",
+      "pathway_index": 3,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "37446580-924e-4a9e-b20e-ad2563eec9af",
+        "encounter_date": "2025-03-19",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Medical Secretary Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 342,
+      "n_labelled_non_none": 31,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4587069337",
+      "pathway_index": 4,
+      "cohort": "3",
+      "site": "breast",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 34,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "1bbaa1cb-ca7a-4082-a5e7-b9b41b75220b",
+        "encounter_date": "2024-05-31",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Malignant tumour of breast (X78WM) (New Episode)\nMalignant tumour of breast (X78WM)"
+      },
+      "treatment": {
+        "encounter_id": "cc7c99b5-0bf5-4628-abc9-102b7a8906d2",
+        "encounter_date": "2024-07-04",
+        "role": "treatment",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nWide local excision of breast lesion (X40EC) (New Episode)\nBlock dissection of axillary lymph nodes (7H601) (New Episode)"
+      },
+      "n_encounters": 342,
+      "n_labelled_non_none": 31,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4587069337",
+      "pathway_index": 5,
+      "cohort": "3",
+      "site": null,
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 34,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "b8d74a17-fce4-41b1-a890-ca6692cb096c",
+        "encounter_date": "2024-05-31",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nUltrasound guided biopsy (Xa0U8) - Axillary lymph nodes (New Episode)\nMajor: Metastasis to lymph node (Xa980) - Ipsilateral axillary (New Episode)\nMetastasis to ly"
+      },
+      "treatment": {
+        "encounter_id": "cc7c99b5-0bf5-4628-abc9-102b7a8906d2",
+        "encounter_date": "2024-07-04",
+        "role": "treatment",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nWide local excision of breast lesion (X40EC) (New Episode)\nBlock dissection of axillary lymph nodes (7H601) (New Episode)"
+      },
+      "n_encounters": 342,
+      "n_labelled_non_none": 31,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4802241127",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": "gynaecological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: gynaecological within 31d"
+      ],
+      "gap_ftr_dx_days": 31,
+      "gap_ftr_seen_days": 6,
+      "gap_dx_treatment_days": 122,
+      "ftr": {
+        "encounter_id": "f703e498-c2e7-49c6-a17b-0b093cb0a042",
+        "encounter_date": "2025-02-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "11:32 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Gynaecology -  questionnaire started - (finalised: 07 Feb 2025 11:32)\nFast track referral for suspected gynaecological cancer (XaMeB) - (Added from Questionnaire)\n PR"
+      },
+      "seen": {
+        "encounter_id": "70530975-b9f9-4a94-86ab-675ecf7a5d4b",
+        "encounter_date": "2025-02-13",
+        "role": "seen",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected gynaecological cancer clinic (XaPyV)"
+      },
+      "dx": {
+        "encounter_id": "0fcdbfb4-d261-4724-8ca7-a24ab549b980",
+        "encounter_date": "2025-03-10",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "gynaecological",
+        "text_preview": "Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Malignant neoplasm of endometrium of corpus uteri (B4302) (New Episode)\nMalignant neoplasm of endometrium of corpus uteri (B4302)"
+      },
+      "treatment": {
+        "encounter_id": "be312ec3-6f7a-4d67-a197-42e58755331f",
+        "encounter_date": "2025-07-10",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Chemotherapy (X71bL) (New Episode)\nChemotherapy (X71bL)"
+      },
+      "n_encounters": 255,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4802241127",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "gynaecological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: gynaecological within 31d"
+      ],
+      "gap_ftr_dx_days": 31,
+      "gap_ftr_seen_days": 6,
+      "gap_dx_treatment_days": 122,
+      "ftr": {
+        "encounter_id": "6ec0a187-bf7e-4017-858e-e9d82f868eca",
+        "encounter_date": "2025-02-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "11:49 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected gynaecological cancer (XaMeB)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww gynae\nHospital"
+      },
+      "seen": {
+        "encounter_id": "70530975-b9f9-4a94-86ab-675ecf7a5d4b",
+        "encounter_date": "2025-02-13",
+        "role": "seen",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected gynaecological cancer clinic (XaPyV)"
+      },
+      "dx": {
+        "encounter_id": "44551c99-1c6c-43f2-a806-d668a801dc19",
+        "encounter_date": "2025-03-10",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "gynaecological",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Endometrial carcinoma (X78XO) (New Episode)"
+      },
+      "treatment": {
+        "encounter_id": "be312ec3-6f7a-4d67-a197-42e58755331f",
+        "encounter_date": "2025-07-10",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Chemotherapy (X71bL) (New Episode)\nChemotherapy (X71bL)"
+      },
+      "n_encounters": 255,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4802241127",
+      "pathway_index": 3,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "6392a678-be90-47af-81fc-944e246bab6d",
+        "encounter_date": "2024-09-10",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 255,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4802241127",
+      "pathway_index": 4,
+      "cohort": "3",
+      "site": "gynaecological",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 78,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "18fb65de-a2f7-481c-9766-66408e992fcc",
+        "encounter_date": "2025-04-23",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "gynaecological",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nMetastasis to lymph node (Xa980) (Ongoing Episode)\nFine needle aspiration (X79u1) - right SCF (New Episode)\nFine needle aspiration (X79u1) - freehand (New Episode)\nEndometrial biopsy (X"
+      },
+      "treatment": {
+        "encounter_id": "be312ec3-6f7a-4d67-a197-42e58755331f",
+        "encounter_date": "2025-07-10",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Chemotherapy (X71bL) (New Episode)\nChemotherapy (X71bL)"
+      },
+      "n_encounters": 255,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4802241127",
+      "pathway_index": 5,
+      "cohort": "3",
+      "site": null,
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 78,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "b1490aac-cd92-475c-9148-12baa17646ed",
+        "encounter_date": "2025-04-23",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON] (Clinical Practitioner Access Role)\nMajor: Metastasis to lymph node (Xa980) - above and below diaphragm (New Episode)\nMetastasis to lymph node (Xa980) - above and "
+      },
+      "treatment": {
+        "encounter_id": "be312ec3-6f7a-4d67-a197-42e58755331f",
+        "encounter_date": "2025-07-10",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Chemotherapy (X71bL) (New Episode)\nChemotherapy (X71bL)"
+      },
+      "n_encounters": 255,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4802241127",
+      "pathway_index": 6,
+      "cohort": "3",
+      "site": "gynaecological",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "00d7433e-dc1d-4259-820d-1535afe6d430",
+        "encounter_date": "2025-11-13",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "gynaecological",
+        "text_preview": "14:48 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nSummary Care Record Update\nProblem Item Marked in Error: Merging Problem\n1 Letter(s) added to problem Endometrial carcinoma,  - 12 May 2025\nProblem Item Marked in Error: Merging "
+      },
+      "treatment": null,
+      "n_encounters": 255,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4802241127",
+      "pathway_index": 7,
+      "cohort": "3",
+      "site": "head_neck",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "53fc14ec-06ad-45c7-8d86-0b19788cd2b0",
+        "encounter_date": "2025-11-26",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "head_neck",
+        "text_preview": "10:54 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Hemithyroidectomy (71102) - Left and isthmus - to complete thyroidectomy, for papillary carcinoma\nSummary Care Record Update\nProblem Header Marked in Error: Wrong data ent"
+      },
+      "treatment": null,
+      "n_encounters": 255,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4802892365",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 182d"
+      ],
+      "gap_ftr_dx_days": 182,
+      "gap_ftr_seen_days": 33,
+      "gap_dx_treatment_days": 13,
+      "ftr": {
+        "encounter_id": "dae7cc81-d783-4111-bfa1-2f42431757d5",
+        "encounter_date": "2025-03-26",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "11:35 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Breast lump (K3171)\nHistory: As above, R breast lump\nOn tibolone HRT, for many years, prev on Kliofem\nHad children, no BF\nOtherwise fit and well\nExamination: With consen"
+      },
+      "seen": {
+        "encounter_id": "621e5db9-0a87-4dfb-961f-c86b709580d8",
+        "encounter_date": "2025-04-28",
+        "role": "seen",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+      },
+      "dx": {
+        "encounter_id": "9eef6753-7fc6-492b-a8b7-bccc32f34d53",
+        "encounter_date": "2025-09-24",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "breast",
+        "text_preview": "08:30 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Biopsy of sentinel lymph node (XaF83)\nProblem: Malignant tumour of breast (X78WM)\nProblem: Invasive carcinoma of breast (Ya0ln) - lobular\nProblem: Mastectomy of right br"
+      },
+      "treatment": {
+        "encounter_id": "4095e6e5-dd56-4c31-ac2e-64d9e3996e85",
+        "encounter_date": "2025-10-07",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "10:16 - Sent online by [PERSON]  \nRequest for 'Dihydrocodeine 30mg tablets' by patient\nRequest for 'Letrozole 2.5mg tablets' by patient"
+      },
+      "n_encounters": 300,
+      "n_labelled_non_none": 37,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4802892365",
+      "pathway_index": 2,
+      "cohort": "1b",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 12d"
+      ],
+      "gap_ftr_dx_days": 12,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "64678558-69b8-4897-be39-2480a8920267",
+        "encounter_date": "2025-03-26",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "11:46 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 26 Mar 2025 11:46)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n - PRISM "
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "33d1d178-18da-4110-9df2-91223d19eab9",
+        "encounter_date": "2025-04-07",
+        "role": "dx",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON] (Clinical Practitioner Access Role)\nTomography (563..) (New Episode)\nMammogram (537..) (New Episode)\nUS scan and biopsy of breast (Y38ce) - + us axilla (New Episod"
+      },
+      "treatment": null,
+      "n_encounters": 300,
+      "n_labelled_non_none": 37,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4802892365",
+      "pathway_index": 3,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "1f8bc89c-db8f-4c95-b2f1-f37a2001b135",
+        "encounter_date": "2024-08-21",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "11:35 - Surgery: [STAFF] (Admin/Clinical Support Access Role) Entered at: Carillon PCN\n Bowel Cancer Screening\n   Advice: Advice given about bowel cancer screening programme (XaPyB)\n   Invitation: Bowel cancer screening programme telephone "
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 300,
+      "n_labelled_non_none": 37,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4802892365",
+      "pathway_index": 4,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "00952921-f60a-49f6-803c-b9fc02116b0a",
+        "encounter_date": "2024-10-04",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 300,
+      "n_labelled_non_none": 37,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4802892365",
+      "pathway_index": 5,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "b1460e8f-3112-49f5-9230-2055c29b45d4",
+        "encounter_date": "2024-10-04",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nDid not attend bowel cancer screening (XaN4t) (New Episode)"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 300,
+      "n_labelled_non_none": 37,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4802892365",
+      "pathway_index": 6,
+      "cohort": "2",
+      "site": "breast",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "2e96eda1-449c-426a-97a0-64253a0de9f7",
+        "encounter_date": "2025-03-26",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "11:56 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast t"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 300,
+      "n_labelled_non_none": 37,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 2
+    },
+    {
+      "patient_id": "4821512173",
+      "pathway_index": 1,
+      "cohort": "1b",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 15d"
+      ],
+      "gap_ftr_dx_days": 15,
+      "gap_ftr_seen_days": 15,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "a77f7568-b540-4184-9b51-aafc779b57eb",
+        "encounter_date": "2025-02-26",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "09:46 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Chesty cough (1719.)\nHistory: Cough (XE0qn)\n- chronic cough since she stopped smoking 2 years ago  \n- currently expericing chostochondritis   \n- has a mix of green sputu"
+      },
+      "seen": {
+        "encounter_id": "96546382-1e57-4214-a157-d78d90201258",
+        "encounter_date": "2025-03-13",
+        "role": "seen",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+      },
+      "dx": {
+        "encounter_id": "a2bc1677-051f-418c-9ad9-8379c364ea00",
+        "encounter_date": "2025-03-13",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nMammogram (537..) - benign calcifications R, otherwise normal b/l (New Episode)\nUS scan of breast (585C.) - L - normal (New Episode)"
+      },
+      "treatment": null,
+      "n_encounters": 173,
+      "n_labelled_non_none": 31,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4821512173",
+      "pathway_index": 2,
+      "cohort": "2",
+      "site": "breast",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "ca88c3cb-d61c-4618-9d81-15b7f085c37e",
+        "encounter_date": "2025-02-26",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "10:45 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast t"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 173,
+      "n_labelled_non_none": 31,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4821512173",
+      "pathway_index": 3,
+      "cohort": "2",
+      "site": "lung",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "e93362bf-7734-4127-bca4-b0df83eef66f",
+        "encounter_date": "2025-04-02",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lung",
+        "text_preview": "11:32 - Surgery: [STAFF] (Medical Secretary Access Role) \nChoose and book advice and guidance request (XaYv5)\nChoice and booking enhanced services administration (XaMJa)\n WMC Referrals\n   Advice and guidance request has been sent today to R"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 173,
+      "n_labelled_non_none": 31,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4821512173",
+      "pathway_index": 4,
+      "cohort": "3",
+      "site": "breast",
+      "diagnosis_route": "routine_gp_investigation",
+      "route_rationale": [
+        "cohort_3_default_non_ft_pathway"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 2,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "f443ce8b-7bba-4387-b8f2-2256e6ed948c",
+        "encounter_date": "2024-02-05",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "breast",
+        "text_preview": "14:22 - Surgery: [STAFF] (Nurse Access Role) \nCervical Screening: \nCervical Screening: Cervical smear (Xa8Pl)\nProblem: Cervical neoplasia screening (685..)\nHistory: Attended for cervical screening, last teat 2014. \nOn tamoxifen. \nNo vaginal"
+      },
+      "treatment": {
+        "encounter_id": "b25a7d38-3012-4bc6-b614-7c9216905462",
+        "encounter_date": "2024-02-07",
+        "role": "treatment",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "17:08 - Surgery: [STAFF] (Nurse Access Role) \nExamination: Notes accessed to check eligibility as booked in for shingles vaccination 19.2.24\nLeft breast ca, has had radiotherapy within the last 6 months finishing 31.8.23 - therefore eligibl"
+      },
+      "n_encounters": 173,
+      "n_labelled_non_none": 31,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4926975998",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 32d"
+      ],
+      "gap_ftr_dx_days": 32,
+      "gap_ftr_seen_days": 25,
+      "gap_dx_treatment_days": 56,
+      "ftr": {
+        "encounter_id": "1575f928-2aba-4c5d-a832-dc5e16a8e2ae",
+        "encounter_date": "2024-03-14",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "17:37 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 14 Mar 2024 17:37)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)\n PRISM Pa"
+      },
+      "seen": {
+        "encounter_id": "6719ae19-ddc6-4232-80fa-304bb8ddb7a0",
+        "encounter_date": "2024-04-08",
+        "role": "seen",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+      },
+      "dx": {
+        "encounter_id": "a1a67260-5cda-488c-a0fc-c4a318bd5cad",
+        "encounter_date": "2024-04-15",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "breast",
+        "text_preview": "Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Malignant tumour of breast (X78WM) (New Episode)\nMalignant tumour of breast (X78WM)"
+      },
+      "treatment": {
+        "encounter_id": "5738d6a8-1117-48d6-90ec-6f9b07716634",
+        "encounter_date": "2024-06-10",
+        "role": "treatment",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "16:05 - Surgery: [STAFF] (Pharmacist) \nHistory: teleconsult; spoke to pt confirmed dob verified id: discussed her letrozole 2.5mg od whihc she has been getting on fine with has had initial rx from Glefield breast care centre annd is to rema"
+      },
+      "n_encounters": 366,
+      "n_labelled_non_none": 39,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4926975998",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 31d"
+      ],
+      "gap_ftr_dx_days": 31,
+      "gap_ftr_seen_days": 24,
+      "gap_dx_treatment_days": 56,
+      "ftr": {
+        "encounter_id": "91c45cf1-3448-448f-8124-13edc076a899",
+        "encounter_date": "2024-03-15",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "09:48 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fast t"
+      },
+      "seen": {
+        "encounter_id": "6719ae19-ddc6-4232-80fa-304bb8ddb7a0",
+        "encounter_date": "2024-04-08",
+        "role": "seen",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+      },
+      "dx": {
+        "encounter_id": "b8606316-c70a-410d-a17a-7b4095845897",
+        "encounter_date": "2024-04-15",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON] (Clinical Practitioner Access Role)\nMajor: Infiltrating duct carcinoma (BB91.) - Right (New Episode)\nInfiltrating duct carcinoma (BB91.) - Right"
+      },
+      "treatment": {
+        "encounter_id": "5738d6a8-1117-48d6-90ec-6f9b07716634",
+        "encounter_date": "2024-06-10",
+        "role": "treatment",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "16:05 - Surgery: [STAFF] (Pharmacist) \nHistory: teleconsult; spoke to pt confirmed dob verified id: discussed her letrozole 2.5mg od whihc she has been getting on fine with has had initial rx from Glefield breast care centre annd is to rema"
+      },
+      "n_encounters": 366,
+      "n_labelled_non_none": 39,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4926975998",
+      "pathway_index": 3,
+      "cohort": "1b",
+      "site": "breast",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: breast within 67d"
+      ],
+      "gap_ftr_dx_days": 67,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "9802736f-97bb-4dcb-8fe2-dc0f4b613d35",
+        "encounter_date": "2025-05-01",
+        "role": "ftr",
+        "outcome": null,
+        "site": "breast",
+        "text_preview": "10:11 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Problem with balance (Xa6td)\nProblem: C/O: a rash (1D14.)\nProblem: O/E - a lump (2I11.)\nHistory: Presented initially regarding dizziness that we have looked at before\nSh"
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "2ff80b4f-df00-4f28-b67a-a28c908738a4",
+        "encounter_date": "2025-07-07",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nMinor: Occipital lymph node (X753K) (New Episode)\nOccipital lymph node (X753K)"
+      },
+      "treatment": null,
+      "n_encounters": 366,
+      "n_labelled_non_none": 39,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4926975998",
+      "pathway_index": 4,
+      "cohort": "2",
+      "site": "head_neck",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "45d9ec2e-8a8e-40d4-902d-184a722a1b4e",
+        "encounter_date": "2025-05-01",
+        "role": "ftr",
+        "outcome": null,
+        "site": "head_neck",
+        "text_preview": "16:11 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Head and Neck -  questionnaire started - (finalised: 01 May 2025 16:11)\nFast track referral for suspected head and neck cancer (XaMkD) - (Added from Questionnaire)\n P"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 366,
+      "n_labelled_non_none": 39,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4926975998",
+      "pathway_index": 5,
+      "cohort": "2",
+      "site": "head_neck",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "85e86a92-c014-4092-87f6-6fdb02f90852",
+        "encounter_date": "2025-05-02",
+        "role": "ftr",
+        "outcome": null,
+        "site": "head_neck",
+        "text_preview": "10:38 - Surgery: [STAFF] (Receptionist Access Role) \nFast track referral for suspected head and neck cancer (XaMkD)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes Head & Neck\nHospital Fas"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 366,
+      "n_labelled_non_none": 39,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4926975998",
+      "pathway_index": 6,
+      "cohort": "2",
+      "site": null,
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "bf1a5923-37fc-497c-b879-b4e4d4857211",
+        "encounter_date": "2025-05-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "08:27 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nAdvice and Guidance PRISM pathway accessed\n- PRISM Advice & Guidance Request -  questionnaire started - (finalised: 07 May 2025 08:27)\nReferral to medical service (XaAcN) - (Adde"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 366,
+      "n_labelled_non_none": 39,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4926975998",
+      "pathway_index": 7,
+      "cohort": "2",
+      "site": "skin",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "0cd0d397-2d35-4ec9-af78-767a9773e0bf",
+        "encounter_date": "2025-05-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "11:18 - Surgery: [STAFF] (Medical Secretary Access Role) \nChoose and book advice and guidance request (XaYv5)\nChoice and booking enhanced services administration (XaMJa)\n WMC Medical Secretary Template\n WMC Referrals\n   Advice and guidance "
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 366,
+      "n_labelled_non_none": 39,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4926975998",
+      "pathway_index": 8,
+      "cohort": "2",
+      "site": null,
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "f45418ec-c0a3-4348-9758-c1bf6c79b058",
+        "encounter_date": "2025-06-25",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "17:17 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Herpes simplex virus (X73jl)\nHistory: Flare of rash on buttocks started at weekend - easing off now though\nHad popped in Monday on off chance I could take a look - apolo"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 366,
+      "n_labelled_non_none": 39,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "254837009",
+          "concept_name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4940120139",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": "skin",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: skin within 26d"
+      ],
+      "gap_ftr_dx_days": 26,
+      "gap_ftr_seen_days": 20,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "b4069d44-76e0-45c4-ad64-072991d87a3e",
+        "encounter_date": "2024-03-01",
+        "role": "ftr",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "14:55 - GP Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: Skin lesion (Xa02q)- coin - 50 pence size, - 3 months , \ngrown bigger, not sore , bleeds, \nusing cream on it but not getting better , \nThere is no similar lesion , \nn"
+      },
+      "seen": {
+        "encounter_id": "170d7cfd-fe62-4e26-9e78-033db349b411",
+        "encounter_date": "2024-03-21",
+        "role": "seen",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected skin cancer clinic (XaPyd)"
+      },
+      "dx": {
+        "encounter_id": "494708bd-3d5e-4f9d-9fad-94ad6a03a734",
+        "encounter_date": "2024-03-27",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMinor: Basal cell carcinoma (Xa98G) - Left upper arm, excised (New Episode)\nBasal cell carcinoma (Xa98G) - Left upper arm, excised"
+      },
+      "treatment": null,
+      "n_encounters": 420,
+      "n_labelled_non_none": 16,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "128462008",
+          "concept_name": "Metastatic malignant neoplasm (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4940120139",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "lower_gi",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: lower_gi within 149d"
+      ],
+      "gap_ftr_dx_days": 149,
+      "gap_ftr_seen_days": 75,
+      "gap_dx_treatment_days": 38,
+      "ftr": {
+        "encounter_id": "dda99f48-2206-4e01-ad73-aa494afb11a8",
+        "encounter_date": "2025-05-28",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "18:57 - Primary Care Network (PCN): [PERSON] (Clinical Practitioner Access Role) Entered at: Carillon PCN\nHistory: Outbound referral (XaY59)\nDiagnosis: Diagnostic World Ultrasound (Non-UHL) Referral Pathway Accessed\n- PRISM Diagnostic World"
+      },
+      "seen": {
+        "encounter_id": "14a0aec7-56bb-44f4-85e0-3fde924accef",
+        "encounter_date": "2025-08-11",
+        "role": "seen",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected colorectal cancer clinic (XaPyb)"
+      },
+      "dx": {
+        "encounter_id": "0ca7e0f3-7cff-4f8d-b007-2b3d68c3bf47",
+        "encounter_date": "2025-10-24",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Metastatic carcinoma (XM1GJ) - nodal (New Episode)\nMetastatic carcinoma (XM1GJ) - nodal"
+      },
+      "treatment": {
+        "encounter_id": "34f16956-34e4-4cc8-a38b-da0938af815e",
+        "encounter_date": "2025-12-01",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "13:02 - Surgery: [STAFF] (Admin/Clinical Support Access Role) \nComment note (XaIg6)\nE-Mail sent to maureenleafe@hotmail.com via Abtrace tool. Subject: Annual Diabetic review overdue; Content: Dear [PERSON],\n\nOur records show you are overdue"
+      },
+      "n_encounters": 420,
+      "n_labelled_non_none": 16,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "128462008",
+          "concept_name": "Metastatic malignant neoplasm (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4940120139",
+      "pathway_index": 3,
+      "cohort": "1a",
+      "site": "lung",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: None within 25d"
+      ],
+      "gap_ftr_dx_days": 25,
+      "gap_ftr_seen_days": 25,
+      "gap_dx_treatment_days": 132,
+      "ftr": {
+        "encounter_id": "74f306ca-4686-4e77-ad80-1a653e3b2915",
+        "encounter_date": "2025-06-27",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "16:35 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Hepatobiliary -  questionnaire started\n Clinical Supervision\n   Discussed with supervisor: Yes\n   Patient present: No (Y0428)\n   Notes:  Agree send ICE CT AP, but als"
+      },
+      "seen": {
+        "encounter_id": "abb76b06-784c-4589-94dc-fd6914c637cd",
+        "encounter_date": "2025-07-22",
+        "role": "seen",
+        "outcome": null,
+        "site": "upper_gi",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected upper GI cancer clinic (XaPyj)"
+      },
+      "dx": {
+        "encounter_id": "4e6afa6d-fd68-4bfd-9b33-49b078c835ef",
+        "encounter_date": "2025-07-22",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "lung",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Metastasis to lung (B570.) (New Episode)\nMajor: Metastasis to liver (B577.) (New Episode)\nMajor: Carcinoma of caecum (X78gM) (New Episode)\nCarcinoma of caec"
+      },
+      "treatment": {
+        "encounter_id": "34f16956-34e4-4cc8-a38b-da0938af815e",
+        "encounter_date": "2025-12-01",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "13:02 - Surgery: [STAFF] (Admin/Clinical Support Access Role) \nComment note (XaIg6)\nE-Mail sent to maureenleafe@hotmail.com via Abtrace tool. Subject: Annual Diabetic review overdue; Content: Dear [PERSON],\n\nOur records show you are overdue"
+      },
+      "n_encounters": 420,
+      "n_labelled_non_none": 16,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "128462008",
+          "concept_name": "Metastatic malignant neoplasm (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4940120139",
+      "pathway_index": 4,
+      "cohort": "1b",
+      "site": "upper_gi",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: upper_gi within 81d"
+      ],
+      "gap_ftr_dx_days": 81,
+      "gap_ftr_seen_days": 25,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "64887000-25b2-46d8-898c-0ed7a9fb72f2",
+        "encounter_date": "2025-06-27",
+        "role": "ftr",
+        "outcome": null,
+        "site": "upper_gi",
+        "text_preview": "16:55 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Hepatobiliary -  questionnaire started - (finalised: 27 Jun 2025 16:55)\nSerum bilirubin level (44E..) 0 umol/L - (Added from Questionnaire)\nFast track referral for su"
+      },
+      "seen": {
+        "encounter_id": "abb76b06-784c-4589-94dc-fd6914c637cd",
+        "encounter_date": "2025-07-22",
+        "role": "seen",
+        "outcome": null,
+        "site": "upper_gi",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected upper GI cancer clinic (XaPyj)"
+      },
+      "dx": {
+        "encounter_id": "166de1d2-a72b-4f90-b082-9201a9f1e5e0",
+        "encounter_date": "2025-09-16",
+        "role": "dx",
+        "outcome": null,
+        "site": null,
+        "text_preview": "10:23 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Carcinoma of caecum (X78gM)\nHistory: Attending with son Darren. \nRecently diagnosed with metastatic caecal cancer. \nAwaiting outcome of 2nd MDT following further histolo"
+      },
+      "treatment": null,
+      "n_encounters": 420,
+      "n_labelled_non_none": 16,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "128462008",
+          "concept_name": "Metastatic malignant neoplasm (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4940120139",
+      "pathway_index": 5,
+      "cohort": "2",
+      "site": "skin",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "f3e8eea0-1353-48f8-b530-4b04fc7354f5",
+        "encounter_date": "2024-03-05",
+        "role": "ftr",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "08:36 - Surgery: [STAFF] (Receptionist Access Role) \nFast track referral for suspected skin cancer (XaMeA)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww skin\nHospital Fast track refe"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 420,
+      "n_labelled_non_none": 16,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "128462008",
+          "concept_name": "Metastatic malignant neoplasm (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4940120139",
+      "pathway_index": 6,
+      "cohort": "2",
+      "site": "upper_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "861a5c02-3b7f-4179-9338-f8fda8d8ffad",
+        "encounter_date": "2025-06-27",
+        "role": "ftr",
+        "outcome": null,
+        "site": "upper_gi",
+        "text_preview": "17:24 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected upper GI cancer (XaMeJ)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww upper gi\nHospital Fa"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 420,
+      "n_labelled_non_none": 16,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "128462008",
+          "concept_name": "Metastatic malignant neoplasm (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4940120139",
+      "pathway_index": 7,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "47a2a2a6-49cc-47af-8577-f8b00c5666da",
+        "encounter_date": "2025-07-04",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "14:51 - Surgery: [STAFF] (Receptionist Access Role) \nFast track referral for suspected lower GI cancer (Xaalp)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes Lower GI\nHospital Fast track "
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 420,
+      "n_labelled_non_none": 16,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "128462008",
+          "concept_name": "Metastatic malignant neoplasm (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "4940120139",
+      "pathway_index": 8,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "5e857773-f0f7-442d-ba84-42a45da582b1",
+        "encounter_date": "2025-07-04",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "15:42 - Surgery: [STAFF] (Medical Secretary Access Role) \nEmail sent to 2ww HBP team to inform them a lower GI 2ww has been sent as well due to positive FIT."
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 420,
+      "n_labelled_non_none": 16,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "128462008",
+          "concept_name": "Metastatic malignant neoplasm (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6044092682",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": null,
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: None within 138d"
+      ],
+      "gap_ftr_dx_days": 138,
+      "gap_ftr_seen_days": 78,
+      "gap_dx_treatment_days": 18,
+      "ftr": {
+        "encounter_id": "0881cc9c-74e0-4049-a2ef-8d1dd1d71df4",
+        "encounter_date": "2025-05-28",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "15:24 - Surgery: [STAFF] (Medical Secretary Access Role) \nReferral to orthopaedic service (8H54.)\nChoice and booking enhanced services administration (XaMJa)\n WMC Referrals\n   Patient has been referred to MSK triage today. The service will "
+      },
+      "seen": {
+        "encounter_id": "59ab2b4b-eee2-409c-8e6e-228d1a788a93",
+        "encounter_date": "2025-08-14",
+        "role": "seen",
+        "outcome": null,
+        "site": null,
+        "text_preview": "09:03 - Surgery: [STAFF] (Medical Secretary Access Role) \nCall to Woodthorpe Hospital (only managed to get through on the private patient line and they do not respond to emails). Secretary would not release any information as the letter has"
+      },
+      "dx": {
+        "encounter_id": "f6a91c33-f579-4e05-ad20-da4c89a036a3",
+        "encounter_date": "2025-10-13",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON] (Clinical Practitioner Access Role)\nMajor: Metastasis to lymph node (Xa980) (New Episode)\nMetastasis to lymph node (Xa980)"
+      },
+      "treatment": {
+        "encounter_id": "5545a400-afd5-4149-bc54-7528d0d3b604",
+        "encounter_date": "2025-10-31",
+        "role": "treatment",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "11:24 - Surgery: [STAFF] (Nurse Access Role) \nProblem: Malignant tumour of prostate (B46..)\nHistory: Attended for monthly degarelix injection. No problems expressed following last injection.\n Drug Injections\n   GnRH Analogue\n      Informed "
+      },
+      "n_encounters": 313,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6044092682",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "lower_gi",
+      "diagnosis_route": "screening",
+      "route_rationale": [
+        "screening_read_code_or_screening_phrase_on_ftr"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: lower_gi within 121d"
+      ],
+      "gap_ftr_dx_days": 121,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 18,
+      "ftr": {
+        "encounter_id": "dde2ad82-de17-450e-b868-259e496beaf9",
+        "encounter_date": "2025-06-14",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "68784ed4-2152-4137-9801-838b0736a02a",
+        "encounter_date": "2025-10-13",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Metastasis to lymph node (Xa980) (New Episode)\nMetastasis to lymph node (Xa980)"
+      },
+      "treatment": {
+        "encounter_id": "5545a400-afd5-4149-bc54-7528d0d3b604",
+        "encounter_date": "2025-10-31",
+        "role": "treatment",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "11:24 - Surgery: [STAFF] (Nurse Access Role) \nProblem: Malignant tumour of prostate (B46..)\nHistory: Attended for monthly degarelix injection. No problems expressed following last injection.\n Drug Injections\n   GnRH Analogue\n      Informed "
+      },
+      "n_encounters": 313,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6044092682",
+      "pathway_index": 3,
+      "cohort": "1a",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 19d"
+      ],
+      "gap_ftr_dx_days": 19,
+      "gap_ftr_seen_days": 8,
+      "gap_dx_treatment_days": 10,
+      "ftr": {
+        "encounter_id": "48f9ea2c-f003-40b2-8aec-4c0b6c2e3350",
+        "encounter_date": "2025-08-18",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "08:29 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Hip pain (X75rv)\nHistory: Booked to discuss MRI but I note that his PSA is very raised. \nDoes get LUTs, including nocturia. \nNote Hx leg/hip pain- has spoken with specia"
+      },
+      "seen": {
+        "encounter_id": "704b5c4e-1c99-45b0-9dbd-c881162e19d1",
+        "encounter_date": "2025-08-26",
+        "role": "seen",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+      },
+      "dx": {
+        "encounter_id": "09bb058b-7953-42b0-af00-c5d62fb629af",
+        "encounter_date": "2025-09-06",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "urological",
+        "text_preview": "Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Malignant tumour of prostate (B46..) (New Episode)\nMalignant tumour of prostate (B46..)"
+      },
+      "treatment": {
+        "encounter_id": "9713c579-a2b4-46d9-a27e-5146ca9e1cf2",
+        "encounter_date": "2025-09-16",
+        "role": "treatment",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "11:39 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: As per discharge letter\nDegarelix 80mg powder and solvent for solution for injection vials - 1 vial - For SC Injection ONCE monthly for prostate cancer\n Drug Injections\n"
+      },
+      "n_encounters": 313,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6044092682",
+      "pathway_index": 4,
+      "cohort": "2",
+      "site": "urological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "af250d34-6dc0-446f-a36b-e932f7499442",
+        "encounter_date": "2025-08-18",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "14:48 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: F2F review in regards of PSA result 129\nReports urine went dark after taking naproxen for pain in legs\nReports increased frequency at night 2-3 nights for the last year\n"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 313,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6044092682",
+      "pathway_index": 5,
+      "cohort": "2",
+      "site": "urological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "a1f22e88-6d65-4f15-868e-cf42aea4d783",
+        "encounter_date": "2025-08-19",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "11:58 - Surgery: [STAFF] (Medical Secretary Access Role) \nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Urology\nPatient awaiting OPD appt. (9R52.) - 2ww Urology"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 313,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6044092682",
+      "pathway_index": 6,
+      "cohort": "2",
+      "site": "urological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "30c963b9-e57d-48ce-b5ba-e7dcf815fe16",
+        "encounter_date": "2025-08-19",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "12:06 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nHospital Fast track referral for suspected urological cancer\nHospital Fast track referral for suspected urological cancer "
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 313,
+      "n_labelled_non_none": 26,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6142203497",
+      "pathway_index": 1,
+      "cohort": "1b",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 19d"
+      ],
+      "gap_ftr_dx_days": 19,
+      "gap_ftr_seen_days": 18,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "b5aaedc5-3b3d-49c7-b599-d4a78f8ac82a",
+        "encounter_date": "2024-07-05",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "11:53 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Frank haematuria (K1973)\nHistory: Pt brought in for review - \nexplained it was a review due to recent symptoms he reported and to follow up, \nduring routine med review i"
+      },
+      "seen": {
+        "encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8",
+        "encounter_date": "2024-07-23",
+        "role": "seen",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+      },
+      "dx": {
+        "encounter_id": "41af1f6a-9841-4ff4-b532-c9c737bab465",
+        "encounter_date": "2024-07-24",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": "urological",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nRenal ultrasound (585B.) (New Episode)\nFlexible cystoscopy (Xa7va) (New Episode)\nSeen in fast track suspected urological cancer clinic (XaPyk) (New Episode)"
+      },
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 76,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6142203497",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 18d"
+      ],
+      "gap_ftr_dx_days": 18,
+      "gap_ftr_seen_days": 12,
+      "gap_dx_treatment_days": 1,
+      "ftr": {
+        "encounter_id": "188d4f04-8b5c-4f10-93ab-aa63eed74746",
+        "encounter_date": "2024-07-11",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "11:22 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: F2F \nPrevious notes by AK noted - SEA in place, duty of candour \nPatient has raised PSA 1206  \nGFR 84\nGoing on holiday until 18th July  \nExplained will need further refe"
+      },
+      "seen": {
+        "encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8",
+        "encounter_date": "2024-07-23",
+        "role": "seen",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+      },
+      "dx": {
+        "encounter_id": "0afb3b1a-e706-4990-ad99-ef44d7c0cba0",
+        "encounter_date": "2024-07-29",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "urological",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Carcinoma of prostate (X78Y6) (New Episode)\nCarcinoma of prostate (X78Y6)"
+      },
+      "treatment": {
+        "encounter_id": "ff9a549d-50e3-4fd3-8243-65aa6cb4d698",
+        "encounter_date": "2024-07-30",
+        "role": "treatment",
+        "outcome": null,
+        "site": "skin",
+        "text_preview": "09:23 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: Duty doctor.\nTelephone call...\nRecent diagnosed with prostate cancer.\nHas 2 marks on back for past 3-4 weeks.\nNow concerned and wants to get this checked.\nNot sure what "
+      },
+      "n_encounters": 395,
+      "n_labelled_non_none": 76,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6142203497",
+      "pathway_index": 3,
+      "cohort": "1a",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 56d"
+      ],
+      "gap_ftr_dx_days": 56,
+      "gap_ftr_seen_days": 12,
+      "gap_dx_treatment_days": 13,
+      "ftr": {
+        "encounter_id": "3680c6e0-51da-45a9-9238-03f716669b6d",
+        "encounter_date": "2024-07-11",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "15:09 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced servi"
+      },
+      "seen": {
+        "encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8",
+        "encounter_date": "2024-07-23",
+        "role": "seen",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+      },
+      "dx": {
+        "encounter_id": "b449cde7-fe80-48a5-b1c8-4193c655c0e2",
+        "encounter_date": "2024-09-05",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nUltrasound guided biopsy (Xa0U8) - abdomen (New Episode)"
+      },
+      "treatment": {
+        "encounter_id": "03abd0a6-84d1-4b04-a0dc-26ecfd992a57",
+        "encounter_date": "2024-09-18",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "09:16 - Sent online by [PERSON]  \nRequest for 'Degarelix 80mg powder and solvent for solution for injection vials' by patient"
+      },
+      "n_encounters": 395,
+      "n_labelled_non_none": 76,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6142203497",
+      "pathway_index": 4,
+      "cohort": "1b",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 43d"
+      ],
+      "gap_ftr_dx_days": 43,
+      "gap_ftr_seen_days": 8,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "9548b356-7d4b-4f09-9d44-64f37b89de6b",
+        "encounter_date": "2024-07-15",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "15:09 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Urology (second re"
+      },
+      "seen": {
+        "encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8",
+        "encounter_date": "2024-07-23",
+        "role": "seen",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+      },
+      "dx": {
+        "encounter_id": "847fa380-3aad-4c0c-9704-e72ea794b894",
+        "encounter_date": "2024-08-27",
+        "role": "dx",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "12:03 - Surgery: [STAFF] (Nurse Access Role) \nProblem: Carcinoma of prostate (X78Y6)\nHistory: Attended for Degarlix injection but printed prescription not yet collected and does not have the medication. No stock in Allied pharmacy today. Pr"
+      },
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 76,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6142203497",
+      "pathway_index": 5,
+      "cohort": "1b",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 21d"
+      ],
+      "gap_ftr_dx_days": 21,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "04c0f659-0e49-4dd3-b210-afd6b4912d0e",
+        "encounter_date": "2024-08-29",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "12:41 - Surgery: [STAFF] (Admin/Clinical Support Access Role) \n Case Management\n   MDT\n      Issues identified:  2.5 month delay 2ww \u0013 T4N1M1 ca prostate\n      Agreed actions:  AI written DoC needed here \u0013 AI reviewing policy and completing"
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "52d77a93-0f55-4024-8c3c-39cf26991a32",
+        "encounter_date": "2024-09-19",
+        "role": "dx",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "17:21 - Surgery: [STAFF] (Pharmacist) \nProblem: Carcinoma of prostate (X78Y6)\nHistory: teleconsu;t: spoke to pt confirmed dob verified id: discussed the recent new of him being diagnosed with the prostate cancer, mentally feels up and down,"
+      },
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 76,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6142203497",
+      "pathway_index": 6,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "91e2d773-f337-4863-ba43-fc42fed8f171",
+        "encounter_date": "2025-02-26",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Medical Secretary Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 76,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6142203497",
+      "pathway_index": 7,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "3632235b-c9bc-4178-9a62-560d84099ba5",
+        "encounter_date": "2025-11-10",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Medical Secretary Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 76,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6220044894",
+      "pathway_index": 1,
+      "cohort": "1b",
+      "site": "gynaecological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: gynaecological within 34d"
+      ],
+      "gap_ftr_dx_days": 34,
+      "gap_ftr_seen_days": 9,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "91384838-b386-4cc5-85a2-efa73d234423",
+        "encounter_date": "2024-05-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "15:44 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: F2F \nMenopausal for 8-9 years  \n1 episode spanning 2 days - multiple episodes of spotting  \nHas period like cramping abdominal pain  \nNo HRT  \nNo PCB  \nNon smoker  \nNorm"
+      },
+      "seen": {
+        "encounter_id": "f2639f47-e424-40c3-9c68-913c6fec4c11",
+        "encounter_date": "2024-05-16",
+        "role": "seen",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected gynaecological cancer clinic (XaPyV)"
+      },
+      "dx": {
+        "encounter_id": "9aac4601-10e0-4bcd-aa6d-d0f70e390730",
+        "encounter_date": "2024-06-10",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nHysteroscopy (7E0E.) (New Episode)\nNon-smoker (Ub0oq) (New Episode)"
+      },
+      "treatment": null,
+      "n_encounters": 59,
+      "n_labelled_non_none": 10,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6220044894",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "gynaecological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: gynaecological within 42d"
+      ],
+      "gap_ftr_dx_days": 42,
+      "gap_ftr_seen_days": 9,
+      "gap_dx_treatment_days": 75,
+      "ftr": {
+        "encounter_id": "0fb779d6-39b5-4cc2-9561-01f158ca47da",
+        "encounter_date": "2024-05-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "16:25 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected gynaecological cancer (XaMeB)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Gynae (Vulval)"
+      },
+      "seen": {
+        "encounter_id": "f2639f47-e424-40c3-9c68-913c6fec4c11",
+        "encounter_date": "2024-05-16",
+        "role": "seen",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected gynaecological cancer clinic (XaPyV)"
+      },
+      "dx": {
+        "encounter_id": "b4aae3ae-af45-49e9-93a8-a93e2bc603ef",
+        "encounter_date": "2024-06-18",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "gynaecological",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Endometrioid carcinoma (BB5j2) (New Episode)\nMinor: Lapar total abdominal hysterect bilat salpingo-oophorectomy (XaJy8) (New Episode)\nLapar total abdominal "
+      },
+      "treatment": {
+        "encounter_id": "c071e222-efc7-4c8e-81e5-3ad7b3c9d6a8",
+        "encounter_date": "2024-09-01",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMinor: Radiotherapy completed (5154.) (New Episode)\nRadiotherapy completed (5154.)"
+      },
+      "n_encounters": 59,
+      "n_labelled_non_none": 10,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6220044894",
+      "pathway_index": 3,
+      "cohort": "1a",
+      "site": "gynaecological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: gynaecological within 42d"
+      ],
+      "gap_ftr_dx_days": 42,
+      "gap_ftr_seen_days": 9,
+      "gap_dx_treatment_days": 75,
+      "ftr": {
+        "encounter_id": "0b10a5e7-b5e3-491b-8464-79116058a84e",
+        "encounter_date": "2024-05-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "16:28 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected gynaecological cancer (XaMeB)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Gynae (Endomet"
+      },
+      "seen": {
+        "encounter_id": "f2639f47-e424-40c3-9c68-913c6fec4c11",
+        "encounter_date": "2024-05-16",
+        "role": "seen",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected gynaecological cancer clinic (XaPyV)"
+      },
+      "dx": {
+        "encounter_id": "e90f9938-43de-424d-933f-64ef532202d7",
+        "encounter_date": "2024-06-18",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "gynaecological",
+        "text_preview": "10:19 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Endometrial carcinoma (X78XO) - total laparoscopic hysterectomy and bilateral salpingo-oophorectomy on 18/06/24. (New Episode)\nEndometrial carcinoma (X78XO) - total laparo"
+      },
+      "treatment": {
+        "encounter_id": "c071e222-efc7-4c8e-81e5-3ad7b3c9d6a8",
+        "encounter_date": "2024-09-01",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMinor: Radiotherapy completed (5154.) (New Episode)\nRadiotherapy completed (5154.)"
+      },
+      "n_encounters": 59,
+      "n_labelled_non_none": 10,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6220044894",
+      "pathway_index": 4,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "1445a40e-c168-4947-b1aa-6149852f7c7a",
+        "encounter_date": "2025-02-11",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Medical Secretary Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 59,
+      "n_labelled_non_none": 10,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6220044894",
+      "pathway_index": 5,
+      "cohort": "3",
+      "site": "gynaecological",
+      "diagnosis_route": "routine_gp_investigation",
+      "route_rationale": [
+        "cohort_3_default_non_ft_pathway"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 74,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "b0420dfe-63ed-4493-bf0d-3155064ed2b2",
+        "encounter_date": "2024-06-19",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "gynaecological",
+        "text_preview": "Surgery: [STAFF] (Clinical Practitioner Access Role) \nEndometrial carcinoma (X78XO) (New Episode)"
+      },
+      "treatment": {
+        "encounter_id": "c071e222-efc7-4c8e-81e5-3ad7b3c9d6a8",
+        "encounter_date": "2024-09-01",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMinor: Radiotherapy completed (5154.) (New Episode)\nRadiotherapy completed (5154.)"
+      },
+      "n_encounters": 59,
+      "n_labelled_non_none": 10,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "371972005",
+          "concept_name": "Malignant neoplasm of body of uterus (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6282779235",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 28d"
+      ],
+      "gap_ftr_dx_days": 28,
+      "gap_ftr_seen_days": 18,
+      "gap_dx_treatment_days": 42,
+      "ftr": {
+        "encounter_id": "72e8095f-5ff0-439b-90c3-dc524da6babd",
+        "encounter_date": "2025-08-04",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "11:04 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: Telephone triage encounter (XaIvd)\nduty doctor\n\nreview of paths\nrepeat PSA 12\nprev seen by me 13.06 and 04.07 had enlarged prostate\nreports qworsening BOO sx- poor stree"
+      },
+      "seen": {
+        "encounter_id": "727f1407-a5d1-464f-8017-f1b692644c62",
+        "encounter_date": "2025-08-22",
+        "role": "seen",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+      },
+      "dx": {
+        "encounter_id": "af8b7dbf-b243-4991-bd90-6ddf35b49d13",
+        "encounter_date": "2025-09-01",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "urological",
+        "text_preview": "13:30 - GP Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Malignant tumour of prostate (B46..)\nHistory: ID Confirmed  \nHad prostate biospy recently \nbiopsy done due to raise PSA + MRI suggestive of CAP  \nReports feeling unsa"
+      },
+      "treatment": {
+        "encounter_id": "c1160954-e8f7-4d66-bb19-b54205c9f84c",
+        "encounter_date": "2025-10-13",
+        "role": "treatment",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "11:54 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: Duty Admin  \nLetter in my box  \nPatient started on GnRH analogue injection per urology letter dated 7/10  \nStarted on oral bicalutamide immediately and to commence GnRH "
+      },
+      "n_encounters": 298,
+      "n_labelled_non_none": 14,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6282779235",
+      "pathway_index": 2,
+      "cohort": "2",
+      "site": "urological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "137327c3-b403-4049-87f4-f020bdbb5ace",
+        "encounter_date": "2025-08-06",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "12:43 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww urology\nHospital F"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 298,
+      "n_labelled_non_none": 14,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6282779235",
+      "pathway_index": 3,
+      "cohort": "2",
+      "site": null,
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "3c58c740-5d62-41d9-8e01-b71ab0136ad8",
+        "encounter_date": "2025-10-27",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "08:45 - Surgery: [STAFF] (Medical Secretary Access Role) \nReferral to rapid access chest pain clinic (XaFs5)\nChoice and booking enhanced services administration (XaMJa)\n WMC Medical Secretary Template\n WMC Referrals\n   Patient has been refe"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 298,
+      "n_labelled_non_none": 14,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6282779235",
+      "pathway_index": 4,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "b67d0c59-b46b-443a-91bc-f592ba92d374",
+        "encounter_date": "2025-10-29",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Medical Secretary Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 298,
+      "n_labelled_non_none": 14,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 3
+    },
+    {
+      "patient_id": "6283876811",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": "gynaecological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: gynaecological within 76d"
+      ],
+      "gap_ftr_dx_days": 76,
+      "gap_ftr_seen_days": 6,
+      "gap_dx_treatment_days": 18,
+      "ftr": {
+        "encounter_id": "1ba7a629-8616-4d84-a3d8-ab0a9a41dc95",
+        "encounter_date": "2024-10-04",
+        "role": "ftr",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "14:42 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: F2F review. Lump under belly button.\n\nHas RACP clinic appt next week.\nHas echo appt next month.\n\nSmall \"marble shape lump under belly button\".\nFirst noticed 2 months ago"
+      },
+      "seen": {
+        "encounter_id": "0a5aea73-0966-4374-8d1d-e2c72b3778d6",
+        "encounter_date": "2024-10-10",
+        "role": "seen",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected gynaecological cancer clinic (XaPyV)"
+      },
+      "dx": {
+        "encounter_id": "b3f12562-b694-4320-a88f-6d017151f426",
+        "encounter_date": "2024-12-19",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "gynaecological",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Adenocarcinoma of cervix (X78Xg) - IA1 HPV associated on a background of CGIN (New Episode)\nAdenocarcinoma of cervix (X78Xg) - IA1 HPV associated on a backg"
+      },
+      "treatment": {
+        "encounter_id": "e81f6786-01c2-47de-a244-d4108d82fb03",
+        "encounter_date": "2025-01-06",
+        "role": "treatment",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "10:43 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: Telephone appointment, using Heidi dictation tool with consent\n\n-usband passed away last year\n- Recent hospital admission: full hysterectomy with bowel complication requ"
+      },
+      "n_encounters": 395,
+      "n_labelled_non_none": 11,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363354003",
+          "concept_name": "Malignant neoplasm of cervix uteri (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6283876811",
+      "pathway_index": 2,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "4d12b905-a66f-43ba-a437-0c43e8e41e7c",
+        "encounter_date": "2024-06-05",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 11,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363354003",
+          "concept_name": "Malignant neoplasm of cervix uteri (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6283876811",
+      "pathway_index": 3,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "88a77224-2301-438a-bf47-36298ee19b7b",
+        "encounter_date": "2024-06-05",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nBowel cancer screening programme (XaMza) (New Episode)"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 11,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363354003",
+          "concept_name": "Malignant neoplasm of cervix uteri (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6283876811",
+      "pathway_index": 4,
+      "cohort": "2",
+      "site": null,
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "0c409830-361e-41fd-bc0b-521d30e9d06b",
+        "encounter_date": "2024-09-09",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "11:13 - Surgery: [STAFF] (Medical Secretary Access Role) \nHistory: Patient has been referred for an Echocardiogram as per [PERSON]. The hospital will contact the patient directly with details of an appointment. Letter sent to patient.\nRefer"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 11,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363354003",
+          "concept_name": "Malignant neoplasm of cervix uteri (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6283876811",
+      "pathway_index": 5,
+      "cohort": "2",
+      "site": null,
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "dbcf48b6-b519-4b9c-bfc9-9b5baa22d496",
+        "encounter_date": "2024-09-17",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "16:45 - Surgery: [STAFF] (Medical Secretary Access Role) \nHistory: Patient has been referred to the rapid access chest pain clinic as per [PERSON]. The hospital will contact the patient directly with details of an appointment.\nReferral to r"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 11,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363354003",
+          "concept_name": "Malignant neoplasm of cervix uteri (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6283876811",
+      "pathway_index": 6,
+      "cohort": "2",
+      "site": "gynaecological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "e73fca80-0291-43eb-a4be-0077592b5908",
+        "encounter_date": "2024-10-04",
+        "role": "ftr",
+        "outcome": null,
+        "site": "gynaecological",
+        "text_preview": "15:46 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected gynaecological cancer (XaMeB)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Gynae\nHospital"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 395,
+      "n_labelled_non_none": 11,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363354003",
+          "concept_name": "Malignant neoplasm of cervix uteri (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 1,
+      "cohort": "1b",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 79d"
+      ],
+      "gap_ftr_dx_days": 79,
+      "gap_ftr_seen_days": 36,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "019de0e9-0b30-411e-aead-b285194ee184",
+        "encounter_date": "2024-04-30",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "12:00 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Urology V2 -  questionnaire started - (finalised: 30 Apr 2024 12:00)\nFast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)\n PRISM P"
+      },
+      "seen": {
+        "encounter_id": "d1d74e6f-e0f8-4a17-9cdb-abcce6a5c67e",
+        "encounter_date": "2024-06-05",
+        "role": "seen",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nSeen in urology clinic (9N1I.) (New Episode)"
+      },
+      "dx": {
+        "encounter_id": "c56e571c-04b3-4c9b-a15e-c5ebcec8d9bf",
+        "encounter_date": "2024-07-18",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": "urological",
+        "text_preview": "17:05 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Faecal impaction (J5031)\nHistory: calling 3rd attempt to review  \nreports the booking for this review did not confirm phone within the message - apologised  - i will fee"
+      },
+      "treatment": null,
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 161d"
+      ],
+      "gap_ftr_dx_days": 161,
+      "gap_ftr_seen_days": 36,
+      "gap_dx_treatment_days": 70,
+      "ftr": {
+        "encounter_id": "00fdd256-d5d3-4238-8ca5-495cc1cdb36b",
+        "encounter_date": "2024-04-30",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "12:06 - Surgery: [STAFF] (Medical Secretary Access Role) \nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww urology\nPatient awaiting OPD appt. (9R52.) - 2ww urology"
+      },
+      "seen": {
+        "encounter_id": "d1d74e6f-e0f8-4a17-9cdb-abcce6a5c67e",
+        "encounter_date": "2024-06-05",
+        "role": "seen",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nSeen in urology clinic (9N1I.) (New Episode)"
+      },
+      "dx": {
+        "encounter_id": "e5dc0067-2530-4fe1-953a-48347e25430e",
+        "encounter_date": "2024-10-08",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "urological",
+        "text_preview": "Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Malignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0 (New Episode)\nMalignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0"
+      },
+      "treatment": {
+        "encounter_id": "f0774c66-e529-425c-bd2d-dd1ee7450527",
+        "encounter_date": "2024-12-17",
+        "role": "treatment",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "16:15 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Malignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0\nHistory: duty oncall - request for PSD , as per urology letter. \nPlan: to start the injections half way into "
+      },
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 3,
+      "cohort": "1a",
+      "site": "urological",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: urological within 161d"
+      ],
+      "gap_ftr_dx_days": 161,
+      "gap_ftr_seen_days": 36,
+      "gap_dx_treatment_days": 70,
+      "ftr": {
+        "encounter_id": "de0fe875-aa99-40e4-b969-0ad7f1c1d325",
+        "encounter_date": "2024-04-30",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "13:06 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nrtf: Consultations.rtf\nHospital Fast track referral for suspected urological cancer\nHospital Fast track referral for suspe"
+      },
+      "seen": {
+        "encounter_id": "d1d74e6f-e0f8-4a17-9cdb-abcce6a5c67e",
+        "encounter_date": "2024-06-05",
+        "role": "seen",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nSeen in urology clinic (9N1I.) (New Episode)"
+      },
+      "dx": {
+        "encounter_id": "267f2023-959e-4601-83d9-e3db8e4301bf",
+        "encounter_date": "2024-10-08",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "urological",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Carcinoma of prostate (X78Y6) (New Episode)"
+      },
+      "treatment": {
+        "encounter_id": "f0774c66-e529-425c-bd2d-dd1ee7450527",
+        "encounter_date": "2024-12-17",
+        "role": "treatment",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "16:15 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Malignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0\nHistory: duty oncall - request for PSD , as per urology letter. \nPlan: to start the injections half way into "
+      },
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 4,
+      "cohort": "1b",
+      "site": "nss",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: nss within 19d"
+      ],
+      "gap_ftr_dx_days": 19,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "c6255cd4-ae21-457e-83f7-87b08cc3c44e",
+        "encounter_date": "2024-06-14",
+        "role": "ftr",
+        "outcome": null,
+        "site": "nss",
+        "text_preview": "13:08 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Loose stool (X76fC)\nHistory: Fri 14 Jun 08:39 - [PERSON]\nplease see letter on pts home page regarding referral, usual gp and dr noble are not in today. would you be happ"
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "2e932578-d942-4333-896b-a5d111b05431",
+        "encounter_date": "2024-07-03",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": "lower_gi",
+        "text_preview": "16:32 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Faecal impaction (J5031)\nHistory: on call \nsee MDT letter 26/6/24  \nNSS CT noted - d/c from NSS pathway\nworking diagnosis of cause for PSA elevated is faecaloma is press"
+      },
+      "treatment": null,
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 5,
+      "cohort": "1b",
+      "site": "nss",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: nss within 26d"
+      ],
+      "gap_ftr_dx_days": 26,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "aa98e369-be71-41c9-83ec-537fb621956d",
+        "encounter_date": "2024-06-14",
+        "role": "ftr",
+        "outcome": null,
+        "site": "nss",
+        "text_preview": "13:46 - Surgery: [STAFF] (Receptionist Access Role) \nFast track referral for suspected cancer due to non-site-specific symptoms (Y3dd2)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2WW "
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "204bdefd-24db-4cfb-9658-438a61909215",
+        "encounter_date": "2024-07-10",
+        "role": "dx",
+        "outcome": "cancer_excluded",
+        "site": "lower_gi",
+        "text_preview": "09:22 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Faecal impaction (J5031)\nHistory: tel call with john. duty list.\nevents noted. \nrecent contact with NB regarding bowels. struggling with overflow diarrhoae.  has been on"
+      },
+      "treatment": null,
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 6,
+      "cohort": "1a",
+      "site": "skin",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: None within 1d"
+      ],
+      "gap_ftr_dx_days": 1,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 43,
+      "ftr": {
+        "encounter_id": "ca2d52fd-b0e4-497d-9672-d15f8abba6af",
+        "encounter_date": "2025-07-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "15:41 - Surgery: [STAFF] (Receptionist Access Role) \nReferral for echocardiography (XaION)\nChoice and booking enhanced services administration (XaMJa)\n WMC Referrals\n   Patient has been referred for an Echocardiogram. The service provider w"
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "329b466e-c79e-4e2f-b2d9-4ad709795619",
+        "encounter_date": "2025-07-08",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "skin",
+        "text_preview": "09:27 - GP Surgery: [STAFF] (Clinical Practitioner Access Role) \n112 / 77\nProblem: Atrial fibrillation (G5730)\nHistory: Brought in to discuss start of doac in newly diagnosed AF  \npt already started on bisoprolol 2.5 mg  \n\ndiscussed rationa"
+      },
+      "treatment": {
+        "encounter_id": "ed4cb396-8ab8-4d33-ab38-b431ac53c9ac",
+        "encounter_date": "2025-08-20",
+        "role": "treatment",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "10:33 - Surgery: [STAFF] (Nurse Access Role) \nProblem: Malignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0\n(R) Decapeptyl SR 11.25mg powder and solvent for suspension for injection vials (Ipsen Ltd) - 1 vial - One intramuscular inje"
+      },
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 7,
+      "cohort": "2",
+      "site": "lung",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "36e0068a-ee0b-4746-ac71-cca7f1f50a5b",
+        "encounter_date": "2024-04-30",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lung",
+        "text_preview": "11:38 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem: Loose stool (X76fC)\nHistory: Still having loose stool, upto 4-5x/day. \nHas lost 6kg since November last year. Appetite also reduced. \nPSA raised at 16. Other bloods look"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 8,
+      "cohort": "2",
+      "site": "urological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "26a65fe9-2ea4-44d1-82fb-958649f9fc70",
+        "encounter_date": "2024-05-02",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "11:04 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nHistory: Attempted to speak to urology specialist nurse Jo Bishop re rejected 2ww urology referral (on the strength that there's no 2nd PSA).\nNo answer.\nPlan: Email to Leyshon Gr"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 9,
+      "cohort": "2",
+      "site": "urological",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "c72c9666-25a1-44cc-83c2-ebd1afbe6e50",
+        "encounter_date": "2024-05-03",
+        "role": "ftr",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "12:17 - Surgery: [STAFF] (Receptionist Access Role) \nFast track referral for suspected urological cancer (XaMeF)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww urology - resubmitted n"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 10,
+      "cohort": "2",
+      "site": null,
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "76399f45-8a4b-47f9-9dc6-8d5d1302234e",
+        "encounter_date": "2024-07-04",
+        "role": "ftr",
+        "outcome": null,
+        "site": null,
+        "text_preview": "15:29 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM Transferring Care Safely -  questionnaire started - (finalised: 04 Jul 2024 15:29)\n PRISM Pathway & Referral Impl SysteM V3\n   Content\n      Transferring Care Safely PRIS"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 11,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "c3d92cd7-361e-46f9-98c0-35d26b959947",
+        "encounter_date": "2024-07-26",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nBowel Cancer Screening to Woodbrook Medical Centre"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 12,
+      "cohort": "2",
+      "site": "lower_gi",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "41934803-3fa4-4ba4-85d0-e1112407fbff",
+        "encounter_date": "2024-07-26",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lower_gi",
+        "text_preview": "Surgery: [STAFF] (Receptionist Access Role) \nDid not attend bowel cancer screening (XaN4t) (New Episode)"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 13,
+      "cohort": "3",
+      "site": "urological",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 11,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "aa3aa703-ca8a-4b2a-bf12-560449f42e5f",
+        "encounter_date": "2025-01-19",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "urological",
+        "text_preview": "15:34 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will "
+      },
+      "treatment": {
+        "encounter_id": "bd5ecff9-67f6-4088-a90a-36ac7b733cd1",
+        "encounter_date": "2025-01-30",
+        "role": "treatment",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "09:50 - Surgery: [STAFF] (Nurse Access Role) \n Template Launch\n   Nurse Templates\n Nurse telephone conversation  GP\n   Telephone call to a patient?: Yes\n   Discussion:  Called patient, some confusion over decapeptyl frequency. 1st injection"
+      },
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 14,
+      "cohort": "3",
+      "site": null,
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 47,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "f9bb0068-0db2-492e-91f4-0b39a79ddbb7",
+        "encounter_date": "2025-07-04",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": null,
+        "text_preview": "10:59 - Surgery: [STAFF] (Nurse Access Role) \n- PRISM Community Echocardiogram -  questionnaire started - (finalised: 04 Jul 2025 10:59)\nReferral to medical service (XaAcN) - (Added from Questionnaire)\nAtrial fibrillation (G5730)\n(R) Bisopr"
+      },
+      "treatment": {
+        "encounter_id": "ed4cb396-8ab8-4d33-ab38-b431ac53c9ac",
+        "encounter_date": "2025-08-20",
+        "role": "treatment",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "10:33 - Surgery: [STAFF] (Nurse Access Role) \nProblem: Malignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0\n(R) Decapeptyl SR 11.25mg powder and solvent for suspension for injection vials (Ipsen Ltd) - 1 vial - One intramuscular inje"
+      },
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 15,
+      "cohort": "3",
+      "site": "lung",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 19,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "857f564d-77c1-47d8-8f36-d7b63465e8ab",
+        "encounter_date": "2025-08-01",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "lung",
+        "text_preview": "13:36 - GP Surgery: [STAFF] (Clinical Practitioner Access Role) \n121 / 82\nProblem: Atrial fibrillation (G5730)\nProblem: Heart failure (G58..)\nHistory: Noted Echo \nHas been diagnosed with HFepRF \nsmall pericardial effusion around  heart \n\nre"
+      },
+      "treatment": {
+        "encounter_id": "ed4cb396-8ab8-4d33-ab38-b431ac53c9ac",
+        "encounter_date": "2025-08-20",
+        "role": "treatment",
+        "outcome": null,
+        "site": "urological",
+        "text_preview": "10:33 - Surgery: [STAFF] (Nurse Access Role) \nProblem: Malignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0\n(R) Decapeptyl SR 11.25mg powder and solvent for suspension for injection vials (Ipsen Ltd) - 1 vial - One intramuscular inje"
+      },
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "6309359401",
+      "pathway_index": 16,
+      "cohort": "3",
+      "site": "urological",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 41,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "00865d67-15fc-417d-978d-c83fdb235d33",
+        "encounter_date": "2025-08-21",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "urological",
+        "text_preview": "10:09 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem - whole event: Atrial fibrillation (G5730)\nProblem - whole event: Heart failure (G58..) (01 Aug 2025 - 29 Aug 2025)\n Consultation\n   General\n      Encounter: Consultation"
+      },
+      "treatment": {
+        "encounter_id": "c57f0f99-2227-470f-9f11-b42c26c72e41",
+        "encounter_date": "2025-10-01",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "15:11 - Surgery: [STAFF] (Receptionist Access Role) \n N+S Encounter type\n   *Reason for contact / Entering record: Contact trigger : Other (Y3eaa) SENDING EMAIL\n   Type of encounter: Third party encounter (9N32.) radiotherapy LRI\nContact tr"
+      },
+      "n_encounters": 500,
+      "n_labelled_non_none": 45,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "399068003",
+          "concept_name": "Malignant neoplasm of prostate (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 9
+    },
+    {
+      "patient_id": "7306752529",
+      "pathway_index": 1,
+      "cohort": "1a",
+      "site": "head_neck",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: head_neck within 97d"
+      ],
+      "gap_ftr_dx_days": 97,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 21,
+      "ftr": {
+        "encounter_id": "281ce94e-24e7-40e2-b66b-1f2e00b050a3",
+        "encounter_date": "2024-03-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": "head_neck",
+        "text_preview": "13:14 - Surgery: [STAFF] (Clinical Practitioner Access Role) \n- PRISM 2WW Head and Neck -  questionnaire started - (finalised: 07 Mar 2024 13:14)\nFast track referral for suspected head and neck cancer (XaMkD) - (Added from Questionnaire)\n P"
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "6b45513b-1b92-4cee-9668-beb64cd15cd1",
+        "encounter_date": "2024-06-12",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "head_neck",
+        "text_preview": "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Malignant tumour of thyroid gland (B53..) - Encapsulated poorly differentiated thyroid carcinoma (New Episode)\nDiagnostic nasendoscopy (X00pE) (New Episode)"
+      },
+      "treatment": {
+        "encounter_id": "df4b00f9-a09a-4154-9549-c2499f65e0f4",
+        "encounter_date": "2024-07-03",
+        "role": "treatment",
+        "outcome": null,
+        "site": "head_neck",
+        "text_preview": "14:18 - Surgery: [STAFF] (Receptionist Access Role) \nName: Ershadi, Farshid\nDOB: 19-09-1989\nPostcode: LE11 3US\nPhone number: [PHONE]\nHave you previously had a note about this?: No\nBriefly describe your illness or medical problem: I have bee"
+      },
+      "n_encounters": 379,
+      "n_labelled_non_none": 15,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363478007",
+          "concept_name": "Malignant neoplasm of thyroid gland (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "7306752529",
+      "pathway_index": 2,
+      "cohort": "1a",
+      "site": "head_neck",
+      "diagnosis_route": "gp_surgery_fast_track",
+      "route_rationale": [
+        "linked_ftr_and_dx_default_gp_fast_track"
+      ],
+      "confidence": 1.0,
+      "notes": [
+        "Simple same-site linker: head_neck within 148d"
+      ],
+      "gap_ftr_dx_days": 148,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "f798c6d6-b0ac-456b-931a-b367cdb33c50",
+        "encounter_date": "2024-03-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": "head_neck",
+        "text_preview": "13:36 - Surgery: [STAFF] (Medical Secretary Access Role) \nFast track referral for suspected head and neck cancer (XaMkD)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes H&N\nHospital Fast t"
+      },
+      "seen": null,
+      "dx": {
+        "encounter_id": "eb189eb7-86b8-46f7-ae73-bc07b328005c",
+        "encounter_date": "2024-08-02",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "head_neck",
+        "text_preview": "11:43 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem - whole event: Malignant tumour of thyroid gland (B53..) - Encapsulated poorly differentiated thyroid carcinoma\nMedical Prescription Charge Exemption Application signed, "
+      },
+      "treatment": null,
+      "n_encounters": 379,
+      "n_labelled_non_none": 15,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363478007",
+          "concept_name": "Malignant neoplasm of thyroid gland (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "7306752529",
+      "pathway_index": 3,
+      "cohort": "2",
+      "site": "lung",
+      "diagnosis_route": "unknown",
+      "route_rationale": [
+        "cohort_2_no_linked_dx"
+      ],
+      "confidence": 0.8,
+      "notes": [
+        "No Dx encounter found within window for this FTR"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": {
+        "encounter_id": "0c11a146-bf32-4fa8-a186-22c942803028",
+        "encounter_date": "2024-03-07",
+        "role": "ftr",
+        "outcome": null,
+        "site": "lung",
+        "text_preview": "10:08 - GP Surgery: [STAFF] (Clinical Practitioner Access Role) \n110 / 80\nProblem: Goitre (X76FB)\nHistory: F2F Review  \nAnterior neck mass which he noticed 3-4 months ago   \nhas been increasing in size  \nNo associated symptoms  - no neck pa"
+      },
+      "seen": null,
+      "dx": null,
+      "treatment": null,
+      "n_encounters": 379,
+      "n_labelled_non_none": 15,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363478007",
+          "concept_name": "Malignant neoplasm of thyroid gland (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "7306752529",
+      "pathway_index": 4,
+      "cohort": "3",
+      "site": "head_neck",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": 56,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "7999e132-79c2-41a7-adfa-39dd094c559e",
+        "encounter_date": "2025-03-11",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "head_neck",
+        "text_preview": "10:50 - Surgery: [STAFF] (Clinical Practitioner Access Role) \nProblem - whole event: Acquired hypothyroidism (XE108)\nProblem - whole event: Hemithyroidectomy (71102)\nHistory: Duty list \u0096 GPST1\n\nRequest for levothyroxine 25 mcg tablets \n\nKno"
+      },
+      "treatment": {
+        "encounter_id": "c12f1e70-023f-422c-a3f7-5da45662686c",
+        "encounter_date": "2025-05-06",
+        "role": "treatment",
+        "outcome": null,
+        "site": null,
+        "text_preview": "11:05 - Surgery: [STAFF] (Pharmacist) \nHistory: Medication requested (8B3H.)\n(R) Levothyroxine sodium 50microgram tablets - 56 tablet - take ONE daily (total 250mcg daily)\n Clinical Pharmacist\n   Clinical Pharmacist\n      Repeat medication "
+      },
+      "n_encounters": 379,
+      "n_labelled_non_none": 15,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363478007",
+          "concept_name": "Malignant neoplasm of thyroid gland (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    },
+    {
+      "patient_id": "7306752529",
+      "pathway_index": 5,
+      "cohort": "3",
+      "site": "head_neck",
+      "diagnosis_route": "emergency_or_urgent_care",
+      "route_rationale": [
+        "emergency_before_dx_cohort_3"
+      ],
+      "confidence": 0.9,
+      "notes": [
+        "Cancer-found Dx with no FTR within window"
+      ],
+      "gap_ftr_dx_days": null,
+      "gap_ftr_seen_days": null,
+      "gap_dx_treatment_days": null,
+      "ftr": null,
+      "seen": null,
+      "dx": {
+        "encounter_id": "878df677-247b-422e-9406-9055ec61b95f",
+        "encounter_date": "2025-09-05",
+        "role": "dx",
+        "outcome": "cancer_found",
+        "site": "head_neck",
+        "text_preview": "10:52 - Surgery: [STAFF] (Pharmacist) \nHistory: Indication for each drug checked (XaJJx)\nQuestionnaire reviewed\nFeels the medication is working well and would like to continue on current dose\nUnder the Oncology Team for poorly differentiate"
+      },
+      "treatment": null,
+      "n_encounters": 379,
+      "n_labelled_non_none": 15,
+      "diagnosis_concepts": [
+        {
+          "concept_id": "363478007",
+          "concept_name": "Malignant neoplasm of thyroid gland (disorder)"
+        }
+      ],
+      "diagnosis_encounter_count": 1
+    }
+  ],
+  "no_pathway_patients": []
+}

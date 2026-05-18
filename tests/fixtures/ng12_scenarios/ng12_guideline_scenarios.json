@@ -1,0 +1,5644 @@
+{
+  "_meta": {
+    "guideline_id": "NG12",
+    "source_text": "reports/nice_ng12_raw/ng12_full.json",
+    "branch_total": 348,
+    "paired_ids": "NG12-GDL-NNN pairs with NG12-EXT-NNN and NG12-SBR-NNN",
+    "note": "Bitmap expectations use compiled AppropriatenessRule when available; graph_rule_id null means pending_review or not_coded.",
+    "schema_version": 2,
+    "stub_policy": "All rows are non-stub. Regenerated via scripts/rebuild_ng12_scenario_fixtures.py."
+  },
+  "scenarios": [
+    {
+      "id": "NG12-GDL-001",
+      "rec_id": "1.1.1",
+      "branch_index": 1,
+      "branch_label": "cxr_suggests_lung_cancer",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 58.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [],
+      "expect_action": "suspected_cancer_pathway_referral_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-002",
+      "rec_id": "1.1.1",
+      "branch_index": 2,
+      "branch_label": "haemoptysis_age_40_plus",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 47.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "66857006"
+      ],
+      "expect_action": "suspected_cancer_pathway_referral_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-003",
+      "rec_id": "1.1.1",
+      "branch_index": 3,
+      "branch_label": "age_below_40_haemoptysis_only_no_refer",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 38.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "66857006"
+      ],
+      "expect_action": "no_ng12_1_1_1_refer_on_age_alone",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-004",
+      "rec_id": "1.1.1",
+      "branch_index": 4,
+      "branch_label": "age_40_plus_no_haemoptysis_no_cxr_no_refer",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "49727002"
+      ],
+      "expect_action": "no_2ww_from_1_1_1_alone",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-005",
+      "rec_id": "1.1.1",
+      "branch_index": 5,
+      "branch_label": "boundary_age_40_haemoptysis_fires",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 40.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "66857006"
+      ],
+      "expect_action": "suspected_cancer_pathway_referral_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-006",
+      "rec_id": "1.1.1",
+      "branch_index": 6,
+      "branch_label": "boundary_age_39_haemoptysis_no_refer",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 39.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "66857006"
+      ],
+      "expect_action": "no_ng12_1_1_1_refer",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-007",
+      "rec_id": "1.1.1",
+      "branch_index": 7,
+      "branch_label": "cxr_finding_encoded_not_plain_cough",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 44.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [],
+      "expect_action": "suspected_cancer_pathway_referral_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-008",
+      "rec_id": "1.1.1",
+      "branch_index": 8,
+      "branch_label": "negative_wash_no_criteria",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 62.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "38341003"
+      ],
+      "expect_action": "no_ng12_1_1_1",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-009",
+      "rec_id": "1.1.2",
+      "branch_index": 1,
+      "branch_label": "two_symptoms_non_smoker_urgent_cxr",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "49727002",
+        "84229001"
+      ],
+      "expect_action": "urgent_cxr_lung_cancer",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-010",
+      "rec_id": "1.1.2",
+      "branch_index": 2,
+      "branch_label": "one_symptom_smoker_urgent_cxr",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 51.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "77176002",
+        "267036007"
+      ],
+      "expect_action": "urgent_cxr_lung_cancer",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-011",
+      "rec_id": "1.1.2",
+      "branch_index": 3,
+      "branch_label": "haemoptysis_short_circuit_urgent_cxr",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 58.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "66857006"
+      ],
+      "expect_action": "urgent_cxr_lung_cancer",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-012",
+      "rec_id": "1.1.2",
+      "branch_index": 4,
+      "branch_label": "age_below_40_no_cxr_path",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 35.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "49727002",
+        "84229001",
+        "29857009"
+      ],
+      "expect_action": "no_ng12_1_1_2",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-013",
+      "rec_id": "1.1.2",
+      "branch_index": 5,
+      "branch_label": "one_symptom_never_smoked_no_haemoptysis",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 60.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "no_ng12_1_1_2_single_symptom_non_smoker",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-014",
+      "rec_id": "1.1.2",
+      "branch_index": 6,
+      "branch_label": "boundary_age_40_exact_two_symptoms",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 40.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "79890006",
+        "29857009"
+      ],
+      "expect_action": "urgent_cxr_lung_cancer",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-015",
+      "rec_id": "1.1.3",
+      "branch_index": 1,
+      "branch_label": "persistent_chest_infection_age_40_plus",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 63.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50417007"
+      ],
+      "expect_action": "consider_urgent_cxr_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-016",
+      "rec_id": "1.1.3",
+      "branch_index": 2,
+      "branch_label": "finger_clubbing_age_40_plus",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 54.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "30760008"
+      ],
+      "expect_action": "consider_urgent_cxr_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-017",
+      "rec_id": "1.1.3",
+      "branch_index": 3,
+      "branch_label": "supraclavicular_nodes_age_40_plus",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 57.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [],
+      "expect_action": "consider_urgent_cxr_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-018",
+      "rec_id": "1.1.3",
+      "branch_index": 4,
+      "branch_label": "cervical_lymphadenopathy_age_40_plus",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 49.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [],
+      "expect_action": "consider_urgent_cxr_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-019",
+      "rec_id": "1.1.3",
+      "branch_index": 5,
+      "branch_label": "chest_signs_lung_cancer_age_40_plus",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 66.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [],
+      "expect_action": "consider_urgent_cxr_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-020",
+      "rec_id": "1.1.3",
+      "branch_index": 6,
+      "branch_label": "thrombocytosis_age_40_plus",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 61.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [],
+      "expect_action": "consider_urgent_cxr_lung",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-021",
+      "rec_id": "1.1.3",
+      "branch_index": 7,
+      "branch_label": "age_below_40_with_infection_no_cxr",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 35.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50417007"
+      ],
+      "expect_action": "no_ng12_1_1_3",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-022",
+      "rec_id": "1.1.3",
+      "branch_index": 8,
+      "branch_label": "age_40_plus_no_trigger_symptoms",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 58.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "386806002"
+      ],
+      "expect_action": "no_ng12_1_1_3",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-023",
+      "rec_id": "1.1.4",
+      "branch_index": 1,
+      "branch_label": "cxr_suggests_mesothelioma_refer",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 62.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [],
+      "expect_action": "suspected_cancer_pathway_mesothelioma",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-024",
+      "rec_id": "1.1.5",
+      "branch_index": 1,
+      "branch_label": "two_symptoms_non_smoker_meso_cxr",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 67.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001",
+        "84229001"
+      ],
+      "expect_action": "urgent_cxr_mesothelioma",
+      "graph_rule_id": "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+      "expect_graph_match": true,
+      "_graph_status": "active"
+    },
+    {
+      "id": "NG12-GDL-025",
+      "rec_id": "1.1.5",
+      "branch_index": 2,
+      "branch_label": "one_symptom_ex_smoker_meso_cxr",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "8517006",
+        "49727002"
+      ],
+      "expect_action": "urgent_cxr_mesothelioma",
+      "graph_rule_id": "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+      "expect_graph_match": true,
+      "_graph_status": "active"
+    },
+    {
+      "id": "NG12-GDL-026",
+      "rec_id": "1.1.5",
+      "branch_index": 3,
+      "branch_label": "one_symptom_asbestos_meso_cxr",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 58.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "161635002",
+        "267036007"
+      ],
+      "expect_action": "urgent_cxr_mesothelioma",
+      "graph_rule_id": "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+      "expect_graph_match": true,
+      "_graph_status": "active"
+    },
+    {
+      "id": "NG12-GDL-027",
+      "rec_id": "1.1.5",
+      "branch_index": 4,
+      "branch_label": "age_below_40_no_meso_cxr",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 35.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "77176002",
+        "49727002",
+        "84229001"
+      ],
+      "expect_action": "no_ng12_1_1_5",
+      "graph_rule_id": "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+      "expect_graph_match": false,
+      "_graph_status": "active"
+    },
+    {
+      "id": "NG12-GDL-028",
+      "rec_id": "1.1.5",
+      "branch_index": 5,
+      "branch_label": "single_symptom_never_smoked_no_asbestos",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 50.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "49727002"
+      ],
+      "expect_action": "no_ng12_1_1_5",
+      "graph_rule_id": "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+      "expect_graph_match": false,
+      "_graph_status": "active"
+    },
+    {
+      "id": "NG12-GDL-029",
+      "rec_id": "1.1.5",
+      "branch_index": 6,
+      "branch_label": "boundary_age_40_two_symptoms",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 40.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "29857009",
+        "79890006"
+      ],
+      "expect_action": "urgent_cxr_mesothelioma",
+      "graph_rule_id": "rule:NG12:v1:CH002:SEC000:R004:6d4e9c13:edit:dd11e8d3:edit:a0b74f59",
+      "expect_graph_match": true,
+      "_graph_status": "active"
+    },
+    {
+      "id": "NG12-GDL-030",
+      "rec_id": "1.1.6",
+      "branch_index": 1,
+      "branch_label": "clubbing_age_40_meso_cxr",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 54.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "30760008"
+      ],
+      "expect_action": "consider_urgent_cxr_mesothelioma",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-031",
+      "rec_id": "1.1.6",
+      "branch_index": 2,
+      "branch_label": "pleural_disease_signs_age_40",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 61.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [],
+      "expect_action": "consider_urgent_cxr_mesothelioma",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-032",
+      "rec_id": "1.1.6",
+      "branch_index": 3,
+      "branch_label": "age_below_40_clubbing",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 32.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "30760008"
+      ],
+      "expect_action": "no_ng12_1_1_6",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-033",
+      "rec_id": "1.1.6",
+      "branch_index": 4,
+      "branch_label": "age_40_neither_clubbing_nor_pleural",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 58.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "49727002"
+      ],
+      "expect_action": "no_ng12_1_1_6",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-034",
+      "rec_id": "1.1.6",
+      "branch_index": 5,
+      "branch_label": "alternative_pleural_encoding_1",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 65.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [],
+      "expect_action": "consider_urgent_cxr_mesothelioma",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-035",
+      "rec_id": "1.1.6",
+      "branch_index": 6,
+      "branch_label": "boundary_age_40_clubbing",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 40.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "30760008"
+      ],
+      "expect_action": "consider_urgent_cxr_mesothelioma",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-036",
+      "rec_id": "1.1.6",
+      "branch_index": 7,
+      "branch_label": "boundary_age_39_clubbing",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 39.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "30760008"
+      ],
+      "expect_action": "no_ng12_1_1_6",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-037",
+      "rec_id": "1.1.6",
+      "branch_index": 8,
+      "branch_label": "wash_no_clinical_trigger",
+      "section": "1.1 Lung and pleural cancers",
+      "patient_age": 70.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "38341003"
+      ],
+      "expect_action": "no_ng12_1_1_6",
+      "graph_rule_id": null,
+      "expect_graph_match": false,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-038",
+      "rec_id": "1.2.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_1_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-039",
+      "rec_id": "1.2.1",
+      "branch_index": 2,
+      "branch_label": "ng12_1_2_1_b2",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_1_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-040",
+      "rec_id": "1.2.1",
+      "branch_index": 3,
+      "branch_label": "ng12_1_2_1_b3",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_2_1_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-041",
+      "rec_id": "1.2.1",
+      "branch_index": 4,
+      "branch_label": "ng12_1_2_1_b4",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_1_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-042",
+      "rec_id": "1.2.1",
+      "branch_index": 5,
+      "branch_label": "ng12_1_2_1_b5",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_1_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-043",
+      "rec_id": "1.2.1",
+      "branch_index": 6,
+      "branch_label": "ng12_1_2_1_b6",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_2_1_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-044",
+      "rec_id": "1.2.1",
+      "branch_index": 7,
+      "branch_label": "ng12_1_2_1_b7",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_1_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-045",
+      "rec_id": "1.2.1",
+      "branch_index": 8,
+      "branch_label": "ng12_1_2_1_b8",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_1_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-046",
+      "rec_id": "1.2.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_2_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-047",
+      "rec_id": "1.2.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_3_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-048",
+      "rec_id": "1.2.3",
+      "branch_index": 2,
+      "branch_label": "ng12_1_2_3_b2",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_3_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-049",
+      "rec_id": "1.2.3",
+      "branch_index": 3,
+      "branch_label": "ng12_1_2_3_b3",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_2_3_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-050",
+      "rec_id": "1.2.3",
+      "branch_index": 4,
+      "branch_label": "ng12_1_2_3_b4",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_3_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-051",
+      "rec_id": "1.2.3",
+      "branch_index": 5,
+      "branch_label": "ng12_1_2_3_b5",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_3_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-052",
+      "rec_id": "1.2.3",
+      "branch_index": 6,
+      "branch_label": "ng12_1_2_3_b6",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_2_3_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-053",
+      "rec_id": "1.2.3",
+      "branch_index": 7,
+      "branch_label": "ng12_1_2_3_b7",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_3_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-054",
+      "rec_id": "1.2.3",
+      "branch_index": 8,
+      "branch_label": "ng12_1_2_3_b8",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_3_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-055",
+      "rec_id": "1.2.3",
+      "branch_index": 9,
+      "branch_label": "ng12_1_2_3_b9",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "84229001"
+      ],
+      "expect_action": "ng12_1_2_3_branch_9",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-056",
+      "rec_id": "1.2.3",
+      "branch_index": 10,
+      "branch_label": "ng12_1_2_3_b10",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_3_branch_10",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-057",
+      "rec_id": "1.2.3",
+      "branch_index": 11,
+      "branch_label": "ng12_1_2_3_b11",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_3_branch_11",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-058",
+      "rec_id": "1.2.3",
+      "branch_index": 12,
+      "branch_label": "ng12_1_2_3_b12",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "79890006"
+      ],
+      "expect_action": "ng12_1_2_3_branch_12",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-059",
+      "rec_id": "1.2.4",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_4_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_4_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-060",
+      "rec_id": "1.2.4",
+      "branch_index": 2,
+      "branch_label": "ng12_1_2_4_b2",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_4_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-061",
+      "rec_id": "1.2.5",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_5_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_5_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-062",
+      "rec_id": "1.2.5",
+      "branch_index": 2,
+      "branch_label": "ng12_1_2_5_b2",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_5_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-063",
+      "rec_id": "1.2.5",
+      "branch_index": 3,
+      "branch_label": "ng12_1_2_5_b3",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_2_5_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-064",
+      "rec_id": "1.2.5",
+      "branch_index": 4,
+      "branch_label": "ng12_1_2_5_b4",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_5_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-065",
+      "rec_id": "1.2.5",
+      "branch_index": 5,
+      "branch_label": "ng12_1_2_5_b5",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_5_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-066",
+      "rec_id": "1.2.5",
+      "branch_index": 6,
+      "branch_label": "ng12_1_2_5_b6",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_2_5_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-067",
+      "rec_id": "1.2.5",
+      "branch_index": 7,
+      "branch_label": "ng12_1_2_5_b7",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_5_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-068",
+      "rec_id": "1.2.5",
+      "branch_index": 8,
+      "branch_label": "ng12_1_2_5_b8",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_5_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-069",
+      "rec_id": "1.2.6",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_6_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_6_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-070",
+      "rec_id": "1.2.7",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_7_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_7_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-071",
+      "rec_id": "1.2.7",
+      "branch_index": 2,
+      "branch_label": "ng12_1_2_7_b2",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_7_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-072",
+      "rec_id": "1.2.7",
+      "branch_index": 3,
+      "branch_label": "ng12_1_2_7_b3",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_2_7_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-073",
+      "rec_id": "1.2.7",
+      "branch_index": 4,
+      "branch_label": "ng12_1_2_7_b4",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_7_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-074",
+      "rec_id": "1.2.7",
+      "branch_index": 5,
+      "branch_label": "ng12_1_2_7_b5",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_7_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-075",
+      "rec_id": "1.2.7",
+      "branch_index": 6,
+      "branch_label": "ng12_1_2_7_b6",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_2_7_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-076",
+      "rec_id": "1.2.7",
+      "branch_index": 7,
+      "branch_label": "ng12_1_2_7_b7",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_7_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-077",
+      "rec_id": "1.2.7",
+      "branch_index": 8,
+      "branch_label": "ng12_1_2_7_b8",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_7_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-078",
+      "rec_id": "1.2.8",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_8_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_8_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-079",
+      "rec_id": "1.2.9",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_9_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_9_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-080",
+      "rec_id": "1.2.9",
+      "branch_index": 2,
+      "branch_label": "ng12_1_2_9_b2",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_9_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-081",
+      "rec_id": "1.2.9",
+      "branch_index": 3,
+      "branch_label": "ng12_1_2_9_b3",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_2_9_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-082",
+      "rec_id": "1.2.9",
+      "branch_index": 4,
+      "branch_label": "ng12_1_2_9_b4",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_9_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-083",
+      "rec_id": "1.2.9",
+      "branch_index": 5,
+      "branch_label": "ng12_1_2_9_b5",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_9_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-084",
+      "rec_id": "1.2.9",
+      "branch_index": 6,
+      "branch_label": "ng12_1_2_9_b6",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_2_9_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-085",
+      "rec_id": "1.2.9",
+      "branch_index": 7,
+      "branch_label": "ng12_1_2_9_b7",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_9_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-086",
+      "rec_id": "1.2.9",
+      "branch_index": 8,
+      "branch_label": "ng12_1_2_9_b8",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_9_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-087",
+      "rec_id": "1.2.9",
+      "branch_index": 9,
+      "branch_label": "ng12_1_2_9_b9",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "84229001"
+      ],
+      "expect_action": "ng12_1_2_9_branch_9",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-088",
+      "rec_id": "1.2.9",
+      "branch_index": 10,
+      "branch_label": "ng12_1_2_9_b10",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_9_branch_10",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-089",
+      "rec_id": "1.2.9",
+      "branch_index": 11,
+      "branch_label": "ng12_1_2_9_b11",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_9_branch_11",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-090",
+      "rec_id": "1.2.9",
+      "branch_index": 12,
+      "branch_label": "ng12_1_2_9_b12",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000",
+        "79890006"
+      ],
+      "expect_action": "ng12_1_2_9_branch_12",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-091",
+      "rec_id": "1.2.10",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_10_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_10_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-092",
+      "rec_id": "1.2.11",
+      "branch_index": 1,
+      "branch_label": "ng12_1_2_11_b1",
+      "section": "1.2 Upper gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "40739000"
+      ],
+      "expect_action": "ng12_1_2_11_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-093",
+      "rec_id": "1.3.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_3_1_b1",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "405729008"
+      ],
+      "expect_action": "ng12_1_3_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-094",
+      "rec_id": "1.3.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_3_2_b1",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "165418005"
+      ],
+      "expect_action": "ng12_1_3_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-095",
+      "rec_id": "1.3.2",
+      "branch_index": 2,
+      "branch_label": "ng12_1_3_2_b2",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "165418005",
+        "104454006"
+      ],
+      "expect_action": "ng12_1_3_2_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-096",
+      "rec_id": "1.3.2",
+      "branch_index": 3,
+      "branch_label": "ng12_1_3_2_b3",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "167667006"
+      ],
+      "expect_action": "ng12_1_3_2_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-097",
+      "rec_id": "1.3.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_3_3_b1",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "149441000000102"
+      ],
+      "expect_action": "ng12_1_3_3_branch_1",
+      "graph_rule_id": "rule:NG12:v1:CH002:SEC002:R002:3b6a24e5:edit:308ce725",
+      "expect_graph_match": true,
+      "_graph_status": "active"
+    },
+    {
+      "id": "NG12-GDL-098",
+      "rec_id": "1.3.3",
+      "branch_index": 2,
+      "branch_label": "ng12_1_3_3_b2",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "49727002",
+        "84229001"
+      ],
+      "expect_action": "ng12_1_3_3_branch_2",
+      "graph_rule_id": "rule:NG12:v1:CH002:SEC002:R002:3b6a24e5:edit:308ce725",
+      "expect_graph_match": false,
+      "_graph_status": "active"
+    },
+    {
+      "id": "NG12-GDL-099",
+      "rec_id": "1.3.4",
+      "branch_index": 1,
+      "branch_label": "ng12_1_3_4_b1",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "274278001"
+      ],
+      "expect_action": "ng12_1_3_4_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-100",
+      "rec_id": "1.3.5",
+      "branch_index": 1,
+      "branch_label": "ng12_1_3_5_b1",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "248523006"
+      ],
+      "expect_action": "ng12_1_3_5_branch_1",
+      "graph_rule_id": "rule:NG12:v1:CH002:SEC002:R004:1e614d35:edit:b242528c",
+      "expect_graph_match": true,
+      "_graph_status": "active"
+    },
+    {
+      "id": "NG12-GDL-101",
+      "rec_id": "1.3.6",
+      "branch_index": 1,
+      "branch_label": "ng12_1_3_6_b1",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "309256003"
+      ],
+      "expect_action": "ng12_1_3_6_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-102",
+      "rec_id": "1.3.6",
+      "branch_index": 2,
+      "branch_label": "ng12_1_3_6_b2",
+      "section": "1.3 Lower gastrointestinal tract cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "405729008"
+      ],
+      "expect_action": "ng12_1_3_6_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-103",
+      "rec_id": "1.4.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_4_1_b1",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-104",
+      "rec_id": "1.4.1",
+      "branch_index": 2,
+      "branch_label": "ng12_1_4_1_b2",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_1_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-105",
+      "rec_id": "1.4.1",
+      "branch_index": 3,
+      "branch_label": "ng12_1_4_1_b3",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_4_1_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-106",
+      "rec_id": "1.4.1",
+      "branch_index": 4,
+      "branch_label": "ng12_1_4_1_b4",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_1_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-107",
+      "rec_id": "1.4.1",
+      "branch_index": 5,
+      "branch_label": "ng12_1_4_1_b5",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_1_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-108",
+      "rec_id": "1.4.1",
+      "branch_index": 6,
+      "branch_label": "ng12_1_4_1_b6",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_4_1_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-109",
+      "rec_id": "1.4.1",
+      "branch_index": 7,
+      "branch_label": "ng12_1_4_1_b7",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_1_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-110",
+      "rec_id": "1.4.1",
+      "branch_index": 8,
+      "branch_label": "ng12_1_4_1_b8",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_1_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-111",
+      "rec_id": "1.4.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_4_2_b1",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-112",
+      "rec_id": "1.4.2",
+      "branch_index": 2,
+      "branch_label": "ng12_1_4_2_b2",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_2_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-113",
+      "rec_id": "1.4.2",
+      "branch_index": 3,
+      "branch_label": "ng12_1_4_2_b3",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_4_2_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-114",
+      "rec_id": "1.4.2",
+      "branch_index": 4,
+      "branch_label": "ng12_1_4_2_b4",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_2_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-115",
+      "rec_id": "1.4.2",
+      "branch_index": 5,
+      "branch_label": "ng12_1_4_2_b5",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_2_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-116",
+      "rec_id": "1.4.2",
+      "branch_index": 6,
+      "branch_label": "ng12_1_4_2_b6",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_4_2_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-117",
+      "rec_id": "1.4.2",
+      "branch_index": 7,
+      "branch_label": "ng12_1_4_2_b7",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_2_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-118",
+      "rec_id": "1.4.2",
+      "branch_index": 8,
+      "branch_label": "ng12_1_4_2_b8",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_2_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-119",
+      "rec_id": "1.4.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_4_3_b1",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-120",
+      "rec_id": "1.4.3",
+      "branch_index": 2,
+      "branch_label": "ng12_1_4_3_b2",
+      "section": "1.4 Breast cancer",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "10601006"
+      ],
+      "expect_action": "ng12_1_4_3_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-121",
+      "rec_id": "1.5.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_1_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-122",
+      "rec_id": "1.5.1",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_1_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_1_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-123",
+      "rec_id": "1.5.1",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_1_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_1_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-124",
+      "rec_id": "1.5.1",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_1_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_1_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-125",
+      "rec_id": "1.5.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_2_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-126",
+      "rec_id": "1.5.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_3_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-127",
+      "rec_id": "1.5.4",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_4_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_4_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-128",
+      "rec_id": "1.5.4",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_4_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_4_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-129",
+      "rec_id": "1.5.4",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_4_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_4_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-130",
+      "rec_id": "1.5.4",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_4_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_4_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-131",
+      "rec_id": "1.5.4",
+      "branch_index": 5,
+      "branch_label": "ng12_1_5_4_b5",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_4_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-132",
+      "rec_id": "1.5.5",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_5_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_5_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-133",
+      "rec_id": "1.5.6",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_6_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_6_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-134",
+      "rec_id": "1.5.6",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_6_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_6_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-135",
+      "rec_id": "1.5.6",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_6_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_6_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-136",
+      "rec_id": "1.5.6",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_6_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_6_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-137",
+      "rec_id": "1.5.6",
+      "branch_index": 5,
+      "branch_label": "ng12_1_5_6_b5",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_6_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-138",
+      "rec_id": "1.5.6",
+      "branch_index": 6,
+      "branch_label": "ng12_1_5_6_b6",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_5_6_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-139",
+      "rec_id": "1.5.6",
+      "branch_index": 7,
+      "branch_label": "ng12_1_5_6_b7",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_6_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-140",
+      "rec_id": "1.5.6",
+      "branch_index": 8,
+      "branch_label": "ng12_1_5_6_b8",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_6_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-141",
+      "rec_id": "1.5.7",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_7_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_7_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-142",
+      "rec_id": "1.5.8",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_8_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_8_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-143",
+      "rec_id": "1.5.8",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_8_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_8_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-144",
+      "rec_id": "1.5.8",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_8_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_8_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-145",
+      "rec_id": "1.5.8",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_8_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_8_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-146",
+      "rec_id": "1.5.8",
+      "branch_index": 5,
+      "branch_label": "ng12_1_5_8_b5",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_8_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-147",
+      "rec_id": "1.5.8",
+      "branch_index": 6,
+      "branch_label": "ng12_1_5_8_b6",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_5_8_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-148",
+      "rec_id": "1.5.8",
+      "branch_index": 7,
+      "branch_label": "ng12_1_5_8_b7",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_8_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-149",
+      "rec_id": "1.5.8",
+      "branch_index": 8,
+      "branch_label": "ng12_1_5_8_b8",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_8_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-150",
+      "rec_id": "1.5.9",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_9_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_9_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-151",
+      "rec_id": "1.5.9",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_9_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_9_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-152",
+      "rec_id": "1.5.9",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_9_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_9_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-153",
+      "rec_id": "1.5.9",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_9_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_9_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-154",
+      "rec_id": "1.5.10",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_10_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_10_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-155",
+      "rec_id": "1.5.11",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_11_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_11_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-156",
+      "rec_id": "1.5.11",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_11_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_11_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-157",
+      "rec_id": "1.5.11",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_11_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_11_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-158",
+      "rec_id": "1.5.11",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_11_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_11_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-159",
+      "rec_id": "1.5.12",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_12_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_12_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-160",
+      "rec_id": "1.5.12",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_12_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_12_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-161",
+      "rec_id": "1.5.13",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_13_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_13_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-162",
+      "rec_id": "1.5.13",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_13_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_13_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-163",
+      "rec_id": "1.5.13",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_13_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_13_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-164",
+      "rec_id": "1.5.13",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_13_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_13_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-165",
+      "rec_id": "1.5.13",
+      "branch_index": 5,
+      "branch_label": "ng12_1_5_13_b5",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_13_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-166",
+      "rec_id": "1.5.13",
+      "branch_index": 6,
+      "branch_label": "ng12_1_5_13_b6",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_5_13_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-167",
+      "rec_id": "1.5.13",
+      "branch_index": 7,
+      "branch_label": "ng12_1_5_13_b7",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_13_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-168",
+      "rec_id": "1.5.13",
+      "branch_index": 8,
+      "branch_label": "ng12_1_5_13_b8",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_13_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-169",
+      "rec_id": "1.5.14",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_14_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_14_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-170",
+      "rec_id": "1.5.15",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_15_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_15_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-171",
+      "rec_id": "1.5.15",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_15_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_15_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-172",
+      "rec_id": "1.5.15",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_15_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_15_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-173",
+      "rec_id": "1.5.15",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_15_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_15_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-174",
+      "rec_id": "1.5.16",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_16_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_16_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-175",
+      "rec_id": "1.5.17",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_17_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_17_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-176",
+      "rec_id": "1.5.17",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_17_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_17_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-177",
+      "rec_id": "1.5.17",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_17_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_17_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-178",
+      "rec_id": "1.5.17",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_17_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_17_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-179",
+      "rec_id": "1.5.18",
+      "branch_index": 1,
+      "branch_label": "ng12_1_5_18_b1",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_18_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-180",
+      "rec_id": "1.5.18",
+      "branch_index": 2,
+      "branch_label": "ng12_1_5_18_b2",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_18_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-181",
+      "rec_id": "1.5.18",
+      "branch_index": 3,
+      "branch_label": "ng12_1_5_18_b3",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_5_18_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-182",
+      "rec_id": "1.5.18",
+      "branch_index": 4,
+      "branch_label": "ng12_1_5_18_b4",
+      "section": "1.5 Gynaecological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "289903006"
+      ],
+      "expect_action": "ng12_1_5_18_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-183",
+      "rec_id": "1.6.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_1_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-184",
+      "rec_id": "1.6.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_2_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-185",
+      "rec_id": "1.6.2",
+      "branch_index": 2,
+      "branch_label": "ng12_1_6_2_b2",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_2_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-186",
+      "rec_id": "1.6.2",
+      "branch_index": 3,
+      "branch_label": "ng12_1_6_2_b3",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_6_2_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-187",
+      "rec_id": "1.6.2",
+      "branch_index": 4,
+      "branch_label": "ng12_1_6_2_b4",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_2_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-188",
+      "rec_id": "1.6.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_3_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-189",
+      "rec_id": "1.6.4",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_4_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_4_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-190",
+      "rec_id": "1.6.4",
+      "branch_index": 2,
+      "branch_label": "ng12_1_6_4_b2",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_4_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-191",
+      "rec_id": "1.6.4",
+      "branch_index": 3,
+      "branch_label": "ng12_1_6_4_b3",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_6_4_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-192",
+      "rec_id": "1.6.4",
+      "branch_index": 4,
+      "branch_label": "ng12_1_6_4_b4",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_4_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-193",
+      "rec_id": "1.6.4",
+      "branch_index": 5,
+      "branch_label": "ng12_1_6_4_b5",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_4_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-194",
+      "rec_id": "1.6.4",
+      "branch_index": 6,
+      "branch_label": "ng12_1_6_4_b6",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_6_4_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-195",
+      "rec_id": "1.6.4",
+      "branch_index": 7,
+      "branch_label": "ng12_1_6_4_b7",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_4_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-196",
+      "rec_id": "1.6.4",
+      "branch_index": 8,
+      "branch_label": "ng12_1_6_4_b8",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_4_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-197",
+      "rec_id": "1.6.5",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_5_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_5_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-198",
+      "rec_id": "1.6.5",
+      "branch_index": 2,
+      "branch_label": "ng12_1_6_5_b2",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_5_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-199",
+      "rec_id": "1.6.5",
+      "branch_index": 3,
+      "branch_label": "ng12_1_6_5_b3",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_6_5_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-200",
+      "rec_id": "1.6.5",
+      "branch_index": 4,
+      "branch_label": "ng12_1_6_5_b4",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_5_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-201",
+      "rec_id": "1.6.5",
+      "branch_index": 5,
+      "branch_label": "ng12_1_6_5_b5",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_5_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-202",
+      "rec_id": "1.6.5",
+      "branch_index": 6,
+      "branch_label": "ng12_1_6_5_b6",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_6_5_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-203",
+      "rec_id": "1.6.5",
+      "branch_index": 7,
+      "branch_label": "ng12_1_6_5_b7",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_5_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-204",
+      "rec_id": "1.6.5",
+      "branch_index": 8,
+      "branch_label": "ng12_1_6_5_b8",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_5_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-205",
+      "rec_id": "1.6.6",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_6_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_6_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-206",
+      "rec_id": "1.6.6",
+      "branch_index": 2,
+      "branch_label": "ng12_1_6_6_b2",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_6_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-207",
+      "rec_id": "1.6.6",
+      "branch_index": 3,
+      "branch_label": "ng12_1_6_6_b3",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_6_6_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-208",
+      "rec_id": "1.6.6",
+      "branch_index": 4,
+      "branch_label": "ng12_1_6_6_b4",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_6_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-209",
+      "rec_id": "1.6.6",
+      "branch_index": 5,
+      "branch_label": "ng12_1_6_6_b5",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_6_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-210",
+      "rec_id": "1.6.6",
+      "branch_index": 6,
+      "branch_label": "ng12_1_6_6_b6",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_6_6_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-211",
+      "rec_id": "1.6.6",
+      "branch_index": 7,
+      "branch_label": "ng12_1_6_6_b7",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_6_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-212",
+      "rec_id": "1.6.6",
+      "branch_index": 8,
+      "branch_label": "ng12_1_6_6_b8",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_6_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-213",
+      "rec_id": "1.6.7",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_7_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_7_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-214",
+      "rec_id": "1.6.7",
+      "branch_index": 2,
+      "branch_label": "ng12_1_6_7_b2",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_7_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-215",
+      "rec_id": "1.6.7",
+      "branch_index": 3,
+      "branch_label": "ng12_1_6_7_b3",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_6_7_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-216",
+      "rec_id": "1.6.7",
+      "branch_index": 4,
+      "branch_label": "ng12_1_6_7_b4",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_7_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-217",
+      "rec_id": "1.6.8",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_8_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_8_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-218",
+      "rec_id": "1.6.8",
+      "branch_index": 2,
+      "branch_label": "ng12_1_6_8_b2",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_8_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-219",
+      "rec_id": "1.6.8",
+      "branch_index": 3,
+      "branch_label": "ng12_1_6_8_b3",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_6_8_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-220",
+      "rec_id": "1.6.8",
+      "branch_index": 4,
+      "branch_label": "ng12_1_6_8_b4",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_8_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-221",
+      "rec_id": "1.6.9",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_9_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_9_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-222",
+      "rec_id": "1.6.9",
+      "branch_index": 2,
+      "branch_label": "ng12_1_6_9_b2",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_9_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-223",
+      "rec_id": "1.6.9",
+      "branch_index": 3,
+      "branch_label": "ng12_1_6_9_b3",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_6_9_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-224",
+      "rec_id": "1.6.9",
+      "branch_index": 4,
+      "branch_label": "ng12_1_6_9_b4",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_9_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-225",
+      "rec_id": "1.6.10",
+      "branch_index": 1,
+      "branch_label": "ng12_1_6_10_b1",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_10_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-226",
+      "rec_id": "1.6.10",
+      "branch_index": 2,
+      "branch_label": "ng12_1_6_10_b2",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_10_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-227",
+      "rec_id": "1.6.10",
+      "branch_index": 3,
+      "branch_label": "ng12_1_6_10_b3",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_6_10_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-228",
+      "rec_id": "1.6.10",
+      "branch_index": 4,
+      "branch_label": "ng12_1_6_10_b4",
+      "section": "1.6 Urological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "34436003"
+      ],
+      "expect_action": "ng12_1_6_10_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-229",
+      "rec_id": "1.7.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_7_1_b1",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-230",
+      "rec_id": "1.7.1",
+      "branch_index": 2,
+      "branch_label": "ng12_1_7_1_b2",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_1_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-231",
+      "rec_id": "1.7.1",
+      "branch_index": 3,
+      "branch_label": "ng12_1_7_1_b3",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_7_1_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-232",
+      "rec_id": "1.7.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_7_2_b1",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-233",
+      "rec_id": "1.7.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_7_3_b1",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-234",
+      "rec_id": "1.7.3",
+      "branch_index": 2,
+      "branch_label": "ng12_1_7_3_b2",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_3_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-235",
+      "rec_id": "1.7.4",
+      "branch_index": 1,
+      "branch_label": "ng12_1_7_4_b1",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_4_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-236",
+      "rec_id": "1.7.5",
+      "branch_index": 1,
+      "branch_label": "ng12_1_7_5_b1",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_5_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-237",
+      "rec_id": "1.7.5",
+      "branch_index": 2,
+      "branch_label": "ng12_1_7_5_b2",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_5_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-238",
+      "rec_id": "1.7.5",
+      "branch_index": 3,
+      "branch_label": "ng12_1_7_5_b3",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_7_5_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-239",
+      "rec_id": "1.7.6",
+      "branch_index": 1,
+      "branch_label": "ng12_1_7_6_b1",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_6_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-240",
+      "rec_id": "1.7.6",
+      "branch_index": 2,
+      "branch_label": "ng12_1_7_6_b2",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_6_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-241",
+      "rec_id": "1.7.7",
+      "branch_index": 1,
+      "branch_label": "ng12_1_7_7_b1",
+      "section": "1.7 Skin cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "400006001"
+      ],
+      "expect_action": "ng12_1_7_7_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-242",
+      "rec_id": "1.8.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_8_1_b1",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-243",
+      "rec_id": "1.8.1",
+      "branch_index": 2,
+      "branch_label": "ng12_1_8_1_b2",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_1_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-244",
+      "rec_id": "1.8.1",
+      "branch_index": 3,
+      "branch_label": "ng12_1_8_1_b3",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_8_1_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-245",
+      "rec_id": "1.8.1",
+      "branch_index": 4,
+      "branch_label": "ng12_1_8_1_b4",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_1_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-246",
+      "rec_id": "1.8.1",
+      "branch_index": 5,
+      "branch_label": "ng12_1_8_1_b5",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_1_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-247",
+      "rec_id": "1.8.1",
+      "branch_index": 6,
+      "branch_label": "ng12_1_8_1_b6",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_8_1_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-248",
+      "rec_id": "1.8.1",
+      "branch_index": 7,
+      "branch_label": "ng12_1_8_1_b7",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_1_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-249",
+      "rec_id": "1.8.1",
+      "branch_index": 8,
+      "branch_label": "ng12_1_8_1_b8",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_1_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-250",
+      "rec_id": "1.8.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_8_2_b1",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-251",
+      "rec_id": "1.8.2",
+      "branch_index": 2,
+      "branch_label": "ng12_1_8_2_b2",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_2_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-252",
+      "rec_id": "1.8.2",
+      "branch_index": 3,
+      "branch_label": "ng12_1_8_2_b3",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_8_2_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-253",
+      "rec_id": "1.8.2",
+      "branch_index": 4,
+      "branch_label": "ng12_1_8_2_b4",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_2_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-254",
+      "rec_id": "1.8.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_8_3_b1",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-255",
+      "rec_id": "1.8.3",
+      "branch_index": 2,
+      "branch_label": "ng12_1_8_3_b2",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_3_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-256",
+      "rec_id": "1.8.3",
+      "branch_index": 3,
+      "branch_label": "ng12_1_8_3_b3",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_8_3_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-257",
+      "rec_id": "1.8.3",
+      "branch_index": 4,
+      "branch_label": "ng12_1_8_3_b4",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_3_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-258",
+      "rec_id": "1.8.4",
+      "branch_index": 1,
+      "branch_label": "ng12_1_8_4_b1",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_4_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-259",
+      "rec_id": "1.8.4",
+      "branch_index": 2,
+      "branch_label": "ng12_1_8_4_b2",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_4_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-260",
+      "rec_id": "1.8.4",
+      "branch_index": 3,
+      "branch_label": "ng12_1_8_4_b3",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_8_4_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-261",
+      "rec_id": "1.8.4",
+      "branch_index": 4,
+      "branch_label": "ng12_1_8_4_b4",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_4_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-262",
+      "rec_id": "1.8.5",
+      "branch_index": 1,
+      "branch_label": "ng12_1_8_5_b1",
+      "section": "1.8 Head and neck cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "50219008"
+      ],
+      "expect_action": "ng12_1_8_5_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-263",
+      "rec_id": "1.9.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_9_1_b1",
+      "section": "1.9 Brain and central nervous system cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "44186003"
+      ],
+      "expect_action": "ng12_1_9_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-264",
+      "rec_id": "1.9.1",
+      "branch_index": 2,
+      "branch_label": "ng12_1_9_1_b2",
+      "section": "1.9 Brain and central nervous system cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "44186003"
+      ],
+      "expect_action": "ng12_1_9_1_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-265",
+      "rec_id": "1.9.1",
+      "branch_index": 3,
+      "branch_label": "ng12_1_9_1_b3",
+      "section": "1.9 Brain and central nervous system cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "44186003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_9_1_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-266",
+      "rec_id": "1.9.1",
+      "branch_index": 4,
+      "branch_label": "ng12_1_9_1_b4",
+      "section": "1.9 Brain and central nervous system cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "44186003"
+      ],
+      "expect_action": "ng12_1_9_1_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-267",
+      "rec_id": "1.9.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_9_2_b1",
+      "section": "1.9 Brain and central nervous system cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "44186003"
+      ],
+      "expect_action": "ng12_1_9_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-268",
+      "rec_id": "1.9.2",
+      "branch_index": 2,
+      "branch_label": "ng12_1_9_2_b2",
+      "section": "1.9 Brain and central nervous system cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "44186003"
+      ],
+      "expect_action": "ng12_1_9_2_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-269",
+      "rec_id": "1.9.2",
+      "branch_index": 3,
+      "branch_label": "ng12_1_9_2_b3",
+      "section": "1.9 Brain and central nervous system cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "44186003",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_9_2_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-270",
+      "rec_id": "1.9.2",
+      "branch_index": 4,
+      "branch_label": "ng12_1_9_2_b4",
+      "section": "1.9 Brain and central nervous system cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "44186003"
+      ],
+      "expect_action": "ng12_1_9_2_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-271",
+      "rec_id": "1.10.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_10_1_b1",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-272",
+      "rec_id": "1.10.1",
+      "branch_index": 2,
+      "branch_label": "ng12_1_10_1_b2",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_1_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-273",
+      "rec_id": "1.10.1",
+      "branch_index": 3,
+      "branch_label": "ng12_1_10_1_b3",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_10_1_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-274",
+      "rec_id": "1.10.1",
+      "branch_index": 4,
+      "branch_label": "ng12_1_10_1_b4",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_1_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-275",
+      "rec_id": "1.10.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_10_2_b1",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-276",
+      "rec_id": "1.10.2",
+      "branch_index": 2,
+      "branch_label": "ng12_1_10_2_b2",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_2_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-277",
+      "rec_id": "1.10.2",
+      "branch_index": 3,
+      "branch_label": "ng12_1_10_2_b3",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_10_2_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-278",
+      "rec_id": "1.10.2",
+      "branch_index": 4,
+      "branch_label": "ng12_1_10_2_b4",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_2_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-279",
+      "rec_id": "1.10.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_10_3_b1",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-280",
+      "rec_id": "1.10.3",
+      "branch_index": 2,
+      "branch_label": "ng12_1_10_3_b2",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_3_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-281",
+      "rec_id": "1.10.3",
+      "branch_index": 3,
+      "branch_label": "ng12_1_10_3_b3",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_10_3_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-282",
+      "rec_id": "1.10.3",
+      "branch_index": 4,
+      "branch_label": "ng12_1_10_3_b4",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_3_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-283",
+      "rec_id": "1.10.4",
+      "branch_index": 1,
+      "branch_label": "ng12_1_10_4_b1",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_4_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-284",
+      "rec_id": "1.10.4",
+      "branch_index": 2,
+      "branch_label": "ng12_1_10_4_b2",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_4_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-285",
+      "rec_id": "1.10.4",
+      "branch_index": 3,
+      "branch_label": "ng12_1_10_4_b3",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_10_4_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-286",
+      "rec_id": "1.10.4",
+      "branch_index": 4,
+      "branch_label": "ng12_1_10_4_b4",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_4_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-287",
+      "rec_id": "1.10.4",
+      "branch_index": 5,
+      "branch_label": "ng12_1_10_4_b5",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_4_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-288",
+      "rec_id": "1.10.4",
+      "branch_index": 6,
+      "branch_label": "ng12_1_10_4_b6",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_10_4_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-289",
+      "rec_id": "1.10.4",
+      "branch_index": 7,
+      "branch_label": "ng12_1_10_4_b7",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_4_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-290",
+      "rec_id": "1.10.4",
+      "branch_index": 8,
+      "branch_label": "ng12_1_10_4_b8",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_4_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-291",
+      "rec_id": "1.10.5",
+      "branch_index": 1,
+      "branch_label": "ng12_1_10_5_b1",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_5_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-292",
+      "rec_id": "1.10.6",
+      "branch_index": 1,
+      "branch_label": "ng12_1_10_6_b1",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_6_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-293",
+      "rec_id": "1.10.6",
+      "branch_index": 2,
+      "branch_label": "ng12_1_10_6_b2",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_6_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-294",
+      "rec_id": "1.10.6",
+      "branch_index": 3,
+      "branch_label": "ng12_1_10_6_b3",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_10_6_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-295",
+      "rec_id": "1.10.6",
+      "branch_index": 4,
+      "branch_label": "ng12_1_10_6_b4",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_6_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-296",
+      "rec_id": "1.10.7",
+      "branch_index": 1,
+      "branch_label": "ng12_1_10_7_b1",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_7_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-297",
+      "rec_id": "1.10.7",
+      "branch_index": 2,
+      "branch_label": "ng12_1_10_7_b2",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_7_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-298",
+      "rec_id": "1.10.7",
+      "branch_index": 3,
+      "branch_label": "ng12_1_10_7_b3",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_10_7_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-299",
+      "rec_id": "1.10.7",
+      "branch_index": 4,
+      "branch_label": "ng12_1_10_7_b4",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_7_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-300",
+      "rec_id": "1.10.8",
+      "branch_index": 1,
+      "branch_label": "ng12_1_10_8_b1",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_8_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-301",
+      "rec_id": "1.10.8",
+      "branch_index": 2,
+      "branch_label": "ng12_1_10_8_b2",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_8_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-302",
+      "rec_id": "1.10.8",
+      "branch_index": 3,
+      "branch_label": "ng12_1_10_8_b3",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_10_8_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-303",
+      "rec_id": "1.10.8",
+      "branch_index": 4,
+      "branch_label": "ng12_1_10_8_b4",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_8_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-304",
+      "rec_id": "1.10.9",
+      "branch_index": 1,
+      "branch_label": "ng12_1_10_9_b1",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_9_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-305",
+      "rec_id": "1.10.9",
+      "branch_index": 2,
+      "branch_label": "ng12_1_10_9_b2",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_9_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-306",
+      "rec_id": "1.10.9",
+      "branch_index": 3,
+      "branch_label": "ng12_1_10_9_b3",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_10_9_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-307",
+      "rec_id": "1.10.9",
+      "branch_index": 4,
+      "branch_label": "ng12_1_10_9_b4",
+      "section": "1.10 Haematological cancers",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "413413002"
+      ],
+      "expect_action": "ng12_1_10_9_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-308",
+      "rec_id": "1.11.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_11_1_b1",
+      "section": "1.11 Sarcomas",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-309",
+      "rec_id": "1.11.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_11_2_b1",
+      "section": "1.11 Sarcomas",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-310",
+      "rec_id": "1.11.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_11_3_b1",
+      "section": "1.11 Sarcomas",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-311",
+      "rec_id": "1.11.3",
+      "branch_index": 2,
+      "branch_label": "ng12_1_11_3_b2",
+      "section": "1.11 Sarcomas",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_3_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-312",
+      "rec_id": "1.11.3",
+      "branch_index": 3,
+      "branch_label": "ng12_1_11_3_b3",
+      "section": "1.11 Sarcomas",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_11_3_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-313",
+      "rec_id": "1.11.3",
+      "branch_index": 4,
+      "branch_label": "ng12_1_11_3_b4",
+      "section": "1.11 Sarcomas",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_3_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-314",
+      "rec_id": "1.11.4",
+      "branch_index": 1,
+      "branch_label": "ng12_1_11_4_b1",
+      "section": "1.11 Sarcomas",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_4_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-315",
+      "rec_id": "1.11.5",
+      "branch_index": 1,
+      "branch_label": "ng12_1_11_5_b1",
+      "section": "1.11 Sarcomas",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_5_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-316",
+      "rec_id": "1.11.5",
+      "branch_index": 2,
+      "branch_label": "ng12_1_11_5_b2",
+      "section": "1.11 Sarcomas",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_5_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-317",
+      "rec_id": "1.11.5",
+      "branch_index": 3,
+      "branch_label": "ng12_1_11_5_b3",
+      "section": "1.11 Sarcomas",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_11_5_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-318",
+      "rec_id": "1.11.5",
+      "branch_index": 4,
+      "branch_label": "ng12_1_11_5_b4",
+      "section": "1.11 Sarcomas",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_5_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-319",
+      "rec_id": "1.11.6",
+      "branch_index": 1,
+      "branch_label": "ng12_1_11_6_b1",
+      "section": "1.11 Sarcomas",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_6_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-320",
+      "rec_id": "1.11.7",
+      "branch_index": 1,
+      "branch_label": "ng12_1_11_7_b1",
+      "section": "1.11 Sarcomas",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_7_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-321",
+      "rec_id": "1.11.7",
+      "branch_index": 2,
+      "branch_label": "ng12_1_11_7_b2",
+      "section": "1.11 Sarcomas",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_7_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-322",
+      "rec_id": "1.11.7",
+      "branch_index": 3,
+      "branch_label": "ng12_1_11_7_b3",
+      "section": "1.11 Sarcomas",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_11_7_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-323",
+      "rec_id": "1.11.7",
+      "branch_index": 4,
+      "branch_label": "ng12_1_11_7_b4",
+      "section": "1.11 Sarcomas",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "95324001"
+      ],
+      "expect_action": "ng12_1_11_7_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-324",
+      "rec_id": "1.12.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_12_1_b1",
+      "section": "1.12 Childhood cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "276447008"
+      ],
+      "expect_action": "ng12_1_12_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-325",
+      "rec_id": "1.12.1",
+      "branch_index": 2,
+      "branch_label": "ng12_1_12_1_b2",
+      "section": "1.12 Childhood cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "276447008"
+      ],
+      "expect_action": "ng12_1_12_1_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-326",
+      "rec_id": "1.12.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_12_2_b1",
+      "section": "1.12 Childhood cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "276447008"
+      ],
+      "expect_action": "ng12_1_12_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-327",
+      "rec_id": "1.12.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_12_3_b1",
+      "section": "1.12 Childhood cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "276447008"
+      ],
+      "expect_action": "ng12_1_12_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-328",
+      "rec_id": "1.12.3",
+      "branch_index": 2,
+      "branch_label": "ng12_1_12_3_b2",
+      "section": "1.12 Childhood cancers",
+      "patient_age": 10.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "276447008"
+      ],
+      "expect_action": "ng12_1_12_3_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-329",
+      "rec_id": "1.13.1",
+      "branch_index": 1,
+      "branch_label": "ng12_1_13_1_b1",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_1_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-330",
+      "rec_id": "1.13.1",
+      "branch_index": 2,
+      "branch_label": "ng12_1_13_1_b2",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_1_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-331",
+      "rec_id": "1.13.1",
+      "branch_index": 3,
+      "branch_label": "ng12_1_13_1_b3",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_13_1_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-332",
+      "rec_id": "1.13.1",
+      "branch_index": 4,
+      "branch_label": "ng12_1_13_1_b4",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_1_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-333",
+      "rec_id": "1.13.2",
+      "branch_index": 1,
+      "branch_label": "ng12_1_13_2_b1",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_2_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-334",
+      "rec_id": "1.13.2",
+      "branch_index": 2,
+      "branch_label": "ng12_1_13_2_b2",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_2_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-335",
+      "rec_id": "1.13.2",
+      "branch_index": 3,
+      "branch_label": "ng12_1_13_2_b3",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_13_2_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-336",
+      "rec_id": "1.13.2",
+      "branch_index": 4,
+      "branch_label": "ng12_1_13_2_b4",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_2_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-337",
+      "rec_id": "1.13.2",
+      "branch_index": 5,
+      "branch_label": "ng12_1_13_2_b5",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_2_branch_5",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-338",
+      "rec_id": "1.13.2",
+      "branch_index": 6,
+      "branch_label": "ng12_1_13_2_b6",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001",
+        "29857009"
+      ],
+      "expect_action": "ng12_1_13_2_branch_6",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-339",
+      "rec_id": "1.13.2",
+      "branch_index": 7,
+      "branch_label": "ng12_1_13_2_b7",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_2_branch_7",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-340",
+      "rec_id": "1.13.2",
+      "branch_index": 8,
+      "branch_label": "ng12_1_13_2_b8",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_2_branch_8",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-341",
+      "rec_id": "1.13.3",
+      "branch_index": 1,
+      "branch_label": "ng12_1_13_3_b1",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_3_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-342",
+      "rec_id": "1.13.3",
+      "branch_index": 2,
+      "branch_label": "ng12_1_13_3_b2",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_3_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-343",
+      "rec_id": "1.13.3",
+      "branch_index": 3,
+      "branch_label": "ng12_1_13_3_b3",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_13_3_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-344",
+      "rec_id": "1.13.3",
+      "branch_index": 4,
+      "branch_label": "ng12_1_13_3_b4",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_3_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-345",
+      "rec_id": "1.13.4",
+      "branch_index": 1,
+      "branch_label": "ng12_1_13_4_b1",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_4_branch_1",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-346",
+      "rec_id": "1.13.4",
+      "branch_index": 2,
+      "branch_label": "ng12_1_13_4_b2",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_4_branch_2",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-347",
+      "rec_id": "1.13.4",
+      "branch_index": 3,
+      "branch_label": "ng12_1_13_4_b3",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001",
+        "267036007"
+      ],
+      "expect_action": "ng12_1_13_4_branch_3",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    },
+    {
+      "id": "NG12-GDL-348",
+      "rec_id": "1.13.4",
+      "branch_index": 4,
+      "branch_label": "ng12_1_13_4_b4",
+      "section": "1.13 Non-site-specific symptoms",
+      "patient_age": 55.0,
+      "patient_sex": null,
+      "patient_snomed_codes": [
+        "262285001"
+      ],
+      "expect_action": "ng12_1_13_4_branch_4",
+      "graph_rule_id": null,
+      "expect_graph_match": null,
+      "_graph_status": "not_coded"
+    }
+  ]
+}

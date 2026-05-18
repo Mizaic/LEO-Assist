@@ -20,10 +20,10 @@ from libs.neo4j_client.client import PatientGraphClient
 
 # Pick a small set of stale HITL patients from the previous output
 SAMPLE_PIDS = [
-    "4203796334",  # stale skin x2
-    "4246870471",  # stale upper_gi + lower_gi in_progress
-    "4926916703",  # 5 HITL - lung, breast, lower_gi
-    "4842019832",  # 3 HITL - head_and_neck, lower_gi
+    "9990002010",  # stale skin x2
+    "9990010031",  # stale upper_gi + lower_gi in_progress
+    "9990010049",  # 5 HITL - lung, breast, lower_gi
+    "9990010043",  # 3 HITL - head_and_neck, lower_gi
 ]
 
 _Q = """

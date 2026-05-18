@@ -2,14 +2,14 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-5312F884
- *   DI: DI-AA1F5F5B
+ *   DO: DO-5312F884, DO-17AF3E5E
+ *   DI: DI-AA1F5F5B, DI-8ECE2DAE
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5312F884")
  */
 // Pure binning helpers for the encounter timeline scrubber histogram.
 //
 // Design Controls: UN-LEO-AI-077, DI-LEO-AI-179, DO-LEO-AI-178,
-// R-LEO-AI-174, VT-LEO-AI-173.
+// R-LEO-AI-174, VT-LEO-AI-173, DI-8ECE2DAE, DO-17AF3E5E.
 
 export type Granularity = "day" | "week" | "month" | "quarter" | "year";
 
@@ -42,6 +42,16 @@ export interface TimelineBin {
   total: number;
   linked: number;
   other: number;
+  // Number of encounters in the bin whose coded_count > 0 (i.e. at
+  // least one SNOMED concept saved on the encounter). Drives the
+  // bottom-edge "coded-data" indicator on the bar so a reviewer can
+  // see at a glance which months are already curated. DI-8ECE2DAE.
+  codedCount: number;
+  // codedCount / total (0 when total is 0). The bar's underline
+  // opacity is derived from this so a fully-coded month reads as a
+  // solid emerald underline and a partially-coded month reads as a
+  // faint one.
+  codedFraction: number;
   encounters: DatedEncounter[];
 }
 
@@ -148,6 +158,8 @@ export function buildBins(
       total: 0,
       linked: 0,
       other: 0,
+      codedCount: 0,
+      codedFraction: 0,
       encounters: [],
     });
     cursor = next;
@@ -167,10 +179,12 @@ export function buildBins(
     bin.total += 1;
     if (row.isLinked) bin.linked += 1;
     else bin.other += 1;
+    if ((row.enc.coded_count ?? 0) > 0) bin.codedCount += 1;
     bin.encounters.push(row);
   }
   for (const bin of bins) {
     bin.encounters.sort((a, b) => a.ts - b.ts);
+    bin.codedFraction = bin.total > 0 ? bin.codedCount / bin.total : 0;
   }
   return bins;
 }

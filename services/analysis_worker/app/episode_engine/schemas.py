@@ -25,7 +25,12 @@ from pydantic import BaseModel, ConfigDict, Field
 # vocabularies as the schemas. Drift between the prompt and the schema is
 # the most common cause of dropped LLM responses.
 
-MILESTONE_TYPES: tuple[str, ...] = (
+# Pathway-tier milestones -- feed episode date roll-ups
+# (referral_date, end_date, diagnostic_interval_days,
+# primary_care_interval_days). Carried through verbatim to Neo4j
+# by writer._LINK_MILESTONE_Q. care_obstruction is emitted by the
+# anchor detector, NOT the LLM, so it is not in Milestone.type.
+PATHWAY_MILESTONE_TYPES: tuple[str, ...] = (
     "first_presentation",
     "referral",
     "first_seen",
@@ -35,6 +40,31 @@ MILESTONE_TYPES: tuple[str, ...] = (
     "treatment_completed",
     "benign_closure",
 )
+
+# Context-tier milestones -- supporting evidence the reviewer uses
+# to read the pathway narrative. Never feed date roll-ups (see
+# _episode_crud_helpers._REFERRAL/_PRESENTATION/_DIAGNOSIS/
+# _TREATMENT_MILESTONES). Authorised for AI emission by DI-2C015ADE
+# (supersedes DI-50C7E89C; CR f3c7886c; R-76D26C56).
+#
+# Any episode containing an AI-written context-tier milestone has
+# its EpisodeOfCare.confidence_tier forced to "suggest" or "review"
+# (never "auto") by voting.assign_confidence_tier, so every context
+# emission is human-reviewed before it reaches a clinical consumer.
+CONTEXT_MILESTONE_TYPES: tuple[str, ...] = (
+    "related_gp_visit",
+    "primary_care_investigations",
+    "referral_admin",
+    "referral_sent",
+    "related_specialist_visit",
+    "specialist_diagnostics",
+    "related_correspondence",
+    "treatment_planned",
+    "treatment_monitoring",
+    "treatment_toxicity",
+)
+
+MILESTONE_TYPES: tuple[str, ...] = PATHWAY_MILESTONE_TYPES + CONTEXT_MILESTONE_TYPES
 
 EPISODE_TYPES: tuple[str, ...] = (
     "cancer",
@@ -132,6 +162,7 @@ class Milestone(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     type: Literal[
+        # Pathway tier (PATHWAY_MILESTONE_TYPES) -- feed date roll-ups.
         "first_presentation",
         "referral",
         "first_seen",
@@ -140,13 +171,30 @@ class Milestone(BaseModel):
         "treatment_started",
         "treatment_completed",
         "benign_closure",
+        # Context tier (CONTEXT_MILESTONE_TYPES) -- supporting evidence.
+        # AI-eligible under DI-2C015ADE. Presence forces the episode's
+        # confidence_tier away from auto (see voting.py) so every
+        # emission is human-reviewed.
+        "related_gp_visit",
+        "primary_care_investigations",
+        "referral_admin",
+        "referral_sent",
+        "related_specialist_visit",
+        "specialist_diagnostics",
+        "related_correspondence",
+        "treatment_planned",
+        "treatment_monitoring",
+        "treatment_toxicity",
     ]
     date: _date_t
     encounter_id: str = Field(..., min_length=1)
     evidence_quote: str = Field(
         ...,
         min_length=3,
-        description="Substring of the source encounter text proving the milestone.",
+        description=(
+            "Substring of the source encounter text proving the "
+            "milestone. Required for every type (pathway and context)."
+        ),
     )
     treatment_type: Optional[
         Literal[

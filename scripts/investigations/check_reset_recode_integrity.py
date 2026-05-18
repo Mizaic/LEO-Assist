@@ -175,5 +175,5 @@ ORDER BY concept_id
 
 if __name__ == "__main__":
     _load_env()
-    result = run("6310920987")
+    result = run("9990010060")
     print(json.dumps(result, indent=2))

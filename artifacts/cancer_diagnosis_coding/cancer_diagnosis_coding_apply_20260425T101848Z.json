@@ -1,0 +1,172 @@
+{
+  "applied": 11,
+  "items": [
+    {
+      "patient_id": "4742236882",
+      "encounter_id": "75b881a5-1c20-4f5e-aba3-8cfa68974172",
+      "concept_id": "94222008",
+      "term": "Metastatic malignant neoplasm to bone (disorder)",
+      "read_code": ".B1P7",
+      "evidence": "Major: Metastasis to bone of unknown primary (Xa3AJ) (New Episode)",
+      "assertion": "present",
+      "note": "explicit metastasis to bone"
+    },
+    {
+      "patient_id": "4742236882",
+      "encounter_id": "ec95c6fe-2c11-44b5-a7c3-a03fea4a516f",
+      "concept_id": "94392001",
+      "term": "Metastatic malignant neoplasm to lymph node (disorder)",
+      "read_code": ".B1O.",
+      "evidence": "Major: Metastasis to lymph node (Xa980) (New Episode)",
+      "assertion": "present",
+      "note": "explicit metastasis to lymph node"
+    },
+    {
+      "patient_id": "4742236882",
+      "encounter_id": "9c41db87-f846-4a45-acec-531dc7273af6",
+      "concept_id": "713425003",
+      "term": "Spinal cord compression due to metastasis to spine (disorder)",
+      "read_code": "XUsNx",
+      "evidence": "Major: Metastatic spinal cord compression (Y2bfc) (New Episode)",
+      "assertion": "present",
+      "note": "explicit metastatic spinal cord compression"
+    },
+    {
+      "patient_id": "4822977102",
+      "encounter_id": "c23e206b-123c-4c8f-9501-a10cf1dc0e38",
+      "concept_id": "363351006",
+      "term": "Malignant neoplasm of rectum (disorder)",
+      "read_code": "XE1vW",
+      "evidence": "Malignant tumour of rectum (XE1vW) (New Episode)",
+      "assertion": "present",
+      "note": "explicit malignant tumour of rectum"
+    },
+    {
+      "patient_id": "4822977102",
+      "encounter_id": "744c2033-9963-414f-b5e9-7e6fc95aa00c",
+      "concept_id": "1286877004",
+      "term": "Malignant neoplasm of cecum and/or colon and/or rectum (disorder)",
+      "read_code": "XVLSF",
+      "evidence": "new diagnosis of colorectal cancer via the bowel cancer FIT screening",
+      "assertion": "present",
+      "note": "explicit new diagnosis of colorectal cancer"
+    },
+    {
+      "patient_id": "4587069337",
+      "encounter_id": "1bbaa1cb-ca7a-4082-a5e7-b9b41b75220b",
+      "concept_id": "254837009",
+      "term": "Malignant neoplasm of breast (disorder)",
+      "read_code": "Byu6.",
+      "evidence": "Major: Malignant tumour of breast (X78WM) (New Episode)",
+      "assertion": "present",
+      "note": "explicit malignant tumour of breast"
+    },
+    {
+      "patient_id": "4587069337",
+      "encounter_id": "b8d74a17-fce4-41b1-a890-ca6692cb096c",
+      "concept_id": "94392001",
+      "term": "Metastatic malignant neoplasm to lymph node (disorder)",
+      "read_code": ".B1O.",
+      "evidence": "Major: Metastasis to lymph node (Xa980) - Ipsilateral axillary (New Episode)",
+      "assertion": "present",
+      "note": "explicit metastasis to lymph node"
+    },
+    {
+      "patient_id": "4563313114",
+      "encounter_id": "d6483abf-eb86-44a4-bf8b-732a9e7b8412",
+      "concept_id": "402815007",
+      "term": "Squamous cell carcinoma (disorder)",
+      "read_code": "XUZff",
+      "evidence": "Multiple biopsies taken from left lower abdomen ?SCC recurrence, under c/o oncology and plastics",
+      "assertion": "possible",
+      "note": "possible SCC recurrence; not definitive site-coded"
+    },
+    {
+      "patient_id": "4323807201",
+      "encounter_id": "cc447c17-2810-4def-82cc-381c7cb411b8",
+      "concept_id": "363406005",
+      "term": "Malignant neoplasm of colon (disorder)",
+      "read_code": "B13..",
+      "evidence": "Reason: Metastatic Colon cancer - Under active treatment",
+      "assertion": "present",
+      "note": "explicit colon cancer"
+    },
+    {
+      "patient_id": "4323807201",
+      "encounter_id": "cc447c17-2810-4def-82cc-381c7cb411b8",
+      "concept_id": "128462008",
+      "term": "Metastatic malignant neoplasm (disorder)",
+      "read_code": ".B1P.",
+      "evidence": "Reason: Metastatic Colon cancer - Under active treatment",
+      "assertion": "present",
+      "note": "explicit metastatic cancer, no metastasis site given in snippet"
+    },
+    {
+      "patient_id": "4562218347",
+      "encounter_id": "0584423c-e167-414d-98ed-4318f0cb203d",
+      "concept_id": "363346000",
+      "term": "Malignant neoplastic disease (disorder)",
+      "read_code": ".B1Q.",
+      "evidence": "Cancer codes: Codes for cancer care review: Cancer care review (XaIyc)",
+      "assertion": "inferred",
+      "note": "generic cancer diagnosis inferred from cancer care review only; no site-specific diagnosis text found"
+    }
+  ],
+  "write_results": [
+    {
+      "patient_id": "4742236882",
+      "encounter_id": "75b881a5-1c20-4f5e-aba3-8cfa68974172",
+      "concept_id": "94222008"
+    },
+    {
+      "patient_id": "4742236882",
+      "encounter_id": "ec95c6fe-2c11-44b5-a7c3-a03fea4a516f",
+      "concept_id": "94392001"
+    },
+    {
+      "patient_id": "4742236882",
+      "encounter_id": "9c41db87-f846-4a45-acec-531dc7273af6",
+      "concept_id": "713425003"
+    },
+    {
+      "patient_id": "4822977102",
+      "encounter_id": "c23e206b-123c-4c8f-9501-a10cf1dc0e38",
+      "concept_id": "363351006"
+    },
+    {
+      "patient_id": "4822977102",
+      "encounter_id": "744c2033-9963-414f-b5e9-7e6fc95aa00c",
+      "concept_id": "1286877004"
+    },
+    {
+      "patient_id": "4587069337",
+      "encounter_id": "1bbaa1cb-ca7a-4082-a5e7-b9b41b75220b",
+      "concept_id": "254837009"
+    },
+    {
+      "patient_id": "4587069337",
+      "encounter_id": "b8d74a17-fce4-41b1-a890-ca6692cb096c",
+      "concept_id": "94392001"
+    },
+    {
+      "patient_id": "4563313114",
+      "encounter_id": "d6483abf-eb86-44a4-bf8b-732a9e7b8412",
+      "concept_id": "402815007"
+    },
+    {
+      "patient_id": "4323807201",
+      "encounter_id": "cc447c17-2810-4def-82cc-381c7cb411b8",
+      "concept_id": "363406005"
+    },
+    {
+      "patient_id": "4323807201",
+      "encounter_id": "cc447c17-2810-4def-82cc-381c7cb411b8",
+      "concept_id": "128462008"
+    },
+    {
+      "patient_id": "4562218347",
+      "encounter_id": "0584423c-e167-414d-98ed-4318f0cb203d",
+      "concept_id": "363346000"
+    }
+  ]
+}

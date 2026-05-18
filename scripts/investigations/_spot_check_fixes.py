@@ -29,7 +29,7 @@ CHECKS = [
     ("urine ACR", "271075006", "albumin creatinine"),
     ("urine albumin creatinine ratio", "271075006", "albumin creatinine"),
     ("albuminuria", "274769005", "Albuminuria"),
-    ("NAFLD", "1231824009", "steatotic liver"),
+    ("NAFLD", "9990010007", "steatotic liver"),
     ("dementia", "52448006", "Dementia"),
     ("type 2 diabetes", "44054006", "Diabetes mellitus type 2"),
     ("bereavement", "74506000", "Bereavement"),

@@ -19,7 +19,7 @@ def test_audit_summary_guards_empty_temporal_strings(monkeypatch):
         def run(self, query, **kwargs):
             self.call += 1
             self.queries.append(query)
-            if self.call == 1:
+            if "trim(coalesce(toString(ep.referral_date), '')) = ''" in query:
                 assert "trim(coalesce(toString(ep.referral_date), '')) = ''" in query
                 assert (
                     "trim(coalesce(toString(ep.first_presentation_date), '')) = ''"
@@ -30,6 +30,7 @@ def test_audit_summary_guards_empty_temporal_strings(monkeypatch):
                     {
                         "ep_status": "completed",
                         "fp_date": "2025-01-01",
+                        "di_start_date": "2025-01-01",
                         "ref_date": "2025-01-05",
                         "sn": True,
                         "diag_date": "2025-01-20",
@@ -65,6 +66,47 @@ def test_audit_summary_guards_empty_temporal_strings(monkeypatch):
     assert result["confirmed_cancers_via_2ww"] == 1
     assert result["confirmed_cancers_via_2ww_pct"] == 100.0
     assert result["median_di_days"] == 19.0
+
+
+def test_audit_summary_excludes_screening_from_fast_track_rate(monkeypatch):
+    captured: list[str] = []
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            captured.append(query)
+            if "RETURN count(DISTINCT ep) AS n" in query:
+                if "AND NOT (toLower" in query and "CONTAINS 'screening'" in query:
+                    return [{"n": 29}]
+                if "CONTAINS 'screening'" in query:
+                    return [{"n": 6}]
+                if "milestone_type = 'referral'" in query:
+                    return [{"n": 35}]
+                if "diagnosis_confirmed" in query:
+                    return [{"n": 40}]
+                return [{"n": 50}]
+            return []
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(audit, "PatientGraphClient", _FakeClient)
+    scope = CallerScope(email="qa@example.com", is_admin=True)
+
+    result = audit.audit_summary(scope=scope)
+
+    assert result["confirmed_cancers"] == 40
+    assert result["confirmed_cancers_screening_programme"] == 6
+    assert result["confirmed_cancers_excluding_screening"] == 34
+    assert result["confirmed_cancers_via_2ww"] == 35
+    assert result["confirmed_cancers_via_2ww_excluding_screening"] == 29
+    assert result["confirmed_cancers_via_2ww_excluding_screening_pct"] == 85.3
+
+    exclusion_queries = [
+        q for q in captured if "AND NOT (toLower" in q and "CONTAINS 'screening'" in q
+    ]
+    assert len(exclusion_queries) == 1
+    assert "place_of_presentation" in exclusion_queries[0]
+    assert "place_of_presetnation" in exclusion_queries[0]
 
 
 def test_audit_summary_returns_mece_hero_bucket_counts(monkeypatch):
@@ -299,3 +341,227 @@ def test_audit_summary_queries_use_hero_bucket_case(monkeypatch):
     # Letter-inferred-benign guard must be wired into the CASE so a
     # benign letter never gets classified as confirmed cancer.
     assert "letter_inferred_benign" in bucket_query
+
+
+def test_audit_summary_safety_netting_uses_signal_hierarchy(monkeypatch):
+    """Section 8 (safety-netting) headline percentage MUST be computed
+    from the canonical confirmed-cancer cohort (denominator) and the
+    signal hierarchy stamped onto each EpisodeOfCare by
+    ``libs/oncology/safety_netting.detect_safety_netting`` (numerator).
+
+    Strict default: 'recorded' = strong + medium (free-text safety-net
+    OR Y281b code OR PRISM 'Advice if worsens' field).  The tooltip
+    surfaces the strong-only number too.
+
+    Pinned because the previous implementation divided
+    ``ep.safety_netting_recorded`` (referral-gated subset) by
+    ``total_episodes`` (full cohort including cohort 3), which mixed
+    denominators and rendered as 0% on dashboards even when the EMIS
+    template had been completed.
+    """
+
+    captured: list[str] = []
+
+    class _FakeClient:
+        def __init__(self):
+            self.call = 0
+
+        def run(self, query, **kwargs):
+            self.call += 1
+            captured.append(query)
+            # Safety-netting breakdown query — return a realistic mix.
+            if (
+                "ep.safety_netting_signal" in query
+                and "RETURN coalesce(ep.safety_netting_signal" in query
+            ):
+                return [
+                    {"signal": "strong", "n": 13},
+                    {"signal": "medium", "n": 7},
+                    {"signal": "advice_only", "n": 3},
+                    {"signal": "none", "n": 19},
+                ]
+            return [{"n": 0}]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(audit, "PatientGraphClient", _FakeClient)
+    scope = CallerScope(email="qa@example.com", is_admin=True)
+
+    result = audit.audit_summary(scope=scope)
+
+    # Hierarchy is preserved end-to-end so the tooltip can render it.
+    assert result["safety_netting_signal_counts"] == {
+        "strong": 13,
+        "medium": 7,
+        "advice_only": 3,
+        "none": 19,
+    }
+    assert result["safety_netting_denominator"] == 42
+
+    # Headline (strong + medium) — 20 of 42.
+    assert result["safety_netting_recorded_n"] == 20
+    assert result["safety_netting_pct"] == 47.6
+
+    # Strict (strong only) — 13 of 42.
+    assert result["safety_netting_strong_n"] == 13
+    assert result["safety_netting_strong_pct"] == 31.0
+
+    # The breakdown query MUST scope to confirmed cancers, not the
+    # full cohort, so the rate matches NCDA Section 8 semantics.
+    sn_queries = [
+        q for q in captured if "RETURN coalesce(ep.safety_netting_signal" in q
+    ]
+    assert len(sn_queries) == 1, captured
+    assert "letter_inferred_benign" in sn_queries[0], (
+        "safety-netting breakdown must use confirmed_cancer_where(), "
+        "which contains the letter_inferred_benign guard."
+    )
+    assert "diagnosis_confirmed" in sn_queries[0], (
+        "safety-netting breakdown must use confirmed_cancer_where(), "
+        "which requires a diagnosis milestone."
+    )
+
+
+def test_audit_summary_care_obstruction_uses_signal_hierarchy(monkeypatch):
+    """Care-obstruction headline rate MUST be computed from the canonical
+    confirmed-cancer cohort (denominator) and the signal hierarchy
+    stamped onto each EpisodeOfCare by
+    ``libs/oncology/care_obstruction.detect_care_obstructions``
+    (numerator).
+
+    Strict default: 'recorded' = any non-none signal (rejection + dna
+    + cancellation + access_barrier).  The 'severe' subset surfaces
+    rejection + dna only — the events that hard-stop the workup.
+    """
+
+    captured: list[str] = []
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            captured.append(query)
+            if (
+                "ep.care_obstruction_signal" in query
+                and "RETURN coalesce(ep.care_obstruction_signal" in query
+            ):
+                return [
+                    {"signal": "rejection", "n": 5},
+                    {"signal": "dna", "n": 8},
+                    {"signal": "cancellation", "n": 1},
+                    {"signal": "access_barrier", "n": 2},
+                    {"signal": "none", "n": 26},
+                ]
+            return [{"n": 0}]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(audit, "PatientGraphClient", _FakeClient)
+    scope = CallerScope(email="qa@example.com", is_admin=True)
+
+    result = audit.audit_summary(scope=scope)
+
+    # Hierarchy preserved end-to-end so the breakdown dialog can render it.
+    assert result["care_obstruction_signal_counts"] == {
+        "rejection": 5,
+        "dna": 8,
+        "cancellation": 1,
+        "access_barrier": 2,
+        "none": 26,
+    }
+    assert result["care_obstruction_denominator"] == 42
+
+    # Headline (any obstruction recorded) — 16 of 42.
+    assert result["care_obstruction_recorded_n"] == 16
+    assert result["care_obstruction_pct"] == 38.1
+
+    # Severe subset (rejection + dna) — 13 of 42.
+    assert result["care_obstruction_severe_n"] == 13
+    assert result["care_obstruction_severe_pct"] == 31.0
+
+    # The breakdown query MUST scope to confirmed cancers so the rate
+    # is comparable to safety-netting and the rest of NCDA Section 9.
+    co_queries = [
+        q for q in captured if "RETURN coalesce(ep.care_obstruction_signal" in q
+    ]
+    assert len(co_queries) == 1, captured
+    assert "letter_inferred_benign" in co_queries[0], (
+        "care-obstruction breakdown must use confirmed_cancer_where(), "
+        "which contains the letter_inferred_benign guard."
+    )
+
+
+def test_audit_summary_care_obstruction_handles_zero_confirmed(monkeypatch):
+    """When the cohort has no confirmed cancers, the care-obstruction
+    rates must be ``None`` (renders as em-dash on the tile) rather
+    than crashing on a zero-division.
+    """
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            if "RETURN coalesce(ep.care_obstruction_signal" in query:
+                return []
+            return [{"n": 0}]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(audit, "PatientGraphClient", _FakeClient)
+    scope = CallerScope(email="qa@example.com", is_admin=True)
+
+    result = audit.audit_summary(scope=scope)
+
+    assert result["care_obstruction_pct"] is None
+    assert result["care_obstruction_severe_pct"] is None
+    assert result["care_obstruction_recorded_n"] == 0
+    assert result["care_obstruction_severe_n"] == 0
+    assert result["care_obstruction_denominator"] == 0
+
+
+def test_audit_summary_does_not_include_prior_consultations_fields(monkeypatch):
+    """audit_summary no longer returns prior_consultations_* headline
+    fields -- those are now exposed via /audit/consultations envelope so
+    the snapshot tile reads three_or_more_pct from the consultations scope."""
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            return [{"n": 0}]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(audit, "PatientGraphClient", _FakeClient)
+    scope = CallerScope(email="qa@example.com", is_admin=True)
+
+    result = audit.audit_summary(scope=scope)
+
+    assert "prior_consultations_pct" not in result
+    assert "prior_consultations_n" not in result
+    assert "prior_consultations_denominator" not in result
+
+
+def test_audit_summary_safety_netting_handles_zero_confirmed(monkeypatch):
+    """When the cohort has no confirmed cancers, the safety-netting
+    rates must be ``None`` (renders as em-dash on the tile) rather
+    than crashing on a zero-division.
+    """
+
+    class _FakeClient:
+        def run(self, query, **kwargs):
+            if "RETURN coalesce(ep.safety_netting_signal" in query:
+                return []
+            return [{"n": 0}]
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(audit, "PatientGraphClient", _FakeClient)
+    scope = CallerScope(email="qa@example.com", is_admin=True)
+
+    result = audit.audit_summary(scope=scope)
+
+    assert result["safety_netting_pct"] is None
+    assert result["safety_netting_strong_pct"] is None
+    assert result["safety_netting_recorded_n"] == 0
+    assert result["safety_netting_strong_n"] == 0
+    assert result["safety_netting_denominator"] == 0

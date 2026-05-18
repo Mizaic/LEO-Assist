@@ -188,7 +188,7 @@ _EXPLICIT: dict[str, str] = {
     "bulimia nervosa": "78004001",
     "bulimia": "78004001",
     "binge eating disorder": "439960005",
-    "binge eating": "1162387003",  # Binge eating behavior
+    "binge eating": "9990010004",  # Binge eating behavior
     "avoidant restrictive food intake disorder": "700213005",
     "arfid": "700213005",
     "atypical anorexia": "231522009",
@@ -216,7 +216,7 @@ _EXPLICIT: dict[str, str] = {
     "personality problems": "33449004",
     # Alcohol / substance
     "alcohol dependence": "66590003",
-    "alcohol use disorder": "1336085007",
+    "alcohol use disorder": "9990010018",
     "alcohol abuse": "15167005",  # Harmful use of alcohol
     "alcohol misuse": "15167005",
     "alcoholism": "7200002",
@@ -224,7 +224,7 @@ _EXPLICIT: dict[str, str] = {
     "alcohol withdrawal": "191480000",
     "benzodiazepine dependence": "231473004",
     "cannabis dependence": "85005007",
-    "cannabis use disorder": "1336200007",
+    "cannabis use disorder": "9990010019",
     "drug dependence": "66590003",  # General dependence (closest)
     "drug use disorder": "66590003",
     "substance misuse": "66590003",
@@ -234,7 +234,7 @@ _EXPLICIT: dict[str, str] = {
     "opioid dependence": "39723002",  # Morphine dependence (closest for general opioid)
     "heroin dependence": "41553006",
     "cocaine dependence": "191927002",  # Cocaine use
-    "cocaine use": "1336231000",
+    "cocaine use": "9990010020",
     # Dementia / cognitive
     "alzheimers": "26929004",  # Alzheimer's disease
     "alzheimer's disease": "26929004",

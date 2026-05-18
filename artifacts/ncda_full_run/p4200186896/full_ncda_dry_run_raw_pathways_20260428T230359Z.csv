@@ -1,0 +1,1 @@
+patient_id,pathway_index,cohort,site,diagnosis_route,route_rationale,ftr_date,seen_date,dx_date,dx_outcome,treatment_date,gap_ftr_dx_days,gap_ftr_seen_days,gap_dx_treatment_days,confidence,notes,n_encounters,n_labelled_non_none

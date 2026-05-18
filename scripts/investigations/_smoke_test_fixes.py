@@ -25,7 +25,7 @@ TESTS = [
     # NG12 guideline coding (surface forms + no duplicate MAPS_TO)
     ("new-onset diabetes", "405749004"),
     ("newly diagnosed diabetes mellitus", "405749004"),
-    ("chest x ray findings suggestive of mesothelioma", "1290960005"),
+    ("chest x ray findings suggestive of mesothelioma", "9990010014"),
     ("chest signs compatible with pleural disease", "272016000"),
 ]
 

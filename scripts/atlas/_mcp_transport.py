@@ -132,8 +132,12 @@ def initialize() -> str | None:
 
 
 def call_tool(name: str, arguments: dict, retries: int = 3) -> dict:
-    """Call an Atlas MCP tool. Retries on network errors. Raises on tool errors."""
-    global _REQ_ID
+    """Call an Atlas MCP tool. Retries on network errors. Raises on tool errors.
+
+    Auto-reinitialises the MCP session on "Session not found" errors so
+    long-running scripts survive server-side session expiry.
+    """
+    global _REQ_ID, _SESSION_ID
     last_err: Exception | None = None
     for attempt in range(retries):
         _REQ_ID += 1
@@ -147,6 +151,17 @@ def call_tool(name: str, arguments: dict, retries: int = 3) -> dict:
             resp = _post(payload, timeout=120)
         except (McpError, urllib.error.URLError, TimeoutError) as e:
             last_err = e
+            msg = str(e)
+            if ("Session not found" in msg or "session not found" in msg
+                    or "HTTP 404" in msg):
+                _SESSION_ID = None
+                _COOKIES.clear()
+                if "mcp-session-id" in _MCP_HEADERS:
+                    _MCP_HEADERS.pop("mcp-session-id", None)
+                try:
+                    initialize()
+                except Exception:
+                    pass
             time.sleep(2 * (attempt + 1))
             continue
         if "error" in resp:

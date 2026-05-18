@@ -66,6 +66,7 @@ const MOCK_EPISODE: MissionEpisode = {
   referral_date: "2024-06-01",
   end_date: "2024-07-20",
   diagnostic_interval_days: 49,
+  benign_interval_days: null,
   primary_care_interval_days: 14,
   inferred_outcome: null,
   auto_close_reason: null,
@@ -114,7 +115,7 @@ describe("EncounterTextTab milestone jump", () => {
     });
   });
 
-  test("scope chips and accordions are removed; Coded only + Search remain", async () => {
+  test("scope chips and accordions are removed; filter chips + Search remain", async () => {
     render(<EncounterTextTab patientId="patient-1" episode={MOCK_EPISODE} />);
 
     await waitFor(() => {
@@ -128,13 +129,44 @@ describe("EncounterTextTab milestone jump", () => {
     expect(screen.queryByText(/All other patient encounters/)).not.toBeInTheDocument();
 
     expect(screen.getByText("Coded only")).toBeInTheDocument();
+    expect(screen.getByText("Linked only")).toBeInTheDocument();
     expect(screen.getByLabelText("Search text in shown encounters")).toBeInTheDocument();
   });
 
-  test("episode-linked encounters render an In episode chip", async () => {
+  test("Linked only chip limits the list to episode-linked encounters", async () => {
+    (fetchPatientEncounters as jest.Mock).mockResolvedValue([
+      { encounter_id: "enc-1", date: "2024-06-01", text: "linked referral", coded_count: 1 },
+      { encounter_id: "enc-2", date: "2024-06-02", text: "unlinked admin", coded_count: 1 },
+    ]);
+    const episode: MissionEpisode = {
+      ...MOCK_EPISODE,
+      linked_encounter_ids: ["enc-1"],
+      milestones: [],
+      referral_date: "2024-06-01",
+      end_date: "2024-06-01",
+    };
+
+    render(<EncounterTextTab patientId="patient-1" episode={episode} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("linked referral")).toBeInTheDocument();
+      expect(screen.getByText("unlinked admin")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Linked only"));
+
+    await waitFor(() => {
+      expect(screen.getByText("linked referral")).toBeInTheDocument();
+      expect(screen.queryByText("unlinked admin")).not.toBeInTheDocument();
+    });
+  });
+
+  test("episode-linked encounters render an episode chip with the pathway label (DI-5159A336)", async () => {
     render(<EncounterTextTab patientId="patient-1" episode={MOCK_EPISODE} />);
     await waitFor(() => {
-      expect(screen.getAllByTestId("encounter-in-episode-chip").length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByTestId("encounter-card-episode-chips").length
+      ).toBeGreaterThan(0);
     });
   });
 

@@ -20,6 +20,15 @@ Layer order
                              recommendation / hedged-diagnosis text
 3b. Lab Triple Recovery   -- add missing procedure / observable / finding
                              spans on lab-shaped lines the model missed
+3c. Request Reason Recovery -- add clinically meaningful findings embedded in
+                             lab request reason text.
+we h3c2. Breast Screening Outcome Recovery -- NHS breast programme + abnormal
+                             (68621) as a finding (SNOMED 171176006).
+3d. Cross-Line Lab Finding Merge -- DI-D3391745 / DO-1DB93C8E. Extend an
+                             observable_entity span forward across at most
+                             one blank line when the next non-blank line
+                             starts with a recognised result-interpretation
+                             phrase ("Outside reference range", "High", ...).
 4. Observable Norm.       -- clean observable spans, attach value/unit/ref
 5. Entity-Type Norm.      -- deterministic label corrections
 6. Value-Unit Linking     -- attach numeric values to nearby observables
@@ -44,6 +53,10 @@ from libs.ner.lab_triple_recovery import recover_lab_triples
 from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import PostProcessorRule, apply_rules_to_entities
+from libs.ner.breast_screening_outcome_recovery import (
+    recover_breast_screening_outcome_finding,
+)
+from libs.ner.request_reason_recovery import recover_request_reason_entities
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
 logger = logging.getLogger(__name__)
@@ -391,6 +404,151 @@ def _has_nearby_observable(
         if dist <= max_dist:
             return True
     return False
+
+
+# -- Layer 3c: Cross-Line Lab Finding Merge --
+# DI-D3391745, DO-1DB93C8E, VT-835D4BBC.
+# EHR exports often place a lab observable's value/units on one line and the
+# trailing result-interpretation phrase ("Outside reference range", "High",
+# "Within normal limits", ...) on the next physical line, sometimes after a
+# blank line. The sentence splitter's blank-line break leaves the
+# interpretation phrase orphaned in a separate sentence, which prevents Layer
+# 4 (observable normalisation) from emitting the matching `finding` sub-entity
+# and prevents the SNOMED resolver from picking the compound concept (e.g.
+# 166160000 "Prostate specific antigen outside reference range").
+#
+# This layer extends the observable_entity span forward across at most one
+# blank line when the next non-blank line starts with a recognised result
+# descriptor. Bounded, deterministic, idempotent.
+
+# Maximum number of characters of trailing whitespace + blank line + leading
+# whitespace allowed between the observable end and the candidate descriptor.
+_CROSS_LINE_GAP_CHARS = 80
+# Maximum forward extension applied to an observable span in a single pass.
+_CROSS_LINE_MAX_EXTENSION = 120
+# Maximum number of newlines tolerated in the gap (i.e. allow one blank line
+# = two newlines, but not two blank lines).
+_CROSS_LINE_MAX_NEWLINES = 2
+_CROSS_LINE_GAP_RE = re.compile(r"^[ \t]*(?:\r?\n[ \t]*){1,2}$")
+_CROSS_LINE_OBS_VALUE_RE = re.compile(
+    r"\d+(?:\.\d+)?\s*[A-Za-z%/^0-9]*|\[[^\]]*\]",
+)
+# Sort descriptors by length descending so the longest match wins (e.g.
+# "outside reference range" before "outside").
+_CROSS_LINE_DESCRIPTORS: tuple[str, ...] = tuple(
+    sorted(_RESULT_DESCRIPTOR_TEXTS, key=len, reverse=True)
+)
+
+
+def _observable_carries_value(text: str) -> bool:
+    """Return True when an observable's surface text already includes a
+    numeric value or a [reference range] token."""
+    if not text:
+        return False
+    return _CROSS_LINE_OBS_VALUE_RE.search(text) is not None
+
+
+def _next_line_descriptor(
+    encounter_text: str, search_start: int
+) -> tuple[int, int, str] | None:
+    """Find the first recognised result descriptor that starts the next
+    non-blank line after *search_start*.
+
+    Returns (descriptor_start, descriptor_end, descriptor_text) using
+    encounter-absolute offsets, or None if no acceptable descriptor follows.
+    """
+    if search_start >= len(encounter_text):
+        return None
+    window = encounter_text[search_start : search_start + 200]
+    # Find the first non-whitespace character; everything between
+    # search_start and that index is the gap.
+    line_start_offset = 0
+    for ch in window:
+        if not ch.isspace():
+            break
+        line_start_offset += 1
+    if line_start_offset == 0:
+        # No leading whitespace -- the descriptor would have to start
+        # immediately at search_start, which means there was no line break
+        # at all. We require at least one newline in the gap to count this
+        # as a cross-line merge (intra-line continuations are handled by
+        # observable normalisation already).
+        return None
+    gap = window[:line_start_offset]
+    if _CROSS_LINE_GAP_RE.fullmatch(gap) is None:
+        return None
+    if gap.count("\n") > _CROSS_LINE_MAX_NEWLINES:
+        return None
+    if line_start_offset > _CROSS_LINE_GAP_CHARS:
+        return None
+    # Read the rest of the next line (until newline or end of window).
+    rest = window[line_start_offset:]
+    line_end = rest.find("\n")
+    line_text = rest if line_end < 0 else rest[:line_end]
+    lowered = line_text.strip().lower()
+    if not lowered:
+        return None
+    matched: str | None = None
+    for descriptor in _CROSS_LINE_DESCRIPTORS:
+        if lowered.startswith(descriptor):
+            matched = descriptor
+            break
+    if matched is None:
+        return None
+    descriptor_start = search_start + line_start_offset
+    # Match descriptor case-insensitively against the actual surface text so
+    # that the extended span uses the original casing.
+    descriptor_end = descriptor_start + len(matched)
+    if descriptor_end - search_start > _CROSS_LINE_MAX_EXTENSION:
+        return None
+    return (
+        descriptor_start,
+        descriptor_end,
+        encounter_text[descriptor_start:descriptor_end],
+    )
+
+
+def merge_cross_line_lab_findings(
+    encounter_text: str,
+    entities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Extend an observable_entity span forward across at most one blank line
+    when the next non-blank line begins with a recognised result-interpretation
+    phrase.
+
+    Deterministic and idempotent: marks merged entities with
+    ``__cross_line_merged__`` so a second invocation is a no-op for spans
+    that have already been extended this run.
+    """
+
+    if not encounter_text or not entities:
+        return entities
+
+    for ent in entities:
+        if str(ent.get("label", "")) != "observable_entity":
+            continue
+        if ent.get("__cross_line_merged__"):
+            continue
+        text = str(ent.get("text", ""))
+        if not _observable_carries_value(text):
+            continue
+        try:
+            ent_start = int(ent.get("start", 0) or 0)
+            ent_end = int(ent.get("end", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if ent_end <= ent_start or ent_end > len(encounter_text):
+            continue
+        descriptor = _next_line_descriptor(encounter_text, ent_end)
+        if descriptor is None:
+            continue
+        _desc_start, desc_end, _desc_text = descriptor
+        ent["start"] = ent_start
+        ent["end"] = desc_end
+        ent["text"] = encounter_text[ent_start:desc_end]
+        ent["__cross_line_merged__"] = True
+
+    return entities
 
 
 # ── Layer 5: Entity-Type Normalisation ──
@@ -1118,6 +1276,37 @@ def run_post_processing_with_trace(
         "layer_3b",
         "Lab Triple Recovery",
         lambda current: recover_lab_triples(encounter_text, current),
+    )
+
+    # Layer 3c: Request Reason Recovery
+    # Some lab request records carry clinically meaningful reasons after
+    # "Reasons for Request:" which are not part of the lab result itself.
+    _run_layer(
+        "layer_3c",
+        "Request Reason Recovery",
+        lambda current: recover_request_reason_entities(encounter_text, current),
+    )
+
+    # Layer 3c2: Breast screening programme abnormal (Read 68621 / SNOMED 171176006)
+    _run_layer(
+        "layer_3c2",
+        "Breast Screening Outcome Recovery",
+        lambda current: recover_breast_screening_outcome_finding(
+            encounter_text, current
+        ),
+    )
+
+    # Layer 3d: Cross-Line Lab Finding Merge (DI-D3391745, DO-1DB93C8E,
+    # VT-835D4BBC). Extend an observable_entity span forward across at
+    # most one blank line when the next non-blank line begins with a
+    # recognised result-interpretation phrase. This lets Layer 4 emit the
+    # matching `finding` sub-entity from one merged span instead of leaving
+    # the interpretation phrase orphaned in a separate sentence (e.g. PSA
+    # value line followed by a blank line and "Outside reference range").
+    _run_layer(
+        "layer_3d",
+        "Cross-Line Lab Finding Merge",
+        lambda current: merge_cross_line_lab_findings(encounter_text, current),
     )
 
     # Layer 4: Observable Normalisation

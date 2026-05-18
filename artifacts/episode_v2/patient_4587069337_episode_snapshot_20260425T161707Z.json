@@ -1,0 +1,986 @@
+{
+  "patient_id": "4587069337",
+  "row_count": 17,
+  "rows": [
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "99c4180a-476c-475a-9a94-b4713f89e872",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-05-24",
+        "flags": "This event was back-dated and entered on: 21 Jun 2024 11:34",
+        "id": "99c4180a-476c-475a-9a94-b4713f89e872",
+        "processed_at": "2026-01-16T00:20:46.180583",
+        "text": "Surgery: HOLLAND, Nicola (Admin/Clinical Support Access Role) \nMammogram (537..) (New Episode)\nBreast neoplasm screening (XE1TY) (New Episode)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: HOLLAND, Nicola (Admin/Clinical Support Access Role) Mammogram (537..) (New Episode) Breast neoplasm screening (XE1TY) (New Episode)",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "specialist_diagnostics",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "b2fc4799-4e1f-4924-bb81-142eebabf20f",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-05-24",
+        "flags": "Letter\nThis event was back-dated and entered on: 31 May 2024 09:25",
+        "id": "b2fc4799-4e1f-4924-bb81-142eebabf20f",
+        "processed_at": "2026-01-16T00:20:46.139591",
+        "text": "Surgery: BAILEY, Christopher (Receptionist Access Role) \nBreast Clinic to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BAILEY, Christopher (Receptionist Access Role) Breast Clinic to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "related_correspondence",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Malignant neoplasm of breast (disorder)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Disease"
+          ],
+          "name": "Malignant neoplasm of breast (disorder)"
+        }
+      ],
+      "encounter_id": "1bbaa1cb-ca7a-4082-a5e7-b9b41b75220b",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-05-31",
+        "flags": "Administration Event\nThis event was back-dated and entered on: 12 Feb 2025 13:57",
+        "id": "1bbaa1cb-ca7a-4082-a5e7-b9b41b75220b",
+        "processed_at": "2026-01-16T00:20:46.429287",
+        "text": "Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) \nMajor: Malignant tumour of breast (X78WM) (New Episode)\nMalignant tumour of breast (X78WM)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "surgery: bridges, kirstie (dr) (clinical practitioner access role)  major: malignant tumour of breast (x78wm) (new episode) malignant tumour of breast (x78wm)",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "diagnosis_confirmed",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "8f64792e-1362-4eac-b9c0-0be4167f1d66",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-05-31",
+        "flags": "Letter\nThis event was back-dated and entered on: 10 Jun 2024 14:41\nThis consultation was hidden from the Online Patient Record when created.",
+        "id": "8f64792e-1362-4eac-b9c0-0be4167f1d66",
+        "processed_at": "2026-01-16T00:20:46.429287",
+        "text": "Surgery: BAILEY, Christopher (Receptionist Access Role) \nBreast Clinic to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BAILEY, Christopher (Receptionist Access Role) Breast Clinic to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "related_correspondence",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "a27c6280-ce93-4584-b148-2ea24e229d54",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-05-31",
+        "flags": "Letter\nThis event was back-dated and entered on: 13 Jun 2024 09:58",
+        "id": "a27c6280-ce93-4584-b148-2ea24e229d54",
+        "processed_at": "2026-01-16T00:20:46.373802",
+        "text": "Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nBreast Clinic to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) Breast Clinic to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "related_correspondence",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "1cbb7789-8fe2-4f76-8721-4ca15d398a05",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-06-13",
+        "flags": "Letter\nThis event was back-dated and entered on: 24 Jun 2024 15:46",
+        "id": "1cbb7789-8fe2-4f76-8721-4ca15d398a05",
+        "processed_at": "2026-01-16T00:20:46.748167",
+        "text": "Surgery: BAILEY, Christopher (Receptionist Access Role) \nBreast Surgeon to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BAILEY, Christopher (Receptionist Access Role) Breast Surgeon to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "fad5daff-73a6-4e67-b28c-a45771ef5ca6",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-07-01",
+        "flags": "Letter\nThis event was back-dated and entered on: 16 Jul 2024 11:20",
+        "id": "fad5daff-73a6-4e67-b28c-a45771ef5ca6",
+        "processed_at": "2026-01-16T00:20:46.966110",
+        "text": "Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) \nBreast to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: MILNER, Jordan (Miss) (Receptionist Access Role) Breast to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "cc7c99b5-0bf5-4628-abc9-102b7a8906d2",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-07-04",
+        "flags": "This event was back-dated and entered on: 18 Jul 2024 10:36",
+        "id": "cc7c99b5-0bf5-4628-abc9-102b7a8906d2",
+        "processed_at": "2026-01-16T00:20:47.068896",
+        "text": "Surgery: MCLEAN, Aimee (Admin/Clinical Support Access Role) \nWide local excision of breast lesion (X40EC) (New Episode)\nBlock dissection of axillary lymph nodes (7H601) (New Episode)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "surgery: mclean, aimee (admin/clinical support access role)  wide local excision of breast lesion (x40ec) (new episode) block dissection of axillary lymph nodes (7h601) (new episode)",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "treatment_started",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "736ac5b6-e069-43d7-bfe1-aa43bb31368a",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-08-12",
+        "flags": "Letter\nThis event was back-dated and entered on: 16 Aug 2024 13:39",
+        "id": "736ac5b6-e069-43d7-bfe1-aa43bb31368a",
+        "processed_at": "2026-01-16T00:20:48.140598",
+        "text": "Surgery: BAILEY, Christopher (Receptionist Access Role) \nBreast Surgeon to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BAILEY, Christopher (Receptionist Access Role) Breast Surgeon to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "98c347a3-754f-4117-aad8-e40a966e3bd5",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-08-12",
+        "flags": "Letter\nThis event was back-dated and entered on: 19 Aug 2024 10:34",
+        "id": "98c347a3-754f-4117-aad8-e40a966e3bd5",
+        "processed_at": "2026-01-16T00:20:48.140598",
+        "text": "Surgery: BAILEY, Christopher (Receptionist Access Role) \nBreast Surgeon to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BAILEY, Christopher (Receptionist Access Role) Breast Surgeon to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "1b4906a2-9eaf-47f0-8969-02b2ea614930",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-09-20",
+        "flags": "Face to face\nLinked to Appointment",
+        "id": "1b4906a2-9eaf-47f0-8969-02b2ea614930",
+        "processed_at": "2026-01-16T00:20:50.224585",
+        "text": "09:57 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \nProblem - whole event: Type II diabetes mellitus (X40J5)\nProblem - whole event: Essential hypertension (XE0Uc)\nProblem - whole event: Metastasis to lymph node (Xa980) - Ipsilateral axillary\n154 / 93\n- PRISM Gallstones 2 -  questionnaire started - (finalised: 20 Sep 2024 09:57)\nReferral to medical service (XaAcN) - (Added from Questionnaire)\n(R) Atorvastatin 40mg tablets - 28 tablet - take one tablet daily at night\n(R) Ezetimibe 10mg tablets - 28 tablet - take one tablet daily\n(R) Ramipril 5mg capsules - 28 capsule - take one daily\n Consultation.\n   General\n      Encounter: Consultation (Xa1qL)\n      H:  booked in for routine rv, unclear exactly, no task trail.\nwaiting for chemo, hoping to start 3 cycles for breast ca soon, had echo yday, on ice, overall looks okay. \nhad breast lumpectomy and node clearance on left side. \ndoing okay. \n\nrecent CVD risk profiling discussions, hasnt done the home readings as homesituation up and down with surgery and chemo.\nLDL 4.2\n      BP: 154 / 93\n      P:  increase ramipril to 5mg.\nincrease atorvastatin to 40mg.\nadd in ezetimibe 10mg. \nwill have more rpt bloods upcoming soon for pre-chemo.\n      Advice if worsens, no better or concerns: Yes\nAtorvastatin 40mg tablets - 28 tablet - take one tablet daily at night\n Ended 28 Oct 2025 Re-Authorised by AKHTAR, Mohammed (Mr)\nEzetimibe 10mg tablets - 28 tablet - take one tablet daily\n Ended 28 Oct 2025 Re-Authorised by AKHTAR, Mohammed (Mr)\nRamipril 5mg capsules - 28 capsule - take one daily\n Ended 28 Oct 2025 Re-Authorised by AKHTAR, Mohammed (Mr)\nETP2 FP10: Not Yet Printed - Signed\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nConsultation (Xa1qL)\nClinical history and observations (X76sV)\nbooked in for routine rv, unclear exactly, no task trail.\nwaiting for chemo, hoping to start 3 cycles for breast ca soon, had echo yday, on ice, overall looks okay. \nhad breast lumpectomy and node clearance on left side. \ndoing okay. \n\nrecent CVD risk profiling discussions, hasnt done the home readings as homesituation up and down with surgery and chemo.\nLDL 4.2\nPlan (XaIVg)\nincrease ramipril to 5mg.\nincrease atorvastatin to 40mg.\nadd in ezetimibe 10mg. \nwill have more rpt bloods upcoming soon for pre-chemo.\nPatient given advice (8CA..)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "09:57 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) Problem - whole event: Type II diabetes mellitus (X40J5) Problem - whole event: Essential hypertension (XE0Uc) Problem - whole event: Metastasis to lymph node (Xa980) ",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "first_presentation",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "17d82c3f-8530-4338-bfb7-edf19959f8db",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-10-17",
+        "flags": "Telephone\nLinked to Appointment",
+        "id": "17d82c3f-8530-4338-bfb7-edf19959f8db",
+        "processed_at": "2026-01-16T00:20:51.417751",
+        "text": "09:13 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nProblem: [M]Ductal, lobular and medullary neoplasms (BB9..)\nHistory: on call  \nunder Dr Kancherla - chemo started end of Sept 24 - Ca Left breast  \n\"going thru chemo - had cold for nearly 2.5 weeks, cold sore in nose also, unable to shift it, developed dry cough\"  \nlast saw oncol  2/52 - not unwell at this point\nhas app upcoming on tues\nno fever  \nno chest pain  \nfeeling a little SOB, but feels at baseline, normal ETT  \nclear phlegm on coughing, no haemoptysis  \nhusband has been unwell with same  \nno flu  / covid jabs yet \nneg covid swabs \nunable to recall the oncol advice in the event she became poorly  \nPlan: happy to see and check bloods - low threshold oncol review\nPathology Request (Complete):\nBone Profile (Requested), C reactive protein (Requested), Full Blood Count (Requested), Liver Function Test (Requested), Urea & electrolytes (Requested)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "09:13 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) Problem: [M]Ductal, lobular and medullary neoplasms (BB9..) History: on call under Dr Kancherla - chemo started end of Sept 24 - Ca Left breast \"going thru chemo - ",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "related_correspondence",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "6ef3d9b9-ec5d-4c02-bc06-69d2a4b9e0c7",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2024-12-27",
+        "flags": "Face to face\nLinked to Appointment",
+        "id": "6ef3d9b9-ec5d-4c02-bc06-69d2a4b9e0c7",
+        "processed_at": "2026-01-16T00:20:56.814349",
+        "text": "10:35 - GP Surgery: RATHBONE, Suzanne (Mrs) (Nurse Access Role) \nProblem: Sore throat (Xa9zW)\nHistory: Sore throat and runny nose since yesterday.\nAble to swallow.\nE&D as normal.\nNo fever or chills.\nNo nausea or vomiting.\nNo rashes.\nNot SOB.\nOncology patient under going chemotherapy for breast cancer.\n24/11/24 Admitted with pneumonia.\n27/12/24 spoke to oncology team and has been advised to see GP to be checked and to have blood taken. They have decided to delay chemotherapy until well.\nExamination: Appears well. Alert. Not SOB. Skin a good colour.\nOral mucosa moist. Tongue looks inflammed at tip. Has had some mouth ulcers. Throat slightly inflammed only.\nO/E - temperature (XaBzA) 36.8 degC\nO/E - blood pressure reading (246..)113/57\nBlood oxygen saturation (X7708) 98 %\nO/E - rate of respiration (235..) 15 Resp/min\nO/E - pulse rate (242..)84\nDiagnosis: likely to be viral.\nPlan: rest/ increase fluids/ regular paracetamol.\nReview/ 111 if symptoms worsen/ becomes more unwell.\nBlood taken. Had hospital form FBC, LFT, CRP and U&E.\nSore throat (Xa9zW)\n Phlebotomy Service\n   0214 006 Phlebotomy Service\n      Informed consent given for treatment   (XaXHK): Yes\n      Blood test type: Urgent (X78uK)\n      ^Referral source (CBS claim): Phlebotomy generated from secondary care done by practice (XaK2I)\n      ^Blood sample taken (CBS claim): Yes\n      ^Seen by practice phlebotomist: Yes\nPathology Request (Request Sent):\nC reactive protein (Requested), Full Blood Count (Requested)\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nSore throat (Xa9zW)\nInformed consent given for treatment (XaXHK)\nUrgent (X78uK)\nPhlebotomy generated from secondary care done by practice (XaK2I)\nBlood sample taken (XaEJK)\nSeen by practice phlebotomist (9N2S.)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "10:35 - gp surgery: rathbone, suzanne (mrs) (nurse access role)  problem: sore throat (xa9zw) history: sore throat and runny nose since yesterday. able to swallow. e&d as normal. no fever or chills. no nausea or vomiting. no rashes. not sob",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "treatment_started",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "43cc87be-53b8-4644-b333-6125dd12e364",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-04-08",
+        "flags": "This event was back-dated and entered on: 16 May 2025 10:32",
+        "id": "43cc87be-53b8-4644-b333-6125dd12e364",
+        "processed_at": "2026-01-16T00:20:58.279767",
+        "text": "Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) \nMajor: Block dissection of axillary lymph nodes (7H601) (Ongoing Episode)\nMajor: Wide local excision of breast lesion (X40EC) (Ongoing Episode)\nWide local excision of breast lesion (X40EC)\nBlock dissection of axillary lymph nodes (7H601)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "surgery: rai, enju (miss) (admin/clinical support access role)  major: block dissection of axillary lymph nodes (7h601) (ongoing episode) major: wide local excision of breast lesion (x40ec) (ongoing episode) wide local excision of breast le",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "treatment_started",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "07753ed8-125a-409c-ab1f-b4bb96bb1513",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-05-20",
+        "flags": "This event was back-dated and entered on: 08 Jul 2025 11:53",
+        "id": "07753ed8-125a-409c-ab1f-b4bb96bb1513",
+        "processed_at": "2026-01-16T00:20:58.629335",
+        "text": "Surgery: O'NEILL, Anna-Louise (Admin/Clinical Support Access Role) \nMammogram (537..) - b/l (New Episode)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: O'NEILL, Anna-Louise (Admin/Clinical Support Access Role) Mammogram (537..) - b/l (New Episode)",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "specialist_diagnostics",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "68f36b58-27b9-4558-b416-b63f0cb215c8",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-05-20",
+        "flags": "Letter\nThis event was back-dated and entered on: 23 May 2025 09:49",
+        "id": "68f36b58-27b9-4558-b416-b63f0cb215c8",
+        "processed_at": "2026-01-16T00:20:58.586046",
+        "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nBreast to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) Breast to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "50584a65-4f83-4ff9-9630-74e4cb6c4f2e",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-08-21",
+        "flags": "Face to face\nEvent was entered at: LOROS Hospice (LOROS Hospice Trust)\nReferral: 04 Jul 2025 to LYMPHOEDEMA, Loros @ LOROS Hospice for Palliative medicine - Palliative medicine (Caseload: Lymphoedema - Cancer patients)  (Accepted) \nLinked to Appointment\nTeam: Lymphoedema\nOnline visibility of this data is controlled by the unit where it was recorded.",
+        "id": "50584a65-4f83-4ff9-9630-74e4cb6c4f2e",
+        "processed_at": "2026-01-16T00:21:03.920032",
+        "text": "12:57 - Lymphoedema Clinic: HANWELL, Victoria (Nurse Access Role) Entered at: LOROS Hospice\n Lymphoedema Outcomes\n   Outcome of Assessment\n      Outcome of assessment:  Diagnosis/problem  Lymphoedema to left arm and hand following treatment for Breast cancer.\n\nThankyou for referring Mrs Wallis, she was seen for assessment at the Lymphoedema Clinic at LOROS on 21/8/25.\n\nI discussed the causes and management of lymphoedema, the importance of a good skin care regime and the  prevention of infection(cellulitis)\nPlease can you prescribe Epimax cream n a 500 gram pump dispenser for Jane to use as an emollient.\n\nI discussed compression therapy and its role in helping to manage lymphoedema. It aims to  control and reduce the swelling, caused by a build up of lymph fluid.  I have also gone through in clinic a set of specific exercises for her  to  perform.\n\nJane has consented to sign up to PatientChoice a prescription request and  delivery service, who will contact the practise and request a hosiery prescription.\n\nOnce the garments have been delivered to Janes home address, she knows to contact the clinic to book a fitting of hosiery appointment.\n\nMrs Wallis will be reviewed in clinic in six months time, but knows that she can contact us in the meantime if needed.\n\nWe no longer send follow up appointments automatically.....\n\nIf I can be  of any further assistance......\n\n Lymphoedema Assessment 2015\n   Demo\n      Sexual Orientation: Heterosexual (X766q)\n      Disability limitations (Patient's opinion): Not limited by disability NOS (Y166a)\n   DX\n      Previous/Current medical history:  watery eyes ? due to chemotherapy\n      Summary of Diagnosis:  Lymphoedema to left upper limb and dorsum of hand, following treatment for Breast cancer\n      Lymphoedema Diagnosis: Lymphoedema due to malignant disease (XaR6u)\n   Assessment\n      Physical problems/concerns:  Lymphoedema face to face initial assessment, referred by her GP with a history of swelling to her left upper  limb and  hand. I introduced myself, also  in clinic was Michelle HCA.  Likes to be called Jane, has had wide local excision and axillary node clearance in July 2024. Followed by chemo/ radiotherapy which finished in November 2024, Jane voiced that currrently she is cancer free.. She first noticed signs of swelling in her arm about eight weeks ago, she doesnt recall any  triggers. She was seen by her GP who referred her to the clinic.\nJane consented for me  to examine her  on the clnic couch, she is right handed,her stemmer sign is -ve, she has good capillary refill. No evidence of pitting oedema noticed, colour and temperature and sensation appear normal. Skin is intact and well moisturised, no evidence of infection. Subcutaneous tissues are soft and supple,signs of lymphoedema along the  length  of  the arm and the dorsum of the hand\nLimb volume measurements were taken and show  an excess of 19% or excess ,;s pf 484mls in the  afffected limb.\nI discussed the rationale for compression therapy which Jane is happy to try. From clinic I tried a mediven class1 armsleeve but it was too long, and because she is getting some swelling in the dorsum of her hand, I will also request a glove.. Jane has consented for me to sign her  up to PatientChoice\nI have explained that garments should be worn daily and removed at night and moisturised. I have also  gone through contraindications/side effects of compression garments..\nI have asked her to telephone clinic when the garments arrive and make a fitting of hosiery appointment\nPlan\nI will write to her GP \nSign Jane up  to PatientChoice and request garments\nJane will book a FOH appointment when she receives the garments\nTo return as follow up in six months\n      Location of swellling:: \n          Swelling of arm (Xa7jx)\n          Swelling of hand (Xa76B)\n   Checklist/Goal\n      Information needs and information given:  I discussed the causes and management of lymphoedema. the importance of a good skin care regime and the  prevention of infection(cellulitis)\nWent through in clinic speciifc exercises to  perform ideallly whilst wearing compression garments.\n\n      Hosiery:  Mediven Harmony armsleeve class 1 short sizeIV colour sand\nMediven harmony glove class 1 size IV colour sand (via PatientChoice)\n      Consent given to share patient data with specified 3rd party: Yes Jany has agreed to sign up to PatientChoice, and  given her their leaflet.\nRecall: Lymphoedema 6m (21 Feb 2026) F2F F/U to maintain contact\nSystmOne Outgoing Record Sharing consent changed to: Yes\nSystmOne Incoming Record Sharing consent changed to: Yes\nHeterosexual (X766q)\nNot limited by disability NOS (Y166a)\nDiagnosis (Xa4HD) - Lymphoedema to left upper limb and dorsum of hand, following treatment for Breast cancer\nPrevious/Current medical history (Y3535) - watery eyes ? due to chemotherapy\nLymphoedema due to malignant disease (XaR6u)\nPhysical health assessment (XaXiC)\nLymphoedema face to face initial assessment, referred by her GP with a history of swelling to her left upper  limb and  hand. I introduced myself, also  in clinic was Michelle HCA.  Likes to be called Jane, has had wide local excision and axillary node clearance in July 2024. Followed by chemo/ radiotherapy which finished in November 2024, Jane voiced that currrently she is cancer free.. She first noticed signs of swelling in her arm about eight weeks ago, she doesnt recall any  triggers. She was seen by her GP who referred her to the clinic.\nJane consented for me  to examine her  on the clnic couch, she is right handed,her stemmer sign is -ve, she has good capillary refill. No evidence of pitting oedema noticed, colour and temperature and sensation appear normal. Skin is intact and well moisturised, no evidence of infection. Subcutaneous tissues are soft and supple,signs of lymphoedema along the  length  of  the arm and the dorsum of the hand\nLimb volume measurements were taken and show  an excess of 19% or excess ,;s pf 484mls in the  afffected limb.\nI discussed the rationale for compression therapy which Jane is happy to try. From clinic I tried a mediven class1 armsleeve but it was too long, and because she is getting some swelling in the dorsum of her hand, I will also request a glove.. Jane has consented for me to sign her  up to PatientChoice\nI have explained that garments should be worn daily and removed at night and moisturised. I have also  gone through contraindications/side effects of compression garments..\nI have asked her to telephone clinic when the garments arrive and make a fitting of hosiery appointment\nPlan\nI will write to her GP \nSign Jane up  to PatientChoice and request garments\nJane will book a FOH appointment when she receives the garments\nTo return as follow up in six months\nPatient Insight Of Illness (Y0454)\nI discussed the causes and management of lymphoedema. the importance of a good skin care regime and the  prevention of infection(cellulitis)\nWent through in clinic speciifc exercises to  perform ideallly whilst wearing compression garments.\n\nHosiery (Ub0ji)\nMediven Harmony armsleeve class 1 short sizeIV colour sand\nMediven harmony glove class 1 size IV colour sand (via PatientChoice)\nConsent given to share patient data with specified 3rd party (XaNwR) - Jany has agreed to sign up to PatientChoice, and  given her their leaflet.\nSwelling of arm (Xa7jx)\nSwelling of hand (Xa76B)\nOutcome of assessment (YA821)\nDiagnosis/problem  Lymphoedema to left arm and hand following treatment for Breast cancer.\n\nThankyou for referring Mrs Wallis, she was seen for assessment at the Lymphoedema Clinic at LOROS on 21/8/25.\n\nI discussed the causes and management of lymphoedema, the importance of a good skin care regime and the  prevention of infection(cellulitis)\nPlease can you prescribe Epimax cream n a 500 gram pump dispenser for Jane to use as an emollient.\n\nI discussed compression therapy and its role in helping to manage lymphoedema. It aims to  control and reduce the swelling, caused by a build up of lymph fluid.  I have also gone through in clinic a set of specific exercises for her  to  perform.\n\nJane has consented to sign up to PatientChoice a prescription request and  delivery service, who will contact the practise and request a hosiery prescription.\n\nOnce the garments have been delivered to Janes home address, she knows to contact the clinic to book a fitting of hosiery appointment.\n\nMrs Wallis will be reviewed in clinic in six months time, but knows that she can contact us in the meantime if needed.\n\nWe no longer send follow up appointments automatically.....\n\nIf I can be  of any further assistance......",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5b1274e57cf9efd7",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2024-05-31",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4587069337",
+      "patient_properties": {
+        "birthDate": "1956-04-24",
+        "created_at": "2026-01-16T00:20:26.991000000+00:00",
+        "gender": "female",
+        "id": "4587069337"
+      },
+      "relationship_properties": {
+        "evidence_quote": "12:57 - lymphoedema clinic: hanwell, victoria (nurse access role) entered at: loros hospice  lymphoedema outcomes    outcome of assessment       outcome of assessment:  diagnosis/problem  lymphoedema to left arm and hand following treatment",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "treatment_started",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    }
+  ],
+  "snapshot_created_at": "20260425T161707Z"
+}

@@ -1,0 +1,41 @@
+{
+  "Content": "<div class=\"chapter\" title=\"Finding more information and committee details\" id=\"ng12-finding-more-information-and-committee-details\" xmlns=\"http://www.w3.org/1999/xhtml\">\r\n  <h2 class=\"title\" id=\"finding-more-information-and-committee-details\">Finding more information and committee details</h2>\r\n  <p>To find NICE guidance on related topics, including guidance in development, see the <a class=\"link\" href=\"https://www.nice.org.uk/guidance/conditions-and-diseases/cancer\" target=\"_top\">NICE topic page on cancer</a>.</p>\r\n  <p>For full details of the evidence and the guideline committee's discussions, see the <a class=\"link\" href=\"https://www.nice.org.uk/Guidance/NG12/evidence\" target=\"_top\">evidence reviews and full guideline</a>. You can also find information about <a class=\"link\" href=\"https://www.nice.org.uk/Guidance/NG12/documents\" target=\"_top\">how the guideline was developed</a>, including <a class=\"link\" href=\"https://www.nice.org.uk/guidance/ng12/update/ng12-update-2/documents/committee-member-list-2\" target=\"_top\">details of the committee</a>. </p>\r\n  <p>NICE has produced <a class=\"link\" href=\"https://www.nice.org.uk/guidance/ng12/resources\" target=\"_top\">tools and resources</a> to help you put this guideline into practice. For general help and advice on putting NICE guidelines into practice, see <a class=\"link\" href=\"https://www.nice.org.uk/about/what-we-do/into-practice/resources-help-put-guidance-into-practice\" target=\"_top\">resources to help you put guidance into practice</a>. </p>\r\n</div>",
+  "GuidanceNumber": "NG12",
+  "MetadataApplicationProfile": {
+    "AlternativeTitle": null,
+    "Audiences": [],
+    "Creator": "NICE",
+    "Description": null,
+    "Identifier": "tag:api.nice.org.uk,2015-06-23:/services/guidance/documents/NG12/finding-more-information-and-committee-details",
+    "Language": null,
+    "Modified": "/Date(1776237435079+0100)/",
+    "Issued": "/Date(1435014000000+0100)/",
+    "Publisher": "NICE",
+    "Title": "Finding more information and committee details",
+    "Types": [],
+    "Subjects": [],
+    "Contributors": [],
+    "Source": "NICE",
+    "ParentSection": null,
+    "Breadcrumb": null
+  },
+  "Resources": [
+    {
+      "Rel": "self",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/finding-more-information-and-committee-details",
+      "Title": "Finding more information and committee details",
+      "TitleContent": null
+    },
+    {
+      "Rel": "alternate",
+      "Type": "application/xhtml+xml",
+      "Uri": "https://publications.nice.org.uk/NG12/finding-more-information-and-committee-details",
+      "Title": "Finding more information and committee details",
+      "TitleContent": null
+    }
+  ],
+  "LastModified": "/Date(1776237435079+0100)/",
+  "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/finding-more-information-and-committee-details",
+  "Title": "Finding more information and committee details",
+  "TitleContent": null
+}

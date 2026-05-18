@@ -1,10 +1,15 @@
 """Reset patient data before a gold pipeline run.
 
-Removes DOCUMENTS links, EncounterCandidates, ReviewTasks, Approvals, Changes,
-SafetyNetAlerts, and EpisodeOfCare nodes for the specified patients.
+Full clean removes DOCUMENTS links, EncounterCandidates, ReviewTasks, Approvals,
+Changes, SafetyNetAlerts, EpisodeOfCare, and legacy CancerEpisode nodes for the
+specified patients.
+
+Episode-only mode removes :EpisodeOfCare and :CancerEpisode (both reset queries);
+it does not touch coding or review.
 
 Usage:
     python scripts/clean_patients.py --patients P1,P2,...
+    python scripts/clean_patients.py --patients P1 --episodes-only
     python scripts/clean_patients.py --all --confirm
 """
 
@@ -22,7 +27,10 @@ sys.path.insert(0, str(ROOT / "services" / "api"))
 
 from dotenv import load_dotenv
 
-load_dotenv(ROOT / "secrets" / ".env")
+# Non-secret defaults (optional); secrets override from .env.secrets (see sync-secrets-local).
+load_dotenv(ROOT / "secrets" / ".env.config", override=False)
+load_dotenv(ROOT / "secrets" / ".env.secrets", override=True)
+load_dotenv(ROOT / "secrets" / ".env", override=False)
 
 from libs.cypher.cleanup_queries import (
     RESET_PATIENT_ALERTS,
@@ -41,8 +49,22 @@ logging.basicConfig(
 logger = logging.getLogger("clean_patients")
 
 
-def clean_patient(session, patient_id: str) -> dict[str, int]:
-    """Remove all pipeline artefacts for a single patient."""
+def clean_patient(session, patient_id: str, *, episodes_only: bool = False) -> dict[str, int]:
+    """Remove pipeline artefacts for a single patient.
+
+    When episodes_only is True, only episode nodes are removed: :EpisodeOfCare
+    and legacy :CancerEpisode (RESET_PATIENT_EPISODES and
+    RESET_PATIENT_LEGACY_EPISODES).
+    """
+    if episodes_only:
+        r = session.run(RESET_PATIENT_EPISODES, patient_id=patient_id).single()
+        ep_deleted = int(r["deleted"]) if r and r.get("deleted") is not None else 0
+        r2 = session.run(RESET_PATIENT_LEGACY_EPISODES, patient_id=patient_id).single()
+        leg_deleted = (
+            int(r2["deleted"]) if r2 and r2.get("deleted") is not None else 0
+        )
+        return {"episodes": ep_deleted, "legacy_episodes": leg_deleted}
+
     totals: dict[str, int] = {}
 
     r = session.run(RESET_PATIENT_REVIEW_QUEUE, patient_id=patient_id).single()
@@ -82,6 +104,14 @@ def main():
     parser.add_argument("--patients", type=str, help="Comma-separated patient IDs")
     parser.add_argument("--all", action="store_true", help="Clean ALL patients")
     parser.add_argument("--confirm", action="store_true", help="Required with --all")
+    parser.add_argument(
+        "--episodes-only",
+        action="store_true",
+        help=(
+            "Delete only EpisodeOfCare and CancerEpisode for each patient "
+            "(no documents, queue, etc.)"
+        ),
+    )
     args = parser.parse_args()
 
     from neo4j import GraphDatabase
@@ -102,12 +132,16 @@ def main():
         print("ERROR: Provide --patients or --all --confirm")
         sys.exit(1)
 
-    logger.info("Cleaning %d patients", len(patient_ids))
+    logger.info(
+        "Cleaning %d patients%s",
+        len(patient_ids),
+        " (episodes only)" if args.episodes_only else "",
+    )
 
     grand_totals: dict[str, int] = {}
     with driver.session() as session:
         for pid in patient_ids:
-            totals = clean_patient(session, pid)
+            totals = clean_patient(session, pid, episodes_only=args.episodes_only)
             logger.info("Patient %s: %s", pid, totals)
             for k, v in totals.items():
                 grand_totals[k] = grand_totals.get(k, 0) + v

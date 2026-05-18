@@ -26,16 +26,28 @@ export interface TocSection {
 
 interface AuditReportShellProps {
   sections: TocSection[];
+  pendingScrollSectionId?: string | null;
+  pendingScrollReady?: boolean;
+  onPendingScrollHandled?: () => void;
   children: React.ReactNode;
 }
 
 const TOC_WIDTH = 220;
+const SCROLL_LOCK_MS = 5_000;
 
-export default function AuditReportShell({ sections, children }: AuditReportShellProps) {
+export default function AuditReportShell({
+  sections,
+  pendingScrollSectionId = null,
+  pendingScrollReady = true,
+  onPendingScrollHandled,
+  children,
+}: AuditReportShellProps) {
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up("lg"));
   const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? "");
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const scrollLockRef = useRef<{ id: string; expiresAt: number } | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isMdUp) return;
@@ -59,11 +71,54 @@ export default function AuditReportShell({ sections, children }: AuditReportShel
     return () => observerRef.current?.disconnect();
   }, [sections, isMdUp]);
 
-  const handleTocClick = (id: string) => {
+  const scrollToSection = (id: string, behavior: ScrollBehavior) => {
     const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveId(id);
+    if (!el) return false;
+    el.scrollIntoView({ behavior, block: "start" });
+    setActiveId(id);
+    return true;
+  };
+
+  const lockToSection = (id: string, behavior: ScrollBehavior = "smooth") => {
+    scrollLockRef.current = { id, expiresAt: Date.now() + SCROLL_LOCK_MS };
+    scrollToSection(id, behavior);
+  };
+
+  useEffect(() => {
+    if (!pendingScrollSectionId || !pendingScrollReady) return;
+    lockToSection(pendingScrollSectionId);
+    onPendingScrollHandled?.();
+    // onPendingScrollHandled is intentionally omitted; callers often pass an
+    // inline setter and we only want this to fire when the target/readiness changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingScrollSectionId, pendingScrollReady]);
+
+  useEffect(() => {
+    if (typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      const lock = scrollLockRef.current;
+      if (!lock) return;
+      if (Date.now() > lock.expiresAt) {
+        scrollLockRef.current = null;
+        return;
+      }
+      if (scrollFrameRef.current != null) cancelAnimationFrame(scrollFrameRef.current);
+      scrollFrameRef.current = requestAnimationFrame(() => {
+        scrollToSection(lock.id, "auto");
+      });
+    });
+
+    observer.observe(document.body);
+    return () => {
+      observer.disconnect();
+      if (scrollFrameRef.current != null) cancelAnimationFrame(scrollFrameRef.current);
+    };
+  }, []);
+
+  const handleTocClick = (id: string) => {
+    if (scrollToSection(id, "smooth")) {
+      scrollLockRef.current = { id, expiresAt: Date.now() + SCROLL_LOCK_MS };
     }
   };
 

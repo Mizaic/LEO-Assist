@@ -47,9 +47,12 @@ import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import {
   ADD_BAR_LABELS,
   DEMOGRAPHIC_FIELD_LABELS,
+  OBSERVATION_MODE_LABELS,
   OPERATOR_LABELS,
+  RECENCY_LABELS,
   atLeastClusterLabel,
   friendlyTerm,
+  recencyLabel,
 } from "./copy";
 import { detectVaguePhrase } from "./vaguePhrases";
 import SynonymChipEditor from "./SynonymChipEditor";
@@ -57,7 +60,9 @@ import {
   DEMOGRAPHIC_FIELDS,
   DEMOGRAPHIC_OPERATORS,
   type EditableLogicNode,
+  type EditableObservationPayload,
   type NodeUpdate,
+  type ObservationOperator,
 } from "./types";
 import type { SentenceRowModel } from "./treeToCanvas";
 
@@ -101,10 +106,7 @@ export default function SentenceRow(props: Props) {
     case "not_concept":
       return <NotConceptRow {...props} />;
     case "observation":
-      // Phase 6 hook -- stays a no-op until the OBSERVATION leaf
-      // ships end-to-end. The dispatch case is here today so adding
-      // the renderer is purely additive.
-      return null;
+      return <ObservationRow {...props} />;
     case "unsupported":
     default:
       return <UnsupportedRow row={row} />;
@@ -274,6 +276,336 @@ function DemographicRow({ row, onUpdate }: Props) {
         </IconButton>
       </Tooltip>
     </RowFrame>
+  );
+}
+
+/**
+ * Observation-leaf row (Phase 6a).
+ *
+ * Renders a short sentence for a clinical measurement:
+ *
+ *   has Platelet count >= 400 x10^9/L in the last year
+ *
+ * Three responsibilities:
+ *
+ * 1. In the default "absolute" mode (no temporal / reference_range /
+ *    trend / aggregation) the row is fully editable: clicking the
+ *    observable chip opens the concept picker, the operator select
+ *    swaps comparison symbols, the value field takes a number (or two
+ *    for "between"), and the unit field is a free-text input so
+ *    reviewers can correct a UCUM alias the ingest mis-typed. The
+ *    recency window is a drop-down with six common presets.
+ *
+ * 2. In any advanced mode (temporal / reference_range / trend /
+ *    aggregation) the row becomes read-only with a plain-English
+ *    summary and a "Edit in Advanced view" hint. Structural edits to
+ *    those modes live in the advanced LogicTreeEditor because the
+ *    canvas's one-line-sentence shape cannot express them without
+ *    pretending they are simple thresholds.
+ *
+ * 3. If the node is missing its ``observation`` payload entirely
+ *    (legacy data or ingest bug) the row shows an empty placeholder
+ *    with a "Needs attention" chip instead of crashing.
+ *
+ * Atlas trace:
+ *   UN: UN-26E57FA1
+ *   DI: DI-7790EEA5 (extended for Phase 6a)
+ *   DO: DO-710270EF (extended for Phase 6a)
+ */
+const OBSERVATION_OPERATORS: ObservationOperator[] = [
+  ">=",
+  "<=",
+  ">",
+  "<",
+  "=",
+  "between",
+];
+
+function observationMode(
+  obs: EditableObservationPayload | undefined,
+): "absolute" | "temporal" | "reference_range" | "trend" | "aggregate" {
+  if (!obs) return "absolute";
+  if (obs.temporal) return "temporal";
+  if (obs.reference_range) return "reference_range";
+  if (obs.trend) return "trend";
+  if (obs.aggregation) return "aggregate";
+  return "absolute";
+}
+
+function observationAriaLabel(
+  obs: EditableObservationPayload | undefined,
+): string {
+  if (!obs) return "Incomplete lab value row -- needs attention";
+  const term = friendlyTerm(obs.observable_term) || "lab value";
+  const op = obs.operator ?? ">=";
+  const value = Array.isArray(obs.value)
+    ? `${obs.value[0]} to ${obs.value[1]}`
+    : String(obs.value ?? "");
+  const unit = obs.unit ?? "";
+  return `Patient's ${term} is ${op} ${value} ${unit} ${recencyLabel(obs.within_days)}`.trim();
+}
+
+function ObservationRow({
+  row,
+  selectedNodeId,
+  onSelectConcept,
+  onUpdate,
+}: Props) {
+  const node = row.node;
+  const obs = node.observation;
+  const mode = observationMode(obs);
+
+  if (!obs) {
+    return (
+      <RowFrame ariaLabel="Lab value row without data -- needs attention">
+        <Chip
+          label="Lab value needs attention"
+          size="small"
+          color="warning"
+          variant="outlined"
+          sx={{ height: 24, fontSize: "0.78rem" }}
+        />
+        <Tooltip title="Remove this lab value row">
+          <IconButton
+            size="small"
+            aria-label="Remove this lab value row"
+            onClick={() => onUpdate({ kind: "remove", nodeId: node.node_id })}
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </RowFrame>
+    );
+  }
+
+  if (mode !== "absolute") {
+    return <ObservationAdvancedRow node={node} obs={obs} onUpdate={onUpdate} />;
+  }
+
+  return (
+    <ObservationAbsoluteRow
+      node={node}
+      obs={obs}
+      isSelected={selectedNodeId === node.node_id}
+      onSelectConcept={onSelectConcept}
+      onUpdate={onUpdate}
+    />
+  );
+}
+
+function ObservationAbsoluteRow({
+  node,
+  obs,
+  isSelected,
+  onSelectConcept,
+  onUpdate,
+}: {
+  node: EditableLogicNode;
+  obs: EditableObservationPayload;
+  isSelected: boolean;
+  onSelectConcept: (id: string, anchor?: HTMLElement | null) => void;
+  onUpdate: (u: NodeUpdate) => void;
+}) {
+  const term = friendlyTerm(obs.observable_term) || "Click to pick a lab value";
+  const hasObservableId = Boolean(obs.observable_id);
+  const chipTooltip = hasObservableId
+    ? `${term} (clinical code ${obs.observable_id}). Click to swap.`
+    : "No clinical code yet. Click to search and pick a lab value.";
+
+  const isBetween = obs.operator === "between";
+  const lo = Array.isArray(obs.value) ? obs.value[0] : obs.value;
+  const hi = Array.isArray(obs.value) ? obs.value[1] : "";
+
+  const setObservation = (patch: Partial<EditableObservationPayload>) =>
+    onUpdate({
+      kind: "set_observation",
+      nodeId: node.node_id,
+      observation: { ...obs, ...patch },
+    });
+
+  return (
+    <RowFrame ariaLabel={observationAriaLabel(obs)}>
+      <Typography
+        variant="body2"
+        sx={{ color: "text.secondary", fontWeight: 600, flexShrink: 0 }}
+      >
+        has
+      </Typography>
+      <Tooltip title={chipTooltip} arrow>
+        <Chip
+          label={term}
+          color={
+            isSelected ? "primary" : hasObservableId ? "success" : "warning"
+          }
+          variant={isSelected ? "filled" : "outlined"}
+          size="small"
+          onClick={(e) => onSelectConcept(node.node_id, e.currentTarget)}
+          sx={{
+            height: 26,
+            fontSize: "0.82rem",
+            fontWeight: 500,
+            borderRadius: 1.5,
+            bgcolor: !isSelected && hasObservableId ? "background.paper" : undefined,
+          }}
+          aria-label={`${term}. Click to swap.`}
+        />
+      </Tooltip>
+      <Select
+        size="small"
+        value={obs.operator ?? ">="}
+        onChange={(e) => {
+          const newOp = String(e.target.value) as ObservationOperator;
+          // Switching to "between" seeds a pair; switching away picks
+          // the first element so the field stays populated.
+          if (newOp === "between" && !Array.isArray(obs.value)) {
+            setObservation({
+              operator: newOp,
+              value: [Number(obs.value ?? 0), Number(obs.value ?? 0)],
+            });
+          } else if (newOp !== "between" && Array.isArray(obs.value)) {
+            setObservation({ operator: newOp, value: Number(obs.value[0]) });
+          } else {
+            setObservation({ operator: newOp });
+          }
+        }}
+        inputProps={{ "aria-label": "How to compare the lab value" }}
+        sx={{ minWidth: 110, fontSize: "0.82rem" }}
+      >
+        {OBSERVATION_OPERATORS.map((o) => (
+          <MenuItem key={o} value={o}>
+            {OPERATOR_LABELS[o] ?? o}
+          </MenuItem>
+        ))}
+      </Select>
+      <TextField
+        size="small"
+        type="number"
+        value={String(lo ?? "")}
+        onChange={(e) => {
+          const next = Number(e.target.value);
+          if (isBetween) {
+            setObservation({ value: [next, Number(hi ?? next)] });
+          } else {
+            setObservation({ value: Number.isFinite(next) ? next : 0 });
+          }
+        }}
+        placeholder="400"
+        inputProps={{
+          "aria-label": isBetween ? "Lower bound value" : "Value to compare with",
+        }}
+        sx={{ width: 90 }}
+      />
+      {isBetween && (
+        <>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            and
+          </Typography>
+          <TextField
+            size="small"
+            type="number"
+            value={String(hi ?? "")}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              setObservation({
+                value: [Number(lo ?? 0), Number.isFinite(next) ? next : 0],
+              });
+            }}
+            placeholder="500"
+            inputProps={{ "aria-label": "Upper bound value" }}
+            sx={{ width: 90 }}
+          />
+        </>
+      )}
+      <TextField
+        size="small"
+        value={obs.unit ?? ""}
+        onChange={(e) => setObservation({ unit: e.target.value })}
+        placeholder="10*9/L"
+        inputProps={{ "aria-label": "Unit (for example 10*9/L or mmol/L)" }}
+        sx={{ width: 110 }}
+      />
+      <Select
+        size="small"
+        value={obs.within_days ?? 365}
+        onChange={(e) =>
+          setObservation({ within_days: Number(e.target.value) || 365 })
+        }
+        inputProps={{ "aria-label": "How recent the reading must be" }}
+        sx={{ minWidth: 170, fontSize: "0.82rem" }}
+      >
+        {RECENCY_LABELS.map((r) => (
+          <MenuItem key={r.days} value={r.days}>
+            {r.label}
+          </MenuItem>
+        ))}
+      </Select>
+      <Tooltip title="Remove this lab value">
+        <IconButton
+          size="small"
+          aria-label="Remove this lab value"
+          onClick={() => onUpdate({ kind: "remove", nodeId: node.node_id })}
+        >
+          <DeleteOutlineIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </RowFrame>
+  );
+}
+
+function ObservationAdvancedRow({
+  node,
+  obs,
+  onUpdate,
+}: {
+  node: EditableLogicNode;
+  obs: EditableObservationPayload;
+  onUpdate: (u: NodeUpdate) => void;
+}) {
+  const mode = observationMode(obs);
+  const term = friendlyTerm(obs.observable_term) || "lab value";
+  const modeLabel = OBSERVATION_MODE_LABELS[mode] ?? mode;
+  return (
+    <Box
+      role="group"
+      aria-label={`Advanced lab value row: ${term} -- ${modeLabel}`}
+      sx={{
+        px: 1.25,
+        py: 1,
+        bgcolor: "info.50",
+        border: "1px dashed",
+        borderColor: "info.200",
+        borderRadius: 1.5,
+      }}
+    >
+      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 600, color: "info.dark" }}
+        >
+          {term}
+        </Typography>
+        <Chip
+          label={modeLabel}
+          size="small"
+          color="info"
+          variant="outlined"
+          sx={{ height: 22, fontSize: "0.72rem" }}
+        />
+        <Typography variant="caption" color="text.secondary">
+          Open the Advanced view to edit this rule's timing.
+        </Typography>
+        <Box sx={{ flex: 1 }} />
+        <Tooltip title="Remove this lab value row">
+          <IconButton
+            size="small"
+            aria-label="Remove this lab value row"
+            onClick={() => onUpdate({ kind: "remove", nodeId: node.node_id })}
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+    </Box>
   );
 }
 

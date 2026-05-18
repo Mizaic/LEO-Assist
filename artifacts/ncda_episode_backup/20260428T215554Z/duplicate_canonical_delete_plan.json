@@ -1,0 +1,866 @@
+[
+  {
+    "patient_id": "4187508279",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4382",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "diagnosis_confirmed",
+    "rels": [
+      {
+        "date": "2025-04-14",
+        "encounter_id": "08d9ea07-81a7-48cf-aac1-f6dcab0ce890",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6937824912778203422",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Malignant tumour of breast (X78WM) - L, grade 2 ductal, ER+ve (New Episode)\nMalignant tumour of breast (X78WM) - L, grade 2 ductal, ER+ve"
+        ]
+      },
+      {
+        "date": "2025-06-04",
+        "encounter_id": "9747df99-dedd-476a-87fa-5fda20cc7b3d",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1204742587135559669",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Biopsy of sentinel lymph node (XaF83) (Ongoing Episode)\nMajor: Metastasis to lymph node (Xa980) - macrometastasis (New Episode)\nMetastasis to lymph node (Xa980) - macrometastasis\nBiopsy of sentinel lymph node (XaF83)"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1204742587135559669",
+    "delete_date": "2025-06-04",
+    "delete_encounter_id": "9747df99-dedd-476a-87fa-5fda20cc7b3d",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6937824912778203422",
+    "keep_date": "2025-04-14",
+    "keep_encounter_id": "08d9ea07-81a7-48cf-aac1-f6dcab0ce890"
+  },
+  {
+    "patient_id": "4187508279",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4382",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2025-04-05",
+        "encounter_id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6928817713523462430",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        ]
+      },
+      {
+        "date": "2025-04-05",
+        "encounter_id": "5818bb28-4293-4417-980e-ec81e87b8404",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709777182",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        ]
+      },
+      {
+        "date": "2025-04-08",
+        "encounter_id": "f6139ca1-7309-4ac3-9c04-846ca7aa85f6",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6935573112964518174",
+        "text": [
+          "13:20 - Surgery: [STAFF] (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 05 Apr 2025"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6928817713523462430",
+    "delete_date": "2025-04-05",
+    "delete_encounter_id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709777182",
+    "keep_date": "2025-04-05",
+    "keep_encounter_id": "5818bb28-4293-4417-980e-ec81e87b8404"
+  },
+  {
+    "patient_id": "4187508279",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4382",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2025-04-05",
+        "encounter_id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6928817713523462430",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        ]
+      },
+      {
+        "date": "2025-04-05",
+        "encounter_id": "5818bb28-4293-4417-980e-ec81e87b8404",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709777182",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        ]
+      },
+      {
+        "date": "2025-04-08",
+        "encounter_id": "f6139ca1-7309-4ac3-9c04-846ca7aa85f6",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6935573112964518174",
+        "text": [
+          "13:20 - Surgery: [STAFF] (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 05 Apr 2025"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6935573112964518174",
+    "delete_date": "2025-04-08",
+    "delete_encounter_id": "f6139ca1-7309-4ac3-9c04-846ca7aa85f6",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709777182",
+    "keep_date": "2025-04-05",
+    "keep_encounter_id": "5818bb28-4293-4417-980e-ec81e87b8404"
+  },
+  {
+    "patient_id": "4187508279",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4382",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "treatment_started",
+    "rels": [
+      {
+        "date": "2025-05-06",
+        "encounter_id": "39e6eb3c-aa41-4254-b33f-31830458a406",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6946832112032944414",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Wide local excision of breast lesion (X40EC) (New Episode)\nBiopsy of sentinel lymph node (XaF83) (New Episode)\nWide local excision of breast lesion (X40EC)"
+        ]
+      },
+      {
+        "date": "2025-08-13",
+        "encounter_id": "a1bd7693-1253-401a-b115-c7010be930d5",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1177720989371337946",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Chemotherapy (X71bL) (New Episode)\nChemotherapy (X71bL)"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1177720989371337946",
+    "delete_date": "2025-08-13",
+    "delete_encounter_id": "a1bd7693-1253-401a-b115-c7010be930d5",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6946832112032944414",
+    "keep_date": "2025-05-06",
+    "keep_encounter_id": "39e6eb3c-aa41-4254-b33f-31830458a406"
+  },
+  {
+    "patient_id": "4220526579",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4461",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2025-02-16",
+        "encounter_id": "bf2907f0-14f1-4423-82f2-a3136fecbaf6",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6940076712591888749",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        ]
+      },
+      {
+        "date": "2025-02-28",
+        "encounter_id": "73dd06fd-2cd7-40f5-a2fc-076025870b6b",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1161958390675601658",
+        "text": [
+          "15:14 - Surgery: [STAFF] (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 16 Feb 2025"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1161958390675601658",
+    "delete_date": "2025-02-28",
+    "delete_encounter_id": "73dd06fd-2cd7-40f5-a2fc-076025870b6b",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6940076712591888749",
+    "keep_date": "2025-02-16",
+    "keep_encounter_id": "bf2907f0-14f1-4423-82f2-a3136fecbaf6"
+  },
+  {
+    "patient_id": "4246627143",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4469",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2024-05-05",
+        "encounter_id": "ce207be7-2eea-4ab7-8846-5b849a56edee",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6928817713523462517",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ) (New Episode)"
+        ]
+      },
+      {
+        "date": "2024-07-03",
+        "encounter_id": "7c676d50-011d-4bda-b23c-e3c4f757c71a",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6931069513337147765",
+        "text": [
+          "17:05 - Surgery: [STAFF] (Medical Secretary Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 05 May 2024"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6931069513337147765",
+    "delete_date": "2024-07-03",
+    "delete_encounter_id": "7c676d50-011d-4bda-b23c-e3c4f757c71a",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6928817713523462517",
+    "keep_date": "2024-05-05",
+    "keep_encounter_id": "ce207be7-2eea-4ab7-8846-5b849a56edee"
+  },
+  {
+    "patient_id": "4246627143",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4470",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2025-06-11",
+        "encounter_id": "7bc48a34-ef57-4006-a568-50df88f63d50",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6924314113896092022",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ) (Ongoing Episode)"
+        ]
+      },
+      {
+        "date": "2025-06-16",
+        "encounter_id": "0f891eff-568f-4065-be08-1f43914f6458",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6933321313150833014",
+        "text": [
+          "15:43 - Surgery: [STAFF] (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 11 Jun 2025"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6933321313150833014",
+    "delete_date": "2025-06-16",
+    "delete_encounter_id": "0f891eff-568f-4065-be08-1f43914f6458",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6924314113896092022",
+    "keep_date": "2025-06-11",
+    "keep_encounter_id": "7bc48a34-ef57-4006-a568-50df88f63d50"
+  },
+  {
+    "patient_id": "4505618269",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5698",
+    "episode_id": null,
+    "cancer_type": "Melanoma",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2024-03-15",
+        "encounter_id": "d317a432-d4ce-4ee3-a430-c2cce349e338",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6935573112964519490",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected skin cancer clinic (XaPyd)"
+        ]
+      },
+      {
+        "date": "2024-03-21",
+        "encounter_id": "f75779c7-a9aa-427f-beb2-4d7c6ab50c3a",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6942328512405575234",
+        "text": [
+          "09:29 - Surgery: [STAFF] (Medical Secretary Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected skin cancer clinic (XaPyd) 15 Mar 2024"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6942328512405575234",
+    "delete_date": "2024-03-21",
+    "delete_encounter_id": "f75779c7-a9aa-427f-beb2-4d7c6ab50c3a",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6935573112964519490",
+    "keep_date": "2024-03-15",
+    "keep_encounter_id": "d317a432-d4ce-4ee3-a430-c2cce349e338"
+  },
+  {
+    "patient_id": "4562218347",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4133",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "diagnosis_confirmed",
+    "rels": [
+      {
+        "date": "2024-05-31",
+        "encounter_id": "d88c402d-d4c5-48fc-b17f-e7699a49c415",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1159706590861898828",
+        "text": [
+          "Surgery: [STAFF] (Clinical Practitioner Access Role) \nInfiltrating duct carcinoma (BB91.)\nInfiltrating duct carcinoma (BB91.)"
+        ]
+      },
+      {
+        "date": "2024-05-31",
+        "encounter_id": "f15bfa77-97db-4616-9076-061401752fc7",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1173217389744010318",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMammogram (537..) (New Episode)\nMajor: Invasive carcinoma of breast (Ya0ln) - Right (New Episode)\nUS scan of breast (585C.) (New Episode)\nInvasive carcinoma of breast (Ya0ln) - Right"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1173217389744010318",
+    "delete_date": "2024-05-31",
+    "delete_encounter_id": "f15bfa77-97db-4616-9076-061401752fc7",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1159706590861898828",
+    "keep_date": "2024-05-31",
+    "keep_encounter_id": "d88c402d-d4c5-48fc-b17f-e7699a49c415"
+  },
+  {
+    "patient_id": "4587069337",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4383",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "diagnosis_confirmed",
+    "rels": [
+      {
+        "date": "2024-05-31",
+        "encounter_id": "1bbaa1cb-ca7a-4082-a5e7-b9b41b75220b",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6955839311287685407",
+        "text": [
+          "Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Malignant tumour of breast (X78WM) (New Episode)\nMalignant tumour of breast (X78WM)"
+        ]
+      },
+      {
+        "date": "2024-05-31",
+        "encounter_id": "b8d74a17-fce4-41b1-a890-ca6692cb096c",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1211497986576663290",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nUltrasound guided biopsy (Xa0U8) - Axillary lymph nodes (New Episode)\nMajor: Metastasis to lymph node (Xa980) - Ipsilateral axillary (New Episode)\nMetastasis to lymph node (Xa980) - Ipsilateral axillary"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1211497986576663290",
+    "delete_date": "2024-05-31",
+    "delete_encounter_id": "b8d74a17-fce4-41b1-a890-ca6692cb096c",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6955839311287685407",
+    "keep_date": "2024-05-31",
+    "keep_encounter_id": "1bbaa1cb-ca7a-4082-a5e7-b9b41b75220b"
+  },
+  {
+    "patient_id": "4587069337",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4383",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "treatment_started",
+    "rels": [
+      {
+        "date": "2024-07-04",
+        "encounter_id": "cc7c99b5-0bf5-4628-abc9-102b7a8906d2",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6967098310356111647",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nWide local excision of breast lesion (X40EC) (New Episode)\nBlock dissection of axillary lymph nodes (7H601) (New Episode)"
+        ]
+      },
+      {
+        "date": "2025-04-08",
+        "encounter_id": "43cc87be-53b8-4644-b333-6125dd12e364",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6980609109238223135",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nMajor: Block dissection of axillary lymph nodes (7H601) (Ongoing Episode)\nMajor: Wide local excision of breast lesion (X40EC) (Ongoing Episode)\nWide local excision of breast lesion (X40EC)\nBlock dissection of axillary lymph nodes (7H601)"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6980609109238223135",
+    "delete_date": "2025-04-08",
+    "delete_encounter_id": "43cc87be-53b8-4644-b333-6125dd12e364",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6967098310356111647",
+    "keep_date": "2024-07-04",
+    "keep_encounter_id": "cc7c99b5-0bf5-4628-abc9-102b7a8906d2"
+  },
+  {
+    "patient_id": "4587343129",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5488",
+    "episode_id": null,
+    "cancer_type": "Lymphoma",
+    "mt": "treatment_started",
+    "rels": [
+      {
+        "date": "2024-10-28",
+        "encounter_id": "dd76d5f5-dbd6-475b-bfc4-bcb37b5c51ca",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268722544",
+        "text": [
+          "14:01 - Surgery: [STAFF] (Pharmacist) \nRuxolitinib 20mg tablets - 1 BD\n Drug Review\n   Entries from previous template version\n      Medication reconciliation (XaXfG)\n      Medication reconciliation (XaXfG) - Haematology letter 27/09/24\n      Comment note (XaIg6) - pt supplied with ruxolitinib 20mg BD by hospital for 3months\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nMedication reconciliation (XaXfG)\nMedication reconciliation (XaXfG) - Haematology letter 27/09/24\nComment note (XaIg6) - pt supplied with ruxolitinib 20mg BD by hospital for 3months"
+        ]
+      },
+      {
+        "date": "2025-07-21",
+        "encounter_id": "440aa75d-feda-49f9-be17-36a664264f26",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6935573112964519280",
+        "text": [
+          "08:40 - Surgery: [STAFF] (Nurse Access Role) \nProblem: Myeloproliferative disorder (Xa0SP) - JAK2-positive myeloproliferative neoplasm; immunotherapy with ruxolitinib\n Phlebotomy Test\n   Entries from previous template version\n      Infectious disease : prevention/control (XE1Sf)\n      Informed consent given (XaLQR)\n      Use of aseptic technique (Ua1Rc)\n Phlebotomy Service\n   0214 006 Phlebotomy Service\n      Blood test type: Urgent (X78uK)\n      ^Referral source (CBS claim): Phlebotomy generated from secondary care done by practice (XaK2I)\n      ^Blood sample taken (CBS claim): Yes\n      Fasting sample: Yes\n      ^Seen by practice phlebotomist: Yes\n      Phlebotomy generated from secondary care done by practice: Yes\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nInformed consent given (XaLQR)\nUse of aseptic technique (Ua1Rc)\nInfectious disease : prevention/control (XE1Sf)\nUrgent (X78uK)\nPhlebotomy generated from secondary care done by practice (XaK2I)\nBlood sample taken (XaEJK)\nFasting sample (XaaEP)\nSeen by practice phlebotomist (9N2S.)\nPhlebotomy generated from secondary care done by practice (XaK2I)"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6935573112964519280",
+    "delete_date": "2025-07-21",
+    "delete_encounter_id": "440aa75d-feda-49f9-be17-36a664264f26",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268722544",
+    "keep_date": "2024-10-28",
+    "keep_encounter_id": "dd76d5f5-dbd6-475b-bfc4-bcb37b5c51ca"
+  },
+  {
+    "patient_id": "4742236882",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4384",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "diagnosis_confirmed",
+    "rels": [
+      {
+        "date": "2025-02-27",
+        "encounter_id": "75b881a5-1c20-4f5e-aba3-8cfa68974172",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1170965589930329960",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Metastasis to bone of unknown primary (Xa3AJ) (New Episode)\nMagnetic resonance cholangiopancreatography (XaFC7) (New Episode)\nMinor: Dilation of biliary tract (XaAzZ) - intra and extra hepatic (New Episode)\nMajor: Atrial fibrillation (G5730) (New Episode)\nMinor: Hypercalcaemia (X40Qa) (New Episode)\nMinor: Gallstone (X79cS) (New Episode)\nDilation of biliary tract (XaAzZ) - intra and extra hepatic\nAtrial fibrillation (G5730)\nGallstone (X79cS)\nMetastasis to bone of unknown primary (Xa3AJ)\nHypercalcaemia (X40Qa)"
+        ]
+      },
+      {
+        "date": "2025-03-24",
+        "encounter_id": "4d64bea6-d651-4838-a087-411313f0758e",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6949083911846629664",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nUltrasound scan (X70lf) - axilla - malignant looking LNs (New Episode)\nBiopsy of breast (7135.) - core biopsy (New Episode)\nMajor: Infiltrating duct carcinoma (BB91.) (New Episode)\nCT (computed tomography) of abdomen and pelvis (XaW9C) (New Episode)\nMammogram (537..) (New Episode)\nInfiltrating duct carcinoma (BB91.)"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6949083911846629664",
+    "delete_date": "2025-03-24",
+    "delete_encounter_id": "4d64bea6-d651-4838-a087-411313f0758e",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1170965589930329960",
+    "keep_date": "2025-02-27",
+    "keep_encounter_id": "75b881a5-1c20-4f5e-aba3-8cfa68974172"
+  },
+  {
+    "patient_id": "4802892365",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4389",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2025-04-28",
+        "encounter_id": "621e5db9-0a87-4dfb-961f-c86b709580d8",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1191231788253460512",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        ]
+      },
+      {
+        "date": "2025-06-10",
+        "encounter_id": "3fd817bd-6547-4b6f-9347-45ad7a77ac23",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1164210190489237590",
+        "text": [
+          "15:25 - Surgery: [STAFF] (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 28 Apr 2025"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1164210190489237590",
+    "delete_date": "2025-06-10",
+    "delete_encounter_id": "3fd817bd-6547-4b6f-9347-45ad7a77ac23",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1191231788253460512",
+    "keep_date": "2025-04-28",
+    "keep_encounter_id": "621e5db9-0a87-4dfb-961f-c86b709580d8"
+  },
+  {
+    "patient_id": "4802892365",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4389",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "treatment_started",
+    "rels": [
+      {
+        "date": "2025-05-19",
+        "encounter_id": "d441ef76-d6c5-454a-9d05-53a0d870663b",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1191231788253460526",
+        "text": [
+          "13:40 - Surgery: [STAFF] (Pharmacist) \n(R) Letrozole 2.5mg tablets - 28 tablet - take one once daily\n Drug Review\n   Reconciliation\n      Reconcilliation source:  Breast clinic letter 28/04/25\n      New repeat medication:  letrozole\n      Comments:  pt commenced on letrozole 2.5mg od by breast surgeon, added to repeat and issued\nLetrozole 2.5mg tablets - 28 tablet - take one once daily\n Ended 01 Aug 2025 Re-Authorised by [PERSON]\nETP2 FP10: Not Yet Printed - Signed\nSummary Care Record Update\nMedication reconciliation (XaXfG) - Breast clinic letter 28/04/25\nMedication commenced (XE0hk) - letrozole\nComment note (XaIg6) - pt commenced on letrozole 2.5mg od by breast surgeon, added to repeat and issued"
+        ]
+      },
+      {
+        "date": "2025-07-28",
+        "encounter_id": "2a38a6e4-72a4-4127-9b0b-0edb04597e81",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1191231788253460592",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nMajor: Mastectomy of right breast (XacLJ) (New Episode)\nMajor: Biopsy of sentinel lymph node (XaF83) (New Episode)\nBiopsy of sentinel lymph node (XaF83)\nMastectomy of right breast (XacLJ)"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1191231788253460592",
+    "delete_date": "2025-07-28",
+    "delete_encounter_id": "2a38a6e4-72a4-4127-9b0b-0edb04597e81",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:1191231788253460526",
+    "keep_date": "2025-05-19",
+    "keep_encounter_id": "d441ef76-d6c5-454a-9d05-53a0d870663b"
+  },
+  {
+    "patient_id": "4867552062",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5490",
+    "episode_id": null,
+    "cancer_type": "Prostate",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2025-05-12",
+        "encounter_id": "0066c508-0939-4b6e-a712-19c6e41806ac",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6933321313150834034",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+        ]
+      },
+      {
+        "date": "2025-06-12",
+        "encounter_id": "3b21332f-0440-48c8-a185-aa98db47278c",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6940076712591889778",
+        "text": [
+          "14:12 - Surgery: [STAFF] (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk) 12 May 2025\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record."
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6940076712591889778",
+    "delete_date": "2025-06-12",
+    "delete_encounter_id": "3b21332f-0440-48c8-a185-aa98db47278c",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6933321313150834034",
+    "keep_date": "2025-05-12",
+    "keep_encounter_id": "0066c508-0939-4b6e-a712-19c6e41806ac"
+  },
+  {
+    "patient_id": "4926975998",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4458",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "diagnosis_confirmed",
+    "rels": [
+      {
+        "date": "2024-04-15",
+        "encounter_id": "a1a67260-5cda-488c-a0fc-c4a318bd5cad",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6937824912778203498",
+        "text": [
+          "Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Malignant tumour of breast (X78WM) (New Episode)\nMalignant tumour of breast (X78WM)"
+        ]
+      },
+      {
+        "date": "2024-04-15",
+        "encounter_id": "b8606316-c70a-410d-a17a-7b4095845897",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6940076712591888746",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON] (Clinical Practitioner Access Role)\nMajor: Infiltrating duct carcinoma (BB91.) - Right (New Episode)\nInfiltrating duct carcinoma (BB91.) - Right"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6940076712591888746",
+    "delete_date": "2024-04-15",
+    "delete_encounter_id": "b8606316-c70a-410d-a17a-7b4095845897",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6937824912778203498",
+    "keep_date": "2024-04-15",
+    "keep_encounter_id": "a1a67260-5cda-488c-a0fc-c4a318bd5cad"
+  },
+  {
+    "patient_id": "4926975998",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4458",
+    "episode_id": null,
+    "cancer_type": "breast",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2024-04-08",
+        "encounter_id": "6719ae19-ddc6-4232-80fa-304bb8ddb7a0",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709777258",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        ]
+      },
+      {
+        "date": "2024-04-09",
+        "encounter_id": "788504cd-75f1-4797-b6a9-c6921ea8be5b",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6931069513337147754",
+        "text": [
+          "10:37 - Surgery: [STAFF] (Medical Secretary Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 08 Apr 2024\nSummary Care Record Update"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6931069513337147754",
+    "delete_date": "2024-04-09",
+    "delete_encounter_id": "788504cd-75f1-4797-b6a9-c6921ea8be5b",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709777258",
+    "keep_date": "2024-04-08",
+    "keep_encounter_id": "6719ae19-ddc6-4232-80fa-304bb8ddb7a0"
+  },
+  {
+    "patient_id": "6142203497",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5502",
+    "episode_id": null,
+    "cancer_type": "Prostate",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2024-07-23",
+        "encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798014",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+        ]
+      },
+      {
+        "date": "2024-07-24",
+        "encounter_id": "f5609732-36c7-4af5-b46a-cb33c77e97d0",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6978357309424539006",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+        ]
+      },
+      {
+        "date": "2024-07-24",
+        "encounter_id": "41af1f6a-9841-4ff4-b532-c9c737bab465",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6973853709797168510",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nRenal ultrasound (585B.) (New Episode)\nFlexible cystoscopy (Xa7va) (New Episode)\nSeen in fast track suspected urological cancer clinic (XaPyk) (New Episode)"
+        ]
+      },
+      {
+        "date": "2024-09-10",
+        "encounter_id": "3d73d187-4cae-4492-aead-9f3e9009ff36",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:7007630707002447230",
+        "text": [
+          "16:00 - Surgery: [STAFF] (Medical Secretary Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk) 23 Jul 2024"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6973853709797168510",
+    "delete_date": "2024-07-24",
+    "delete_encounter_id": "41af1f6a-9841-4ff4-b532-c9c737bab465",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798014",
+    "keep_date": "2024-07-23",
+    "keep_encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8"
+  },
+  {
+    "patient_id": "6142203497",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5502",
+    "episode_id": null,
+    "cancer_type": "Prostate",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2024-07-23",
+        "encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798014",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+        ]
+      },
+      {
+        "date": "2024-07-24",
+        "encounter_id": "f5609732-36c7-4af5-b46a-cb33c77e97d0",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6978357309424539006",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+        ]
+      },
+      {
+        "date": "2024-07-24",
+        "encounter_id": "41af1f6a-9841-4ff4-b532-c9c737bab465",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6973853709797168510",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nRenal ultrasound (585B.) (New Episode)\nFlexible cystoscopy (Xa7va) (New Episode)\nSeen in fast track suspected urological cancer clinic (XaPyk) (New Episode)"
+        ]
+      },
+      {
+        "date": "2024-09-10",
+        "encounter_id": "3d73d187-4cae-4492-aead-9f3e9009ff36",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:7007630707002447230",
+        "text": [
+          "16:00 - Surgery: [STAFF] (Medical Secretary Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk) 23 Jul 2024"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6978357309424539006",
+    "delete_date": "2024-07-24",
+    "delete_encounter_id": "f5609732-36c7-4af5-b46a-cb33c77e97d0",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798014",
+    "keep_date": "2024-07-23",
+    "keep_encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8"
+  },
+  {
+    "patient_id": "6142203497",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5502",
+    "episode_id": null,
+    "cancer_type": "Prostate",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2024-07-23",
+        "encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798014",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+        ]
+      },
+      {
+        "date": "2024-07-24",
+        "encounter_id": "f5609732-36c7-4af5-b46a-cb33c77e97d0",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6978357309424539006",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected urological cancer clinic (XaPyk)"
+        ]
+      },
+      {
+        "date": "2024-07-24",
+        "encounter_id": "41af1f6a-9841-4ff4-b532-c9c737bab465",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6973853709797168510",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) \nRenal ultrasound (585B.) (New Episode)\nFlexible cystoscopy (Xa7va) (New Episode)\nSeen in fast track suspected urological cancer clinic (XaPyk) (New Episode)"
+        ]
+      },
+      {
+        "date": "2024-09-10",
+        "encounter_id": "3d73d187-4cae-4492-aead-9f3e9009ff36",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:7007630707002447230",
+        "text": [
+          "16:00 - Surgery: [STAFF] (Medical Secretary Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk) 23 Jul 2024"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:7007630707002447230",
+    "delete_date": "2024-09-10",
+    "delete_encounter_id": "3d73d187-4cae-4492-aead-9f3e9009ff36",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798014",
+    "keep_date": "2024-07-23",
+    "keep_encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8"
+  },
+  {
+    "patient_id": "6309359401",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5639",
+    "episode_id": null,
+    "cancer_type": "Prostate",
+    "mt": "diagnosis_confirmed",
+    "rels": [
+      {
+        "date": "2024-10-08",
+        "encounter_id": "e5dc0067-2530-4fe1-953a-48347e25430e",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6971601909983483399",
+        "text": [
+          "Surgery: [STAFF] (Clinical Practitioner Access Role) \nMajor: Malignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0 (New Episode)\nMalignant tumour of prostate (B46..) - Gleason 3+4=7; T3aN0"
+        ]
+      },
+      {
+        "date": "2024-10-08",
+        "encounter_id": "267f2023-959e-4601-83d9-e3db8e4301bf",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798151",
+        "text": [
+          "Surgery: [STAFF] (Admin/Clinical Support Access Role) , Entered By: [PERSON]\nMajor: Carcinoma of prostate (X78Y6) (New Episode)"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6971601909983483399",
+    "delete_date": "2024-10-08",
+    "delete_encounter_id": "e5dc0067-2530-4fe1-953a-48347e25430e",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6969350110169798151",
+    "keep_date": "2024-10-08",
+    "keep_encounter_id": "267f2023-959e-4601-83d9-e3db8e4301bf"
+  },
+  {
+    "patient_id": "7017599535",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4533",
+    "episode_id": null,
+    "cancer_type": "Breast",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2025-05-01",
+        "encounter_id": "21e379f4-92d1-4e8c-b9f6-9f2208336ee7",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709777333",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        ]
+      },
+      {
+        "date": "2025-06-13",
+        "encounter_id": "330bf2d4-397a-4383-8c85-4b6deabed6cc",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6933321313150833077",
+        "text": [
+          "15:21 - Surgery: [STAFF] (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 01 May 2025"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6933321313150833077",
+    "delete_date": "2025-06-13",
+    "delete_encounter_id": "330bf2d4-397a-4383-8c85-4b6deabed6cc",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6926565913709777333",
+    "keep_date": "2025-05-01",
+    "keep_encounter_id": "21e379f4-92d1-4e8c-b9f6-9f2208336ee7"
+  },
+  {
+    "patient_id": "7017599535",
+    "episode_element_id": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:4534",
+    "episode_id": null,
+    "cancer_type": "Breast",
+    "mt": "first_seen",
+    "rels": [
+      {
+        "date": "2024-06-16",
+        "encounter_id": "da247942-6243-4404-adb5-b09d0eb1a23a",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6931069513337147830",
+        "text": [
+          "00:00 - Surgery: [STAFF] (Medical Secretary Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        ]
+      },
+      {
+        "date": "2024-07-04",
+        "encounter_id": "a84368f4-423e-4898-b9ff-243bd2c4c226",
+        "outcome": null,
+        "rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6933321313150833078",
+        "text": [
+          "16:53 - Surgery: [STAFF] (Medical Secretary Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 16 Jun 2024"
+        ]
+      }
+    ],
+    "delete_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6933321313150833078",
+    "delete_date": "2024-07-04",
+    "delete_encounter_id": "a84368f4-423e-4898-b9ff-243bd2c4c226",
+    "keep_rid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6931069513337147830",
+    "keep_date": "2024-06-16",
+    "keep_encounter_id": "da247942-6243-4404-adb5-b09d0eb1a23a"
+  }
+]

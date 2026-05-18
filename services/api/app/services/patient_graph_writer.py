@@ -64,7 +64,7 @@ OPTIONAL MATCH (e)-[r:DOCUMENTS]->(s)
 RETURN toString(e.id) AS encounter_id,
        labels(s) AS node_labels,
        s.conceptId AS concept_id,
-       s.name AS term,
+       coalesce(s.name, s.term) AS term,
        s.readCode AS read_code,
        s.semanticTag AS semantic_tag,
        r.evidence AS evidence,

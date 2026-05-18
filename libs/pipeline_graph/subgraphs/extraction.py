@@ -20,6 +20,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from libs.ner.schema_mapper import normalise_label
 from libs.nlp.sentence_splitter import (
     SentenceChunk,
     SentenceSplitter,
@@ -73,11 +74,27 @@ class ExtractionState(TypedDict, total=False):
     errors: list[str]
 
 
+def _normalise_item_label(semantic_tag: str) -> str:
+    """Return the canonical underscore-form label for post-processing.
+
+    ExtractionItem.semantic_tag uses SNOMED space form (e.g. 'observable entity')
+    when it comes from the NER model path (via LABEL_TO_SNOMED_TAG). All
+    post-processing layer comparisons use the underscore form
+    ('observable_entity'). Normalising here ensures Layers 3c, 5, 6, and 7c
+    operate correctly on NER-sourced entities without each layer having to
+    handle both forms.
+    """
+    canonical = normalise_label(semantic_tag)
+    if canonical:
+        return canonical
+    return semantic_tag.lower().replace(" ", "_").replace("/", "_")
+
+
 def _items_to_dicts(items: list) -> list[dict[str, Any]]:
     return [
         {
             "text": item.text,
-            "label": item.semantic_tag,
+            "label": _normalise_item_label(item.semantic_tag),
             "start": item.span_start,
             "end": item.span_end,
             "assertion": item.assertion or "present",

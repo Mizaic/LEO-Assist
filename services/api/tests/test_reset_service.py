@@ -76,16 +76,19 @@ class TestResetPatient:
 
     def test_documents_query_uses_rel_type_syntax(self) -> None:
         """RESET_PATIENT_DOCUMENTS must collect rels then FOREACH delete (one result row)."""
-        assert "collect(r)" in RESET_PATIENT_DOCUMENTS
+        assert "enc_col" in RESET_PATIENT_DOCUMENTS
         assert "FOREACH" in RESET_PATIENT_DOCUMENTS
         assert "links_deleted" in RESET_PATIENT_DOCUMENTS
-        # Old double-MATCH pattern must be gone
-        assert RESET_PATIENT_DOCUMENTS.count("MATCH") == 1
+        assert ":DOCUMENTS" in RESET_PATIENT_DOCUMENTS
+        assert "HAS_CHUNK" in RESET_PATIENT_DOCUMENTS
 
     def test_direct_semantic_query_uses_rel_type_filter(self) -> None:
         """RESET_PATIENT_DIRECT_SEMANTIC must filter by relationship type, not node label."""
         assert "HAS_FINDING" in RESET_PATIENT_DIRECT_SEMANTIC
         assert "HAS_DISORDER" in RESET_PATIENT_DIRECT_SEMANTIC
+        assert "HAS_DISEASE" in RESET_PATIENT_DIRECT_SEMANTIC
+        assert "HAS_CLINICAL_FINDING" in RESET_PATIENT_DIRECT_SEMANTIC
+        assert "HAS_OBSERVABLE_ENTITY" in RESET_PATIENT_DIRECT_SEMANTIC
         assert "HAS_CONCEPT" in RESET_PATIENT_DIRECT_SEMANTIC
         # Old label-based filter must be gone
         assert "SnomedConcept" not in RESET_PATIENT_DIRECT_SEMANTIC

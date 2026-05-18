@@ -1,0 +1,118 @@
+{
+  "generated_at": "2026-04-25T17:22:03.734910+00:00",
+  "cohort": "reviewed_breast",
+  "count": 6,
+  "mean_jaccard": 0.3935,
+  "total_missing": 39,
+  "total_extra": 18,
+  "rows": [
+    {
+      "patient_id": "4187508279",
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-03-10",
+      "detector_start": "2025-03-10",
+      "reviewed_links": 24,
+      "detector_links": 13,
+      "overlap": 12,
+      "missing": 12,
+      "extra": 1,
+      "jaccard": 0.48,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ]
+    },
+    {
+      "patient_id": "4246897485",
+      "episode_id": "ep-3b16d19e1a2a1615",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-03-13",
+      "detector_start": "2025-07-24",
+      "reviewed_links": 2,
+      "detector_links": 6,
+      "overlap": 1,
+      "missing": 1,
+      "extra": 5,
+      "jaccard": 0.1429,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ]
+    },
+    {
+      "patient_id": "4562218347",
+      "episode_id": "ep-manual-7d674900f746",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": null,
+      "detector_start": "2024-05-31",
+      "reviewed_links": 10,
+      "detector_links": 10,
+      "overlap": 6,
+      "missing": 4,
+      "extra": 4,
+      "jaccard": 0.4286,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ]
+    },
+    {
+      "patient_id": "4587069337",
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2024-05-31",
+      "detector_start": "2024-05-31",
+      "reviewed_links": 19,
+      "detector_links": 10,
+      "overlap": 10,
+      "missing": 9,
+      "extra": 0,
+      "jaccard": 0.5263,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ]
+    },
+    {
+      "patient_id": "4742236882",
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-01-21",
+      "detector_start": "2025-01-21",
+      "reviewed_links": 17,
+      "detector_links": 12,
+      "overlap": 9,
+      "missing": 8,
+      "extra": 3,
+      "jaccard": 0.45,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ]
+    },
+    {
+      "patient_id": "4920262426",
+      "episode_id": "ep-a7b277076470141f",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-08-12",
+      "detector_start": "2025-08-12",
+      "reviewed_links": 10,
+      "detector_links": 10,
+      "overlap": 5,
+      "missing": 5,
+      "extra": 5,
+      "jaccard": 0.3333,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ]
+    }
+  ]
+}

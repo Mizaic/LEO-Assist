@@ -29,9 +29,9 @@ from libs.keyvault.loader import load_keyvault_secrets
 load_keyvault_secrets()
 
 _PATIENT_IDS = [
-    "4822890058",
-    "6517334858",
-    "7319972905",
+    "9990010042",
+    "9990010062",
+    "9990010069",
 ]
 
 _Q_EPISODES = """

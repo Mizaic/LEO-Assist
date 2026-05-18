@@ -14,6 +14,7 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { type NextRequest, NextResponse } from "next/server";
+import { serverFetch } from "@/lib/serverFetch";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   let upstream: Response;
   try {
-    upstream = await fetch(`${CORE_API_BASE}/sbar/jobs`, {
+    upstream = await serverFetch(`${CORE_API_BASE}/sbar/jobs`, {
       method: "POST",
       headers,
       body,

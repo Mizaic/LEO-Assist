@@ -94,8 +94,10 @@ describe("VT-LEO-AI-519 -- drawer encounter search relevance utility", () => {
     expect(FILTERS_SRC).toMatch(
       /import\s+\{\s*expandSearchTerms,\s*hasAnyExpandedHit\s*\}\s+from\s+["']\.\/encounterRelevance["']/,
     );
+    // Multi-chip path (DI-B12A48EA): each chip is individually expanded.
+    // expandSearchTerms is called per chip inside a for..of loop.
     expect(FILTERS_SRC).toMatch(
-      /const\s+expandedTerms\s*=\s*expandSearchTerms\(args\.search\)/,
+      /const\s+expandedTerms\s*=\s*expandSearchTerms\(chip\)/,
     );
     expect(FILTERS_SRC).toMatch(
       /hasAnyExpandedHit\(e\.text,\s*expandedTerms\)/,

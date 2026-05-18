@@ -66,6 +66,12 @@ import {
   SummarisationContextSelect,
   type SummarisationContextValue,
 } from "@/components/sbar-playground/SummarisationContextSelect";
+import { useDemoMode } from "@/context/DemoModeContext";
+import {
+  maskBirthDate,
+  maskNhsNumber,
+  maskPatientId,
+} from "@/lib/demoMode";
 
 // STAGE_LABELS, STAGE_THEME, splitFinalSbar are sourced from the
 // shared sbar-final module so other applications can render the same
@@ -88,6 +94,7 @@ function backgroundSourceToInput(
 }
 
 export default function SbarPlayground() {
+  const { isDemoMode } = useDemoMode();
   const [patient, setPatient] = useState<SelectedPatient | null>(null);
   const [patientFinderOpen, setPatientFinderOpen] = useState(false);
 
@@ -159,21 +166,23 @@ export default function SbarPlayground() {
                   color="primary"
                   variant="outlined"
                   label={
-                    patient.displayName ?? `Patient ${patient.id.slice(0, 8)}`
+                    isDemoMode
+                      ? maskPatientId(patient.id)
+                      : patient.displayName ?? `Patient ${patient.id.slice(0, 8)}`
                   }
                 />
                 {patient.nhsNumber && (
                   <Chip
                     size="small"
                     variant="outlined"
-                    label={`NHS ${patient.nhsNumber}`}
+                    label={`NHS ${isDemoMode ? maskNhsNumber(patient.nhsNumber) : patient.nhsNumber}`}
                   />
                 )}
                 {patient.dob && (
                   <Chip
                     size="small"
                     variant="outlined"
-                    label={`DOB ${patient.dob}`}
+                    label={`DOB ${isDemoMode ? maskBirthDate(patient.dob) : patient.dob}`}
                   />
                 )}
                 <Button

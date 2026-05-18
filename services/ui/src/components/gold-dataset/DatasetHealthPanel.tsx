@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -226,9 +226,9 @@ export default function DatasetHealthPanel({
   const [diag, setDiag] = useState<ExportDiagnostics | null>(null);
   const [phraseConsistency, setPhraseConsistency] =
     useState<PhraseConsistencyResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [phraseFixIndex, setPhraseFixIndex] = useState<Record<string, number>>({});
   const [approvingPhrase, setApprovingPhrase] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
@@ -240,26 +240,35 @@ export default function DatasetHealthPanel({
   const [confirmApprovalChecked, setConfirmApprovalChecked] = useState(false);
   const [approvalError, setApprovalError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  const fetchDatasetHealth = useCallback(async () => {
     setLoading(true);
     setError(null);
-    Promise.all([
+    const [d, diagnostics, phraseData] = await Promise.all([
       fetchLabelDistribution(),
       fetchExportDiagnostics(),
       fetchPhraseConsistency({ minOccurrences: 2, top: 10 }),
-    ])
-      .then(([d, diagnostics, phrase]) => {
-        if (!cancelled) {
-          setDist(d);
-          setDiag(diagnostics);
-          setPhraseConsistency(phrase);
-        }
+    ]);
+    return { d, diagnostics, phraseData };
+  }, []);
+
+  useEffect(() => {
+    if (!expanded) return;
+    let cancelled = false;
+    fetchDatasetHealth()
+      .then(({ d, diagnostics, phraseData }) => {
+        if (cancelled) return;
+        setDist(d);
+        setDiag(diagnostics);
+        setPhraseConsistency(phraseData);
       })
-      .catch((e) => { if (!cancelled) setError(String(e?.message ?? e)); })
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .catch((e) => {
+        if (!cancelled) setError(String(e?.message ?? e));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => { cancelled = true; };
-  }, [refreshKey]);
+  }, [expanded, refreshKey, fetchDatasetHealth]);
 
   const totalNotReady = diag?.summary.span_misaligned_count ?? 0;
 
@@ -276,11 +285,7 @@ export default function DatasetHealthPanel({
       setActionMsg(
         `Approved multi-label phrase "${phrase}" with labels: ${labels.join(", ")}.`,
       );
-      const [d, diagnostics, phraseData] = await Promise.all([
-        fetchLabelDistribution(),
-        fetchExportDiagnostics(),
-        fetchPhraseConsistency({ minOccurrences: 2, top: 10 }),
-      ]);
+      const { d, diagnostics, phraseData } = await fetchDatasetHealth();
       setDist(d);
       setDiag(diagnostics);
       setPhraseConsistency(phraseData);
@@ -293,6 +298,7 @@ export default function DatasetHealthPanel({
       setApprovalError(message);
       return false;
     } finally {
+      setLoading(false);
       setApprovingPhrase(null);
     }
   };
@@ -323,6 +329,14 @@ export default function DatasetHealthPanel({
             <Chip
               size="small"
               label={`${dist.total_entities} entity spans`}
+              sx={{ height: 18, fontSize: "0.68rem" }}
+            />
+          )}
+          {!loading && !dist && (
+            <Chip
+              size="small"
+              label="Open to run checks"
+              variant="outlined"
               sx={{ height: 18, fontSize: "0.68rem" }}
             />
           )}

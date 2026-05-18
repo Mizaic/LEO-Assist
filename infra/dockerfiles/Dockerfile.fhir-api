@@ -20,7 +20,8 @@ COPY libs/ /app/libs/
 COPY scripts/ /app/scripts/
 COPY services/fhir_api/ /app/services/fhir_api/
 WORKDIR /app
-ENV PYTHONPATH=/app:/app/services/fhir_api
+ENV PYTHONPATH=/app:/app/services/fhir_api \
+    UVICORN_WORKERS=4
 EXPOSE 8002
 ENTRYPOINT ["/venv/bin/python3", "-m", "uvicorn", "services.fhir_api.app.main:app", \
             "--host", "0.0.0.0", "--port", "8002"]

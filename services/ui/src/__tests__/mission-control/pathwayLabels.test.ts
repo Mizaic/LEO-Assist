@@ -3,13 +3,17 @@
  */
 
 import {
+  CANCER_TYPE_OPTIONS,
   EPISODE_STATUS_LABELS,
   getStatusLabel,
   getCancerTypeLabel,
   getDiagnosticIntervalColour,
+  getStatusColour,
 } from "@/lib/pathwayLabels";
 
 const EXPECTED_STATUS_PAIRS: Array<[string, string]> = [
+  ["active", "Still active"],
+  ["review", "Needs review"],
   ["completed", "Confirmed cancer"],
   ["closed_benign", "No cancer found"],
   ["stale_no_diagnosis", "No diagnosis after wait"],
@@ -19,7 +23,7 @@ const EXPECTED_STATUS_PAIRS: Array<[string, string]> = [
 ];
 
 describe("EPISODE_STATUS_LABELS", () => {
-  test("all 6 expected statuses have a non-empty label", () => {
+  test("all expected statuses have a non-empty label", () => {
     const expectedStatuses = EXPECTED_STATUS_PAIRS.map(([s]) => s);
     for (const status of expectedStatuses) {
       const label = EPISODE_STATUS_LABELS[status];
@@ -42,15 +46,33 @@ describe("EPISODE_STATUS_LABELS", () => {
   );
 });
 
+describe("getStatusColour", () => {
+  test("maps episode outcomes to benign active and cancer colours", () => {
+    expect(getStatusColour("closed_benign")).toBe("success");
+    expect(getStatusColour("stale_no_diagnosis")).toBe("success");
+    expect(getStatusColour("active")).toBe("warning");
+    expect(getStatusColour("review")).toBe("warning");
+    expect(getStatusColour("completed")).toBe("error");
+  });
+});
+
 describe("getCancerTypeLabel", () => {
-  test("returns plain English for known cancer types", () => {
-    expect(getCancerTypeLabel("colorectal")).toBe("Bowel (colorectal)");
+  test("normalises legacy site keys to NCDA labels", () => {
+    expect(getCancerTypeLabel("colorectal")).toBe("Colorectal");
     expect(getCancerTypeLabel("lung")).toBe("Lung");
-    expect(getCancerTypeLabel("non_site_specific")).toBe("Type not yet confirmed");
+    expect(getCancerTypeLabel("non_site_specific")).toBe("Other");
   });
 
-  test("returns the raw value for unknown types (graceful fallback)", () => {
-    expect(getCancerTypeLabel("some_new_type")).toBe("some_new_type");
+  test("falls back to Other for unknown types", () => {
+    expect(getCancerTypeLabel("some_new_type")).toBe("Other");
+  });
+
+  test("filter options match NCDA values", () => {
+    expect(CANCER_TYPE_OPTIONS[0]).toEqual({ value: "Bladder", label: "Bladder" });
+    expect(CANCER_TYPE_OPTIONS.at(-1)).toEqual({
+      value: "No Information",
+      label: "No Information",
+    });
   });
 });
 

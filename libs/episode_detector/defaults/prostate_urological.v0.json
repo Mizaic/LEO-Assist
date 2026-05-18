@@ -1,0 +1,175 @@
+{
+  "activation": {
+    "auto_publish": false,
+    "min_precision": 0.95,
+    "suggest": false
+  },
+  "anchors": {
+    "clinic_seen_snomed": [
+      "382841000000109"
+    ],
+    "confirmed_snomed": [
+      "254900004",
+      "254915003",
+      "399068003"
+    ],
+    "referral_snomed": [
+      "276431000000102"
+    ],
+    "suspected_snomed": [
+      "315268008"
+    ]
+  },
+  "closure": {
+    "benign": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "completed": {
+      "and_no_confirmed_within_days": null,
+      "requires_any_of": []
+    },
+    "use_core_closure_set": true
+  },
+  "cross_site_guard": [],
+  "dependencies": {
+    "detector_binary": "v2",
+    "snomed_edition": "uk-202511"
+  },
+  "rulebook_version": "v0-2026.04.0",
+  "schema_version": "1.0.0",
+  "scorer_weights": {
+    "bias": -0.2,
+    "code": 1.0,
+    "pathway": 0.8,
+    "result": 0.9,
+    "text": 0.4,
+    "treatment": 0.6
+  },
+  "signals": {
+    "code_channel": {
+      "benign_closure_confidence": 0.7,
+      "benign_closure_snomed": [],
+      "confirmed_confidence": 0.85,
+      "confirmed_snomed": [
+        "254900004",
+        "254915003",
+        "399068003"
+      ],
+      "suspected_confidence": 0.7,
+      "suspected_snomed": [
+        "315268008"
+      ]
+    },
+    "pathway_channel": {
+      "form_types": [
+        "2ww_prostate",
+        "2ww_prostate_urological",
+        "2ww_urology"
+      ],
+      "reason_regex": [
+        "\\b(prostate|urology|urological|psa)\\b"
+      ]
+    },
+    "result_channel": {
+      "investigation_terms": [],
+      "negative_terms": [],
+      "observation_snomed": [],
+      "positive_terms": []
+    },
+    "text_channel": {
+      "context_role_catalogue": {
+        "primary_care_investigations": [
+          "\\b(full blood count|fbc)\\b",
+          "\\b(u\\s?&\\s?e|u and e|urea and electrolytes)\\b",
+          "\\b(lft|liver function tests?)\\b",
+          "\\b(tft|thyroid function tests?)\\b",
+          "\\b(crp|c[- ]reactive protein|esr|inflammatory markers)\\b",
+          "\\b(urinalysis|dipstick|msu|mid[- ]?stream urine)\\b",
+          "\\b(bloods|blood tests|venepuncture|phlebotomy)\\b",
+          "\\bplain (film|x[- ]?ray)\\b",
+          "\\b(ecg|electrocardiogram)\\b",
+          "\\bgp[- ]requested (imaging|scan|ultrasound)\\b"
+        ],
+        "referral_admin": [
+          "\\breferral letter (sent|dictated|typed|drafted)\\b",
+          "\\breferral (received|accepted|rejected|returned|lost)\\b",
+          "\\b2[- ]?week[- ]?wait (form|letter|proforma)\\b",
+          "\\b(did not attend|dna|dnas)\\b",
+          "\\b(rebook\\w+|re[- ]?appointment|reschedul\\w+)\\b",
+          "\\b(waiting list|appointment (confirmed|booked|sent))\\b",
+          "\\bchoose and book\\b",
+          "\\b(e[- ]?rs|ebrs|electronic referral)\\b",
+          "\\bappointment (cancelled|rescheduled)\\b"
+        ],
+        "referral_sent": [
+          "\\b(2[- ]?week[- ]?wait|2ww|two[- ]week[- ]?wait)[ \\-]?(referral|pathway)\\b",
+          "\\burgent (suspected cancer )?referral\\b",
+          "\\bsuspected cancer (pathway|referral|form)\\b",
+          "\\bfast[- ]?track referral\\b",
+          "\\breferral (sent|submitted|made|raised|actioned)\\b",
+          "\\b(usc|urgent suspected cancer)\\b",
+          "\\b(refer(red)? (to|for)) (2ww|urgent|fast[- ]?track)\\b"
+        ],
+        "related_correspondence": [
+          "\\b(clinic letter|discharge summary|discharge letter)\\b",
+          "\\bmdt (letter|outcome letter|summary|report)\\b",
+          "\\bconsultant letter (received|sent|copied)\\b",
+          "\\bletter (received|copied|forwarded) (to|from)\\b",
+          "\\b(specialist|hospital) correspondence\\b",
+          "\\b(results (received|back|returned)|report received)\\b"
+        ],
+        "related_gp_visit": [
+          "\\bgp (consultation|appointment|review|visit|surgery)\\b",
+          "\\bprimary[- ]care (consultation|review|appointment)\\b",
+          "\\btelephone (consultation|triage|appointment)\\b",
+          "\\bhome visit\\b",
+          "\\bsurgery consultation\\b",
+          "\\b(seen by|reviewed by) gp\\b",
+          "\\b(locum|duty) gp\\b"
+        ],
+        "related_specialist_visit": [
+          "\\bconsultant (review|clinic|follow[- ]?up|appointment)\\b",
+          "\\b(mdt|multi[- ]?disciplinary)[ ]?(meeting|discussion|review|outcome)\\b",
+          "\\boutpatient (review|appointment|clinic|follow[- ]?up)\\b",
+          "\\b(oncology|haematology) (clinic|review|follow[- ]?up)\\b",
+          "\\b(clinic review|review in clinic|clinic follow[- ]?up)\\b",
+          "\\b(seen|reviewed) in (the )?(clinic|outpatients?)\\b"
+        ],
+        "specialist_diagnostics": [
+          "\\b(trus|transrectal ultrasound)\\b",
+          "\\b(mri prostate|mp[- ]?mri|multiparametric mri)\\b",
+          "\\b(prostate biopsy|template biopsy|transperineal biopsy)\\b",
+          "\\b(cystoscop|flexible cystoscop|ureteroscop)\\w*",
+          "\\b(renal biopsy|nephrostom)\\w*"
+        ]
+      },
+      "regex_catalogue": [
+        "\\b(prostate|prostat\\w+)\\b",
+        "\\b(psa|prostate[- ]specific antigen)\\b",
+        "\\b(urology|urological|urologist)\\b",
+        "\\b(trus|transrectal)\\b",
+        "\\b(mri prostate|mp[- ]?mri)\\b",
+        "\\b(bph|benign prostatic|lower urinary tract symptoms|luts)\\b",
+        "\\b(haematuria|blood in (the )?urine)\\b",
+        "\\b(bladder cancer|renal cell|kidney cancer)\\b",
+        "\\b(nocturia|hesitancy|poor stream|dribbling)\\b",
+        "\\b(digital rectal exam|dre)\\b"
+      ]
+    },
+    "treatment_channel": {
+      "regex_catalogue": [],
+      "snomed": []
+    }
+  },
+  "site_key": "prostate_urological",
+  "tier_thresholds": {
+    "auto_votes": 2,
+    "diversity_required_for_auto": 2,
+    "suggest_votes": 2
+  },
+  "windows": {
+    "lookahead_days": 730,
+    "lookback_days": 365
+  }
+}

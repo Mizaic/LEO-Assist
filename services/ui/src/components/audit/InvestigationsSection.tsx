@@ -8,58 +8,39 @@
  */
 "use client";
 
-import Box from "@mui/material/Box";
-import SectionCard from "./SectionCard";
-import ComparisonBarChart, { type ComparisonDataRow } from "./ComparisonBarChart";
-import BenchmarkLegend, { resolveBenchmarkValue } from "./BenchmarkLegend";
-import CancerTypeBenchmarkGrid from "./CancerTypeBenchmarkGrid";
-import SummaryStatsTable from "./SummaryStatsRow";
-import type { AuditInvestigations, AuditSectionResult } from "@/lib/analyticsApi";
-import { useAuditBenchmarkOverlay } from "@/context/AuditBenchmarkOverlayContext";
-import { buildAuditBarVisibleKeys } from "@/lib/auditVisibleKeys";
-
-/** Display label for each investigation type key (live or benchmark). */
-const INV_DISPLAY: Record<string, string> = {
-  blood_test:          "Blood test",
-  imaging:             "Imaging",
-  urinalysis:          "Urinary test",
-  urinary_test:        "Urinary test",
-  biopsy:              "Biopsy",
-  endoscopy:           "Endoscopy",
-  symptomatic_fit:     "Symptomatic FIT",
-  other_investigation: "Other",
-  investigation:       "Other",
-};
-
 /**
- * Maps a live investigation type key to the benchmark metric key in the JSON.
- * Returns null for types that have no 2018 benchmark equivalent.
+ * Investigations -- year-on-year evolution of primary-care investigation rates
+ * against the 2018 NCDA baseline.
  */
-const INV_BM_KEY: Record<string, string> = {
-  blood_test:          "investigations.blood_test_pct",
-  imaging:             "investigations.imaging_pct",
-  urinalysis:          "investigations.urinary_test_pct",
-  urinary_test:        "investigations.urinary_test_pct",
-  endoscopy:           "investigations.endoscopy_pct",
-  symptomatic_fit:     "investigations.symptomatic_fit_pct",
-  other_investigation: "investigations.other_investigation_pct",
-  investigation:       "investigations.other_investigation_pct",
-};
 
-/** Canonical ordered list of investigation types (2018 benchmark order). */
-const BM_TYPES = [
-  { type: "blood_test",          bmKey: "blood_test_pct"          },
-  { type: "imaging",             bmKey: "imaging_pct"             },
-  { type: "urinary_test",        bmKey: "urinary_test_pct"        },
-  { type: "endoscopy",           bmKey: "endoscopy_pct"           },
-  { type: "symptomatic_fit",     bmKey: "symptomatic_fit_pct"     },
-  { type: "other_investigation", bmKey: "other_investigation_pct" },
-];
+import { useMemo, useState } from "react";
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import {
+  fetchAuditInvestigations,
+  type AuditInvestigations,
+  type AuditSectionResult,
+} from "@/lib/analyticsApi";
+import { useOrgId } from "@/context/OrgContext";
+import { resolveBenchmarkValue } from "./BenchmarkLegend";
 
-const INV_BM_METRICS = BM_TYPES.map(({ type, bmKey }) => ({
-  metricKey: bmKey,
-  label: INV_DISPLAY[type] ?? type,
-}));
+import SectionCard from "./SectionCard";
+import EvolutionYearCard, { EvolutionLegendSwatch } from "./EvolutionYearCard";
+import EvolutionDetailDialog from "./EvolutionDetailDialog";
+import { useAuditYearWindows, BASELINE_YEAR } from "./_useAuditYearWindows";
+
+const ACCENT = "#0369A1";
+const C_BENCH18 = "#92400E";
+
+
+/** Strip verbose SNOMED qualifiers that slip through the backend cleaner. */
+function cleanLabel(label: string): string {
+  return label
+    .replace(/\s*\([^)]*(?:observable entity|finding|disorder|procedure)[^)]*\)\s*/gi, "")
+    .replace(/\s+level\s*$/i, "")
+    .trim();
+}
 
 interface Props {
   result: AuditSectionResult<AuditInvestigations> | null;
@@ -68,138 +49,181 @@ interface Props {
   orgSelected?: boolean;
 }
 
-export default function InvestigationsSection({ result, loading, error, orgSelected = false }: Props) {
-  const { showCancerAlliance, showAllPatients } = useAuditBenchmarkOverlay();
-  const visibleKeys = buildAuditBarVisibleKeys(orgSelected, showCancerAlliance, showAllPatients);
-  const practice    = result?.scopes.practice;
-  const allianceLive = result?.scopes.alliance_live;
-  const englandLive  = result?.scopes.england_live;
-  const bm           = result?.benchmark?.metrics;
+function formatPct(v: number | null | undefined): string | null {
+  if (v == null) return null;
+  return `${Math.round(v * 10) / 10}%`;
+}
 
-  const atLeastOneBm = resolveBenchmarkValue(bm, "investigations.at_least_one_pct", orgSelected);
+export default function InvestigationsSection({
+  result,
+  loading,
+  error,
+  orgSelected = false,
+}: Props) {
+  const orgId = useOrgId();
+  const bm = result?.benchmark?.metrics;
 
-  // ── Summary: had ≥1 investigation vs none ──────────────────────────────────
-  const summaryChart: ComparisonDataRow[] = [
-    {
-      category: "≥1 investigation",
-      practice: practice?.has_investigation_pct ?? null,
-      similar:  allianceLive?.has_investigation_pct ?? null,
-      alliance: englandLive?.has_investigation_pct ?? null,
-      national: atLeastOneBm,
-    },
-    {
-      category: "No investigation",
-      practice: practice?.no_investigation_pct ?? null,
-      similar:  allianceLive?.no_investigation_pct ?? null,
-      alliance: englandLive?.no_investigation_pct ?? null,
-      national: atLeastOneBm != null ? 100 - atLeastOneBm : null,
-    },
-  ];
+  const { liveYears } = useAuditYearWindows<AuditInvestigations>(
+    fetchAuditInvestigations,
+    { orgId },
+  );
 
-  // ── Type breakdown: union of live types + all 2018 benchmark types ─────────
-  const liveTypes = new Set((practice?.types ?? []).map((t) => t.type));
+  const [zoomYear, setZoomYear] = useState<number | null>(null);
 
-  // canonical order: BM_TYPES first (maintaining 2018 report order), then any
-  // live-only types not in the benchmark list
-  const allTypes: string[] = [
-    ...BM_TYPES.map((b) => b.type),
-    ...(practice?.types ?? [])
-      .map((t) => t.type)
-      .filter((t) => !BM_TYPES.some((b) => b.type === t || INV_BM_KEY[t] === INV_BM_KEY[b.type])),
-  ];
+  const baselinePct = useMemo(
+    () => resolveBenchmarkValue(bm, "investigations.at_least_one_pct", orgSelected),
+    [bm, orgSelected],
+  );
 
-  const typeChart: ComparisonDataRow[] = allTypes.map((typeKey) => {
-    const liveMatch = (practice?.types ?? []).find((t) => t.type === typeKey);
-    const allianceMatch = (allianceLive?.types ?? []).find((t) => t.type === typeKey);
-    const englandMatch  = (englandLive?.types ?? []).find((t) => t.type === typeKey);
-    const bmKey = INV_BM_KEY[typeKey] ?? null;
+  const zoomState = useMemo(
+    () => liveYears.find((s) => s.year === zoomYear),
+    [liveYears, zoomYear],
+  );
 
-    return {
-      category: INV_DISPLAY[typeKey] ?? typeKey,
-      practice: liveMatch?.pct ?? (liveTypes.size === 0 ? null : 0),
-      similar:  allianceMatch?.pct ?? null,
-      alliance: englandMatch?.pct ?? null,
-      national: bmKey ? resolveBenchmarkValue(bm, bmKey, orgSelected) : null,
-    };
-  });
+  const topProcedures = useMemo(
+    () => zoomState?.data?.top_procedures ?? [],
+    [zoomState],
+  );
 
-  // ── Summary table ──────────────────────────────────────────────────────────
-  const tableRows = [
-    {
-      label:    "Had at least one investigation (%)",
-      unit:     "%",
-      practice: practice  ? { value: practice.has_investigation_pct  } : null,
-      similar:  allianceLive ? { value: allianceLive.has_investigation_pct } : null,
-      alliance: englandLive  ? { value: englandLive.has_investigation_pct  } : null,
-      national: { value: atLeastOneBm },
-    },
-    ...BM_TYPES.map(({ type, bmKey }) => {
-      const liveP  = (practice?.types      ?? []).find((t) => t.type === type);
-      const liveA  = (allianceLive?.types  ?? []).find((t) => t.type === type);
-      const liveE  = (englandLive?.types   ?? []).find((t) => t.type === type);
-      return {
-        label:    `${INV_DISPLAY[type] ?? type} (of investigations) (%)`,
-        unit:     "%",
-        practice: liveP ? { value: liveP.pct } : null,
-        similar:  liveA ? { value: liveA.pct } : null,
-        alliance: liveE ? { value: liveE.pct } : null,
-        national: { value: resolveBenchmarkValue(bm, `investigations.${bmKey}`, orgSelected) },
-      };
-    }),
-  ];
 
   return (
     <SectionCard
       id="section-investigations"
       title="Investigations"
-      description="Tests ordered by the GP (family doctor) before referring the patient to a specialist."
+      description="Tests ordered by the GP before referring the patient to a specialist. Each card covers a Jan-Dec calendar year."
       availability="pipeline_pending"
       loading={loading}
+      loadingSkeletonVariant="cardGrid"
       error={error}
     >
-      <BenchmarkLegend visibleKeys={visibleKeys} orgSelected={orgSelected} />
-
-      {/* Had ≥1 investigation */}
-      <ComparisonBarChart
-        data={summaryChart}
-        unit="percent"
-        height={220}
-        visibleKeys={visibleKeys}
-        orgSelected={orgSelected}
-        ariaLabel="Proportion of patients with and without primary care investigations"
-      />
-
-      {/* Investigation type breakdown */}
-      <Box sx={{ mt: 2 }}>
-        <ComparisonBarChart
-          data={typeChart}
-          unit="percent"
-          height={Math.max(280, allTypes.length * 36 + 80)}
-          visibleKeys={visibleKeys}
-          orgSelected={orgSelected}
-          ariaLabel="Type of investigations ordered"
-        />
+      <Box sx={{ display: "flex", gap: 2, mb: 1.5, flexWrap: "wrap" }}>
+        <EvolutionLegendSwatch colour={C_BENCH18} label="2018 NCDA baseline" dashed />
+        <EvolutionLegendSwatch colour={ACCENT} label="Live year" />
       </Box>
 
-      {/* 2018 per-cancer-type benchmark grid */}
-      <CancerTypeBenchmarkGrid
-        bm={bm}
-        section="investigations"
-        metrics={INV_BM_METRICS}
-        orgSelected={orgSelected}
-        heading="2018 Investigation Types by Cancer Type"
-        showAlliance2018={orgSelected ? showCancerAlliance : undefined}
-        showNational2018={orgSelected ? showAllPatients : undefined}
-      />
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <EvolutionYearCard
+            yearLabel={String(BASELINE_YEAR)}
+            headlineValue={formatPct(baselinePct)}
+            headlineSubLabel=">= 1 investigation"
+            isBaseline
+            baselineFootnote={
+              baselinePct == null
+                ? "No published 2018 NCDA value for the selected scope."
+                : "Click the expand icon on any live year card for the per-type breakdown."
+            }
+          />
+        </Grid>
+        {liveYears.map((state) => (
+          <Grid key={state.year} size={{ xs: 12, sm: 6, md: 3 }}>
+            <EvolutionYearCard
+              yearLabel={String(state.year)}
+              loading={state.loading}
+              error={state.error}
+              totalN={state.data?.total_episodes ?? 0}
+              headlineValue={formatPct(state.data?.has_investigation_pct)}
+              headlineSubLabel=">= 1 investigation"
+              accentColor={ACCENT}
+              onZoom={() => setZoomYear(state.year)}
+              zoomAriaLabel={`Open per-type investigation breakdown for ${state.year}`}
+            />
+          </Grid>
+        ))}
+      </Grid>
 
-      <Box sx={{ mt: 2 }}>
-        <SummaryStatsTable
-          rows={tableRows}
-          visibleKeys={visibleKeys}
-          orgSelected={orgSelected}
-          caption="Investigation summary"
-        />
-      </Box>
+      <EvolutionDetailDialog
+        open={zoomYear != null}
+        onClose={() => setZoomYear(null)}
+        title={`Investigations - ${zoomYear ?? ""}`}
+        subtitle={`Coded investigations recorded in cancer episode encounters for ${zoomYear}.`}
+      >
+        {/* Ranked list of SNOMED-coded procedures/tests – primary data source */}
+        {topProcedures.length > 0 ? (
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+              Coded investigations
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+              SNOMED-coded procedures and tests from cancer episode encounters (% of episodes, ranked by frequency).
+            </Typography>
+            <Box
+              component="ol"
+              sx={{ m: 0, p: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 0.25 }}
+            >
+              {topProcedures.map((proc, i) => (
+                <Box
+                  key={proc.name}
+                  component="li"
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.5,
+                    px: 1,
+                    py: 0.75,
+                    borderRadius: 1,
+                    bgcolor: i % 2 === 0 ? "action.hover" : "transparent",
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      minWidth: 20,
+                      textAlign: "right",
+                      color: "text.disabled",
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {i + 1}
+                  </Typography>
+                  <Typography variant="body2" sx={{ flex: 1 }}>
+                    {cleanLabel(proc.name)}
+                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                      sx={{
+                        height: 6,
+                        width: Math.max(4, Math.round((proc.pct / (topProcedures[0]?.pct || 1)) * 80)),
+                        bgcolor: ACCENT,
+                        borderRadius: 1,
+                        opacity: 0.75,
+                      }}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        minWidth: 38,
+                        textAlign: "right",
+                        color: "text.secondary",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {proc.pct}%
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        minWidth: 32,
+                        textAlign: "right",
+                        color: "text.disabled",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      n={proc.n}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{ p: 2, fontSize: "0.85rem", color: "text.secondary" }}>
+            No coded investigations found for this year.
+          </Box>
+        )}
+
+      </EvolutionDetailDialog>
+
     </SectionCard>
   );
 }

@@ -95,4 +95,48 @@ describe("VT-LEO-AI-142 Training Data chrome on design-system primitives", () =>
     expect(tag).toMatch(/label:\s*"Deduplicate similar"/);
     expect(tag).toMatch(/label:\s*"Export training data"/);
   });
+
+  it("TC-008: similar-candidate lookup is opt-in after accepting gold", () => {
+    expect(source).toMatch(
+      /const\s+\[\s*findSimilarAfterGold\s*,\s*setFindSimilarAfterGold\s*\]\s*=\s*useState\(\s*false\s*\)/
+    );
+    expect(source).toContain("Look for similar candidates after accepting");
+    expect(source).toMatch(
+      /const\s+similarOpened\s*=\s*findSimilarAfterGold\s*\?\s*await\s+findSimilarCandidates\(\s*candidateId\s*,\s*sourceEntitiesJson\s*\)\s*:\s*false/
+    );
+    expect(source).not.toMatch(/function\s+openNextCandidate/);
+    expect(source).not.toMatch(/onNextCandidate=\{/);
+  });
+
+  it("TC-009: mark-gold refresh has a visible loading state", () => {
+    expect(source).toMatch(/import\s+Snackbar\s+from\s+["']@mui\/material\/Snackbar["']/);
+    expect(source).toContain("Saving gold label...");
+    expect(source).toContain("Refreshing the review queue...");
+    expect(source).toMatch(
+      /<Snackbar[\s\S]{0,400}goldSaveInFlightCount\s*>\s*0\s*\|\|\s*goldRefreshInFlight[\s\S]{0,250}anchorOrigin=\{\{\s*vertical:\s*["']bottom["'],\s*horizontal:\s*["']center["']\s*\}\}/
+    );
+    expect(source).toMatch(
+      /<CircularProgress[\s\S]{0,120}aria-label=["']Saving gold label["']/
+    );
+  });
+
+  it("TC-010: mark-gold uses optimistic local update before background refresh", () => {
+    const markGoldMatch = source.match(
+      /async\s+function\s+markCandidateAsGold[\s\S]*?\n  \}/
+    );
+    expect(markGoldMatch).not.toBeNull();
+    const markGoldSource = markGoldMatch![0];
+    expect(source).toMatch(/function\s+optimisticallyAcceptCandidate\(\s*candidateId:\s*string\s*\)/);
+    expect(source).toMatch(/function\s+refreshGoldReviewDataInBackground\(\)/);
+    expect(markGoldSource).toMatch(
+      /optimisticallyAcceptCandidate\(candidateId\);[\s\S]{0,80}setMarkingGoldCandidateId\(null\);[\s\S]{0,220}await\s+jsonFetch/
+    );
+    expect(markGoldSource).toMatch(
+      /setActionMsg\(["']Saved as gold data\. Candidate status updated to completed\.["']\);[\s\S]{0,120}refreshGoldReviewDataInBackground\(\);/
+    );
+    expect(markGoldSource).not.toMatch(
+      /await\s+Promise\.all\(\[\s*loadList\(\),\s*loadStats\(\)\s*\]\);/
+    );
+    expect(markGoldSource).not.toMatch(/\|\|\s*markingGoldCandidateId/);
+  });
 });

@@ -1,0 +1,2602 @@
+{
+  "created_at_utc": "2026-04-25T12:44:58.327163+00:00",
+  "summary": {
+    "match": "fast track (case-insensitive substring on e.text)",
+    "encounters": 431,
+    "distinct_patients": 91,
+    "apply": true,
+    "reset": false,
+    "pipeline_dry_run": false,
+    "trigger_analysis": false,
+    "queue": "pipeline-jobs"
+  },
+  "reset_by_encounter": [],
+  "queued": [
+    {
+      "patient_id": "4181221113",
+      "encounter_id": "0bd7127b-bdc0-40ee-ac5f-4634a5135f7e",
+      "run_id": "4d11e3f2-fe6f-4909-81b2-98ddd5a6207e",
+      "queued": true
+    },
+    {
+      "patient_id": "4181221113",
+      "encounter_id": "2cec40ab-5503-4231-a15f-3114ce4a343c",
+      "run_id": "c9c31ef2-4450-4d90-8be6-edc612ec2f57",
+      "queued": true
+    },
+    {
+      "patient_id": "4181221113",
+      "encounter_id": "3079d8d7-0f69-4f88-9b8e-65d5b780ef5a",
+      "run_id": "06e080da-c821-45a5-8693-b615522f5ba4",
+      "queued": true
+    },
+    {
+      "patient_id": "4181221113",
+      "encounter_id": "643b423a-bd67-4a1f-9b00-5337ca45b6dd",
+      "run_id": "f4a9ee61-cb40-4d1d-a713-03ed7f104cd8",
+      "queued": true
+    },
+    {
+      "patient_id": "4181221113",
+      "encounter_id": "77f15ed1-c457-460c-96a9-d59321913895",
+      "run_id": "7b4dad29-dfa6-4ccf-8422-4b8446dd281b",
+      "queued": true
+    },
+    {
+      "patient_id": "4181221113",
+      "encounter_id": "89accf30-11c4-45b2-85d9-7c9b6647115b",
+      "run_id": "e2dcdf1e-dda2-40ee-b3fe-21204ae3c4c6",
+      "queued": true
+    },
+    {
+      "patient_id": "4181221113",
+      "encounter_id": "e76fcf72-b186-4ed0-9c77-eadb9be75da8",
+      "run_id": "43ca2d0c-1716-496f-b5d2-1c5a03ef5099",
+      "queued": true
+    },
+    {
+      "patient_id": "4181221113",
+      "encounter_id": "fd370605-baa5-4224-a0e2-0c0cadbf67f4",
+      "run_id": "f213f299-0a12-4165-a11a-9addefc79c80",
+      "queued": true
+    },
+    {
+      "patient_id": "4185994966",
+      "encounter_id": "324ae214-592b-4980-b8d3-16f19d6ded07",
+      "run_id": "46c66a3c-02d3-4d29-8cc9-aa3a53e848ba",
+      "queued": true
+    },
+    {
+      "patient_id": "4185994966",
+      "encounter_id": "90032a0d-c5b3-4524-838e-c1e818f8870b",
+      "run_id": "acd81831-797f-4675-bbc0-5bddbd5fbdc9",
+      "queued": true
+    },
+    {
+      "patient_id": "4185994966",
+      "encounter_id": "904afd03-a780-4f9c-ac7a-408bc7d27bc2",
+      "run_id": "8c4e40ea-5a81-4fe1-82da-e7bd06682a69",
+      "queued": true
+    },
+    {
+      "patient_id": "4185994966",
+      "encounter_id": "cf32d159-fba2-462d-844c-e98a49a0f567",
+      "run_id": "8077614f-2c93-4802-82ee-e9ddaaeee7f7",
+      "queued": true
+    },
+    {
+      "patient_id": "4185994966",
+      "encounter_id": "e821abad-e619-49ca-a812-cbf4e232591c",
+      "run_id": "246cc34d-4f8e-40a2-acee-611fe17a337a",
+      "queued": true
+    },
+    {
+      "patient_id": "4185994966",
+      "encounter_id": "f076bee8-04a9-41fa-93f7-5a5b30eb22d0",
+      "run_id": "7799c572-c4d6-496b-9fb4-790e7f10beb5",
+      "queued": true
+    },
+    {
+      "patient_id": "4187508279",
+      "encounter_id": "3bea758b-0949-447d-becf-954e682c85e8",
+      "run_id": "5fe78f14-0f07-4032-bf92-b9f3f700cb7f",
+      "queued": true
+    },
+    {
+      "patient_id": "4187508279",
+      "encounter_id": "5818bb28-4293-4417-980e-ec81e87b8404",
+      "run_id": "68475182-2ddd-47c5-bc88-3ca4f1d0fd77",
+      "queued": true
+    },
+    {
+      "patient_id": "4187508279",
+      "encounter_id": "642f5f7d-fd3e-40b1-8b7d-ce0299b42cbc",
+      "run_id": "5935f425-5d7d-4103-bc8e-86c8c6b21f35",
+      "queued": true
+    },
+    {
+      "patient_id": "4187508279",
+      "encounter_id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+      "run_id": "0655683c-e5d5-4b17-9553-29286626e545",
+      "queued": true
+    },
+    {
+      "patient_id": "4187508279",
+      "encounter_id": "eea195f7-e215-41df-a46d-75fdd4ec336c",
+      "run_id": "cdfdd650-80c2-45ee-b675-23550f8bf0d2",
+      "queued": true
+    },
+    {
+      "patient_id": "4187508279",
+      "encounter_id": "f6139ca1-7309-4ac3-9c04-846ca7aa85f6",
+      "run_id": "3011bf4e-efba-4146-bf58-9150a91546db",
+      "queued": true
+    },
+    {
+      "patient_id": "4200186896",
+      "encounter_id": "20b111c2-8591-4aec-ad74-e491efda9088",
+      "run_id": "219b37a6-bd2e-481b-bd94-c671f304473c",
+      "queued": true
+    },
+    {
+      "patient_id": "4200186896",
+      "encounter_id": "bff06127-b56f-4f65-81ab-b546de35d06d",
+      "run_id": "34bd6fd2-72c2-4463-88c1-f621431e5463",
+      "queued": true
+    },
+    {
+      "patient_id": "4200779633",
+      "encounter_id": "2ce59e3c-af18-42cb-bbcf-a08a206d4d09",
+      "run_id": "d8e89be4-ad14-46f5-a448-486d5e92baec",
+      "queued": true
+    },
+    {
+      "patient_id": "4200779633",
+      "encounter_id": "879cfb1d-b2a9-4d0e-adad-3d36474b0f29",
+      "run_id": "c072d9d9-73ac-4c95-a59c-0f97a25a49e8",
+      "queued": true
+    },
+    {
+      "patient_id": "4200779633",
+      "encounter_id": "dcb25a95-3878-4574-9db4-ca7b902f78bd",
+      "run_id": "8015cf28-4887-4092-94a4-b717523e6b45",
+      "queued": true
+    },
+    {
+      "patient_id": "4200779633",
+      "encounter_id": "e67e957f-81ff-4a4b-a617-3011d8247c10",
+      "run_id": "3de51fc9-bc9d-4d21-a779-3b0b3528bc45",
+      "queued": true
+    },
+    {
+      "patient_id": "4200797127",
+      "encounter_id": "2e4f9efa-87d6-4468-8213-2a1bf6e556b2",
+      "run_id": "ff06fa68-00c2-45ad-a617-f5e6ebbe1133",
+      "queued": true
+    },
+    {
+      "patient_id": "4200797127",
+      "encounter_id": "5de55e69-4d97-41fd-aa50-32da31a61469",
+      "run_id": "fe4f9877-b7a5-4e16-8740-c6bc4b8aa4ed",
+      "queued": true
+    },
+    {
+      "patient_id": "4200797127",
+      "encounter_id": "70fa9402-9605-44a4-9bc1-4eec39b0e1d0",
+      "run_id": "f85cb210-e378-4251-bc28-0d164b4b765f",
+      "queued": true
+    },
+    {
+      "patient_id": "4200797127",
+      "encounter_id": "cf6abf60-2bbc-4bef-bd43-a72994a822d7",
+      "run_id": "664c99e8-3d2b-4029-82da-5f89bd60ba1c",
+      "queued": true
+    },
+    {
+      "patient_id": "4202301609",
+      "encounter_id": "099dcd8d-1c6c-4b99-a412-004d4e02d0fe",
+      "run_id": "888500d4-98a5-4a19-aac2-da70c7fe6821",
+      "queued": true
+    },
+    {
+      "patient_id": "4202301609",
+      "encounter_id": "232473ed-67e2-4719-800c-a965f62e7a6e",
+      "run_id": "68da88ca-d523-4b75-96d5-8fd1a07702f7",
+      "queued": true
+    },
+    {
+      "patient_id": "4202301609",
+      "encounter_id": "2dc6b337-6363-4bd2-bb3e-f32a94880709",
+      "run_id": "0aa8d3e1-225c-4ae6-a31f-5526d9f6786a",
+      "queued": true
+    },
+    {
+      "patient_id": "4202301609",
+      "encounter_id": "30960e2a-090c-4cf4-8e25-e5564fa9bd32",
+      "run_id": "1f08cc0e-d1b3-42b9-9c55-fdadcae4cc62",
+      "queued": true
+    },
+    {
+      "patient_id": "4202301609",
+      "encounter_id": "33199422-aa74-4756-8928-cc0975b68afc",
+      "run_id": "733a5473-f448-4736-9f87-d921ec81f642",
+      "queued": true
+    },
+    {
+      "patient_id": "4202301609",
+      "encounter_id": "6e76ac50-c73b-46dd-aaa5-fc990f9db03e",
+      "run_id": "a463d7de-0189-48e7-8767-78313a543355",
+      "queued": true
+    },
+    {
+      "patient_id": "4202301609",
+      "encounter_id": "bd119d86-ad1a-4ce5-a7e2-02b5b9cbee16",
+      "run_id": "0f1dd320-d8cb-46a7-b278-2c4bd85feedc",
+      "queued": true
+    },
+    {
+      "patient_id": "4202301609",
+      "encounter_id": "dc30016d-433b-4c02-8376-91a27d86f874",
+      "run_id": "52a406ad-11a7-4c90-baf4-7c9423a8b88c",
+      "queued": true
+    },
+    {
+      "patient_id": "4202339649",
+      "encounter_id": "8395c6e6-22e0-42d2-8b98-5f465c99061e",
+      "run_id": "bd8fab23-d006-4289-bdee-e8770845403b",
+      "queued": true
+    },
+    {
+      "patient_id": "4202339649",
+      "encounter_id": "aa9b8b55-756f-412f-a80a-3c47a1209d5d",
+      "run_id": "62798c73-5105-427b-901a-43e40970b178",
+      "queued": true
+    },
+    {
+      "patient_id": "4202339649",
+      "encounter_id": "aacdf5b8-58c3-4757-8ecb-fc603858d015",
+      "run_id": "6b96d4c8-2084-4304-be5d-e5ceb8d8bec2",
+      "queued": true
+    },
+    {
+      "patient_id": "4202339649",
+      "encounter_id": "ef6544e5-75b2-4cdf-90a5-a9c90efaafc1",
+      "run_id": "5473ae29-af3a-4ca9-a8a1-27e911bfd88f",
+      "queued": true
+    },
+    {
+      "patient_id": "4203796334",
+      "encounter_id": "725803fd-ff29-4a08-ab30-505b27cf1f87",
+      "run_id": "c0197523-45b7-4821-9d29-c096bb843627",
+      "queued": true
+    },
+    {
+      "patient_id": "4203796334",
+      "encounter_id": "732316ca-6d7b-4294-bb42-9a6fc456d811",
+      "run_id": "915bf878-1a57-40bd-a015-18851c9bcc43",
+      "queued": true
+    },
+    {
+      "patient_id": "4203796334",
+      "encounter_id": "7c974ece-2129-4cd5-ac6f-bcad915b30e9",
+      "run_id": "ff7b8bf9-86ab-4fbc-9123-e713f8b6609f",
+      "queued": true
+    },
+    {
+      "patient_id": "4203796334",
+      "encounter_id": "dec300a5-56a3-4558-a1e3-44a1313d6db3",
+      "run_id": "ca8d99e8-b3e0-48d5-8410-731b02d42524",
+      "queued": true
+    },
+    {
+      "patient_id": "4209455806",
+      "encounter_id": "060d42b6-46dd-41b2-af00-20eba5104a74",
+      "run_id": "0c060d4c-8bc8-4754-bcbc-00d0ce4ff761",
+      "queued": true
+    },
+    {
+      "patient_id": "4209455806",
+      "encounter_id": "64f772da-1af9-4a61-951f-be7e144bbb92",
+      "run_id": "7bd6f6f7-14a3-48ef-b83a-ea8409aee0a1",
+      "queued": true
+    },
+    {
+      "patient_id": "4209455806",
+      "encounter_id": "692de53a-5f58-43bc-a102-f524f0f8e98f",
+      "run_id": "7712d971-c68a-4ce1-9fea-74556e6e32db",
+      "queued": true
+    },
+    {
+      "patient_id": "4209455806",
+      "encounter_id": "9898b2b5-552a-48b5-8395-442497a5170a",
+      "run_id": "65b7b48b-8b52-4201-8f33-09a90c7555c5",
+      "queued": true
+    },
+    {
+      "patient_id": "4209455806",
+      "encounter_id": "ec5cd117-3dc2-44cf-9218-217ebcc52957",
+      "run_id": "faa9be06-28df-4ea0-8677-229f310ad46e",
+      "queued": true
+    },
+    {
+      "patient_id": "4209455806",
+      "encounter_id": "fc193e34-e986-4988-aa50-b79a98581563",
+      "run_id": "c88ed966-2cc8-4578-9cc4-f632a62054b9",
+      "queued": true
+    },
+    {
+      "patient_id": "4220526579",
+      "encounter_id": "2dc2fb87-47a7-4574-8fe7-7b5771ac7494",
+      "run_id": "8782249f-0f30-4988-83b3-1f26c7bada7c",
+      "queued": true
+    },
+    {
+      "patient_id": "4220526579",
+      "encounter_id": "56b529e8-f4c0-45e7-82f6-81100665ea0f",
+      "run_id": "3e0e2185-bd9f-4382-a675-6ee6f08f9cdb",
+      "queued": true
+    },
+    {
+      "patient_id": "4220526579",
+      "encounter_id": "73dd06fd-2cd7-40f5-a2fc-076025870b6b",
+      "run_id": "6a53b953-65f9-4f62-8e9e-6fdedccf19c1",
+      "queued": true
+    },
+    {
+      "patient_id": "4220526579",
+      "encounter_id": "bf2907f0-14f1-4423-82f2-a3136fecbaf6",
+      "run_id": "0245a112-10f8-4e79-ac4b-c647fa78fb0e",
+      "queued": true
+    },
+    {
+      "patient_id": "4245132175",
+      "encounter_id": "4dee2784-2229-4251-8714-78471f4686b8",
+      "run_id": "13b41811-cd9e-4649-bbed-be2e8c11bbe8",
+      "queued": true
+    },
+    {
+      "patient_id": "4245132175",
+      "encounter_id": "89e847c0-afc6-4a99-b804-5039ee3f9914",
+      "run_id": "3c40a2e7-95d7-481d-8299-9a38be60e874",
+      "queued": true
+    },
+    {
+      "patient_id": "4245132175",
+      "encounter_id": "8be641b8-8cdb-450c-adc5-08a316be9aa8",
+      "run_id": "e321f090-10a4-420c-bbf9-b9d0c6c9105a",
+      "queued": true
+    },
+    {
+      "patient_id": "4245132175",
+      "encounter_id": "c9196986-e512-49f1-b5b0-f25620059445",
+      "run_id": "fd77a43a-90e4-4e10-882a-a9c5546f4189",
+      "queued": true
+    },
+    {
+      "patient_id": "4245139757",
+      "encounter_id": "d47a07d2-dc0d-465e-badf-ca02f8332514",
+      "run_id": "884b6032-d16e-4ba8-ab05-5db21008d74d",
+      "queued": true
+    },
+    {
+      "patient_id": "4245139757",
+      "encounter_id": "ff6d8af1-fea2-4312-9bec-7463fc22a7b7",
+      "run_id": "56256849-bcef-42e3-8059-b72c3f17a8fb",
+      "queued": true
+    },
+    {
+      "patient_id": "4245896566",
+      "encounter_id": "047a4ebf-4973-4a12-b75a-9984def13b62",
+      "run_id": "250d8d80-cb9c-4868-96a4-9193ab2bc029",
+      "queued": true
+    },
+    {
+      "patient_id": "4245896566",
+      "encounter_id": "1740b631-63b0-4eb1-ab93-d16d28c7a7ef",
+      "run_id": "5f459780-dfb4-4219-9e6b-9f2c3e031810",
+      "queued": true
+    },
+    {
+      "patient_id": "4245896566",
+      "encounter_id": "9e17e3bf-fcf2-4bfa-a8b0-b2a88d36facd",
+      "run_id": "f83dc261-269c-4386-9278-0a227ed491ad",
+      "queued": true
+    },
+    {
+      "patient_id": "4245896566",
+      "encounter_id": "f364688f-0510-4f71-b1fe-8154a2c99f75",
+      "run_id": "23d2de4f-e860-439e-88a7-e5b234a01dce",
+      "queued": true
+    },
+    {
+      "patient_id": "4246428337",
+      "encounter_id": "2b15828d-25ca-406c-a675-729fd3e8f41b",
+      "run_id": "1455a22a-aec6-4e34-8547-55b0798648b3",
+      "queued": true
+    },
+    {
+      "patient_id": "4246428337",
+      "encounter_id": "54c13716-900a-4746-9465-9f4b9d3eea41",
+      "run_id": "2673bcd5-00e4-4897-97df-9fa444411e09",
+      "queued": true
+    },
+    {
+      "patient_id": "4246428337",
+      "encounter_id": "b0661e05-0fd9-4ea1-a625-ebd3ed9b4800",
+      "run_id": "20ff74ca-17fc-4e25-8a31-c8c7ccd2ac16",
+      "queued": true
+    },
+    {
+      "patient_id": "4246428337",
+      "encounter_id": "b8b27680-1120-4697-8511-3f6df0e1469c",
+      "run_id": "b0113a78-bc9e-41e3-a09b-1a6cdf14339f",
+      "queued": true
+    },
+    {
+      "patient_id": "4246627143",
+      "encounter_id": "0f891eff-568f-4065-be08-1f43914f6458",
+      "run_id": "4094eff8-adef-4bf2-922f-b555102c6731",
+      "queued": true
+    },
+    {
+      "patient_id": "4246627143",
+      "encounter_id": "720620e5-c15a-4b36-92fa-00f80560b627",
+      "run_id": "c717116b-2d11-4b83-a856-670b9281e6e5",
+      "queued": true
+    },
+    {
+      "patient_id": "4246627143",
+      "encounter_id": "7bc48a34-ef57-4006-a568-50df88f63d50",
+      "run_id": "581ea465-0cab-4e9f-a87d-a6a489f72cb6",
+      "queued": true
+    },
+    {
+      "patient_id": "4246627143",
+      "encounter_id": "7c676d50-011d-4bda-b23c-e3c4f757c71a",
+      "run_id": "966fec03-c092-4881-95d0-930ef82b03e4",
+      "queued": true
+    },
+    {
+      "patient_id": "4246627143",
+      "encounter_id": "94ee67d6-9e7e-4448-86ee-6be416234284",
+      "run_id": "11dc2f4e-9039-4010-9ab2-41db3d18c7fb",
+      "queued": true
+    },
+    {
+      "patient_id": "4246627143",
+      "encounter_id": "b818faa8-d7d4-4567-9f19-311ffbe71c88",
+      "run_id": "60d5beb2-aafd-4f39-9e38-3574304d9820",
+      "queued": true
+    },
+    {
+      "patient_id": "4246627143",
+      "encounter_id": "bb909523-14d4-449d-ae0c-56ef1ae0a245",
+      "run_id": "f2470ee5-dc2f-491d-afad-3a20e5516f21",
+      "queued": true
+    },
+    {
+      "patient_id": "4246627143",
+      "encounter_id": "ce207be7-2eea-4ab7-8846-5b849a56edee",
+      "run_id": "414ff012-de30-46d9-996b-e344bcf35714",
+      "queued": true
+    },
+    {
+      "patient_id": "4246870471",
+      "encounter_id": "29ac63a1-d8a2-47ad-bea1-bf77f26fb469",
+      "run_id": "c5887241-f1b6-4a81-927c-2bf9b6230685",
+      "queued": true
+    },
+    {
+      "patient_id": "4246870471",
+      "encounter_id": "a8fee1e5-2ccb-4149-b457-e2064566163a",
+      "run_id": "8d37d5d2-fd60-4036-8584-659f2f3dec43",
+      "queued": true
+    },
+    {
+      "patient_id": "4246870471",
+      "encounter_id": "d472ec9b-c0d1-4ad2-8667-235735500944",
+      "run_id": "31528fbc-856f-49cb-83b9-768e82472806",
+      "queued": true
+    },
+    {
+      "patient_id": "4246870471",
+      "encounter_id": "e8924c8a-c051-4d7d-8a69-3d92152d1f74",
+      "run_id": "5cd02c1d-fca1-464c-9733-7f927e5cdb97",
+      "queued": true
+    },
+    {
+      "patient_id": "4246897485",
+      "encounter_id": "61aceb67-3dcc-4f30-91d6-0a1712da43e4",
+      "run_id": "89986cb3-fcc7-44b8-8878-f34071fd16bb",
+      "queued": true
+    },
+    {
+      "patient_id": "4246897485",
+      "encounter_id": "aed8defa-40fb-4b43-9d1b-3f08a61baea7",
+      "run_id": "387ccf47-a6d9-4f6c-9d9f-31e999840883",
+      "queued": true
+    },
+    {
+      "patient_id": "4246897485",
+      "encounter_id": "d6293621-d9e0-40ef-b27f-2f3c0c1e239c",
+      "run_id": "cfc4b67b-fe90-4ee4-9fc8-3a7edb1bd5aa",
+      "queued": true
+    },
+    {
+      "patient_id": "4246897485",
+      "encounter_id": "fab36c79-935f-4920-8980-578656ae0cca",
+      "run_id": "1bf64251-1afa-44c8-9409-f201a72b3ed3",
+      "queued": true
+    },
+    {
+      "patient_id": "4247682105",
+      "encounter_id": "301d9271-18c3-44db-81b4-24a7921c7be7",
+      "run_id": "6433d473-618d-4d00-886c-a08f0a193b4d",
+      "queued": true
+    },
+    {
+      "patient_id": "4247682105",
+      "encounter_id": "49f89e21-d6db-4eb8-b8cf-ab5c68e75a63",
+      "run_id": "42bd9744-8f9b-4897-956a-448368622ad3",
+      "queued": true
+    },
+    {
+      "patient_id": "4247682105",
+      "encounter_id": "af964849-9c40-4efb-ad8e-2eda9c291f60",
+      "run_id": "1ac9cb86-60ec-44f8-be29-80e82e905f98",
+      "queued": true
+    },
+    {
+      "patient_id": "4300102074",
+      "encounter_id": "040be254-057a-43cf-adff-f5978e04db39",
+      "run_id": "402491b2-e9ca-48b0-9ca3-eba88e423332",
+      "queued": true
+    },
+    {
+      "patient_id": "4300102074",
+      "encounter_id": "9a85516b-801f-4494-8ca6-34bbcf61a4ab",
+      "run_id": "ca1fdf4a-8d5f-4d29-b80d-7846f33e137a",
+      "queued": true
+    },
+    {
+      "patient_id": "4300102074",
+      "encounter_id": "c7c9f2b9-f38e-4476-ac72-6de27b2d27ae",
+      "run_id": "7a7a2951-33ad-4722-9190-a31a88326768",
+      "queued": true
+    },
+    {
+      "patient_id": "4300102074",
+      "encounter_id": "ef7a4d56-b94a-4641-b107-ebd7d9e04736",
+      "run_id": "781d22ef-e648-4623-b3b7-d5c700730290",
+      "queued": true
+    },
+    {
+      "patient_id": "4469113522",
+      "encounter_id": "7dd0a51b-b04e-4fa2-ab56-f6b79a1cf29b",
+      "run_id": "c3ad7bca-3936-4cb4-aa5c-ce28e1515ae8",
+      "queued": true
+    },
+    {
+      "patient_id": "4469113522",
+      "encounter_id": "8aabad81-fa25-4533-9fcd-812fbdc1ff4b",
+      "run_id": "622944fe-ac5b-41fe-a191-be19e66659a6",
+      "queued": true
+    },
+    {
+      "patient_id": "4483039911",
+      "encounter_id": "34899af5-9f1e-4d2c-a227-fc17ff93601c",
+      "run_id": "53d75099-552d-4c97-a3c6-058ead4099c4",
+      "queued": true
+    },
+    {
+      "patient_id": "4483039911",
+      "encounter_id": "65265411-6c6e-46e6-8c59-2dd4e370d5ed",
+      "run_id": "0ff78684-079d-4f66-9d3c-4afc0797e18d",
+      "queued": true
+    },
+    {
+      "patient_id": "4483039911",
+      "encounter_id": "d35e9b27-3c0a-4d0a-95ae-596b4d8534d5",
+      "run_id": "bc3835d2-c8e9-481f-927f-6fb3604e4fc9",
+      "queued": true
+    },
+    {
+      "patient_id": "4483039911",
+      "encounter_id": "e826859a-4ec0-4a06-8bdc-f5403687fe43",
+      "run_id": "7b9061f1-befd-4933-bc56-cb1a57a4f6e3",
+      "queued": true
+    },
+    {
+      "patient_id": "4505618269",
+      "encounter_id": "babca43c-585e-4321-9ebc-ef3b2f6487bc",
+      "run_id": "55adc50c-996e-47fc-9fe6-426316840eeb",
+      "queued": true
+    },
+    {
+      "patient_id": "4505618269",
+      "encounter_id": "d317a432-d4ce-4ee3-a430-c2cce349e338",
+      "run_id": "22353f05-657f-4bbe-b456-5615073789ff",
+      "queued": true
+    },
+    {
+      "patient_id": "4505618269",
+      "encounter_id": "e0eef40e-e1a9-42cc-824f-f6a8009bf94b",
+      "run_id": "10b87365-77cb-4d69-8fc6-1917600ef2ed",
+      "queued": true
+    },
+    {
+      "patient_id": "4505618269",
+      "encounter_id": "f75779c7-a9aa-427f-beb2-4d7c6ab50c3a",
+      "run_id": "b6f878ae-4a5f-4672-894d-beb726499294",
+      "queued": true
+    },
+    {
+      "patient_id": "4560488509",
+      "encounter_id": "3795b1e4-a76c-4a51-b426-11558862db8e",
+      "run_id": "067786f6-8ab7-4c51-855b-3500e8f2db8a",
+      "queued": true
+    },
+    {
+      "patient_id": "4560488509",
+      "encounter_id": "3bf80f94-cb99-492d-a081-a85474479868",
+      "run_id": "fc13c5f8-0332-48a8-a5fd-ff8c7d483e9e",
+      "queued": true
+    },
+    {
+      "patient_id": "4560488509",
+      "encounter_id": "41709fad-9451-4811-a49d-6bad73a0114a",
+      "run_id": "18c182e0-16a9-4a98-a5e2-79b6f2b23e91",
+      "queued": true
+    },
+    {
+      "patient_id": "4560488509",
+      "encounter_id": "58df7ac3-ef7f-452b-b48a-2e5c691e1d19",
+      "run_id": "c406b3a1-250e-483f-94a8-6228b51dd989",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "0070090d-ddd5-4055-b784-2142e3856a8e",
+      "run_id": "7947ea86-8bc0-4cb1-a1f5-4363186b93d5",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "09ffe946-8903-49bb-9497-bb9d36efc5ea",
+      "run_id": "a08fe0cc-1100-42da-bc81-908d31e63e48",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "3d6ef018-3fef-431f-81c7-bd30ed3a10e0",
+      "run_id": "a08384d1-f8a6-4100-a77c-4e6bc4e40104",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "49290be7-0101-4427-8ff6-ae500d1d284e",
+      "run_id": "7337b98e-e19a-4def-85a5-c9fe84269736",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "56756086-2093-4bd4-a1fd-cfeb4f7727fd",
+      "run_id": "ee1f9bc6-72db-4d84-bd19-a1488ab99dd9",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "755bd4e5-8f1d-4df9-97ef-59c3c73285cb",
+      "run_id": "19fc8164-bdb1-487f-ad91-554483d20e1b",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "86c3c739-d51a-4b62-ae82-fda5c545c98f",
+      "run_id": "d9fe3eb4-c40f-493b-afc6-f3065bbef5a1",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "9cccdc20-85fb-4572-97f6-031f1f15a733",
+      "run_id": "e667307a-03b1-4743-b308-26eb3a370d39",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "a1a0d2ac-8c92-4a5a-89dd-d2f0c6d04762",
+      "run_id": "c24af270-e7a6-4f4c-8ae6-d073e79b2ed7",
+      "queued": true
+    },
+    {
+      "patient_id": "4563591157",
+      "encounter_id": "e861a99d-430a-4b8c-8c9b-71c4e7fe2734",
+      "run_id": "2d56133f-1a42-48e8-b847-8c053e041376",
+      "queued": true
+    },
+    {
+      "patient_id": "4587070033",
+      "encounter_id": "242c90f5-63cc-4511-8749-725b7e22860c",
+      "run_id": "73ed10b3-afdd-40bb-993b-c00bcd1ad747",
+      "queued": true
+    },
+    {
+      "patient_id": "4587070033",
+      "encounter_id": "78f3f162-0f5b-4f44-bb12-0d9333ff3bc8",
+      "run_id": "09a7e50b-ce3e-4c18-9448-21f72f5f81fd",
+      "queued": true
+    },
+    {
+      "patient_id": "4587070033",
+      "encounter_id": "98374d85-05d1-493f-9f4a-424ab9982bd2",
+      "run_id": "280e7705-05d1-478e-8554-f2289d5627e9",
+      "queued": true
+    },
+    {
+      "patient_id": "4587070033",
+      "encounter_id": "e333282a-83b7-4776-953e-48dd755eea31",
+      "run_id": "5b589f9b-b251-4401-b460-2533a5627c31",
+      "queued": true
+    },
+    {
+      "patient_id": "4587343129",
+      "encounter_id": "5dde54d6-138a-41a8-a6cb-e3b61e45b2ff",
+      "run_id": "9f737e77-e4c8-41ca-842e-9ddc1fbbfa53",
+      "queued": true
+    },
+    {
+      "patient_id": "4587343129",
+      "encounter_id": "6eaabb80-e7ba-4bec-91bd-71f9aa11f416",
+      "run_id": "4c297168-6f36-4688-85b8-0e2fd9511540",
+      "queued": true
+    },
+    {
+      "patient_id": "4587343129",
+      "encounter_id": "71f27817-9e24-43c4-bd1d-69f57a16beb0",
+      "run_id": "d9b0b9d9-9574-458c-a3a3-aa6647604d0d",
+      "queued": true
+    },
+    {
+      "patient_id": "4587343129",
+      "encounter_id": "b1b73a0e-c67b-4a0b-b8fa-bde3219534ac",
+      "run_id": "014b5a13-7837-4f6d-a89e-e1e6d7d72a38",
+      "queued": true
+    },
+    {
+      "patient_id": "4587358606",
+      "encounter_id": "1adb8d81-3bd3-4220-8888-2b9663994b87",
+      "run_id": "9d0eb43b-afa4-4223-bd41-4b3e4657a69e",
+      "queued": true
+    },
+    {
+      "patient_id": "4587358606",
+      "encounter_id": "38b829f2-f7b2-4538-915f-ee65dceee6c8",
+      "run_id": "eb8cc0b1-c2d1-489d-b672-30dfd0c99622",
+      "queued": true
+    },
+    {
+      "patient_id": "4587358606",
+      "encounter_id": "5fda1a01-b882-455c-be88-9f9230886440",
+      "run_id": "d58391dc-c87e-43b2-8bba-aedc8f03de8d",
+      "queued": true
+    },
+    {
+      "patient_id": "4587358606",
+      "encounter_id": "f641e837-e797-4b2a-ba67-2dd208c5aa3a",
+      "run_id": "59fa1bba-a3c0-4363-a3f7-cdaa7ba4e1b6",
+      "queued": true
+    },
+    {
+      "patient_id": "4587360686",
+      "encounter_id": "19f9f396-2bef-4f04-996d-83c008eb5771",
+      "run_id": "654c239d-d6de-4a16-b588-528b86f79d09",
+      "queued": true
+    },
+    {
+      "patient_id": "4587360686",
+      "encounter_id": "eea3b9f1-89b0-4fb7-9f47-871bda7c92f3",
+      "run_id": "0b8f9db4-2fd7-4e8b-8236-ae34a5224487",
+      "queued": true
+    },
+    {
+      "patient_id": "4621680811",
+      "encounter_id": "8f7df738-7c26-4c69-a727-e4448ca28131",
+      "run_id": "5c1e3f83-87c4-41e3-9902-4ba1608f15f1",
+      "queued": true
+    },
+    {
+      "patient_id": "4621680811",
+      "encounter_id": "94bfbae0-43b8-4425-8529-353001046d0a",
+      "run_id": "aa2869a6-ccab-404b-b5a8-2690fa8b1f9d",
+      "queued": true
+    },
+    {
+      "patient_id": "4621680811",
+      "encounter_id": "cc658f34-5bd9-43b6-b1e6-626cf0617565",
+      "run_id": "aba5eccf-d1bf-4934-b66a-1a76e256d367",
+      "queued": true
+    },
+    {
+      "patient_id": "4622879921",
+      "encounter_id": "09cc1d86-887f-4956-bf0b-bcae82852378",
+      "run_id": "48fa614a-c032-4c2c-abae-142491425689",
+      "queued": true
+    },
+    {
+      "patient_id": "4622879921",
+      "encounter_id": "0ac265d2-e2fd-4bfd-b50c-5c7cf43ee584",
+      "run_id": "0b5e8ba7-16a6-4a09-b79a-d1725ab30bd5",
+      "queued": true
+    },
+    {
+      "patient_id": "4622879921",
+      "encounter_id": "9f5d61e8-2950-4d54-858a-04a24f6f4243",
+      "run_id": "2d166d81-492f-46ca-b87a-c139f006f9b9",
+      "queued": true
+    },
+    {
+      "patient_id": "4622879921",
+      "encounter_id": "a975761b-5ae6-4c3b-a96d-c726dea5daec",
+      "run_id": "a56fd998-510e-4ed4-882a-1464670d6f5b",
+      "queued": true
+    },
+    {
+      "patient_id": "4622879921",
+      "encounter_id": "ac2843d0-0439-475e-a79e-48283c3e6ddf",
+      "run_id": "477fe180-15ee-4e1d-8956-2059e35fbe59",
+      "queued": true
+    },
+    {
+      "patient_id": "4622879921",
+      "encounter_id": "cce32410-0efb-4daf-9b32-2daae2f89fed",
+      "run_id": "d86724d0-4d2c-4c93-bfca-c0d2cd17ad42",
+      "queued": true
+    },
+    {
+      "patient_id": "4640519532",
+      "encounter_id": "9b09fc26-1391-4732-bfd0-7bd55ce07cc8",
+      "run_id": "3c9de5eb-c00f-4c3b-96d3-af056eeef805",
+      "queued": true
+    },
+    {
+      "patient_id": "4640519532",
+      "encounter_id": "aea5df97-7c6f-4a6e-9ce6-7f25375d8646",
+      "run_id": "e5cf06ab-d0bf-46aa-bd68-7b1323213110",
+      "queued": true
+    },
+    {
+      "patient_id": "4640519532",
+      "encounter_id": "c4dc4dd8-3646-45e0-b232-9739f531a5c7",
+      "run_id": "af84bd1d-88ac-43f3-9d1c-a0573dfa9521",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "01b2f895-e89c-4f57-b373-6defcebd6444",
+      "run_id": "55a171d6-f557-459a-9721-783e0541750a",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "08f5eff3-0d90-49d1-98da-2274928a8d76",
+      "run_id": "8506d9f0-1eec-4a10-a189-931d5b306202",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "282e41b7-1804-4081-a654-82aaa6ef5b58",
+      "run_id": "86ffbb67-e333-4f7f-9114-95fc06d10508",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "7700341a-42dc-4ed4-98c9-830d1df9d5e4",
+      "run_id": "66345ec1-7107-4f0f-a152-43233586e7db",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "9568cefa-bd80-4c00-bc5b-c4764e9978a0",
+      "run_id": "fb23191d-e3a0-4b4c-bdbc-79f096d46a82",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "b4002a22-ac28-43c3-946e-6b037ef9c96a",
+      "run_id": "ea94f586-b3eb-4e95-bfae-327cb933a5f2",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "b7f43099-af53-4ebe-b051-d478705408f8",
+      "run_id": "8f228ced-fbbd-411e-b11a-d53bcf6e669f",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "ba4c64ce-8419-4a8c-8f01-7a5b2259eb81",
+      "run_id": "7cb1eeb7-f79a-488e-931f-eba09b1aa04e",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "bbc7631f-ba10-4727-8205-a4fdb7669d79",
+      "run_id": "8f11a994-a7d2-483e-95ac-02eb57215344",
+      "queued": true
+    },
+    {
+      "patient_id": "4643293950",
+      "encounter_id": "ddb43e6d-fce1-47ca-b3e0-0eddc55e7515",
+      "run_id": "fd45f0af-3f49-43aa-a716-31815740c7e2",
+      "queued": true
+    },
+    {
+      "patient_id": "4644882798",
+      "encounter_id": "5972b2c4-25c6-4f05-a933-c25bd01d38bb",
+      "run_id": "0ee66437-07c6-4fef-b914-67d50a72660b",
+      "queued": true
+    },
+    {
+      "patient_id": "4644882798",
+      "encounter_id": "870a4c9d-13a4-45e7-95df-45e8eb45c235",
+      "run_id": "b385c5ce-1a3e-4086-859b-281dea1800b8",
+      "queued": true
+    },
+    {
+      "patient_id": "4644882798",
+      "encounter_id": "9b169a6a-4f1a-4f1a-a7ca-d3d4ee564a56",
+      "run_id": "0fb9cf75-ffc5-4dfc-9fc8-fb6dd4854564",
+      "queued": true
+    },
+    {
+      "patient_id": "4644882798",
+      "encounter_id": "aaf99bd1-fd29-4969-b35b-a5d094e0f4a7",
+      "run_id": "4634b13b-08e9-428f-918c-c58e1caeb99c",
+      "queued": true
+    },
+    {
+      "patient_id": "4709023328",
+      "encounter_id": "2d7385c6-14ba-4264-9be7-78af6d944a49",
+      "run_id": "5f9771e1-cbc0-474c-b083-50b7996c1011",
+      "queued": true
+    },
+    {
+      "patient_id": "4709023328",
+      "encounter_id": "ef4648f8-6430-41b0-8f23-4da6c077ab4b",
+      "run_id": "281ba4e3-b3d2-43e2-a01f-a6664b1ebe37",
+      "queued": true
+    },
+    {
+      "patient_id": "4783328935",
+      "encounter_id": "2111bb76-e37d-4363-8e7e-91ca0d149b42",
+      "run_id": "2652418b-4390-4bbd-8335-8f4801c86621",
+      "queued": true
+    },
+    {
+      "patient_id": "4802235577",
+      "encounter_id": "3411243d-3cb3-4eb2-b9ed-477e1a278bc2",
+      "run_id": "02ddddf7-22be-452e-8083-0a45f27277d1",
+      "queued": true
+    },
+    {
+      "patient_id": "4802235577",
+      "encounter_id": "3706253e-741a-42d2-b630-f430132093a1",
+      "run_id": "bfe6f739-2833-4cb7-a42b-97ffff60cc15",
+      "queued": true
+    },
+    {
+      "patient_id": "4802235577",
+      "encounter_id": "47aa3d15-1044-4740-94ba-a5b5feb22757",
+      "run_id": "2e8dc354-2806-4ab7-8167-9a6477d9a0ed",
+      "queued": true
+    },
+    {
+      "patient_id": "4802235577",
+      "encounter_id": "6323957b-db2a-4c3f-a6a6-1ddfdbe84339",
+      "run_id": "69e4a2b3-6cc2-4223-99ea-9c0e55651f82",
+      "queued": true
+    },
+    {
+      "patient_id": "4802241127",
+      "encounter_id": "62842933-c2d5-4ff5-95c1-e50b5e5595c5",
+      "run_id": "c42b7935-b155-47e4-8194-ad273f9f19f8",
+      "queued": true
+    },
+    {
+      "patient_id": "4802241127",
+      "encounter_id": "6ec0a187-bf7e-4017-858e-e9d82f868eca",
+      "run_id": "a93d1609-d787-476c-84c1-fb8af47ca801",
+      "queued": true
+    },
+    {
+      "patient_id": "4802241127",
+      "encounter_id": "70530975-b9f9-4a94-86ab-675ecf7a5d4b",
+      "run_id": "5785a980-cc39-41bc-9ba3-929b17be3b52",
+      "queued": true
+    },
+    {
+      "patient_id": "4802241127",
+      "encounter_id": "daba8c6c-aaca-42b4-a9cc-f234864e9829",
+      "run_id": "e75b4081-aa2e-4438-b289-ed89c64430f2",
+      "queued": true
+    },
+    {
+      "patient_id": "4802241127",
+      "encounter_id": "f703e498-c2e7-49c6-a17b-0b093cb0a042",
+      "run_id": "c4061ac4-1752-4a6d-9c14-4c1ac8c0e5ef",
+      "queued": true
+    },
+    {
+      "patient_id": "4802241127",
+      "encounter_id": "f85bc466-e76f-485a-b79a-79fab2d2c873",
+      "run_id": "bcd1557a-1b0c-48fa-bf38-1deeb30dbe0b",
+      "queued": true
+    },
+    {
+      "patient_id": "4802297327",
+      "encounter_id": "0895ad95-a7bb-4a92-9786-2f5063019950",
+      "run_id": "27f111e7-1b8a-44a9-8044-77ab783f24a7",
+      "queued": true
+    },
+    {
+      "patient_id": "4802297327",
+      "encounter_id": "61b56ea9-4e6d-4b52-b63c-38175a92a703",
+      "run_id": "7234ce78-55e7-499c-9966-2c05cbc284ff",
+      "queued": true
+    },
+    {
+      "patient_id": "4802297327",
+      "encounter_id": "c47aba72-3b5b-442d-92a4-e18f79a4c2d9",
+      "run_id": "9c2e1a81-d15c-45e5-983b-a9346aa30272",
+      "queued": true
+    },
+    {
+      "patient_id": "4802297327",
+      "encounter_id": "fa3bf462-793f-4593-9dab-3707fae134d2",
+      "run_id": "e12ce9e5-d589-4ed7-9df4-ffe02f6f4960",
+      "queued": true
+    },
+    {
+      "patient_id": "4802892365",
+      "encounter_id": "2e96eda1-449c-426a-97a0-64253a0de9f7",
+      "run_id": "f8db37d9-126d-44dd-82cf-6db2849a353e",
+      "queued": true
+    },
+    {
+      "patient_id": "4802892365",
+      "encounter_id": "3fd817bd-6547-4b6f-9347-45ad7a77ac23",
+      "run_id": "49d465b7-b3f2-41a5-80b2-18750cb76a54",
+      "queued": true
+    },
+    {
+      "patient_id": "4802892365",
+      "encounter_id": "621e5db9-0a87-4dfb-961f-c86b709580d8",
+      "run_id": "66f8248f-7955-43f6-abf8-bb12a17629a8",
+      "queued": true
+    },
+    {
+      "patient_id": "4802892365",
+      "encounter_id": "64678558-69b8-4897-be39-2480a8920267",
+      "run_id": "93ac26ab-dded-464a-8fc8-9230c6ce3087",
+      "queued": true
+    },
+    {
+      "patient_id": "4808735946",
+      "encounter_id": "462a8efb-c9b5-4b4c-b6a9-c4c294c1eb98",
+      "run_id": "59857791-3858-4e9a-823e-027ff1d4fabc",
+      "queued": true
+    },
+    {
+      "patient_id": "4808735946",
+      "encounter_id": "4bc03806-9096-4867-be7b-43bb2b387595",
+      "run_id": "aa631977-3f4f-4e38-8993-19ed824b43a5",
+      "queued": true
+    },
+    {
+      "patient_id": "4808735946",
+      "encounter_id": "7cf6b6d6-eb3a-4426-8234-b5a4cd401ac4",
+      "run_id": "ef7f76d8-dba9-43fe-a560-25b4965c2c79",
+      "queued": true
+    },
+    {
+      "patient_id": "4808735946",
+      "encounter_id": "e216eb6f-2ef6-416a-bc78-c337849158aa",
+      "run_id": "ebcb8f5c-862a-4b4b-ade1-4b0c5c817fdc",
+      "queued": true
+    },
+    {
+      "patient_id": "4821512173",
+      "encounter_id": "258e423d-4bef-4626-a1a5-e3dc2c802e22",
+      "run_id": "66e3ae45-f768-4b2e-b919-e8884ee338f9",
+      "queued": true
+    },
+    {
+      "patient_id": "4821512173",
+      "encounter_id": "96546382-1e57-4214-a157-d78d90201258",
+      "run_id": "1ef7b7e0-7387-4d01-bebe-a48ae99421e9",
+      "queued": true
+    },
+    {
+      "patient_id": "4821512173",
+      "encounter_id": "a77f7568-b540-4184-9b51-aafc779b57eb",
+      "run_id": "19599deb-9bd0-41d5-a938-eeda4c6d32da",
+      "queued": true
+    },
+    {
+      "patient_id": "4821512173",
+      "encounter_id": "ca88c3cb-d61c-4618-9d81-15b7f085c37e",
+      "run_id": "a3674dda-1865-4696-a8ee-f8d77cd62c0b",
+      "queued": true
+    },
+    {
+      "patient_id": "4822020479",
+      "encounter_id": "870bcbb1-9e7f-445d-86ef-cfa02ba00b19",
+      "run_id": "452cc12a-36e0-441f-a375-7b0d4b2ade6f",
+      "queued": true
+    },
+    {
+      "patient_id": "4822020479",
+      "encounter_id": "8842048a-8235-4a81-984b-4250740007e4",
+      "run_id": "76b31b43-c8bb-4ca3-a4bc-f9dbb710e451",
+      "queued": true
+    },
+    {
+      "patient_id": "4822020479",
+      "encounter_id": "aea421d0-67b0-4a88-82b8-4cd87e218743",
+      "run_id": "0470e8a4-9e3f-45aa-8692-f485b2f0faec",
+      "queued": true
+    },
+    {
+      "patient_id": "4822020479",
+      "encounter_id": "eb87d358-6ffe-4982-8ff6-4185b076106a",
+      "run_id": "af47d7f2-4950-4b54-a2fe-6f6ba1c9a468",
+      "queued": true
+    },
+    {
+      "patient_id": "4822890058",
+      "encounter_id": "0f8f8f96-2b5a-4a0d-a997-d27427d2fe99",
+      "run_id": "a2868dbc-b1d2-4154-aa91-dc3e08b3fe8b",
+      "queued": true
+    },
+    {
+      "patient_id": "4822890058",
+      "encounter_id": "176bd9af-8bb7-41b0-9379-3b0b0637d853",
+      "run_id": "7ad6f53c-16ec-4aaf-8e75-059c7dc9fd38",
+      "queued": true
+    },
+    {
+      "patient_id": "4822890058",
+      "encounter_id": "48c95918-92aa-4137-b501-ca4a1d25c003",
+      "run_id": "761e1adb-b19b-48c6-964f-5521ba130d57",
+      "queued": true
+    },
+    {
+      "patient_id": "4822890058",
+      "encounter_id": "74cc4453-9b42-46d4-8dd2-50461ba5eb6e",
+      "run_id": "8247f384-f820-4a71-ae92-cfd5944483e8",
+      "queued": true
+    },
+    {
+      "patient_id": "4842019832",
+      "encounter_id": "3af47f23-0d57-4e11-aac1-7279c5ac9cd8",
+      "run_id": "875a1a8f-3330-499d-bfe1-a5f00aeabde2",
+      "queued": true
+    },
+    {
+      "patient_id": "4842019832",
+      "encounter_id": "84f04988-13db-49a8-b913-50f75d0e4503",
+      "run_id": "f3fd2a07-9cfd-4574-8f32-cbcd054d2e47",
+      "queued": true
+    },
+    {
+      "patient_id": "4842019832",
+      "encounter_id": "98fc53f8-3505-486e-bdb7-763ccd3f36ae",
+      "run_id": "73a2ee2a-d14f-4d40-ada5-781b2ead6f87",
+      "queued": true
+    },
+    {
+      "patient_id": "4842019832",
+      "encounter_id": "d747d61f-6a7e-40fe-92f4-fc9b040bbba0",
+      "run_id": "84e32bcb-4aed-486f-bc32-75e48a2730ca",
+      "queued": true
+    },
+    {
+      "patient_id": "4866772573",
+      "encounter_id": "042743b9-3806-493e-881b-f13d7eb0c5a9",
+      "run_id": "a382082e-2b8a-41a1-9756-622ff08ecce0",
+      "queued": true
+    },
+    {
+      "patient_id": "4866772573",
+      "encounter_id": "77703b12-30c7-4fc1-a26e-0d95a716026d",
+      "run_id": "409a1dbe-1196-4550-b653-6a878c11f7d8",
+      "queued": true
+    },
+    {
+      "patient_id": "4866772573",
+      "encounter_id": "996417e4-8720-4c1f-abdc-9d2a2a63e3f6",
+      "run_id": "f5c0ee54-c0f3-4380-99ba-0f32496f1608",
+      "queued": true
+    },
+    {
+      "patient_id": "4866803525",
+      "encounter_id": "1fe3c051-5b5c-4b1c-9943-9aa0620749ba",
+      "run_id": "0356a16f-dda2-40fd-b422-cc9e17026b77",
+      "queued": true
+    },
+    {
+      "patient_id": "4866803525",
+      "encounter_id": "54339b31-3f6c-42ca-8028-53a136058bd3",
+      "run_id": "c33149c9-a465-4432-9629-ad3bdc53e408",
+      "queued": true
+    },
+    {
+      "patient_id": "4866803525",
+      "encounter_id": "927a248c-8b91-4257-907a-bea92767481b",
+      "run_id": "dd04a4bd-4374-49e6-8dc2-30540622c3e2",
+      "queued": true
+    },
+    {
+      "patient_id": "4866803525",
+      "encounter_id": "ec780101-965b-4d27-9dfd-206f5cc4da0d",
+      "run_id": "342ab385-c134-40a1-b463-1fcf38a7ab7f",
+      "queued": true
+    },
+    {
+      "patient_id": "4867552062",
+      "encounter_id": "0066c508-0939-4b6e-a712-19c6e41806ac",
+      "run_id": "a066331f-5f42-49d5-8e3f-032ea32c3f05",
+      "queued": true
+    },
+    {
+      "patient_id": "4867552062",
+      "encounter_id": "3b21332f-0440-48c8-a185-aa98db47278c",
+      "run_id": "166c7d9d-7c48-43a4-bd07-dea17aa87787",
+      "queued": true
+    },
+    {
+      "patient_id": "4867552062",
+      "encounter_id": "76b3a6cd-597d-49ec-aded-9c94b5d539b3",
+      "run_id": "6a9ae69e-7dc2-44a2-be03-d8be49f5db01",
+      "queued": true
+    },
+    {
+      "patient_id": "4883794091",
+      "encounter_id": "20f4deaa-c240-4716-be43-c2e724caa0f2",
+      "run_id": "efe494df-711b-4ee9-b7c4-2b855abbedd5",
+      "queued": true
+    },
+    {
+      "patient_id": "4883794091",
+      "encounter_id": "72c8630b-82b1-46dc-9725-b5487f633c38",
+      "run_id": "3ee5187d-7b87-421d-b96d-b3a10eaf733d",
+      "queued": true
+    },
+    {
+      "patient_id": "4883794091",
+      "encounter_id": "82503239-b088-4b36-8445-fb36aa09405e",
+      "run_id": "630c2708-2384-4c0a-8e08-9a9a33dbaed1",
+      "queued": true
+    },
+    {
+      "patient_id": "4883794091",
+      "encounter_id": "f8b5ea79-61aa-4353-8a57-e5f3c8608a82",
+      "run_id": "11aa5adc-ae82-464f-87a9-dd068ce1f6e3",
+      "queued": true
+    },
+    {
+      "patient_id": "4920262426",
+      "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+      "run_id": "960fd9c9-39ee-40f8-9a1a-011641660f27",
+      "queued": true
+    },
+    {
+      "patient_id": "4920262426",
+      "encounter_id": "6daf697b-7d4b-4f57-b7e6-89a8cb117e24",
+      "run_id": "fb588ded-1d9d-46e4-9a8e-ad1dda17891f",
+      "queued": true
+    },
+    {
+      "patient_id": "4920262426",
+      "encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0",
+      "run_id": "1a17aa8d-863b-47a7-bc30-50dbe01bcc2b",
+      "queued": true
+    },
+    {
+      "patient_id": "4920262426",
+      "encounter_id": "8a739bf0-0795-4ffa-a1c1-91907705d487",
+      "run_id": "a303f759-b1f9-4534-a226-38bafc5b1143",
+      "queued": true
+    },
+    {
+      "patient_id": "4920262426",
+      "encounter_id": "da47863c-cd5f-4f5d-a869-44724e383ba4",
+      "run_id": "8a7d753d-d362-45a7-80e1-a09b0ebe19b6",
+      "queued": true
+    },
+    {
+      "patient_id": "4920262426",
+      "encounter_id": "da4a5ed1-d74f-4bf2-bc44-213cf8ece2a1",
+      "run_id": "7fdd689f-568d-4820-86c4-88223bfd7fcc",
+      "queued": true
+    },
+    {
+      "patient_id": "4920262426",
+      "encounter_id": "e6eac76c-8e39-4a35-b703-4074ba5b64a1",
+      "run_id": "23f0759d-ad21-4399-a08b-68b9b59b0a98",
+      "queued": true
+    },
+    {
+      "patient_id": "4920262426",
+      "encounter_id": "e9457855-54f1-4906-bc9d-761f7f1099c4",
+      "run_id": "d0652e8b-017a-4529-97cb-2edcd812e006",
+      "queued": true
+    },
+    {
+      "patient_id": "4921442355",
+      "encounter_id": "59f3c88d-ff8c-4cd0-bdd4-50bc201eb3f5",
+      "run_id": "886976f4-00cf-4758-8988-2f8a0a0109f9",
+      "queued": true
+    },
+    {
+      "patient_id": "4921442355",
+      "encounter_id": "6db6bfbd-1345-403e-9a59-d3869d8e50b0",
+      "run_id": "38e695fc-f68e-4665-aa9d-e568f1d08862",
+      "queued": true
+    },
+    {
+      "patient_id": "4921442355",
+      "encounter_id": "eee4faa8-7f14-4cc8-b132-4e53ef1ff5dc",
+      "run_id": "52d514c8-b91d-460b-8c9d-368e9837a4f2",
+      "queued": true
+    },
+    {
+      "patient_id": "4926887169",
+      "encounter_id": "0d39d9df-0bb4-40c2-a6fc-f1064f42cc73",
+      "run_id": "02eb4346-59cf-47c7-b2c8-5dc3414b051d",
+      "queued": true
+    },
+    {
+      "patient_id": "4926887169",
+      "encounter_id": "11aa21b2-be47-44fb-8d2a-f09460a94f47",
+      "run_id": "bbda116d-8b4e-4f95-8898-5a18dd7a7e8e",
+      "queued": true
+    },
+    {
+      "patient_id": "4926887169",
+      "encounter_id": "9c7895aa-f946-4284-9915-9b5ba8351479",
+      "run_id": "4aab6439-a7c6-4bd6-b81b-26be7a6b5ec1",
+      "queued": true
+    },
+    {
+      "patient_id": "4926887169",
+      "encounter_id": "fd5207ea-c764-441e-b4b4-93a3b92aeddc",
+      "run_id": "3e880149-1d49-4a18-9f44-65ea019e4910",
+      "queued": true
+    },
+    {
+      "patient_id": "4926916703",
+      "encounter_id": "023d815b-8225-4aa6-9515-c232e118cdee",
+      "run_id": "272579b9-1b40-458b-8f3b-e59bf77e8539",
+      "queued": true
+    },
+    {
+      "patient_id": "4926916703",
+      "encounter_id": "2a785f7a-e759-4d0a-a50e-0cdf7dd53457",
+      "run_id": "1bcaae0d-479a-408b-b67c-d5ee87a6345a",
+      "queued": true
+    },
+    {
+      "patient_id": "4926916703",
+      "encounter_id": "2f65232c-e067-4f5e-b512-b00bcbbf6906",
+      "run_id": "a760830d-c94f-42cc-87bf-350156440bfb",
+      "queued": true
+    },
+    {
+      "patient_id": "4926916703",
+      "encounter_id": "3b3817c2-bb28-4abb-aab4-395d101bb77f",
+      "run_id": "9af60791-69f4-414e-8df8-f37ab9fbce6f",
+      "queued": true
+    },
+    {
+      "patient_id": "4926916703",
+      "encounter_id": "6116119b-704a-48cc-b77d-91d334868031",
+      "run_id": "9034ea7f-097c-4915-93f0-2c55dc46cd31",
+      "queued": true
+    },
+    {
+      "patient_id": "4926916703",
+      "encounter_id": "6f29c1d4-70cd-47e2-9ade-be51e2329fa1",
+      "run_id": "9354d085-5858-48f5-a9a3-c0b32944fc2b",
+      "queued": true
+    },
+    {
+      "patient_id": "4926916703",
+      "encounter_id": "788d3fb4-8529-40c0-96aa-f026b6e59b95",
+      "run_id": "63d5f92b-4cfd-474a-9987-fc0f82cf52f0",
+      "queued": true
+    },
+    {
+      "patient_id": "4926916703",
+      "encounter_id": "d7486208-c595-477e-9341-da7a0b021713",
+      "run_id": "ea113e37-2ae0-4196-8570-998a31ea5c93",
+      "queued": true
+    },
+    {
+      "patient_id": "4926940965",
+      "encounter_id": "2c02f862-6ec8-4026-9846-9f5880aa9a51",
+      "run_id": "1305c6ce-73eb-4b9e-9fe3-d9ba3cda43b1",
+      "queued": true
+    },
+    {
+      "patient_id": "4926940965",
+      "encounter_id": "99d703dd-914d-4bd1-a72b-856b3252370f",
+      "run_id": "22d628ae-dbcd-46fb-bf9a-8f94bc4c4184",
+      "queued": true
+    },
+    {
+      "patient_id": "4926940965",
+      "encounter_id": "a74bc2bf-c304-4da7-8a12-5a6c50efaaa7",
+      "run_id": "01af5cba-6124-4252-8c6f-3173c4e4af13",
+      "queued": true
+    },
+    {
+      "patient_id": "4926940965",
+      "encounter_id": "b638d61c-99be-45c4-ae51-09e8b01e6dd7",
+      "run_id": "425445ed-b478-418f-99df-7dbdefd28b26",
+      "queued": true
+    },
+    {
+      "patient_id": "4926975998",
+      "encounter_id": "1575f928-2aba-4c5d-a832-dc5e16a8e2ae",
+      "run_id": "179439fe-f21e-40e4-89c9-0a9eef60b9a8",
+      "queued": true
+    },
+    {
+      "patient_id": "4926975998",
+      "encounter_id": "45d9ec2e-8a8e-40d4-902d-184a722a1b4e",
+      "run_id": "ec94862d-ffc5-45e2-8d13-09415bf1b919",
+      "queued": true
+    },
+    {
+      "patient_id": "4926975998",
+      "encounter_id": "57bddda6-e0b0-4c6d-930b-113e9a7be729",
+      "run_id": "f79b0d11-d672-4710-ae8f-c77c463a2262",
+      "queued": true
+    },
+    {
+      "patient_id": "4926975998",
+      "encounter_id": "6719ae19-ddc6-4232-80fa-304bb8ddb7a0",
+      "run_id": "3a1e9292-18ea-44af-a023-6ba32eded5f2",
+      "queued": true
+    },
+    {
+      "patient_id": "4926975998",
+      "encounter_id": "71065054-61d6-40f2-b5fb-177d423b06af",
+      "run_id": "b94126d3-7c22-4528-9326-2f7712c36016",
+      "queued": true
+    },
+    {
+      "patient_id": "4926975998",
+      "encounter_id": "788504cd-75f1-4797-b6a9-c6921ea8be5b",
+      "run_id": "4d015256-24c3-4a31-b6a6-cc1729efd860",
+      "queued": true
+    },
+    {
+      "patient_id": "4926975998",
+      "encounter_id": "85e86a92-c014-4092-87f6-6fdb02f90852",
+      "run_id": "2d30219e-8f3a-4b44-bf88-616db6261d85",
+      "queued": true
+    },
+    {
+      "patient_id": "4926975998",
+      "encounter_id": "91c45cf1-3448-448f-8124-13edc076a899",
+      "run_id": "724f87ce-8f79-49e6-9f1a-cc9e11aed9c9",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "14a0aec7-56bb-44f4-85e0-3fde924accef",
+      "run_id": "63794c60-9e97-44e6-aa5b-67e104fe3468",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "170d7cfd-fe62-4e26-9e78-033db349b411",
+      "run_id": "91c0a4ff-69b0-41a8-8d29-087cd3e1b889",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "40d8f5e7-0cfb-464f-9da6-3cc157f2ab48",
+      "run_id": "30a0ea70-78af-4458-a0ee-37c0558f0bf6",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "47a2a2a6-49cc-47af-8577-f8b00c5666da",
+      "run_id": "eab48ee0-4a4c-4f24-a2bc-0c5882f0df07",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "64887000-25b2-46d8-898c-0ed7a9fb72f2",
+      "run_id": "bf2396ff-402e-4717-bbbb-96d71f404d36",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "861a5c02-3b7f-4179-9338-f8fda8d8ffad",
+      "run_id": "afb5253d-73ec-435d-bda8-65fd5d103f30",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "abb76b06-784c-4589-94dc-fd6914c637cd",
+      "run_id": "edaed386-473e-44a4-9c94-c8c62d391f01",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "afdd5453-c767-4852-80ba-36fcc7653573",
+      "run_id": "4effec50-4eec-48c7-823d-e132c33345e3",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "b4069d44-76e0-45c4-ad64-072991d87a3e",
+      "run_id": "397a0c2e-0c32-4afa-b7c1-1332adbb404f",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "bae636a2-c9fb-480d-8aec-e9bd8dc30ee2",
+      "run_id": "70da5a4b-d117-4e01-b687-eef5bbe35030",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "d6e44b88-83c6-402d-8a07-72c5df040581",
+      "run_id": "21ed7d98-1af4-40c9-a353-38075377e873",
+      "queued": true
+    },
+    {
+      "patient_id": "4940120139",
+      "encounter_id": "f3e8eea0-1353-48f8-b530-4b04fc7354f5",
+      "run_id": "7460e6b0-78f5-484b-a42e-37f1f3764399",
+      "queued": true
+    },
+    {
+      "patient_id": "4983118659",
+      "encounter_id": "4dea2a57-1127-402a-91f2-97248735f3aa",
+      "run_id": "5df36576-457e-475c-827a-df2f2ca4b0a9",
+      "queued": true
+    },
+    {
+      "patient_id": "4983118659",
+      "encounter_id": "618f5311-4481-4c46-9979-af063496179c",
+      "run_id": "1a03aa91-3217-40c3-9a5d-ee8ef40befd4",
+      "queued": true
+    },
+    {
+      "patient_id": "4983118659",
+      "encounter_id": "a29987ef-f939-49f8-9b20-e7c1359477de",
+      "run_id": "7a00adf9-3da0-4909-975c-daa1680ebf3c",
+      "queued": true
+    },
+    {
+      "patient_id": "4983118659",
+      "encounter_id": "c7bda641-a7e9-4d62-8bf6-2a2c841ca86c",
+      "run_id": "f71d4301-f5aa-498d-88d9-0882838cba49",
+      "queued": true
+    },
+    {
+      "patient_id": "4983118659",
+      "encounter_id": "d2d32129-bd8b-4025-92ec-9f22e9515d8d",
+      "run_id": "fe4c9d5f-2b04-4d38-a9d7-b89c58def3e3",
+      "queued": true
+    },
+    {
+      "patient_id": "4983118659",
+      "encounter_id": "d2d8a278-8e44-4ebc-89a7-a7f7f563adb7",
+      "run_id": "748cd00d-303f-4582-a752-38f48bcac355",
+      "queued": true
+    },
+    {
+      "patient_id": "4983118659",
+      "encounter_id": "ef7aaeb3-6963-4400-b6b0-1a2376f2a39d",
+      "run_id": "4a21f4a0-ab92-4eeb-bed5-fb56ca5c557c",
+      "queued": true
+    },
+    {
+      "patient_id": "4983118659",
+      "encounter_id": "fa40f96b-a3af-43ac-a3b7-bdb0cbfb6ecb",
+      "run_id": "000db016-846a-47b3-87bd-6ba45a5aafbf",
+      "queued": true
+    },
+    {
+      "patient_id": "4998540637",
+      "encounter_id": "3b06b95d-3a47-49b6-af8e-0dc1e7a083a5",
+      "run_id": "0536e77c-733b-4968-ab2c-9f9e0bc6dfa7",
+      "queued": true
+    },
+    {
+      "patient_id": "4998540637",
+      "encounter_id": "867b9ed6-fd91-4ed5-85a4-959b20a6a788",
+      "run_id": "6e064f30-b1f0-49a8-8ada-ef51bd9f01cc",
+      "queued": true
+    },
+    {
+      "patient_id": "4998540637",
+      "encounter_id": "ab20e6a7-1a48-4f88-a86c-99c9240b0002",
+      "run_id": "e8a85782-0a2a-45ef-a802-f840ee0f9c93",
+      "queued": true
+    },
+    {
+      "patient_id": "4998540637",
+      "encounter_id": "b89380ca-19a2-43d9-b39b-baf97c027df9",
+      "run_id": "6d41e3f0-967f-4bff-8518-13c646caaf7a",
+      "queued": true
+    },
+    {
+      "patient_id": "6012067550",
+      "encounter_id": "2be786ad-34da-4381-a0b1-4fb20442d5df",
+      "run_id": "f28c8ada-bdae-4721-8215-82da3efe8d83",
+      "queued": true
+    },
+    {
+      "patient_id": "6012067550",
+      "encounter_id": "55fe00d1-87d6-481c-9321-db50a8367d7d",
+      "run_id": "505bbb9e-84b7-47a0-b14d-d307ac33ed03",
+      "queued": true
+    },
+    {
+      "patient_id": "6012067550",
+      "encounter_id": "57ddd330-aa7a-4c56-9c9d-00fcf530b54c",
+      "run_id": "0ce33e24-7de7-4fa8-bf21-5d9537d8344c",
+      "queued": true
+    },
+    {
+      "patient_id": "6012067550",
+      "encounter_id": "8437db68-efc5-4c2e-9ff6-a72ff4388a31",
+      "run_id": "190bb8f4-2a27-44c4-8bda-dda17f5c0d93",
+      "queued": true
+    },
+    {
+      "patient_id": "6040304227",
+      "encounter_id": "196aa382-a101-4974-9197-d48b83026233",
+      "run_id": "8be41af4-c381-405e-82db-d1c98edddc04",
+      "queued": true
+    },
+    {
+      "patient_id": "6040304227",
+      "encounter_id": "519c8013-0051-40c9-81be-6b86d77d28c0",
+      "run_id": "afdc11a1-6d0f-4223-b125-4b41494d56ed",
+      "queued": true
+    },
+    {
+      "patient_id": "6040304227",
+      "encounter_id": "9bc4fc1d-743f-4eb5-b1bf-4a5e8c9313ab",
+      "run_id": "e9913ca7-a593-4e35-8fd2-aa653ead0bc5",
+      "queued": true
+    },
+    {
+      "patient_id": "6040304227",
+      "encounter_id": "c6152474-8cd9-41dd-9738-d92f96007632",
+      "run_id": "ca5375fc-02f8-4581-9c0e-653847c12d12",
+      "queued": true
+    },
+    {
+      "patient_id": "6044092682",
+      "encounter_id": "30c963b9-e57d-48ce-b5ba-e7dcf815fe16",
+      "run_id": "0108aeab-9f63-434b-95ea-e56be6e6475f",
+      "queued": true
+    },
+    {
+      "patient_id": "6044092682",
+      "encounter_id": "704b5c4e-1c99-45b0-9dbd-c881162e19d1",
+      "run_id": "695b9585-fd01-4f89-b0df-10f44c0b73f6",
+      "queued": true
+    },
+    {
+      "patient_id": "6044092682",
+      "encounter_id": "af250d34-6dc0-446f-a36b-e932f7499442",
+      "run_id": "acb898a0-1d2f-4cad-83f7-280f33d7d69e",
+      "queued": true
+    },
+    {
+      "patient_id": "6044092682",
+      "encounter_id": "be5549cd-7383-498e-ac97-1ec8e7654185",
+      "run_id": "96433176-09dc-4204-9385-60789c7b2ace",
+      "queued": true
+    },
+    {
+      "patient_id": "6142203497",
+      "encounter_id": "2e2e9d91-d200-46e5-8c57-cc2c22e1ef63",
+      "run_id": "7a5ec030-8e8e-4f1b-8c6a-db471b7c77af",
+      "queued": true
+    },
+    {
+      "patient_id": "6142203497",
+      "encounter_id": "3680c6e0-51da-45a9-9238-03f716669b6d",
+      "run_id": "e8292a21-2d4e-46f3-867b-ab044f4606ff",
+      "queued": true
+    },
+    {
+      "patient_id": "6142203497",
+      "encounter_id": "3d73d187-4cae-4492-aead-9f3e9009ff36",
+      "run_id": "0f65994f-ca81-4d26-914d-3c4e18e78d5c",
+      "queued": true
+    },
+    {
+      "patient_id": "6142203497",
+      "encounter_id": "41af1f6a-9841-4ff4-b532-c9c737bab465",
+      "run_id": "59acba6a-49bd-41f8-b1dd-921934997db2",
+      "queued": true
+    },
+    {
+      "patient_id": "6142203497",
+      "encounter_id": "9548b356-7d4b-4f09-9d44-64f37b89de6b",
+      "run_id": "e6370576-3da2-4409-a8a0-9fcc76d82b0e",
+      "queued": true
+    },
+    {
+      "patient_id": "6142203497",
+      "encounter_id": "b5aaedc5-3b3d-49c7-b599-d4a78f8ac82a",
+      "run_id": "b1a2bb25-7a66-4e19-9be6-8105ca9f437d",
+      "queued": true
+    },
+    {
+      "patient_id": "6142203497",
+      "encounter_id": "f5609732-36c7-4af5-b46a-cb33c77e97d0",
+      "run_id": "2185f95a-22ab-4ea5-b4ee-cff5f20bc985",
+      "queued": true
+    },
+    {
+      "patient_id": "6142203497",
+      "encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8",
+      "run_id": "681b641b-5d6c-4288-980d-cad9b8a2b9e8",
+      "queued": true
+    },
+    {
+      "patient_id": "6220044894",
+      "encounter_id": "0b10a5e7-b5e3-491b-8464-79116058a84e",
+      "run_id": "9078bcca-5be8-4bca-985c-dbc83c837290",
+      "queued": true
+    },
+    {
+      "patient_id": "6220044894",
+      "encounter_id": "0fb779d6-39b5-4cc2-9561-01f158ca47da",
+      "run_id": "c23545ad-6d26-4954-b02b-deb269ba93a5",
+      "queued": true
+    },
+    {
+      "patient_id": "6220044894",
+      "encounter_id": "57f770fa-bf31-43ab-aa63-a1e72a6c0839",
+      "run_id": "f9ad35d9-55f4-4ab3-9e37-5b19c3dca5f5",
+      "queued": true
+    },
+    {
+      "patient_id": "6220044894",
+      "encounter_id": "91384838-b386-4cc5-85a2-efa73d234423",
+      "run_id": "b9891ab0-787e-41aa-806f-29c06ba45753",
+      "queued": true
+    },
+    {
+      "patient_id": "6220044894",
+      "encounter_id": "f2639f47-e424-40c3-9c68-913c6fec4c11",
+      "run_id": "5b6fcbe2-c591-4607-b484-d08aebbb9e59",
+      "queued": true
+    },
+    {
+      "patient_id": "6243439488",
+      "encounter_id": "5f969e8f-d95f-4baf-ab9b-42e68ab904b5",
+      "run_id": "628c1600-a161-4030-b805-194679b51c05",
+      "queued": true
+    },
+    {
+      "patient_id": "6243439488",
+      "encounter_id": "6e284e3d-2d69-473a-84f4-08d24c46aff2",
+      "run_id": "d82d8284-906e-46b3-bd56-5120dd79f69f",
+      "queued": true
+    },
+    {
+      "patient_id": "6243439488",
+      "encounter_id": "82fde5db-f0e0-4cbd-9d3d-e7f93a00792e",
+      "run_id": "5f101aec-84ef-44d5-91a6-75d8bb60ec02",
+      "queued": true
+    },
+    {
+      "patient_id": "6243439488",
+      "encounter_id": "d4749ae8-d51e-4346-95b3-e07528dc808e",
+      "run_id": "95707f3f-5d09-4135-96b6-7805b712dd42",
+      "queued": true
+    },
+    {
+      "patient_id": "6261656266",
+      "encounter_id": "2239c71f-8a98-45ff-b186-55099d93c58a",
+      "run_id": "db5f0735-1954-4ab6-8602-8507a37e043f",
+      "queued": true
+    },
+    {
+      "patient_id": "6261656266",
+      "encounter_id": "4ae5a2a3-e8dc-4f02-8521-e16659d422d9",
+      "run_id": "2c00162c-bab9-4cee-881a-22ef7d6a2739",
+      "queued": true
+    },
+    {
+      "patient_id": "6261656266",
+      "encounter_id": "5140a52f-7a8f-44af-8d6d-950c7bbeebb1",
+      "run_id": "1fb144e9-ad7d-40b9-880d-538365391b2a",
+      "queued": true
+    },
+    {
+      "patient_id": "6261656266",
+      "encounter_id": "800ed426-3af3-461c-96f5-bb593514bbd2",
+      "run_id": "6098bf6c-75c1-4380-922d-52dc91493a7c",
+      "queued": true
+    },
+    {
+      "patient_id": "6261656266",
+      "encounter_id": "84b00515-63fb-4902-bc0e-14f74115566d",
+      "run_id": "19c3d857-814e-4bca-ad8c-b58cc390a271",
+      "queued": true
+    },
+    {
+      "patient_id": "6261656266",
+      "encounter_id": "af70bbe2-0ca7-4f0f-92a0-228fbdb43c8d",
+      "run_id": "02efb6c7-0f1e-47d1-86f5-1f71c201faf4",
+      "queued": true
+    },
+    {
+      "patient_id": "6261656266",
+      "encounter_id": "f2a60569-64e7-40ef-bf97-edfbd36b4c11",
+      "run_id": "648e7bec-492e-4635-bcac-f8bd0f22177d",
+      "queued": true
+    },
+    {
+      "patient_id": "6261656266",
+      "encounter_id": "fcef2f4b-1f95-46c1-9399-1ffb86c86a5b",
+      "run_id": "37e548fe-20e1-40e1-b1fc-c435d8234bf7",
+      "queued": true
+    },
+    {
+      "patient_id": "6263830379",
+      "encounter_id": "124f3148-4388-4ed5-8e53-8b74856e5f4b",
+      "run_id": "7f0e7fa2-3108-4a18-9605-d60f313f7772",
+      "queued": true
+    },
+    {
+      "patient_id": "6263830379",
+      "encounter_id": "25144b82-310c-48c0-8f02-147ab355ba63",
+      "run_id": "7c1c8104-e521-4eaa-b1c6-e6aa5c6d8222",
+      "queued": true
+    },
+    {
+      "patient_id": "6263830379",
+      "encounter_id": "725085c5-eab9-42e8-b7ac-9b9dfc402de0",
+      "run_id": "d6350a67-b658-44ba-a36f-849cfa98831a",
+      "queued": true
+    },
+    {
+      "patient_id": "6263830379",
+      "encounter_id": "74cf3da0-750e-4f2e-b27d-a04e66981fb8",
+      "run_id": "a9a2f86d-03ff-4265-b1b0-319012084ca4",
+      "queued": true
+    },
+    {
+      "patient_id": "6263830379",
+      "encounter_id": "7d638b4d-2f34-44da-98f7-c9852154ddda",
+      "run_id": "cd1e29f3-dd19-41eb-87a3-30598e030efc",
+      "queued": true
+    },
+    {
+      "patient_id": "6263830379",
+      "encounter_id": "95e6416e-8678-4849-98b4-113d3973e5c0",
+      "run_id": "c806ff7e-5f52-4faa-abc2-6790371728bb",
+      "queued": true
+    },
+    {
+      "patient_id": "6263830379",
+      "encounter_id": "c2c018c7-4c91-40fb-9226-eb7249d9d25e",
+      "run_id": "47003b42-c0a5-4b19-90d2-b8665c0f8148",
+      "queued": true
+    },
+    {
+      "patient_id": "6264541699",
+      "encounter_id": "432a3043-450e-46ae-bc12-46942c071cc0",
+      "run_id": "72d45dc0-6a9a-41df-8a32-accc1c29356d",
+      "queued": true
+    },
+    {
+      "patient_id": "6264541699",
+      "encounter_id": "54bb8d42-0301-4a63-b6f2-34f099abd5c7",
+      "run_id": "f8022778-ba16-4e3a-b2ce-441b34e2f6c0",
+      "queued": true
+    },
+    {
+      "patient_id": "6264541699",
+      "encounter_id": "8d781160-4b86-4487-b483-cd9e58f4a31a",
+      "run_id": "cdbd9860-9ed2-4a61-87ec-be4d7da05385",
+      "queued": true
+    },
+    {
+      "patient_id": "6264541699",
+      "encounter_id": "ee35afac-721a-458e-a60e-143f1e514ef9",
+      "run_id": "5e1cb28b-75c9-4a7e-9598-63e63c986db7",
+      "queued": true
+    },
+    {
+      "patient_id": "6268086643",
+      "encounter_id": "3c727f4d-b092-40a6-b6fc-b3a38c772c7e",
+      "run_id": "8b9b30f9-a424-4611-a934-f8eda8386ab7",
+      "queued": true
+    },
+    {
+      "patient_id": "6268086643",
+      "encounter_id": "a3e8b673-1823-4309-a54b-057bfae1dd8e",
+      "run_id": "84df4c9c-e4a7-4e60-a53f-4aeeef01079f",
+      "queued": true
+    },
+    {
+      "patient_id": "6268086643",
+      "encounter_id": "a7b26430-63af-4179-8d81-d1094a9c6b37",
+      "run_id": "687db1df-dca1-4fde-8b7c-4cd5dfbed3df",
+      "queued": true
+    },
+    {
+      "patient_id": "6268086643",
+      "encounter_id": "c88cb838-c4c9-4f59-85fe-a0d74a5ccc00",
+      "run_id": "4b0e394f-63c8-449d-b37c-58b9aeb31fef",
+      "queued": true
+    },
+    {
+      "patient_id": "6280880796",
+      "encounter_id": "3806e4bf-c422-4183-8c83-48b4e7c90d36",
+      "run_id": "e8c5000f-a951-45a9-9ed2-4afedd689ca5",
+      "queued": true
+    },
+    {
+      "patient_id": "6280880796",
+      "encounter_id": "4933c27d-9101-4856-8f0b-c7a758a5c31b",
+      "run_id": "547e261c-6970-43c2-8acd-f31b8cf8caf5",
+      "queued": true
+    },
+    {
+      "patient_id": "6280880796",
+      "encounter_id": "4e14e36f-f1f1-4cb3-bfa7-a83a5f374719",
+      "run_id": "e0fe4158-7755-4bc6-a933-7aba647b68b0",
+      "queued": true
+    },
+    {
+      "patient_id": "6280880796",
+      "encounter_id": "b486f5a5-c307-4b75-9c47-58fa6ff360d8",
+      "run_id": "1e9b5604-6694-4065-8b6b-8f260a015b92",
+      "queued": true
+    },
+    {
+      "patient_id": "6282779235",
+      "encounter_id": "137327c3-b403-4049-87f4-f020bdbb5ace",
+      "run_id": "71d51839-8fbb-4085-8191-13179ddf5503",
+      "queued": true
+    },
+    {
+      "patient_id": "6282779235",
+      "encounter_id": "44a4cbd9-5993-4d25-bd9d-355982dfdb9e",
+      "run_id": "87850c9d-d104-41c1-8730-ead1304ee377",
+      "queued": true
+    },
+    {
+      "patient_id": "6282779235",
+      "encounter_id": "727f1407-a5d1-464f-8017-f1b692644c62",
+      "run_id": "e3d8e349-c5b1-4c15-b248-f0f49aba28ac",
+      "queued": true
+    },
+    {
+      "patient_id": "6282779235",
+      "encounter_id": "72e8095f-5ff0-439b-90c3-dc524da6babd",
+      "run_id": "1ea02d4a-22b0-4a7b-bbc5-4d7acdd886b7",
+      "queued": true
+    },
+    {
+      "patient_id": "6283876811",
+      "encounter_id": "0a5aea73-0966-4374-8d1d-e2c72b3778d6",
+      "run_id": "71112550-4f1d-4bc1-b859-7e27cb09a836",
+      "queued": true
+    },
+    {
+      "patient_id": "6283876811",
+      "encounter_id": "1ba7a629-8616-4d84-a3d8-ab0a9a41dc95",
+      "run_id": "e9fc5cae-3b39-4016-a53e-a1e2d4a71a80",
+      "queued": true
+    },
+    {
+      "patient_id": "6283876811",
+      "encounter_id": "c8c37ed2-a82d-4001-8fdd-774ee62577a2",
+      "run_id": "4d56b07d-d156-4108-a579-0d6af8f4cd50",
+      "queued": true
+    },
+    {
+      "patient_id": "6283876811",
+      "encounter_id": "e73fca80-0291-43eb-a4be-0077592b5908",
+      "run_id": "7fc2ea33-63e6-4549-b9e9-769476d5508b",
+      "queued": true
+    },
+    {
+      "patient_id": "6309359401",
+      "encounter_id": "019de0e9-0b30-411e-aead-b285194ee184",
+      "run_id": "e248a391-c4ea-48f5-9713-c6fda9f06267",
+      "queued": true
+    },
+    {
+      "patient_id": "6309359401",
+      "encounter_id": "aa98e369-be71-41c9-83ec-537fb621956d",
+      "run_id": "30e60716-0960-476d-bf51-4bc8235434db",
+      "queued": true
+    },
+    {
+      "patient_id": "6309359401",
+      "encounter_id": "c6255cd4-ae21-457e-83f7-87b08cc3c44e",
+      "run_id": "86f5cd3b-4978-4d48-9aa2-2cd407fd603d",
+      "queued": true
+    },
+    {
+      "patient_id": "6309359401",
+      "encounter_id": "c72c9666-25a1-44cc-83c2-ebd1afbe6e50",
+      "run_id": "aab52331-5ca8-49d1-8cdc-ca7f08b3b55e",
+      "queued": true
+    },
+    {
+      "patient_id": "6309359401",
+      "encounter_id": "de0fe875-aa99-40e4-b969-0ad7f1c1d325",
+      "run_id": "a338b62b-73cb-4ab8-b2d9-27c31dcc586a",
+      "queued": true
+    },
+    {
+      "patient_id": "6310920987",
+      "encounter_id": "4107a10f-b790-4bbb-a450-eaf892f4aa91",
+      "run_id": "b7110900-2a24-4f67-90d7-7ff5c3f2076b",
+      "queued": true
+    },
+    {
+      "patient_id": "6310920987",
+      "encounter_id": "89e7ef4c-01c8-4f56-95c0-5ddb6545ca88",
+      "run_id": "4dcc6e04-a0f8-4457-820f-fe0b7f30c2b5",
+      "queued": true
+    },
+    {
+      "patient_id": "6310920987",
+      "encounter_id": "b096b3b8-9666-411c-b24d-1992c45acf2f",
+      "run_id": "7cba723d-db97-4077-8e4c-2c3229e2e64b",
+      "queued": true
+    },
+    {
+      "patient_id": "6310920987",
+      "encounter_id": "f0e9401d-a649-4fc4-9bcd-f784debb62dd",
+      "run_id": "d4b60334-7a47-4173-a058-f8defc729438",
+      "queued": true
+    },
+    {
+      "patient_id": "6507904570",
+      "encounter_id": "63a9b9f9-552c-4159-abf9-fae4d31a0c21",
+      "run_id": "69970761-5f83-4b86-9832-0e20287d1cdc",
+      "queued": true
+    },
+    {
+      "patient_id": "6507904570",
+      "encounter_id": "bc5e308b-2cda-4e98-ba1a-1af6ab36ec36",
+      "run_id": "cf3b0481-e62b-4861-aa6b-22bdb463057c",
+      "queued": true
+    },
+    {
+      "patient_id": "6509504022",
+      "encounter_id": "0d1b8c7f-46a4-4412-bc81-b24ec1500e2b",
+      "run_id": "58f69495-0e2a-4aac-9397-06223f782496",
+      "queued": true
+    },
+    {
+      "patient_id": "6509504022",
+      "encounter_id": "23d564b0-8f60-40fc-8e74-217c31a20060",
+      "run_id": "0259210e-2b32-4840-86e3-13c0f60c9741",
+      "queued": true
+    },
+    {
+      "patient_id": "6509504022",
+      "encounter_id": "3748934d-0d4d-4a44-b0b4-3d4d233b7e81",
+      "run_id": "949ad33e-026e-4395-9250-cb0358f953cd",
+      "queued": true
+    },
+    {
+      "patient_id": "6509504022",
+      "encounter_id": "3bab606b-3507-4c01-a5d3-f38dbb44875c",
+      "run_id": "0a7b12ce-ff7e-4021-8094-2bbff7cb0eab",
+      "queued": true
+    },
+    {
+      "patient_id": "6509504022",
+      "encounter_id": "4519fac9-e308-4a4d-ac55-43d039e5a341",
+      "run_id": "7a340dad-dc7f-4e36-9530-436aabf62382",
+      "queued": true
+    },
+    {
+      "patient_id": "6509504022",
+      "encounter_id": "57054492-52d5-4a8a-9d56-e5f63ecb24f1",
+      "run_id": "b2286df1-3c84-4159-a987-037e14205500",
+      "queued": true
+    },
+    {
+      "patient_id": "6517334858",
+      "encounter_id": "30edf228-79f2-4aff-8927-7d4e58ae6aa4",
+      "run_id": "8b6c26ed-a073-48b2-99fb-7af4b1082e82",
+      "queued": true
+    },
+    {
+      "patient_id": "6517334858",
+      "encounter_id": "96a2a12a-4423-4ca7-9ec7-bc196c900788",
+      "run_id": "90ea9045-c92c-4c0c-93e4-ba28d4b66326",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "03b1a083-e3ed-4f96-a582-48057445f16c",
+      "run_id": "e6c694d2-be18-4b45-9f62-17b27d1a7316",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "17d76a0c-7e4a-4709-bc81-cfaf56c15c8b",
+      "run_id": "73eda06c-fb0b-4517-940a-effe26b2a235",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "47c7efc8-eb90-49b7-880d-6c86ae6fba6c",
+      "run_id": "d7c9a038-30ec-471f-a5d6-7852978e505a",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "500a8428-7f8b-4078-ba7a-f835122d3ff9",
+      "run_id": "27508773-c10e-4376-b84d-0ed74ad92687",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "55005b95-a9b5-448a-ba13-ca7d65233b3e",
+      "run_id": "c2e34833-bd20-42a4-9d2a-cec730aa22dc",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "7768f255-7306-4d0f-808b-a88017b7f4f9",
+      "run_id": "fcb21728-95c9-44ab-b912-e4651f1de03e",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "8c0b2843-c9b2-4614-b523-55c232ac3a1f",
+      "run_id": "b4edab19-9273-44ff-9f4f-fb7f1cbb62ea",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "92d7ca21-ef75-4145-b999-3c8589c31165",
+      "run_id": "80ba4745-e470-4bc1-8db3-ffc0788838b6",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "ada4e770-ceb9-4c39-8a69-367914089e78",
+      "run_id": "94f65685-ebb1-4a0e-9578-7c4df7017e11",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "b2634943-d92a-4ecd-b778-d121d7b47a31",
+      "run_id": "cc7b0a33-316f-4f0a-b10a-f2c9922528c3",
+      "queued": true
+    },
+    {
+      "patient_id": "6519337463",
+      "encounter_id": "ec164ae6-d7ae-4e6b-9e91-cbf67e70c91e",
+      "run_id": "8c912a8d-99b6-4dc1-9bab-9795cea10de1",
+      "queued": true
+    },
+    {
+      "patient_id": "6519712760",
+      "encounter_id": "0f5bc3ed-ea6b-41bf-a75d-f073ffb7ff51",
+      "run_id": "8b1cf42d-c912-48eb-a615-245784a7bfbb",
+      "queued": true
+    },
+    {
+      "patient_id": "6519712760",
+      "encounter_id": "648a5769-a78d-4be2-a072-d47c6b9fbf79",
+      "run_id": "06637b3f-0f1b-4bb0-bffe-76616ecc402d",
+      "queued": true
+    },
+    {
+      "patient_id": "6519712760",
+      "encounter_id": "d027dc3d-5d4c-4dc3-a307-ecbeaf42d281",
+      "run_id": "667644bc-7084-4d2b-95ac-89b52ffb0044",
+      "queued": true
+    },
+    {
+      "patient_id": "6519712760",
+      "encounter_id": "f5cfa1e5-2293-4c27-9abe-51f8c650b5f7",
+      "run_id": "eb632667-3f91-48b7-a68f-8c24a003718a",
+      "queued": true
+    },
+    {
+      "patient_id": "7011988319",
+      "encounter_id": "36a8b9c4-d28a-4562-83c6-fa8e73d3f379",
+      "run_id": "83401bce-ab4d-4347-b662-7dafbec6d218",
+      "queued": true
+    },
+    {
+      "patient_id": "7011988319",
+      "encounter_id": "6abf9faa-182e-4655-b747-6af4787b8bf1",
+      "run_id": "e53e28f3-3b65-4ab1-8ac6-681d01b3a32d",
+      "queued": true
+    },
+    {
+      "patient_id": "7011988319",
+      "encounter_id": "fa063844-78d7-4d8b-a4d2-cb621ba0e87f",
+      "run_id": "a497d2e0-4b58-4fc8-9ac8-59cbed287ef2",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "21e379f4-92d1-4e8c-b9f6-9f2208336ee7",
+      "run_id": "749045c0-7893-4c12-bf83-6d1802c63ab4",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "2bcd7f15-644e-45b3-a02b-89e20c830885",
+      "run_id": "2f31cf20-6f1e-486f-af07-7b068a1e1464",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "31c51536-a085-42f0-861a-edf276be359e",
+      "run_id": "0426e62f-1bb9-4b91-a67d-8eb28b237e78",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "330bf2d4-397a-4383-8c85-4b6deabed6cc",
+      "run_id": "d472b1e8-d187-4752-81d0-e4e6d1aa3b9c",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "4e41b7d0-562a-4dfe-989b-eb6c2a45d17d",
+      "run_id": "cd76cf90-481b-486b-bc0d-b08cc465511f",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "a84368f4-423e-4898-b9ff-243bd2c4c226",
+      "run_id": "9e733b8a-69ff-41f2-a5ff-5ab6187466cb",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "c65fa17e-906d-4433-b022-de1a8086a264",
+      "run_id": "95b73fcc-1547-4042-8390-c649cfcfb632",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "da247942-6243-4404-adb5-b09d0eb1a23a",
+      "run_id": "48458204-96b4-4fbb-a274-271bb31bc923",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "dbf0338e-b218-4578-b228-0bb5d599f6de",
+      "run_id": "eaf3933d-c236-4b51-86b2-89c93f402346",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "f3f854f7-ba99-4f4a-888b-59ab1c4ff8e0",
+      "run_id": "2b1373d9-6204-483d-98f1-0d2560c605b6",
+      "queued": true
+    },
+    {
+      "patient_id": "7017599535",
+      "encounter_id": "fbefefdc-bde0-4a4a-9a8e-76c3461d413c",
+      "run_id": "d8bfb080-3530-4cb1-afc2-311bbef3133c",
+      "queued": true
+    },
+    {
+      "patient_id": "7028414914",
+      "encounter_id": "480580c6-a4b2-482e-8f38-942ffd46f627",
+      "run_id": "db399572-d723-477d-9db5-c6c71cce3171",
+      "queued": true
+    },
+    {
+      "patient_id": "7028414914",
+      "encounter_id": "d13e95ac-27f3-4c3b-83e7-98d9410c03b5",
+      "run_id": "09eed89e-94aa-475f-b487-1ca0a35de944",
+      "queued": true
+    },
+    {
+      "patient_id": "7028414914",
+      "encounter_id": "d5558069-701e-428a-b75d-20ac8f3432cd",
+      "run_id": "990c3a81-94b9-4f90-b313-7d472fac1581",
+      "queued": true
+    },
+    {
+      "patient_id": "7028414914",
+      "encounter_id": "f6f8a693-4abd-4e01-ab12-4a8686975367",
+      "run_id": "fb5ce4ed-a30e-4ff8-b640-09515d8cbb82",
+      "queued": true
+    },
+    {
+      "patient_id": "7039607018",
+      "encounter_id": "0f20d494-8193-4a31-9613-11213d6a79dd",
+      "run_id": "a83c125f-99db-4961-9a25-afdb03b99b31",
+      "queued": true
+    },
+    {
+      "patient_id": "7039607018",
+      "encounter_id": "7593b815-0817-42e1-956b-0104e836d29a",
+      "run_id": "051ec0f4-d344-4622-9d55-75e304df99bc",
+      "queued": true
+    },
+    {
+      "patient_id": "7039607018",
+      "encounter_id": "90e3b37d-ef34-4173-b576-a8cba5712b4e",
+      "run_id": "2f215272-fe17-4e02-9267-cf0dc4d5c7e9",
+      "queued": true
+    },
+    {
+      "patient_id": "7039607018",
+      "encounter_id": "fd97ce42-ebe2-460e-b71c-feb75e4e3c91",
+      "run_id": "eefae11b-ab38-439d-a79e-17275a5a8c47",
+      "queued": true
+    },
+    {
+      "patient_id": "7306752529",
+      "encounter_id": "281ce94e-24e7-40e2-b66b-1f2e00b050a3",
+      "run_id": "fc6efbce-80ec-498c-b775-49ac572c6183",
+      "queued": true
+    },
+    {
+      "patient_id": "7306752529",
+      "encounter_id": "f798c6d6-b0ac-456b-931a-b367cdb33c50",
+      "run_id": "27b54c0d-641b-4e49-b8b4-d0b035b199e4",
+      "queued": true
+    },
+    {
+      "patient_id": "7313758405",
+      "encounter_id": "1676ad1e-3f94-4fb0-9f93-60a5907325d4",
+      "run_id": "56a92bae-8bfb-49e3-9fc1-2e436e802274",
+      "queued": true
+    },
+    {
+      "patient_id": "7313758405",
+      "encounter_id": "63cdf956-00fd-493b-ab1f-4885bb3009da",
+      "run_id": "e619d0c7-ebf3-4b3e-a2d4-4042e95dcbe1",
+      "queued": true
+    },
+    {
+      "patient_id": "7313758405",
+      "encounter_id": "684a0c8b-855c-46ba-9466-abafb8b1f08c",
+      "run_id": "4c9e244f-8d84-43a7-8ba6-844da0a5cb82",
+      "queued": true
+    },
+    {
+      "patient_id": "7313758405",
+      "encounter_id": "82fe12da-f026-4568-a811-5cc2264ba8d6",
+      "run_id": "69876642-bc07-46fe-ba5a-ead8366ea2f5",
+      "queued": true
+    },
+    {
+      "patient_id": "7313758405",
+      "encounter_id": "b0e11d83-ef0d-4b05-add9-787fcf309270",
+      "run_id": "455d9766-a2c3-41ce-b800-a19094107c0f",
+      "queued": true
+    },
+    {
+      "patient_id": "7313758405",
+      "encounter_id": "b1026b96-0d4f-4fad-ba0b-667e1e9fb761",
+      "run_id": "f433b167-7a39-4811-ab1e-bf0a6741e037",
+      "queued": true
+    },
+    {
+      "patient_id": "7313758405",
+      "encounter_id": "e6f2282f-59c0-4e46-b0c8-b76e9a7005cb",
+      "run_id": "0314548e-b6e2-4427-895f-7fadc66c7e1d",
+      "queued": true
+    },
+    {
+      "patient_id": "7319972905",
+      "encounter_id": "47f46f97-e6f8-43d8-bc2e-2e5a9a1b3f21",
+      "run_id": "a904c324-0d22-40c1-b3a3-ca09bbd70ca5",
+      "queued": true
+    },
+    {
+      "patient_id": "7319972905",
+      "encounter_id": "6a97cbad-7361-423f-9046-1020e3b20a34",
+      "run_id": "c495e1b3-2f9f-4ad8-8bb2-8a8e8f4378c4",
+      "queued": true
+    },
+    {
+      "patient_id": "7319972905",
+      "encounter_id": "c79ef184-aaec-45e1-9267-6d22f4d3d044",
+      "run_id": "36609c3b-aa9d-4593-a445-c050777423ee",
+      "queued": true
+    },
+    {
+      "patient_id": "7319972905",
+      "encounter_id": "dbcf842e-ecb4-4f07-a57b-f1b5eb234407",
+      "run_id": "569293c6-a89c-4f60-8423-e1ac4a92fedf",
+      "queued": true
+    },
+    {
+      "patient_id": "7321643565",
+      "encounter_id": "0784d021-cf31-44bc-9acc-02d209763292",
+      "run_id": "e1417da3-c08a-4987-8941-f97e6167f091",
+      "queued": true
+    },
+    {
+      "patient_id": "7321643565",
+      "encounter_id": "2bd08f45-881a-41fa-979d-6b8b86d80776",
+      "run_id": "3323d442-198b-4582-a377-34ca37b87210",
+      "queued": true
+    },
+    {
+      "patient_id": "7321643565",
+      "encounter_id": "aa5e82d3-f987-42f9-8564-14cd60956d61",
+      "run_id": "2345592c-4316-4912-8ee8-028def261cca",
+      "queued": true
+    },
+    {
+      "patient_id": "7321643565",
+      "encounter_id": "edb8e2b3-6f3d-4304-99b4-b217fd345eae",
+      "run_id": "6f4940d5-6fc6-4f05-9bd6-e9f768635c60",
+      "queued": true
+    },
+    {
+      "patient_id": "7322946243",
+      "encounter_id": "0006b6e9-cafe-4e72-a9cf-d5e975fb88c7",
+      "run_id": "40c27f3d-a2b0-4a1d-9f57-a6416c502a88",
+      "queued": true
+    },
+    {
+      "patient_id": "7322946243",
+      "encounter_id": "15dcc9f3-d254-4635-9be4-a87ac442ffe3",
+      "run_id": "b170fa62-5e26-4803-b9a9-cb82e4d0bad4",
+      "queued": true
+    },
+    {
+      "patient_id": "7322946243",
+      "encounter_id": "2dcb7f2a-add2-40e1-be65-38321832b902",
+      "run_id": "e2664d54-d775-4fae-a6c5-128e55d8535b",
+      "queued": true
+    },
+    {
+      "patient_id": "7324271383",
+      "encounter_id": "27a3f225-d4c1-4485-9a5e-d612dc864dc6",
+      "run_id": "6d5bf18d-c9ab-47cc-9ec2-049dc49293f0",
+      "queued": true
+    },
+    {
+      "patient_id": "7324271383",
+      "encounter_id": "30df33d6-0eb8-437a-ac23-72837c808c20",
+      "run_id": "c8192464-9e0b-4b01-b854-7aab3c338a84",
+      "queued": true
+    },
+    {
+      "patient_id": "7324271383",
+      "encounter_id": "4da787b8-4c59-4384-85d4-d1658d3bbaab",
+      "run_id": "8077698e-b9d0-41ad-bc73-d43b92937443",
+      "queued": true
+    },
+    {
+      "patient_id": "7324271383",
+      "encounter_id": "7c34a642-605e-442f-a1d8-8656d223d8a4",
+      "run_id": "a7041578-088e-4004-b329-72264b6620f9",
+      "queued": true
+    },
+    {
+      "patient_id": "7324271383",
+      "encounter_id": "82a0c97d-9967-49fe-ba9c-d5b6ff3db509",
+      "run_id": "28bc31c2-34dc-422c-883a-80edcdd9d50d",
+      "queued": true
+    },
+    {
+      "patient_id": "7324271383",
+      "encounter_id": "be9e645a-e04c-42bf-974b-9894cedd5fa9",
+      "run_id": "0181e499-cc26-4b5c-ba45-2da06ffcefdc",
+      "queued": true
+    },
+    {
+      "patient_id": "7324271383",
+      "encounter_id": "e5b6fe50-912a-4d15-b5b8-84c1d77e2b19",
+      "run_id": "8e56995f-b641-466e-a75b-5d65ecd6c1a1",
+      "queued": true
+    },
+    {
+      "patient_id": "7324271383",
+      "encounter_id": "fcdeffd0-e251-43b6-9a37-f753d76a6f13",
+      "run_id": "80c5e562-ef81-407a-a541-f88d4e20653c",
+      "queued": true
+    },
+    {
+      "patient_id": "7326304955",
+      "encounter_id": "0aa5c964-227b-47ef-b5c8-475062218e9f",
+      "run_id": "a04974c9-f99f-4082-865d-ebd40bf3b2a5",
+      "queued": true
+    },
+    {
+      "patient_id": "7326304955",
+      "encounter_id": "6f081ae7-c582-4ae3-8a49-30416c155c79",
+      "run_id": "8c323361-27ac-413f-afda-4f4407b2c198",
+      "queued": true
+    },
+    {
+      "patient_id": "7326304955",
+      "encounter_id": "c2f4b5f2-022c-4b6f-ac77-6b88e04c6f97",
+      "run_id": "b7fe9cc8-b530-4dd8-b66b-c351638bed6d",
+      "queued": true
+    },
+    {
+      "patient_id": "7326304955",
+      "encounter_id": "da67f9b4-054f-4c7a-ac91-937f774f6026",
+      "run_id": "3742efa2-4f77-4f54-ae3d-22a1adce1324",
+      "queued": true
+    },
+    {
+      "patient_id": "7330683205",
+      "encounter_id": "0ca95648-ec40-44ee-be91-b8ba563480dc",
+      "run_id": "9ebea123-057f-4cd1-b318-20ed6c5fa252",
+      "queued": true
+    },
+    {
+      "patient_id": "7330683205",
+      "encounter_id": "3722d7f8-2071-41e7-85d0-beab77cb09be",
+      "run_id": "8bb17047-e47b-4a13-8a01-23a5456b8b7e",
+      "queued": true
+    },
+    {
+      "patient_id": "7330683205",
+      "encounter_id": "58accd10-ad67-4a29-bbd3-397f92a31125",
+      "run_id": "bd9c3f7e-645c-4bcb-b389-bb48eeaa0a30",
+      "queued": true
+    },
+    {
+      "patient_id": "7330683205",
+      "encounter_id": "d3609470-6d0c-461a-9587-a85acef4ca9a",
+      "run_id": "69c71d13-d720-4d68-946d-404db41c26bb",
+      "queued": true
+    },
+    {
+      "patient_id": "7343840665",
+      "encounter_id": "149eb207-0079-41bb-bd47-c473fa669137",
+      "run_id": "7b98278e-9082-4a2d-9872-f6118ead3a6c",
+      "queued": true
+    },
+    {
+      "patient_id": "7343840665",
+      "encounter_id": "1688d95b-d64f-47a7-9557-7d63239e3815",
+      "run_id": "c75e295b-51f1-4227-896c-41e13bca173c",
+      "queued": true
+    },
+    {
+      "patient_id": "7343840665",
+      "encounter_id": "46fb8a51-2b10-43aa-a162-537a249b7472",
+      "run_id": "dde979e4-912e-42cb-be0c-d82836e14f21",
+      "queued": true
+    },
+    {
+      "patient_id": "7343840665",
+      "encounter_id": "9eccfc93-83a3-4c0e-aecd-f494316a7f35",
+      "run_id": "d728687d-95fb-421b-bd65-fa5814aff186",
+      "queued": true
+    }
+  ]
+}

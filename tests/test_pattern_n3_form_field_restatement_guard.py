@@ -6,7 +6,7 @@ older than the encounter date. The detector previously emitted fresh
 ``referral`` and ``first_seen`` milestones on the encounter date,
 opening duplicate milestones weeks after the real event already fired.
 
-Canonical patient 4802892365 cases:
+Canonical patient 9990003001 cases:
 
   2025-05-13 receptionist note
     "2WW

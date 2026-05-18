@@ -1,0 +1,53 @@
+{
+  "Content": "<div class=\"chapter\" title=\"Introduction\" id=\"ng12-introduction\" xmlns=\"http://www.w3.org/1999/xhtml\">\r\n  <h2 class=\"title\" id=\"introduction\">Introduction</h2>\r\n  <div class=\"panel panel--primary\">\r\n    <p>People have the right to be involved in discussions and make informed decisions about their care, as described in <a class=\"link\" href=\"https://www.nice.org.uk/about/nice-communities/nice-and-the-public/making-decisions-about-your-care\" target=\"_top\">NICE's information on making decisions about your care</a>. </p>\r\n    <p>\r\n      <a class=\"link\" href=\"https://www.nice.org.uk/about/what-we-do/our-programmes/nice-guidance/nice-guidelines/making-decisions-using-nice-guidelines\" target=\"_top\">Making decisions using NICE guidelines</a> explains how we use words to show the strength (or certainty) of our recommendations, and has information about prescribing medicines (including off-label use), professional guidelines, standards and laws (including on consent and mental capacity) and safeguarding.</p>\r\n    <p>Healthcare professionals should follow our general guidelines for people delivering care:</p>\r\n    <div class=\"itemizedlist\">\r\n      <ul class=\"itemizedlist\">\r\n        <li class=\"listitem\">\r\n          <p>\r\n            <a class=\"link\" href=\"https://www.nice.org.uk/guidance/ng204\" target=\"_top\" data-original-url=\"https://www.nice.org.uk/guidance/ng204\">Babies, children and young people's experience of healthcare</a>\r\n          </p>\r\n        </li>\r\n        <li class=\"listitem\">\r\n          <p>\r\n            <a class=\"link\" href=\"https://www.nice.org.uk/guidance/ng108\" target=\"_top\" data-original-url=\"https://www.nice.org.uk/guidance/ng108\">Decision making and mental capacity</a>\r\n          </p>\r\n        </li>\r\n        <li class=\"listitem\">\r\n          <p>\r\n            <a class=\"link\" href=\"https://www.nice.org.uk/guidance/cg138\" target=\"_top\" data-original-url=\"https://www.nice.org.uk/guidance/cg138\">Patient experience in adult NHS services</a>\r\n          </p>\r\n        </li>\r\n        <li class=\"listitem\">\r\n          <p>\r\n            <a class=\"link\" href=\"https://www.nice.org.uk/guidance/ng197\" target=\"_top\" data-original-url=\"https://www.nice.org.uk/guidance/ng197\">Shared decision making</a>\r\n          </p>\r\n        </li>\r\n        <li class=\"listitem\">\r\n          <p>\r\n            <a class=\"link\" href=\"https://www.nice.org.uk/guidance/ng43\" target=\"_top\" data-original-url=\"https://www.nice.org.uk/guidance/ng43\">Transition from children's to adults' services</a>\r\n          </p>\r\n        </li>\r\n      </ul>\r\n    </div>\r\n  </div>\r\n</div>",
+  "GuidanceNumber": "NG12",
+  "MetadataApplicationProfile": {
+    "AlternativeTitle": null,
+    "Audiences": [],
+    "Creator": "NICE",
+    "Description": null,
+    "Identifier": "tag:api.nice.org.uk,2015-06-23:/services/guidance/documents/NG12/introduction",
+    "Language": null,
+    "Modified": "/Date(1776237435079+0100)/",
+    "Issued": "/Date(1435014000000+0100)/",
+    "Publisher": "NICE",
+    "Title": "Introduction",
+    "Types": [],
+    "Subjects": [],
+    "Contributors": [],
+    "Source": "NICE",
+    "ParentSection": null,
+    "Breadcrumb": null
+  },
+  "Resources": [
+    {
+      "Rel": "self",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/introduction",
+      "Title": "Introduction",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/introduction/how-the-guideline-is-organised",
+      "Title": "How the guideline is organised",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/introduction/recommendation-wording-in-guideline-updates",
+      "Title": "Recommendation wording in guideline updates",
+      "TitleContent": null
+    },
+    {
+      "Rel": "alternate",
+      "Type": "application/xhtml+xml",
+      "Uri": "https://publications.nice.org.uk/NG12/introduction",
+      "Title": "Introduction",
+      "TitleContent": null
+    }
+  ],
+  "LastModified": "/Date(1776237435079+0100)/",
+  "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/introduction",
+  "Title": "Introduction",
+  "TitleContent": null
+}

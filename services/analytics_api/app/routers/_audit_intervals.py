@@ -12,8 +12,28 @@ are also referenced by the summary endpoint.
 
 from __future__ import annotations
 
+import statistics
+
 from libs.neo4j_client.client import PatientGraphClient
 from libs.oncology.cancer_types import normalise_cancer_type
+
+_BENIGN_STATUSES = {"closed_benign"}
+_BENIGN_OUTCOMES = {"cancer_excluded", "cancer_assumed_excluded"}
+
+
+def _is_benign(ep_status: str | None, dx_outcome: str | None) -> bool:
+    return (ep_status or "") in _BENIGN_STATUSES or (dx_outcome or "") in _BENIGN_OUTCOMES
+
+
+def _split_stats(values: list[float]) -> dict:
+    if not values:
+        return {"n": 0, "median": None, "q1": None, "q3": None}
+    s = sorted(values)
+    n = len(s)
+    med = statistics.median(s)
+    q1 = statistics.median(s[: n // 2]) if n >= 2 else s[0]
+    q3 = statistics.median(s[(n + 1) // 2 :]) if n >= 2 else s[0]
+    return {"n": n, "median": round(med, 1), "q1": round(q1, 1), "q3": round(q3, 1)}
 
 # ---------------------------------------------------------------------------
 # Cypher fragments used by intervals + summary
@@ -32,13 +52,19 @@ INFERRED_CANCER_DIAG_CASE = (
     "END"
 )
 
-# Use first_presentation_date only when we also have a presenting complaint.
-# If the date came from place/admin-only coding (no symptom complaint captured),
-# fall back to referral_date so PCI is not artificially inflated.
+# Use first_presentation_date for PCI when it is present. Episodes without a
+# first-presentation anchor should not be counted as 0-day PCI.
 FP_DATE_EXPR = (
     "CASE "
     "  WHEN trim(coalesce(toString(ep.first_presentation_date), '')) <> '' "
-    "   AND trim(coalesce(ep.presenting_complaint, '')) <> '' "
+    "    THEN toString(ep.first_presentation_date) "
+    "  ELSE null "
+    "END"
+)
+
+DI_START_DATE_EXPR = (
+    "CASE "
+    "  WHEN trim(coalesce(toString(ep.first_presentation_date), '')) <> '' "
     "    THEN toString(ep.first_presentation_date) "
     "  WHEN trim(coalesce(toString(ep.referral_date), '')) <> '' "
     "    THEN toString(ep.referral_date) "
@@ -65,18 +91,21 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
         "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
         "With ep, min(toString(diag_enc.date)) AS diag_date "
         f"WITH ep, diag_date, {INFERRED_CANCER_DIAG_CASE} AS effective_diag_date, "
-        f"{FP_DATE_EXPR} AS fp_date "
+        f"{FP_DATE_EXPR} AS fp_date, {DI_START_DATE_EXPR} AS di_start_date "
         "WITH "
         "  CASE WHEN trim(coalesce(fp_date, '')) <> '' "
         "        AND trim(coalesce(toString(ep.referral_date), '')) <> '' "
         "       THEN duration.inDays(date(fp_date), "
         "date(toString(ep.referral_date))).days "
-        "       ELSE null END AS pci_days, "
+        "       ELSE null END AS raw_pci_days, "
         "  CASE WHEN trim(coalesce(effective_diag_date, '')) <> '' "
-        "        AND trim(coalesce(fp_date, '')) <> '' "
-        "       THEN duration.inDays(date(fp_date), "
+        "        AND trim(coalesce(di_start_date, '')) <> '' "
+        "       THEN duration.inDays(date(di_start_date), "
         "date(effective_diag_date)).days "
-        "       ELSE null END AS di_days "
+        "       ELSE null END AS raw_di_days "
+        "WITH "
+        "  CASE WHEN raw_pci_days >= 0 THEN raw_pci_days ELSE null END AS pci_days, "
+        "  CASE WHEN raw_di_days >= 0 THEN raw_di_days ELSE null END AS di_days "
         "RETURN "
         "  sum(CASE WHEN pci_days IS NOT NULL THEN 1 ELSE 0 END) AS pci_n, "
         "  avg(pci_days) AS mean_pci, "
@@ -97,27 +126,50 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
         "  WHERE dr.milestone_type IN ['diagnosis', 'diagnosis_confirmed'] "
         "With ep, min(toString(diag_enc.date)) AS diag_date "
         f"WITH ep, diag_date, {INFERRED_CANCER_DIAG_CASE} AS effective_diag_date, "
-        f"{FP_DATE_EXPR} AS fp_date, "
+        f"{FP_DATE_EXPR} AS fp_date, {DI_START_DATE_EXPR} AS di_start_date, "
         "  (diag_date IS NULL AND ep.inferred_outcome = 'cancer' "
         "   AND ep.inferred_outcome_date IS NOT NULL) AS diag_is_inferred "
-        "RETURN "
-        "  ep.episode_id AS episode_id, ep.cancer_type AS cancer_type, "
-        "  diag_is_inferred, "
+        "WITH ep, diag_is_inferred, fp_date, di_start_date, effective_diag_date, "
         "  CASE WHEN trim(coalesce(fp_date, '')) <> '' "
         "        AND trim(coalesce(toString(ep.referral_date), '')) <> '' "
         "       THEN duration.inDays(date(fp_date), "
         "date(toString(ep.referral_date))).days "
-        "       ELSE null END AS pci_days, "
+        "       ELSE null END AS raw_pci_days, "
         "  CASE WHEN trim(coalesce(effective_diag_date, '')) <> '' "
-        "        AND trim(coalesce(fp_date, '')) <> '' "
-        "       THEN duration.inDays(date(fp_date), "
+        "        AND trim(coalesce(di_start_date, '')) <> '' "
+        "       THEN duration.inDays(date(di_start_date), "
         "date(effective_diag_date)).days "
-        "       ELSE null END AS di_days "
+        "       ELSE null END AS raw_di_days "
+        "RETURN "
+        "  ep.episode_id AS episode_id, ep.patient_id AS patient_id, "
+        "  ep.cancer_type AS cancer_type, "
+        "  ep.status AS ep_status, ep.dx_outcome AS dx_outcome, "
+        "  diag_is_inferred, "
+        "  CASE WHEN raw_pci_days >= 0 THEN raw_pci_days ELSE null END AS pci_days, "
+        "  CASE WHEN raw_di_days >= 0 THEN raw_di_days ELSE null END AS di_days "
         "ORDER BY ep.referral_date LIMIT 500",
         **params,
     )
 
     s = agg[0] if agg else {}
+
+    patients = [
+        {
+            "episode_id": r["episode_id"],
+            "patient_id": r.get("patient_id"),
+            "cancer_type": normalise_cancer_type(r.get("cancer_type")),
+            "pci_days": r.get("pci_days"),
+            "di_days": r.get("di_days"),
+            "diag_is_inferred": r.get("diag_is_inferred"),
+            "is_benign": _is_benign(r.get("ep_status"), r.get("dx_outcome")),
+        }
+        for r in pts
+    ]
+
+    cancer_pci = [p["pci_days"] for p in patients if not p["is_benign"] and p["pci_days"] is not None]
+    benign_pci = [p["pci_days"] for p in patients if p["is_benign"] and p["pci_days"] is not None]
+    cancer_di  = [p["di_days"]  for p in patients if not p["is_benign"] and p["di_days"]  is not None]
+    benign_di  = [p["di_days"]  for p in patients if p["is_benign"] and p["di_days"]  is not None]
 
     return {
         "pci": {
@@ -127,6 +179,8 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
             "q1": s.get("pci_q1"),
             "q3": s.get("pci_q3"),
         },
+        "pci_cancer": _split_stats(cancer_pci),
+        "pci_benign": _split_stats(benign_pci),
         "di": {
             "n": s.get("di_n"),
             "mean": s.get("mean_di"),
@@ -134,13 +188,7 @@ def _q_intervals(base: str, params: dict, client: PatientGraphClient) -> dict:
             "q1": s.get("di_q1"),
             "q3": s.get("di_q3"),
         },
-        "patients": [
-            {
-                "episode_id": r["episode_id"],
-                "cancer_type": normalise_cancer_type(r.get("cancer_type")),
-                "pci_days": r.get("pci_days"),
-                "di_days": r.get("di_days"),
-            }
-            for r in pts
-        ],
+        "di_cancer": _split_stats(cancer_di),
+        "di_benign": _split_stats(benign_di),
+        "patients": patients,
     }

@@ -79,6 +79,7 @@ def test_kpis_cypher_exposes_pathway_closure_patient_count():
     assert "pathway_closure_patients" in q
     assert "AS pathway_closure_patients" in q
     assert "AS pathway_closures," in q
+    assert "median_benign_interval_days" in q
 
 
 # ----- TC-003 --------------------------------------------------------------
@@ -176,7 +177,7 @@ async def test_kpis_endpoint_returns_cohort_block(monkeypatch):
 
     monkeypatch.setattr(mc, "PatientGraphClient", _FakeClient)
 
-    result = await mc.get_mission_control_kpis(
+    result = mc.get_mission_control_kpis(
         org_id=None,
         date_from="2024-01-01",
         date_to="2025-12-31",
@@ -218,7 +219,7 @@ async def test_kpis_endpoint_returns_zeroed_cohort_when_query_empty(monkeypatch)
 
     monkeypatch.setattr(mc, "PatientGraphClient", _FakeClient)
 
-    result = await mc.get_mission_control_kpis(
+    result = mc.get_mission_control_kpis(
         org_id=None,
         date_from="2024-01-01",
         date_to="2025-12-31",

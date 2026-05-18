@@ -191,6 +191,42 @@ def test_record_to_action_condition_inferred_from_subgraph_id():
     )
 
 
+def test_record_to_action_condition_overrides_stale_action_node_type():
+    """Action node with stale `nodeType: "action"` still routes as a condition.
+
+    Regression for production drift: plans seeded by an early version of
+    seed_plan_definitions.py wrote `nodeType: "action"` (the default) before
+    `_nodeType` was added to the routing nodes. Subsequent seed runs MERGE
+    on Action.id without overwriting the legacy default, so the stored
+    nodeType lies. subgraph_id is the source of truth -- if it is
+    "condition" or "trigger", that takes precedence.
+    """
+    record = _make_record(
+        {
+            "id": "act-extraction-route",
+            "sequence": 5,
+            "nodeType": "action",
+        },
+        {"subgraphId": "condition", "dynamicValues": None},
+    )
+    action = WorkflowEngine._record_to_action(record)
+    assert action.node_type == "condition", (
+        "subgraph_id 'condition' must override a stale stored nodeType "
+        "of 'action' so the engine routes through the condition handler "
+        "instead of the subgraph executor"
+    )
+
+
+def test_record_to_action_trigger_overrides_stale_action_node_type():
+    """Same drift defence for trigger nodes."""
+    record = _make_record(
+        {"id": "act-trigger", "sequence": 0, "nodeType": "action"},
+        {"subgraphId": "trigger", "dynamicValues": None},
+    )
+    action = WorkflowEngine._record_to_action(record)
+    assert action.node_type == "trigger"
+
+
 def test_record_to_action_trigger_inferred_from_subgraph_id():
     """Stale trigger Action node without nodeType gets node_type 'trigger'."""
     record = _make_record(

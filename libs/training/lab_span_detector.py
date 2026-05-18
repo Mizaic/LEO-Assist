@@ -36,12 +36,12 @@ from typing import Any
 
 # -- Regex building blocks ----------------------------------------------------
 
-# Read-code / CTV3 bracketed code, e.g. "(42X..)", "(XE2pb)", "(X772q)".
-# Real Read / CTV3 codes always contain at least one digit; requiring this
-# rejects drug brand names in parens (e.g. "(Fermagon)") that would otherwise
-# be misread as a code.
+# Read-code / CTV3 bracketed code, e.g. "(42X..)", "(XE2pb)", "(XacUK)".
+# Most codes contain a digit. Some CTV3 codes are X-prefixed without digits,
+# so accept those while still rejecting drug brand names like "(Fermagon)".
 _READ_CODE_RE = re.compile(
-    r"\((?=[A-Za-z0-9.]{3,8}\))([A-Za-z0-9.]*[0-9][A-Za-z0-9.]*)\)"
+    r"\(((?=[A-Za-z0-9.]{3,8}\))"
+    r"(?:[A-Za-z0-9.]*[0-9][A-Za-z0-9.]*|X[A-Za-z0-9.]{3,7}))\)"
 )
 
 # Numeric value token: "62", "0.70", "<5", "< 5", "5.6".
@@ -51,25 +51,61 @@ _VALUE_RE = re.compile(r"[<>]?\s*\d+(?:\.\d+)?")
 # Real examples seen in gold data:
 #   10^9/L, x10^9/l, nmol/L, g/L, mg/L, umol/L, pg, fL, %, u/mL, iu/mL,
 #   degC, Kg/m.
-_UNIT_RE = re.compile(r"[A-Za-z0-9%/^*]+")
+_UNIT_RE = re.compile(r"[A-Za-z0-9%/^*\u00b2\u00ef\u00bf\u00bd]+")
 
 # Strict medical-unit whitelist. A unit must either contain '/', '^', '%',
 # 'x10' (as in x10^9), OR be a short token recognised as a UK primary-care
 # lab unit. Words like "ductal", "grade", "moderate", "ER+ve" do not match.
-_KNOWN_UNIT_TOKENS: frozenset[str] = frozenset({
-    # volume / concentration
-    "nmol", "umol", "mmol", "mol", "mcg", "meq", "miu",
-    "ng", "pg", "fg", "ug", "mg", "g", "kg",
-    "fl", "pl", "ul", "ml", "dl", "l", "cl",
-    # count / international
-    "iu", "u", "cells", "copies",
-    # dimensional / physical
-    "pct", "percent", "bpm", "mmhg", "kpa",
-    "cm", "mm", "m", "kgm",
-    "degc", "degf", "c", "f",
-    # time / rate
-    "min", "hr", "sec", "s",
-})
+_KNOWN_UNIT_TOKENS: frozenset[str] = frozenset(
+    {
+        # volume / concentration
+        "nmol",
+        "umol",
+        "mmol",
+        "mol",
+        "mcg",
+        "meq",
+        "miu",
+        "ng",
+        "pg",
+        "fg",
+        "ug",
+        "mg",
+        "g",
+        "kg",
+        "fl",
+        "pl",
+        "ul",
+        "ml",
+        "dl",
+        "l",
+        "cl",
+        # count / international
+        "iu",
+        "u",
+        "cells",
+        "copies",
+        # dimensional / physical
+        "pct",
+        "percent",
+        "bpm",
+        "mmhg",
+        "kpa",
+        "cm",
+        "mm",
+        "m",
+        "kgm",
+        "degc",
+        "degf",
+        "c",
+        "f",
+        # time / rate
+        "min",
+        "hr",
+        "sec",
+        "s",
+    }
+)
 
 
 def _looks_like_medical_unit(token: str) -> bool:
@@ -94,8 +130,12 @@ _RANGE_RE = re.compile(r"\[[^\]]{1,40}\]")
 # Between the Read-code close and the numeric value, only whitespace is
 # allowed. A dash ("Xa3eQ - L") or a colon is a strong signal that the text
 # is not a lab result but a disorder / finding with a qualifier.
-_POST_CODE_TO_VALUE_RE = re.compile(
-    r"^[ \t]+(?=[<>]?[ \t]*\d)"
+_POST_CODE_TO_VALUE_RE = re.compile(r"^[ \t]+(?=[<>]?[ \t]*\d)")
+
+# Coded lab panels that often appear without a value on the same line. They
+# should create a short procedure span only, not an observable_entity.
+_NAME_ONLY_LAB_PROCEDURE_RE = re.compile(
+    r"\b(?:profile|function tests?)\b", re.IGNORECASE
 )
 
 # Prose prefixes that must never be treated as a lab test name.
@@ -139,11 +179,13 @@ LABEL_PROCEDURE = "procedure"
 LABEL_OBSERVABLE = "observable_entity"
 LABEL_FINDING = "finding"
 
-_LAB_LABELS: frozenset[str] = frozenset({
-    LABEL_PROCEDURE,
-    LABEL_OBSERVABLE,
-    LABEL_FINDING,
-})
+_LAB_LABELS: frozenset[str] = frozenset(
+    {
+        LABEL_PROCEDURE,
+        LABEL_OBSERVABLE,
+        LABEL_FINDING,
+    }
+)
 
 
 @dataclass
@@ -171,6 +213,9 @@ class LabPattern:
     has_interpretation: bool = False
     has_value_unit: bool = False
     read_code: str | None = None
+    numeric_value: str | None = None
+    unit: str | None = None
+    reference_range: str | None = None
 
 
 @dataclass
@@ -220,22 +265,30 @@ def detect_lab_pattern(text: str) -> LabPattern:
     test_name_start = name_start + leading_ws
     test_name_end = test_name_start + len(test_name)
 
-    # Require value to appear IMMEDIATELY after the Read-code close, separated
-    # only by whitespace. Anything else ("- L", ": Stage IIIa", "; x10") is
-    # almost always a disorder/procedure qualifier rather than a lab value.
     if _POST_CODE_TO_VALUE_RE.match(text[code_end:]) is None:
+        if _looks_like_name_only_lab_procedure(test_name):
+            return LabPattern(
+                matched=True,
+                test_name_span=LabSpan(
+                    LABEL_PROCEDURE, test_name_start, test_name_end, test_name
+                ),
+                has_value_unit=False,
+                read_code=read_code,
+            )
+        # Require value to appear IMMEDIATELY after the Read-code close,
+        # separated only by whitespace. Anything else ("- L", ": Stage IIIa",
+        # "; x10") is usually a qualifier rather than a lab value.
         return LabPattern(matched=False)
 
     value_end, has_value_unit = _find_value_unit_end(text, start_at=code_end)
+    numeric_value, unit, reference_range = _parse_value_unit(text, start_at=code_end)
     interp_end, has_interp = _find_interpretation_end(text, start_at=value_end)
 
     if not has_value_unit:
         # Without an unambiguous medical value+unit we do not propose spans.
         return LabPattern(matched=False)
 
-    procedure_span = LabSpan(
-        LABEL_PROCEDURE, test_name_start, test_name_end, test_name
-    )
+    procedure_span = LabSpan(LABEL_PROCEDURE, test_name_start, test_name_end, test_name)
 
     observable_span = None
     if has_value_unit:
@@ -243,7 +296,9 @@ def detect_lab_pattern(text: str) -> LabPattern:
         obs_text = text[test_name_start:obs_end].strip()
         if obs_text:
             observable_span = LabSpan(
-                LABEL_OBSERVABLE, test_name_start, test_name_start + len(obs_text),
+                LABEL_OBSERVABLE,
+                test_name_start,
+                test_name_start + len(obs_text),
                 obs_text,
             )
 
@@ -253,7 +308,9 @@ def detect_lab_pattern(text: str) -> LabPattern:
         find_text = text[test_name_start:find_end].strip()
         if find_text:
             finding_span = LabSpan(
-                LABEL_FINDING, test_name_start, test_name_start + len(find_text),
+                LABEL_FINDING,
+                test_name_start,
+                test_name_start + len(find_text),
                 find_text,
             )
 
@@ -265,12 +322,13 @@ def detect_lab_pattern(text: str) -> LabPattern:
         has_interpretation=has_interp,
         has_value_unit=has_value_unit,
         read_code=read_code,
+        numeric_value=numeric_value,
+        unit=unit,
+        reference_range=reference_range,
     )
 
 
-def plan_triple_backfill(
-    text: str, entities: list[dict[str, Any]]
-) -> BackfillPlan:
+def plan_triple_backfill(text: str, entities: list[dict[str, Any]]) -> BackfillPlan:
     """Return the entities to ADD to achieve the lab-triple guideline.
 
     Only proposes overlapping spans that the reviewer has not already
@@ -281,9 +339,7 @@ def plan_triple_backfill(
     if not pattern.matched or pattern.test_name_span is None:
         return BackfillPlan(matched=False, reason="no_lab_pattern")
 
-    existing_labels, existing_by_label = _summarise_existing_lab_entities(
-        entities
-    )
+    existing_labels, existing_by_label = _summarise_existing_lab_entities(entities)
 
     # A bare "Reticulocyte count" sentence only needs the procedure label;
     # there is nothing to backfill toward observable / finding.
@@ -299,16 +355,10 @@ def plan_triple_backfill(
     if LABEL_PROCEDURE not in existing_labels:
         proposed.append(_span_to_entity(pattern.test_name_span))
 
-    if (
-        pattern.observable_span is not None
-        and LABEL_OBSERVABLE not in existing_labels
-    ):
+    if pattern.observable_span is not None and LABEL_OBSERVABLE not in existing_labels:
         proposed.append(_span_to_entity(pattern.observable_span))
 
-    if (
-        pattern.finding_span is not None
-        and LABEL_FINDING not in existing_labels
-    ):
+    if pattern.finding_span is not None and LABEL_FINDING not in existing_labels:
         proposed.append(_span_to_entity(pattern.finding_span))
 
     # Drop any proposal that exactly duplicates an existing entity span.
@@ -389,10 +439,23 @@ def _find_name_before_colon_or_value(text: str) -> tuple[int, int]:
     return 0, end
 
 
-_PROSE_STOPWORDS: frozenset[str] = frozenset({
-    "the", "and", "or", "but", "if", "then", "a", "an",
-    "patient", "reports", "complaining", "history", "of",
-})
+_PROSE_STOPWORDS: frozenset[str] = frozenset(
+    {
+        "the",
+        "and",
+        "or",
+        "but",
+        "if",
+        "then",
+        "a",
+        "an",
+        "patient",
+        "reports",
+        "complaining",
+        "history",
+        "of",
+    }
+)
 
 
 def _looks_like_prose(test_name: str) -> bool:
@@ -409,6 +472,10 @@ def _looks_like_prose(test_name: str) -> bool:
         return True
     stopword_hits = sum(1 for tok in tokens if tok in _PROSE_STOPWORDS)
     return stopword_hits >= 2
+
+
+def _looks_like_name_only_lab_procedure(test_name: str) -> bool:
+    return bool(_NAME_ONLY_LAB_PROCEDURE_RE.search(test_name or ""))
 
 
 def _find_value_unit_end(text: str, *, start_at: int) -> tuple[int, bool]:
@@ -441,15 +508,44 @@ def _find_value_unit_end(text: str, *, start_at: int) -> tuple[int, bool]:
     # Optional reference range directly after the unit.
     tail = text[cursor:]
     leading_ws = len(tail) - len(tail.lstrip(" \t"))
-    range_match = _RANGE_RE.match(text[cursor + leading_ws:])
+    range_match = _RANGE_RE.match(text[cursor + leading_ws :])
     if range_match is not None:
         cursor += leading_ws + range_match.end()
     return cursor, True
 
 
-def _find_interpretation_end(
-    text: str, *, start_at: int
-) -> tuple[int, bool]:
+def _parse_value_unit(text: str, *, start_at: int) -> tuple[str | None, str | None, str | None]:
+    """Extract structured value, unit and optional range from the lab tail."""
+
+    tail = text[start_at:]
+    if not tail.strip():
+        return None, None, None
+
+    value_offset = len(tail) - len(tail.lstrip(" \t"))
+    stripped_tail = tail[value_offset:]
+    value_match = _VALUE_RE.match(stripped_tail)
+    if value_match is None:
+        return None, None, None
+
+    value = value_match.group(0).replace(" ", "")
+    cursor = start_at + value_offset + value_match.end()
+    unit_tail = text[cursor:]
+    leading_ws = len(unit_tail) - len(unit_tail.lstrip(" \t"))
+    cursor += leading_ws
+    unit_match = _UNIT_RE.match(text[cursor:])
+    if unit_match is None or not _looks_like_medical_unit(unit_match.group(0)):
+        return None, None, None
+
+    unit = unit_match.group(0)
+    cursor += unit_match.end()
+    range_tail = text[cursor:]
+    range_leading_ws = len(range_tail) - len(range_tail.lstrip(" \t"))
+    range_match = _RANGE_RE.match(text[cursor + range_leading_ws :])
+    reference_range = range_match.group(0).strip("[]") if range_match else None
+    return value, unit, reference_range
+
+
+def _find_interpretation_end(text: str, *, start_at: int) -> tuple[int, bool]:
     """Return (end_index, matched) just past the interpretation phrase."""
     tail = text[start_at:]
     match = _INTERP_RE.search(tail)
@@ -475,9 +571,7 @@ def _summarise_existing_lab_entities(
             end = int(ent.get("end", 0))
         except (TypeError, ValueError):
             start, end = 0, 0
-        by_label.setdefault(raw, []).append(
-            (start, end, str(ent.get("text", "")))
-        )
+        by_label.setdefault(raw, []).append((start, end, str(ent.get("text", ""))))
     return labels, by_label
 
 

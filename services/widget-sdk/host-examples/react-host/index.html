@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LEO widget host example - web component (React)</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="page-header">
+      <h1>Acme Health - 2WW review (host example)</h1>
+      <p>
+        This page is a stand-in for a real Mizaic-portfolio host
+        product. It mounts the LEO widget as a Shadow-DOM web
+        component. The SBAR rendering, source-record disclosure,
+        branding, telemetry, advisory channel, and host-governance
+        gate all live inside the LEO trust boundary - this page
+        only supplies the assessment-id and a host-minted widget
+        token.
+      </p>
+    </header>
+
+    <main class="page-main">
+      <section class="patient-card">
+        <h2>Patient summary (host data)</h2>
+        <ul>
+          <li>Patient: Mr A (NHS 999 999 9999)</li>
+          <li>Pathway: 2WW lower GI</li>
+          <li>Reviewer: Dr B (clinician)</li>
+        </ul>
+      </section>
+
+      <section class="leo-frame">
+        <h2>LEO SBAR</h2>
+        <leo-sbar
+          id="leo-widget"
+          assessment-id="ass-2WW-001"
+          widget-token="dev-stub-token"
+          proxy-origin="http://localhost:5173"
+        ></leo-sbar>
+        <p class="leo-status" id="leo-status" role="status">
+          Waiting for LEO widget to load...
+        </p>
+      </section>
+    </main>
+
+    <script type="module">
+      import { configureFetcher } from "/src/data/fetcher.ts";
+      configureFetcher(async () => ({
+        assessmentId: "ass-2WW-001",
+        tenantId: "tenant-acme",
+        generatedAt: "2026-04-20T15:00:00Z",
+        markdown:
+          "# SBAR\n## Situation\n2WW lower GI referral; 65y M with new IDA.\n" +
+          "## Background\n6 weeks fatigue, MCV 78, ferritin 8.\n" +
+          "## Assessment\nIron-deficiency anaemia; rule out colorectal cancer.\n" +
+          "## Recommendation\nUrgent colonoscopy within 2 weeks.\n",
+        backgroundParts: [
+          {
+            index: 1,
+            total: 1,
+            recordCount: 3,
+            recordRange: [1, 3],
+            sourceIds: ["enc-A001", "enc-A002", "enc-A003"],
+            status: "completed",
+          },
+        ],
+      }));
+      await import("/src/index.ts");
+
+      const status = document.getElementById("leo-status");
+      const widget = document.getElementById("leo-widget");
+      widget.addEventListener("leo:loaded", (event) => {
+        status.textContent = "LEO widget loaded.";
+      });
+      widget.addEventListener("leo:error", (event) => {
+        status.textContent = "LEO widget error - the host SHALL surface this without modification.";
+      });
+      widget.addEventListener("leo:disclosure-opened", () => {
+        console.log("[host] reviewer opened the source-record disclosure");
+      });
+      widget.addEventListener("leo:source-id-clicked", (event) => {
+        console.log("[host] reviewer clicked source", event.detail);
+      });
+    </script>
+  </body>
+</html>
